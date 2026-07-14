@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="sr">
+<head>
+    <meta charset="UTF-8">
+    <title>Razgovori - Dashboard</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 900px; margin: 40px auto; padding: 0 20px; }
+        h1 { color: #333; }
+        .razgovor { border: 1px solid #ddd; border-radius: 8px; padding: 16px; margin-bottom: 16px; }
+        .na-cekanju { border-color: #e0a800; background: #fffaf0; }
+        .poslato { border-color: #28a745; background: #f6fff8; }
+        .posiljalac { font-weight: bold; color: #444; }
+        .vreme { color: #888; font-size: 0.85em; }
+        .status { float: right; font-size: 0.8em; padding: 2px 8px; border-radius: 4px; }
+        .status.na-cekanju { background: #ffc107; color: #333; }
+        .status.poslato { background: #28a745; color: white; }
+        .label { font-weight: bold; margin-top: 8px; }
+        .pitanje { white-space: pre-wrap; margin: 4px 0 0 0; }
+        textarea { width: 100%; min-height: 100px; font-family: inherit; font-size: 1em; margin-top: 4px; }
+        button { margin-top: 8px; padding: 8px 16px; background: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        .odgovor { white-space: pre-wrap; margin: 4px 0 0 0; }
+    </style>
+</head>
+<body>
+    <h1>Razgovori sa kupcima</h1>
+
+    {% if razgovori|length == 0 %}
+        <p>Jos uvek nema sacuvanih razgovora.</p>
+    {% endif %}
+
+    {% for r in razgovori %}
+        {% set id, posiljalac, naslov, pitanje, predlog, konacan, status, vreme = r %}
+        <div class="razgovor {{ status.replace('_', '-') }}">
+            <span class="status {{ status.replace('_', '-') }}">{{ status }}</span>
+            <div class="posiljalac">{{ posiljalac }}</div>
+            <div class="vreme">{{ vreme }}</div>
+            <div class="label">Pitanje:</div>
+            <p class="pitanje">{{ pitanje }}</p>
+
+            {% if status == 'na_cekanju' %}
+                <div class="label">Predlog odgovora (mozes izmeniti pre slanja):</div>
+                <form method="POST" action="{{ url_for('posalji', id_razgovora=id) }}">
+                    <textarea name="odgovor">{{ predlog }}</textarea>
+                    <br>
+                    <button type="submit">Posalji odgovor</button>
+                </form>
+            {% else %}
+                <div class="label">Poslat odgovor:</div>
+                <p class="odgovor">{{ konacan }}</p>
+            {% endif %}
+        </div>
+    {% endfor %}
+</body>
+</html>
