@@ -1,9 +1,12 @@
+import os
 import sqlite3
 from werkzeug.security import generate_password_hash
 
 from sifrovanje import sifruj, desifruj
 
-IME_BAZE = "razgovori.db"
+# DB_PATH omogucava da baza zivi na trajnom volume-u u produkciji (npr. /data/razgovori.db),
+# umesto na efemernom fajl-sistemu koji se brise pri svakom redeploy-u
+IME_BAZE = os.getenv("DB_PATH", "razgovori.db")
 
 
 def konektuj():

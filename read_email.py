@@ -8,9 +8,6 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-EMAIL_ADRESA = os.getenv("EMAIL_ADDRESS")
-EMAIL_LOZINKA = os.getenv("EMAIL_APP_PASSWORD").replace(" ", "")
-
 IMAP_SERVER = "imap.gmail.com"
 
 
@@ -49,7 +46,9 @@ def uzmi_nove_poruke(email_adresa, email_app_password, max_broj=None):
 
 def procitaj_nove_poruke():
     # Koristi se za rucnu proveru u terminalu (Faza 6) - samo ispisuje, ne vraca nista
-    nove_poruke = uzmi_nove_poruke(EMAIL_ADRESA, EMAIL_LOZINKA)
+    email_adresa = os.getenv("EMAIL_ADDRESS")
+    email_app_password = (os.getenv("EMAIL_APP_PASSWORD") or "").replace(" ", "")
+    nove_poruke = uzmi_nove_poruke(email_adresa, email_app_password)
 
     print(f"Broj neprocitanih poruka: {len(nove_poruke)}\n")
     for poruka in nove_poruke:

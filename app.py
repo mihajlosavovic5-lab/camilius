@@ -8,13 +8,17 @@ from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from werkzeug.security import check_password_hash
 
-from baza import razgovori_za_biznis, jedan_razgovor, oznaci_poslato, biznis_po_korisnickom_imenu, biznis_po_id, dodaj_biznis
+from baza import razgovori_za_biznis, jedan_razgovor, oznaci_poslato, biznis_po_korisnickom_imenu, biznis_po_id, dodaj_biznis, napravi_bazu
 from send_email import posalji_email
 
 load_dotenv()
 
 app = Flask(__name__)
 app.secret_key = os.getenv("FLASK_SECRET_KEY")
+if not app.secret_key:
+    raise RuntimeError("FLASK_SECRET_KEY nije podesen u environment varijablama.")
+
+napravi_bazu()
 
 limiter = Limiter(get_remote_address, app=app, default_limits=[])
 
@@ -115,4 +119,5 @@ def posalji(id_razgovora):
 
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    debug_mod = os.getenv("FLASK_DEBUG", "false").lower() == "true"
+    app.run(debug=debug_mod)

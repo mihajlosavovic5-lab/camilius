@@ -8,8 +8,13 @@ from openai import OpenAI
 load_dotenv()
 client = OpenAI()
 
-with open("business_info.json", "r", encoding="utf-8") as f:
-    biznis = json.load(f)
+# Koristi se samo za rucno testiranje ovog fajla iz terminala (ispod, u __main__)
+DEMO_BIZNIS = {
+    "naziv_biznisa": "Frizerski salon Stil",
+    "radno_vreme": "Pon-Pet 09:00-20:00, Sub 09:00-16:00, Ned zatvoreno",
+    "cenovnik": "Musko sisanje 800 din, Zensko sisanje 1500 din, Farbanje 2500 din",
+    "cesta_pitanja": "Da li je potrebno zakazati termin unapred? Da, preporucujemo zakazivanje.",
+}
 
 
 def napravi_sistemski_prompt(biznis):
@@ -45,7 +50,7 @@ if __name__ == "__main__":
         # koristi se za automatsko testiranje, bez kucanja u terminalu.
         pitanje = " ".join(sys.argv[1:])
         print(f"Kupac: {pitanje}")
-        odgovor = generisi_odgovor(pitanje, biznis)
+        odgovor = generisi_odgovor(pitanje, DEMO_BIZNIS)
         print(f"AI: {odgovor}")
     else:
         print("Ukucaj pitanje kupca (ili 'kraj' za izlaz):\n")
@@ -53,5 +58,5 @@ if __name__ == "__main__":
             pitanje = input("Kupac: ")
             if pitanje.strip().lower() == "kraj":
                 break
-            odgovor = generisi_odgovor(pitanje, biznis)
+            odgovor = generisi_odgovor(pitanje, DEMO_BIZNIS)
             print(f"AI: {odgovor}\n")
