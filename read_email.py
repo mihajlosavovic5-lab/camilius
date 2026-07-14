@@ -14,10 +14,10 @@ EMAIL_LOZINKA = os.getenv("EMAIL_APP_PASSWORD").replace(" ", "")
 IMAP_SERVER = "imap.gmail.com"
 
 
-def uzmi_nove_poruke():
+def uzmi_nove_poruke(email_adresa, email_app_password):
     # Povezujemo se na Gmail-ov IMAP server preko sigurne (SSL) konekcije
     konekcija = imaplib.IMAP4_SSL(IMAP_SERVER)
-    konekcija.login(EMAIL_ADRESA, EMAIL_LOZINKA)
+    konekcija.login(email_adresa, email_app_password.replace(" ", ""))
 
     # Biramo koji "folder" gledamo - INBOX je glavno prijemno sanduce
     konekcija.select("INBOX")
@@ -45,7 +45,7 @@ def uzmi_nove_poruke():
 
 def procitaj_nove_poruke():
     # Koristi se za rucnu proveru u terminalu (Faza 6) - samo ispisuje, ne vraca nista
-    nove_poruke = uzmi_nove_poruke()
+    nove_poruke = uzmi_nove_poruke(EMAIL_ADRESA, EMAIL_LOZINKA)
 
     print(f"Broj neprocitanih poruka: {len(nove_poruke)}\n")
     for poruka in nove_poruke:

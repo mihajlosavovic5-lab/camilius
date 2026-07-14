@@ -1,22 +1,45 @@
 import sqlite3
+import json
 
 IME_BAZE = "razgovori.db"
 
 
-def napravi_bazu():
+def konektuj():
     konekcija = sqlite3.connect(IME_BAZE)
+    konekcija.execute("PRAGMA foreign_keys = ON")
+    return konekcija
+
+
+def napravi_bazu():
+    konekcija = konektuj()
     kursor = konekcija.cursor()
+
+    kursor.execute("""
+        CREATE TABLE IF NOT EXISTS biznisi (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            naziv TEXT NOT NULL,
+            korisnicko_ime TEXT NOT NULL UNIQUE,
+            lozinka TEXT NOT NULL,
+            email_adresa TEXT NOT NULL UNIQUE,
+            email_app_password TEXT NOT NULL,
+            radno_vreme TEXT NOT NULL,
+            cenovnik TEXT NOT NULL,
+            cesta_pitanja TEXT NOT NULL
+        )
+    """)
 
     kursor.execute("""
         CREATE TABLE IF NOT EXISTS razgovori (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
+            biznis_id INTEGER NOT NULL,
             posiljalac TEXT NOT NULL,
             naslov TEXT,
             pitanje TEXT NOT NULL,
             predlog_odgovora TEXT NOT NULL,
             konacan_odgovor TEXT,
             status TEXT NOT NULL DEFAULT 'na_cekanju',
-            vreme TEXT DEFAULT CURRENT_TIMESTAMP
+            vreme TEXT DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (biznis_id) REFERENCES biznisi(id)
         )
     """)
 
@@ -24,13 +47,79 @@ def napravi_bazu():
     konekcija.close()
 
 
-def sacuvaj_predlog(posiljalac, naslov, pitanje, predlog_odgovora):
-    konekcija = sqlite3.connect(IME_BAZE)
+# --- Biznisi ---
+
+def dodaj_biznis(naziv, korisnicko_ime, lozinka, email_adresa, email_app_password, radno_vreme, cenovnik, cesta_pitanja):
+    konekcija = konektuj()
     kursor = konekcija.cursor()
 
     kursor.execute(
-        "INSERT INTO razgovori (posiljalac, naslov, pitanje, predlog_odgovora) VALUES (?, ?, ?, ?)",
-        (posiljalac, naslov, pitanje, predlog_odgovora),
+        """INSERT INTO biznisi
+           (naziv, korisnicko_ime, lozinka, email_adresa, email_app_password, radno_vreme, cenovnik, cesta_pitanja)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+        (
+            naziv,
+            korisnicko_ime,
+            lozinka,
+            email_adresa,
+            email_app_password,
+            json.dumps(radno_vreme, ensure_ascii=False),
+            json.dumps(cenovnik, ensure_ascii=False),
+            json.dumps(cesta_pitanja, ensure_ascii=False),
+        ),
+    )
+
+    konekcija.commit()
+    novi_id = kursor.lastrowid
+    konekcija.close()
+    return novi_id
+
+
+def svi_biznisi():
+    konekcija = konektuj()
+    kursor = konekcija.cursor()
+    kursor.execute("""
+        SELECT id, naziv, email_adresa, email_app_password, radno_vreme, cenovnik, cesta_pitanja
+        FROM biznisi
+    """)
+    rezultat = kursor.fetchall()
+    konekcija.close()
+    return rezultat
+
+
+def biznis_po_id(biznis_id):
+    konekcija = konektuj()
+    kursor = konekcija.cursor()
+    kursor.execute(
+        "SELECT id, naziv, korisnicko_ime, lozinka, email_adresa, email_app_password, radno_vreme, cenovnik, cesta_pitanja FROM biznisi WHERE id = ?",
+        (biznis_id,),
+    )
+    red = kursor.fetchone()
+    konekcija.close()
+    return red
+
+
+def biznis_po_korisnickom_imenu(korisnicko_ime):
+    konekcija = konektuj()
+    kursor = konekcija.cursor()
+    kursor.execute(
+        "SELECT id, naziv, korisnicko_ime, lozinka, email_adresa, email_app_password, radno_vreme, cenovnik, cesta_pitanja FROM biznisi WHERE korisnicko_ime = ?",
+        (korisnicko_ime,),
+    )
+    red = kursor.fetchone()
+    konekcija.close()
+    return red
+
+
+# --- Razgovori ---
+
+def sacuvaj_predlog(biznis_id, posiljalac, naslov, pitanje, predlog_odgovora):
+    konekcija = konektuj()
+    kursor = konekcija.cursor()
+
+    kursor.execute(
+        "INSERT INTO razgovori (biznis_id, posiljalac, naslov, pitanje, predlog_odgovora) VALUES (?, ?, ?, ?, ?)",
+        (biznis_id, posiljalac, naslov, pitanje, predlog_odgovora),
     )
 
     konekcija.commit()
@@ -40,7 +129,7 @@ def sacuvaj_predlog(posiljalac, naslov, pitanje, predlog_odgovora):
 
 
 def oznaci_poslato(id_razgovora, konacan_odgovor):
-    konekcija = sqlite3.connect(IME_BAZE)
+    konekcija = konektuj()
     kursor = konekcija.cursor()
 
     kursor.execute(
@@ -53,25 +142,29 @@ def oznaci_poslato(id_razgovora, konacan_odgovor):
 
 
 def jedan_razgovor(id_razgovora):
-    konekcija = sqlite3.connect(IME_BAZE)
+    konekcija = konektuj()
     kursor = konekcija.cursor()
 
-    kursor.execute("SELECT id, posiljalac, naslov, pitanje, predlog_odgovora FROM razgovori WHERE id = ?", (id_razgovora,))
+    kursor.execute(
+        "SELECT id, biznis_id, posiljalac, naslov, pitanje, predlog_odgovora FROM razgovori WHERE id = ?",
+        (id_razgovora,),
+    )
     red = kursor.fetchone()
 
     konekcija.close()
     return red
 
 
-def svi_razgovori():
-    konekcija = sqlite3.connect(IME_BAZE)
+def razgovori_za_biznis(biznis_id):
+    konekcija = konektuj()
     kursor = konekcija.cursor()
 
     kursor.execute("""
         SELECT id, posiljalac, naslov, pitanje, predlog_odgovora, konacan_odgovor, status, vreme
         FROM razgovori
+        WHERE biznis_id = ?
         ORDER BY vreme DESC
-    """)
+    """, (biznis_id,))
     rezultat = kursor.fetchall()
 
     konekcija.close()

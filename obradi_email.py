@@ -8,27 +8,36 @@ from email.utils import parseaddr
 
 from read_email import uzmi_nove_poruke
 from generate_reply import generisi_odgovor
-from baza import napravi_bazu, sacuvaj_predlog
-
-with open("business_info.json", "r", encoding="utf-8") as f:
-    biznis = json.load(f)
+from baza import napravi_bazu, sacuvaj_predlog, svi_biznisi
 
 
-def obradi_nove_poruke():
-    nove_poruke = uzmi_nove_poruke()
-    print(f"Broj novih poruka: {len(nove_poruke)}")
+def obradi_jednog_biznisa(biznis_red):
+    biznis_id, naziv, email_adresa, email_app_password, radno_vreme, cenovnik, cesta_pitanja = biznis_red
+
+    biznis = {
+        "naziv_biznisa": naziv,
+        "radno_vreme": json.loads(radno_vreme),
+        "cenovnik": json.loads(cenovnik),
+        "cesta_pitanja": json.loads(cesta_pitanja),
+    }
+
+    nove_poruke = uzmi_nove_poruke(email_adresa, email_app_password)
+    print(f"[{naziv}] Broj novih poruka: {len(nove_poruke)}")
 
     for poruka in nove_poruke:
         ime, adresa_posiljaoca = parseaddr(poruka["posiljalac"])
 
-        print(f"\nObradujem poruku od: {adresa_posiljaoca}")
-        print(f"Pitanje: {poruka['tekst'][:100]}")
+        print(f"[{naziv}] Obradujem poruku od: {adresa_posiljaoca}")
 
         predlog = generisi_odgovor(poruka["tekst"], biznis)
-        print(f"AI predlog odgovora: {predlog[:100]}")
 
-        sacuvaj_predlog(adresa_posiljaoca, poruka["naslov"], poruka["tekst"], predlog)
-        print("Predlog sacuvan, ceka odobrenje u dashboardu.")
+        sacuvaj_predlog(biznis_id, adresa_posiljaoca, poruka["naslov"], poruka["tekst"], predlog)
+        print(f"[{naziv}] Predlog sacuvan, ceka odobrenje u dashboardu.")
+
+
+def obradi_nove_poruke():
+    for biznis_red in svi_biznisi():
+        obradi_jednog_biznisa(biznis_red)
 
 
 INTERVAL_SEKUNDE = 60

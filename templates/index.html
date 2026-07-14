@@ -23,7 +23,7 @@
 </head>
 <body>
     <a href="{{ url_for('logout') }}" style="float:right;">Odjava</a>
-    <h1>Razgovori sa kupcima</h1>
+    <h1>{{ biznis_naziv }} - razgovori sa kupcima</h1>
 
     {% if razgovori|length == 0 %}
         <p>Jos uvek nema sacuvanih razgovora.</p>
