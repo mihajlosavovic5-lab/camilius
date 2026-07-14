@@ -4,6 +4,8 @@ from functools import wraps
 
 from dotenv import load_dotenv
 from flask import Flask, render_template, request, redirect, url_for, session, abort
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 from werkzeug.security import check_password_hash
 
 from baza import razgovori_za_biznis, jedan_razgovor, oznaci_poslato, biznis_po_korisnickom_imenu, biznis_po_id, dodaj_biznis
@@ -13,6 +15,8 @@ load_dotenv()
 
 app = Flask(__name__)
 app.secret_key = os.getenv("FLASK_SECRET_KEY")
+
+limiter = Limiter(get_remote_address, app=app, default_limits=[])
 
 
 def prijava_potrebna(funkcija):
@@ -25,6 +29,7 @@ def prijava_potrebna(funkcija):
 
 
 @app.route("/login", methods=["GET", "POST"])
+@limiter.limit("10 per 15 minutes", methods=["POST"])
 def login():
     if request.method == "POST":
         korisnicko_ime = request.form["korisnicko_ime"]
@@ -43,6 +48,7 @@ def login():
 
 
 @app.route("/registracija", methods=["GET", "POST"])
+@limiter.limit("5 per hour", methods=["POST"])
 def registracija():
     if request.method == "POST":
         try:

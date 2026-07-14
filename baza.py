@@ -126,6 +126,20 @@ def biznis_po_korisnickom_imenu(korisnicko_ime):
 
 # --- Razgovori ---
 
+def broj_odgovora_danas(biznis_id):
+    konekcija = konektuj()
+    kursor = konekcija.cursor()
+
+    kursor.execute(
+        "SELECT COUNT(*) FROM razgovori WHERE biznis_id = ? AND date(vreme) = date('now')",
+        (biznis_id,),
+    )
+    broj = kursor.fetchone()[0]
+
+    konekcija.close()
+    return broj
+
+
 def sacuvaj_predlog(biznis_id, posiljalac, naslov, pitanje, predlog_odgovora):
     konekcija = konektuj()
     kursor = konekcija.cursor()

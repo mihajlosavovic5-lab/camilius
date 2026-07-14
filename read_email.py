@@ -14,7 +14,7 @@ EMAIL_LOZINKA = os.getenv("EMAIL_APP_PASSWORD").replace(" ", "")
 IMAP_SERVER = "imap.gmail.com"
 
 
-def uzmi_nove_poruke(email_adresa, email_app_password):
+def uzmi_nove_poruke(email_adresa, email_app_password, max_broj=None):
     # Povezujemo se na Gmail-ov IMAP server preko sigurne (SSL) konekcije
     konekcija = imaplib.IMAP4_SSL(IMAP_SERVER)
     konekcija.login(email_adresa, email_app_password.replace(" ", ""))
@@ -25,6 +25,10 @@ def uzmi_nove_poruke(email_adresa, email_app_password):
     # Trazimo samo NEPROCITANE poruke
     status, poruke_id = konekcija.search(None, "UNSEEN")
     lista_id = poruke_id[0].split()
+
+    if max_broj is not None:
+        # Uzimamo samo prvih 'max_broj' - ostale namerno ne diramo (ostaju NEPROCITANE za sledeci put)
+        lista_id = lista_id[:max_broj]
 
     nove_poruke = []
     for msg_id in lista_id:

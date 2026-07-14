@@ -7,11 +7,18 @@ from email.utils import parseaddr
 
 from read_email import uzmi_nove_poruke
 from generate_reply import generisi_odgovor
-from baza import napravi_bazu, sacuvaj_predlog, svi_biznisi
+from baza import napravi_bazu, sacuvaj_predlog, svi_biznisi, broj_odgovora_danas
+
+DNEVNI_LIMIT_ODGOVORA = 50
 
 
 def obradi_jednog_biznisa(biznis_red):
     biznis_id, naziv, email_adresa, email_app_password, radno_vreme, cenovnik, cesta_pitanja = biznis_red
+
+    preostalo_danas = DNEVNI_LIMIT_ODGOVORA - broj_odgovora_danas(biznis_id)
+    if preostalo_danas <= 0:
+        print(f"[{naziv}] Dostignut dnevni limit ({DNEVNI_LIMIT_ODGOVORA}) - preskacem do sutra.")
+        return
 
     biznis = {
         "naziv_biznisa": naziv,
@@ -20,7 +27,7 @@ def obradi_jednog_biznisa(biznis_red):
         "cesta_pitanja": cesta_pitanja,
     }
 
-    nove_poruke = uzmi_nove_poruke(email_adresa, email_app_password)
+    nove_poruke = uzmi_nove_poruke(email_adresa, email_app_password, max_broj=preostalo_danas)
     print(f"[{naziv}] Broj novih poruka: {len(nove_poruke)}")
 
     for poruka in nove_poruke:
