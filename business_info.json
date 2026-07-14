@@ -1,0 +1,41 @@
+{
+  "naziv_biznisa": "Frizerski salon Stil",
+  "adresa": "Bulevar Oslobođenja 45, Novi Sad",
+  "telefon": "021 123 456",
+  "radno_vreme": {
+    "ponedeljak": "09:00 - 20:00",
+    "utorak": "09:00 - 20:00",
+    "sreda": "09:00 - 20:00",
+    "cetvrtak": "09:00 - 20:00",
+    "petak": "09:00 - 20:00",
+    "subota": "09:00 - 16:00",
+    "nedelja": "zatvoreno"
+  },
+  "cenovnik": {
+    "musko_sisanje": "800 din",
+    "zensko_sisanje": "1500 din",
+    "farbanje_kose": "2500 din",
+    "pramenovi": "3500 din",
+    "feniranje": "700 din",
+    "brijanje_brade": "500 din",
+    "decije_sisanje": "600 din"
+  },
+  "cesta_pitanja": [
+    {
+      "pitanje": "Da li je potrebno zakazati termin unapred?",
+      "odgovor": "Da, preporučujemo zakazivanje termina unapred, pogotovo za vikend, jer je salon tada najprometniji."
+    },
+    {
+      "pitanje": "Da li primate placanje karticom?",
+      "odgovor": "Da, primamo i gotovinu i platne kartice."
+    },
+    {
+      "pitanje": "Da li radite sa decom?",
+      "odgovor": "Da, radimo dečije šišanje svih uzrasta."
+    },
+    {
+      "pitanje": "Koliko traje farbanje kose?",
+      "odgovor": "Farbanje kose obično traje između 1.5 i 2.5 sata, u zavisnosti od dužine i gustine kose."
+    }
+  ]
+}
