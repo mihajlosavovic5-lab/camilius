@@ -1,5 +1,8 @@
 import sqlite3
 import json
+from werkzeug.security import generate_password_hash
+
+from sifrovanje import sifruj, desifruj
 
 IME_BAZE = "razgovori.db"
 
@@ -60,9 +63,9 @@ def dodaj_biznis(naziv, korisnicko_ime, lozinka, email_adresa, email_app_passwor
         (
             naziv,
             korisnicko_ime,
-            lozinka,
+            generate_password_hash(lozinka),
             email_adresa,
-            email_app_password,
+            sifruj(email_app_password),
             json.dumps(radno_vreme, ensure_ascii=False),
             json.dumps(cenovnik, ensure_ascii=False),
             json.dumps(cesta_pitanja, ensure_ascii=False),
@@ -84,7 +87,9 @@ def svi_biznisi():
     """)
     rezultat = kursor.fetchall()
     konekcija.close()
-    return rezultat
+
+    # email_app_password je sifrovan u bazi (indeks 3) - desifrujemo ga pre upotrebe
+    return [red[:3] + (desifruj(red[3]),) + red[4:] for red in rezultat]
 
 
 def biznis_po_id(biznis_id):
@@ -96,7 +101,11 @@ def biznis_po_id(biznis_id):
     )
     red = kursor.fetchone()
     konekcija.close()
-    return red
+
+    if red is None:
+        return None
+    # email_app_password je na indeksu 5 - desifrujemo ga pre upotrebe
+    return red[:5] + (desifruj(red[5]),) + red[6:]
 
 
 def biznis_po_korisnickom_imenu(korisnicko_ime):
@@ -108,7 +117,12 @@ def biznis_po_korisnickom_imenu(korisnicko_ime):
     )
     red = kursor.fetchone()
     konekcija.close()
-    return red
+
+    if red is None:
+        return None
+    # NAPOMENA: 'lozinka' (indeks 3) ostaje hesirana - login funkcija je proverava
+    # preko check_password_hash, nikad se ne desifruje. email_app_password (indeks 5) desifrujemo.
+    return red[:5] + (desifruj(red[5]),) + red[6:]
 
 
 # --- Razgovori ---

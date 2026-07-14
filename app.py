@@ -3,6 +3,7 @@ from functools import wraps
 
 from dotenv import load_dotenv
 from flask import Flask, render_template, request, redirect, url_for, session, abort
+from werkzeug.security import check_password_hash
 
 from baza import razgovori_za_biznis, jedan_razgovor, oznaci_poslato, biznis_po_korisnickom_imenu, biznis_po_id
 from send_email import posalji_email
@@ -30,7 +31,7 @@ def login():
 
         biznis = biznis_po_korisnickom_imenu(korisnicko_ime)
 
-        if biznis and biznis[3] == lozinka:
+        if biznis and check_password_hash(biznis[3], lozinka):
             session["biznis_id"] = biznis[0]
             session["biznis_naziv"] = biznis[1]
             return redirect(url_for("pocetna"))
