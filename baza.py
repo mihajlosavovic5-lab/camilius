@@ -1,5 +1,4 @@
 import sqlite3
-import json
 from werkzeug.security import generate_password_hash
 
 from sifrovanje import sifruj, desifruj
@@ -66,9 +65,9 @@ def dodaj_biznis(naziv, korisnicko_ime, lozinka, email_adresa, email_app_passwor
             generate_password_hash(lozinka),
             email_adresa,
             sifruj(email_app_password),
-            json.dumps(radno_vreme, ensure_ascii=False),
-            json.dumps(cenovnik, ensure_ascii=False),
-            json.dumps(cesta_pitanja, ensure_ascii=False),
+            radno_vreme,
+            cenovnik,
+            cesta_pitanja,
         ),
     )
 

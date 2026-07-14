@@ -1,7 +1,6 @@
 import sys
 sys.stdout.reconfigure(encoding="utf-8")
 
-import json
 import time
 from datetime import datetime
 from email.utils import parseaddr
@@ -16,9 +15,9 @@ def obradi_jednog_biznisa(biznis_red):
 
     biznis = {
         "naziv_biznisa": naziv,
-        "radno_vreme": json.loads(radno_vreme),
-        "cenovnik": json.loads(cenovnik),
-        "cesta_pitanja": json.loads(cesta_pitanja),
+        "radno_vreme": radno_vreme,
+        "cenovnik": cenovnik,
+        "cesta_pitanja": cesta_pitanja,
     }
 
     nove_poruke = uzmi_nove_poruke(email_adresa, email_app_password)

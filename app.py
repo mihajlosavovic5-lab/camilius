@@ -1,11 +1,12 @@
 import os
+import sqlite3
 from functools import wraps
 
 from dotenv import load_dotenv
 from flask import Flask, render_template, request, redirect, url_for, session, abort
 from werkzeug.security import check_password_hash
 
-from baza import razgovori_za_biznis, jedan_razgovor, oznaci_poslato, biznis_po_korisnickom_imenu, biznis_po_id
+from baza import razgovori_za_biznis, jedan_razgovor, oznaci_poslato, biznis_po_korisnickom_imenu, biznis_po_id, dodaj_biznis
 from send_email import posalji_email
 
 load_dotenv()
@@ -39,6 +40,30 @@ def login():
         return render_template("login.html", greska="Pogresno korisnicko ime ili lozinka.")
 
     return render_template("login.html", greska=None)
+
+
+@app.route("/registracija", methods=["GET", "POST"])
+def registracija():
+    if request.method == "POST":
+        try:
+            novi_id = dodaj_biznis(
+                naziv=request.form["naziv"],
+                korisnicko_ime=request.form["korisnicko_ime"],
+                lozinka=request.form["lozinka"],
+                email_adresa=request.form["email_adresa"],
+                email_app_password=request.form["email_app_password"],
+                radno_vreme=request.form["radno_vreme"],
+                cenovnik=request.form["cenovnik"],
+                cesta_pitanja=request.form["cesta_pitanja"],
+            )
+        except sqlite3.IntegrityError:
+            return render_template("registracija.html", greska="To korisnicko ime ili email adresa su vec zauzeti.")
+
+        session["biznis_id"] = novi_id
+        session["biznis_naziv"] = request.form["naziv"]
+        return redirect(url_for("pocetna"))
+
+    return render_template("registracija.html", greska=None)
 
 
 @app.route("/logout")
