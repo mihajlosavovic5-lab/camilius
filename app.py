@@ -8,7 +8,7 @@ from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from werkzeug.security import check_password_hash
 
-from baza import razgovori_za_biznis, jedan_razgovor, oznaci_poslato, biznis_po_korisnickom_imenu, biznis_po_id, dodaj_biznis, napravi_bazu, obrisi_biznis
+from baza import razgovori_za_biznis, jedan_razgovor, oznaci_poslato, biznis_po_korisnickom_imenu, biznis_po_id, dodaj_biznis, napravi_bazu, obrisi_biznis, broj_odgovora_danas
 from send_email import posalji_email
 from read_email import proveri_kredencijale
 
@@ -118,11 +118,35 @@ def uslovi():
     return render_template("uslovi.html")
 
 
+DNEVNI_LIMIT_ODGOVORA = 50  # isti limit kao u obradi_email.py
+
+
 @app.route("/")
 @prijava_potrebna
 def pocetna():
     razgovori = razgovori_za_biznis(session["biznis_id"])
-    return render_template("index.html", razgovori=razgovori, biznis_naziv=session["biznis_naziv"])
+
+    # Filter po statusu preko ?filter=na_cekanju ili ?filter=poslato (podrazumevano: svi)
+    filter_status = request.args.get("filter")
+    if filter_status in ("na_cekanju", "poslato"):
+        prikazani = [r for r in razgovori if r[6] == filter_status]
+    else:
+        filter_status = "svi"
+        prikazani = razgovori
+
+    broj_na_cekanju = sum(1 for r in razgovori if r[6] == "na_cekanju")
+    danas = broj_odgovora_danas(session["biznis_id"])
+
+    return render_template(
+        "index.html",
+        razgovori=prikazani,
+        biznis_naziv=session["biznis_naziv"],
+        filter_status=filter_status,
+        broj_svi=len(razgovori),
+        broj_na_cekanju=broj_na_cekanju,
+        danas=danas,
+        dnevni_limit=DNEVNI_LIMIT_ODGOVORA,
+    )
 
 
 @app.route("/posalji/<int:id_razgovora>", methods=["POST"])
