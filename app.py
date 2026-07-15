@@ -222,8 +222,13 @@ DNEVNI_LIMIT_ODGOVORA = 50  # isti limit kao u obradi_email.py
 
 
 @app.route("/")
-@prijava_potrebna
 def pocetna():
+    # Neulogovani posetioci vide javnu landing stranicu (marketing + poziv na
+    # registraciju) umesto redirect-a na login. Ulogovani vide dashboard.
+    if not session.get("biznis_id") or biznis_po_id(session["biznis_id"]) is None:
+        session.clear()
+        return render_template("landing.html")
+
     razgovori = razgovori_za_biznis(session["biznis_id"])
 
     # Filter po statusu preko ?filter=na_cekanju ili ?filter=poslato (podrazumevano: svi)

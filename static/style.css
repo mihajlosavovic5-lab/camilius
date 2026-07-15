@@ -266,6 +266,38 @@ body.auth {
 .nazad { display: inline-block; margin-top: 26px; color: var(--tekst-blagi); font-size: 14px; }
 .razmak-gore { margin-top: 20px; }
 
+/* --- Landing strana --- */
+.hero { text-align: center; padding: 48px 0 36px; }
+.hero h1 { font-size: 38px; font-weight: 800; letter-spacing: -1px; line-height: 1.15; margin-bottom: 14px; }
+.hero-podnaslov { color: var(--tekst-blagi); font-size: 17px; max-width: 620px; margin: 0 auto 24px; }
+.hero-akcije { margin-bottom: 12px; }
+.hero-akcije .dugme:hover { text-decoration: none; }
+.hero-sitno { color: #9ca3af; font-size: 13px; }
+
+.sekcija { padding: 32px 0; }
+.sekcija-naslov { text-align: center; font-size: 24px; margin-bottom: 24px; }
+
+.koraci { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+.korak h3 { font-size: 16px; margin: 12px 0 6px; }
+.korak p { color: var(--tekst-blagi); font-size: 14px; margin: 0; }
+.korak-broj {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 32px; height: 32px; border-radius: 99px;
+    background: var(--primarna-svetla); color: var(--primarna);
+    font-weight: 800; font-size: 15px;
+}
+
+.cena-karta { max-width: 380px; margin: 0 auto; text-align: center; padding: 30px; }
+.cena-karta .dugme:hover { text-decoration: none; }
+
+.podnozje { text-align: center; padding: 40px 0 10px; color: #9ca3af; font-size: 13.5px; }
+.podnozje a { color: var(--tekst-blagi); }
+
+@media (max-width: 720px) {
+    .koraci { grid-template-columns: 1fr; }
+    .hero h1 { font-size: 28px; }
+}
+
 @media (max-width: 560px) {
     .zaglavlje-strane h1 { font-size: 20px; }
     .karta { padding: 16px; }
