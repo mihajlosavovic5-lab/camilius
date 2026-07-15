@@ -27,6 +27,12 @@ export default defineRailway(() => {
       FLASK_SECRET_KEY: preserve(),
       OPENAI_API_KEY: preserve(),
       RESEND_API_KEY: preserve(),
+      // Paddle (sandbox za sad; pri prelasku na produkciju menja se PADDLE_ENV
+      // i svi kljucevi u prave production vrednosti)
+      PADDLE_ENV: "sandbox",
+      PADDLE_PRICE_ID: "pri_01kxkbxekp5274dy4zgg947ezg",
+      PADDLE_CLIENT_TOKEN: preserve(),
+      PADDLE_WEBHOOK_SECRET: preserve(),
     },
   });
 
