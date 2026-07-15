@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="sr">
+<head>
+    <meta charset="UTF-8">
+    <title>Pretplata - ai-auto-reply</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 560px; margin: 40px auto; padding: 0 20px; }
+        h1 { color: #333; }
+        .karta { border: 1px solid #ddd; border-radius: 8px; padding: 24px; margin-top: 20px; }
+        .cena { font-size: 2em; font-weight: bold; color: #222; }
+        .cena small { font-size: 0.45em; font-weight: normal; color: #777; }
+        ul { padding-left: 20px; color: #444; }
+        li { margin: 6px 0; }
+        button { margin-top: 16px; padding: 12px 24px; background: #635bff; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 1em; }
+        button:disabled { background: #bbb; cursor: default; }
+        .status-aktivna { background: #f6fff8; border-color: #28a745; }
+        .oznaka { display: inline-block; padding: 3px 10px; border-radius: 4px; font-size: 0.85em; }
+        .oznaka.aktivna { background: #28a745; color: white; }
+        .oznaka.neaktivna { background: #ffc107; color: #333; }
+        .nazad { display: inline-block; margin-top: 20px; color: #555; }
+        .napomena { font-size: 0.85em; color: #777; margin-top: 12px; }
+    </style>
+</head>
+<body>
+    <h1>Pretplata</h1>
+
+    {% if aktivna %}
+        <div class="karta status-aktivna">
+            <span class="oznaka aktivna">Pretplata aktivna ({{ status }})</span>
+            <p>Tvoj nalog je aktivan i AI obradjuje nove mejlove. Hvala!</p>
+        </div>
+    {% else %}
+        <div class="karta">
+            <div class="cena">19&euro; <small>/ mesec</small></div>
+            <p>Prvih <strong>14 dana besplatno</strong> &mdash; ne naplacuje se dok traje probni period.</p>
+            <ul>
+                <li>AI automatski cita nove mejlove i priprema predloge odgovora</li>
+                <li>Ti samo odobris i posaljes iz dashboarda</li>
+                <li>Do 50 odgovora dnevno</li>
+                <li>Otkazi bilo kada</li>
+            </ul>
+            {% if status and status != 'none' %}
+                <p><span class="oznaka neaktivna">Status: {{ status }}</span></p>
+            {% endif %}
+            <button id="pretplati-se" disabled>Ucitavanje...</button>
+            <p class="napomena">Placanje obradjuje Paddle (nas ovlasceni preprodavac). PDV se obracunava automatski.</p>
+        </div>
+    {% endif %}
+
+    <a class="nazad" href="{{ url_for('pocetna') }}">&larr; Nazad na dashboard</a>
+
+    {% if not aktivna %}
+    <script src="https://cdn.paddle.com/paddle/v2/paddle.js"></script>
+    <script>
+        const CLIENT_TOKEN = "{{ client_token }}";
+        const PRICE_ID = "{{ price_id }}";
+        const PADDLE_ENV = "{{ paddle_env }}";
+        const BIZNIS_ID = "{{ biznis_id }}";
+        const EMAIL = "{{ email }}";
+
+        const dugme = document.getElementById("pretplati-se");
+
+        if (!CLIENT_TOKEN || !PRICE_ID) {
+            dugme.textContent = "Pretplata trenutno nije dostupna";
+        } else {
+            if (PADDLE_ENV === "sandbox") {
+                Paddle.Environment.set("sandbox");
+            }
+            Paddle.Initialize({ token: CLIENT_TOKEN });
+
+            dugme.disabled = false;
+            dugme.textContent = "Pretplati se";
+
+            dugme.addEventListener("click", function () {
+                Paddle.Checkout.open({
+                    items: [{ priceId: PRICE_ID, quantity: 1 }],
+                    customer: { email: EMAIL },
+                    // biznis_id putuje kroz checkout pa nam ga Paddle vrati u webhook-u,
+                    // tako povezujemo pretplatu sa nasim nalogom
+                    customData: { biznis_id: BIZNIS_ID },
+                    settings: {
+                        displayMode: "overlay",
+                        theme: "light",
+                        successUrl: "{{ url_for('pocetna', _external=True) }}"
+                    }
+                });
+            });
+        }
+    </script>
+    {% endif %}
+</body>
+</html>

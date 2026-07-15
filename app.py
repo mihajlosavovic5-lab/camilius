@@ -1,4 +1,6 @@
 import os
+import hmac
+import hashlib
 import secrets
 from datetime import datetime, timedelta, timezone
 from functools import wraps
@@ -14,6 +16,7 @@ from baza import (
     razgovori_za_biznis, jedan_razgovor, oznaci_poslato, biznis_po_korisnickom_imenu,
     biznis_po_id, dodaj_biznis, napravi_bazu, obrisi_biznis, broj_odgovora_danas,
     azuriraj_biznis, biznis_po_emailu, sacuvaj_reset_token, biznis_po_reset_tokenu, postavi_novu_lozinku,
+    povezi_pretplatu, azuriraj_status_pretplate, status_pretplate, pretplata_aktivna,
 )
 from send_email import posalji_email
 from read_email import proveri_kredencijale
@@ -271,6 +274,77 @@ def posalji(id_razgovora):
     oznaci_poslato(id_razgovora, konacan_odgovor)
 
     return redirect(url_for("pocetna"))
+
+
+# --- Pretplata (Paddle) ---
+
+@app.route("/pretplata")
+@prijava_potrebna
+def pretplata():
+    biznis = biznis_po_id(session["biznis_id"])
+    status = status_pretplate(session["biznis_id"])
+    return render_template(
+        "pretplata.html",
+        client_token=os.getenv("PADDLE_CLIENT_TOKEN", ""),
+        price_id=os.getenv("PADDLE_PRICE_ID", ""),
+        paddle_env=os.getenv("PADDLE_ENV", "sandbox"),
+        biznis_id=session["biznis_id"],
+        email=biznis[4],
+        status=status,
+        aktivna=pretplata_aktivna(status),
+    )
+
+
+def proveri_paddle_potpis(header, sirovo_telo, tajni_kljuc):
+    """Proverava Paddle-Signature header (HMAC-SHA256).
+
+    Format headera: 'ts=<timestamp>;h1=<hash>'. Potpisani payload je
+    '<ts>:<sirovo_telo>'. Ovim dokazujemo da zahtev stvarno dolazi od Paddle-a,
+    a ne od nekog ko pogodi URL webhook-a i pokusa da lazira pretplatu.
+    """
+    try:
+        delovi = dict(par.split("=", 1) for par in header.split(";"))
+        ts = delovi["ts"]
+        h1 = delovi["h1"]
+    except (ValueError, KeyError):
+        return False
+
+    potpisano = ts.encode() + b":" + sirovo_telo
+    ocekivano = hmac.new(tajni_kljuc.encode(), potpisano, hashlib.sha256).hexdigest()
+    return hmac.compare_digest(ocekivano, h1)
+
+
+@app.route("/paddle-webhook", methods=["POST"])
+def paddle_webhook():
+    tajni_kljuc = os.getenv("PADDLE_WEBHOOK_SECRET")
+    if not tajni_kljuc:
+        # Nije jos podeseno - odbijamo da ne bismo tiho primali nepotpisane zahteve
+        abort(503)
+
+    sirovo_telo = request.get_data()
+    if not proveri_paddle_potpis(request.headers.get("Paddle-Signature", ""), sirovo_telo, tajni_kljuc):
+        abort(400)
+
+    dogadjaj = request.get_json(silent=True) or {}
+    tip = dogadjaj.get("event_type", "")
+    podaci = dogadjaj.get("data", {})
+
+    # Zanimaju nas samo dogadjaji o pretplati (subscription.created/activated/updated/canceled...)
+    if tip.startswith("subscription."):
+        sub_id = podaci.get("id")
+        status = podaci.get("status")
+        customer_id = podaci.get("customer_id")
+        # Nas biznis_id smo poslali kroz checkout kao custom_data - tako povezujemo
+        # Paddle pretplatu sa nasim nalogom pri prvom dogadjaju
+        biznis_id = (podaci.get("custom_data") or {}).get("biznis_id")
+
+        if biznis_id:
+            povezi_pretplatu(int(biznis_id), customer_id, sub_id, status)
+        elif sub_id:
+            azuriraj_status_pretplate(sub_id, status)
+
+    # Paddle ocekuje 2xx da bi smatrao webhook isporucenim; inace ponavlja slanje
+    return "", 200
 
 
 if __name__ == "__main__":

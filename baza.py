@@ -46,6 +46,15 @@ def napravi_bazu():
     kursor.execute("ALTER TABLE biznisi ADD COLUMN IF NOT EXISTS reset_token TEXT")
     kursor.execute("ALTER TABLE biznisi ADD COLUMN IF NOT EXISTS reset_istice TIMESTAMP")
 
+    # Paddle pretplata - dodato posle prvobitne seme (isti razlog kao reset_token gore).
+    # pretplata_status pamti Paddle-ov status pretplate: 'none' (nikad se nije pretplatio),
+    # 'trialing', 'active', 'past_due', 'paused', 'canceled'. Worker obradjuje samo
+    # 'trialing'/'active'. Postojeci biznisi dobijaju 'none' pa se pre ukljucivanja
+    # naplate rucno "grandfather"-uju na 'active'.
+    kursor.execute("ALTER TABLE biznisi ADD COLUMN IF NOT EXISTS paddle_customer_id TEXT")
+    kursor.execute("ALTER TABLE biznisi ADD COLUMN IF NOT EXISTS paddle_subscription_id TEXT")
+    kursor.execute("ALTER TABLE biznisi ADD COLUMN IF NOT EXISTS pretplata_status TEXT NOT NULL DEFAULT 'none'")
+
     konekcija.commit()
     konekcija.close()
 
@@ -283,6 +292,54 @@ def obrisi_biznis(biznis_id):
 
     konekcija.commit()
     konekcija.close()
+
+
+# --- Pretplata (Paddle) ---
+
+# Statusi u kojima biznis DOBIJA uslugu (worker mu obradjuje mejlove).
+# Sve ostalo (none/past_due/paused/canceled) znaci da je obrada zaustavljena.
+AKTIVNI_STATUSI = ("trialing", "active")
+
+
+def pretplata_aktivna(status):
+    return status in AKTIVNI_STATUSI
+
+
+def povezi_pretplatu(biznis_id, paddle_customer_id, paddle_subscription_id, status):
+    """Poziva se iz webhook-a kad Paddle prvi put javi pretplatu za ovaj biznis.
+    Vezuje Paddle customer/subscription ID za nas biznis i upisuje status."""
+    konekcija = konektuj()
+    kursor = konekcija.cursor()
+    kursor.execute(
+        """UPDATE biznisi
+           SET paddle_customer_id = %s, paddle_subscription_id = %s, pretplata_status = %s
+           WHERE id = %s""",
+        (paddle_customer_id, paddle_subscription_id, status, biznis_id),
+    )
+    konekcija.commit()
+    konekcija.close()
+
+
+def azuriraj_status_pretplate(paddle_subscription_id, status):
+    """Poziva se iz webhook-a na kasnije promene (trial->active, past_due, canceled...).
+    Nalazi biznis po vec sacuvanom subscription ID-ju i menja mu samo status."""
+    konekcija = konektuj()
+    kursor = konekcija.cursor()
+    kursor.execute(
+        "UPDATE biznisi SET pretplata_status = %s WHERE paddle_subscription_id = %s",
+        (status, paddle_subscription_id),
+    )
+    konekcija.commit()
+    konekcija.close()
+
+
+def status_pretplate(biznis_id):
+    konekcija = konektuj()
+    kursor = konekcija.cursor()
+    kursor.execute("SELECT pretplata_status FROM biznisi WHERE id = %s", (biznis_id,))
+    red = kursor.fetchone()
+    konekcija.close()
+    return red[0] if red else None
 
 
 def prethodni_razgovori_sa(biznis_id, posiljalac, limit=5):
