@@ -10,6 +10,7 @@ from read_email import uzmi_nove_poruke
 from generate_reply import generisi_odgovor
 from send_email import posalji_email
 from baza import napravi_bazu, sacuvaj_predlog, svi_biznisi, broj_odgovora_danas, prethodni_razgovori_sa
+from backup import dnevni_backup_ako_treba
 
 DNEVNI_LIMIT_ODGOVORA = 50
 
@@ -104,6 +105,7 @@ def pokreni_petlju():
         try:
             print(f"\n[{sada}] Proveravam nove poruke...")
             obradi_nove_poruke()
+            dnevni_backup_ako_treba()
         except Exception as greska:
             # Ne dozvoljavamo da jedna greska (npr. privremeni prekid interneta) srusi ceo program
             print(f"[{sada}] Doslo je do greske: {greska}")

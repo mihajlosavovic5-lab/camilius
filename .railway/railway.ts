@@ -21,6 +21,8 @@ export default defineRailway(() => {
       DB_PATH: "/data/razgovori.db",
       DATABASE_URL: db.env.DATABASE_URL,
       FLASK_DEBUG: "false",
+      ALERT_EMAIL: "mihajlosavovic5@gmail.com",
+      BACKUP_DIR: "/data/backups",
       ENCRYPTION_KEY: preserve(),
       FLASK_SECRET_KEY: preserve(),
       OPENAI_API_KEY: preserve(),
