@@ -1,5 +1,5 @@
 import os
-import sqlite3
+import psycopg2
 from functools import wraps
 
 from dotenv import load_dotenv
@@ -69,7 +69,7 @@ def registracija():
                 cenovnik=request.form["cenovnik"],
                 cesta_pitanja=request.form["cesta_pitanja"],
             )
-        except sqlite3.IntegrityError:
+        except psycopg2.errors.UniqueViolation:
             return render_template("registracija.html", greska="To korisnicko ime ili email adresa su vec zauzeti.")
 
         session["biznis_id"] = novi_id

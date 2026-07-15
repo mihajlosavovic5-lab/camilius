@@ -1,18 +1,12 @@
 import os
-import sqlite3
+import psycopg2
 from werkzeug.security import generate_password_hash
 
 from sifrovanje import sifruj, desifruj
 
-# DB_PATH omogucava da baza zivi na trajnom volume-u u produkciji (npr. /data/razgovori.db),
-# umesto na efemernom fajl-sistemu koji se brise pri svakom redeploy-u
-IME_BAZE = os.getenv("DB_PATH", "razgovori.db")
-
 
 def konektuj():
-    konekcija = sqlite3.connect(IME_BAZE)
-    konekcija.execute("PRAGMA foreign_keys = ON")
-    return konekcija
+    return psycopg2.connect(os.environ["DATABASE_URL"])
 
 
 def napravi_bazu():
@@ -21,7 +15,7 @@ def napravi_bazu():
 
     kursor.execute("""
         CREATE TABLE IF NOT EXISTS biznisi (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            id SERIAL PRIMARY KEY,
             naziv TEXT NOT NULL,
             korisnicko_ime TEXT NOT NULL UNIQUE,
             lozinka TEXT NOT NULL,
@@ -35,16 +29,15 @@ def napravi_bazu():
 
     kursor.execute("""
         CREATE TABLE IF NOT EXISTS razgovori (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            biznis_id INTEGER NOT NULL,
+            id SERIAL PRIMARY KEY,
+            biznis_id INTEGER NOT NULL REFERENCES biznisi(id),
             posiljalac TEXT NOT NULL,
             naslov TEXT,
             pitanje TEXT NOT NULL,
             predlog_odgovora TEXT NOT NULL,
             konacan_odgovor TEXT,
             status TEXT NOT NULL DEFAULT 'na_cekanju',
-            vreme TEXT DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (biznis_id) REFERENCES biznisi(id)
+            vreme TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     """)
 
@@ -61,7 +54,7 @@ def dodaj_biznis(naziv, korisnicko_ime, lozinka, email_adresa, email_app_passwor
     kursor.execute(
         """INSERT INTO biznisi
            (naziv, korisnicko_ime, lozinka, email_adresa, email_app_password, radno_vreme, cenovnik, cesta_pitanja)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+           VALUES (%s, %s, %s, %s, %s, %s, %s, %s) RETURNING id""",
         (
             naziv,
             korisnicko_ime,
@@ -74,8 +67,8 @@ def dodaj_biznis(naziv, korisnicko_ime, lozinka, email_adresa, email_app_passwor
         ),
     )
 
+    novi_id = kursor.fetchone()[0]
     konekcija.commit()
-    novi_id = kursor.lastrowid
     konekcija.close()
     return novi_id
 
@@ -98,7 +91,7 @@ def biznis_po_id(biznis_id):
     konekcija = konektuj()
     kursor = konekcija.cursor()
     kursor.execute(
-        "SELECT id, naziv, korisnicko_ime, lozinka, email_adresa, email_app_password, radno_vreme, cenovnik, cesta_pitanja FROM biznisi WHERE id = ?",
+        "SELECT id, naziv, korisnicko_ime, lozinka, email_adresa, email_app_password, radno_vreme, cenovnik, cesta_pitanja FROM biznisi WHERE id = %s",
         (biznis_id,),
     )
     red = kursor.fetchone()
@@ -114,7 +107,7 @@ def biznis_po_korisnickom_imenu(korisnicko_ime):
     konekcija = konektuj()
     kursor = konekcija.cursor()
     kursor.execute(
-        "SELECT id, naziv, korisnicko_ime, lozinka, email_adresa, email_app_password, radno_vreme, cenovnik, cesta_pitanja FROM biznisi WHERE korisnicko_ime = ?",
+        "SELECT id, naziv, korisnicko_ime, lozinka, email_adresa, email_app_password, radno_vreme, cenovnik, cesta_pitanja FROM biznisi WHERE korisnicko_ime = %s",
         (korisnicko_ime,),
     )
     red = kursor.fetchone()
@@ -134,7 +127,7 @@ def broj_odgovora_danas(biznis_id):
     kursor = konekcija.cursor()
 
     kursor.execute(
-        "SELECT COUNT(*) FROM razgovori WHERE biznis_id = ? AND date(vreme) = date('now')",
+        "SELECT COUNT(*) FROM razgovori WHERE biznis_id = %s AND vreme::date = CURRENT_DATE",
         (biznis_id,),
     )
     broj = kursor.fetchone()[0]
@@ -148,12 +141,12 @@ def sacuvaj_predlog(biznis_id, posiljalac, naslov, pitanje, predlog_odgovora):
     kursor = konekcija.cursor()
 
     kursor.execute(
-        "INSERT INTO razgovori (biznis_id, posiljalac, naslov, pitanje, predlog_odgovora) VALUES (?, ?, ?, ?, ?)",
+        "INSERT INTO razgovori (biznis_id, posiljalac, naslov, pitanje, predlog_odgovora) VALUES (%s, %s, %s, %s, %s) RETURNING id",
         (biznis_id, posiljalac, naslov, pitanje, predlog_odgovora),
     )
 
+    novi_id = kursor.fetchone()[0]
     konekcija.commit()
-    novi_id = kursor.lastrowid
     konekcija.close()
     return novi_id
 
@@ -163,7 +156,7 @@ def oznaci_poslato(id_razgovora, konacan_odgovor):
     kursor = konekcija.cursor()
 
     kursor.execute(
-        "UPDATE razgovori SET status = 'poslato', konacan_odgovor = ? WHERE id = ?",
+        "UPDATE razgovori SET status = 'poslato', konacan_odgovor = %s WHERE id = %s",
         (konacan_odgovor, id_razgovora),
     )
 
@@ -176,30 +169,13 @@ def jedan_razgovor(id_razgovora):
     kursor = konekcija.cursor()
 
     kursor.execute(
-        "SELECT id, biznis_id, posiljalac, naslov, pitanje, predlog_odgovora FROM razgovori WHERE id = ?",
+        "SELECT id, biznis_id, posiljalac, naslov, pitanje, predlog_odgovora FROM razgovori WHERE id = %s",
         (id_razgovora,),
     )
     red = kursor.fetchone()
 
     konekcija.close()
     return red
-
-
-def prethodni_razgovori_sa(biznis_id, posiljalac, limit=5):
-    konekcija = konektuj()
-    kursor = konekcija.cursor()
-
-    kursor.execute("""
-        SELECT pitanje, konacan_odgovor
-        FROM razgovori
-        WHERE biznis_id = ? AND posiljalac = ? AND status = 'poslato'
-        ORDER BY vreme DESC
-        LIMIT ?
-    """, (biznis_id, posiljalac, limit))
-    rezultat = kursor.fetchall()
-
-    konekcija.close()
-    return list(reversed(rezultat))
 
 
 def razgovori_za_biznis(biznis_id):
@@ -209,7 +185,7 @@ def razgovori_za_biznis(biznis_id):
     kursor.execute("""
         SELECT id, posiljalac, naslov, pitanje, predlog_odgovora, konacan_odgovor, status, vreme
         FROM razgovori
-        WHERE biznis_id = ?
+        WHERE biznis_id = %s
         ORDER BY vreme DESC
     """, (biznis_id,))
     rezultat = kursor.fetchall()
@@ -218,6 +194,23 @@ def razgovori_za_biznis(biznis_id):
     return rezultat
 
 
+def prethodni_razgovori_sa(biznis_id, posiljalac, limit=5):
+    konekcija = konektuj()
+    kursor = konekcija.cursor()
+
+    kursor.execute("""
+        SELECT pitanje, konacan_odgovor
+        FROM razgovori
+        WHERE biznis_id = %s AND posiljalac = %s AND status = 'poslato'
+        ORDER BY vreme DESC
+        LIMIT %s
+    """, (biznis_id, posiljalac, limit))
+    rezultat = kursor.fetchall()
+
+    konekcija.close()
+    return list(reversed(rezultat))
+
+
 if __name__ == "__main__":
     napravi_bazu()
-    print(f"Baza '{IME_BAZE}' je spremna.")
+    print("Baza je spremna.")
