@@ -194,6 +194,18 @@ def razgovori_za_biznis(biznis_id):
     return rezultat
 
 
+def obrisi_biznis(biznis_id):
+    konekcija = konektuj()
+    kursor = konekcija.cursor()
+
+    # Prvo razgovori (imaju strani kljuc ka biznisu), pa tek onda sam biznis
+    kursor.execute("DELETE FROM razgovori WHERE biznis_id = %s", (biznis_id,))
+    kursor.execute("DELETE FROM biznisi WHERE id = %s", (biznis_id,))
+
+    konekcija.commit()
+    konekcija.close()
+
+
 def prethodni_razgovori_sa(biznis_id, posiljalac, limit=5):
     konekcija = konektuj()
     kursor = konekcija.cursor()

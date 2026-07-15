@@ -8,7 +8,7 @@ from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from werkzeug.security import check_password_hash
 
-from baza import razgovori_za_biznis, jedan_razgovor, oznaci_poslato, biznis_po_korisnickom_imenu, biznis_po_id, dodaj_biznis, napravi_bazu
+from baza import razgovori_za_biznis, jedan_razgovor, oznaci_poslato, biznis_po_korisnickom_imenu, biznis_po_id, dodaj_biznis, napravi_bazu, obrisi_biznis
 from send_email import posalji_email
 
 load_dotenv()
@@ -27,6 +27,11 @@ def prijava_potrebna(funkcija):
     @wraps(funkcija)
     def obavijena_funkcija(*args, **kwargs):
         if not session.get("biznis_id"):
+            return redirect(url_for("login"))
+        # Sesija moze da pokazuje na biznis koji vise ne postoji (npr. nalog obrisan
+        # u drugom tabu) - u tom slucaju cistimo sesiju i saljemo na login
+        if biznis_po_id(session["biznis_id"]) is None:
+            session.clear()
             return redirect(url_for("login"))
         return funkcija(*args, **kwargs)
     return obavijena_funkcija
@@ -81,6 +86,14 @@ def registracija():
 
 @app.route("/logout")
 def logout():
+    session.clear()
+    return redirect(url_for("login"))
+
+
+@app.route("/obrisi-nalog", methods=["POST"])
+@prijava_potrebna
+def obrisi_nalog():
+    obrisi_biznis(session["biznis_id"])
     session.clear()
     return redirect(url_for("login"))
 
