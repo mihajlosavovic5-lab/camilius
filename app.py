@@ -10,6 +10,7 @@ from werkzeug.security import check_password_hash
 
 from baza import razgovori_za_biznis, jedan_razgovor, oznaci_poslato, biznis_po_korisnickom_imenu, biznis_po_id, dodaj_biznis, napravi_bazu, obrisi_biznis
 from send_email import posalji_email
+from read_email import proveri_kredencijale
 
 load_dotenv()
 
@@ -61,7 +62,16 @@ def login():
 def registracija():
     if request.method == "POST":
         if not request.form.get("prihvatam_uslove"):
-            return render_template("registracija.html", greska="Morate prihvatiti Uslove koriscenja i Politiku privatnosti.")
+            return render_template("registracija.html", greska="Morate prihvatiti Uslove koriscenja i Politiku privatnosti.", podaci=request.form)
+
+        # Proveravamo da uneti Gmail + app password zaista rade pre nego sto napravimo nalog.
+        # Ovo dokazuje da korisnik kontrolise nalog i da ce sistem moci da cita poruke.
+        if not proveri_kredencijale(request.form["email_adresa"], request.form["email_app_password"]):
+            return render_template(
+                "registracija.html",
+                greska="Nismo mogli da se povezemo na Gmail sa tom adresom i app password-om. Proveri da je app password ispravan (16 karaktera iz Google naloga) i da je IMAP ukljucen u Gmail podesavanjima.",
+                podaci=request.form,
+            )
 
         try:
             novi_id = dodaj_biznis(
@@ -75,13 +85,13 @@ def registracija():
                 cesta_pitanja=request.form["cesta_pitanja"],
             )
         except psycopg2.errors.UniqueViolation:
-            return render_template("registracija.html", greska="To korisnicko ime ili email adresa su vec zauzeti.")
+            return render_template("registracija.html", greska="To korisnicko ime ili email adresa su vec zauzeti.", podaci=request.form)
 
         session["biznis_id"] = novi_id
         session["biznis_naziv"] = request.form["naziv"]
         return redirect(url_for("pocetna"))
 
-    return render_template("registracija.html", greska=None)
+    return render_template("registracija.html", greska=None, podaci={})
 
 
 @app.route("/logout")

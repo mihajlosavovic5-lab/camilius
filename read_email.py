@@ -11,6 +11,28 @@ load_dotenv()
 IMAP_SERVER = "imap.gmail.com"
 
 
+def proveri_kredencijale(email_adresa, email_app_password):
+    """Pokusava IMAP prijavu na Gmail. Vraca True ako kredencijali rade, inace False.
+
+    Koristi se pri registraciji da odmah potvrdimo da uneti email + app password
+    zaista funkcionisu (i time da korisnik kontrolise taj nalog), umesto da sistem
+    tek kasnije tiho pukne u pozadinskoj petlji. timeout sprecava da zahtev zaglavi.
+    """
+    try:
+        konekcija = imaplib.IMAP4_SSL(IMAP_SERVER, timeout=15)
+    except Exception:
+        # Mrezni problem - ne mozemo da potvrdimo
+        return False
+
+    try:
+        konekcija.login(email_adresa, (email_app_password or "").replace(" ", ""))
+        konekcija.logout()
+        return True
+    except Exception:
+        # Najcesce imaplib.IMAP4.error zbog pogresnih kredencijala
+        return False
+
+
 def uzmi_nove_poruke(email_adresa, email_app_password, max_broj=None):
     # Povezujemo se na Gmail-ov IMAP server preko sigurne (SSL) konekcije
     konekcija = imaplib.IMAP4_SSL(IMAP_SERVER)

@@ -27,32 +27,32 @@
 
     <form method="POST">
         <label>Naziv biznisa</label>
-        <input type="text" name="naziv" required>
+        <input type="text" name="naziv" value="{{ podaci.get('naziv', '') }}" required>
 
         <label>Korisnicko ime (za prijavu na dashboard)</label>
-        <input type="text" name="korisnicko_ime" required>
+        <input type="text" name="korisnicko_ime" value="{{ podaci.get('korisnicko_ime', '') }}" required>
 
         <label>Lozinka</label>
         <input type="password" name="lozinka" required>
 
         <label>Email adresa (Gmail nalog koji ce sistem koristiti)</label>
-        <input type="email" name="email_adresa" required>
+        <input type="email" name="email_adresa" value="{{ podaci.get('email_adresa', '') }}" required>
 
         <label>Email app password</label>
-        <input type="text" name="email_app_password" required>
+        <input type="text" name="email_app_password" value="{{ podaci.get('email_app_password', '') }}" required>
         <p class="napomena">16-karakterna lozinka iz Google naloga (Security -&gt; 2-Step Verification -&gt; App passwords), ne tvoja obicna Gmail lozinka.</p>
 
         <label>Radno vreme</label>
-        <textarea name="radno_vreme" placeholder="Ponedeljak: 09:00 - 20:00&#10;Subota: 09:00 - 16:00&#10;Nedelja: zatvoreno" required></textarea>
+        <textarea name="radno_vreme" placeholder="Ponedeljak: 09:00 - 20:00&#10;Subota: 09:00 - 16:00&#10;Nedelja: zatvoreno" required>{{ podaci.get('radno_vreme', '') }}</textarea>
 
         <label>Cenovnik</label>
-        <textarea name="cenovnik" placeholder="Musko sisanje: 800 din&#10;Zensko sisanje: 1500 din" required></textarea>
+        <textarea name="cenovnik" placeholder="Musko sisanje: 800 din&#10;Zensko sisanje: 1500 din" required>{{ podaci.get('cenovnik', '') }}</textarea>
 
         <label>Cesta pitanja i odgovori</label>
-        <textarea name="cesta_pitanja" placeholder="P: Da li je potrebno zakazati termin?&#10;O: Da, preporucujemo zakazivanje unapred."></textarea>
+        <textarea name="cesta_pitanja" placeholder="P: Da li je potrebno zakazati termin?&#10;O: Da, preporucujemo zakazivanje unapred.">{{ podaci.get('cesta_pitanja', '') }}</textarea>
 
         <label class="checkbox-label">
-            <input type="checkbox" name="prihvatam_uslove" required>
+            <input type="checkbox" name="prihvatam_uslove" required {% if podaci.get('prihvatam_uslove') %}checked{% endif %}>
             Prihvatam <a href="{{ url_for('uslovi') }}" target="_blank">Uslove koriscenja</a> i <a href="{{ url_for('privatnost') }}" target="_blank">Politiku privatnosti</a>
         </label>
 
