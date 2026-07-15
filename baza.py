@@ -185,6 +185,23 @@ def jedan_razgovor(id_razgovora):
     return red
 
 
+def prethodni_razgovori_sa(biznis_id, posiljalac, limit=5):
+    konekcija = konektuj()
+    kursor = konekcija.cursor()
+
+    kursor.execute("""
+        SELECT pitanje, konacan_odgovor
+        FROM razgovori
+        WHERE biznis_id = ? AND posiljalac = ? AND status = 'poslato'
+        ORDER BY vreme DESC
+        LIMIT ?
+    """, (biznis_id, posiljalac, limit))
+    rezultat = kursor.fetchall()
+
+    konekcija.close()
+    return list(reversed(rezultat))
+
+
 def razgovori_za_biznis(biznis_id):
     konekcija = konektuj()
     kursor = konekcija.cursor()

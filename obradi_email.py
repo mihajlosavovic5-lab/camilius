@@ -7,7 +7,7 @@ from email.utils import parseaddr
 
 from read_email import uzmi_nove_poruke
 from generate_reply import generisi_odgovor
-from baza import napravi_bazu, sacuvaj_predlog, svi_biznisi, broj_odgovora_danas
+from baza import napravi_bazu, sacuvaj_predlog, svi_biznisi, broj_odgovora_danas, prethodni_razgovori_sa
 
 DNEVNI_LIMIT_ODGOVORA = 50
 
@@ -35,7 +35,8 @@ def obradi_jednog_biznisa(biznis_red):
 
         print(f"[{naziv}] Obradujem poruku od: {adresa_posiljaoca}")
 
-        predlog = generisi_odgovor(poruka["tekst"], biznis)
+        istorija = prethodni_razgovori_sa(biznis_id, adresa_posiljaoca)
+        predlog = generisi_odgovor(poruka["tekst"], biznis, istorija=istorija)
 
         sacuvaj_predlog(biznis_id, adresa_posiljaoca, poruka["naslov"], poruka["tekst"], predlog)
         print(f"[{naziv}] Predlog sacuvan, ceka odobrenje u dashboardu.")
