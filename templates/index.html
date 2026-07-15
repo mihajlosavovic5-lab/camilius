@@ -30,7 +30,10 @@
     </style>
 </head>
 <body>
-    <a href="{{ url_for('logout') }}" style="float:right;">Odjava</a>
+    <div style="float:right;">
+        <a href="{{ url_for('podesavanja') }}">Podesavanja</a> &middot;
+        <a href="{{ url_for('logout') }}">Odjava</a>
+    </div>
     <h1>{{ biznis_naziv }} - razgovori sa kupcima</h1>
 
     <div class="traka">

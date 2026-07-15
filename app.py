@@ -8,7 +8,7 @@ from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from werkzeug.security import check_password_hash
 
-from baza import razgovori_za_biznis, jedan_razgovor, oznaci_poslato, biznis_po_korisnickom_imenu, biznis_po_id, dodaj_biznis, napravi_bazu, obrisi_biznis, broj_odgovora_danas
+from baza import razgovori_za_biznis, jedan_razgovor, oznaci_poslato, biznis_po_korisnickom_imenu, biznis_po_id, dodaj_biznis, napravi_bazu, obrisi_biznis, broj_odgovora_danas, azuriraj_biznis
 from send_email import posalji_email
 from read_email import proveri_kredencijale
 
@@ -98,6 +98,48 @@ def registracija():
 def logout():
     session.clear()
     return redirect(url_for("login"))
+
+
+@app.route("/podesavanja", methods=["GET", "POST"])
+@prijava_potrebna
+def podesavanja():
+    biznis = biznis_po_id(session["biznis_id"])
+    # indeksi: 0 id, 1 naziv, 4 email_adresa, 6 radno_vreme, 7 cenovnik, 8 cesta_pitanja
+    email_adresa = biznis[4]
+
+    if request.method == "POST":
+        naziv = request.form["naziv"]
+        radno_vreme = request.form["radno_vreme"]
+        cenovnik = request.form["cenovnik"]
+        cesta_pitanja = request.form["cesta_pitanja"]
+        # Prazno polje = zadrzi postojeci app password; popunjeno = promeni ga
+        novi_app_password = request.form.get("email_app_password", "").strip() or None
+
+        # Ako menja app password, prvo proverimo da novi zaista radi (kao pri registraciji)
+        if novi_app_password and not proveri_kredencijale(email_adresa, novi_app_password):
+            return render_template(
+                "podesavanja.html",
+                greska="Novi app password ne radi - nismo mogli da se povezemo na Gmail. Stari podaci su zadrzani.",
+                biznis={"naziv": naziv, "email_adresa": email_adresa, "radno_vreme": radno_vreme, "cenovnik": cenovnik, "cesta_pitanja": cesta_pitanja},
+                poruka=None,
+            )
+
+        azuriraj_biznis(session["biznis_id"], naziv, radno_vreme, cenovnik, cesta_pitanja, email_app_password=novi_app_password)
+        session["biznis_naziv"] = naziv
+
+        return render_template(
+            "podesavanja.html",
+            greska=None,
+            poruka="Podaci su sacuvani.",
+            biznis={"naziv": naziv, "email_adresa": email_adresa, "radno_vreme": radno_vreme, "cenovnik": cenovnik, "cesta_pitanja": cesta_pitanja},
+        )
+
+    return render_template(
+        "podesavanja.html",
+        greska=None,
+        poruka=None,
+        biznis={"naziv": biznis[1], "email_adresa": email_adresa, "radno_vreme": biznis[6], "cenovnik": biznis[7], "cesta_pitanja": biznis[8]},
+    )
 
 
 @app.route("/obrisi-nalog", methods=["POST"])

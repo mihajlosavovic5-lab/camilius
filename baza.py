@@ -194,6 +194,31 @@ def razgovori_za_biznis(biznis_id):
     return rezultat
 
 
+def azuriraj_biznis(biznis_id, naziv, radno_vreme, cenovnik, cesta_pitanja, email_app_password=None):
+    konekcija = konektuj()
+    kursor = konekcija.cursor()
+
+    # email_app_password se azurira samo ako je prosledjen (korisnik ga je promenio);
+    # inace ostaje postojeci. Kad se azurira, ponovo se sifruje.
+    if email_app_password is not None:
+        kursor.execute(
+            """UPDATE biznisi
+               SET naziv=%s, radno_vreme=%s, cenovnik=%s, cesta_pitanja=%s, email_app_password=%s
+               WHERE id=%s""",
+            (naziv, radno_vreme, cenovnik, cesta_pitanja, sifruj(email_app_password), biznis_id),
+        )
+    else:
+        kursor.execute(
+            """UPDATE biznisi
+               SET naziv=%s, radno_vreme=%s, cenovnik=%s, cesta_pitanja=%s
+               WHERE id=%s""",
+            (naziv, radno_vreme, cenovnik, cesta_pitanja, biznis_id),
+        )
+
+    konekcija.commit()
+    konekcija.close()
+
+
 def obrisi_biznis(biznis_id):
     konekcija = konektuj()
     kursor = konekcija.cursor()
