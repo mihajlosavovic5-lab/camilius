@@ -102,15 +102,13 @@ def posalji(id_razgovora):
         abort(403)
 
     biznis = biznis_po_id(biznis_id)
-    email_adresa = biznis[4]
-    email_app_password = biznis[5]
 
     posalji_email(
         primalac=posiljalac,
         naslov=f"Re: {naslov}",
         telo=konacan_odgovor,
-        email_adresa=email_adresa,
-        email_app_password=email_app_password,
+        biznis_naziv=biznis[1],
+        reply_to=biznis[4],
     )
 
     oznaci_poslato(id_razgovora, konacan_odgovor)
