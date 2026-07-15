@@ -1,45 +1,49 @@
-<!DOCTYPE html>
-<html lang="sr">
-<head>
-    <meta charset="UTF-8">
-    <title>Prijava - Dashboard</title>
-    <style>
-        body { font-family: Arial, sans-serif; max-width: 360px; margin: 100px auto; padding: 0 20px; }
-        h1 { color: #333; font-size: 1.4em; }
-        input { width: 100%; padding: 8px; margin: 6px 0 14px 0; box-sizing: border-box; }
-        button { padding: 8px 16px; background: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer; }
-        .greska { color: #c00; }
-        .poruka { color: #28a745; font-weight: bold; }
-        .footer-linkovi { margin-top: 24px; font-size: 0.8em; color: #888; }
-        .footer-linkovi a { color: #888; }
-    </style>
-</head>
-<body>
-    <h1>Prijava na dashboard</h1>
+{% extends "base.html" %}
+{% block title %}Prijava - ai-auto-reply{% endblock %}
+{% block body_klasa %}auth{% endblock %}
 
-    {% if greska %}
-        <p class="greska">{{ greska }}</p>
-    {% endif %}
-    {% if poruka %}
-        <p class="poruka">{{ poruka }}</p>
-    {% endif %}
+{% block telo %}
+<div class="auth-omotac">
+    <div class="auth-brend">
+        <span class="brand">
+            <span class="brand-mark">ai</span>
+            <span class="brand-name">auto-reply</span>
+        </span>
+        <p class="auth-slogan">AI cita mejlove tvojih kupaca i priprema odgovore &mdash; ti samo pregledas i posaljes.</p>
+    </div>
 
-    <form method="POST">
-        <label>Korisnicko ime</label>
-        <input type="text" name="korisnicko_ime" autofocus>
+    <div class="auth-karta">
+        <h1>Prijava</h1>
+        <p class="auth-podnaslov">Dobrodosao/la nazad.</p>
 
-        <label>Lozinka</label>
-        <input type="password" name="lozinka">
+        {% if greska %}
+            <div class="alert alert-greska"><span class="alert-ikona">&#9888;&#65039;</span><span>{{ greska }}</span></div>
+        {% endif %}
+        {% if poruka %}
+            <div class="alert alert-uspeh"><span class="alert-ikona">&#10003;</span><span>{{ poruka }}</span></div>
+        {% endif %}
 
-        <button type="submit">Prijavi se</button>
-    </form>
+        <form method="POST">
+            <label>Korisnicko ime</label>
+            <input type="text" name="korisnicko_ime" autofocus>
 
-    <a href="{{ url_for('registracija') }}">Nemas nalog? Registruj svoj biznis</a>
-    <a href="{{ url_for('zaboravljena_lozinka') }}">Zaboravio/la si lozinku?</a>
+            <label>Lozinka</label>
+            <input type="password" name="lozinka">
 
-    <p class="footer-linkovi">
+            <div class="forma-akcije">
+                <button class="dugme dugme-puno" type="submit">Prijavi se</button>
+            </div>
+        </form>
+
+        <div class="auth-linkovi">
+            <a href="{{ url_for('registracija') }}">Nemas nalog? <strong>Registruj svoj biznis</strong></a>
+            <a href="{{ url_for('zaboravljena_lozinka') }}">Zaboravio/la si lozinku?</a>
+        </div>
+    </div>
+
+    <p class="auth-podnozje">
         <a href="{{ url_for('uslovi') }}">Uslovi koriscenja</a> &middot;
         <a href="{{ url_for('privatnost') }}">Politika privatnosti</a>
     </p>
-</body>
-</html>
+</div>
+{% endblock %}

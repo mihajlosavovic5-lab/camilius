@@ -1,64 +1,74 @@
-<!DOCTYPE html>
-<html lang="sr">
-<head>
-    <meta charset="UTF-8">
-    <title>Registracija biznisa</title>
-    <style>
-        body { font-family: Arial, sans-serif; max-width: 500px; margin: 60px auto; padding: 0 20px; }
-        h1 { color: #333; font-size: 1.4em; }
-        label { font-weight: bold; display: block; margin-top: 14px; }
-        input, textarea { width: 100%; padding: 8px; margin-top: 4px; box-sizing: border-box; font-family: inherit; }
-        textarea { min-height: 70px; }
-        button { margin-top: 20px; padding: 10px 20px; background: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer; }
-        .greska { color: #c00; }
-        .napomena { color: #666; font-size: 0.85em; }
-        a { display: block; margin-top: 16px; }
-        .checkbox-label { font-weight: normal; display: block; margin-top: 20px; }
-        .checkbox-label input { width: auto; display: inline; margin: 0 6px 0 0; vertical-align: middle; }
-        .checkbox-label a { display: inline; margin: 0; }
-    </style>
-</head>
-<body>
-    <h1>Registruj svoj biznis</h1>
+{% extends "base.html" %}
+{% block title %}Registracija - ai-auto-reply{% endblock %}
+{% block body_klasa %}auth{% endblock %}
 
-    {% if greska %}
-        <p class="greska">{{ greska }}</p>
-    {% endif %}
+{% block telo %}
+<div class="auth-omotac">
+    <div class="auth-brend">
+        <span class="brand">
+            <span class="brand-mark">ai</span>
+            <span class="brand-name">auto-reply</span>
+        </span>
+        <p class="auth-slogan">Registruj biznis za par minuta &mdash; AI odmah pocinje da priprema odgovore na mejlove kupaca.</p>
+    </div>
 
-    <form method="POST">
-        <label>Naziv biznisa</label>
-        <input type="text" name="naziv" value="{{ podaci.get('naziv', '') }}" required>
+    <div class="auth-karta auth-karta-siroka">
+        <h1>Registruj svoj biznis</h1>
+        <p class="auth-podnaslov">Sva polja mozes kasnije izmeniti u podesavanjima.</p>
 
-        <label>Korisnicko ime (za prijavu na dashboard)</label>
-        <input type="text" name="korisnicko_ime" value="{{ podaci.get('korisnicko_ime', '') }}" required>
+        {% if greska %}
+            <div class="alert alert-greska"><span class="alert-ikona">&#9888;&#65039;</span><span>{{ greska }}</span></div>
+        {% endif %}
 
-        <label>Lozinka</label>
-        <input type="password" name="lozinka" required>
+        <form method="POST">
+            <p class="forma-sekcija-naslov" style="margin-top: 6px;">Nalog</p>
 
-        <label>Email adresa (Gmail nalog koji ce sistem koristiti)</label>
-        <input type="email" name="email_adresa" value="{{ podaci.get('email_adresa', '') }}" required>
+            <label>Naziv biznisa</label>
+            <input type="text" name="naziv" value="{{ podaci.get('naziv', '') }}" placeholder="npr. Frizerski salon Stil" required>
 
-        <label>Email app password</label>
-        <input type="text" name="email_app_password" value="{{ podaci.get('email_app_password', '') }}" required>
-        <p class="napomena">16-karakterna lozinka iz Google naloga (Security -&gt; 2-Step Verification -&gt; App passwords), ne tvoja obicna Gmail lozinka.</p>
+            <label>Korisnicko ime <span style="font-weight:400; color: var(--tekst-blagi);">(za prijavu na dashboard)</span></label>
+            <input type="text" name="korisnicko_ime" value="{{ podaci.get('korisnicko_ime', '') }}" required>
 
-        <label>Radno vreme</label>
-        <textarea name="radno_vreme" placeholder="Ponedeljak: 09:00 - 20:00&#10;Subota: 09:00 - 16:00&#10;Nedelja: zatvoreno" required>{{ podaci.get('radno_vreme', '') }}</textarea>
+            <label>Lozinka</label>
+            <input type="password" name="lozinka" required>
 
-        <label>Cenovnik</label>
-        <textarea name="cenovnik" placeholder="Musko sisanje: 800 din&#10;Zensko sisanje: 1500 din" required>{{ podaci.get('cenovnik', '') }}</textarea>
+            <div class="forma-sekcija">
+                <p class="forma-sekcija-naslov">Povezivanje Gmail naloga</p>
 
-        <label>Cesta pitanja i odgovori</label>
-        <textarea name="cesta_pitanja" placeholder="P: Da li je potrebno zakazati termin?&#10;O: Da, preporucujemo zakazivanje unapred.">{{ podaci.get('cesta_pitanja', '') }}</textarea>
+                <label>Email adresa <span style="font-weight:400; color: var(--tekst-blagi);">(Gmail nalog na koji ti pisu kupci)</span></label>
+                <input type="email" name="email_adresa" value="{{ podaci.get('email_adresa', '') }}" placeholder="tvoj.biznis@gmail.com" required>
 
-        <label class="checkbox-label">
-            <input type="checkbox" name="prihvatam_uslove" required {% if podaci.get('prihvatam_uslove') %}checked{% endif %}>
-            Prihvatam <a href="{{ url_for('uslovi') }}" target="_blank">Uslove koriscenja</a> i <a href="{{ url_for('privatnost') }}" target="_blank">Politiku privatnosti</a>
-        </label>
+                <label>Email app password</label>
+                <input type="text" name="email_app_password" value="{{ podaci.get('email_app_password', '') }}" required>
+                <p class="napomena">16-karakterna lozinka iz Google naloga (Security &rarr; 2-Step Verification &rarr; App passwords), ne tvoja obicna Gmail lozinka.</p>
+            </div>
 
-        <button type="submit">Registruj se</button>
-    </form>
+            <div class="forma-sekcija">
+                <p class="forma-sekcija-naslov">Podaci o biznisu &mdash; iz ovoga AI sastavlja odgovore</p>
 
-    <a href="{{ url_for('login') }}">Vec imas nalog? Prijavi se</a>
-</body>
-</html>
+                <label>Radno vreme</label>
+                <textarea name="radno_vreme" placeholder="Ponedeljak: 09:00 - 20:00&#10;Subota: 09:00 - 16:00&#10;Nedelja: zatvoreno" required>{{ podaci.get('radno_vreme', '') }}</textarea>
+
+                <label>Cenovnik</label>
+                <textarea name="cenovnik" placeholder="Musko sisanje: 800 din&#10;Zensko sisanje: 1500 din" required>{{ podaci.get('cenovnik', '') }}</textarea>
+
+                <label>Cesta pitanja i odgovori</label>
+                <textarea name="cesta_pitanja" placeholder="P: Da li je potrebno zakazati termin?&#10;O: Da, preporucujemo zakazivanje unapred.">{{ podaci.get('cesta_pitanja', '') }}</textarea>
+            </div>
+
+            <label class="checkbox-red">
+                <input type="checkbox" name="prihvatam_uslove" required {% if podaci.get('prihvatam_uslove') %}checked{% endif %}>
+                <span>Prihvatam <a href="{{ url_for('uslovi') }}" target="_blank">Uslove koriscenja</a> i <a href="{{ url_for('privatnost') }}" target="_blank">Politiku privatnosti</a></span>
+            </label>
+
+            <div class="forma-akcije">
+                <button class="dugme dugme-puno" type="submit">Registruj se</button>
+            </div>
+        </form>
+
+        <div class="auth-linkovi">
+            <a href="{{ url_for('login') }}">Vec imas nalog? <strong>Prijavi se</strong></a>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,78 +1,81 @@
-<!DOCTYPE html>
-<html lang="sr">
-<head>
-    <meta charset="UTF-8">
-    <title>Razgovori - Dashboard</title>
-    <style>
-        body { font-family: Arial, sans-serif; max-width: 900px; margin: 40px auto; padding: 0 20px; }
-        h1 { color: #333; }
-        .razgovor { border: 1px solid #ddd; border-radius: 8px; padding: 16px; margin-bottom: 16px; }
-        .na-cekanju { border-color: #e0a800; background: #fffaf0; }
-        .poslato { border-color: #28a745; background: #f6fff8; }
-        .posiljalac { font-weight: bold; color: #444; }
-        .vreme { color: #888; font-size: 0.85em; }
-        .status { float: right; font-size: 0.8em; padding: 2px 8px; border-radius: 4px; }
-        .status.na-cekanju { background: #ffc107; color: #333; }
-        .status.poslato { background: #28a745; color: white; }
-        .label { font-weight: bold; margin-top: 8px; }
-        .pitanje { white-space: pre-wrap; margin: 4px 0 0 0; }
-        textarea { width: 100%; min-height: 100px; font-family: inherit; font-size: 1em; margin-top: 4px; }
-        button { margin-top: 8px; padding: 8px 16px; background: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer; }
-        .odgovor { white-space: pre-wrap; margin: 4px 0 0 0; }
-        .opasna-zona { margin-top: 50px; padding-top: 20px; border-top: 1px solid #eee; }
-        .opasna-zona h2 { font-size: 1em; color: #c00; }
-        .opasna-zona p { font-size: 0.85em; color: #666; }
-        .opasna-zona button { background: #c00; }
-        .traka { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 8px; }
-        .filteri a { display: inline; margin: 0 8px 0 0; padding: 4px 10px; border-radius: 4px; text-decoration: none; color: #555; background: #f0f0f0; font-size: 0.9em; }
-        .filteri a.aktivan { background: #333; color: white; }
-        .kvota { font-size: 0.85em; color: #666; }
-    </style>
-</head>
-<body>
-    <div style="float:right;">
-        <a href="{{ url_for('pretplata') }}">Pretplata</a> &middot;
-        <a href="{{ url_for('podesavanja') }}">Podesavanja</a> &middot;
-        <a href="{{ url_for('logout') }}">Odjava</a>
-    </div>
-    <h1>{{ biznis_naziv }} - razgovori sa kupcima</h1>
+{% extends "base.html" %}
+{% block title %}Razgovori - {{ biznis_naziv }}{% endblock %}
 
-    <div class="traka">
-        <div class="filteri">
-            <a href="{{ url_for('pocetna') }}" class="{{ 'aktivan' if filter_status == 'svi' }}">Svi ({{ broj_svi }})</a>
-            <a href="{{ url_for('pocetna', filter='na_cekanju') }}" class="{{ 'aktivan' if filter_status == 'na_cekanju' }}">Na cekanju ({{ broj_na_cekanju }})</a>
-            <a href="{{ url_for('pocetna', filter='poslato') }}" class="{{ 'aktivan' if filter_status == 'poslato' }}">Poslato ({{ broj_svi - broj_na_cekanju }})</a>
+{% block telo %}
+{% include "_nav.html" %}
+
+<div class="sadrzaj">
+    <div class="zaglavlje-strane">
+        <div>
+            <h1>{{ biznis_naziv }}</h1>
+            <p class="podnaslov">Pregledaj pitanja kupaca i odobri AI predloge odgovora.</p>
         </div>
-        <div class="kvota">Danas obradjeno: {{ danas }} / {{ dnevni_limit }} poruka</div>
+        <div class="kvota">
+            <div class="kvota-tekst">
+                <span>Danas obradjeno</span>
+                <span><strong>{{ danas }}</strong> / {{ dnevni_limit }}</span>
+            </div>
+            <div class="kvota-traka">
+                <div class="kvota-popuna" style="width: {{ [100, (danas * 100 / dnevni_limit)|round|int]|min }}%"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="filteri" style="margin-bottom: 20px;">
+        <a href="{{ url_for('pocetna') }}" class="{{ 'aktivan' if filter_status == 'svi' }}">Svi ({{ broj_svi }})</a>
+        <a href="{{ url_for('pocetna', filter='na_cekanju') }}" class="{{ 'aktivan' if filter_status == 'na_cekanju' }}">Na cekanju ({{ broj_na_cekanju }})</a>
+        <a href="{{ url_for('pocetna', filter='poslato') }}" class="{{ 'aktivan' if filter_status == 'poslato' }}">Poslato ({{ broj_svi - broj_na_cekanju }})</a>
     </div>
 
     {% if razgovori|length == 0 %}
-        {% if filter_status == 'svi' %}
-            <p>Jos uvek nema sacuvanih razgovora.</p>
-        {% else %}
-            <p>Nema razgovora u ovom filteru.</p>
-        {% endif %}
+        <div class="prazno">
+            <div class="prazno-ikona">&#128235;</div>
+            {% if filter_status == 'svi' %}
+                <p class="naslov">Jos uvek nema razgovora</p>
+                <p>Cim kupac posalje mejl tvom biznisu, ovde ce se pojaviti AI predlog odgovora.</p>
+            {% else %}
+                <p class="naslov">Nema razgovora u ovom filteru</p>
+                <p>Probaj drugi filter iznad.</p>
+            {% endif %}
+        </div>
     {% endif %}
 
     {% for r in razgovori %}
         {% set id, posiljalac, naslov, pitanje, predlog, konacan, status, vreme = r %}
-        <div class="razgovor {{ status.replace('_', '-') }}">
-            <span class="status {{ status.replace('_', '-') }}">{{ status }}</span>
-            <div class="posiljalac">{{ posiljalac }}</div>
-            <div class="vreme">{{ vreme }}</div>
-            <div class="label">Pitanje:</div>
-            <p class="pitanje">{{ pitanje }}</p>
+        <div class="karta razgovor">
+            <div class="razgovor-vrh">
+                <span class="avatar">{{ posiljalac[0] }}</span>
+                <div class="razgovor-meta">
+                    <div class="razgovor-posiljalac">{{ posiljalac }}</div>
+                    <div class="razgovor-vreme">{{ vreme.strftime('%d.%m.%Y. u %H:%M') if vreme else '' }}{% if naslov %} &middot; {{ naslov }}{% endif %}</div>
+                </div>
+                {% if status == 'na_cekanju' %}
+                    <span class="bedz bedz-cekanje"><span class="bedz-tacka"></span>Ceka odobrenje</span>
+                {% else %}
+                    <span class="bedz bedz-poslato"><span class="bedz-tacka"></span>Poslato</span>
+                {% endif %}
+            </div>
+
+            <div class="razgovor-blok">
+                <div class="razgovor-labela">Pitanje kupca</div>
+                <p class="pitanje">{{ pitanje }}</p>
+            </div>
 
             {% if status == 'na_cekanju' %}
-                <div class="label">Predlog odgovora (mozes izmeniti pre slanja):</div>
-                <form method="POST" action="{{ url_for('posalji', id_razgovora=id) }}">
-                    <textarea name="odgovor">{{ predlog }}</textarea>
-                    <br>
-                    <button type="submit">Posalji odgovor</button>
-                </form>
+                <div class="razgovor-blok">
+                    <div class="razgovor-labela">Predlog odgovora &mdash; mozes izmeniti pre slanja</div>
+                    <form method="POST" action="{{ url_for('posalji', id_razgovora=id) }}">
+                        <textarea name="odgovor">{{ predlog }}</textarea>
+                        <div class="forma-akcije" style="margin-top: 12px;">
+                            <button class="dugme" type="submit">Posalji odgovor</button>
+                        </div>
+                    </form>
+                </div>
             {% else %}
-                <div class="label">Poslat odgovor:</div>
-                <p class="odgovor">{{ konacan }}</p>
+                <div class="razgovor-blok">
+                    <div class="razgovor-labela">Poslat odgovor</div>
+                    <p class="odgovor">{{ konacan }}</p>
+                </div>
             {% endif %}
         </div>
     {% endfor %}
@@ -82,8 +85,8 @@
         <p>Trajno brise tvoj nalog i sve razgovore. Ova radnja se ne moze ponistiti.</p>
         <form method="POST" action="{{ url_for('obrisi_nalog') }}"
               onsubmit="return confirm('Da li si siguran/na? Nalog i svi razgovori ce biti trajno obrisani.');">
-            <button type="submit">Obrisi nalog</button>
+            <button class="dugme dugme-opasno" type="submit">Obrisi nalog</button>
         </form>
     </div>
-</body>
-</html>
+</div>
+{% endblock %}

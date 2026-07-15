@@ -1,62 +1,62 @@
-<!DOCTYPE html>
-<html lang="sr">
-<head>
-    <meta charset="UTF-8">
-    <title>Politika privatnosti - ai-auto-reply</title>
-    <style>
-        body { font-family: Arial, sans-serif; max-width: 700px; margin: 40px auto; padding: 0 20px; line-height: 1.6; color: #222; }
-        h1 { color: #333; font-size: 1.5em; }
-        h2 { color: #333; font-size: 1.15em; margin-top: 28px; }
-        p, li { color: #333; }
-        .azurirano { color: #666; font-size: 0.85em; }
-        a.nazad { display: block; margin-top: 30px; }
-    </style>
-</head>
-<body>
-    <h1>Politika privatnosti</h1>
-    <p class="azurirano">Poslednje azurirano: 15. jul 2026.</p>
+{% extends "base.html" %}
+{% block title %}Politika privatnosti - ai-auto-reply{% endblock %}
 
-    <p>Ova politika objasnjava koje podatke ai-auto-reply prikuplja, zasto, i kako ih cuva. Uslugu trenutno vodi Mihajlo Savovic, kao fizicko lice (napomena: ovaj podatak ce biti azuriran ako usluga bude registrovana kao firma).</p>
+{% block telo %}
+<div class="javni-vrh">
+    <a class="brand" href="{{ url_for('login') }}">
+        <span class="brand-mark">ai</span>
+        <span class="brand-name">auto-reply</span>
+    </a>
+    <a href="{{ url_for('login') }}">Prijava</a>
+</div>
 
-    <h2>Kontakt</h2>
-    <p>Za sva pitanja o privatnosti ili zahteve za pristup/brisanje podataka, pisite na: <strong>mihajlosavovic5@gmail.com</strong></p>
+<div class="sadrzaj prose">
+    <div class="karta" style="padding: 32px;">
+        <h1>Politika privatnosti</h1>
+        <p class="azurirano">Poslednje azurirano: 15. jul 2026.</p>
 
-    <h2>Koje podatke prikupljamo</h2>
-    <p>Od vlasnika biznisa, prilikom registracije:</p>
-    <ul>
-        <li>Naziv biznisa, korisnicko ime i lozinka (lozinka se cuva hesirana, nikad u citljivom obliku)</li>
-        <li>Email adresa i "app password" Gmail naloga koji koristite za komunikaciju sa kupcima (app password se cuva sifrovan)</li>
-        <li>Radno vreme, cenovnik i cesta pitanja/odgovori koje unesete</li>
-    </ul>
-    <p>U okviru pruzanja usluge, sistem takodje cita sadrzaj dolaznih mejlova upucenih vasem poslovnom nalogu (pitanja vasih kupaca), radi generisanja predloga odgovora.</p>
+        <p>Ova politika objasnjava koje podatke ai-auto-reply prikuplja, zasto, i kako ih cuva. Uslugu trenutno vodi Mihajlo Savovic, kao fizicko lice (napomena: ovaj podatak ce biti azuriran ako usluga bude registrovana kao firma).</p>
 
-    <h2>Zasto prikupljamo ove podatke</h2>
-    <p>Iskljucivo da bismo pruzili funkciju usluge: automatsko citanje upita kupaca i predlaganje odgovora zasnovanih na podacima o vasem biznisu, koje vi rucno pregledate i odobravate pre slanja. Nijedan odgovor se ne salje bez vaseg odobrenja.</p>
+        <h2>Kontakt</h2>
+        <p>Za sva pitanja o privatnosti ili zahteve za pristup/brisanje podataka, pisite na: <strong>mihajlosavovic5@gmail.com</strong></p>
 
-    <h2>Sa kim delimo podatke</h2>
-    <p>Ne prodajemo vase podatke. Radi pruzanja usluge, odredjeni podaci se obradjuju preko sledecih spoljnih servisa (obradjivaca podataka):</p>
-    <ul>
-        <li><strong>OpenAI</strong> - tekst pitanja vaseg kupca i podaci o vasem biznisu (radno vreme, cenovnik, FAQ) se salju OpenAI-u radi generisanja predloga odgovora.</li>
-        <li><strong>Resend</strong> - koristi se za slanje odobrenih odgovora kupcima; obradjuje email adresu kupca i sadrzaj odgovora.</li>
-        <li><strong>Google (Gmail)</strong> - sistem se povezuje na vas Gmail nalog (IMAP/SMTP) da bi citao nove poruke, koristeci app password koji ste uneli.</li>
-        <li><strong>Railway</strong> - nas hosting provajder; svi podaci se fizicki cuvaju na njihovim serverima (van Srbije).</li>
-    </ul>
+        <h2>Koje podatke prikupljamo</h2>
+        <p>Od vlasnika biznisa, prilikom registracije:</p>
+        <ul>
+            <li>Naziv biznisa, korisnicko ime i lozinka (lozinka se cuva hesirana, nikad u citljivom obliku)</li>
+            <li>Email adresa i "app password" Gmail naloga koji koristite za komunikaciju sa kupcima (app password se cuva sifrovan)</li>
+            <li>Radno vreme, cenovnik i cesta pitanja/odgovori koje unesete</li>
+        </ul>
+        <p>U okviru pruzanja usluge, sistem takodje cita sadrzaj dolaznih mejlova upucenih vasem poslovnom nalogu (pitanja vasih kupaca), radi generisanja predloga odgovora.</p>
 
-    <h2>Kako cuvamo podatke</h2>
-    <p>Lozinke za prijavu na dashboard cuvaju se hesirane (nepovratno). Gmail app password se cuva sifrovan u bazi. Sva komunikacija sa sajtom ide preko HTTPS-a. Ipak, nijedan sistem nije 100% siguran, i ne mozemo garantovati apsolutnu bezbednost.</p>
+        <h2>Zasto prikupljamo ove podatke</h2>
+        <p>Iskljucivo da bismo pruzili funkciju usluge: automatsko citanje upita kupaca i predlaganje odgovora zasnovanih na podacima o vasem biznisu, koje vi rucno pregledate i odobravate pre slanja. Nijedan odgovor se ne salje bez vaseg odobrenja.</p>
 
-    <h2>Koliko dugo cuvamo podatke</h2>
-    <p>Podatke cuvamo dok vas nalog postoji. Ako zelite da vas nalog i svi povezani podaci budu obrisani, posaljite zahtev na kontakt email iznad.</p>
+        <h2>Sa kim delimo podatke</h2>
+        <p>Ne prodajemo vase podatke. Radi pruzanja usluge, odredjeni podaci se obradjuju preko sledecih spoljnih servisa (obradjivaca podataka):</p>
+        <ul>
+            <li><strong>OpenAI</strong> - tekst pitanja vaseg kupca i podaci o vasem biznisu (radno vreme, cenovnik, FAQ) se salju OpenAI-u radi generisanja predloga odgovora.</li>
+            <li><strong>Resend</strong> - koristi se za slanje odobrenih odgovora kupcima; obradjuje email adresu kupca i sadrzaj odgovora.</li>
+            <li><strong>Google (Gmail)</strong> - sistem se povezuje na vas Gmail nalog (IMAP/SMTP) da bi citao nove poruke, koristeci app password koji ste uneli.</li>
+            <li><strong>Railway</strong> - nas hosting provajder; svi podaci se fizicki cuvaju na njihovim serverima (van Srbije).</li>
+        </ul>
 
-    <h2>Kolacici</h2>
-    <p>Koristimo samo jedan neophodan kolacic (sesijski) da bismo vas drzali prijavljenim na dashboard. Ne koristimo kolacice za marketing ili pracenje.</p>
+        <h2>Kako cuvamo podatke</h2>
+        <p>Lozinke za prijavu na dashboard cuvaju se hesirane (nepovratno). Gmail app password se cuva sifrovan u bazi. Sva komunikacija sa sajtom ide preko HTTPS-a. Ipak, nijedan sistem nije 100% siguran, i ne mozemo garantovati apsolutnu bezbednost.</p>
 
-    <h2>Vasa prava</h2>
-    <p>Imate pravo da zatrazite uvid u podatke koje o vama cuvamo, njihovu ispravku, ili potpuno brisanje. Za bilo koji od ovih zahteva, pisite na kontakt email iznad - odgovoricemo u razumnom roku.</p>
+        <h2>Koliko dugo cuvamo podatke</h2>
+        <p>Podatke cuvamo dok vas nalog postoji. Ako zelite da vas nalog i svi povezani podaci budu obrisani, posaljite zahtev na kontakt email iznad.</p>
 
-    <h2>Izmene ove politike</h2>
-    <p>Ova politika se moze povremeno azurirati. Znacajne izmene cemo pokusati da najavimo korisnicima putem email-a.</p>
+        <h2>Kolacici</h2>
+        <p>Koristimo samo jedan neophodan kolacic (sesijski) da bismo vas drzali prijavljenim na dashboard. Ne koristimo kolacice za marketing ili pracenje.</p>
+
+        <h2>Vasa prava</h2>
+        <p>Imate pravo da zatrazite uvid u podatke koje o vama cuvamo, njihovu ispravku, ili potpuno brisanje. Za bilo koji od ovih zahteva, pisite na kontakt email iznad - odgovoricemo u razumnom roku.</p>
+
+        <h2>Izmene ove politike</h2>
+        <p>Ova politika se moze povremeno azurirati. Znacajne izmene cemo pokusati da najavimo korisnicima putem email-a.</p>
+    </div>
 
     <a class="nazad" href="{{ url_for('registracija') }}">&larr; Nazad na registraciju</a>
-</body>
-</html>
+</div>
+{% endblock %}

@@ -1,51 +1,54 @@
-<!DOCTYPE html>
-<html lang="sr">
-<head>
-    <meta charset="UTF-8">
-    <title>Podesavanja - {{ biznis.naziv }}</title>
-    <style>
-        body { font-family: Arial, sans-serif; max-width: 600px; margin: 40px auto; padding: 0 20px; }
-        h1 { color: #333; font-size: 1.4em; }
-        label { font-weight: bold; display: block; margin-top: 16px; }
-        input, textarea { width: 100%; padding: 8px; margin-top: 4px; box-sizing: border-box; font-family: inherit; }
-        textarea { min-height: 90px; }
-        button { margin-top: 20px; padding: 10px 20px; background: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer; }
-        .napomena { color: #666; font-size: 0.85em; margin-top: 4px; }
-        .greska { color: #c00; }
-        .poruka { color: #28a745; font-weight: bold; }
-        .nazad { display: inline-block; margin-bottom: 10px; }
-        .readonly { background: #f5f5f5; color: #777; }
-    </style>
-</head>
-<body>
-    <a class="nazad" href="{{ url_for('pocetna') }}">&larr; Nazad na razgovore</a>
-    <h1>Podesavanja biznisa</h1>
+{% extends "base.html" %}
+{% block title %}Podesavanja - {{ biznis.naziv }}{% endblock %}
 
-    {% if greska %}<p class="greska">{{ greska }}</p>{% endif %}
-    {% if poruka %}<p class="poruka">{{ poruka }}</p>{% endif %}
+{% block telo %}
+{% include "_nav.html" %}
 
-    <form method="POST">
-        <label>Naziv biznisa</label>
-        <input type="text" name="naziv" value="{{ biznis.naziv }}" required>
+<div class="sadrzaj sadrzaj-uzak">
+    <div class="zaglavlje-strane">
+        <div>
+            <h1>Podesavanja biznisa</h1>
+            <p class="podnaslov">Iz ovih podataka AI sastavlja odgovore &mdash; drzi ih azurnim.</p>
+        </div>
+    </div>
 
-        <label>Email adresa</label>
-        <input type="email" class="readonly" value="{{ biznis.email_adresa }}" readonly>
-        <p class="napomena">Email adresu nije moguce menjati ovde. Ako ti treba promena naloga, obrisi nalog i registruj se ponovo.</p>
+    {% if greska %}
+        <div class="alert alert-greska"><span class="alert-ikona">&#9888;&#65039;</span><span>{{ greska }}</span></div>
+    {% endif %}
+    {% if poruka %}
+        <div class="alert alert-uspeh"><span class="alert-ikona">&#10003;</span><span>{{ poruka }}</span></div>
+    {% endif %}
 
-        <label>Email app password</label>
-        <input type="text" name="email_app_password" placeholder="Ostavi prazno da zadrzis postojeci">
-        <p class="napomena">Popuni samo ako menjas app password (npr. ako si ga rotirao u Google nalogu). Prazno = zadrzava se postojeci.</p>
+    <div class="karta">
+        <form method="POST">
+            <label style="margin-top: 0;">Naziv biznisa</label>
+            <input type="text" name="naziv" value="{{ biznis.naziv }}" required>
 
-        <label>Radno vreme</label>
-        <textarea name="radno_vreme" required>{{ biznis.radno_vreme }}</textarea>
+            <label>Email adresa</label>
+            <input type="email" value="{{ biznis.email_adresa }}" readonly>
+            <p class="napomena">Email adresu nije moguce menjati ovde. Ako ti treba promena naloga, obrisi nalog i registruj se ponovo.</p>
 
-        <label>Cenovnik</label>
-        <textarea name="cenovnik" required>{{ biznis.cenovnik }}</textarea>
+            <label>Email app password</label>
+            <input type="text" name="email_app_password" placeholder="Ostavi prazno da zadrzis postojeci">
+            <p class="napomena">Popuni samo ako menjas app password (npr. ako si ga rotirao u Google nalogu). Prazno = zadrzava se postojeci.</p>
 
-        <label>Cesta pitanja i odgovori</label>
-        <textarea name="cesta_pitanja">{{ biznis.cesta_pitanja }}</textarea>
+            <div class="forma-sekcija">
+                <p class="forma-sekcija-naslov">Podaci o biznisu</p>
 
-        <button type="submit">Sacuvaj izmene</button>
-    </form>
-</body>
-</html>
+                <label>Radno vreme</label>
+                <textarea name="radno_vreme" required>{{ biznis.radno_vreme }}</textarea>
+
+                <label>Cenovnik</label>
+                <textarea name="cenovnik" required>{{ biznis.cenovnik }}</textarea>
+
+                <label>Cesta pitanja i odgovori</label>
+                <textarea name="cesta_pitanja">{{ biznis.cesta_pitanja }}</textarea>
+            </div>
+
+            <div class="forma-akcije">
+                <button class="dugme" type="submit">Sacuvaj izmene</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
