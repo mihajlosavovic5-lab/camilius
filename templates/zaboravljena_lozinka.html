@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="sr">
+<head>
+    <meta charset="UTF-8">
+    <title>Zaboravljena lozinka - Dashboard</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 360px; margin: 100px auto; padding: 0 20px; }
+        h1 { color: #333; font-size: 1.4em; }
+        input { width: 100%; padding: 8px; margin: 6px 0 14px 0; box-sizing: border-box; }
+        button { padding: 8px 16px; background: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        .poruka { color: #28a745; font-weight: bold; }
+        a { display: block; margin-top: 16px; }
+    </style>
+</head>
+<body>
+    <h1>Zaboravljena lozinka</h1>
+
+    {% if poruka %}
+        <p class="poruka">{{ poruka }}</p>
+    {% else %}
+        <p>Unesi email adresu koju si koristio/la pri registraciji - poslacemo ti link za resetovanje lozinke.</p>
+        <form method="POST">
+            <label>Email adresa</label>
+            <input type="email" name="email_adresa" autofocus required>
+            <button type="submit">Posalji link</button>
+        </form>
+    {% endif %}
+
+    <a href="{{ url_for('login') }}">&larr; Nazad na prijavu</a>
+</body>
+</html>

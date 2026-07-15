@@ -41,6 +41,11 @@ def napravi_bazu():
         )
     """)
 
+    # ADD COLUMN IF NOT EXISTS - resetovanje lozinke je dodato posle prvobitne seme,
+    # ovo omogucava da postojeca produkciona tabela dobije te kolone bez rucne migracije
+    kursor.execute("ALTER TABLE biznisi ADD COLUMN IF NOT EXISTS reset_token TEXT")
+    kursor.execute("ALTER TABLE biznisi ADD COLUMN IF NOT EXISTS reset_istice TIMESTAMP")
+
     konekcija.commit()
     konekcija.close()
 
@@ -192,6 +197,55 @@ def razgovori_za_biznis(biznis_id):
 
     konekcija.close()
     return rezultat
+
+
+def biznis_po_emailu(email_adresa):
+    konekcija = konektuj()
+    kursor = konekcija.cursor()
+    kursor.execute(
+        "SELECT id, naziv, korisnicko_ime, lozinka, email_adresa, email_app_password, radno_vreme, cenovnik, cesta_pitanja FROM biznisi WHERE email_adresa = %s",
+        (email_adresa,),
+    )
+    red = kursor.fetchone()
+    konekcija.close()
+
+    if red is None:
+        return None
+    return red[:5] + (desifruj(red[5]),) + red[6:]
+
+
+def sacuvaj_reset_token(biznis_id, token, istice):
+    konekcija = konektuj()
+    kursor = konekcija.cursor()
+    kursor.execute(
+        "UPDATE biznisi SET reset_token = %s, reset_istice = %s WHERE id = %s",
+        (token, istice, biznis_id),
+    )
+    konekcija.commit()
+    konekcija.close()
+
+
+def biznis_po_reset_tokenu(token):
+    konekcija = konektuj()
+    kursor = konekcija.cursor()
+    kursor.execute(
+        "SELECT id, naziv FROM biznisi WHERE reset_token = %s AND reset_istice > NOW()",
+        (token,),
+    )
+    red = kursor.fetchone()
+    konekcija.close()
+    return red
+
+
+def postavi_novu_lozinku(biznis_id, nova_lozinka):
+    konekcija = konektuj()
+    kursor = konekcija.cursor()
+    kursor.execute(
+        "UPDATE biznisi SET lozinka = %s, reset_token = NULL, reset_istice = NULL WHERE id = %s",
+        (generate_password_hash(nova_lozinka), biznis_id),
+    )
+    konekcija.commit()
+    konekcija.close()
 
 
 def azuriraj_biznis(biznis_id, naziv, radno_vreme, cenovnik, cesta_pitanja, email_app_password=None):

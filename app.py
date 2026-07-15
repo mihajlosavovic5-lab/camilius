@@ -1,14 +1,20 @@
 import os
-import psycopg2
+import secrets
+from datetime import datetime, timedelta, timezone
 from functools import wraps
 
+import psycopg2
 from dotenv import load_dotenv
 from flask import Flask, render_template, request, redirect, url_for, session, abort
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from werkzeug.security import check_password_hash
 
-from baza import razgovori_za_biznis, jedan_razgovor, oznaci_poslato, biznis_po_korisnickom_imenu, biznis_po_id, dodaj_biznis, napravi_bazu, obrisi_biznis, broj_odgovora_danas, azuriraj_biznis
+from baza import (
+    razgovori_za_biznis, jedan_razgovor, oznaci_poslato, biznis_po_korisnickom_imenu,
+    biznis_po_id, dodaj_biznis, napravi_bazu, obrisi_biznis, broj_odgovora_danas,
+    azuriraj_biznis, biznis_po_emailu, sacuvaj_reset_token, biznis_po_reset_tokenu, postavi_novu_lozinku,
+)
 from send_email import posalji_email
 from read_email import proveri_kredencijale
 
@@ -52,9 +58,9 @@ def login():
             session["biznis_naziv"] = biznis[1]
             return redirect(url_for("pocetna"))
 
-        return render_template("login.html", greska="Pogresno korisnicko ime ili lozinka.")
+        return render_template("login.html", greska="Pogresno korisnicko ime ili lozinka.", poruka=None)
 
-    return render_template("login.html", greska=None)
+    return render_template("login.html", greska=None, poruka=request.args.get("poruka"))
 
 
 @app.route("/registracija", methods=["GET", "POST"])
@@ -92,6 +98,55 @@ def registracija():
         return redirect(url_for("pocetna"))
 
     return render_template("registracija.html", greska=None, podaci={})
+
+
+@app.route("/zaboravljena-lozinka", methods=["GET", "POST"])
+@limiter.limit("5 per hour", methods=["POST"])
+def zaboravljena_lozinka():
+    if request.method == "POST":
+        biznis = biznis_po_emailu(request.form["email_adresa"])
+
+        if biznis:
+            token = secrets.token_urlsafe(32)
+            istice = datetime.now(timezone.utc).replace(tzinfo=None) + timedelta(hours=1)
+            sacuvaj_reset_token(biznis[0], token, istice)
+
+            link = url_for("reset_lozinke", token=token, _external=True)
+            posalji_email(
+                primalac=biznis[4],
+                naslov="Resetovanje lozinke - ai-auto-reply",
+                telo=(
+                    f"Zdravo,\n\n"
+                    f"Neko (nadamo se ti) je zatrazio resetovanje lozinke za nalog '{biznis[1]}'.\n\n"
+                    f"Klikni na link da postavis novu lozinku (vazi 1 sat):\n{link}\n\n"
+                    f"Ako nisi ti trazio/la ovo, slobodno ignorisi ovaj mejl."
+                ),
+                biznis_naziv="ai-auto-reply",
+                reply_to=os.getenv("ALERT_EMAIL") or biznis[4],
+            )
+
+        # Ista poruka bez obzira da li je email pronadjen - ne otkrivamo da li nalog postoji
+        return render_template(
+            "zaboravljena_lozinka.html",
+            poruka="Ako je taj email registrovan, poslali smo link za resetovanje lozinke.",
+        )
+
+    return render_template("zaboravljena_lozinka.html", poruka=None)
+
+
+@app.route("/reset-lozinke/<token>", methods=["GET", "POST"])
+def reset_lozinke(token):
+    biznis = biznis_po_reset_tokenu(token)
+
+    if biznis is None:
+        return render_template("reset_lozinke.html", nevazeci=True)
+
+    if request.method == "POST":
+        nova_lozinka = request.form["lozinka"]
+        postavi_novu_lozinku(biznis[0], nova_lozinka)
+        return redirect(url_for("login", poruka="Lozinka je promenjena. Prijavi se novom lozinkom."))
+
+    return render_template("reset_lozinke.html", nevazeci=False)
 
 
 @app.route("/logout")

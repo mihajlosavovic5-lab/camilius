@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="sr">
+<head>
+    <meta charset="UTF-8">
+    <title>Nova lozinka - Dashboard</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 360px; margin: 100px auto; padding: 0 20px; }
+        h1 { color: #333; font-size: 1.4em; }
+        input { width: 100%; padding: 8px; margin: 6px 0 14px 0; box-sizing: border-box; }
+        button { padding: 8px 16px; background: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        .greska { color: #c00; }
+        a { display: block; margin-top: 16px; }
+    </style>
+</head>
+<body>
+    {% if nevazeci %}
+        <h1>Link vise ne vazi</h1>
+        <p class="greska">Ovaj link za resetovanje lozinke je istekao ili je vec iskoriscen (vazi 1 sat od slanja).</p>
+        <a href="{{ url_for('zaboravljena_lozinka') }}">Zatrazi novi link</a>
+    {% else %}
+        <h1>Postavi novu lozinku</h1>
+        <form method="POST">
+            <label>Nova lozinka</label>
+            <input type="password" name="lozinka" autofocus required>
+            <button type="submit">Sacuvaj novu lozinku</button>
+        </form>
+    {% endif %}
+</body>
+</html>
