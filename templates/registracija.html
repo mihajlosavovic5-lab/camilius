@@ -13,6 +13,9 @@
         .greska { color: #c00; }
         .napomena { color: #666; font-size: 0.85em; }
         a { display: block; margin-top: 16px; }
+        .checkbox-label { font-weight: normal; display: block; margin-top: 20px; }
+        .checkbox-label input { width: auto; display: inline; margin: 0 6px 0 0; vertical-align: middle; }
+        .checkbox-label a { display: inline; margin: 0; }
     </style>
 </head>
 <body>
@@ -47,6 +50,11 @@
 
         <label>Cesta pitanja i odgovori</label>
         <textarea name="cesta_pitanja" placeholder="P: Da li je potrebno zakazati termin?&#10;O: Da, preporucujemo zakazivanje unapred."></textarea>
+
+        <label class="checkbox-label">
+            <input type="checkbox" name="prihvatam_uslove" required>
+            Prihvatam <a href="{{ url_for('uslovi') }}" target="_blank">Uslove koriscenja</a> i <a href="{{ url_for('privatnost') }}" target="_blank">Politiku privatnosti</a>
+        </label>
 
         <button type="submit">Registruj se</button>
     </form>

@@ -9,6 +9,8 @@
         input { width: 100%; padding: 8px; margin: 6px 0 14px 0; box-sizing: border-box; }
         button { padding: 8px 16px; background: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer; }
         .greska { color: #c00; }
+        .footer-linkovi { margin-top: 24px; font-size: 0.8em; color: #888; }
+        .footer-linkovi a { color: #888; }
     </style>
 </head>
 <body>
@@ -29,5 +31,10 @@
     </form>
 
     <a href="{{ url_for('registracija') }}">Nemas nalog? Registruj svoj biznis</a>
+
+    <p class="footer-linkovi">
+        <a href="{{ url_for('uslovi') }}">Uslovi koriscenja</a> &middot;
+        <a href="{{ url_for('privatnost') }}">Politika privatnosti</a>
+    </p>
 </body>
 </html>

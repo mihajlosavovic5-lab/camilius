@@ -55,6 +55,9 @@ def login():
 @limiter.limit("5 per hour", methods=["POST"])
 def registracija():
     if request.method == "POST":
+        if not request.form.get("prihvatam_uslove"):
+            return render_template("registracija.html", greska="Morate prihvatiti Uslove koriscenja i Politiku privatnosti.")
+
         try:
             novi_id = dodaj_biznis(
                 naziv=request.form["naziv"],
@@ -80,6 +83,16 @@ def registracija():
 def logout():
     session.clear()
     return redirect(url_for("login"))
+
+
+@app.route("/privatnost")
+def privatnost():
+    return render_template("privatnost.html")
+
+
+@app.route("/uslovi")
+def uslovi():
+    return render_template("uslovi.html")
 
 
 @app.route("/")

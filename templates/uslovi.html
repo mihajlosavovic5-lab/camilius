@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="sr">
+<head>
+    <meta charset="UTF-8">
+    <title>Uslovi koriscenja - ai-auto-reply</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 700px; margin: 40px auto; padding: 0 20px; line-height: 1.6; color: #222; }
+        h1 { color: #333; font-size: 1.5em; }
+        h2 { color: #333; font-size: 1.15em; margin-top: 28px; }
+        p, li { color: #333; }
+        .azurirano { color: #666; font-size: 0.85em; }
+        a.nazad { display: block; margin-top: 30px; }
+    </style>
+</head>
+<body>
+    <h1>Uslovi koriscenja</h1>
+    <p class="azurirano">Poslednje azurirano: 15. jul 2026.</p>
+
+    <p>Registracijom i koriscenjem ai-auto-reply prihvatate ove uslove. Uslugu trenutno vodi Mihajlo Savovic, kao fizicko lice. Za pitanja: <strong>mihajlosavovic5@gmail.com</strong></p>
+
+    <h2>Sta usluga radi</h2>
+    <p>ai-auto-reply cita mejlove upucene vasem poslovnom Gmail nalogu i automatski generise <strong>predlog</strong> odgovora pomocu vestacke inteligencije, na osnovu podataka o vasem biznisu koje ste uneli. Predlog se ne salje automatski - vi ga morate rucno pregledati, po potrebi izmeniti, i odobriti slanje kroz dashboard. Vi ste jedini odgovorni za sadrzaj svakog odgovora koji odobrite i posaljete.</p>
+
+    <h2>Vasa odgovornost</h2>
+    <ul>
+        <li>Odgovorni ste za tacnost podataka koje unesete (radno vreme, cenovnik, FAQ) - AI odgovori se oslanjaju na te podatke.</li>
+        <li>Odgovorni ste da pre slanja proverite da li je AI predlog tacan i primeren - mi ne garantujemo tacnost sadrzaja koji AI generise.</li>
+        <li>Obavezujete se da uslugu ne koristite za slanje neprimerenog, obmanjujuceg ili nezakonitog sadrzaja.</li>
+        <li>Odgovorni ste za bezbednost svojih pristupnih podataka (korisnicko ime, lozinka, Gmail app password).</li>
+    </ul>
+
+    <h2>Ogranicenje odgovornosti</h2>
+    <p>Usluga se pruza "takva kakva jeste", bez garancije neprekidnog rada ili odsustva gresaka. Ne odgovaramo za stetu nastalu usled netacnog AI odgovora koji ste vi odobrili i poslali, prekida rada usluge, ili gubitka podataka. Koristite uslugu na sopstvenu odgovornost.</p>
+
+    <h2>Cena</h2>
+    <p>Usluga je trenutno besplatna, u fazi testiranja. Zadrzavamo pravo da u buducnosti uvedemo placeni model, o cemu cemo postojece korisnike unapred obavestiti.</p>
+
+    <h2>Prekid naloga</h2>
+    <p>Zadrzavamo pravo da suspendujemo ili ukinemo nalog u slucaju zloupotrebe usluge (npr. slanje spama, pokusaj zaobilazenja ogranicenja, nezakonito koriscenje). Vi u svakom trenutku mozete zatraziti brisanje svog naloga.</p>
+
+    <h2>Izmene uslova</h2>
+    <p>Ovi uslovi se mogu povremeno menjati. Znacajne izmene cemo pokusati da najavimo putem email-a. Nastavak koriscenja usluge nakon izmene znaci da prihvatate nove uslove.</p>
+
+    <h2>Merodavno pravo</h2>
+    <p>Na ove uslove primenjuje se pravo Republike Srbije.</p>
+
+    <p>Za informacije o tome koje podatke prikupljamo i kako ih cuvamo, pogledajte <a href="{{ url_for('privatnost') }}">Politiku privatnosti</a>.</p>
+
+    <a class="nazad" href="{{ url_for('registracija') }}">&larr; Nazad na registraciju</a>
+</body>
+</html>
