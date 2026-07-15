@@ -3,3 +3,4 @@ venv/
 __pycache__/
 *.pyc
 razgovori.db
+node_modules/
