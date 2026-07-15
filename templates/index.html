@@ -64,7 +64,9 @@
             {% if status == 'na_cekanju' %}
                 <div class="razgovor-blok">
                     <div class="razgovor-labela">Predlog odgovora &mdash; mozes izmeniti pre slanja</div>
-                    <form method="POST" action="{{ url_for('posalji', id_razgovora=id) }}">
+                    <!-- onsubmit iskljucuje dugme da dupli klik ne bi poslao mejl dva puta -->
+                    <form method="POST" action="{{ url_for('posalji', id_razgovora=id) }}"
+                          onsubmit="var d = this.querySelector('button'); d.disabled = true; d.textContent = 'Slanje...';">
                         <textarea name="odgovor">{{ predlog }}</textarea>
                         <div class="forma-akcije" style="margin-top: 12px;">
                             <button class="dugme" type="submit">Posalji odgovor</button>

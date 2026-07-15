@@ -67,6 +67,10 @@ a:hover { text-decoration: underline; }
 .nav-links a:hover { background: var(--pozadina); color: var(--tekst); text-decoration: none; }
 .nav-links a.aktivna { background: var(--primarna-svetla); color: var(--primarna); }
 .nav-links a.nav-odjava { color: var(--tekst-blagi); }
+/* Dugme unutar nav linkova (npr. "Isprobaj besplatno" na landing strani)
+   mora da zadrzi belu boju teksta - inace ga .nav-links a pravilo pregazi */
+.nav-links a.dugme { color: #fff; }
+.nav-links a.dugme:hover { background: var(--primarna-tamna); color: #fff; }
 
 /* --- Osnovni raspored --- */
 .sadrzaj { max-width: 960px; margin: 0 auto; padding: 28px 20px 60px; }
