@@ -27,10 +27,10 @@
             <input type="text" name="naziv" value="{{ podaci.get('naziv', '') }}" placeholder="npr. Frizerski salon Stil" required>
 
             <label>Korisnicko ime <span style="font-weight:400; color: var(--tekst-blagi);">(za prijavu na dashboard)</span></label>
-            <input type="text" name="korisnicko_ime" value="{{ podaci.get('korisnicko_ime', '') }}" required>
+            <input type="text" name="korisnicko_ime" value="{{ podaci.get('korisnicko_ime', '') }}" autocomplete="username" required>
 
             <label>Lozinka</label>
-            <input type="password" name="lozinka" required>
+            <input type="password" name="lozinka" autocomplete="new-password" required>
 
             <div class="forma-sekcija">
                 <p class="forma-sekcija-naslov">Povezivanje Gmail naloga</p>

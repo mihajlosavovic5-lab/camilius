@@ -21,6 +21,10 @@
         </div>
     </div>
 
+    {% if poslato %}
+        <div class="alert alert-uspeh"><span class="alert-ikona">&#10003;</span><span>Odgovor je poslat kupcu.</span></div>
+    {% endif %}
+
     <div class="filteri" style="margin-bottom: 20px;">
         <a href="{{ url_for('pocetna') }}" class="{{ 'aktivan' if filter_status == 'svi' }}">Svi ({{ broj_svi }})</a>
         <a href="{{ url_for('pocetna', filter='na_cekanju') }}" class="{{ 'aktivan' if filter_status == 'na_cekanju' }}">Na cekanju ({{ broj_na_cekanju }})</a>

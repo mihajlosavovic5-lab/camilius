@@ -208,6 +208,16 @@ def obrisi_nalog():
     return redirect(url_for("login"))
 
 
+@app.errorhandler(404)
+def stranica_ne_postoji(e):
+    return render_template("greska.html", kod=404, poruka="Stranica koju trazis ne postoji ili je premestena."), 404
+
+
+@app.errorhandler(500)
+def greska_servera(e):
+    return render_template("greska.html", kod=500, poruka="Doslo je do greske na serveru. Probaj ponovo za koji minut."), 500
+
+
 @app.route("/privatnost")
 def privatnost():
     return render_template("privatnost.html")
@@ -251,6 +261,7 @@ def pocetna():
         broj_na_cekanju=broj_na_cekanju,
         danas=danas,
         dnevni_limit=DNEVNI_LIMIT_ODGOVORA,
+        poslato=request.args.get("poslato"),
     )
 
 
@@ -278,7 +289,8 @@ def posalji(id_razgovora):
 
     oznaci_poslato(id_razgovora, konacan_odgovor)
 
-    return redirect(url_for("pocetna"))
+    # poslato=1 -> dashboard prikaze potvrdu da je odgovor otisao
+    return redirect(url_for("pocetna", poslato=1))
 
 
 # --- Pretplata (Paddle) ---
