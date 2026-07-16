@@ -141,14 +141,14 @@ def forgot_password():
             link = url_for("reset_password", token=token, _external=True)
             send_email(
                 recipient=business[4],
-                subject="Password reset - ai-auto-reply",
+                subject="Password reset - Camilius AI",
                 body=(
                     f"Hi,\n\n"
                     f"Someone (hopefully you) requested a password reset for the account '{business[1]}'.\n\n"
                     f"Click the link to set a new password (valid for 1 hour):\n{link}\n\n"
                     f"If this wasn't you, feel free to ignore this email."
                 ),
-                business_name="ai-auto-reply",
+                business_name="Camilius AI",
                 reply_to=os.getenv("ALERT_EMAIL") or business[4],
             )
 

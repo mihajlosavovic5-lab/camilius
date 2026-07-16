@@ -25,7 +25,7 @@ def send_email(recipient, subject, body, business_name, reply_to):
 if __name__ == "__main__":
     send_email(
         recipient=os.getenv("EMAIL_ADDRESS"),
-        subject="Test message from the ai-auto-reply project",
+        subject="Test message from the Camilius AI project",
         body="If you see this, sending email works correctly.",
         business_name="Test business",
         reply_to=os.getenv("EMAIL_ADDRESS"),

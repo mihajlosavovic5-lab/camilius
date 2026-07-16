@@ -1,12 +1,12 @@
 {% extends "base.html" %}
-{% block title %}ai-auto-reply — AI replies to your business's emails{% endblock %}
+{% block title %}Camilius AI — AI replies to your business's emails{% endblock %}
 {% block body_class %}auth{% endblock %}
 
 {% block content %}
 <div class="public-header">
     <a class="brand" href="{{ url_for('home') }}">
-        <span class="brand-mark">ai</span>
-        <span class="brand-name">auto-reply</span>
+        <span class="brand-mark">C</span>
+        <span class="brand-name">Camilius<span class="brand-ai">AI</span></span>
     </a>
     <div class="nav-links">
         <a href="{{ url_for('login') }}">Log in</a>
@@ -18,7 +18,7 @@
     <!-- Hero -->
     <section class="hero">
         <h1>Customers email you.<br>The AI already has a reply ready.</h1>
-        <p class="hero-subtitle">ai-auto-reply reads your business's emails and drafts replies based on your working hours, price list, and FAQ. You just review, edit if you like &mdash; and send with one click.</p>
+        <p class="hero-subtitle">Camilius AI reads your business's emails and drafts replies based on your working hours, price list, and FAQ. You just review, edit if you like &mdash; and send with one click.</p>
         <div class="hero-actions">
             {% if beta_free_mode %}
             <a href="{{ url_for('register') }}" class="button" style="font-size: 16px; padding: 13px 28px;">Get started for free</a>
@@ -108,7 +108,7 @@
             <a href="{{ url_for('privacy') }}">Privacy Policy</a> &middot;
             <a href="{{ url_for('login') }}">Log in</a>
         </p>
-        <p style="margin-top: 6px;">&copy; 2026 ai-auto-reply</p>
+        <p style="margin-top: 6px;">&copy; 2026 Camilius AI</p>
     </footer>
 </div>
 {% endblock %}

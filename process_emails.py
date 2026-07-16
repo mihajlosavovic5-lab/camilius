@@ -38,14 +38,14 @@ def send_alert(business_name, error):
     try:
         send_email(
             recipient=ALERT_EMAIL,
-            subject=f"[ai-auto-reply ALERT] Error for business: {business_name}",
+            subject=f"[Camilius AI ALERT] Error for business: {business_name}",
             body=(
                 f"Processing messages for business '{business_name}' failed.\n\n"
                 f"Error: {error}\n\n"
                 f"Other businesses are processing normally. If the error is an IMAP login\n"
                 f"failure, the business probably changed their Gmail password or revoked the app password."
             ),
-            business_name="ai-auto-reply system",
+            business_name="Camilius AI system",
             reply_to=ALERT_EMAIL,
         )
         _last_alert[business_name] = now
