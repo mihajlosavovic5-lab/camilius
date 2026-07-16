@@ -33,7 +33,7 @@ def proveri_kredencijale(email_adresa, email_app_password):
         return False
 
 
-def uzmi_nove_poruke(email_adresa, email_app_password, max_broj=None):
+def uzmi_nove_poruke(email_adresa, email_app_password):
     # Povezujemo se na Gmail-ov IMAP server preko sigurne (SSL) konekcije
     konekcija = imaplib.IMAP4_SSL(IMAP_SERVER)
     konekcija.login(email_adresa, email_app_password.replace(" ", ""))
@@ -45,17 +45,18 @@ def uzmi_nove_poruke(email_adresa, email_app_password, max_broj=None):
     status, poruke_id = konekcija.search(None, "UNSEEN")
     lista_id = poruke_id[0].split()
 
-    if max_broj is not None:
-        # Uzimamo samo prvih 'max_broj' - ostale namerno ne diramo (ostaju NEPROCITANE za sledeci put)
-        lista_id = lista_id[:max_broj]
-
     nove_poruke = []
     for msg_id in lista_id:
-        status, podaci = konekcija.fetch(msg_id, "(RFC822)")
+        # BODY.PEEK[] (za razliku od RFC822/BODY[]) ne oznacava poruku procitanom -
+        # vlasnikov Gmail inbox ostaje netaknut. Zato ista poruka ostaje NEPROCITANA
+        # zauvek i vratice se u sledecem search-u - dedup po Message-ID-ju (baza.py,
+        # tabela obradjene_poruke) sprecava da se ista poruka obradi vise puta.
+        status, podaci = konekcija.fetch(msg_id, "(BODY.PEEK[])")
         sirova_poruka = podaci[0][1]
         poruka = email.message_from_bytes(sirova_poruka)
 
         nove_poruke.append({
+            "message_id": poruka.get("Message-ID"),
             "posiljalac": poruka.get("From"),
             "naslov": poruka.get("Subject"),
             "tekst": izvuci_tekst(poruka),

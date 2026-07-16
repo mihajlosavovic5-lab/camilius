@@ -55,6 +55,19 @@ def napravi_bazu():
     kursor.execute("ALTER TABLE biznisi ADD COLUMN IF NOT EXISTS paddle_subscription_id TEXT")
     kursor.execute("ALTER TABLE biznisi ADD COLUMN IF NOT EXISTS pretplata_status TEXT NOT NULL DEFAULT 'none'")
 
+    # Pamti koje IMAP poruke su vec obradjene, po biznisu. Potrebno jer worker sada
+    # cita poruke preko BODY.PEEK (ne oznacava ih procitanim, da ne dira vlasnikov
+    # inbox) - bez ovoga bi ista neprocitana poruka bila obradjivana iznova svakih 60s.
+    kursor.execute("""
+        CREATE TABLE IF NOT EXISTS obradjene_poruke (
+            id SERIAL PRIMARY KEY,
+            biznis_id INTEGER NOT NULL REFERENCES biznisi(id),
+            message_id TEXT NOT NULL,
+            vreme TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE (biznis_id, message_id)
+        )
+    """)
+
     konekcija.commit()
     konekcija.close()
 
@@ -163,6 +176,34 @@ def sacuvaj_predlog(biznis_id, posiljalac, naslov, pitanje, predlog_odgovora):
     konekcija.commit()
     konekcija.close()
     return novi_id
+
+
+def poruke_vec_obradjene(biznis_id, message_id_lista):
+    """Vraca skup message_id vrednosti iz message_id_lista koje su vec obradjene za ovaj biznis."""
+    if not message_id_lista:
+        return set()
+
+    konekcija = konektuj()
+    kursor = konekcija.cursor()
+    kursor.execute(
+        "SELECT message_id FROM obradjene_poruke WHERE biznis_id = %s AND message_id = ANY(%s)",
+        (biznis_id, list(message_id_lista)),
+    )
+    rezultat = {red[0] for red in kursor.fetchall()}
+    konekcija.close()
+    return rezultat
+
+
+def oznaci_poruku_obradjenom(biznis_id, message_id):
+    konekcija = konektuj()
+    kursor = konekcija.cursor()
+    # ON CONFLICT DO NOTHING - ako je nekim slucajem vec upisana (npr. dupli poziv), ne pucaj
+    kursor.execute(
+        "INSERT INTO obradjene_poruke (biznis_id, message_id) VALUES (%s, %s) ON CONFLICT DO NOTHING",
+        (biznis_id, message_id),
+    )
+    konekcija.commit()
+    konekcija.close()
 
 
 def oznaci_poslato(id_razgovora, konacan_odgovor):

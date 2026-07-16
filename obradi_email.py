@@ -9,7 +9,10 @@ from email.utils import parseaddr
 from read_email import uzmi_nove_poruke
 from generate_reply import generisi_odgovor
 from send_email import posalji_email
-from baza import napravi_bazu, sacuvaj_predlog, svi_biznisi, broj_odgovora_danas, prethodni_razgovori_sa, pretplata_aktivna
+from baza import (
+    napravi_bazu, sacuvaj_predlog, svi_biznisi, broj_odgovora_danas, prethodni_razgovori_sa,
+    pretplata_aktivna, poruke_vec_obradjene, oznaci_poruku_obradjenom,
+)
 from backup import dnevni_backup_ako_treba
 
 DNEVNI_LIMIT_ODGOVORA = 50
@@ -70,7 +73,13 @@ def obradi_jednog_biznisa(biznis_red):
         "cesta_pitanja": cesta_pitanja,
     }
 
-    nove_poruke = uzmi_nove_poruke(email_adresa, email_app_password, max_broj=preostalo_danas)
+    sve_poruke = uzmi_nove_poruke(email_adresa, email_app_password)
+
+    # Poruke ostaju NEPROCITANE u Gmail-u (vidi read_email.py) pa se vracaju u svakom
+    # ciklusu - filtriramo one koje smo vec obradili u prethodnom ciklusu, pa tek onda
+    # primenjujemo dnevni limit na stvarno nove.
+    vec_obradjene = poruke_vec_obradjene(biznis_id, [p["message_id"] for p in sve_poruke if p["message_id"]])
+    nove_poruke = [p for p in sve_poruke if p["message_id"] not in vec_obradjene][:preostalo_danas]
     print(f"[{naziv}] Broj novih poruka: {len(nove_poruke)}")
 
     for poruka in nove_poruke:
@@ -82,6 +91,8 @@ def obradi_jednog_biznisa(biznis_red):
         predlog = generisi_odgovor(poruka["tekst"], biznis, istorija=istorija)
 
         sacuvaj_predlog(biznis_id, adresa_posiljaoca, poruka["naslov"], poruka["tekst"], predlog)
+        if poruka["message_id"]:
+            oznaci_poruku_obradjenom(biznis_id, poruka["message_id"])
         print(f"[{naziv}] Predlog sacuvan, ceka odobrenje u dashboardu.")
 
 
