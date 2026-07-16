@@ -10,6 +10,7 @@ from dotenv import load_dotenv
 from flask import Flask, render_template, request, redirect, url_for, session, abort
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
+from flask_wtf import CSRFProtect
 from werkzeug.security import check_password_hash
 
 from baza import (
@@ -28,9 +29,17 @@ app.secret_key = os.getenv("FLASK_SECRET_KEY")
 if not app.secret_key:
     raise RuntimeError("FLASK_SECRET_KEY nije podesen u environment varijablama.")
 
+# Session kolacic: HTTPONLY (JS ne moze da ga cita - stiti od XSS krade sesije),
+# SAMESITE=Lax (brauzer ga ne salje uz zahteve sa drugih sajtova - stiti od CSRF-a
+# kombinovano sa CSRFProtect ispod) i SECURE u produkciji (salje se samo preko HTTPS-a).
+app.config["SESSION_COOKIE_HTTPONLY"] = True
+app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
+app.config["SESSION_COOKIE_SECURE"] = os.getenv("FLASK_DEBUG", "false").lower() != "true"
+
 napravi_bazu()
 
 limiter = Limiter(get_remote_address, app=app, default_limits=[])
+csrf = CSRFProtect(app)
 
 
 def prijava_potrebna(funkcija):
@@ -72,6 +81,9 @@ def registracija():
     if request.method == "POST":
         if not request.form.get("prihvatam_uslove"):
             return render_template("registracija.html", greska="Morate prihvatiti Uslove koriscenja i Politiku privatnosti.", podaci=request.form)
+
+        if len(request.form.get("lozinka", "")) < 8:
+            return render_template("registracija.html", greska="Lozinka mora imati bar 8 karaktera.", podaci=request.form)
 
         # Proveravamo da uneti Gmail + app password zaista rade pre nego sto napravimo nalog.
         # Ovo dokazuje da korisnik kontrolise nalog i da ce sistem moci da cita poruke.
@@ -146,10 +158,12 @@ def reset_lozinke(token):
 
     if request.method == "POST":
         nova_lozinka = request.form["lozinka"]
+        if len(nova_lozinka) < 8:
+            return render_template("reset_lozinke.html", nevazeci=False, greska="Lozinka mora imati bar 8 karaktera.")
         postavi_novu_lozinku(biznis[0], nova_lozinka)
         return redirect(url_for("login", poruka="Lozinka je promenjena. Prijavi se novom lozinkom."))
 
-    return render_template("reset_lozinke.html", nevazeci=False)
+    return render_template("reset_lozinke.html", nevazeci=False, greska=None)
 
 
 @app.route("/logout")
@@ -339,6 +353,7 @@ def proveri_paddle_potpis(header, sirovo_telo, tajni_kljuc):
 
 
 @app.route("/paddle-webhook", methods=["POST"])
+@csrf.exempt  # spoljni POST od Paddle-a, nema nas session/CSRF token - vec ima sopstvenu HMAC proveru potpisa ispod
 def paddle_webhook():
     tajni_kljuc = os.getenv("PADDLE_WEBHOOK_SECRET")
     if not tajni_kljuc:

@@ -21,6 +21,7 @@
         {% endif %}
 
         <form method="POST">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <p class="forma-sekcija-naslov" style="margin-top: 6px;">Nalog</p>
 
             <label>Naziv biznisa</label>

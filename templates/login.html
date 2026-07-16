@@ -24,6 +24,7 @@
         {% endif %}
 
         <form method="POST">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <label>Korisnicko ime</label>
             <input type="text" name="korisnicko_ime" autocomplete="username" autofocus>
 

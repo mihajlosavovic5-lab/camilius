@@ -78,6 +78,7 @@
                     <!-- onsubmit iskljucuje dugme da dupli klik ne bi poslao mejl dva puta -->
                     <form method="POST" action="{{ url_for('posalji', id_razgovora=id) }}"
                           onsubmit="var d = this.querySelector('button'); d.disabled = true; d.textContent = 'Slanje...';">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         <textarea name="odgovor">{{ predlog }}</textarea>
                         <div class="forma-akcije" style="margin-top: 12px;">
                             <button class="dugme" type="submit">Posalji odgovor</button>
@@ -98,6 +99,7 @@
         <p>Trajno brise tvoj nalog i sve razgovore. Ova radnja se ne moze ponistiti.</p>
         <form method="POST" action="{{ url_for('obrisi_nalog') }}"
               onsubmit="return confirm('Da li si siguran/na? Nalog i svi razgovori ce biti trajno obrisani.');">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <button class="dugme dugme-opasno" type="submit">Obrisi nalog</button>
         </form>
     </div>

@@ -23,7 +23,11 @@
             </div>
         {% else %}
             <h1>Postavi novu lozinku</h1>
+            {% if greska %}
+                <div class="alert alert-greska"><span class="alert-ikona">&#9888;&#65039;</span><span>{{ greska }}</span></div>
+            {% endif %}
             <form method="POST">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <label>Nova lozinka</label>
                 <input type="password" name="lozinka" autocomplete="new-password" autofocus required>
                 <div class="forma-akcije">

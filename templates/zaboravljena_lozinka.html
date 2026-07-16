@@ -19,6 +19,7 @@
         {% else %}
             <p class="auth-podnaslov">Unesi email adresu koju si koristio/la pri registraciji &mdash; poslacemo ti link za resetovanje lozinke.</p>
             <form method="POST">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <label>Email adresa</label>
                 <input type="email" name="email_adresa" autofocus required>
                 <div class="forma-akcije">

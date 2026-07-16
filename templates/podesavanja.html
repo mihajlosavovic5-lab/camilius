@@ -21,6 +21,7 @@
 
     <div class="karta">
         <form method="POST">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <label style="margin-top: 0;">Naziv biznisa</label>
             <input type="text" name="naziv" value="{{ biznis.naziv }}" required>
 
