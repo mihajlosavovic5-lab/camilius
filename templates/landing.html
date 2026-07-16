@@ -1,90 +1,90 @@
 {% extends "base.html" %}
-{% block title %}ai-auto-reply — AI odgovori na mejlove tvog biznisa{% endblock %}
-{% block body_klasa %}auth{% endblock %}
+{% block title %}ai-auto-reply — AI replies to your business's emails{% endblock %}
+{% block body_class %}auth{% endblock %}
 
-{% block telo %}
-<div class="javni-vrh">
-    <a class="brand" href="{{ url_for('pocetna') }}">
+{% block content %}
+<div class="public-header">
+    <a class="brand" href="{{ url_for('home') }}">
         <span class="brand-mark">ai</span>
         <span class="brand-name">auto-reply</span>
     </a>
     <div class="nav-links">
-        <a href="{{ url_for('login') }}">Prijava</a>
-        <a href="{{ url_for('registracija') }}" class="dugme" style="padding: 8px 16px; font-size: 14px;">Isprobaj besplatno</a>
+        <a href="{{ url_for('login') }}">Log in</a>
+        <a href="{{ url_for('register') }}" class="button" style="padding: 8px 16px; font-size: 14px;">Try for free</a>
     </div>
 </div>
 
-<div class="sadrzaj">
+<div class="content">
     <!-- Hero -->
     <section class="hero">
-        <h1>Kupci ti pisu.<br>AI vec ima spreman odgovor.</h1>
-        <p class="hero-podnaslov">ai-auto-reply cita mejlove tvog biznisa i priprema odgovore na osnovu tvog radnog vremena, cenovnika i cestih pitanja. Ti samo pregledas, po zelji izmenis &mdash; i posaljes jednim klikom.</p>
-        <div class="hero-akcije">
-            <a href="{{ url_for('registracija') }}" class="dugme" style="font-size: 16px; padding: 13px 28px;">Isprobaj 14 dana besplatno</a>
+        <h1>Customers email you.<br>The AI already has a reply ready.</h1>
+        <p class="hero-subtitle">ai-auto-reply reads your business's emails and drafts replies based on your working hours, price list, and FAQ. You just review, edit if you like &mdash; and send with one click.</p>
+        <div class="hero-actions">
+            <a href="{{ url_for('register') }}" class="button" style="font-size: 16px; padding: 13px 28px;">Try free for 14 days</a>
         </div>
-        <p class="hero-sitno">Bez obaveza &middot; otkazi bilo kada &middot; nijedan odgovor se ne salje bez tvog odobrenja</p>
+        <p class="hero-fine-print">No commitment &middot; cancel anytime &middot; no reply is ever sent without your approval</p>
     </section>
 
-    <!-- Kako radi -->
-    <section class="sekcija">
-        <h2 class="sekcija-naslov">Kako radi</h2>
-        <div class="koraci">
-            <div class="karta korak">
-                <div class="korak-broj">1</div>
-                <h3>Povezes svoj Gmail</h3>
-                <p>Registracija traje par minuta: uneses radno vreme, cenovnik i cesta pitanja svog biznisa, i povezes Gmail nalog na koji ti pisu kupci (<a href="{{ url_for('pomoc_gmail') }}">vodic u 4 koraka</a>).</p>
+    <!-- How it works -->
+    <section class="section">
+        <h2 class="section-title">How it works</h2>
+        <div class="steps">
+            <div class="card step">
+                <div class="step-number">1</div>
+                <h3>Connect your Gmail</h3>
+                <p>Registration takes a few minutes: enter your business's working hours, price list, and FAQ, and connect the Gmail account customers write to (<a href="{{ url_for('gmail_help') }}">4-step guide</a>).</p>
             </div>
-            <div class="karta korak">
-                <div class="korak-broj">2</div>
-                <h3>AI priprema odgovore</h3>
-                <p>Svaki novi mejl kupca AI procita i odmah sastavi predlog odgovora &mdash; tacan, ljubazan i na srpskom, na osnovu podataka o tvom biznisu.</p>
+            <div class="card step">
+                <div class="step-number">2</div>
+                <h3>AI drafts replies</h3>
+                <p>Every new customer email is read by the AI, which immediately drafts a reply &mdash; accurate, polite, and in Serbian, based on your business's data.</p>
             </div>
-            <div class="karta korak">
-                <div class="korak-broj">3</div>
-                <h3>Ti odobris i posaljes</h3>
-                <p>Predlozi te cekaju u dashboardu. Pregledas, po potrebi doteras, klik &mdash; i odgovor je kod kupca. Nista ne odlazi bez tvog odobrenja.</p>
+            <div class="card step">
+                <div class="step-number">3</div>
+                <h3>You approve and send</h3>
+                <p>Suggestions wait for you in the dashboard. Review, tweak if needed, click &mdash; and the reply reaches the customer. Nothing goes out without your approval.</p>
             </div>
         </div>
     </section>
 
-    <!-- Za koga -->
-    <section class="sekcija">
-        <h2 class="sekcija-naslov">Napravljeno za male biznise</h2>
-        <div class="karta" style="max-width: 640px; margin: 0 auto;">
-            <ul class="pogodnosti">
-                <li><span class="kvacica">&#10003;</span> Frizerski i kozmeticki saloni, ordinacije, servisi, zanatlije, apartmani...</li>
-                <li><span class="kvacica">&#10003;</span> Odgovori sticu i kad si zauzet/a &mdash; kupac ne ceka danima</li>
-                <li><span class="kvacica">&#10003;</span> AI pamti prethodnu prepisku sa svakim kupcem</li>
-                <li><span class="kvacica">&#10003;</span> Nikad ne izmislja cene ni termine &mdash; koristi samo podatke koje si ti uneo/la</li>
-                <li><span class="kvacica">&#10003;</span> Radi sa tvojim postojecim Gmail nalogom, bez promene adrese</li>
+    <!-- Who it's for -->
+    <section class="section">
+        <h2 class="section-title">Built for small businesses</h2>
+        <div class="card" style="max-width: 640px; margin: 0 auto;">
+            <ul class="benefits">
+                <li><span class="checkmark">&#10003;</span> Hair and beauty salons, clinics, repair shops, tradespeople, vacation rentals...</li>
+                <li><span class="checkmark">&#10003;</span> Replies go out even when you're busy &mdash; customers don't wait for days</li>
+                <li><span class="checkmark">&#10003;</span> AI remembers previous conversations with each customer</li>
+                <li><span class="checkmark">&#10003;</span> Never makes up prices or appointment times &mdash; only uses the data you entered</li>
+                <li><span class="checkmark">&#10003;</span> Works with your existing Gmail account, no need to change addresses</li>
             </ul>
         </div>
     </section>
 
-    <!-- Cena -->
-    <section class="sekcija">
-        <h2 class="sekcija-naslov">Jednostavna cena</h2>
-        <div class="karta cena-karta">
-            <div class="cena-red" style="justify-content: center;">
-                <span class="cena-iznos">19&euro;</span>
-                <span class="cena-period">/ mesec</span>
+    <!-- Pricing -->
+    <section class="section">
+        <h2 class="section-title">Simple pricing</h2>
+        <div class="card price-card">
+            <div class="price-row" style="justify-content: center;">
+                <span class="price-amount">&euro;19</span>
+                <span class="price-period">/ month</span>
             </div>
-            <span class="trial-info">Prvih 14 dana besplatno</span>
-            <ul class="pogodnosti" style="text-align: left;">
-                <li><span class="kvacica">&#10003;</span> Do 50 AI odgovora dnevno</li>
-                <li><span class="kvacica">&#10003;</span> Sve funkcije ukljucene</li>
-                <li><span class="kvacica">&#10003;</span> Otkazi bilo kada</li>
+            <span class="trial-info">First 14 days free</span>
+            <ul class="benefits" style="text-align: left;">
+                <li><span class="checkmark">&#10003;</span> Up to 50 AI replies per day</li>
+                <li><span class="checkmark">&#10003;</span> All features included</li>
+                <li><span class="checkmark">&#10003;</span> Cancel anytime</li>
             </ul>
-            <a href="{{ url_for('registracija') }}" class="dugme dugme-puno" style="margin-top: 8px;">Zapocni besplatni period</a>
+            <a href="{{ url_for('register') }}" class="button button-full" style="margin-top: 8px;">Start your free trial</a>
         </div>
     </section>
 
-    <!-- Podnozje -->
-    <footer class="podnozje">
+    <!-- Footer -->
+    <footer class="footer">
         <p>
-            <a href="{{ url_for('uslovi') }}">Uslovi koriscenja</a> &middot;
-            <a href="{{ url_for('privatnost') }}">Politika privatnosti</a> &middot;
-            <a href="{{ url_for('login') }}">Prijava</a>
+            <a href="{{ url_for('terms') }}">Terms of Service</a> &middot;
+            <a href="{{ url_for('privacy') }}">Privacy Policy</a> &middot;
+            <a href="{{ url_for('login') }}">Log in</a>
         </p>
         <p style="margin-top: 6px;">&copy; 2026 ai-auto-reply</p>
     </footer>

@@ -1,50 +1,50 @@
 {% extends "base.html" %}
-{% block title %}Prijava - ai-auto-reply{% endblock %}
-{% block body_klasa %}auth{% endblock %}
+{% block title %}Log in - ai-auto-reply{% endblock %}
+{% block body_class %}auth{% endblock %}
 
-{% block telo %}
-<div class="auth-omotac">
-    <div class="auth-brend">
+{% block content %}
+<div class="auth-wrapper">
+    <div class="auth-brand">
         <span class="brand">
             <span class="brand-mark">ai</span>
             <span class="brand-name">auto-reply</span>
         </span>
-        <p class="auth-slogan">AI cita mejlove tvojih kupaca i priprema odgovore &mdash; ti samo pregledas i posaljes.</p>
+        <p class="auth-tagline">AI reads your customers' emails and drafts replies &mdash; you just review and send.</p>
     </div>
 
-    <div class="auth-karta">
-        <h1>Prijava</h1>
-        <p class="auth-podnaslov">Dobrodosao/la nazad.</p>
+    <div class="auth-card">
+        <h1>Log in</h1>
+        <p class="auth-subtitle">Welcome back.</p>
 
-        {% if greska %}
-            <div class="alert alert-greska"><span class="alert-ikona">&#9888;&#65039;</span><span>{{ greska }}</span></div>
+        {% if error %}
+            <div class="alert alert-error"><span class="alert-icon">&#9888;&#65039;</span><span>{{ error }}</span></div>
         {% endif %}
-        {% if poruka %}
-            <div class="alert alert-uspeh"><span class="alert-ikona">&#10003;</span><span>{{ poruka }}</span></div>
+        {% if message %}
+            <div class="alert alert-success"><span class="alert-icon">&#10003;</span><span>{{ message }}</span></div>
         {% endif %}
 
         <form method="POST">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <label>Korisnicko ime</label>
-            <input type="text" name="korisnicko_ime" autocomplete="username" autofocus>
+            <label>Username</label>
+            <input type="text" name="username" autocomplete="username" autofocus>
 
-            <label>Lozinka</label>
-            <input type="password" name="lozinka" autocomplete="current-password">
+            <label>Password</label>
+            <input type="password" name="password" autocomplete="current-password">
 
-            <div class="forma-akcije">
-                <button class="dugme dugme-puno" type="submit">Prijavi se</button>
+            <div class="form-actions">
+                <button class="button button-full" type="submit">Log in</button>
             </div>
         </form>
 
-        <div class="auth-linkovi">
-            <a href="{{ url_for('registracija') }}">Nemas nalog? <strong>Registruj svoj biznis</strong></a>
-            <a href="{{ url_for('zaboravljena_lozinka') }}">Zaboravio/la si lozinku?</a>
+        <div class="auth-links">
+            <a href="{{ url_for('register') }}">Don't have an account? <strong>Register your business</strong></a>
+            <a href="{{ url_for('forgot_password') }}">Forgot your password?</a>
         </div>
     </div>
 
-    <p class="auth-podnozje">
-        <a href="{{ url_for('uslovi') }}">Uslovi koriscenja</a> &middot;
-        <a href="{{ url_for('privatnost') }}">Politika privatnosti</a>
+    <p class="auth-footer">
+        <a href="{{ url_for('terms') }}">Terms of Service</a> &middot;
+        <a href="{{ url_for('privacy') }}">Privacy Policy</a>
     </p>
 </div>
 {% endblock %}

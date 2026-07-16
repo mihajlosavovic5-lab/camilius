@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}{{ code }} - ai-auto-reply{% endblock %}
+{% block body_class %}auth{% endblock %}
+
+{% block content %}
+<div class="auth-wrapper">
+    <div class="auth-brand">
+        <span class="brand">
+            <span class="brand-mark">ai</span>
+            <span class="brand-name">auto-reply</span>
+        </span>
+    </div>
+
+    <div class="auth-card" style="text-align: center;">
+        <div style="font-size: 44px; font-weight: 800; color: var(--primary); letter-spacing: -2px;">{{ code }}</div>
+        <p style="color: var(--text-muted); margin: 8px 0 20px;">{{ message }}</p>
+        <a href="{{ url_for('home') }}" class="button" style="text-decoration: none;">Back to home</a>
+    </div>
+</div>
+{% endblock %}

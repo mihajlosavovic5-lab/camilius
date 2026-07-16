@@ -6,6 +6,6 @@ load_dotenv()
 api_key = os.getenv("OPENAI_API_KEY")
 
 if api_key:
-    print(f"Kljuc je ucitan. Duzina: {len(api_key)} karaktera. Pocinje sa: {api_key[:7]}...")
+    print(f"Key loaded. Length: {len(api_key)} characters. Starts with: {api_key[:7]}...")
 else:
-    print("Kljuc NIJE pronadjen - proveri .env fajl.")
+    print("Key NOT found - check the .env file.")

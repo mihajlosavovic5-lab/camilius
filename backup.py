@@ -5,69 +5,69 @@ import os
 import json
 from datetime import datetime, date
 
-from baza import konektuj
+from database import connect
 
-# Folder u koji se upisuju dnevni backup fajlovi (na Railway-u: /data/backups,
-# na postojecem trajnom volume-u koji prezivljava redeploy-e).
-# Ako BACKUP_DIR nije podesen, backup se preskace.
+# Folder where daily backup files are written (on Railway: /data/backups,
+# on the existing persistent volume that survives redeploys).
+# If BACKUP_DIR isn't set, backups are skipped.
 BACKUP_DIR = os.getenv("BACKUP_DIR")
 
-# Koliko poslednjih dnevnih backupa cuvamo pre brisanja najstarijih
-BROJ_BACKUPA = 14
+# How many recent daily backups to keep before deleting the oldest
+BACKUP_COUNT = 14
 
 
-def napravi_backup():
-    """Upisuje kompletan sadrzaj baze (obe tabele) u JSON fajl. Vraca putanju fajla."""
+def create_backup():
+    """Writes the full contents of the database (both tables) to a JSON file. Returns the file path."""
     os.makedirs(BACKUP_DIR, exist_ok=True)
 
-    konekcija = konektuj()
-    kursor = konekcija.cursor()
+    connection = connect()
+    cursor = connection.cursor()
 
-    podaci = {"napravljen": datetime.now().isoformat()}
+    data = {"created_at": datetime.now().isoformat()}
 
-    kursor.execute("SELECT id, naziv, korisnicko_ime, lozinka, email_adresa, email_app_password, radno_vreme, cenovnik, cesta_pitanja FROM biznisi ORDER BY id")
-    podaci["biznisi"] = kursor.fetchall()
+    cursor.execute("SELECT id, name, username, password, email, email_app_password, working_hours, price_list, faq FROM businesses ORDER BY id")
+    data["businesses"] = cursor.fetchall()
 
-    kursor.execute("SELECT id, biznis_id, posiljalac, naslov, pitanje, predlog_odgovora, konacan_odgovor, status, vreme::text FROM razgovori ORDER BY id")
-    podaci["razgovori"] = kursor.fetchall()
+    cursor.execute("SELECT id, business_id, sender, subject, question, suggested_reply, final_reply, status, created_at::text FROM conversations ORDER BY id")
+    data["conversations"] = cursor.fetchall()
 
-    konekcija.close()
+    connection.close()
 
-    putanja = os.path.join(BACKUP_DIR, f"backup-{date.today().isoformat()}.json")
-    with open(putanja, "w", encoding="utf-8") as f:
-        json.dump(podaci, f, ensure_ascii=False)
+    path = os.path.join(BACKUP_DIR, f"backup-{date.today().isoformat()}.json")
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False)
 
-    obrisi_stare_backupe()
-    return putanja
+    delete_old_backups()
+    return path
 
 
-def obrisi_stare_backupe():
-    fajlovi = sorted(
+def delete_old_backups():
+    files = sorted(
         f for f in os.listdir(BACKUP_DIR)
         if f.startswith("backup-") and f.endswith(".json")
     )
-    for visak in fajlovi[:-BROJ_BACKUPA]:
-        os.remove(os.path.join(BACKUP_DIR, visak))
+    for extra in files[:-BACKUP_COUNT]:
+        os.remove(os.path.join(BACKUP_DIR, extra))
 
 
-def dnevni_backup_ako_treba():
-    """Poziva se iz worker petlje - pravi backup najvise jednom dnevno.
+def daily_backup_if_needed():
+    """Called from the worker loop - creates a backup at most once a day.
 
-    Danasnji fajl vec postoji -> ne radi nista. BACKUP_DIR nije podesen -> preskace.
+    Today's file already exists -> does nothing. BACKUP_DIR not set -> skips.
     """
     if not BACKUP_DIR:
         return
 
-    danasnji = os.path.join(BACKUP_DIR, f"backup-{date.today().isoformat()}.json")
-    if os.path.exists(danasnji):
+    today_file = os.path.join(BACKUP_DIR, f"backup-{date.today().isoformat()}.json")
+    if os.path.exists(today_file):
         return
 
-    putanja = napravi_backup()
-    print(f"[backup] Napravljen dnevni backup: {putanja}")
+    path = create_backup()
+    print(f"[backup] Daily backup created: {path}")
 
 
 if __name__ == "__main__":
     if not BACKUP_DIR:
-        print("BACKUP_DIR nije podesen - postavi ga pa pokreni ponovo.")
+        print("BACKUP_DIR isn't set - set it and run again.")
         sys.exit(1)
-    print(f"Backup napravljen: {napravi_backup()}")
+    print(f"Backup created: {create_backup()}")

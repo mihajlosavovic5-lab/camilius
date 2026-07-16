@@ -4,60 +4,60 @@ sys.stdout.reconfigure(encoding="utf-8")
 import json
 import argparse
 
-from baza import konektuj
+from database import connect
 
 
-def vrati_iz_backupa(putanja):
-    """Prepisuje CELE tabele biznisi i razgovori sadrzajem iz JSON backup fajla
-    (napravljenog preko backup.py). ID-jevi se vracaju tacno kakvi su bili u
-    backupu da bi strani kljucevi (razgovori.biznis_id) ostali ispravni."""
-    with open(putanja, "r", encoding="utf-8") as f:
-        podaci = json.load(f)
+def restore_from_backup(path):
+    """Overwrites the ENTIRE businesses and conversations tables with the contents of a
+    JSON backup file (produced by backup.py). IDs are restored exactly as they were in
+    the backup so foreign keys (conversations.business_id) stay valid."""
+    with open(path, "r", encoding="utf-8") as f:
+        data = json.load(f)
 
-    konekcija = konektuj()
-    kursor = konekcija.cursor()
+    connection = connect()
+    cursor = connection.cursor()
 
-    # Razgovori prvo (strani kljuc ka biznisu)
-    kursor.execute("DELETE FROM razgovori")
-    kursor.execute("DELETE FROM biznisi")
+    # Conversations first (foreign key to the business)
+    cursor.execute("DELETE FROM conversations")
+    cursor.execute("DELETE FROM businesses")
 
-    for red in podaci["biznisi"]:
-        kursor.execute(
-            """INSERT INTO biznisi
-               (id, naziv, korisnicko_ime, lozinka, email_adresa, email_app_password, radno_vreme, cenovnik, cesta_pitanja)
+    for row in data["businesses"]:
+        cursor.execute(
+            """INSERT INTO businesses
+               (id, name, username, password, email, email_app_password, working_hours, price_list, faq)
                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)""",
-            tuple(red),
+            tuple(row),
         )
 
-    for red in podaci["razgovori"]:
-        kursor.execute(
-            """INSERT INTO razgovori
-               (id, biznis_id, posiljalac, naslov, pitanje, predlog_odgovora, konacan_odgovor, status, vreme)
+    for row in data["conversations"]:
+        cursor.execute(
+            """INSERT INTO conversations
+               (id, business_id, sender, subject, question, suggested_reply, final_reply, status, created_at)
                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)""",
-            tuple(red),
+            tuple(row),
         )
 
-    # SERIAL sekvence moraju da se pomere iznad vracenih ID-jeva, inace bi sledeca
-    # nova registracija/razgovor mogla da pokusa da iskoristi vec zauzet ID
-    kursor.execute("SELECT setval(pg_get_serial_sequence('biznisi', 'id'), COALESCE((SELECT MAX(id) FROM biznisi), 1))")
-    kursor.execute("SELECT setval(pg_get_serial_sequence('razgovori', 'id'), COALESCE((SELECT MAX(id) FROM razgovori), 1))")
+    # SERIAL sequences must be advanced past the restored IDs, otherwise the next
+    # new registration/conversation could try to reuse an already-taken ID
+    cursor.execute("SELECT setval(pg_get_serial_sequence('businesses', 'id'), COALESCE((SELECT MAX(id) FROM businesses), 1))")
+    cursor.execute("SELECT setval(pg_get_serial_sequence('conversations', 'id'), COALESCE((SELECT MAX(id) FROM conversations), 1))")
 
-    konekcija.commit()
-    konekcija.close()
+    connection.commit()
+    connection.close()
 
-    return len(podaci["biznisi"]), len(podaci["razgovori"]), podaci.get("napravljen")
+    return len(data["businesses"]), len(data["conversations"]), data.get("created_at")
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Vraca bazu iz JSON backup fajla. BRISE sve trenutne podatke!")
-    parser.add_argument("putanja", help="Putanja do backup-YYYY-MM-DD.json fajla")
-    parser.add_argument("--da", action="store_true", help="Potvrdi da stvarno zelis da prepises trenutnu bazu")
+    parser = argparse.ArgumentParser(description="Restores the database from a JSON backup file. DELETES all current data!")
+    parser.add_argument("path", help="Path to the backup-YYYY-MM-DD.json file")
+    parser.add_argument("--yes", action="store_true", help="Confirm you really want to overwrite the current database")
     args = parser.parse_args()
 
-    if not args.da:
-        print("Ovo BRISE sve trenutne podatke u bazi i vraca ih iz backupa.")
-        print("Ako si siguran/na, pokreni ponovo sa --da")
+    if not args.yes:
+        print("This DELETES all current data in the database and restores it from the backup.")
+        print("If you're sure, run again with --yes")
         sys.exit(1)
 
-    broj_biznisa, broj_razgovora, napravljen = vrati_iz_backupa(args.putanja)
-    print(f"Vraceno iz backupa (napravljen {napravljen}): {broj_biznisa} biznisa, {broj_razgovora} razgovora.")
+    business_count, conversation_count, created_at = restore_from_backup(args.path)
+    print(f"Restored from backup (created {created_at}): {business_count} businesses, {conversation_count} conversations.")

@@ -1,14 +1,14 @@
 <nav class="navbar">
     <div class="navbar-inner">
-        <a class="brand" href="{{ url_for('pocetna') }}">
+        <a class="brand" href="{{ url_for('home') }}">
             <span class="brand-mark">ai</span>
             <span class="brand-name">auto-reply</span>
         </a>
         <div class="nav-links">
-            <a href="{{ url_for('pocetna') }}" class="{{ 'aktivna' if request.endpoint == 'pocetna' }}">Razgovori</a>
-            <a href="{{ url_for('pretplata') }}" class="{{ 'aktivna' if request.endpoint == 'pretplata' }}">Pretplata</a>
-            <a href="{{ url_for('podesavanja') }}" class="{{ 'aktivna' if request.endpoint == 'podesavanja' }}">Podesavanja</a>
-            <a href="{{ url_for('logout') }}" class="nav-odjava">Odjava</a>
+            <a href="{{ url_for('home') }}" class="{{ 'active' if request.endpoint == 'home' }}">Conversations</a>
+            <a href="{{ url_for('subscription') }}" class="{{ 'active' if request.endpoint == 'subscription' }}">Subscription</a>
+            <a href="{{ url_for('settings') }}" class="{{ 'active' if request.endpoint == 'settings' }}">Settings</a>
+            <a href="{{ url_for('logout') }}" class="nav-logout">Log out</a>
         </div>
     </div>
 </nav>

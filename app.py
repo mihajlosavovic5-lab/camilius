@@ -13,157 +13,157 @@ from flask_limiter.util import get_remote_address
 from flask_wtf import CSRFProtect
 from werkzeug.security import check_password_hash
 
-from baza import (
-    razgovori_za_biznis, jedan_razgovor, oznaci_poslato, biznis_po_korisnickom_imenu,
-    biznis_po_id, dodaj_biznis, napravi_bazu, obrisi_biznis, broj_odgovora_danas,
-    azuriraj_biznis, biznis_po_emailu, sacuvaj_reset_token, biznis_po_reset_tokenu, postavi_novu_lozinku,
-    povezi_pretplatu, azuriraj_status_pretplate, status_pretplate, pretplata_aktivna,
+from database import (
+    conversations_for_business, get_conversation, mark_sent, business_by_username,
+    business_by_id, add_business, create_database, delete_business, replies_today_count,
+    update_business, business_by_email, save_reset_token, business_by_reset_token, set_new_password,
+    link_subscription, update_subscription_status, get_subscription_status, subscription_active,
 )
-from send_email import posalji_email
-from read_email import proveri_kredencijale
+from send_email import send_email
+from read_email import verify_credentials
 
 load_dotenv()
 
 app = Flask(__name__)
 app.secret_key = os.getenv("FLASK_SECRET_KEY")
 if not app.secret_key:
-    raise RuntimeError("FLASK_SECRET_KEY nije podesen u environment varijablama.")
+    raise RuntimeError("FLASK_SECRET_KEY is not set in the environment variables.")
 
-# Session kolacic: HTTPONLY (JS ne moze da ga cita - stiti od XSS krade sesije),
-# SAMESITE=Lax (brauzer ga ne salje uz zahteve sa drugih sajtova - stiti od CSRF-a
-# kombinovano sa CSRFProtect ispod) i SECURE u produkciji (salje se samo preko HTTPS-a).
+# Session cookie: HTTPONLY (JS can't read it - protects against XSS session theft),
+# SAMESITE=Lax (browser won't send it on requests from other sites - protects against
+# CSRF combined with CSRFProtect below) and SECURE in production (only sent over HTTPS).
 app.config["SESSION_COOKIE_HTTPONLY"] = True
 app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
 app.config["SESSION_COOKIE_SECURE"] = os.getenv("FLASK_DEBUG", "false").lower() != "true"
 
-napravi_bazu()
+create_database()
 
 limiter = Limiter(get_remote_address, app=app, default_limits=[])
 csrf = CSRFProtect(app)
 
 
-def prijava_potrebna(funkcija):
-    @wraps(funkcija)
-    def obavijena_funkcija(*args, **kwargs):
-        if not session.get("biznis_id"):
+def login_required(function):
+    @wraps(function)
+    def wrapped_function(*args, **kwargs):
+        if not session.get("business_id"):
             return redirect(url_for("login"))
-        # Sesija moze da pokazuje na biznis koji vise ne postoji (npr. nalog obrisan
-        # u drugom tabu) - u tom slucaju cistimo sesiju i saljemo na login
-        if biznis_po_id(session["biznis_id"]) is None:
+        # The session can point to a business that no longer exists (e.g. account deleted
+        # in another tab) - in that case clear the session and send to login
+        if business_by_id(session["business_id"]) is None:
             session.clear()
             return redirect(url_for("login"))
-        return funkcija(*args, **kwargs)
-    return obavijena_funkcija
+        return function(*args, **kwargs)
+    return wrapped_function
 
 
 @app.route("/login", methods=["GET", "POST"])
 @limiter.limit("10 per 15 minutes", methods=["POST"])
 def login():
     if request.method == "POST":
-        korisnicko_ime = request.form["korisnicko_ime"]
-        lozinka = request.form["lozinka"]
+        username = request.form["username"]
+        password = request.form["password"]
 
-        biznis = biznis_po_korisnickom_imenu(korisnicko_ime)
+        business = business_by_username(username)
 
-        if biznis and check_password_hash(biznis[3], lozinka):
-            session["biznis_id"] = biznis[0]
-            session["biznis_naziv"] = biznis[1]
-            return redirect(url_for("pocetna"))
+        if business and check_password_hash(business[3], password):
+            session["business_id"] = business[0]
+            session["business_name"] = business[1]
+            return redirect(url_for("home"))
 
-        return render_template("login.html", greska="Pogresno korisnicko ime ili lozinka.", poruka=None)
+        return render_template("login.html", error="Wrong username or password.", message=None)
 
-    return render_template("login.html", greska=None, poruka=request.args.get("poruka"))
+    return render_template("login.html", error=None, message=request.args.get("message"))
 
 
-@app.route("/registracija", methods=["GET", "POST"])
+@app.route("/register", methods=["GET", "POST"])
 @limiter.limit("5 per hour", methods=["POST"])
-def registracija():
+def register():
     if request.method == "POST":
-        if not request.form.get("prihvatam_uslove"):
-            return render_template("registracija.html", greska="Morate prihvatiti Uslove koriscenja i Politiku privatnosti.", podaci=request.form)
+        if not request.form.get("accept_terms"):
+            return render_template("register.html", error="You must accept the Terms of Service and Privacy Policy.", data=request.form)
 
-        if len(request.form.get("lozinka", "")) < 8:
-            return render_template("registracija.html", greska="Lozinka mora imati bar 8 karaktera.", podaci=request.form)
+        if len(request.form.get("password", "")) < 8:
+            return render_template("register.html", error="Password must be at least 8 characters.", data=request.form)
 
-        # Proveravamo da uneti Gmail + app password zaista rade pre nego sto napravimo nalog.
-        # Ovo dokazuje da korisnik kontrolise nalog i da ce sistem moci da cita poruke.
-        if not proveri_kredencijale(request.form["email_adresa"], request.form["email_app_password"]):
+        # Verify the entered Gmail + app password actually work before creating the account.
+        # This proves the user controls the account and that the system will be able to read messages.
+        if not verify_credentials(request.form["email"], request.form["email_app_password"]):
             return render_template(
-                "registracija.html",
-                greska="Nismo mogli da se povezemo na Gmail sa tom adresom i app password-om. Proveri da je app password ispravan (16 karaktera iz Google naloga) i da je IMAP ukljucen u Gmail podesavanjima.",
-                podaci=request.form,
+                "register.html",
+                error="We couldn't connect to Gmail with that address and app password. Check that the app password is correct (16 characters from your Google account) and that IMAP is enabled in Gmail settings.",
+                data=request.form,
             )
 
         try:
-            novi_id = dodaj_biznis(
-                naziv=request.form["naziv"],
-                korisnicko_ime=request.form["korisnicko_ime"],
-                lozinka=request.form["lozinka"],
-                email_adresa=request.form["email_adresa"],
+            new_id = add_business(
+                name=request.form["name"],
+                username=request.form["username"],
+                password=request.form["password"],
+                email=request.form["email"],
                 email_app_password=request.form["email_app_password"],
-                radno_vreme=request.form["radno_vreme"],
-                cenovnik=request.form["cenovnik"],
-                cesta_pitanja=request.form["cesta_pitanja"],
+                working_hours=request.form["working_hours"],
+                price_list=request.form["price_list"],
+                faq=request.form["faq"],
             )
         except psycopg2.errors.UniqueViolation:
-            return render_template("registracija.html", greska="To korisnicko ime ili email adresa su vec zauzeti.", podaci=request.form)
+            return render_template("register.html", error="That username or email address is already taken.", data=request.form)
 
-        session["biznis_id"] = novi_id
-        session["biznis_naziv"] = request.form["naziv"]
-        return redirect(url_for("pocetna"))
+        session["business_id"] = new_id
+        session["business_name"] = request.form["name"]
+        return redirect(url_for("home"))
 
-    return render_template("registracija.html", greska=None, podaci={})
+    return render_template("register.html", error=None, data={})
 
 
-@app.route("/zaboravljena-lozinka", methods=["GET", "POST"])
+@app.route("/forgot-password", methods=["GET", "POST"])
 @limiter.limit("5 per hour", methods=["POST"])
-def zaboravljena_lozinka():
+def forgot_password():
     if request.method == "POST":
-        biznis = biznis_po_emailu(request.form["email_adresa"])
+        business = business_by_email(request.form["email"])
 
-        if biznis:
+        if business:
             token = secrets.token_urlsafe(32)
-            istice = datetime.now(timezone.utc).replace(tzinfo=None) + timedelta(hours=1)
-            sacuvaj_reset_token(biznis[0], token, istice)
+            expires = datetime.now(timezone.utc).replace(tzinfo=None) + timedelta(hours=1)
+            save_reset_token(business[0], token, expires)
 
-            link = url_for("reset_lozinke", token=token, _external=True)
-            posalji_email(
-                primalac=biznis[4],
-                naslov="Resetovanje lozinke - ai-auto-reply",
-                telo=(
-                    f"Zdravo,\n\n"
-                    f"Neko (nadamo se ti) je zatrazio resetovanje lozinke za nalog '{biznis[1]}'.\n\n"
-                    f"Klikni na link da postavis novu lozinku (vazi 1 sat):\n{link}\n\n"
-                    f"Ako nisi ti trazio/la ovo, slobodno ignorisi ovaj mejl."
+            link = url_for("reset_password", token=token, _external=True)
+            send_email(
+                recipient=business[4],
+                subject="Password reset - ai-auto-reply",
+                body=(
+                    f"Hi,\n\n"
+                    f"Someone (hopefully you) requested a password reset for the account '{business[1]}'.\n\n"
+                    f"Click the link to set a new password (valid for 1 hour):\n{link}\n\n"
+                    f"If this wasn't you, feel free to ignore this email."
                 ),
-                biznis_naziv="ai-auto-reply",
-                reply_to=os.getenv("ALERT_EMAIL") or biznis[4],
+                business_name="ai-auto-reply",
+                reply_to=os.getenv("ALERT_EMAIL") or business[4],
             )
 
-        # Ista poruka bez obzira da li je email pronadjen - ne otkrivamo da li nalog postoji
+        # Same message regardless of whether the email was found - don't reveal whether an account exists
         return render_template(
-            "zaboravljena_lozinka.html",
-            poruka="Ako je taj email registrovan, poslali smo link za resetovanje lozinke.",
+            "forgot_password.html",
+            message="If that email is registered, we've sent a password reset link.",
         )
 
-    return render_template("zaboravljena_lozinka.html", poruka=None)
+    return render_template("forgot_password.html", message=None)
 
 
-@app.route("/reset-lozinke/<token>", methods=["GET", "POST"])
-def reset_lozinke(token):
-    biznis = biznis_po_reset_tokenu(token)
+@app.route("/reset-password/<token>", methods=["GET", "POST"])
+def reset_password(token):
+    business = business_by_reset_token(token)
 
-    if biznis is None:
-        return render_template("reset_lozinke.html", nevazeci=True)
+    if business is None:
+        return render_template("reset_password.html", invalid=True)
 
     if request.method == "POST":
-        nova_lozinka = request.form["lozinka"]
-        if len(nova_lozinka) < 8:
-            return render_template("reset_lozinke.html", nevazeci=False, greska="Lozinka mora imati bar 8 karaktera.")
-        postavi_novu_lozinku(biznis[0], nova_lozinka)
-        return redirect(url_for("login", poruka="Lozinka je promenjena. Prijavi se novom lozinkom."))
+        new_password = request.form["password"]
+        if len(new_password) < 8:
+            return render_template("reset_password.html", invalid=False, error="Password must be at least 8 characters.")
+        set_new_password(business[0], new_password)
+        return redirect(url_for("login", message="Password changed. Log in with your new password."))
 
-    return render_template("reset_lozinke.html", nevazeci=False, greska=None)
+    return render_template("reset_password.html", invalid=False, error=None)
 
 
 @app.route("/logout")
@@ -172,220 +172,220 @@ def logout():
     return redirect(url_for("login"))
 
 
-@app.route("/podesavanja", methods=["GET", "POST"])
-@prijava_potrebna
-def podesavanja():
-    biznis = biznis_po_id(session["biznis_id"])
-    # indeksi: 0 id, 1 naziv, 4 email_adresa, 6 radno_vreme, 7 cenovnik, 8 cesta_pitanja
-    email_adresa = biznis[4]
+@app.route("/settings", methods=["GET", "POST"])
+@login_required
+def settings():
+    business = business_by_id(session["business_id"])
+    # indices: 0 id, 1 name, 4 email, 6 working_hours, 7 price_list, 8 faq
+    email = business[4]
 
     if request.method == "POST":
-        naziv = request.form["naziv"]
-        radno_vreme = request.form["radno_vreme"]
-        cenovnik = request.form["cenovnik"]
-        cesta_pitanja = request.form["cesta_pitanja"]
-        # Prazno polje = zadrzi postojeci app password; popunjeno = promeni ga
-        novi_app_password = request.form.get("email_app_password", "").strip() or None
+        name = request.form["name"]
+        working_hours = request.form["working_hours"]
+        price_list = request.form["price_list"]
+        faq = request.form["faq"]
+        # Empty field = keep the existing app password; filled in = change it
+        new_app_password = request.form.get("email_app_password", "").strip() or None
 
-        # Ako menja app password, prvo proverimo da novi zaista radi (kao pri registraciji)
-        if novi_app_password and not proveri_kredencijale(email_adresa, novi_app_password):
+        # If changing the app password, first verify the new one actually works (same as at registration)
+        if new_app_password and not verify_credentials(email, new_app_password):
             return render_template(
-                "podesavanja.html",
-                greska="Novi app password ne radi - nismo mogli da se povezemo na Gmail. Stari podaci su zadrzani.",
-                biznis={"naziv": naziv, "email_adresa": email_adresa, "radno_vreme": radno_vreme, "cenovnik": cenovnik, "cesta_pitanja": cesta_pitanja},
-                poruka=None,
+                "settings.html",
+                error="The new app password doesn't work - we couldn't connect to Gmail. Your previous data was kept.",
+                business={"name": name, "email": email, "working_hours": working_hours, "price_list": price_list, "faq": faq},
+                message=None,
             )
 
-        azuriraj_biznis(session["biznis_id"], naziv, radno_vreme, cenovnik, cesta_pitanja, email_app_password=novi_app_password)
-        session["biznis_naziv"] = naziv
+        update_business(session["business_id"], name, working_hours, price_list, faq, email_app_password=new_app_password)
+        session["business_name"] = name
 
         return render_template(
-            "podesavanja.html",
-            greska=None,
-            poruka="Podaci su sacuvani.",
-            biznis={"naziv": naziv, "email_adresa": email_adresa, "radno_vreme": radno_vreme, "cenovnik": cenovnik, "cesta_pitanja": cesta_pitanja},
+            "settings.html",
+            error=None,
+            message="Your details have been saved.",
+            business={"name": name, "email": email, "working_hours": working_hours, "price_list": price_list, "faq": faq},
         )
 
     return render_template(
-        "podesavanja.html",
-        greska=None,
-        poruka=None,
-        biznis={"naziv": biznis[1], "email_adresa": email_adresa, "radno_vreme": biznis[6], "cenovnik": biznis[7], "cesta_pitanja": biznis[8]},
+        "settings.html",
+        error=None,
+        message=None,
+        business={"name": business[1], "email": email, "working_hours": business[6], "price_list": business[7], "faq": business[8]},
     )
 
 
-@app.route("/obrisi-nalog", methods=["POST"])
-@prijava_potrebna
-def obrisi_nalog():
-    obrisi_biznis(session["biznis_id"])
+@app.route("/delete-account", methods=["POST"])
+@login_required
+def delete_account():
+    delete_business(session["business_id"])
     session.clear()
     return redirect(url_for("login"))
 
 
 @app.errorhandler(404)
-def stranica_ne_postoji(e):
-    return render_template("greska.html", kod=404, poruka="Stranica koju trazis ne postoji ili je premestena."), 404
+def page_not_found(e):
+    return render_template("error.html", code=404, message="The page you're looking for doesn't exist or has moved."), 404
 
 
 @app.errorhandler(500)
-def greska_servera(e):
-    return render_template("greska.html", kod=500, poruka="Doslo je do greske na serveru. Probaj ponovo za koji minut."), 500
+def server_error(e):
+    return render_template("error.html", code=500, message="A server error occurred. Please try again in a minute."), 500
 
 
-@app.route("/privatnost")
-def privatnost():
-    return render_template("privatnost.html")
+@app.route("/privacy")
+def privacy():
+    return render_template("privacy.html")
 
 
-@app.route("/uslovi")
-def uslovi():
-    return render_template("uslovi.html")
+@app.route("/terms")
+def terms():
+    return render_template("terms.html")
 
 
-@app.route("/pomoc-gmail")
-def pomoc_gmail():
-    return render_template("pomoc_gmail.html")
+@app.route("/gmail-help")
+def gmail_help():
+    return render_template("gmail_help.html")
 
 
-DNEVNI_LIMIT_ODGOVORA = 50  # isti limit kao u obradi_email.py
+DAILY_REPLY_LIMIT = 50  # same limit as in process_emails.py
 
 
 @app.route("/")
-def pocetna():
-    # Neulogovani posetioci vide javnu landing stranicu (marketing + poziv na
-    # registraciju) umesto redirect-a na login. Ulogovani vide dashboard.
-    if not session.get("biznis_id") or biznis_po_id(session["biznis_id"]) is None:
+def home():
+    # Logged-out visitors see the public landing page (marketing + call to register)
+    # instead of a redirect to login. Logged-in visitors get the dashboard.
+    if not session.get("business_id") or business_by_id(session["business_id"]) is None:
         session.clear()
         return render_template("landing.html")
 
-    razgovori = razgovori_za_biznis(session["biznis_id"])
+    conversations = conversations_for_business(session["business_id"])
 
-    # Filter po statusu preko ?filter=na_cekanju ili ?filter=poslato (podrazumevano: svi)
+    # Filter by status via ?filter=pending or ?filter=sent (default: all)
     filter_status = request.args.get("filter")
-    if filter_status in ("na_cekanju", "poslato"):
-        prikazani = [r for r in razgovori if r[6] == filter_status]
+    if filter_status in ("pending", "sent"):
+        shown = [c for c in conversations if c[6] == filter_status]
     else:
-        filter_status = "svi"
-        prikazani = razgovori
+        filter_status = "all"
+        shown = conversations
 
-    broj_na_cekanju = sum(1 for r in razgovori if r[6] == "na_cekanju")
-    danas = broj_odgovora_danas(session["biznis_id"])
-    status_pretplate_ = status_pretplate(session["biznis_id"])
+    pending_count = sum(1 for c in conversations if c[6] == "pending")
+    today = replies_today_count(session["business_id"])
+    current_subscription_status = get_subscription_status(session["business_id"])
 
     return render_template(
-        "index.html",
-        razgovori=prikazani,
-        biznis_naziv=session["biznis_naziv"],
+        "dashboard.html",
+        conversations=shown,
+        business_name=session["business_name"],
         filter_status=filter_status,
-        broj_svi=len(razgovori),
-        broj_na_cekanju=broj_na_cekanju,
-        danas=danas,
-        dnevni_limit=DNEVNI_LIMIT_ODGOVORA,
-        poslato=request.args.get("poslato"),
-        pretplata_aktivna_flag=pretplata_aktivna(status_pretplate_),
+        total_count=len(conversations),
+        pending_count=pending_count,
+        today=today,
+        daily_limit=DAILY_REPLY_LIMIT,
+        sent=request.args.get("sent"),
+        subscription_active_flag=subscription_active(current_subscription_status),
     )
 
 
-@app.route("/posalji/<int:id_razgovora>", methods=["POST"])
-@prijava_potrebna
-def posalji(id_razgovora):
-    konacan_odgovor = request.form["odgovor"]
+@app.route("/send/<int:conversation_id>", methods=["POST"])
+@login_required
+def send_reply(conversation_id):
+    final_reply = request.form["reply"]
 
-    _, biznis_id, posiljalac, naslov, pitanje, predlog = jedan_razgovor(id_razgovora)
+    _, business_id, sender, subject, question, suggested_reply = get_conversation(conversation_id)
 
-    # Bezbednosna provera: ovaj razgovor mora pripadati ulogovanom biznisu,
-    # inace bi neko mogao da pogodi tudje ID-jeve u URL-u i salje tudje odgovore
-    if biznis_id != session["biznis_id"]:
+    # Security check: this conversation must belong to the logged-in business,
+    # otherwise someone could guess other people's IDs in the URL and send replies on their behalf
+    if business_id != session["business_id"]:
         abort(403)
 
-    biznis = biznis_po_id(biznis_id)
+    business = business_by_id(business_id)
 
-    posalji_email(
-        primalac=posiljalac,
-        naslov=f"Re: {naslov}",
-        telo=konacan_odgovor,
-        biznis_naziv=biznis[1],
-        reply_to=biznis[4],
+    send_email(
+        recipient=sender,
+        subject=f"Re: {subject}",
+        body=final_reply,
+        business_name=business[1],
+        reply_to=business[4],
     )
 
-    oznaci_poslato(id_razgovora, konacan_odgovor)
+    mark_sent(conversation_id, final_reply)
 
-    # poslato=1 -> dashboard prikaze potvrdu da je odgovor otisao
-    return redirect(url_for("pocetna", poslato=1))
+    # sent=1 -> dashboard shows a confirmation that the reply went out
+    return redirect(url_for("home", sent=1))
 
 
-# --- Pretplata (Paddle) ---
+# --- Subscription (Paddle) ---
 
-@app.route("/pretplata")
-@prijava_potrebna
-def pretplata():
-    biznis = biznis_po_id(session["biznis_id"])
-    status = status_pretplate(session["biznis_id"])
+@app.route("/subscription")
+@login_required
+def subscription():
+    business = business_by_id(session["business_id"])
+    status = get_subscription_status(session["business_id"])
     return render_template(
-        "pretplata.html",
+        "subscription.html",
         client_token=os.getenv("PADDLE_CLIENT_TOKEN", ""),
         price_id=os.getenv("PADDLE_PRICE_ID", ""),
         paddle_env=os.getenv("PADDLE_ENV", "sandbox"),
-        biznis_id=session["biznis_id"],
-        email=biznis[4],
+        business_id=session["business_id"],
+        email=business[4],
         status=status,
-        aktivna=pretplata_aktivna(status),
+        active=subscription_active(status),
     )
 
 
-def proveri_paddle_potpis(header, sirovo_telo, tajni_kljuc):
-    """Proverava Paddle-Signature header (HMAC-SHA256).
+def verify_paddle_signature(header, raw_body, secret_key):
+    """Verifies the Paddle-Signature header (HMAC-SHA256).
 
-    Format headera: 'ts=<timestamp>;h1=<hash>'. Potpisani payload je
-    '<ts>:<sirovo_telo>'. Ovim dokazujemo da zahtev stvarno dolazi od Paddle-a,
-    a ne od nekog ko pogodi URL webhook-a i pokusa da lazira pretplatu.
+    Header format: 'ts=<timestamp>;h1=<hash>'. The signed payload is
+    '<ts>:<raw_body>'. This proves the request really came from Paddle,
+    not from someone who guessed the webhook URL and tried to fake a subscription.
     """
     try:
-        delovi = dict(par.split("=", 1) for par in header.split(";"))
-        ts = delovi["ts"]
-        h1 = delovi["h1"]
+        parts = dict(part.split("=", 1) for part in header.split(";"))
+        ts = parts["ts"]
+        h1 = parts["h1"]
     except (ValueError, KeyError):
         return False
 
-    potpisano = ts.encode() + b":" + sirovo_telo
-    ocekivano = hmac.new(tajni_kljuc.encode(), potpisano, hashlib.sha256).hexdigest()
-    return hmac.compare_digest(ocekivano, h1)
+    signed = ts.encode() + b":" + raw_body
+    expected = hmac.new(secret_key.encode(), signed, hashlib.sha256).hexdigest()
+    return hmac.compare_digest(expected, h1)
 
 
 @app.route("/paddle-webhook", methods=["POST"])
-@csrf.exempt  # spoljni POST od Paddle-a, nema nas session/CSRF token - vec ima sopstvenu HMAC proveru potpisa ispod
+@csrf.exempt  # external POST from Paddle, no session/CSRF token of ours - already has its own HMAC signature check below
 def paddle_webhook():
-    tajni_kljuc = os.getenv("PADDLE_WEBHOOK_SECRET")
-    if not tajni_kljuc:
-        # Nije jos podeseno - odbijamo da ne bismo tiho primali nepotpisane zahteve
+    secret_key = os.getenv("PADDLE_WEBHOOK_SECRET")
+    if not secret_key:
+        # Not configured yet - reject rather than silently accepting unsigned requests
         abort(503)
 
-    sirovo_telo = request.get_data()
-    if not proveri_paddle_potpis(request.headers.get("Paddle-Signature", ""), sirovo_telo, tajni_kljuc):
+    raw_body = request.get_data()
+    if not verify_paddle_signature(request.headers.get("Paddle-Signature", ""), raw_body, secret_key):
         abort(400)
 
-    dogadjaj = request.get_json(silent=True) or {}
-    tip = dogadjaj.get("event_type", "")
-    podaci = dogadjaj.get("data", {})
+    event = request.get_json(silent=True) or {}
+    event_type = event.get("event_type", "")
+    data = event.get("data", {})
 
-    # Zanimaju nas samo dogadjaji o pretplati (subscription.created/activated/updated/canceled...)
-    if tip.startswith("subscription."):
-        sub_id = podaci.get("id")
-        status = podaci.get("status")
-        customer_id = podaci.get("customer_id")
-        # Nas biznis_id smo poslali kroz checkout kao custom_data - tako povezujemo
-        # Paddle pretplatu sa nasim nalogom pri prvom dogadjaju
-        biznis_id = (podaci.get("custom_data") or {}).get("biznis_id")
+    # We only care about subscription events (subscription.created/activated/updated/canceled...)
+    if event_type.startswith("subscription."):
+        sub_id = data.get("id")
+        status = data.get("status")
+        customer_id = data.get("customer_id")
+        # We sent our business_id through checkout as custom_data - that's how we link
+        # the Paddle subscription to our business
+        business_id = (data.get("custom_data") or {}).get("business_id")
 
-        if biznis_id:
-            povezi_pretplatu(int(biznis_id), customer_id, sub_id, status)
+        if business_id:
+            link_subscription(int(business_id), customer_id, sub_id, status)
         elif sub_id:
-            azuriraj_status_pretplate(sub_id, status)
+            update_subscription_status(sub_id, status)
 
-    # Paddle ocekuje 2xx da bi smatrao webhook isporucenim; inace ponavlja slanje
+    # Paddle expects a 2xx to consider the webhook delivered; otherwise it retries
     return "", 200
 
 
 if __name__ == "__main__":
-    debug_mod = os.getenv("FLASK_DEBUG", "false").lower() == "true"
-    app.run(debug=debug_mod)
+    debug_mode = os.getenv("FLASK_DEBUG", "false").lower() == "true"
+    app.run(debug=debug_mode)

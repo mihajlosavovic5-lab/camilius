@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+{% block title %}Conversations - {{ business_name }}{% endblock %}
+
+{% block content %}
+{% include "_nav.html" %}
+
+<div class="content">
+    <div class="page-header">
+        <div>
+            <h1>{{ business_name }}</h1>
+            <p class="subtitle">Review customer questions and approve AI-suggested replies.</p>
+        </div>
+        <div class="quota">
+            <div class="quota-text">
+                <span>Processed today</span>
+                <span><strong>{{ today }}</strong> / {{ daily_limit }}</span>
+            </div>
+            <div class="quota-bar">
+                <div class="quota-fill" style="width: {{ [100, (today * 100 / daily_limit)|round|int]|min }}%"></div>
+            </div>
+        </div>
+    </div>
+
+    {% if sent %}
+        <div class="alert alert-success"><span class="alert-icon">&#10003;</span><span>The reply has been sent to the customer.</span></div>
+    {% endif %}
+
+    {% if not subscription_active_flag %}
+        <div class="alert alert-warning">
+            <span class="alert-icon">&#9888;</span>
+            <span>Subscription not active &mdash; the AI is currently not processing new emails. <a href="{{ url_for('subscription') }}">Activate your subscription</a> to continue.</span>
+        </div>
+    {% endif %}
+
+    <div class="filters" style="margin-bottom: 20px;">
+        <a href="{{ url_for('home') }}" class="{{ 'active' if filter_status == 'all' }}">All ({{ total_count }})</a>
+        <a href="{{ url_for('home', filter='pending') }}" class="{{ 'active' if filter_status == 'pending' }}">Pending ({{ pending_count }})</a>
+        <a href="{{ url_for('home', filter='sent') }}" class="{{ 'active' if filter_status == 'sent' }}">Sent ({{ total_count - pending_count }})</a>
+    </div>
+
+    {% if conversations|length == 0 %}
+        <div class="empty">
+            <div class="empty-icon">&#128235;</div>
+            {% if filter_status == 'all' %}
+                <p class="title">No conversations yet</p>
+                <p>As soon as a customer emails your business, an AI-suggested reply will show up here.</p>
+            {% else %}
+                <p class="title">No conversations in this filter</p>
+                <p>Try a different filter above.</p>
+            {% endif %}
+        </div>
+    {% endif %}
+
+    {% for c in conversations %}
+        {% set id, sender, subject, question, suggested_reply, final_reply, status, created_at = c %}
+        <div class="card conversation">
+            <div class="conversation-top">
+                <span class="avatar">{{ sender[0] }}</span>
+                <div class="conversation-meta">
+                    <div class="conversation-sender">{{ sender }}</div>
+                    <div class="conversation-time">{{ created_at.strftime('%m/%d/%Y at %H:%M') if created_at else '' }}{% if subject %} &middot; {{ subject }}{% endif %}</div>
+                </div>
+                {% if status == 'pending' %}
+                    <span class="badge badge-pending"><span class="badge-dot"></span>Awaiting approval</span>
+                {% else %}
+                    <span class="badge badge-sent"><span class="badge-dot"></span>Sent</span>
+                {% endif %}
+            </div>
+
+            <div class="conversation-block">
+                <div class="conversation-label">Customer question</div>
+                <p class="question">{{ question }}</p>
+            </div>
+
+            {% if status == 'pending' %}
+                <div class="conversation-block">
+                    <div class="conversation-label">Suggested reply &mdash; you can edit before sending</div>
+                    <!-- onsubmit disables the button so a double-click can't send the email twice -->
+                    <form method="POST" action="{{ url_for('send_reply', conversation_id=id) }}"
+                          onsubmit="var d = this.querySelector('button'); d.disabled = true; d.textContent = 'Sending...';">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <textarea name="reply">{{ suggested_reply }}</textarea>
+                        <div class="form-actions" style="margin-top: 12px;">
+                            <button class="button" type="submit">Send reply</button>
+                        </div>
+                    </form>
+                </div>
+            {% else %}
+                <div class="conversation-block">
+                    <div class="conversation-label">Sent reply</div>
+                    <p class="reply">{{ final_reply }}</p>
+                </div>
+            {% endif %}
+        </div>
+    {% endfor %}
+
+    <div class="danger-zone">
+        <h2>Delete account</h2>
+        <p>Permanently deletes your account and all conversations. This action cannot be undone.</p>
+        <form method="POST" action="{{ url_for('delete_account') }}"
+              onsubmit="return confirm('Are you sure? Your account and all conversations will be permanently deleted.');">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button class="button button-danger" type="submit">Delete account</button>
+        </form>
+    </div>
+</div>
+{% endblock %}

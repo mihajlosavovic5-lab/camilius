@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}Terms of Service - ai-auto-reply{% endblock %}
+
+{% block content %}
+<div class="public-header">
+    <a class="brand" href="{{ url_for('login') }}">
+        <span class="brand-mark">ai</span>
+        <span class="brand-name">auto-reply</span>
+    </a>
+    <a href="{{ url_for('login') }}">Log in</a>
+</div>
+
+<div class="content prose">
+    <div class="card" style="padding: 32px;">
+        <h1>Terms of Service</h1>
+        <p class="updated">Last updated: July 15, 2026.</p>
+
+        <p>By registering and using ai-auto-reply you accept these terms. The service is currently operated by Mihajlo Savovic as an individual. Questions: <strong>mihajlosavovic5@gmail.com</strong></p>
+
+        <h2>What the service does</h2>
+        <p>ai-auto-reply reads emails sent to your business Gmail account and automatically generates a <strong>suggested</strong> reply using artificial intelligence, based on the business data you've entered. The suggestion is not sent automatically - you must manually review it, edit it if needed, and approve sending through the dashboard. You are solely responsible for the content of every reply you approve and send.</p>
+
+        <h2>Your responsibilities</h2>
+        <ul>
+            <li>You're responsible for the accuracy of the data you enter (working hours, price list, FAQ) - AI replies rely on that data.</li>
+            <li>You're responsible for checking that an AI suggestion is accurate and appropriate before sending - we don't guarantee the accuracy of AI-generated content.</li>
+            <li>You agree not to use the service to send inappropriate, misleading, or unlawful content.</li>
+            <li>You're responsible for the security of your credentials (username, password, Gmail app password).</li>
+        </ul>
+
+        <h2>Limitation of liability</h2>
+        <p>The service is provided "as is", without a guarantee of uninterrupted operation or freedom from errors. We are not liable for damages arising from an inaccurate AI reply that you approved and sent, service downtime, or data loss. You use the service at your own risk.</p>
+
+        <h2>Pricing</h2>
+        <p>The service is currently free, in a testing phase. We reserve the right to introduce a paid plan in the future, and will notify existing users in advance.</p>
+
+        <h2>Account termination</h2>
+        <p>We reserve the right to suspend or terminate an account in case of misuse of the service (e.g. sending spam, attempting to bypass limits, unlawful use). You may request deletion of your account at any time.</p>
+
+        <h2>Changes to these terms</h2>
+        <p>These terms may change from time to time. We'll try to announce significant changes via email. Continued use of the service after a change means you accept the new terms.</p>
+
+        <h2>Governing law</h2>
+        <p>These terms are governed by the law of the Republic of Serbia.</p>
+
+        <p>For information about what data we collect and how we store it, see the <a href="{{ url_for('privacy') }}">Privacy Policy</a>.</p>
+    </div>
+
+    <a class="back-link" href="{{ url_for('register') }}">&larr; Back to registration</a>
+</div>
+{% endblock %}

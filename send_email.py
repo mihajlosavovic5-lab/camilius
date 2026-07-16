@@ -9,25 +9,25 @@ load_dotenv()
 
 resend.api_key = os.getenv("RESEND_API_KEY")
 
-POSILJALAC_ADRESA = "mail@ai-auto-reply-mail.com"
+SENDER_ADDRESS = "mail@ai-auto-reply-mail.com"
 
 
-def posalji_email(primalac, naslov, telo, biznis_naziv, reply_to):
+def send_email(recipient, subject, body, business_name, reply_to):
     resend.Emails.send({
-        "from": f"{biznis_naziv} <{POSILJALAC_ADRESA}>",
-        "to": [primalac],
+        "from": f"{business_name} <{SENDER_ADDRESS}>",
+        "to": [recipient],
         "reply_to": reply_to,
-        "subject": naslov,
-        "text": telo,
+        "subject": subject,
+        "text": body,
     })
 
 
 if __name__ == "__main__":
-    posalji_email(
-        primalac=os.getenv("EMAIL_ADDRESS"),
-        naslov="Test poruka iz ai-auto-reply projekta",
-        telo="Ako vidis ovo, slanje email-a radi ispravno.",
-        biznis_naziv="Test biznis",
+    send_email(
+        recipient=os.getenv("EMAIL_ADDRESS"),
+        subject="Test message from the ai-auto-reply project",
+        body="If you see this, sending email works correctly.",
+        business_name="Test business",
         reply_to=os.getenv("EMAIL_ADDRESS"),
     )
-    print("Poruka poslata.")
+    print("Message sent.")

@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block title %}Settings - {{ business.name }}{% endblock %}
+
+{% block content %}
+{% include "_nav.html" %}
+
+<div class="content content-narrow">
+    <div class="page-header">
+        <div>
+            <h1>Business settings</h1>
+            <p class="subtitle">The AI uses this information to write replies &mdash; keep it up to date.</p>
+        </div>
+    </div>
+
+    {% if error %}
+        <div class="alert alert-error"><span class="alert-icon">&#9888;&#65039;</span><span>{{ error }}</span></div>
+    {% endif %}
+    {% if message %}
+        <div class="alert alert-success"><span class="alert-icon">&#10003;</span><span>{{ message }}</span></div>
+    {% endif %}
+
+    <div class="card">
+        <form method="POST">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <label style="margin-top: 0;">Business name</label>
+            <input type="text" name="name" value="{{ business.name }}" required>
+
+            <label>Email address</label>
+            <input type="email" value="{{ business.email }}" readonly>
+            <p class="note">The email address can't be changed here. If you need to change accounts, delete your account and register again.</p>
+
+            <label>Email app password</label>
+            <input type="text" name="email_app_password" placeholder="Leave blank to keep the current one">
+            <p class="note">Only fill this in if you're changing the app password (e.g. if you rotated it in your Google account). Blank = keeps the current one.</p>
+
+            <div class="form-section">
+                <p class="form-section-title">Business details</p>
+
+                <label>Working hours</label>
+                <textarea name="working_hours" required>{{ business.working_hours }}</textarea>
+
+                <label>Price list</label>
+                <textarea name="price_list" required>{{ business.price_list }}</textarea>
+
+                <label>Frequently asked questions</label>
+                <textarea name="faq">{{ business.faq }}</textarea>
+            </div>
+
+            <div class="form-actions">
+                <button class="button" type="submit">Save changes</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

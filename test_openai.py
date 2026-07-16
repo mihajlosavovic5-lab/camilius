@@ -11,7 +11,7 @@ client = OpenAI()
 response = client.chat.completions.create(
     model="gpt-4o-mini",
     messages=[
-        {"role": "user", "content": "Reci mi jednu recenicu o tome zasto je Python dobar jezik za pocetnike."}
+        {"role": "user", "content": "Tell me one sentence about why Python is a good language for beginners."}
     ]
 )
 

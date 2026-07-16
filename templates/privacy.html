@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block title %}Privacy Policy - ai-auto-reply{% endblock %}
+
+{% block content %}
+<div class="public-header">
+    <a class="brand" href="{{ url_for('login') }}">
+        <span class="brand-mark">ai</span>
+        <span class="brand-name">auto-reply</span>
+    </a>
+    <a href="{{ url_for('login') }}">Log in</a>
+</div>
+
+<div class="content prose">
+    <div class="card" style="padding: 32px;">
+        <h1>Privacy Policy</h1>
+        <p class="updated">Last updated: July 15, 2026.</p>
+
+        <p>This policy explains what data ai-auto-reply collects, why, and how it's stored. The service is currently operated by Mihajlo Savovic as an individual (note: this will be updated if the service is registered as a company).</p>
+
+        <h2>Contact</h2>
+        <p>For any privacy questions or data access/deletion requests, write to: <strong>mihajlosavovic5@gmail.com</strong></p>
+
+        <h2>What data we collect</h2>
+        <p>From the business owner, at registration:</p>
+        <ul>
+            <li>Business name, username, and password (the password is stored hashed, never in readable form)</li>
+            <li>The email address and "app password" of the Gmail account you use to communicate with customers (the app password is stored encrypted)</li>
+            <li>The working hours, price list, and FAQ you enter</li>
+        </ul>
+        <p>As part of providing the service, the system also reads the content of incoming emails sent to your business account (your customers' questions) in order to generate suggested replies.</p>
+
+        <h2>Why we collect this data</h2>
+        <p>Solely to provide the service's function: automatically reading customer inquiries and suggesting replies based on your business's data, which you manually review and approve before sending. No reply is ever sent without your approval.</p>
+
+        <h2>Who we share data with</h2>
+        <p>We don't sell your data. To provide the service, certain data is processed through the following external services (data processors):</p>
+        <ul>
+            <li><strong>OpenAI</strong> - the text of your customer's question and your business data (working hours, price list, FAQ) are sent to OpenAI to generate suggested replies.</li>
+            <li><strong>Resend</strong> - used to send approved replies to customers; processes the customer's email address and the reply content.</li>
+            <li><strong>Google (Gmail)</strong> - the system connects to your Gmail account (IMAP/SMTP) to read new messages, using the app password you entered.</li>
+            <li><strong>Railway</strong> - our hosting provider; all data is physically stored on their servers (outside Serbia).</li>
+        </ul>
+
+        <h2>How we store data</h2>
+        <p>Dashboard login passwords are stored hashed (irreversibly). The Gmail app password is stored encrypted in the database. All communication with the site goes over HTTPS. That said, no system is 100% secure, and we can't guarantee absolute security.</p>
+
+        <h2>How long we keep data</h2>
+        <p>We keep your data for as long as your account exists. If you'd like your account and all associated data deleted, send a request to the contact email above.</p>
+
+        <h2>Cookies</h2>
+        <p>We use only one necessary (session) cookie to keep you logged into the dashboard. We don't use cookies for marketing or tracking.</p>
+
+        <h2>Your rights</h2>
+        <p>You have the right to request access to the data we hold about you, its correction, or its complete deletion. For any of these requests, write to the contact email above - we'll respond within a reasonable time.</p>
+
+        <h2>Changes to this policy</h2>
+        <p>This policy may be updated from time to time. We'll try to notify users of significant changes via email.</p>
+    </div>
+
+    <a class="back-link" href="{{ url_for('register') }}">&larr; Back to registration</a>
+</div>
+{% endblock %}
