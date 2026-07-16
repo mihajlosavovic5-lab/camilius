@@ -6,12 +6,16 @@ once the rest of the codebase has been rewritten to use the new English
 names, since the live app will error against the old names the moment this
 runs and against the new names until it does.
 """
+import os
 import sys
+import psycopg2
 from dotenv import load_dotenv
 
 load_dotenv()
 
-from baza import konektuj
+
+def konektuj():
+    return psycopg2.connect(os.environ["DATABASE_URL"])
 
 
 TABLE_RENAMES = [
