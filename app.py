@@ -18,6 +18,7 @@ from database import (
     business_by_id, add_business, create_database, delete_business, replies_today_count,
     update_business, business_by_email, save_reset_token, business_by_reset_token, set_new_password,
     link_subscription, update_subscription_status, get_subscription_status, subscription_active,
+    business_stats, log_event, event_funnel,
 )
 from send_email import send_email
 from read_email import verify_credentials
@@ -120,10 +121,14 @@ def register():
         except psycopg2.errors.UniqueViolation:
             return render_template("register.html", error="That username or email address is already taken.", data=request.form)
 
+        log_event("register_completed", business_id=new_id)
         session["business_id"] = new_id
         session["business_name"] = request.form["name"]
         return redirect(url_for("home"))
 
+    if not session.get("_seen_register"):
+        log_event("register_view")
+        session["_seen_register"] = True
     return render_template("register.html", error=None, data={})
 
 
@@ -264,6 +269,24 @@ def download():
     return render_template("download.html")
 
 
+# Private funnel dashboard for the founder only - gated by a secret token rather than a
+# real login, since the app has no concept of an "admin" account separate from a business.
+@app.route("/admin/analytics")
+def admin_analytics():
+    token = os.getenv("ADMIN_TOKEN")
+    if not token or request.args.get("token") != token:
+        abort(404)
+
+    funnel = event_funnel(days=30)
+    steps = [
+        ("landing_view", "Landing page views"),
+        ("register_view", "Opened registration form"),
+        ("register_completed", "Finished registration"),
+        ("first_reply_sent", "Sent their first reply"),
+    ]
+    return render_template("admin_analytics.html", steps=steps, funnel=funnel)
+
+
 # Proves to Android that the "Camilius AI" APK and this website are owned by the
 # same party, so the installed app opens fullscreen without a browser URL bar.
 # The fingerprint matches the signing key in ai-auto-reply-secrets/android-signing/.
@@ -291,7 +314,13 @@ def home():
     # Logged-out visitors see the public landing page (marketing + call to register)
     # instead of a redirect to login. Logged-in visitors get the dashboard.
     if not session.get("business_id") or business_by_id(session["business_id"]) is None:
+        # Read the flag before clear() wipes it - it's what lets us count each
+        # visitor session once instead of logging every page refresh.
+        already_seen = session.get("_seen_landing", False)
         session.clear()
+        session["_seen_landing"] = True
+        if not already_seen:
+            log_event("landing_view")
         return render_template("landing.html")
 
     conversations = conversations_for_business(session["business_id"])
@@ -307,6 +336,7 @@ def home():
     pending_count = sum(1 for c in conversations if c[6] == "pending")
     today = replies_today_count(session["business_id"])
     current_subscription_status = get_subscription_status(session["business_id"])
+    stats = business_stats(session["business_id"])
 
     return render_template(
         "dashboard.html",
@@ -319,6 +349,7 @@ def home():
         daily_limit=DAILY_REPLY_LIMIT,
         sent=request.args.get("sent"),
         subscription_active_flag=subscription_active(current_subscription_status),
+        stats=stats,
     )
 
 
@@ -345,6 +376,10 @@ def send_reply(conversation_id):
     )
 
     mark_sent(conversation_id, final_reply)
+
+    # Log the moment a business sends its very first reply - the key "aha" point in the funnel
+    if business_stats(business_id)["total_sent"] == 1:
+        log_event("first_reply_sent", business_id=business_id)
 
     # sent=1 -> dashboard shows a confirmation that the reply went out
     return redirect(url_for("home", sent=1))

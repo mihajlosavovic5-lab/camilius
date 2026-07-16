@@ -68,6 +68,17 @@ def create_database():
         )
     """)
 
+    # Lightweight, self-hosted funnel tracking (landing view -> register view -> registered
+    # -> first reply sent) - avoids needing a third-party analytics account during beta.
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS analytics_events (
+            id SERIAL PRIMARY KEY,
+            event TEXT NOT NULL,
+            business_id INTEGER REFERENCES businesses(id),
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+
     connection.commit()
     connection.close()
 
@@ -383,6 +394,22 @@ def get_subscription_status(business_id):
     return row[0] if row else None
 
 
+def business_stats(business_id):
+    """Sent-reply counts used for the dashboard stats bar - total and last 7 days."""
+    connection = connect()
+    cursor = connection.cursor()
+    cursor.execute("""
+        SELECT
+            COUNT(*) FILTER (WHERE status = 'sent') AS total_sent,
+            COUNT(*) FILTER (WHERE status = 'sent' AND created_at >= NOW() - INTERVAL '7 days') AS sent_this_week
+        FROM conversations
+        WHERE business_id = %s
+    """, (business_id,))
+    total_sent, sent_this_week = cursor.fetchone()
+    connection.close()
+    return {"total_sent": total_sent, "sent_this_week": sent_this_week}
+
+
 def previous_conversations_with(business_id, sender, limit=5):
     connection = connect()
     cursor = connection.cursor()
@@ -398,6 +425,34 @@ def previous_conversations_with(business_id, sender, limit=5):
 
     connection.close()
     return list(reversed(result))
+
+
+# --- Analytics (self-hosted, minimal) ---
+
+def log_event(event, business_id=None):
+    connection = connect()
+    cursor = connection.cursor()
+    cursor.execute(
+        "INSERT INTO analytics_events (event, business_id) VALUES (%s, %s)",
+        (event, business_id),
+    )
+    connection.commit()
+    connection.close()
+
+
+def event_funnel(days=30):
+    """Counts per event type in the last `days` days - the basic signup funnel."""
+    connection = connect()
+    cursor = connection.cursor()
+    cursor.execute("""
+        SELECT event, COUNT(*)
+        FROM analytics_events
+        WHERE created_at >= NOW() - (%s * INTERVAL '1 day')
+        GROUP BY event
+    """, (days,))
+    result = dict(cursor.fetchall())
+    connection.close()
+    return result
 
 
 if __name__ == "__main__":

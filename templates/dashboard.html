@@ -25,6 +25,17 @@
         <div class="alert alert-success"><span class="alert-icon">&#10003;</span><span>The reply has been sent to the customer.</span></div>
     {% endif %}
 
+    <div class="stats-row">
+        <div class="card stat-tile">
+            <div class="stat-value">{{ stats.total_sent }}</div>
+            <div class="stat-label">Replies sent (all time)</div>
+        </div>
+        <div class="card stat-tile">
+            <div class="stat-value">{{ stats.sent_this_week }}</div>
+            <div class="stat-label">Sent this week</div>
+        </div>
+    </div>
+
     {% if not beta_free_mode and not subscription_active_flag %}
         <div class="alert alert-warning">
             <span class="alert-icon">&#9888;</span>
@@ -42,8 +53,9 @@
         <div class="empty">
             <div class="empty-icon">&#128235;</div>
             {% if filter_status == 'all' %}
-                <p class="title">No conversations yet</p>
-                <p>As soon as a customer emails your business, an AI-suggested reply will show up here.</p>
+                <p class="title">You're all set &mdash; Camilius is watching your inbox</p>
+                <p>Your inbox is checked every 60 seconds. As soon as a customer emails your business, an AI-drafted reply will appear here for you to review and send.</p>
+                <p style="margin-top: 14px;">Tip: send a test question to your own business email to see it in action.</p>
             {% else %}
                 <p class="title">No conversations in this filter</p>
                 <p>Try a different filter above.</p>

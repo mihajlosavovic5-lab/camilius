@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}Funnel - Camilius AI{% endblock %}
+
+{% block content %}
+<div class="content content-narrow">
+    <div class="page-header">
+        <div>
+            <h1>Signup funnel</h1>
+            <p class="subtitle">Last 30 days, self-hosted (no third-party analytics)</p>
+        </div>
+    </div>
+
+    <div class="card">
+        {% set base = funnel.get(steps[0][0], 0) %}
+        {% for key, label in steps %}
+            {% set count = funnel.get(key, 0) %}
+            <div style="margin-bottom: 18px;">
+                <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px;">
+                    <span style="font-size: 14.5px; font-weight: 600;">{{ label }}</span>
+                    <span style="font-variant-numeric: tabular-nums; font-weight: 700;">
+                        {{ count }}{% if base and key != steps[0][0] %} <span style="color: var(--text-muted); font-weight: 500; font-size: 13px;">({{ (count / base * 100)|round|int }}% of views)</span>{% endif %}
+                    </span>
+                </div>
+                <div class="quota-bar">
+                    <div class="quota-fill" style="width: {{ (count / base * 100) if base else 0 }}%"></div>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}
