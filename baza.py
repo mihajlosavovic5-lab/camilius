@@ -91,7 +91,7 @@ def svi_biznisi():
     konekcija = konektuj()
     kursor = konekcija.cursor()
     kursor.execute("""
-        SELECT id, naziv, email_adresa, email_app_password, radno_vreme, cenovnik, cesta_pitanja
+        SELECT id, naziv, email_adresa, email_app_password, radno_vreme, cenovnik, cesta_pitanja, pretplata_status
         FROM biznisi
     """)
     rezultat = kursor.fetchall()

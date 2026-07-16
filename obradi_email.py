@@ -9,7 +9,7 @@ from email.utils import parseaddr
 from read_email import uzmi_nove_poruke
 from generate_reply import generisi_odgovor
 from send_email import posalji_email
-from baza import napravi_bazu, sacuvaj_predlog, svi_biznisi, broj_odgovora_danas, prethodni_razgovori_sa
+from baza import napravi_bazu, sacuvaj_predlog, svi_biznisi, broj_odgovora_danas, prethodni_razgovori_sa, pretplata_aktivna
 from backup import dnevni_backup_ako_treba
 
 DNEVNI_LIMIT_ODGOVORA = 50
@@ -52,7 +52,11 @@ def posalji_alert(naziv_biznisa, greska):
 
 
 def obradi_jednog_biznisa(biznis_red):
-    biznis_id, naziv, email_adresa, email_app_password, radno_vreme, cenovnik, cesta_pitanja = biznis_red
+    biznis_id, naziv, email_adresa, email_app_password, radno_vreme, cenovnik, cesta_pitanja, pretplata_status = biznis_red
+
+    if not pretplata_aktivna(pretplata_status):
+        print(f"[{naziv}] Pretplata nije aktivna ({pretplata_status}) - preskacem.")
+        return
 
     preostalo_danas = DNEVNI_LIMIT_ODGOVORA - broj_odgovora_danas(biznis_id)
     if preostalo_danas <= 0:

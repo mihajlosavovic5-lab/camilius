@@ -135,6 +135,7 @@ input[readonly] { background: var(--pozadina); color: var(--tekst-blagi); }
 }
 .alert-greska { background: var(--opasnost-pozadina); border-color: var(--opasnost-ivica); color: #991b1b; }
 .alert-uspeh { background: var(--uspeh-pozadina); border-color: var(--uspeh-ivica); color: #166534; }
+.alert-upozorenje { background: var(--upozorenje-pozadina); border-color: var(--upozorenje-ivica); color: var(--upozorenje); }
 .alert-ikona { flex-shrink: 0; font-size: 16px; line-height: 1.4; }
 
 /* --- Bedzevi (status) --- */

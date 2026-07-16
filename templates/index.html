@@ -25,6 +25,13 @@
         <div class="alert alert-uspeh"><span class="alert-ikona">&#10003;</span><span>Odgovor je poslat kupcu.</span></div>
     {% endif %}
 
+    {% if not pretplata_aktivna_flag %}
+        <div class="alert alert-upozorenje">
+            <span class="alert-ikona">&#9888;</span>
+            <span>Pretplata nije aktivna &mdash; AI trenutno ne obradjuje nove mejlove. <a href="{{ url_for('pretplata') }}">Aktiviraj pretplatu</a> da nastavis.</span>
+        </div>
+    {% endif %}
+
     <div class="filteri" style="margin-bottom: 20px;">
         <a href="{{ url_for('pocetna') }}" class="{{ 'aktivan' if filter_status == 'svi' }}">Svi ({{ broj_svi }})</a>
         <a href="{{ url_for('pocetna', filter='na_cekanju') }}" class="{{ 'aktivan' if filter_status == 'na_cekanju' }}">Na cekanju ({{ broj_na_cekanju }})</a>

@@ -251,6 +251,7 @@ def pocetna():
 
     broj_na_cekanju = sum(1 for r in razgovori if r[6] == "na_cekanju")
     danas = broj_odgovora_danas(session["biznis_id"])
+    status_pretplate_ = status_pretplate(session["biznis_id"])
 
     return render_template(
         "index.html",
@@ -262,6 +263,7 @@ def pocetna():
         danas=danas,
         dnevni_limit=DNEVNI_LIMIT_ODGOVORA,
         poslato=request.args.get("poslato"),
+        pretplata_aktivna_flag=pretplata_aktivna(status_pretplate_),
     )
 
 
