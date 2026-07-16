@@ -7,7 +7,7 @@ from functools import wraps
 
 import psycopg2
 from dotenv import load_dotenv
-from flask import Flask, render_template, request, redirect, url_for, session, abort
+from flask import Flask, render_template, request, redirect, url_for, session, abort, jsonify
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from flask_wtf import CSRFProtect
@@ -257,6 +257,30 @@ def terms():
 @app.route("/gmail-help")
 def gmail_help():
     return render_template("gmail_help.html")
+
+
+@app.route("/download")
+def download():
+    return render_template("download.html")
+
+
+# Proves to Android that the "Camilius AI" APK and this website are owned by the
+# same party, so the installed app opens fullscreen without a browser URL bar.
+# The fingerprint matches the signing key in ai-auto-reply-secrets/android-signing/.
+@app.route("/.well-known/assetlinks.json")
+def android_asset_links():
+    return jsonify([
+        {
+            "relation": ["delegate_permission/common.handle_all_urls"],
+            "target": {
+                "namespace": "android_app",
+                "package_name": "com.ai_auto_reply_mail.app.twa",
+                "sha256_cert_fingerprints": [
+                    "80:57:F1:F9:19:CA:E9:C2:D7:15:28:02:55:DD:2D:ED:76:B8:28:D9:94:F6:09:CE:77:AC:48:60:33:D1:0F:53"
+                ],
+            },
+        }
+    ])
 
 
 DAILY_REPLY_LIMIT = 50  # same limit as in process_emails.py
