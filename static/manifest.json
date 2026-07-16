@@ -1,0 +1,31 @@
+{
+    "name": "Camilius AI",
+    "short_name": "Camilius",
+    "description": "Camilius AI reads your business's emails and drafts AI-suggested replies based on your working hours, price list, and FAQ.",
+    "start_url": "/",
+    "scope": "/",
+    "display": "standalone",
+    "background_color": "#f4ecdb",
+    "theme_color": "#9a3a24",
+    "orientation": "portrait",
+    "icons": [
+        {
+            "src": "/static/icon-192.png",
+            "sizes": "192x192",
+            "type": "image/png",
+            "purpose": "any"
+        },
+        {
+            "src": "/static/icon-512.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "any"
+        },
+        {
+            "src": "/static/icon-512-maskable.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "maskable"
+        }
+    ]
+}
