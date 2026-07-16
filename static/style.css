@@ -4,11 +4,12 @@
     --primary: #9a3a24;          /* terracotta / oxblood */
     --primary-dark: #7a2c19;
     --primary-light: #f6e7dc;    /* warm rose tint for soft backgrounds */
-    --gold: #b8862e;             /* aged bronze (coin/accent) */
-    --gold-bright: #d4a24c;
-    --background: #f4ecdb;        /* parchment */
-    --surface: #fdfaf3;          /* warm off-white */
-    --border: #e7dcc4;
+    --gold: #f2b736;              /* bright yellow (coin/accent) */
+    --gold-bright: #ffdb7a;
+    --gold-dark: #b8860b;
+    --background: #fdfcfa;        /* warm white */
+    --surface: #ffffff;
+    --border: #ece6da;
     --text: #2b2013;             /* warm near-black */
     --text-muted: #7a6c52;
     --success: #4d7c3f;
@@ -46,7 +47,7 @@ a:hover { text-decoration: underline; }
     position: relative;
     display: inline-flex; align-items: center; justify-content: center;
     width: 34px; height: 34px; border-radius: 50%;
-    background: linear-gradient(150deg, var(--gold-bright), var(--gold) 45%, #7a5a1e 100%);
+    background: linear-gradient(150deg, var(--gold-bright), var(--gold) 45%, var(--gold-dark) 100%);
     color: #2b2013; font-family: Georgia, "Times New Roman", serif;
     font-weight: 700; font-size: 16px; letter-spacing: 0;
     box-shadow: 0 3px 8px rgba(154, 58, 36, .3),
@@ -216,7 +217,7 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
 
 /* --- Auth pages (login, register...) --- */
 body.auth {
-    background: linear-gradient(160deg, #f7ead6 0%, #f4ecdb 45%, #f9efdd 100%);
+    background: linear-gradient(160deg, #fffdf8 0%, #fdfcfa 45%, #fef9f0 100%);
     min-height: 100vh;
 }
 .auth-wrapper {
