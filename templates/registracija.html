@@ -40,7 +40,7 @@
 
                 <label>Email app password</label>
                 <input type="text" name="email_app_password" value="{{ podaci.get('email_app_password', '') }}" required>
-                <p class="napomena">16-karakterna lozinka iz Google naloga (Security &rarr; 2-Step Verification &rarr; App passwords), ne tvoja obicna Gmail lozinka.</p>
+                <p class="napomena">16-karakterna lozinka iz Google naloga (Security &rarr; 2-Step Verification &rarr; App passwords), ne tvoja obicna Gmail lozinka. <a href="{{ url_for('pomoc_gmail') }}" target="_blank">Ne znas kako? Vodic u 4 koraka &rarr;</a></p>
             </div>
 
             <div class="forma-sekcija">

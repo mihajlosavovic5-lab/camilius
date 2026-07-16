@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block title %}Kako da povezes Gmail - ai-auto-reply{% endblock %}
+
+{% block telo %}
+<div class="javni-vrh">
+    <a class="brand" href="{{ url_for('login') }}">
+        <span class="brand-mark">ai</span>
+        <span class="brand-name">auto-reply</span>
+    </a>
+    <a href="{{ url_for('registracija') }}">&larr; Nazad na registraciju</a>
+</div>
+
+<div class="sadrzaj prose">
+    <div class="karta" style="padding: 32px;">
+        <h1>Kako da povezes Gmail (4 koraka, ~2 minuta)</h1>
+        <p>ai-auto-reply cita mejlove preko takozvanog "app password"-a &mdash; posebne lozinke koju Google pravi samo za ovu svrhu, odvojene od tvoje obicne Gmail lozinke. Tvoja obicna lozinka se nigde ne unosi.</p>
+    </div>
+
+    <div class="karta korak" style="margin-top: 16px;">
+        <div class="korak-broj">1</div>
+        <h3>Uključi 2-Step Verification</h3>
+        <p>Google trazi da ti nalog ima dvostepenu prijavu ukljucenu pre nego sto dozvoli app password. Ako vec imas ukljucenu, presko&#269;i na korak 2.</p>
+        <p style="margin-top: 10px;"><a href="https://myaccount.google.com/signinoptions/two-step-verification" target="_blank" rel="noopener">Otvori Google podesavanja &rarr;</a></p>
+    </div>
+
+    <div class="karta korak" style="margin-top: 16px;">
+        <div class="korak-broj">2</div>
+        <h3>Napravi App Password</h3>
+        <p>Na stranici koja se otvori, unesi naziv (npr. "ai-auto-reply") i klikni "Create". Google ce ti prikazati 16 karaktera &mdash; to je tvoj app password.</p>
+        <p style="margin-top: 10px;"><a href="https://myaccount.google.com/apppasswords" target="_blank" rel="noopener">Otvori App Passwords &rarr;</a></p>
+    </div>
+
+    <div class="karta korak" style="margin-top: 16px;">
+        <div class="korak-broj">3</div>
+        <h3>Uključi IMAP</h3>
+        <p>U Gmail-u: ozupčanik (gore desno) &rarr; "See all settings" &rarr; tab "Forwarding and POP/IMAP" &rarr; ukljuci "Enable IMAP" &rarr; sacuvaj izmene ("Save Changes" na dnu).</p>
+        <p style="margin-top: 10px;"><a href="https://mail.google.com/mail/u/0/#settings/fwdandpop" target="_blank" rel="noopener">Otvori Gmail podesavanja &rarr;</a></p>
+    </div>
+
+    <div class="karta korak" style="margin-top: 16px;">
+        <div class="korak-broj">4</div>
+        <h3>Unesi podatke u registraciju</h3>
+        <p>Vrati se na registraciju, unesi svoju Gmail adresu i nalepi taj 16-karakterni app password (razmaci u njemu nisu bitni, mozes ih ostaviti).</p>
+    </div>
+
+    <div class="karta" style="margin-top: 16px; padding: 24px; text-align: center;">
+        <a href="{{ url_for('registracija') }}" class="dugme dugme-puno">Nazad na registraciju</a>
+    </div>
+</div>
+{% endblock %}

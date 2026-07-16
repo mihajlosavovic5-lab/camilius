@@ -228,6 +228,11 @@ def uslovi():
     return render_template("uslovi.html")
 
 
+@app.route("/pomoc-gmail")
+def pomoc_gmail():
+    return render_template("pomoc_gmail.html")
+
+
 DNEVNI_LIMIT_ODGOVORA = 50  # isti limit kao u obradi_email.py
 
 
