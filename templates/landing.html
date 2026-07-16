@@ -20,9 +20,17 @@
         <h1>Customers email you.<br>The AI already has a reply ready.</h1>
         <p class="hero-subtitle">ai-auto-reply reads your business's emails and drafts replies based on your working hours, price list, and FAQ. You just review, edit if you like &mdash; and send with one click.</p>
         <div class="hero-actions">
+            {% if beta_free_mode %}
+            <a href="{{ url_for('register') }}" class="button" style="font-size: 16px; padding: 13px 28px;">Get started for free</a>
+            {% else %}
             <a href="{{ url_for('register') }}" class="button" style="font-size: 16px; padding: 13px 28px;">Try free for 14 days</a>
+            {% endif %}
         </div>
+        {% if beta_free_mode %}
+        <p class="hero-fine-print">Free during the beta &middot; no reply is ever sent without your approval</p>
+        {% else %}
         <p class="hero-fine-print">No commitment &middot; cancel anytime &middot; no reply is ever sent without your approval</p>
+        {% endif %}
     </section>
 
     <!-- How it works -->
@@ -61,6 +69,19 @@
         </div>
     </section>
 
+    {% if beta_free_mode %}
+    <!-- Beta CTA (pricing section hidden while the beta is free) -->
+    <section class="section">
+        <div class="card price-card">
+            <h2 class="section-title" style="margin-bottom: 12px;">Free during the beta</h2>
+            <ul class="benefits" style="text-align: left;">
+                <li><span class="checkmark">&#10003;</span> Up to 50 AI replies per day</li>
+                <li><span class="checkmark">&#10003;</span> All features included</li>
+            </ul>
+            <a href="{{ url_for('register') }}" class="button button-full" style="margin-top: 8px;">Get started</a>
+        </div>
+    </section>
+    {% else %}
     <!-- Pricing -->
     <section class="section">
         <h2 class="section-title">Simple pricing</h2>
@@ -78,6 +99,7 @@
             <a href="{{ url_for('register') }}" class="button button-full" style="margin-top: 8px;">Start your free trial</a>
         </div>
     </section>
+    {% endif %}
 
     <!-- Footer -->
     <footer class="footer">

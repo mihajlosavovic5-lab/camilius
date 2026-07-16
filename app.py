@@ -41,6 +41,18 @@ create_database()
 limiter = Limiter(get_remote_address, app=app, default_limits=[])
 csrf = CSRFProtect(app)
 
+# During the free beta, all billing/subscription UI is hidden from users (nav link,
+# dashboard banner, landing page pricing, the /subscription page itself) - nothing about
+# payment is shown or mentioned anywhere. The underlying Paddle integration and the
+# /subscription route are NOT removed, just unreachable/invisible, so flipping this back
+# to False re-enables everything with no further code changes needed.
+BETA_FREE_MODE = True
+
+
+@app.context_processor
+def inject_beta_free_mode():
+    return {"beta_free_mode": BETA_FREE_MODE}
+
 
 def login_required(function):
     @wraps(function)
@@ -319,6 +331,9 @@ def send_reply(conversation_id):
 @app.route("/subscription")
 @login_required
 def subscription():
+    if BETA_FREE_MODE:
+        return redirect(url_for("home"))
+
     business = business_by_id(session["business_id"])
     status = get_subscription_status(session["business_id"])
     return render_template(

@@ -6,7 +6,9 @@
         </a>
         <div class="nav-links">
             <a href="{{ url_for('home') }}" class="{{ 'active' if request.endpoint == 'home' }}">Conversations</a>
+            {% if not beta_free_mode %}
             <a href="{{ url_for('subscription') }}" class="{{ 'active' if request.endpoint == 'subscription' }}">Subscription</a>
+            {% endif %}
             <a href="{{ url_for('settings') }}" class="{{ 'active' if request.endpoint == 'settings' }}">Settings</a>
             <a href="{{ url_for('logout') }}" class="nav-logout">Log out</a>
         </div>
