@@ -18,7 +18,13 @@
     // visitor happens to already be logged in (a persisted session shouldn't skip it).
     (function () {
         if (window.location.pathname === "/intro") { return; }
-        var isStandalone = window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true;
+        // display-mode:standalone catches a classic installed PWA; document.referrer
+        // starting with "android-app://" is Google's documented way to detect a
+        // Trusted Web Activity specifically (our APK's actual wrapper type), since TWA
+        // doesn't always reliably report standalone via matchMedia.
+        var isStandalone = window.matchMedia("(display-mode: standalone)").matches
+            || window.navigator.standalone === true
+            || document.referrer.indexOf("android-app://") === 0;
         var introSeen = false;
         try { introSeen = localStorage.getItem("introSeen") === "1"; } catch (e) {}
         if (isStandalone && !introSeen) {
