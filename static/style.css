@@ -53,23 +53,15 @@ a:focus-visible, button:focus-visible, [tabindex]:focus-visible {
     outline-offset: 2px;
 }
 
-/* --- Brand (logo) — struck bronze coin --- */
+/* --- Brand (logo) --- */
 .brand { display: inline-flex; align-items: center; gap: 11px; text-decoration: none !important; }
 .brand-mark {
-    position: relative;
     display: inline-flex; align-items: center; justify-content: center;
-    width: 34px; height: 34px; border-radius: 50%;
-    background: linear-gradient(150deg, var(--gold-bright), var(--gold) 45%, var(--gold-dark) 100%);
-    color: #fff; text-shadow: 0 1.5px 0 rgba(43, 32, 19, .35);
-    font-family: Georgia, "Times New Roman", serif;
-    font-weight: 700; font-size: 16px; letter-spacing: 0;
-    box-shadow: 0 3px 8px rgba(154, 58, 36, .3),
-                inset 0 1px 2px rgba(255, 255, 255, .6),
-                inset 0 -3px 5px rgba(0, 0, 0, .2);
-}
-.brand-mark::before {
-    content: ""; position: absolute; inset: 3px; border-radius: 50%;
-    border: 1px dashed rgba(43, 32, 19, .35);
+    width: 34px; height: 34px; border-radius: 22%;
+    background-image: url('/static/icon-512.png');
+    background-size: cover; background-position: center;
+    color: transparent; font-size: 0; flex-shrink: 0;
+    box-shadow: 0 3px 8px rgba(154, 58, 36, .25);
 }
 .brand-name { font-family: Georgia, "Times New Roman", serif; font-weight: 700; font-size: 17px; color: var(--text); letter-spacing: 0; }
 .brand-ai {
@@ -247,7 +239,7 @@ body.auth {
 }
 .auth-brand { margin-bottom: 22px; text-align: center; }
 .auth-brand .brand { flex-direction: column; gap: 12px; }
-.auth-brand .brand-mark { width: 48px; height: 48px; border-radius: 50%; font-size: 22px; }
+.auth-brand .brand-mark { width: 48px; height: 48px; border-radius: 22%; }
 .auth-brand .brand-name { font-size: 20px; }
 .auth-tagline { color: var(--text-muted); font-size: 14.5px; margin: 8px auto 0; max-width: 340px; }
 .auth-card {
@@ -356,16 +348,13 @@ body.intro { margin: 0; height: 100dvh; overflow: hidden; }
     text-align: center; padding: 40px 32px;
 }
 .intro-slide .coin-lg {
-    width: 72px; height: 72px; border-radius: 50%; position: relative;
+    width: 72px; height: 72px; border-radius: 22%;
     display: flex; align-items: center; justify-content: center;
-    background: linear-gradient(150deg, var(--gold-bright), var(--gold) 45%, var(--gold-dark) 100%);
-    color: #fff; text-shadow: 0 2px 0 rgba(43, 32, 19, .35);
-    font-family: Georgia, "Times New Roman", serif; font-weight: 700; font-size: 32px;
-    box-shadow: 0 6px 16px rgba(0, 0, 0, .15), inset 0 1px 2px rgba(255, 255, 255, .6), inset 0 -4px 8px rgba(0, 0, 0, .2);
+    background-image: url('/static/icon-512.png');
+    background-size: cover; background-position: center;
+    color: transparent; font-size: 0;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, .15);
     margin-bottom: 22px;
-}
-.intro-slide .coin-lg::before {
-    content: ""; position: absolute; inset: 5px; border-radius: 50%; border: 2px dashed rgba(43, 32, 19, .38);
 }
 .intro-slide .intro-emoji { font-size: 52px; margin-bottom: 22px; }
 .intro-slide h1 { font-family: Georgia, "Times New Roman", serif; font-weight: 700; font-size: 24px; margin-bottom: 10px; }
