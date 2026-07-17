@@ -7,7 +7,7 @@ from functools import wraps
 
 import psycopg2
 from dotenv import load_dotenv
-from flask import Flask, render_template, request, redirect, url_for, session, abort, jsonify
+from flask import Flask, render_template, request, redirect, url_for, session, abort, jsonify, send_from_directory
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from flask_wtf import CSRFProtect
@@ -274,6 +274,14 @@ def intro():
 @app.route("/download")
 def download():
     return render_template("download.html")
+
+
+# Serves the APK with Content-Disposition: attachment (Flask's default static file
+# route sends "inline", which some browsers/in-app contexts fail to turn into an
+# actual download for a binary file type they can't display).
+@app.route("/download/camilius-ai.apk")
+def download_apk():
+    return send_from_directory(app.static_folder, "camilius-ai.apk", as_attachment=True)
 
 
 # Private funnel dashboard for the founder only - gated by a secret token rather than a
