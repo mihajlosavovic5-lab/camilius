@@ -44,7 +44,8 @@
 
     <p class="auth-footer">
         <a href="{{ url_for('terms') }}">Terms of Service</a> &middot;
-        <a href="{{ url_for('privacy') }}">Privacy Policy</a>
+        <a href="{{ url_for('privacy') }}">Privacy Policy</a> &middot;
+        <a href="{{ url_for('intro') }}" onclick="try { localStorage.removeItem('introSeen'); } catch (e) {}">Replay intro</a>
     </p>
 </div>
 {% endblock %}
