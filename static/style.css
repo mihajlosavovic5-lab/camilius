@@ -26,7 +26,7 @@
     --radius: 12px;
 }
 
-* { box-sizing: border-box; }
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
 body {
     margin: 0;
@@ -40,6 +40,18 @@ body {
 h1, h2, h3 { line-height: 1.25; margin: 0 0 8px 0; text-wrap: balance; }
 a { color: var(--primary); text-decoration: none; }
 a:hover { text-decoration: underline; }
+
+/* No highlight on mouse/touch click (the browser's default blue tap/focus
+   box); a visible ring still appears for keyboard navigation (Tab), just
+   in the brand color instead of default blue - keeps the site accessible
+   without the "blue box around everything I click" look. */
+/* input/textarea are excluded here - they already get their own branded
+   focus treatment (border-color + soft shadow) further down. */
+a, button, [tabindex] { outline: none; }
+a:focus-visible, button:focus-visible, [tabindex]:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+}
 
 /* --- Brand (logo) — struck bronze coin --- */
 .brand { display: inline-flex; align-items: center; gap: 11px; text-decoration: none !important; }
