@@ -12,6 +12,20 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body class="{% block body_class %}{% endblock %}">
+<script>
+    // Only inside the installed Android app (never a regular browser tab), and only the
+    // first time ever - show the swipeable onboarding slides, regardless of whether the
+    // visitor happens to already be logged in (a persisted session shouldn't skip it).
+    (function () {
+        if (window.location.pathname === "/intro") { return; }
+        var isStandalone = window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true;
+        var introSeen = false;
+        try { introSeen = localStorage.getItem("introSeen") === "1"; } catch (e) {}
+        if (isStandalone && !introSeen) {
+            window.location.replace("{{ url_for('intro') }}");
+        }
+    })();
+</script>
 {% block content %}{% endblock %}
 {% block scripts %}{% endblock %}
 <script>
