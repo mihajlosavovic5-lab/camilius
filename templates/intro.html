@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block title %}Welcome to Camilius AI{% endblock %}
+{% block body_class %}intro{% endblock %}
+
+{% block content %}
+<div class="intro-skip"><a href="{{ url_for('login') }}" onclick="markIntroSeen()">Skip</a></div>
+
+<div class="intro-slides" id="introSlides">
+    <section class="intro-slide">
+        <div class="coin-lg">C</div>
+        <h1>Welcome to Camilius AI</h1>
+        <p>Your AI assistant for customer emails.</p>
+    </section>
+
+    <section class="intro-slide">
+        <div class="intro-emoji">&#128233;</div>
+        <h1>Reads emails for you</h1>
+        <p>When a customer emails your business, Camilius reads it right away &mdash; day or night.</p>
+    </section>
+
+    <section class="intro-slide">
+        <div class="intro-emoji">&#9997;&#65039;</div>
+        <h1>Writes a reply for you</h1>
+        <p>The AI drafts a reply based on your working hours, price list, and FAQ.</p>
+    </section>
+
+    <section class="intro-slide">
+        <div class="intro-emoji">&#9989;</div>
+        <h1>You approve and send</h1>
+        <p>Nothing goes out without your approval &mdash; review, edit if you like, then send.</p>
+        <a href="{{ url_for('home') }}" class="button intro-cta" onclick="markIntroSeen()">Continue</a>
+    </section>
+</div>
+
+<div class="intro-dots" id="introDots">
+    <span class="intro-dot active"></span>
+    <span class="intro-dot"></span>
+    <span class="intro-dot"></span>
+    <span class="intro-dot"></span>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    function markIntroSeen() {
+        try { localStorage.setItem("introSeen", "1"); } catch (e) {}
+    }
+
+    var slides = document.getElementById("introSlides");
+    var dots = document.querySelectorAll("#introDots .intro-dot");
+    slides.addEventListener("scroll", function () {
+        var index = Math.round(slides.scrollLeft / slides.clientWidth);
+        dots.forEach(function (dot, i) { dot.classList.toggle("active", i === index); });
+        if (index === dots.length - 1) { markIntroSeen(); }
+    });
+</script>
+{% endblock %}

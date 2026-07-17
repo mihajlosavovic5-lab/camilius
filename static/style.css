@@ -343,6 +343,40 @@ body.auth {
 .footer { text-align: center; padding: 40px 0 10px; color: #a89a7d; font-size: 13.5px; }
 .footer a { color: var(--text-muted); }
 
+/* --- Intro slides (shown once, only inside the installed Android app) --- */
+body.intro { margin: 0; height: 100dvh; overflow: hidden; }
+.intro-slides {
+    display: flex; height: 100dvh; width: 100vw;
+    overflow-x: auto; scroll-snap-type: x mandatory; -webkit-overflow-scrolling: touch;
+}
+.intro-slide {
+    flex: 0 0 100vw; height: 100dvh; scroll-snap-align: start;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    text-align: center; padding: 40px 32px;
+}
+.intro-slide .coin-lg {
+    width: 72px; height: 72px; border-radius: 50%; position: relative;
+    display: flex; align-items: center; justify-content: center;
+    background: linear-gradient(150deg, var(--gold-bright), var(--gold) 45%, var(--gold-dark) 100%);
+    color: #2b2013; font-family: Georgia, "Times New Roman", serif; font-weight: 700; font-size: 32px;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, .15), inset 0 1px 2px rgba(255, 255, 255, .5), inset 0 -4px 8px rgba(0, 0, 0, .25);
+    margin-bottom: 22px;
+}
+.intro-slide .coin-lg::before {
+    content: ""; position: absolute; inset: 5px; border-radius: 50%; border: 2px dashed rgba(43, 32, 19, .38);
+}
+.intro-slide .intro-emoji { font-size: 52px; margin-bottom: 22px; }
+.intro-slide h1 { font-family: Georgia, "Times New Roman", serif; font-weight: 700; font-size: 24px; margin-bottom: 10px; }
+.intro-slide p { color: var(--text-muted); font-size: 15.5px; max-width: 300px; }
+.intro-cta { margin-top: 26px; padding: 12px 32px; }
+
+.intro-skip { position: fixed; top: 20px; right: 20px; z-index: 5; }
+.intro-skip a { color: var(--text-muted); font-size: 14px; }
+
+.intro-dots { position: fixed; bottom: 40px; left: 0; right: 0; display: flex; justify-content: center; gap: 8px; z-index: 5; }
+.intro-dot { width: 8px; height: 8px; border-radius: 99px; background: var(--border); transition: background .2s, width .2s; }
+.intro-dot.active { background: var(--primary); width: 22px; }
+
 @media (max-width: 720px) {
     .steps { grid-template-columns: 1fr; }
     .hero h1 { font-size: 28px; }

@@ -3,6 +3,18 @@
 {% block body_class %}auth{% endblock %}
 
 {% block content %}
+<script>
+    // Only inside the installed Android app (never a regular browser tab), and only
+    // the first time - show the swipeable onboarding slides before the landing page.
+    (function () {
+        var isStandalone = window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true;
+        var introSeen = false;
+        try { introSeen = localStorage.getItem("introSeen") === "1"; } catch (e) {}
+        if (isStandalone && !introSeen) {
+            window.location.replace("{{ url_for('intro') }}");
+        }
+    })();
+</script>
 <div class="public-header">
     <a class="brand" href="{{ url_for('home') }}">
         <span class="brand-mark">C</span>

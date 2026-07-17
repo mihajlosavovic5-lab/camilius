@@ -264,6 +264,13 @@ def gmail_help():
     return render_template("gmail_help.html")
 
 
+# Swipeable onboarding slides shown once, only inside the installed Android app
+# (never in a regular browser) - see the redirect check in landing.html.
+@app.route("/intro")
+def intro():
+    return render_template("intro.html")
+
+
 @app.route("/download")
 def download():
     return render_template("download.html")
