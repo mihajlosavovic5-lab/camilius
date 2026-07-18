@@ -15,6 +15,18 @@ from read_email import verify_credentials
 
 api = Blueprint("api", __name__, url_prefix="/api")
 
+
+@api.after_request
+def add_cors_headers(response):
+    # The mobile app's requests come from the bundled app shell's own origin, not this
+    # site's - a wildcard is safe here because every route below is Bearer-token
+    # authenticated (no ambient cookie), so a stray cross-site request without the
+    # token still gets a 401 regardless of origin.
+    response.headers["Access-Control-Allow-Origin"] = "*"
+    response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
+    response.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
+    return response
+
 # Bearer tokens are used instead of the session cookie because the mobile app's requests
 # are cross-origin from the Railway domain's point of view (they come from the bundled
 # app shell, not a page served by this site) - the SESSION_COOKIE_SAMESITE=Lax cookie
