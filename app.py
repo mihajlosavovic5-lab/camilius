@@ -279,9 +279,20 @@ def download():
 # Serves the APK with Content-Disposition: attachment (Flask's default static file
 # route sends "inline", which some browsers/in-app contexts fail to turn into an
 # actual download for a binary file type they can't display).
+#
+# The downloaded filename includes the app version so Chrome treats each release as a
+# new file instead of asking "Download again?" for a same-named file it already has.
+APK_VERSION = "1.5"
+
+
 @app.route("/download/camilius-ai.apk")
 def download_apk():
-    return send_from_directory(app.static_folder, "camilius-ai.apk", as_attachment=True)
+    return send_from_directory(
+        app.static_folder,
+        "camilius-ai.apk",
+        as_attachment=True,
+        download_name=f"camilius-ai-v{APK_VERSION}.apk",
+    )
 
 
 # Private funnel dashboard for the founder only - gated by a secret token rather than a
