@@ -32,12 +32,13 @@ jobs:
           distribution: temurin
           java-version: "17"
 
-      # GitHub's hosted Android SDK image doesn't always have the newest compileSdk
-      # platform preinstalled - install it explicitly rather than assume.
+      # Puts the Android SDK's cmdline-tools (sdkmanager etc.) on PATH and accepts licenses -
+      # the hosted runner's preinstalled SDK doesn't always have the newest compileSdk
+      # platform, so install it explicitly rather than assume.
+      - uses: android-actions/setup-android@v3
+
       - name: Ensure required Android SDK platform is installed
-        run: |
-          yes | sdkmanager --licenses > /dev/null || true
-          sdkmanager "platforms;android-36" "build-tools;36.0.0"
+        run: sdkmanager "platforms;android-36" "build-tools;36.0.0"
 
       - name: Decode signing keystore
         run: echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > android/app/signing.keystore
