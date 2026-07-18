@@ -62,7 +62,6 @@ a:focus-visible, button:focus-visible, [tabindex]:focus-visible {
     background-image: url('/static/icon-512.png');
     background-size: cover; background-position: center;
     color: transparent; font-size: 0; flex-shrink: 0;
-    box-shadow: 0 3px 8px rgba(214, 148, 16, .25);
 }
 .brand-name { font-family: Georgia, "Times New Roman", serif; font-weight: 700; font-size: 17px; color: var(--text); letter-spacing: 0; }
 .brand-ai {
