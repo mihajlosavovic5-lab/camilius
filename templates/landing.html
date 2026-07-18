@@ -92,19 +92,7 @@
         </div>
     </section>
 
-    {% if beta_free_mode %}
-    <!-- Beta CTA (pricing section hidden while the beta is free) -->
-    <section class="section">
-        <div class="card price-card">
-            <h2 class="section-title" style="margin-bottom: 12px;">Free during the beta</h2>
-            <ul class="benefits" style="text-align: left;">
-                <li><span class="checkmark">&#10003;</span> Up to 50 AI replies per day</li>
-                <li><span class="checkmark">&#10003;</span> All features included</li>
-            </ul>
-            <a href="{{ url_for('register') }}" class="button button-full" style="margin-top: 8px;">Get started</a>
-        </div>
-    </section>
-    {% else %}
+    {% if not beta_free_mode %}
     <!-- Pricing -->
     <section class="section">
         <h2 class="section-title">Simple pricing</h2>
