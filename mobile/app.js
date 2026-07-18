@@ -15,6 +15,28 @@ const state = {
 
 const el = (id) => document.getElementById(id);
 
+// Native plugins (StatusBar, App, Haptics) are injected by Capacitor at runtime as
+// window.Capacitor.Plugins.* - guarded so this file still runs unmodified in a plain
+// desktop/mobile browser (e.g. during development) where window.Capacitor doesn't exist.
+const capacitorPlugins = window.Capacitor && window.Capacitor.isNativePlatform() ? window.Capacitor.Plugins : null;
+
+if (capacitorPlugins) {
+    capacitorPlugins.StatusBar.setBackgroundColor({ color: "#d69410" });
+    capacitorPlugins.StatusBar.setStyle({ style: "LIGHT" }); // light (white) status bar icons/text, matches the amber background
+
+    // Hardware/gesture back button: close the detail screen instead of exiting the app
+    // when it's open; otherwise fall through to Capacitor's default (exit at the root).
+    capacitorPlugins.App.addListener("backButton", ({ canGoBack }) => {
+        if (screens.detail.classList.contains("active")) {
+            history.back();
+        } else if (canGoBack) {
+            history.back();
+        } else {
+            capacitorPlugins.App.exitApp();
+        }
+    });
+}
+
 const screens = {
     login: el("screen-login"),
     inbox: el("screen-inbox"),
@@ -243,6 +265,7 @@ el("detail-send").addEventListener("click", async () => {
         await api(`/api/conversations/${conversation.id}/send`, { method: "POST", body: { reply } });
         conversation.status = "sent";
         conversation.final_reply = reply;
+        if (capacitorPlugins) capacitorPlugins.Haptics.impact({ style: "LIGHT" });
         openDetail(conversation); // re-render this screen in its "sent" state
         loadDashboard(); // refresh the list/counters behind it
     } catch (err) {
