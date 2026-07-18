@@ -3,7 +3,7 @@
 // screens instead of loading the server-rendered website.
 
 const API_BASE = "https://app.ai-auto-reply-mail.com";
-const APP_VERSION = "1.9.0"; // bumped alongside the native versionName, sent with crash reports
+const APP_VERSION = "1.9.2"; // bumped alongside the native versionName, sent with crash reports
 
 const el = (id) => document.getElementById(id);
 
@@ -204,6 +204,19 @@ el("login-form").addEventListener("submit", async (event) => {
     } finally {
         submitBtn.disabled = false;
         submitBtn.textContent = "Log in";
+    }
+});
+
+// Registration is a long form (business details, Gmail app password verification) that
+// already exists as a full page on the website - rather than duplicate it natively, it
+// opens in an in-app browser tab (Chrome Custom Tab), which feels integrated rather than
+// bouncing out to a separate browser app.
+el("login-signup-link").addEventListener("click", async () => {
+    const url = API_BASE + "/register";
+    if (capacitorPlugins && capacitorPlugins.Browser) {
+        await capacitorPlugins.Browser.open({ url });
+    } else {
+        window.open(url, "_blank");
     }
 });
 

@@ -99,6 +99,13 @@ button { font-family: inherit; }
 .login-brand { display: flex; flex-direction: column; align-items: center; gap: 12px; margin-bottom: 6px; }
 .login-brand .brand-mark { width: 52px; height: 52px; }
 .login-tagline { text-align: center; color: var(--text-muted); font-size: 14px; max-width: 300px; margin: 6px auto 26px; }
+.login-signup { text-align: center; font-size: 14.5px; color: var(--text-muted); margin: 22px 0 0; }
+.link-btn {
+    background: none; border: none; padding: 0; margin: 0; cursor: pointer;
+    font-family: inherit; font-size: inherit; font-weight: 700;
+    color: var(--primary-ink); text-decoration: none;
+}
+.link-btn:active { opacity: .7; }
 
 /* --- Forms --- */
 label { display: block; font-weight: 600; font-size: 13.5px; margin: 14px 0 5px; }
