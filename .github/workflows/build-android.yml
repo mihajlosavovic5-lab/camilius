@@ -1,0 +1,61 @@
+name: Build signed Android APK
+
+# Manual only - a signed release build isn't something we want firing on every push,
+# and it needs the keystore secrets below configured on the repo first
+# (Settings -> Secrets and variables -> Actions):
+#   ANDROID_KEYSTORE_BASE64   - `base64 -w0 signing.keystore` of the saved keystore
+#   ANDROID_KEYSTORE_PASSWORD - same value as the key password (one password for both)
+#   ANDROID_KEY_ALIAS         - camilius-key-alias
+#   ANDROID_KEY_PASSWORD      - same as the keystore password
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - run: npm ci
+
+      # Copies mobile/ (the app's web assets) and capacitor.config.json into the native
+      # Android project - must run before Gradle so the APK bundles the current app, not
+      # whatever was last synced.
+      - run: npx cap sync android
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      # GitHub's hosted Android SDK image doesn't always have the newest compileSdk
+      # platform preinstalled - install it explicitly rather than assume.
+      - name: Ensure required Android SDK platform is installed
+        run: |
+          yes | sdkmanager --licenses > /dev/null || true
+          sdkmanager "platforms;android-36" "build-tools;36.0.0"
+
+      - name: Decode signing keystore
+        run: echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > android/app/signing.keystore
+
+      - name: Write keystore.properties
+        run: |
+          cat > android/keystore.properties <<EOF
+          storeFile=signing.keystore
+          storePassword=${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          keyAlias=${{ secrets.ANDROID_KEY_ALIAS }}
+          keyPassword=${{ secrets.ANDROID_KEY_PASSWORD }}
+          EOF
+
+      - name: Build signed release APK
+        working-directory: android
+        run: ./gradlew assembleRelease --no-daemon
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: camilius-ai-release-apk
+          path: android/app/build/outputs/apk/release/app-release.apk
