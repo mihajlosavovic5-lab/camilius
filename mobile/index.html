@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<title>Camilius AI</title>
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+
+<div id="app">
+
+  <!-- LOGIN -->
+  <section id="screen-login" class="screen screen-login active">
+    <div class="login-wrap">
+      <div class="login-brand">
+        <span class="brand-mark"></span>
+        <span class="brand-name">Camilius<span class="brand-ai">AI</span></span>
+      </div>
+      <p class="login-tagline">AI reads your customers' emails and drafts replies — you just review and send.</p>
+
+      <div id="login-error" class="alert alert-error hidden"></div>
+
+      <form id="login-form">
+        <label>Username</label>
+        <input type="text" id="login-username" autocomplete="username" autocapitalize="off" autocorrect="off">
+        <label>Password</label>
+        <input type="password" id="login-password" autocomplete="current-password">
+        <button class="button button-full" type="submit" id="login-submit">Log in</button>
+      </form>
+    </div>
+  </section>
+
+  <!-- INBOX -->
+  <section id="screen-inbox" class="screen screen-inbox">
+    <header class="topbar">
+      <div class="topbar-title">
+        <span class="brand-mark brand-mark-sm"></span>
+        <div>
+          <h1 id="inbox-business-name">&nbsp;</h1>
+          <p class="topbar-subtitle">Customer questions</p>
+        </div>
+      </div>
+    </header>
+
+    <div class="quota-strip">
+      <div class="quota-text">
+        <span>Processed today</span>
+        <span><strong id="quota-today">0</strong> / <span id="quota-limit">50</span></span>
+      </div>
+      <div class="quota-bar"><div id="quota-fill" class="quota-fill" style="width:0%"></div></div>
+    </div>
+
+    <div id="banner-inactive" class="alert alert-warning hidden">
+      Subscription not active — new emails aren't being processed.
+    </div>
+
+    <div class="filters" id="filters">
+      <button class="filter-pill active" data-filter="all">All <span id="count-all">0</span></button>
+      <button class="filter-pill" data-filter="pending">Pending <span id="count-pending">0</span></button>
+      <button class="filter-pill" data-filter="sent">Sent <span id="count-sent">0</span></button>
+    </div>
+
+    <div id="inbox-list" class="inbox-list"></div>
+
+    <div id="inbox-empty" class="empty hidden">
+      <div class="empty-icon">📭</div>
+      <p class="empty-title">You're all set — Camilius is watching your inbox</p>
+      <p>New customer questions will show up here within 60 seconds.</p>
+    </div>
+
+    <div id="inbox-loading" class="loading">Loading…</div>
+  </section>
+
+  <!-- CONVERSATION DETAIL -->
+  <section id="screen-detail" class="screen screen-detail">
+    <header class="topbar topbar-detail">
+      <button class="back-btn" id="detail-back" aria-label="Back">‹</button>
+      <div class="topbar-detail-meta">
+        <div id="detail-sender" class="detail-sender">&nbsp;</div>
+        <div id="detail-time" class="detail-time"></div>
+      </div>
+      <span id="detail-badge" class="badge"></span>
+    </header>
+
+    <div class="detail-body">
+      <div class="block-label">Customer question</div>
+      <p id="detail-question" class="question"></p>
+
+      <div id="detail-pending-block">
+        <div class="block-label">Suggested reply — edit before sending</div>
+        <textarea id="detail-reply" rows="8"></textarea>
+        <button class="button button-full" id="detail-send">Send reply</button>
+      </div>
+
+      <div id="detail-sent-block" class="hidden">
+        <div class="block-label">Sent reply</div>
+        <p id="detail-final-reply" class="reply"></p>
+      </div>
+
+      <div id="detail-error" class="alert alert-error hidden"></div>
+    </div>
+  </section>
+
+  <!-- SETTINGS -->
+  <section id="screen-settings" class="screen screen-settings">
+    <header class="topbar">
+      <div class="topbar-title">
+        <div><h1>Settings</h1></div>
+      </div>
+    </header>
+
+    <div class="detail-body">
+      <div id="settings-message" class="alert alert-success hidden"></div>
+      <div id="settings-error" class="alert alert-error hidden"></div>
+
+      <label>Business name</label>
+      <input type="text" id="settings-name">
+
+      <label>Email (read-only)</label>
+      <input type="text" id="settings-email" readonly>
+
+      <label>Working hours</label>
+      <textarea id="settings-hours" rows="2"></textarea>
+
+      <label>Price list</label>
+      <textarea id="settings-prices" rows="4"></textarea>
+
+      <label>FAQ</label>
+      <textarea id="settings-faq" rows="4"></textarea>
+
+      <label>Gmail app password (leave blank to keep current)</label>
+      <input type="password" id="settings-app-password" autocomplete="new-password">
+
+      <button class="button button-full" id="settings-save" style="margin-top:18px;">Save changes</button>
+
+      <button class="button button-secondary button-full" id="settings-logout" style="margin-top:28px;">Log out</button>
+    </div>
+  </section>
+
+</div>
+
+<!-- BOTTOM TAB BAR -->
+<nav id="tabbar" class="tabbar hidden">
+  <button class="tab-btn active" data-tab="inbox">
+    <span class="tab-icon">📥</span><span>Inbox</span>
+  </button>
+  <button class="tab-btn" data-tab="settings">
+    <span class="tab-icon">⚙️</span><span>Settings</span>
+  </button>
+</nav>
+
+<script src="app.js"></script>
+</body>
+</html>
