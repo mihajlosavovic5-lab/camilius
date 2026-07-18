@@ -306,7 +306,8 @@ body.auth {
 .hero::before {
     content: ""; position: absolute; top: -140px; left: 50%; transform: translateX(-50%);
     width: 680px; height: 680px; border-radius: 50%; pointer-events: none; z-index: 0;
-    background: radial-gradient(circle, rgba(214, 148, 16, .16) 0%, rgba(214, 148, 16, 0) 70%);
+    background: radial-gradient(circle, var(--primary-light) 0%, rgba(251, 238, 203, 0) 70%);
+    opacity: .8;
 }
 .hero > * { position: relative; z-index: 1; }
 .hero h1 {
