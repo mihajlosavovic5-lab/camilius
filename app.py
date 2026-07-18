@@ -11,6 +11,7 @@ from flask import Flask, render_template, request, redirect, url_for, session, a
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from flask_wtf import CSRFProtect
+from werkzeug.middleware.proxy_fix import ProxyFix
 from werkzeug.security import check_password_hash
 
 from database import (
@@ -27,6 +28,13 @@ from api import api as api_blueprint
 load_dotenv()
 
 app = Flask(__name__)
+# Railway terminates HTTPS at its edge and forwards plain HTTP internally, so without
+# this Flask has no way to know the original request was HTTPS - url_for(_external=True)
+# and request.url_root would generate http:// links (breaks the password reset email
+# link, and would break the mobile app's OTA update download since Android blocks
+# cleartext HTTP by default). x_proto=1 trusts one hop of X-Forwarded-Proto, which is
+# exactly what Railway's own edge adds.
+app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_for=1)
 app.secret_key = os.getenv("FLASK_SECRET_KEY")
 if not app.secret_key:
     raise RuntimeError("FLASK_SECRET_KEY is not set in the environment variables.")
