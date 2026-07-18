@@ -22,6 +22,7 @@ from database import (
 )
 from send_email import send_email
 from read_email import verify_credentials
+from api import api as api_blueprint
 
 load_dotenv()
 
@@ -41,6 +42,11 @@ create_database()
 
 limiter = Limiter(get_remote_address, app=app, default_limits=[])
 csrf = CSRFProtect(app)
+
+app.register_blueprint(api_blueprint)
+# The mobile app authenticates with its own Bearer token (see api.py), not the session
+# cookie + CSRF token pair used by browser form submissions, so these routes are exempt.
+csrf.exempt(api_blueprint)
 
 # During the free beta, all billing/subscription UI is hidden from users (nav link,
 # dashboard banner, landing page pricing, the /subscription page itself) - nothing about
