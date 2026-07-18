@@ -296,7 +296,7 @@ def download():
 #
 # The downloaded filename includes the app version so Chrome treats each release as a
 # new file instead of asking "Download again?" for a same-named file it already has.
-APK_VERSION = "1.9.0"
+APK_VERSION = "1.9.1"
 
 
 @app.route("/download/camilius-ai.apk")
