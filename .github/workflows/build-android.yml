@@ -3,10 +3,13 @@ name: Build signed Android APK
 # Manual only - a signed release build isn't something we want firing on every push,
 # and it needs the keystore secrets below configured on the repo first
 # (Settings -> Secrets and variables -> Actions):
-#   ANDROID_KEYSTORE_BASE64   - `base64 -w0 signing.keystore` of the saved keystore
-#   ANDROID_KEYSTORE_PASSWORD - same value as the key password (one password for both)
-#   ANDROID_KEY_ALIAS         - camilius-key-alias
-#   ANDROID_KEY_PASSWORD      - same as the keystore password
+#   ANDROID_KEYSTORE_BASE64     - `base64 -w0 signing.keystore` of the saved keystore
+#   ANDROID_KEYSTORE_PASSWORD   - same value as the key password (one password for both)
+#   ANDROID_KEY_ALIAS           - camilius-key-alias
+#   ANDROID_KEY_PASSWORD        - same as the keystore password
+#   GOOGLE_SERVICES_JSON_BASE64 - `base64 -w0 google-services.json` from the Firebase
+#                                 console (needed for push notifications) - like the
+#                                 keystore, never committed to the repo
 on:
   workflow_dispatch:
 
@@ -42,6 +45,12 @@ jobs:
 
       - name: Decode signing keystore
         run: echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > android/app/signing.keystore
+
+      # Enables the Google Services Gradle plugin (see android/app/build.gradle's
+      # conditional apply) so the app can actually receive push notifications - without
+      # this file present, FCM registration silently no-ops instead of failing loudly.
+      - name: Decode google-services.json
+        run: echo "${{ secrets.GOOGLE_SERVICES_JSON_BASE64 }}" | base64 -d > android/app/google-services.json
 
       - name: Write keystore.properties
         run: |
