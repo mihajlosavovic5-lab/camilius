@@ -30,7 +30,7 @@ jobs:
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: "17"
+          java-version: "21" # capacitor-android's module targets Java 21 source/target compatibility
 
       # Puts the Android SDK's cmdline-tools (sdkmanager etc.) on PATH and accepts licenses -
       # the hosted runner's preinstalled SDK doesn't always have the newest compileSdk
