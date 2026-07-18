@@ -8,10 +8,46 @@
 </head>
 <body>
 
+<div id="offline-banner" class="offline-banner hidden">No internet connection</div>
+
 <div id="app">
 
+  <!-- ONBOARDING (shown once, only inside the installed app) -->
+  <section id="screen-onboarding" class="screen screen-onboarding">
+    <div class="onboarding-skip-wrap"><button class="onboarding-skip-btn onboarding-skip">Skip</button></div>
+    <div class="onboarding-slides" id="onboarding-slides">
+      <div class="onboarding-slide">
+        <span class="brand-mark onboarding-mark"></span>
+        <h1>Welcome to Camilius AI</h1>
+        <p>Your AI assistant for customer emails.</p>
+      </div>
+      <div class="onboarding-slide">
+        <div class="onboarding-emoji">📩</div>
+        <h1>Reads emails for you</h1>
+        <p>When a customer emails your business, Camilius reads it right away — day or night.</p>
+      </div>
+      <div class="onboarding-slide">
+        <div class="onboarding-emoji">✍️</div>
+        <h1>Writes a reply for you</h1>
+        <p>The AI drafts a reply based on your working hours, price list, and FAQ.</p>
+      </div>
+      <div class="onboarding-slide">
+        <div class="onboarding-emoji">✅</div>
+        <h1>You approve and send</h1>
+        <p>Nothing goes out without your approval — review, edit if you like, then send.</p>
+        <button class="button onboarding-continue">Get started</button>
+      </div>
+    </div>
+    <div class="onboarding-dots" id="onboarding-dots">
+      <span class="onboarding-dot active"></span>
+      <span class="onboarding-dot"></span>
+      <span class="onboarding-dot"></span>
+      <span class="onboarding-dot"></span>
+    </div>
+  </section>
+
   <!-- LOGIN -->
-  <section id="screen-login" class="screen screen-login active">
+  <section id="screen-login" class="screen screen-login">
     <div class="login-wrap">
       <div class="login-brand">
         <span class="brand-mark"></span>
@@ -55,21 +91,32 @@
       Subscription not active — new emails aren't being processed.
     </div>
 
+    <div class="search-row">
+      <input type="text" id="inbox-search" class="search-input" placeholder="Search conversations">
+    </div>
+
     <div class="filters" id="filters">
       <button class="filter-pill active" data-filter="all">All <span id="count-all">0</span></button>
       <button class="filter-pill" data-filter="pending">Pending <span id="count-pending">0</span></button>
       <button class="filter-pill" data-filter="sent">Sent <span id="count-sent">0</span></button>
     </div>
 
-    <div id="inbox-list" class="inbox-list"></div>
+    <div class="pull-wrap">
+      <div id="pull-indicator" class="pull-indicator"><span class="pull-spinner"></span></div>
+      <div id="inbox-list" class="inbox-list"></div>
 
-    <div id="inbox-empty" class="empty hidden">
-      <div class="empty-icon">📭</div>
-      <p class="empty-title">You're all set — Camilius is watching your inbox</p>
-      <p>New customer questions will show up here within 60 seconds.</p>
+      <div id="inbox-empty" class="empty hidden">
+        <div class="empty-icon">📭</div>
+        <p class="empty-title" id="inbox-empty-title">You're all set — Camilius is watching your inbox</p>
+        <p id="inbox-empty-detail">New customer questions will show up here within 60 seconds.</p>
+      </div>
+
+      <div id="inbox-error" class="empty hidden">
+        <div class="empty-icon">⚠️</div>
+        <p class="empty-title" id="inbox-error-message">Couldn't load your inbox.</p>
+        <button class="button" id="inbox-retry" style="margin-top: 4px;">Try again</button>
+      </div>
     </div>
-
-    <div id="inbox-loading" class="loading">Loading…</div>
   </section>
 
   <!-- CONVERSATION DETAIL -->

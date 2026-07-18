@@ -14,6 +14,7 @@ from database import (
     subscription_active, already_processed_messages, mark_message_processed,
 )
 from backup import daily_backup_if_needed
+from push_notifications import send_push_to_business
 
 DAILY_REPLY_LIMIT = 50
 
@@ -90,10 +91,21 @@ def process_one_business(business_row):
         history = previous_conversations_with(business_id, sender_address)
         suggested_reply = generate_reply(message["text"], business, history=history)
 
-        save_draft_reply(business_id, sender_address, message["subject"], message["text"], suggested_reply)
+        new_conversation_id = save_draft_reply(business_id, sender_address, message["subject"], message["text"], suggested_reply)
         if message["message_id"]:
             mark_message_processed(business_id, message["message_id"])
         print(f"[{name}] Draft saved, waiting for approval in the dashboard.")
+
+        try:
+            send_push_to_business(
+                business_id,
+                title="New customer question",
+                body=f"{sender_name or sender_address}: {message['text'][:80]}",
+                data={"conversation_id": str(new_conversation_id)},
+            )
+        except Exception as e:
+            # A push failure must never block draft processing
+            print(f"[{name}] Push notification failed: {e}")
 
 
 def process_new_messages():

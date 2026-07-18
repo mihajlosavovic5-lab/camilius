@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}Client errors - Camilius AI{% endblock %}
+
+{% block content %}
+<div class="content">
+    <div class="page-header">
+        <div>
+            <h1>Android app crash log</h1>
+            <p class="subtitle">Last 100 client-reported errors, self-hosted (no third-party crash service)</p>
+        </div>
+    </div>
+
+    {% if errors|length == 0 %}
+        <div class="empty">
+            <p class="title">No errors reported</p>
+        </div>
+    {% endif %}
+
+    {% for id, business_id, message, stack, context, app_version, created_at in errors %}
+        <div class="card" style="margin-bottom: 14px;">
+            <div style="display: flex; justify-content: space-between; gap: 10px; margin-bottom: 8px;">
+                <strong>{{ message }}</strong>
+                <span style="color: var(--text-muted); font-size: 12.5px; white-space: nowrap;">{{ created_at.strftime('%m/%d %H:%M') if created_at else '' }}</span>
+            </div>
+            <div style="color: var(--text-muted); font-size: 13px; margin-bottom: 6px;">
+                {% if business_id %}Business #{{ business_id }} &middot; {% endif %}
+                {% if app_version %}v{{ app_version }} &middot; {% endif %}
+                {% if context %}{{ context }}{% endif %}
+            </div>
+            {% if stack %}
+                <pre style="white-space: pre-wrap; background: var(--background); padding: 10px 12px; border-radius: 8px; font-size: 12px; overflow-x: auto;">{{ stack }}</pre>
+            {% endif %}
+        </div>
+    {% endfor %}
+</div>
+{% endblock %}

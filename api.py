@@ -8,7 +8,7 @@ from werkzeug.security import check_password_hash
 from database import (
     conversations_for_business, get_conversation, mark_sent, business_by_username,
     business_by_id, replies_today_count, update_business, get_subscription_status,
-    subscription_active, business_stats, log_event,
+    subscription_active, business_stats, log_event, save_push_token, log_client_error,
 )
 from send_email import send_email
 from read_email import verify_credentials
@@ -124,6 +124,10 @@ def api_dashboard():
         subscription_active=subscription_active(subscription_status),
         beta_free_mode=BETA_FREE_MODE,
         stats=business_stats(business_id),
+        # The app only ever calls PushNotifications.register() when this is true - avoids
+        # touching that native/Firebase code path at all until a Firebase project actually
+        # exists (FIREBASE_PROJECT_ID + FIREBASE_SERVICE_ACCOUNT_JSON are set on the server).
+        push_enabled=bool(os.getenv("FIREBASE_PROJECT_ID")),
     )
 
 
@@ -189,3 +193,52 @@ def api_update_settings():
 
     update_business(business_id, name, working_hours, price_list, faq, email_app_password=new_app_password)
     return jsonify(message="Saved.", name=name, email=email, working_hours=working_hours, price_list=price_list, faq=faq)
+
+
+@api.route("/push-token", methods=["POST"])
+@require_api_auth
+def api_save_push_token():
+    data = request.get_json(silent=True) or {}
+    token = (data.get("token") or "").strip()
+    if not token:
+        return jsonify(error="missing token"), 400
+    save_push_token(request.business_id, token)
+    return jsonify(message="saved")
+
+
+# Unauthenticated on purpose - a crash can happen before login (or because the auth
+# token itself is broken), and this must still get through. Field lengths are capped
+# to keep the table from growing unbounded from a misbehaving/malicious client.
+@api.route("/client-error", methods=["POST"])
+def api_client_error():
+    data = request.get_json(silent=True) or {}
+
+    business_id = None
+    auth_header = request.headers.get("Authorization", "")
+    if auth_header.startswith("Bearer "):
+        business_id = _business_id_from_token(auth_header[len("Bearer "):])
+
+    log_client_error(
+        business_id,
+        (data.get("message") or "")[:2000],
+        (data.get("stack") or "")[:4000],
+        (data.get("context") or "")[:500],
+        (data.get("app_version") or "")[:40],
+    )
+    return jsonify(message="logged")
+
+
+# Self-hosted OTA update manifest for the Capacitor app (capacitor-updater plugin) -
+# points the app at the latest mobile/ web-assets bundle without needing a new signed
+# APK build for every small change. MOBILE_BUNDLE_VERSION/URL are set once the bundle
+# is actually built and uploaded (see build_mobile_bundle.py).
+@api.route("/mobile-manifest")
+def api_mobile_manifest():
+    version = os.getenv("MOBILE_BUNDLE_VERSION")
+    if not version:
+        return jsonify(available=False)
+    return jsonify(
+        available=True,
+        version=version,
+        url=f"{request.url_root}static/mobile-bundle.zip",
+    )

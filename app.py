@@ -18,7 +18,7 @@ from database import (
     business_by_id, add_business, create_database, delete_business, replies_today_count,
     update_business, business_by_email, save_reset_token, business_by_reset_token, set_new_password,
     link_subscription, update_subscription_status, get_subscription_status, subscription_active,
-    business_stats, log_event, event_funnel,
+    business_stats, log_event, event_funnel, recent_client_errors,
 )
 from send_email import send_email
 from read_email import verify_credentials
@@ -288,7 +288,7 @@ def download():
 #
 # The downloaded filename includes the app version so Chrome treats each release as a
 # new file instead of asking "Download again?" for a same-named file it already has.
-APK_VERSION = "1.8.3"
+APK_VERSION = "1.9.0"
 
 
 @app.route("/download/camilius-ai.apk")
@@ -317,6 +317,18 @@ def admin_analytics():
         ("first_reply_sent", "Sent their first reply"),
     ]
     return render_template("admin_analytics.html", steps=steps, funnel=funnel)
+
+
+# Self-hosted crash/error log for the Android app - same secret-token gating as
+# /admin/analytics, no separate crash-reporting account needed during beta.
+@app.route("/admin/client-errors")
+def admin_client_errors():
+    token = os.getenv("ADMIN_TOKEN")
+    if not token or request.args.get("token") != token:
+        abort(404)
+
+    errors = recent_client_errors(limit=100)
+    return render_template("admin_client_errors.html", errors=errors)
 
 
 # Proves to Android that the "Camilius AI" APK and this website are owned by the

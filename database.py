@@ -79,6 +79,30 @@ def create_database():
         )
     """)
 
+    # Android app push notification device tokens (Firebase Cloud Messaging).
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS push_tokens (
+            id SERIAL PRIMARY KEY,
+            business_id INTEGER NOT NULL REFERENCES businesses(id),
+            token TEXT NOT NULL UNIQUE,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+
+    # Self-hosted crash/error reporting from the Android app - avoids needing a
+    # third-party crash reporting account during beta.
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS client_errors (
+            id SERIAL PRIMARY KEY,
+            business_id INTEGER REFERENCES businesses(id),
+            message TEXT NOT NULL,
+            stack TEXT,
+            context TEXT,
+            app_version TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+
     connection.commit()
     connection.close()
 
@@ -451,6 +475,66 @@ def event_funnel(days=30):
         GROUP BY event
     """, (days,))
     result = dict(cursor.fetchall())
+    connection.close()
+    return result
+
+
+# --- Push notification tokens ---
+
+def save_push_token(business_id, token):
+    connection = connect()
+    cursor = connection.cursor()
+    # A token belongs to one device; if that device previously registered under a
+    # different business (e.g. logged out and a different business logged in on the
+    # same phone), move it rather than erroring on the UNIQUE constraint.
+    cursor.execute(
+        """INSERT INTO push_tokens (business_id, token) VALUES (%s, %s)
+           ON CONFLICT (token) DO UPDATE SET business_id = EXCLUDED.business_id""",
+        (business_id, token),
+    )
+    connection.commit()
+    connection.close()
+
+
+def push_tokens_for_business(business_id):
+    connection = connect()
+    cursor = connection.cursor()
+    cursor.execute("SELECT token FROM push_tokens WHERE business_id = %s", (business_id,))
+    result = [row[0] for row in cursor.fetchall()]
+    connection.close()
+    return result
+
+
+def remove_push_token(token):
+    connection = connect()
+    cursor = connection.cursor()
+    cursor.execute("DELETE FROM push_tokens WHERE token = %s", (token,))
+    connection.commit()
+    connection.close()
+
+
+# --- Client-side crash/error reporting ---
+
+def log_client_error(business_id, message, stack, context, app_version):
+    connection = connect()
+    cursor = connection.cursor()
+    cursor.execute(
+        """INSERT INTO client_errors (business_id, message, stack, context, app_version)
+           VALUES (%s, %s, %s, %s, %s)""",
+        (business_id, message, stack, context, app_version),
+    )
+    connection.commit()
+    connection.close()
+
+
+def recent_client_errors(limit=100):
+    connection = connect()
+    cursor = connection.cursor()
+    cursor.execute("""
+        SELECT id, business_id, message, stack, context, app_version, created_at
+        FROM client_errors ORDER BY created_at DESC LIMIT %s
+    """, (limit,))
+    result = cursor.fetchall()
     connection.close()
     return result
 
