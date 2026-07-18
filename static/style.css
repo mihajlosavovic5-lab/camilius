@@ -302,14 +302,7 @@ body.auth {
 .spacing-top { margin-top: 20px; }
 
 /* --- Landing page --- */
-.hero { position: relative; text-align: center; padding: 64px 0 48px; overflow: hidden; }
-.hero::before {
-    content: ""; position: absolute; top: -140px; left: 50%; transform: translateX(-50%);
-    width: 680px; height: 680px; border-radius: 50%; pointer-events: none; z-index: 0;
-    background: radial-gradient(circle, var(--primary-light) 0%, rgba(251, 238, 203, 0) 70%);
-    opacity: .8;
-}
-.hero > * { position: relative; z-index: 1; }
+.hero { position: relative; text-align: center; padding: 64px 0 48px; }
 .hero h1 {
     font-family: Georgia, "Times New Roman", serif; font-weight: 700;
     font-size: 42px; letter-spacing: -.5px; line-height: 1.15; margin-bottom: 16px;
