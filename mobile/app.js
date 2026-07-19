@@ -3,7 +3,7 @@
 // screens instead of loading the server-rendered website.
 
 const API_BASE = "https://app.ai-auto-reply-mail.com";
-const APP_VERSION = "1.9.2"; // bumped alongside the native versionName, sent with crash reports
+const APP_VERSION = "1.9.3"; // bumped alongside the native versionName, sent with crash reports
 
 const el = (id) => document.getElementById(id);
 
