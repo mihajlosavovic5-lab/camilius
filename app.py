@@ -23,7 +23,7 @@ from database import (
 )
 from send_email import send_email
 from read_email import verify_credentials
-from api import api as api_blueprint
+from api import api as api_blueprint, APK_VERSION
 
 load_dotenv()
 
@@ -296,7 +296,7 @@ def download():
 #
 # The downloaded filename includes the app version so Chrome treats each release as a
 # new file instead of asking "Download again?" for a same-named file it already has.
-APK_VERSION = "1.9.2"
+# (APK_VERSION itself now lives in api.py, since /api/apk-version needs it too.)
 
 
 @app.route("/download/camilius-ai.apk")

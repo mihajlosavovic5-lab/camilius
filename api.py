@@ -15,6 +15,11 @@ from read_email import verify_credentials
 
 api = Blueprint("api", __name__, url_prefix="/api")
 
+# Current signed-APK release - bumped alongside android/app/build.gradle's versionName
+# on every native release. app.py's /download route imports this too, so it's the one
+# place to update.
+APK_VERSION = "1.9.2"
+
 
 @api.after_request
 def add_cors_headers(response):
@@ -241,4 +246,16 @@ def api_mobile_manifest():
         available=True,
         version=version,
         url=f"{request.url_root}static/mobile-bundle.zip",
+    )
+
+
+# Native-code changes (new plugin, permissions, icon, splash, anything under android/)
+# can't ship through the OTA mechanism above - it only swaps the JS/HTML/CSS bundle.
+# The app polls this instead to offer an in-app "new version available" download
+# prompt for those, rather than requiring the user to be sent a link manually.
+@api.route("/apk-version")
+def api_apk_version():
+    return jsonify(
+        version=APK_VERSION,
+        url=f"{request.url_root}download/camilius-ai.apk",
     )

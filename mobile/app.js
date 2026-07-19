@@ -89,7 +89,7 @@ window.addEventListener("unhandledrejection", (event) => {
     reportClientError(reason && reason.message ? reason.message : String(reason), reason && reason.stack, "unhandledrejection");
 });
 
-// --- Native setup (status bar, back button, OTA update check) ---
+// --- Native setup (status bar, back button, OTA + native update checks) ---
 
 if (capacitorPlugins) {
     capacitorPlugins.StatusBar.setBackgroundColor({ color: "#d69410" });
@@ -133,6 +133,38 @@ if (capacitorPlugins) {
             }
         })();
     }
+
+    // Native-code changes (new plugin, permissions, icon, splash, anything under
+    // android/) can't ship through the OTA check above - they need a new signed APK
+    // install. This offers that in-app instead of requiring the user be sent a link
+    // manually. Android still shows its own "Install unknown app?" confirmation before
+    // installing - that step is an OS security measure and can't be skipped from here.
+    (async () => {
+        try {
+            const response = await fetch(API_BASE + "/api/apk-version");
+            const info = await response.json();
+            if (info.version === APP_VERSION) return;
+
+            const dismissedVersion = await storageGet("apkUpdateDismissedVersion");
+            if (dismissedVersion === info.version) return;
+
+            const banner = el("update-banner");
+            banner.classList.remove("hidden");
+            el("update-download-btn").addEventListener("click", async () => {
+                if (capacitorPlugins.Browser) {
+                    await capacitorPlugins.Browser.open({ url: info.url });
+                } else {
+                    window.open(info.url, "_blank");
+                }
+            });
+            el("update-dismiss-btn").addEventListener("click", async () => {
+                await storageSet("apkUpdateDismissedVersion", info.version);
+                banner.classList.add("hidden");
+            });
+        } catch (e) {
+            reportClientError(e.message, e.stack, "apk-update-check");
+        }
+    })();
 }
 
 // --- API helper ---
