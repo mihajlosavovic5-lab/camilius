@@ -134,8 +134,9 @@ if (capacitorPlugins) {
         const checkForOtaUpdate = async () => {
             if (otaCheckInProgress) return;
             if (pendingOtaBundle) {
-                // Already downloaded earlier this session (e.g. banner was dismissed) -
-                // just re-offer it on re-entry, per the "tell me every time" request.
+                // Already downloaded earlier this session - just re-show the banner
+                // instead of re-fetching. There's no dismiss button (updates are
+                // mandatory), but re-entering the app re-runs this check regardless.
                 otaBanner.classList.remove("hidden");
                 return;
             }
@@ -187,9 +188,6 @@ if (capacitorPlugins) {
                 otaBanner.classList.add("hidden");
                 pendingOtaBundle = null;
             }
-        });
-        el("ota-dismiss-btn").addEventListener("click", () => {
-            otaBanner.classList.add("hidden");
         });
 
         // Check at cold start AND every time the app returns to the foreground - "every
