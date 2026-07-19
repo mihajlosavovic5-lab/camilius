@@ -768,6 +768,15 @@ function setupLanguagePicker() {
     const list = document.getElementById("lang-modal-list");
     if (!btn || !modal || !list) return;
 
+    const openPicker = () => {
+        modal.classList.add("open");
+        btn.classList.add("active");
+    };
+    const closePicker = () => {
+        modal.classList.remove("open");
+        btn.classList.remove("active");
+    };
+
     LANGUAGES.forEach((lang) => {
         const row = document.createElement("button");
         row.type = "button";
@@ -775,11 +784,14 @@ function setupLanguagePicker() {
         row.textContent = lang.name;
         row.addEventListener("click", async () => {
             await setLanguage(lang.code);
-            modal.classList.add("hidden");
+            closePicker();
         });
         list.appendChild(row);
     });
 
-    btn.addEventListener("click", () => modal.classList.remove("hidden"));
-    backdrop.addEventListener("click", () => modal.classList.add("hidden"));
+    btn.addEventListener("click", () => {
+        if (modal.classList.contains("open")) closePicker();
+        else openPicker();
+    });
+    backdrop.addEventListener("click", closePicker);
 }

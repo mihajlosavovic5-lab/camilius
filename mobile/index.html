@@ -16,13 +16,13 @@
   <button id="update-dismiss-btn" class="update-dismiss-btn" aria-label="Dismiss">&times;</button>
 </div>
 
-<!-- Language picker modal - lives outside #app so its position:fixed isn't affected by
+<!-- Language picker dropdown - lives outside #app so its position:fixed isn't affected by
      any ancestor .screen's transform (a CSS transform creates a new containing block
-     for fixed descendants, which would otherwise break this). -->
-<div id="lang-modal" class="lang-modal hidden">
+     for fixed descendants, which would otherwise break this). Closed/open state is the
+     "open" class (not "hidden") so CSS transitions can animate it. -->
+<div id="lang-modal" class="lang-modal">
   <div class="lang-modal-backdrop" id="lang-modal-backdrop"></div>
   <div class="lang-modal-sheet">
-    <div class="lang-modal-title" data-i18n="lang.pickerTitle">Choose language</div>
     <div id="lang-modal-list" class="lang-modal-list"></div>
   </div>
 </div>
@@ -72,6 +72,8 @@
           <span class="lang-chevron">⌄</span>
         </button>
       </div>
+
+      <div class="login-top-spacer"></div>
 
       <div class="login-brand">
         <span class="brand-mark login-icon"></span>

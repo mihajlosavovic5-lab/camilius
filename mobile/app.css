@@ -97,17 +97,24 @@ button { font-family: inherit; }
 /* --- Login screen --- */
 .login-wrap {
     flex: 1; display: flex; flex-direction: column;
-    padding: calc(10px + var(--safe-top)) 26px calc(28px + var(--safe-bottom));
+    padding: calc(22px + var(--safe-top)) 26px calc(28px + var(--safe-bottom));
 }
-.login-lang-row { display: flex; justify-content: center; }
+.login-lang-row { display: flex; justify-content: center; flex-shrink: 0; }
 .lang-select-btn {
     display: flex; align-items: center; gap: 5px; background: none; border: none; cursor: pointer;
     font-family: inherit; font-size: 14px; font-weight: 600; color: var(--text-muted); padding: 10px 8px;
+    border-radius: 8px; transition: background .15s ease;
 }
-.lang-chevron { font-size: 12px; transform: translateY(1px); }
-.login-brand { display: flex; justify-content: center; margin: 30px 0 36px; }
+.lang-select-btn.active { background: var(--background); }
+.lang-chevron { font-size: 12px; transform: translateY(1px); transition: transform .18s ease; }
+.lang-select-btn.active .lang-chevron { transform: translateY(1px) rotate(180deg); }
+/* Flexible spacers above/below the form cluster - bottom gets more share so the
+   cluster sits a bit above center (like the Instagram reference) while Sign up
+   still pins near the very bottom via the larger share. */
+.login-top-spacer { flex: 0.7; min-height: 8px; }
+.login-brand { display: flex; justify-content: center; margin: 0 0 34px; }
 .login-icon { width: 92px; height: 92px; border-radius: 22%; box-shadow: 0 10px 26px rgba(43,32,19,.16); }
-.login-forgot { display: block; text-align: center; margin: 18px auto 0; }
+.login-forgot { display: block; text-align: center; margin: 30px auto 0; }
 .login-spacer { flex: 1; min-height: 20px; }
 .link-btn {
     background: none; border: none; padding: 0; margin: 0; cursor: pointer;
@@ -116,19 +123,34 @@ button { font-family: inherit; }
 }
 .link-btn:active { opacity: .7; }
 
-/* --- Language picker modal --- */
-.lang-modal { position: fixed; inset: 0; z-index: 60; }
-.lang-modal-backdrop { position: absolute; inset: 0; background: rgba(20,15,8,.4); }
-.lang-modal-sheet {
-    position: absolute; left: 0; right: 0; bottom: 0; max-height: 70vh; overflow-y: auto;
-    background: var(--surface); border-radius: 20px 20px 0 0;
-    padding: 18px 10px calc(18px + var(--safe-bottom));
+/* --- Language picker dropdown (anchored near the top "English v" button, not a
+   bottom sheet) --- */
+.lang-modal {
+    position: fixed; inset: 0; z-index: 60;
+    visibility: hidden; pointer-events: none;
 }
-.lang-modal-title { text-align: center; font-weight: 700; font-size: 15px; padding: 4px 0 12px; }
+.lang-modal.open { visibility: visible; pointer-events: auto; }
+.lang-modal-backdrop {
+    position: absolute; inset: 0; background: rgba(20,15,8,.32);
+    opacity: 0; transition: opacity .2s ease;
+}
+.lang-modal.open .lang-modal-backdrop { opacity: 1; }
+.lang-modal-sheet {
+    position: absolute; left: 50%; top: calc(60px + var(--safe-top));
+    width: min(260px, calc(100% - 48px)); max-height: 60vh; overflow-y: auto;
+    background: var(--surface); border-radius: 16px;
+    box-shadow: 0 14px 36px rgba(43,32,19,.24);
+    padding: 8px;
+    transform-origin: top center;
+    transform: translate(-50%, -6px) scale(.94);
+    opacity: 0;
+    transition: transform .2s cubic-bezier(.22,.9,.32,1.2), opacity .16s ease;
+}
+.lang-modal.open .lang-modal-sheet { transform: translate(-50%, 0) scale(1); opacity: 1; }
 .lang-modal-list { display: flex; flex-direction: column; }
 .lang-option-btn {
-    background: none; border: none; text-align: left; padding: 13px 16px; border-radius: 10px;
-    font-family: inherit; font-size: 16px; color: var(--text); cursor: pointer;
+    background: none; border: none; text-align: left; padding: 12px 14px; border-radius: 10px;
+    font-family: inherit; font-size: 15.5px; color: var(--text); cursor: pointer;
 }
 .lang-option-btn:active { background: var(--background); }
 
