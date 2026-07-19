@@ -124,7 +124,7 @@ button { font-family: inherit; }
 /* Must come after .link-btn - same specificity, and .link-btn's margin:0 reset was
    silently winning the cascade by source order, so no margin-top set here ever
    actually rendered no matter the value. */
-.login-forgot { display: block; text-align: center; margin: 50px auto 0; }
+.login-forgot { display: block; text-align: center; margin: 18px auto 0; }
 
 /* --- Language picker dropdown (anchored near the top "English v" button, not a
    bottom sheet) --- */
