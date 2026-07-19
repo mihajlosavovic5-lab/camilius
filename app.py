@@ -574,17 +574,23 @@ def instagram_webhook():
         return challenge, 200
 
     raw_body = request.get_data()
+    print(f"[instagram-webhook] POST received, {len(raw_body, flush=True)} bytes")
     if not verify_webhook_signature(raw_body, request.headers.get("X-Hub-Signature-256", "")):
+        print("[instagram-webhook] Signature verification FAILED - rejecting with 403", flush=True)
         abort(403)
+    print("[instagram-webhook] Signature verified OK", flush=True)
 
     payload = request.get_json(silent=True) or {}
-    for message in parse_webhook_messages(payload):
+    print(f"[instagram-webhook] Raw payload: {payload}", flush=True)
+    messages = parse_webhook_messages(payload)
+    print(f"[instagram-webhook] Parsed {len(messages, flush=True)} message(s): {messages}")
+    for message in messages:
         try:
             _process_instagram_message(message)
         except Exception as error:
             # One bad message must never break Meta's delivery of the rest of the batch,
             # or cause Meta to keep retrying the whole payload forever.
-            print(f"[instagram-webhook] Error processing message: {error}")
+            print(f"[instagram-webhook] Error processing message: {error!r}", flush=True)
 
     # Meta expects a fast 2xx - it retries (and can eventually pause the subscription) if
     # this hangs or errors. Processing inline is fine at our current volume (a handful of
@@ -596,20 +602,26 @@ def instagram_webhook():
 def _process_instagram_message(message):
     business = business_by_instagram_account_id(message["ig_account_id"])
     if business is None:
+        print(f"[instagram-webhook] No business found for ig_account_id={message['ig_account_id']!r} - ignoring", flush=True)
         return  # webhook for an Instagram account we don't have on file - shouldn't happen
 
     business_id = business[0]
+    print(f"[instagram-webhook] Matched business_id={business_id} name={business[1]!r}", flush=True)
+
     # BETA_FREE_MODE means every registered business is processed regardless of billing
     # status (same reasoning as the dashboard banner elsewhere) - without this, a freshly
     # registered business defaults to subscription_status='none' and every message would
     # silently be dropped here until someone manually flips it to 'active'.
     if not BETA_FREE_MODE and not subscription_active(get_subscription_status(business_id)):
+        print(f"[instagram-webhook] business_id={business_id} subscription not active - skipping", flush=True)
         return
     if replies_today_count(business_id) >= DAILY_REPLY_LIMIT:
+        print(f"[instagram-webhook] business_id={business_id} daily limit reached - skipping", flush=True)
         return
 
     message_id = message["message_id"]
     if message_id and already_processed_messages(business_id, [message_id]):
+        print(f"[instagram-webhook] message_id={message_id} already processed - skipping (dedup, flush=True)")
         return  # Meta redelivers on retry - this is what stops a duplicate reply
 
     sender_igsid = message["sender_igsid"]
@@ -620,13 +632,16 @@ def _process_instagram_message(message):
         "price_list": business[9],
         "faq": business[10],
     }
+    print(f"[instagram-webhook] Generating AI reply for text={message['text']!r} from sender_igsid={sender_igsid}", flush=True)
     history = previous_conversations_with(business_id, sender_igsid)
     suggested_reply = generate_reply(message["text"], business_info, history=history)
+    print(f"[instagram-webhook] AI reply generated: {suggested_reply!r}", flush=True)
 
     sender_display = get_sender_username(sender_igsid, access_token) or sender_igsid
     new_conversation_id = save_draft_reply(
         business_id, sender_display, message["text"], suggested_reply, sender_igsid=sender_igsid,
     )
+    print(f"[instagram-webhook] Draft saved as conversation_id={new_conversation_id}", flush=True)
     if message_id:
         mark_message_processed(business_id, message_id)
 
@@ -639,7 +654,7 @@ def _process_instagram_message(message):
         )
     except Exception as error:
         # A push failure must never block draft processing
-        print(f"[instagram-webhook] Push notification failed: {error}")
+        print(f"[instagram-webhook] Push notification failed: {error}", flush=True)
 
 
 if __name__ == "__main__":
