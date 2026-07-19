@@ -3,7 +3,7 @@
 // screens instead of loading the server-rendered website.
 
 const API_BASE = "https://app.ai-auto-reply-mail.com";
-const APP_VERSION = "1.9.3"; // bumped alongside the native versionName, sent with crash reports
+const APP_VERSION = "1.9.4"; // bumped alongside the native versionName, sent with crash reports
 
 const el = (id) => document.getElementById(id);
 
@@ -110,26 +110,53 @@ if (capacitorPlugins) {
     // APK - see api.py's /api/mobile-manifest and build_mobile_bundle.py.
     if (capacitorPlugins.CapacitorUpdater) {
         capacitorPlugins.CapacitorUpdater.notifyAppReady().catch(() => {});
+
+        // Diagnostic: OTA updates have repeatedly failed to visibly reach installed
+        // devices for reasons that produced zero client-error reports, so instrument
+        // every step instead of guessing further. getFailedUpdate() surfaces a native-
+        // level rollback (bundle downloaded/applied but failed to load) that we'd
+        // otherwise never see - safe to leave in permanently, it's a no-op (null) when
+        // nothing failed.
+        capacitorPlugins.CapacitorUpdater.getFailedUpdate().then((failed) => {
+            if (failed) reportClientError("native rollback detected: " + JSON.stringify(failed), "", "capacitor-updater-failed-update");
+        }).catch(() => {});
+
         (async () => {
+            let step = "fetch-manifest";
             try {
                 const response = await fetch(API_BASE + "/api/mobile-manifest");
                 const manifest = await response.json();
-                if (!manifest.available) return;
+                if (!manifest.available) {
+                    reportClientError("manifest not available", "", "ota-diag");
+                    return;
+                }
 
+                step = "get-stored-version";
                 const currentVersion = await storageGet("mobileBundleVersion");
-                if (currentVersion === manifest.version) return;
+                if (currentVersion === manifest.version) {
+                    reportClientError(`up to date, stored=${currentVersion}`, "", "ota-diag-skip");
+                    return;
+                }
+                reportClientError(`applying update: stored=${currentVersion} manifest=${manifest.version}`, "", "ota-diag-start");
 
+                step = "download";
                 const bundle = await capacitorPlugins.CapacitorUpdater.download({
                     url: manifest.url,
                     version: manifest.version,
                 });
+
+                step = "next";
                 // next() (not set()) - set() destroys the JS context and reloads immediately,
                 // which was interrupting the user mid-session (e.g. mid-onboarding-swipe) and,
                 // since storageSet() below never got to run, retriggered on every single boot.
                 await capacitorPlugins.CapacitorUpdater.next(bundle);
+
+                step = "storageSet";
                 await storageSet("mobileBundleVersion", manifest.version);
+
+                reportClientError(`update applied ok: version=${manifest.version}`, "", "ota-diag-success");
             } catch (e) {
-                reportClientError(e.message, e.stack, "ota-update-check");
+                reportClientError(`failed at step=${step}: ${e.message}`, e.stack, "ota-update-check");
             }
         })();
     }
