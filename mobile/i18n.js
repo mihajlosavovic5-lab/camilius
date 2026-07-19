@@ -37,7 +37,7 @@ const TRANSLATIONS = {
         "login.submitLoading": "Logging in…",
         "login.error": "Wrong username or password.",
         "login.forgot": "Forgot password?",
-        "login.signup": "Create accounttt",
+        "login.signup": "Create account",
 
         "lang.pickerTitle": "Choose language",
 
