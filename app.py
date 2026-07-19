@@ -31,7 +31,9 @@ from instagram_api import (
     authorize_url as instagram_authorize_url, exchange_code_for_token, exchange_for_long_lived_token,
     get_account_info, subscribe_account_to_webhook, send_message as send_instagram_message,
     verify_webhook_challenge, verify_webhook_signature, parse_webhook_messages, get_sender_username,
+    get_webhook_subscription_status,
 )
+from database import all_businesses
 from api import api as api_blueprint, APK_VERSION
 
 load_dotenv()
@@ -344,6 +346,44 @@ def download_apk():
         as_attachment=True,
         download_name=f"camilius-ai-v{APK_VERSION}.apk",
     )
+
+
+# Founder-only diagnostic: shows the state of every connected Instagram account and,
+# crucially, whether it's actually subscribed to the messages webhook (the #1 reason a
+# connected account's DMs silently never arrive). `?resubscribe=1` also re-runs the
+# subscribe call and reports the result. Gated by the same secret token as the other
+# /admin routes. Safe to leave in - read-only unless resubscribe is explicitly passed.
+@app.route("/admin/instagram-debug")
+def admin_instagram_debug():
+    token = os.getenv("ADMIN_TOKEN")
+    if not token or request.args.get("token") != token:
+        abort(404)
+
+    resubscribe = request.args.get("resubscribe") == "1"
+    result = []
+    for business in all_businesses():
+        # indices: 0 id, 1 name, 5 instagram_account_id, 6 instagram_username, 7 access_token
+        access_token = business[7]
+        entry = {
+            "business_id": business[0],
+            "name": business[1],
+            "instagram_account_id": business[5],
+            "instagram_username": business[6],
+            "has_token": bool(access_token),
+        }
+        if access_token:
+            try:
+                entry["current_subscription"] = get_webhook_subscription_status(access_token)
+            except Exception as e:
+                entry["current_subscription_error"] = repr(e)
+            if resubscribe:
+                try:
+                    entry["resubscribe_result"] = subscribe_account_to_webhook(access_token)
+                except Exception as e:
+                    entry["resubscribe_error"] = repr(e)
+        result.append(entry)
+
+    return jsonify(businesses=result)
 
 
 # Private funnel dashboard for the founder only - gated by a secret token rather than a

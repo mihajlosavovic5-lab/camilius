@@ -33,7 +33,7 @@ import requests
 AUTHORIZE_URL = "https://www.instagram.com/oauth/authorize"
 CODE_EXCHANGE_URL = "https://api.instagram.com/oauth/access_token"
 GRAPH_BASE = "https://graph.instagram.com"
-API_VERSION = "v21.0"
+API_VERSION = "v23.0"
 
 # instagram_business_basic: read the account's own profile/id.
 # instagram_business_manage_messages: read and send DMs. Both are required - this is the
@@ -101,6 +101,17 @@ def subscribe_account_to_webhook(access_token):
     }, timeout=15)
     response.raise_for_status()
     return response.json()
+
+
+def get_webhook_subscription_status(access_token):
+    """Diagnostic: returns what the account is currently subscribed to (GET on the same
+    endpoint subscribe_account_to_webhook POSTs to). If the messages field isn't listed
+    here, Instagram will NOT deliver message webhooks for this account, which is the most
+    common reason a connected account's DMs never reach us."""
+    response = requests.get(f"{GRAPH_BASE}/{API_VERSION}/me/subscribed_apps", params={
+        "access_token": access_token,
+    }, timeout=15)
+    return {"http_status": response.status_code, "body": response.json() if response.content else None}
 
 
 def get_account_info(access_token):
