@@ -8,40 +8,51 @@
 </head>
 <body>
 
-<div id="offline-banner" class="offline-banner hidden">No internet connection</div>
+<div id="offline-banner" class="offline-banner hidden" data-i18n="offline">No internet connection</div>
 
 <div id="update-banner" class="update-banner hidden">
-  <span>A new version of the app is available.</span>
-  <button id="update-download-btn" class="update-download-btn">Download</button>
+  <span data-i18n="update.available">A new version of the app is available.</span>
+  <button id="update-download-btn" class="update-download-btn" data-i18n="update.download">Download</button>
   <button id="update-dismiss-btn" class="update-dismiss-btn" aria-label="Dismiss">&times;</button>
+</div>
+
+<!-- Language picker modal - lives outside #app so its position:fixed isn't affected by
+     any ancestor .screen's transform (a CSS transform creates a new containing block
+     for fixed descendants, which would otherwise break this). -->
+<div id="lang-modal" class="lang-modal hidden">
+  <div class="lang-modal-backdrop" id="lang-modal-backdrop"></div>
+  <div class="lang-modal-sheet">
+    <div class="lang-modal-title" data-i18n="lang.pickerTitle">Choose language</div>
+    <div id="lang-modal-list" class="lang-modal-list"></div>
+  </div>
 </div>
 
 <div id="app">
 
   <!-- ONBOARDING (shown once, only inside the installed app) -->
   <section id="screen-onboarding" class="screen screen-onboarding">
-    <div class="onboarding-skip-wrap"><button class="onboarding-skip-btn onboarding-skip">Skip</button></div>
+    <div class="onboarding-skip-wrap"><button class="onboarding-skip-btn onboarding-skip" data-i18n="onboarding.skip">Skip</button></div>
     <div class="onboarding-slides" id="onboarding-slides">
       <div class="onboarding-slide">
         <span class="brand-mark onboarding-mark"></span>
-        <h1>Welcome to Camilius AI</h1>
-        <p>Your AI assistant for customer emails.</p>
+        <h1 data-i18n="onboarding.slide1.title">Welcome to Camilius AI</h1>
+        <p data-i18n="onboarding.slide1.body">Your AI assistant for customer emails.</p>
       </div>
       <div class="onboarding-slide">
         <div class="onboarding-emoji">📩</div>
-        <h1>Reads emails for you</h1>
-        <p>When a customer emails your business, Camilius reads it right away — day or night.</p>
+        <h1 data-i18n="onboarding.slide2.title">Reads emails for you</h1>
+        <p data-i18n="onboarding.slide2.body">When a customer emails your business, Camilius reads it right away — day or night.</p>
       </div>
       <div class="onboarding-slide">
         <div class="onboarding-emoji">✍️</div>
-        <h1>Writes a reply for you</h1>
-        <p>The AI drafts a reply based on your working hours, price list, and FAQ.</p>
+        <h1 data-i18n="onboarding.slide3.title">Writes a reply for you</h1>
+        <p data-i18n="onboarding.slide3.body">The AI drafts a reply based on your working hours, price list, and FAQ.</p>
       </div>
       <div class="onboarding-slide">
         <div class="onboarding-emoji">✅</div>
-        <h1>You approve and send</h1>
-        <p>Nothing goes out without your approval — review, edit if you like, then send.</p>
-        <button class="button onboarding-continue">Get started</button>
+        <h1 data-i18n="onboarding.slide4.title">You approve and send</h1>
+        <p data-i18n="onboarding.slide4.body">Nothing goes out without your approval — review, edit if you like, then send.</p>
+        <button class="button onboarding-continue" data-i18n="onboarding.getStarted">Get started</button>
       </div>
     </div>
     <div class="onboarding-dots" id="onboarding-dots">
@@ -55,23 +66,30 @@
   <!-- LOGIN -->
   <section id="screen-login" class="screen screen-login">
     <div class="login-wrap">
-      <div class="login-brand">
-        <span class="brand-mark"></span>
-        <span class="brand-name">Camilius<span class="brand-ai">AI</span></span>
+      <div class="login-lang-row">
+        <button type="button" id="lang-select-btn" class="lang-select-btn">
+          <span id="lang-select-label">English</span>
+          <span class="lang-chevron">⌄</span>
+        </button>
       </div>
-      <p class="login-tagline">AI reads your customers' emails and drafts replies — you just review and send.</p>
+
+      <div class="login-brand">
+        <span class="brand-mark login-icon"></span>
+      </div>
 
       <div id="login-error" class="alert alert-error hidden"></div>
 
       <form id="login-form">
-        <label>Username</label>
-        <input type="text" id="login-username" autocomplete="username" autocapitalize="off" autocorrect="off">
-        <label>Password</label>
-        <input type="password" id="login-password" autocomplete="current-password">
-        <button class="button button-full" type="submit" id="login-submit">Log in</button>
+        <input type="text" id="login-username" data-i18n-placeholder="login.username" placeholder="Username" autocomplete="username" autocapitalize="off" autocorrect="off">
+        <input type="password" id="login-password" data-i18n-placeholder="login.password" placeholder="Password" autocomplete="current-password">
+        <button class="button button-full button-pill" type="submit" id="login-submit" data-i18n="login.submit">Log in</button>
       </form>
 
-      <p class="login-signup">Don't have an account? <button type="button" id="login-signup-link" class="link-btn">Sign up</button></p>
+      <button type="button" id="login-forgot-link" class="link-btn login-forgot" data-i18n="login.forgot">Forgot password?</button>
+
+      <div class="login-spacer"></div>
+
+      <button type="button" id="login-signup-link" class="button button-secondary button-full button-pill" data-i18n="login.signup">Create account</button>
     </div>
   </section>
 
@@ -82,31 +100,31 @@
         <span class="brand-mark brand-mark-sm"></span>
         <div>
           <h1 id="inbox-business-name">&nbsp;</h1>
-          <p class="topbar-subtitle">Customer questions</p>
+          <p class="topbar-subtitle" data-i18n="inbox.subtitle">Customer questions</p>
         </div>
       </div>
     </header>
 
     <div class="quota-strip">
       <div class="quota-text">
-        <span>Processed today</span>
+        <span data-i18n="inbox.processedToday">Processed today</span>
         <span><strong id="quota-today">0</strong> / <span id="quota-limit">50</span></span>
       </div>
       <div class="quota-bar"><div id="quota-fill" class="quota-fill" style="width:0%"></div></div>
     </div>
 
-    <div id="banner-inactive" class="alert alert-warning hidden">
+    <div id="banner-inactive" class="alert alert-warning hidden" data-i18n="inbox.inactiveBanner">
       Subscription not active — new emails aren't being processed.
     </div>
 
     <div class="search-row">
-      <input type="text" id="inbox-search" class="search-input" placeholder="Search conversations">
+      <input type="text" id="inbox-search" class="search-input" data-i18n-placeholder="inbox.searchPlaceholder" placeholder="Search conversations">
     </div>
 
     <div class="filters" id="filters">
-      <button class="filter-pill active" data-filter="all">All <span id="count-all">0</span></button>
-      <button class="filter-pill" data-filter="pending">Pending <span id="count-pending">0</span></button>
-      <button class="filter-pill" data-filter="sent">Sent <span id="count-sent">0</span></button>
+      <button class="filter-pill active" data-filter="all"><span data-i18n="inbox.filterAll">All</span> <span id="count-all">0</span></button>
+      <button class="filter-pill" data-filter="pending"><span data-i18n="inbox.filterPending">Pending</span> <span id="count-pending">0</span></button>
+      <button class="filter-pill" data-filter="sent"><span data-i18n="inbox.filterSent">Sent</span> <span id="count-sent">0</span></button>
     </div>
 
     <div class="pull-wrap">
@@ -122,7 +140,7 @@
       <div id="inbox-error" class="empty hidden">
         <div class="empty-icon">⚠️</div>
         <p class="empty-title" id="inbox-error-message">Couldn't load your inbox.</p>
-        <button class="button" id="inbox-retry" style="margin-top: 4px;">Try again</button>
+        <button class="button" id="inbox-retry" style="margin-top: 4px;" data-i18n="inbox.retry">Try again</button>
       </div>
     </div>
   </section>
@@ -139,17 +157,17 @@
     </header>
 
     <div class="detail-body">
-      <div class="block-label">Customer question</div>
+      <div class="block-label" data-i18n="detail.question">Customer question</div>
       <p id="detail-question" class="question"></p>
 
       <div id="detail-pending-block">
-        <div class="block-label">Suggested reply — edit before sending</div>
+        <div class="block-label" data-i18n="detail.suggestedReply">Suggested reply — edit before sending</div>
         <textarea id="detail-reply" rows="8"></textarea>
-        <button class="button button-full" id="detail-send">Send reply</button>
+        <button class="button button-full" id="detail-send" data-i18n="detail.send">Send reply</button>
       </div>
 
       <div id="detail-sent-block" class="hidden">
-        <div class="block-label">Sent reply</div>
+        <div class="block-label" data-i18n="detail.sentReply">Sent reply</div>
         <p id="detail-final-reply" class="reply"></p>
       </div>
 
@@ -161,7 +179,7 @@
   <section id="screen-settings" class="screen screen-settings">
     <header class="topbar">
       <div class="topbar-title">
-        <div><h1>Settings</h1></div>
+        <div><h1 data-i18n="settings.title">Settings</h1></div>
       </div>
     </header>
 
@@ -169,27 +187,27 @@
       <div id="settings-message" class="alert alert-success hidden"></div>
       <div id="settings-error" class="alert alert-error hidden"></div>
 
-      <label>Business name</label>
+      <label data-i18n="settings.name">Business name</label>
       <input type="text" id="settings-name">
 
-      <label>Email (read-only)</label>
+      <label data-i18n="settings.email">Email (read-only)</label>
       <input type="text" id="settings-email" readonly>
 
-      <label>Working hours</label>
+      <label data-i18n="settings.hours">Working hours</label>
       <textarea id="settings-hours" rows="2"></textarea>
 
-      <label>Price list</label>
+      <label data-i18n="settings.prices">Price list</label>
       <textarea id="settings-prices" rows="4"></textarea>
 
-      <label>FAQ</label>
+      <label data-i18n="settings.faq">FAQ</label>
       <textarea id="settings-faq" rows="4"></textarea>
 
-      <label>Gmail app password (leave blank to keep current)</label>
+      <label data-i18n="settings.appPassword">Gmail app password (leave blank to keep current)</label>
       <input type="password" id="settings-app-password" autocomplete="new-password">
 
-      <button class="button button-full" id="settings-save" style="margin-top:18px;">Save changes</button>
+      <button class="button button-full" id="settings-save" style="margin-top:18px;" data-i18n="settings.save">Save changes</button>
 
-      <button class="button button-secondary button-full" id="settings-logout" style="margin-top:28px;">Log out</button>
+      <button class="button button-secondary button-full" id="settings-logout" style="margin-top:28px;" data-i18n="settings.logout">Log out</button>
     </div>
   </section>
 
@@ -198,13 +216,14 @@
 <!-- BOTTOM TAB BAR -->
 <nav id="tabbar" class="tabbar hidden">
   <button class="tab-btn active" data-tab="inbox">
-    <span class="tab-icon">📥</span><span>Inbox</span>
+    <span class="tab-icon">📥</span><span data-i18n="tab.inbox">Inbox</span>
   </button>
   <button class="tab-btn" data-tab="settings">
-    <span class="tab-icon">⚙️</span><span>Settings</span>
+    <span class="tab-icon">⚙️</span><span data-i18n="tab.settings">Settings</span>
   </button>
 </nav>
 
+<script src="i18n.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

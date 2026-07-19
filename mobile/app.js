@@ -181,7 +181,7 @@ async function api(path, { method = "GET", body } = {}) {
             body: body ? JSON.stringify(body) : undefined,
         });
     } catch (networkError) {
-        const err = new Error("No connection. Check your internet and try again.");
+        const err = new Error(t("network.error"));
         err.isNetworkError = true;
         throw err;
     }
@@ -224,7 +224,7 @@ el("login-form").addEventListener("submit", async (event) => {
 
     errorBox.classList.add("hidden");
     submitBtn.disabled = true;
-    submitBtn.textContent = "Logging in…";
+    submitBtn.textContent = t("login.submitLoading");
 
     try {
         const data = await api("/api/login", { method: "POST", body: { username, password } });
@@ -234,11 +234,11 @@ el("login-form").addEventListener("submit", async (event) => {
         await storageSet("businessName", data.business_name);
         enterApp();
     } catch (err) {
-        errorBox.textContent = err.message || "Wrong username or password.";
+        errorBox.textContent = err.message || t("login.error");
         errorBox.classList.remove("hidden");
     } finally {
         submitBtn.disabled = false;
-        submitBtn.textContent = "Log in";
+        submitBtn.textContent = t("login.submit");
     }
 });
 
@@ -248,6 +248,18 @@ el("login-form").addEventListener("submit", async (event) => {
 // bouncing out to a separate browser app.
 el("login-signup-link").addEventListener("click", async () => {
     const url = API_BASE + "/register";
+    if (capacitorPlugins && capacitorPlugins.Browser) {
+        await capacitorPlugins.Browser.open({ url });
+    } else {
+        window.open(url, "_blank");
+    }
+});
+
+// Same reasoning as Sign up above: the website already has a full forgot-password flow
+// (request-by-email, then a tokenized reset link sent to that email) - reusing it in an
+// in-app browser tab avoids building a second, native version of the same thing.
+el("login-forgot-link").addEventListener("click", async () => {
+    const url = API_BASE + "/forgot-password";
     if (capacitorPlugins && capacitorPlugins.Browser) {
         await capacitorPlugins.Browser.open({ url });
     } else {
@@ -318,11 +330,21 @@ function startAutoRefresh() {
 
 // --- Inbox ---
 
+// Locale tags for toLocale*String - keyed to our own language picker rather than
+// navigator.language, so dates/times follow the language the user actually chose in
+// the app instead of the device's (which can disagree, e.g. a phone set to English
+// with the app switched to Serbian).
+const LOCALE_TAGS = {
+    en: "en-US", sr: "sr-RS", es: "es-ES", pt: "pt-PT", fr: "fr-FR",
+    de: "de-DE", it: "it-IT", ru: "ru-RU", zh: "zh-CN", tr: "tr-TR",
+};
+
 function timeAgo(isoString) {
     if (!isoString) return "";
     const date = new Date(isoString);
-    return date.toLocaleDateString(undefined, { month: "short", day: "numeric" }) + " · " +
-        date.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
+    const locale = LOCALE_TAGS[currentLang] || "en-US";
+    return date.toLocaleDateString(locale, { month: "short", day: "numeric" }) + " · " +
+        date.toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit" });
 }
 
 function renderSkeletons() {
@@ -376,7 +398,7 @@ async function loadDashboard({ silent = false } = {}) {
         if (err.status === 401) return logout();
         if (!silent) {
             el("inbox-list").innerHTML = "";
-            el("inbox-error-message").textContent = err.isNetworkError ? err.message : "Couldn't load your inbox. Try again.";
+            el("inbox-error-message").textContent = err.isNetworkError ? err.message : t("inbox.errorGeneric");
             el("inbox-error").classList.remove("hidden");
         }
     }
@@ -396,8 +418,8 @@ function renderInboxList(conversations) {
 
     if (conversations.length === 0) {
         el("inbox-empty").classList.remove("hidden");
-        el("inbox-empty-title").textContent = state.search.trim() ? "No matching conversations" : "You're all set — Camilius is watching your inbox";
-        el("inbox-empty-detail").textContent = state.search.trim() ? "Try a different search term." : "New customer questions will show up here within 60 seconds.";
+        el("inbox-empty-title").textContent = state.search.trim() ? t("inbox.emptySearchTitle") : t("inbox.emptyTitle");
+        el("inbox-empty-detail").textContent = state.search.trim() ? t("inbox.emptySearchDetail") : t("inbox.emptyDetail");
         return;
     }
     el("inbox-empty").classList.add("hidden");
@@ -497,7 +519,7 @@ function openDetail(conversation) {
 
     const badge = el("detail-badge");
     const isPending = conversation.status === "pending";
-    badge.textContent = isPending ? "Awaiting approval" : "Sent";
+    badge.textContent = isPending ? t("detail.badgePending") : t("detail.badgeSent");
     badge.className = "badge " + (isPending ? "badge-pending" : "badge-sent");
 
     el("detail-pending-block").classList.toggle("hidden", !isPending);
@@ -539,7 +561,7 @@ el("detail-send").addEventListener("click", async () => {
 
     errorBox.classList.add("hidden");
     button.disabled = true;
-    button.textContent = "Sending…";
+    button.textContent = t("detail.sendLoading");
 
     try {
         await api(`/api/conversations/${conversation.id}/send`, { method: "POST", body: { reply } });
@@ -549,11 +571,11 @@ el("detail-send").addEventListener("click", async () => {
         openDetail(conversation);
         loadDashboard();
     } catch (err) {
-        errorBox.textContent = err.message || "Couldn't send the reply. Try again.";
+        errorBox.textContent = err.message || t("detail.error");
         errorBox.classList.remove("hidden");
     } finally {
         button.disabled = false;
-        button.textContent = "Send reply";
+        button.textContent = t("detail.send");
     }
 });
 
@@ -579,7 +601,7 @@ el("settings-save").addEventListener("click", async () => {
     messageBox.classList.add("hidden");
     errorBox.classList.add("hidden");
     button.disabled = true;
-    button.textContent = "Saving…";
+    button.textContent = t("settings.saveLoading");
 
     try {
         await api("/api/settings", {
@@ -593,15 +615,15 @@ el("settings-save").addEventListener("click", async () => {
             },
         });
         el("settings-app-password").value = "";
-        messageBox.textContent = "Your details have been saved.";
+        messageBox.textContent = t("settings.saved");
         messageBox.classList.remove("hidden");
         el("inbox-business-name").textContent = el("settings-name").value;
     } catch (err) {
-        errorBox.textContent = err.message || "Couldn't save changes.";
+        errorBox.textContent = err.message || t("settings.error");
         errorBox.classList.remove("hidden");
     } finally {
         button.disabled = false;
-        button.textContent = "Save changes";
+        button.textContent = t("settings.save");
     }
 });
 
@@ -636,6 +658,7 @@ function setupOnboarding() {
     });
 }
 setupOnboarding();
+setupLanguagePicker();
 
 // --- Boot ---
 
@@ -647,6 +670,7 @@ updateOfflineBanner();
         storageGet("businessName"),
         storageGet("onboardingSeen"),
     ]);
+    await initLanguage();
 
     state.token = token || null;
     state.businessName = businessName || "";
