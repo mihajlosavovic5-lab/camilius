@@ -1,3 +1,4 @@
+import hashlib
 import os
 from functools import wraps
 
@@ -235,13 +236,27 @@ def api_client_error():
 
 # Self-hosted OTA update manifest for the Capacitor app (capacitor-updater plugin) -
 # points the app at the latest mobile/ web-assets bundle without needing a new signed
-# APK build for every small change. MOBILE_BUNDLE_VERSION/URL are set once the bundle
-# is actually built and uploaded (see build_mobile_bundle.py).
+# APK build for every small change (see build_mobile_bundle.py).
+#
+# The version string is a hash of the bundle's own content, not a hand-picked label.
+# Originally this was a MOBILE_BUNDLE_VERSION Railway env var, bumped by hand on every
+# release - except changing a Railway env var needs the Railway CLI, which is blocked on
+# this machine (see deploy-railway-state memory), so in practice the same version string
+# ("1.9.0") got reused across several actually-different bundle updates. That's a real bug:
+# the app compares the manifest's version against what it last stored, so once a device
+# had successfully applied "1.9.0" once, every later push under that same unchanged label
+# was silently skipped as "already applied", even though the zip's contents kept changing.
+# Hashing the file removes the whole class of mistake - the version now changes
+# automatically, exactly when and only when the content actually does.
+_MOBILE_BUNDLE_PATH = os.path.join(os.path.dirname(__file__), "static", "mobile-bundle.zip")
+
+
 @api.route("/mobile-manifest")
 def api_mobile_manifest():
-    version = os.getenv("MOBILE_BUNDLE_VERSION")
-    if not version:
+    if not os.path.exists(_MOBILE_BUNDLE_PATH):
         return jsonify(available=False)
+    with open(_MOBILE_BUNDLE_PATH, "rb") as f:
+        version = hashlib.sha256(f.read()).hexdigest()[:16]
     return jsonify(
         available=True,
         version=version,
