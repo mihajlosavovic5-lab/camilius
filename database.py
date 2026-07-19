@@ -434,8 +434,16 @@ def delete_business(business_id):
     connection = connect()
     cursor = connection.cursor()
 
-    # Conversations first (foreign key to the business), then the business itself
+    # Every table with a business_id foreign key first (order among these doesn't matter,
+    # none reference each other - only businesses itself must go last), then the business
+    # row. Missing any of these previously made deletion fail with a foreign-key violation
+    # for any business that had so much as one analytics event logged (which registration
+    # itself always logs) - found while testing the native mobile registration flow.
     cursor.execute("DELETE FROM conversations WHERE business_id = %s", (business_id,))
+    cursor.execute("DELETE FROM processed_messages WHERE business_id = %s", (business_id,))
+    cursor.execute("DELETE FROM analytics_events WHERE business_id = %s", (business_id,))
+    cursor.execute("DELETE FROM push_tokens WHERE business_id = %s", (business_id,))
+    cursor.execute("DELETE FROM client_errors WHERE business_id = %s", (business_id,))
     cursor.execute("DELETE FROM businesses WHERE id = %s", (business_id,))
 
     connection.commit()
