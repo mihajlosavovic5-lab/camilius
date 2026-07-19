@@ -3,7 +3,7 @@
 // screens instead of loading the server-rendered website.
 
 const API_BASE = "https://app.ai-auto-reply-mail.com";
-const APP_VERSION = "1.9.5"; // bumped alongside the native versionName, sent with crash reports
+const APP_VERSION = "1.9.6"; // bumped alongside the native versionName, sent with crash reports
 
 const el = (id) => document.getElementById(id);
 
@@ -108,6 +108,12 @@ if (capacitorPlugins) {
     // Self-hosted OTA updates: the app ships with the mobile/ shell baked in at build
     // time, but small changes to it can be pushed live afterward without a new signed
     // APK - see api.py's /api/mobile-manifest and build_mobile_bundle.py.
+    //
+    // Updates surface as a visible bottom banner the user taps to install, instead of
+    // applying silently in the background - the user's explicit preference after the
+    // silent flow repeatedly appeared unreliable (no way to tell "no update" apart from
+    // "update silently failed"). Tapping Install calls set(), which applies the new
+    // bundle and reloads immediately - expected and fine, since the user initiated it.
     if (capacitorPlugins.CapacitorUpdater) {
         capacitorPlugins.CapacitorUpdater.notifyAppReady().catch(() => {});
 
@@ -115,45 +121,83 @@ if (capacitorPlugins) {
             if (failed) reportClientError("native rollback detected: " + JSON.stringify(failed), "", "capacitor-updater-failed-update");
         }).catch(() => {});
 
-        (async () => {
+        let otaCheckInProgress = false;
+        let pendingOtaBundle = null;
+        const otaBanner = el("ota-banner");
+
+        const findDownloadedBundle = async (version) => {
+            const result = await capacitorPlugins.CapacitorUpdater.list();
+            const bundles = (result && result.bundles) || [];
+            return bundles.find((b) => b.version === version) || null;
+        };
+
+        const checkForOtaUpdate = async () => {
+            if (otaCheckInProgress) return;
+            if (pendingOtaBundle) {
+                // Already downloaded earlier this session (e.g. banner was dismissed) -
+                // just re-offer it on re-entry, per the "tell me every time" request.
+                otaBanner.classList.remove("hidden");
+                return;
+            }
+            otaCheckInProgress = true;
             let step = "fetch-manifest";
             try {
                 const response = await fetch(API_BASE + "/api/mobile-manifest");
                 const manifest = await response.json();
                 if (!manifest.available) return;
 
-                // Gate on the plugin's OWN active-bundle version, NOT a value we stored
-                // ourselves. The previous approach recorded "applied" via storageSet right
-                // after next() - but next()'s deferred activation never actually committed
-                // on this device's force-close+relaunch, so the stored pref claimed we were
-                // on the new bundle while the bundle really running was still the builtin
-                // one. current().bundle.version reflects real native state and can't drift
-                // like that. current().bundle.id === "builtin" means no OTA bundle is active.
+                // Gate on the plugin's OWN record of the active bundle (current()), not
+                // anything we store ourselves - a self-kept flag drifted from native
+                // reality once before ("applied" recorded while builtin still ran).
                 step = "current";
                 const current = await capacitorPlugins.CapacitorUpdater.current();
                 const activeVersion = (current && current.bundle) ? current.bundle.version : "unknown";
-                const activeId = (current && current.bundle) ? current.bundle.id : "unknown";
-                reportClientError(`boot: activeId=${activeId} activeVer=${activeVersion} manifest=${manifest.version}`, "", "ota-diag-current");
                 if (activeVersion === manifest.version) return;
 
                 step = "download";
-                const bundle = await capacitorPlugins.CapacitorUpdater.download({
-                    url: manifest.url,
-                    version: manifest.version,
-                });
+                let bundle;
+                try {
+                    bundle = await capacitorPlugins.CapacitorUpdater.download({
+                        url: manifest.url,
+                        version: manifest.version,
+                    });
+                } catch (downloadError) {
+                    // Most likely "already downloaded" from a previous session where the
+                    // user never tapped Install - reuse the stored copy instead of failing.
+                    bundle = await findDownloadedBundle(manifest.version);
+                    if (!bundle) throw downloadError;
+                }
 
-                step = "set";
-                // set() activates the bundle immediately and reloads - reliable, unlike
-                // next(), whose deferred activation wasn't committing on cold start here.
-                // The original reason we moved OFF set() (an every-boot reload loop) is
-                // gone now: because we gate on current() above, the reloaded new bundle
-                // sees ITSELF as active and doesn't re-download. So set() fires at most
-                // once per actual content change, then the app is stable.
-                await capacitorPlugins.CapacitorUpdater.set(bundle);
+                pendingOtaBundle = bundle;
+                otaBanner.classList.remove("hidden");
             } catch (e) {
                 reportClientError(`failed at step=${step}: ${e.message}`, e.stack, "ota-update-check");
+            } finally {
+                otaCheckInProgress = false;
             }
-        })();
+        };
+
+        el("ota-install-btn").addEventListener("click", async () => {
+            if (!pendingOtaBundle) return;
+            try {
+                await capacitorPlugins.CapacitorUpdater.set(pendingOtaBundle);
+                // set() reloads the app immediately - nothing below this line runs.
+            } catch (e) {
+                reportClientError("ota install failed: " + e.message, e.stack, "ota-apply");
+                otaBanner.classList.add("hidden");
+                pendingOtaBundle = null;
+            }
+        });
+        el("ota-dismiss-btn").addEventListener("click", () => {
+            otaBanner.classList.add("hidden");
+        });
+
+        // Check at cold start AND every time the app returns to the foreground - "every
+        // time I enter the app", not just full restarts.
+        checkForOtaUpdate();
+        capacitorPlugins.App.addListener("appStateChange", ({ isActive }) => {
+            if (isActive) checkForOtaUpdate();
+        });
     }
 
     // Native-code changes (new plugin, permissions, icon, splash, anything under

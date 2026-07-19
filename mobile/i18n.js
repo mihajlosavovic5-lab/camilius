@@ -86,6 +86,8 @@ const TRANSLATIONS = {
         "update.available": "A new version of the app is available.",
         "update.download": "Download",
         "update.dismiss": "Dismiss",
+        "update.ready": "An app update is ready.",
+        "update.install": "Install",
 
         "network.error": "No connection. Check your internet and try again.",
     },
@@ -156,6 +158,8 @@ const TRANSLATIONS = {
         "update.available": "Dostupna je nova verzija aplikacije.",
         "update.download": "Preuzmi",
         "update.dismiss": "Odbaci",
+        "update.ready": "Ažuriranje aplikacije je spremno.",
+        "update.install": "Instaliraj",
 
         "network.error": "Nema konekcije. Proverite internet i pokušajte ponovo.",
     },
@@ -226,6 +230,8 @@ const TRANSLATIONS = {
         "update.available": "Hay una nueva versión de la aplicación disponible.",
         "update.download": "Descargar",
         "update.dismiss": "Descartar",
+        "update.ready": "Hay una actualización lista.",
+        "update.install": "Instalar",
 
         "network.error": "Sin conexión. Comprueba tu internet e inténtalo de nuevo.",
     },
@@ -296,6 +302,8 @@ const TRANSLATIONS = {
         "update.available": "Uma nova versão do aplicativo está disponível.",
         "update.download": "Baixar",
         "update.dismiss": "Dispensar",
+        "update.ready": "Uma atualização está pronta.",
+        "update.install": "Instalar",
 
         "network.error": "Sem conexão. Verifique sua internet e tente novamente.",
     },
@@ -366,6 +374,8 @@ const TRANSLATIONS = {
         "update.available": "Une nouvelle version de l'application est disponible.",
         "update.download": "Télécharger",
         "update.dismiss": "Ignorer",
+        "update.ready": "Une mise à jour est prête.",
+        "update.install": "Installer",
 
         "network.error": "Pas de connexion. Vérifiez votre internet et réessayez.",
     },
@@ -436,6 +446,8 @@ const TRANSLATIONS = {
         "update.available": "Eine neue Version der App ist verfügbar.",
         "update.download": "Herunterladen",
         "update.dismiss": "Verwerfen",
+        "update.ready": "Ein Update ist bereit.",
+        "update.install": "Installieren",
 
         "network.error": "Keine Verbindung. Prüfe dein Internet und versuch's noch mal.",
     },
@@ -506,6 +518,8 @@ const TRANSLATIONS = {
         "update.available": "È disponibile una nuova versione dell'app.",
         "update.download": "Scarica",
         "update.dismiss": "Ignora",
+        "update.ready": "Un aggiornamento è pronto.",
+        "update.install": "Installa",
 
         "network.error": "Nessuna connessione. Controlla la tua rete e riprova.",
     },
@@ -576,6 +590,8 @@ const TRANSLATIONS = {
         "update.available": "Доступна новая версия приложения.",
         "update.download": "Скачать",
         "update.dismiss": "Скрыть",
+        "update.ready": "Обновление готово.",
+        "update.install": "Установить",
 
         "network.error": "Нет соединения. Проверьте интернет и попробуйте снова.",
     },
@@ -646,6 +662,8 @@ const TRANSLATIONS = {
         "update.available": "有可用的应用新版本。",
         "update.download": "下载",
         "update.dismiss": "关闭",
+        "update.ready": "应用更新已就绪。",
+        "update.install": "安装",
 
         "network.error": "无连接。请检查网络后重试。",
     },
@@ -716,6 +734,8 @@ const TRANSLATIONS = {
         "update.available": "Uygulamanın yeni bir sürümü mevcut.",
         "update.download": "İndir",
         "update.dismiss": "Kapat",
+        "update.ready": "Bir güncelleme hazır.",
+        "update.install": "Yükle",
 
         "network.error": "Bağlantı yok. İnternetinizi kontrol edip tekrar deneyin.",
     },
