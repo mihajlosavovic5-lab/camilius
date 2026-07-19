@@ -123,7 +123,10 @@ if (capacitorPlugins) {
                     url: manifest.url,
                     version: manifest.version,
                 });
-                await capacitorPlugins.CapacitorUpdater.set(bundle);
+                // next() (not set()) - set() destroys the JS context and reloads immediately,
+                // which was interrupting the user mid-session (e.g. mid-onboarding-swipe) and,
+                // since storageSet() below never got to run, retriggered on every single boot.
+                await capacitorPlugins.CapacitorUpdater.next(bundle);
                 await storageSet("mobileBundleVersion", manifest.version);
             } catch (e) {
                 reportClientError(e.message, e.stack, "ota-update-check");
