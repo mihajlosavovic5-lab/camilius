@@ -136,6 +136,18 @@ def create_database():
         )
     """)
 
+    # Every raw hit on /instagram-webhook is recorded here, purely for diagnosing delivery
+    # (does Meta actually call us?) independently of Railway's log viewer, which has been
+    # unreliable. Kept small by the trim in log_webhook_hit. Temporary diagnostic aid.
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS webhook_hits (
+            id SERIAL PRIMARY KEY,
+            note TEXT,
+            body TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+
     connection.commit()
     connection.close()
 
@@ -594,6 +606,34 @@ def recent_client_errors(limit=100):
         SELECT id, business_id, message, stack, context, app_version, created_at
         FROM client_errors ORDER BY created_at DESC LIMIT %s
     """, (limit,))
+    result = cursor.fetchall()
+    connection.close()
+    return result
+
+
+# --- Webhook hit logging (temporary diagnostic) ---
+
+def log_webhook_hit(note, body):
+    connection = connect()
+    cursor = connection.cursor()
+    cursor.execute("INSERT INTO webhook_hits (note, body) VALUES (%s, %s)", (note, body[:5000]))
+    # Keep only the most recent 50 so this diagnostic table can't grow unbounded
+    cursor.execute("""
+        DELETE FROM webhook_hits WHERE id NOT IN (
+            SELECT id FROM webhook_hits ORDER BY created_at DESC LIMIT 50
+        )
+    """)
+    connection.commit()
+    connection.close()
+
+
+def recent_webhook_hits(limit=20):
+    connection = connect()
+    cursor = connection.cursor()
+    cursor.execute(
+        "SELECT id, note, body, created_at FROM webhook_hits ORDER BY created_at DESC LIMIT %s",
+        (limit,),
+    )
     result = cursor.fetchall()
     connection.close()
     return result

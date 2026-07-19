@@ -23,6 +23,7 @@ from database import (
     business_stats, log_event, event_funnel, recent_client_errors,
     link_instagram_account, business_by_instagram_account_id, already_processed_messages,
     mark_message_processed, save_draft_reply, previous_conversations_with,
+    log_webhook_hit, recent_webhook_hits,
 )
 from send_email import send_email
 from generate_reply import generate_reply
@@ -383,7 +384,11 @@ def admin_instagram_debug():
                     entry["resubscribe_error"] = repr(e)
         result.append(entry)
 
-    return jsonify(businesses=result)
+    hits = [
+        {"id": h[0], "note": h[1], "body": h[2], "created_at": h[3].isoformat() if h[3] else None}
+        for h in recent_webhook_hits(20)
+    ]
+    return jsonify(businesses=result, recent_webhook_hits=hits)
 
 
 # Private funnel dashboard for the founder only - gated by a secret token rather than a
@@ -604,6 +609,10 @@ def instagram_webhook():
     if request.method == "GET":
         # One-time check Meta does when you first save the webhook URL in the App
         # dashboard - must echo back hub.challenge if hub.verify_token matches.
+        try:
+            log_webhook_hit("GET verify", str(dict(request.args)))
+        except Exception:
+            pass
         challenge = verify_webhook_challenge(
             request.args.get("hub.mode"),
             request.args.get("hub.verify_token"),
@@ -614,16 +623,21 @@ def instagram_webhook():
         return challenge, 200
 
     raw_body = request.get_data()
-    print(f"[instagram-webhook] POST received, {len(raw_body, flush=True)} bytes")
-    if not verify_webhook_signature(raw_body, request.headers.get("X-Hub-Signature-256", "")):
-        print("[instagram-webhook] Signature verification FAILED - rejecting with 403", flush=True)
+
+    # Record the hit into the DB immediately, before anything can fail - this is the
+    # ground-truth "did Meta actually call us" signal that doesn't depend on Railway's
+    # (unreliable) log viewer. Wrapped so a logging failure can never break the webhook.
+    sig_ok = verify_webhook_signature(raw_body, request.headers.get("X-Hub-Signature-256", ""))
+    try:
+        log_webhook_hit(f"POST sig_ok={sig_ok}", raw_body.decode("utf-8", errors="replace"))
+    except Exception:
+        pass
+
+    if not sig_ok:
         abort(403)
-    print("[instagram-webhook] Signature verified OK", flush=True)
 
     payload = request.get_json(silent=True) or {}
-    print(f"[instagram-webhook] Raw payload: {payload}", flush=True)
     messages = parse_webhook_messages(payload)
-    print(f"[instagram-webhook] Parsed {len(messages, flush=True)} message(s): {messages}")
     for message in messages:
         try:
             _process_instagram_message(message)
