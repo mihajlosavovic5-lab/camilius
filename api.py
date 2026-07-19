@@ -2,7 +2,8 @@ import hashlib
 import os
 from functools import wraps
 
-from flask import Blueprint, request, jsonify
+import psycopg2
+from flask import Blueprint, request, jsonify, url_for
 from itsdangerous import URLSafeTimedSerializer, BadSignature, SignatureExpired
 from werkzeug.security import check_password_hash
 
@@ -10,8 +11,10 @@ from database import (
     conversations_for_business, get_conversation, mark_sent, business_by_username,
     business_by_id, replies_today_count, update_business, get_subscription_status,
     subscription_active, business_stats, log_event, save_push_token, log_client_error,
+    add_business,
 )
-from instagram_api import send_message as send_instagram_message
+from instagram_api import send_message as send_instagram_message, authorize_url as instagram_authorize_url
+from extensions import limiter
 import requests
 
 api = Blueprint("api", __name__, url_prefix="/api")
@@ -51,6 +54,31 @@ def make_token(business_id):
 def _business_id_from_token(token):
     try:
         data = _serializer().loads(token, max_age=TOKEN_MAX_AGE)
+    except (BadSignature, SignatureExpired):
+        return None
+    return data.get("business_id")
+
+
+# Separate short-lived signed token (distinct salt, 10-minute expiry) used ONLY to carry
+# a business_id through the Instagram OAuth round-trip for the mobile app, which never
+# holds a website session cookie. Passed as the OAuth "state" param - see instagram_api.py's
+# authorize_url and app.py's instagram_oauth_callback.
+INSTAGRAM_CONNECT_STATE_MAX_AGE = 60 * 10
+
+
+def _instagram_connect_state_serializer():
+    return URLSafeTimedSerializer(os.environ["FLASK_SECRET_KEY"], salt="mobile-instagram-connect-state")
+
+
+def make_instagram_connect_state(business_id):
+    return _instagram_connect_state_serializer().dumps({"business_id": business_id})
+
+
+def business_id_from_instagram_connect_state(state):
+    if not state:
+        return None
+    try:
+        data = _instagram_connect_state_serializer().loads(state, max_age=INSTAGRAM_CONNECT_STATE_MAX_AGE)
     except (BadSignature, SignatureExpired):
         return None
     return data.get("business_id")
@@ -97,6 +125,66 @@ def api_login():
         return jsonify(error="Wrong username or password."), 401
 
     return jsonify(token=make_token(business[0]), business_id=business[0], business_name=business[1])
+
+
+# Native registration screen in the mobile app (replaces opening the website's /register
+# in an in-app browser tab). Mirrors app.py's web /register route's validation exactly,
+# but responds with JSON and auto-logs-in on success (same token shape as /api/login)
+# instead of redirecting - the app takes it from here to the Instagram-connect screen.
+@api.route("/register", methods=["POST"])
+@limiter.limit("5 per hour")
+def api_register():
+    data = request.get_json(silent=True) or {}
+
+    if not data.get("accept_terms"):
+        return jsonify(error="You must accept the Terms of Service and Privacy Policy."), 400
+
+    if len(data.get("password", "")) < 8:
+        return jsonify(error="Password must be at least 8 characters."), 400
+
+    try:
+        new_id = add_business(
+            name=data.get("name", ""),
+            username=data.get("username", ""),
+            password=data.get("password", ""),
+            contact_email=data.get("contact_email", ""),
+            working_hours=data.get("working_hours", ""),
+            price_list=data.get("price_list", ""),
+            faq=data.get("faq", ""),
+        )
+    except psycopg2.errors.UniqueViolation:
+        return jsonify(error="That username or contact email is already taken."), 409
+
+    log_event("register_completed", business_id=new_id)
+    return jsonify(token=make_token(new_id), business_id=new_id, business_name=data.get("name", ""))
+
+
+# Native forgot-password screen in the mobile app (replaces opening the website's
+# /forgot-password in an in-app browser tab). Reuses app.py's request_password_reset
+# helper (deferred import - avoids a circular import at module load) so the actual
+# lookup/email logic isn't duplicated between the web route and this one.
+@api.route("/forgot-password", methods=["POST"])
+@limiter.limit("5 per hour")
+def api_forgot_password():
+    from app import request_password_reset
+
+    data = request.get_json(silent=True) or {}
+    request_password_reset(data.get("email", ""))
+    # Same message regardless of whether the email was found - don't reveal whether an account exists
+    return jsonify(message="If that email is registered, we've sent a password reset link.")
+
+
+# Returns the Instagram OAuth authorize URL for the mobile app to open in its in-app
+# browser - the app can't use the website's session-cookie-based /connect-instagram/start
+# (it never has a session cookie, only this endpoint's Bearer token), so business identity
+# is carried through the OAuth round-trip via the "state" param instead. See
+# make_instagram_connect_state and app.py's instagram_oauth_callback.
+@api.route("/instagram-connect-url")
+@require_api_auth
+def api_instagram_connect_url():
+    redirect_uri = url_for("instagram_oauth_callback", _external=True)
+    state = make_instagram_connect_state(request.business_id)
+    return jsonify(url=instagram_authorize_url(redirect_uri, state=state))
 
 
 @api.route("/dashboard")

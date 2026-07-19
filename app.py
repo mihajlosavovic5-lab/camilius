@@ -9,8 +9,6 @@ import psycopg2
 import requests
 from dotenv import load_dotenv
 from flask import Flask, render_template, request, redirect, url_for, session, abort, jsonify, send_from_directory
-from flask_limiter import Limiter
-from flask_limiter.util import get_remote_address
 from flask_wtf import CSRFProtect
 from werkzeug.middleware.proxy_fix import ProxyFix
 from werkzeug.security import check_password_hash
@@ -36,6 +34,7 @@ from instagram_api import (
 )
 from database import all_businesses
 from api import api as api_blueprint, APK_VERSION
+from extensions import limiter
 
 load_dotenv()
 
@@ -60,7 +59,7 @@ app.config["SESSION_COOKIE_SECURE"] = os.getenv("FLASK_DEBUG", "false").lower() 
 
 create_database()
 
-limiter = Limiter(get_remote_address, app=app, default_limits=[])
+limiter.init_app(app)
 csrf = CSRFProtect(app)
 
 app.register_blueprint(api_blueprint)
@@ -167,12 +166,31 @@ def connect_instagram_start():
 
 
 @app.route("/instagram-oauth-callback")
-@login_required
 def instagram_oauth_callback():
+    # Two ways to reach this route: the website flow (logged-in session cookie), and the
+    # mobile app flow (no cookie at all - the app only ever holds a Bearer token, never a
+    # website session). The mobile app instead identifies itself via the OAuth "state"
+    # param, set to a short-lived signed token when it requested the authorize URL from
+    # /api/instagram-connect-url - Meta echoes "state" back unmodified on this callback,
+    # which is exactly what that parameter is for.
+    from api import business_id_from_instagram_connect_state  # deferred: avoid circular import at module load
+
+    mobile_business_id = business_id_from_instagram_connect_state(request.args.get("state"))
+    is_mobile_flow = mobile_business_id is not None
+
+    if is_mobile_flow:
+        business_id = mobile_business_id
+    elif session.get("business_id"):
+        business_id = session["business_id"]
+    else:
+        return redirect(url_for("login"))
+
     code = request.args.get("code")
     if request.args.get("error") or not code:
         # User declined the Instagram permission prompt, or it otherwise failed before
         # ever giving us a code - not our error, just let them try again.
+        if is_mobile_flow:
+            return render_template("instagram_connect_mobile.html", success=False)
         return redirect(url_for("connect_instagram", error="Instagram connection was cancelled. Try again whenever you're ready."))
 
     redirect_uri = url_for("instagram_oauth_callback", _external=True)
@@ -182,43 +200,55 @@ def instagram_oauth_callback():
         account_info = get_account_info(long_lived_token)
         subscribe_account_to_webhook(long_lived_token)
         link_instagram_account(
-            session["business_id"],
+            business_id,
             str(account_info["user_id"]),
             account_info.get("username"),
             long_lived_token,
         )
     except requests.RequestException:
+        if is_mobile_flow:
+            return render_template("instagram_connect_mobile.html", success=False)
         return redirect(url_for("connect_instagram", error="Couldn't connect to Instagram - please try again."))
 
-    log_event("instagram_connected", business_id=session["business_id"])
+    log_event("instagram_connected", business_id=business_id)
+    if is_mobile_flow:
+        return render_template("instagram_connect_mobile.html", success=True)
     return redirect(url_for("home"))
+
+
+def request_password_reset(email):
+    """Shared by the web /forgot-password route and the mobile app's /api/forgot-password -
+    looks up the account and, if found, emails a reset link. Always safe to call even if
+    no account matches (just does nothing) - the caller is responsible for returning the
+    same response either way, so as not to reveal whether an account exists."""
+    business = business_by_contact_email(email)
+    if not business:
+        return
+
+    token = secrets.token_urlsafe(32)
+    expires = datetime.now(timezone.utc).replace(tzinfo=None) + timedelta(hours=1)
+    save_reset_token(business[0], token, expires)
+
+    link = url_for("reset_password", token=token, _external=True)
+    send_email(
+        recipient=business[4],
+        subject="Password reset - Camilius AI",
+        body=(
+            f"Hi,\n\n"
+            f"Someone (hopefully you) requested a password reset for the account '{business[1]}'.\n\n"
+            f"Click the link to set a new password (valid for 1 hour):\n{link}\n\n"
+            f"If this wasn't you, feel free to ignore this email."
+        ),
+        business_name="Camilius AI",
+        reply_to=os.getenv("ALERT_EMAIL") or business[4],
+    )
 
 
 @app.route("/forgot-password", methods=["GET", "POST"])
 @limiter.limit("5 per hour", methods=["POST"])
 def forgot_password():
     if request.method == "POST":
-        business = business_by_contact_email(request.form["email"])
-
-        if business:
-            token = secrets.token_urlsafe(32)
-            expires = datetime.now(timezone.utc).replace(tzinfo=None) + timedelta(hours=1)
-            save_reset_token(business[0], token, expires)
-
-            link = url_for("reset_password", token=token, _external=True)
-            send_email(
-                recipient=business[4],
-                subject="Password reset - Camilius AI",
-                body=(
-                    f"Hi,\n\n"
-                    f"Someone (hopefully you) requested a password reset for the account '{business[1]}'.\n\n"
-                    f"Click the link to set a new password (valid for 1 hour):\n{link}\n\n"
-                    f"If this wasn't you, feel free to ignore this email."
-                ),
-                business_name="Camilius AI",
-                reply_to=os.getenv("ALERT_EMAIL") or business[4],
-            )
-
+        request_password_reset(request.form["email"])
         # Same message regardless of whether the email was found - don't reveal whether an account exists
         return render_template(
             "forgot_password.html",

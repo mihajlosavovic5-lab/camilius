@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
 <title>Camilius AI</title>
-<link rel="stylesheet" href="app.css?v=22b9eab7e746">
+<link rel="stylesheet" href="app.css?v=deb169037042">
 </head>
 <body>
 
@@ -100,6 +100,99 @@
       <div class="login-spacer"></div>
 
       <button type="button" id="login-signup-link" class="button button-secondary button-full button-pill" data-i18n="login.signup">Create account</button>
+    </div>
+  </section>
+
+  <!-- FORGOT PASSWORD -->
+  <section id="screen-forgot-password" class="screen screen-forgot-password">
+    <header class="topbar">
+      <button class="back-btn" id="forgot-back" aria-label="Back">‹</button>
+      <div class="topbar-title"><div><h1 data-i18n="forgot.title">Reset password</h1></div></div>
+    </header>
+    <div class="detail-body">
+      <p class="screen-subtitle" data-i18n="forgot.subtitle">Enter the email you registered with and we'll send a link to set a new password.</p>
+
+      <div id="forgot-error" class="alert alert-error hidden"></div>
+      <div id="forgot-success" class="alert alert-success hidden" data-i18n="forgot.success">If that email is registered, we've sent a password reset link.</div>
+
+      <form id="forgot-form">
+        <input type="email" id="forgot-email" data-i18n-placeholder="forgot.emailPlaceholder" placeholder="Email" autocomplete="email" autocapitalize="off" required>
+        <button class="button button-full button-pill" type="submit" id="forgot-submit" data-i18n="forgot.submit">Send reset link</button>
+      </form>
+    </div>
+  </section>
+
+  <!-- CREATE ACCOUNT -->
+  <section id="screen-register" class="screen screen-register">
+    <header class="topbar">
+      <button class="back-btn" id="register-back" aria-label="Back">‹</button>
+      <div class="topbar-title"><div><h1 data-i18n="register.title">Create account</h1></div></div>
+    </header>
+    <div class="detail-body">
+      <p class="screen-subtitle" data-i18n="register.subtitle">Set up your business — you can change all of this later in Settings.</p>
+
+      <div id="register-error" class="alert alert-error hidden"></div>
+
+      <form id="register-form">
+        <label data-i18n="register.name">Business name</label>
+        <input type="text" id="register-name" data-i18n-placeholder="register.namePlaceholder" placeholder="e.g. Style Hair Salon" required>
+
+        <label data-i18n="register.username">Username</label>
+        <input type="text" id="register-username" autocomplete="username" autocapitalize="off" autocorrect="off" required>
+
+        <label data-i18n="register.password">Password</label>
+        <input type="password" id="register-password" autocomplete="new-password" required>
+
+        <label data-i18n="register.contactEmail">Contact email</label>
+        <input type="email" id="register-contact-email" data-i18n-placeholder="register.contactEmailPlaceholder" placeholder="you@example.com" autocomplete="email" autocapitalize="off" required>
+
+        <div class="block-label" data-i18n="register.businessDetails">Business details — the AI uses this to write replies</div>
+
+        <label data-i18n="register.hours">Working hours</label>
+        <textarea id="register-hours" rows="2" data-i18n-placeholder="register.hoursPlaceholder" required></textarea>
+
+        <label data-i18n="register.prices">Price list</label>
+        <textarea id="register-prices" rows="3" data-i18n-placeholder="register.pricesPlaceholder" required></textarea>
+
+        <label data-i18n="register.faq">FAQ (optional)</label>
+        <textarea id="register-faq" rows="3" data-i18n-placeholder="register.faqPlaceholder"></textarea>
+
+        <label class="checkbox-row">
+          <input type="checkbox" id="register-terms" required>
+          <span data-i18n="register.terms">I accept the Terms of Service and Privacy Policy</span>
+        </label>
+        <div class="auth-links-row">
+          <button type="button" class="link-btn" id="register-view-terms" data-i18n="register.viewTerms">Terms of Service</button>
+          <button type="button" class="link-btn" id="register-view-privacy" data-i18n="register.viewPrivacy">Privacy Policy</button>
+        </div>
+
+        <button class="button button-full button-pill" type="submit" id="register-submit" style="margin-top:20px;" data-i18n="register.submit">Create account</button>
+      </form>
+    </div>
+  </section>
+
+  <!-- CONNECT INSTAGRAM -->
+  <section id="screen-connect-instagram" class="screen screen-connect-instagram">
+    <header class="topbar">
+      <div class="topbar-title"><div><h1 data-i18n="connect.title">Connect Instagram</h1></div></div>
+    </header>
+    <div class="detail-body">
+      <p class="screen-subtitle" data-i18n="connect.body">Camilius AI reads new direct messages sent to this account and drafts replies for you to approve. Nothing is ever sent without your review.</p>
+
+      <div class="info-card">
+        <strong data-i18n="connect.professionalTitle">Before you connect</strong><br>
+        <span data-i18n="connect.professionalBody">Your account needs to be a Professional account (Business or Creator), not personal — Instagram's own requirement. In the Instagram app: Profile → menu → Settings → Account type and tools → Switch to professional account. Free, under a minute.</span>
+      </div>
+
+      <div id="connect-error" class="alert alert-error hidden" data-i18n="connect.notYetBody">Looks like the connection wasn't completed. Tap below to try again.</div>
+
+      <button class="button button-full button-pill" id="connect-instagram-btn" data-i18n="connect.button">Connect Instagram</button>
+
+      <div id="connect-waiting" class="screen-subtitle hidden" style="text-align:center;" data-i18n="connect.connecting">Waiting for you to finish connecting…</div>
+
+      <div class="auth-links-row" style="justify-content:center; margin-top:24px;">
+        <button type="button" class="link-btn" id="connect-logout" data-i18n="connect.logout">Log out</button>
+      </div>
     </div>
   </section>
 
@@ -230,7 +323,7 @@
   </button>
 </nav>
 
-<script src="i18n.js?v=22b9eab7e746"></script>
-<script src="app.js?v=22b9eab7e746"></script>
+<script src="i18n.js?v=deb169037042"></script>
+<script src="app.js?v=deb169037042"></script>
 </body>
 </html>

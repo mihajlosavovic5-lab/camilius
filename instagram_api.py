@@ -41,12 +41,18 @@ API_VERSION = "v23.0"
 SCOPES = "instagram_business_basic,instagram_business_manage_messages"
 
 
-def authorize_url(redirect_uri):
+def authorize_url(redirect_uri, state=None):
     app_id = os.environ["INSTAGRAM_APP_ID"]
-    return (
+    url = (
         f"{AUTHORIZE_URL}?client_id={app_id}&redirect_uri={redirect_uri}"
         f"&response_type=code&scope={SCOPES}"
     )
+    if state:
+        # Echoed back unmodified on the callback - the mobile app uses this to identify
+        # which business is connecting instead of a website session cookie (it never has
+        # one), see api.py's make_instagram_connect_state / app.py's instagram_oauth_callback.
+        url += f"&state={state}"
+    return url
 
 
 def exchange_code_for_token(code, redirect_uri):

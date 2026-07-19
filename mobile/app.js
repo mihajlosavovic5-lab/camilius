@@ -27,6 +27,9 @@ const state = {
 const screens = {
     onboarding: el("screen-onboarding"),
     login: el("screen-login"),
+    forgotPassword: el("screen-forgot-password"),
+    register: el("screen-register"),
+    connectInstagram: el("screen-connect-instagram"),
     inbox: el("screen-inbox"),
     detail: el("screen-detail"),
     settings: el("screen-settings"),
@@ -42,6 +45,15 @@ function showScreen(name) {
 function showTabbar(show) {
     tabbar.classList.toggle("hidden", !show);
 }
+
+// Register / Forgot password / Connect Instagram are a small, fixed, entirely linear
+// flow (Login -> Register -> Connect Instagram -> Inbox, or Login -> Forgot password ->
+// Login) - their slide-in transition comes purely from the default .screen CSS (same
+// mechanism Detail uses), but unlike Detail they don't need real browser-history
+// push/pop plumbing to get the Android back button right: a plain showScreen() plus a
+// couple of explicit cases in the backButton listener below covers every case with no
+// history-state bookkeeping to keep in sync (avoids ending up with stray forward-history
+// entries after a reset like logout or finishing registration).
 
 // --- Storage (native Preferences plugin when available - backed by Android's own
 // SharedPreferences storage rather than the WebView's localStorage, and not wiped
@@ -98,6 +110,12 @@ if (capacitorPlugins) {
     capacitorPlugins.App.addListener("backButton", ({ canGoBack }) => {
         if (screens.detail.classList.contains("active")) {
             history.back();
+        } else if (screens.register.classList.contains("active") || screens.forgotPassword.classList.contains("active")) {
+            showScreen("login");
+        } else if (screens.connectInstagram.classList.contains("active")) {
+            // Deliberately swallowed - the only ways out are finishing the connection or
+            // the explicit "Log out" link. Falling through to canGoBack/exitApp here would
+            // let one back-press quit the app mid-setup, right after creating an account.
         } else if (canGoBack) {
             history.back();
         } else {
@@ -306,30 +324,161 @@ el("login-form").addEventListener("submit", async (event) => {
     }
 });
 
-// Registration is a long form (business details, Gmail app password verification) that
-// already exists as a full page on the website - rather than duplicate it natively, it
-// opens in an in-app browser tab (Chrome Custom Tab), which feels integrated rather than
-// bouncing out to a separate browser app.
-el("login-signup-link").addEventListener("click", async () => {
-    const url = API_BASE + "/register";
-    if (capacitorPlugins && capacitorPlugins.Browser) {
-        await capacitorPlugins.Browser.open({ url });
-    } else {
-        window.open(url, "_blank");
+// --- Forgot password (its own native screen, pushed on top of Login - no browser
+// involved at all, unlike the old flow which opened the website's page in a browser tab) ---
+
+el("login-forgot-link").addEventListener("click", () => {
+    el("forgot-form").reset();
+    el("forgot-form").classList.remove("hidden");
+    el("forgot-error").classList.add("hidden");
+    el("forgot-success").classList.add("hidden");
+    showScreen("forgotPassword");
+});
+
+el("forgot-back").addEventListener("click", () => showScreen("login"));
+
+el("forgot-form").addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const email = el("forgot-email").value.trim();
+    const errorBox = el("forgot-error");
+    const successBox = el("forgot-success");
+    const submitBtn = el("forgot-submit");
+
+    errorBox.classList.add("hidden");
+    submitBtn.disabled = true;
+    submitBtn.textContent = t("forgot.submitLoading");
+
+    try {
+        await api("/api/forgot-password", { method: "POST", body: { email } });
+        successBox.classList.remove("hidden");
+        el("forgot-form").classList.add("hidden");
+    } catch (err) {
+        errorBox.textContent = err.message || t("forgot.error");
+        errorBox.classList.remove("hidden");
+        submitBtn.disabled = false;
+        submitBtn.textContent = t("forgot.submit");
     }
 });
 
-// Same reasoning as Sign up above: the website already has a full forgot-password flow
-// (request-by-email, then a tokenized reset link sent to that email) - reusing it in an
-// in-app browser tab avoids building a second, native version of the same thing.
-el("login-forgot-link").addEventListener("click", async () => {
-    const url = API_BASE + "/forgot-password";
+// --- Create account (its own native screen - full registration form, pushed on top of
+// Login. Terms/Privacy still open in the in-app browser - two static legal pages aren't
+// worth a native rebuild, same as every other app's "view in browser" legal links). On
+// success, replaces itself with the Connect Instagram screen (not pushed - the account
+// already exists at that point, so the back button shouldn't return to this form). ---
+
+el("login-signup-link").addEventListener("click", () => {
+    el("register-form").reset();
+    el("register-error").classList.add("hidden");
+    showScreen("register");
+});
+
+el("register-back").addEventListener("click", () => showScreen("login"));
+
+async function openLegalPage(path) {
+    const url = API_BASE + path;
     if (capacitorPlugins && capacitorPlugins.Browser) {
         await capacitorPlugins.Browser.open({ url });
     } else {
         window.open(url, "_blank");
     }
+}
+el("register-view-terms").addEventListener("click", () => openLegalPage("/terms"));
+el("register-view-privacy").addEventListener("click", () => openLegalPage("/privacy"));
+
+el("register-form").addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const errorBox = el("register-error");
+    const submitBtn = el("register-submit");
+
+    errorBox.classList.add("hidden");
+    submitBtn.disabled = true;
+    submitBtn.textContent = t("register.submitLoading");
+
+    try {
+        const data = await api("/api/register", {
+            method: "POST",
+            body: {
+                name: el("register-name").value.trim(),
+                username: el("register-username").value.trim(),
+                password: el("register-password").value,
+                contact_email: el("register-contact-email").value.trim(),
+                working_hours: el("register-hours").value,
+                price_list: el("register-prices").value,
+                faq: el("register-faq").value,
+                accept_terms: el("register-terms").checked,
+            },
+        });
+        state.token = data.token;
+        state.businessName = data.business_name;
+        await storageSet("token", data.token);
+        await storageSet("businessName", data.business_name);
+        el("connect-error").classList.add("hidden");
+        el("connect-waiting").classList.add("hidden");
+        showScreen("connectInstagram");
+    } catch (err) {
+        errorBox.textContent = err.message || t("register.error");
+        errorBox.classList.remove("hidden");
+    } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = t("register.submit");
+    }
 });
+
+// --- Connect Instagram - the one unavoidable step that has to leave native UI, since
+// Meta's own OAuth consent screen must run in a real browser context (no way around
+// that for any app, native or not). Opened as an in-app browser tab so it still feels
+// like part of the app rather than switching to a separate browser app. Completion is
+// detected via the Browser plugin's own "browserFinished" event (fires when the user
+// closes the tab, whether by finishing the OAuth flow or bailing out) rather than
+// requiring the user to tell us - we just check /api/settings for the now-connected
+// Instagram username right after. ---
+
+let awaitingInstagramConnect = false;
+
+el("connect-instagram-btn").addEventListener("click", async () => {
+    el("connect-error").classList.add("hidden");
+    try {
+        const data = await api("/api/instagram-connect-url");
+        if (capacitorPlugins && capacitorPlugins.Browser) {
+            awaitingInstagramConnect = true;
+            await capacitorPlugins.Browser.open({ url: data.url });
+        } else {
+            window.open(data.url, "_blank");
+        }
+    } catch (err) {
+        reportClientError(err.message, err.stack, "instagram-connect-url");
+        el("connect-error").textContent = err.message || t("connect.notYetBody");
+        el("connect-error").classList.remove("hidden");
+    }
+});
+
+if (capacitorPlugins && capacitorPlugins.Browser) {
+    capacitorPlugins.Browser.addListener("browserFinished", async () => {
+        if (!awaitingInstagramConnect) return;
+        awaitingInstagramConnect = false;
+        if (!screens.connectInstagram.classList.contains("active")) return;
+
+        el("connect-waiting").classList.remove("hidden");
+        try {
+            const data = await api("/api/settings");
+            if (data.instagram_username) {
+                if (capacitorPlugins.Haptics) capacitorPlugins.Haptics.impact({ style: "LIGHT" });
+                enterApp();
+            } else {
+                el("connect-error").textContent = t("connect.notYetBody");
+                el("connect-error").classList.remove("hidden");
+            }
+        } catch (err) {
+            if (err.status === 401) { logout(); return; }
+            el("connect-error").textContent = err.message || t("connect.notYetBody");
+            el("connect-error").classList.remove("hidden");
+        } finally {
+            el("connect-waiting").classList.add("hidden");
+        }
+    });
+}
+
+el("connect-logout").addEventListener("click", logout);
 
 function enterApp() {
     showTabbar(true);
