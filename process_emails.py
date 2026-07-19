@@ -1,140 +1,76 @@
+"""Background worker loop - kept as its own long-running process (started alongside
+gunicorn, see .railway/railway.ts's "start" command) because Railway only lets a data
+volume attach to one service, and this and the web process share the same database.
+
+Filename kept as process_emails.py even though it no longer processes emails (Instagram
+DMs arrive via webhook now, handled directly in app.py's /instagram-webhook route, not
+by polling here) - renaming it would mean changing railway.ts's start command, which
+needs `railway config apply` to actually take effect on the live service, and the
+Railway CLI is currently blocked on this machine (see deploy-railway-state memory). Not
+worth the deployment risk for a cosmetic rename.
+
+What this loop actually does now:
+- Daily database backup (unchanged from before).
+- Daily Instagram access token refresh for every connected business - long-lived tokens
+  last 60 days but can (and should) be refreshed well before that; refreshing daily is
+  simple and safe (Meta's own refresh endpoint just no-ops/errors if it's too soon,
+  which we never hit since we only try once a day).
+"""
+
 import sys
 sys.stdout.reconfigure(encoding="utf-8")
 
-import os
 import time
-from datetime import datetime
-from email.utils import parseaddr
+from datetime import datetime, date
 
-from read_email import get_new_messages
-from generate_reply import generate_reply
-from send_email import send_email
-from database import (
-    create_database, save_draft_reply, all_businesses, replies_today_count, previous_conversations_with,
-    subscription_active, already_processed_messages, mark_message_processed,
-)
+from database import create_database, all_businesses, link_instagram_account
 from backup import daily_backup_if_needed
-from push_notifications import send_push_to_business
+from instagram_api import refresh_long_lived_token
 
-DAILY_REPLY_LIMIT = 50
-
-# Email address that receives alerts when processing a business fails (e.g. yours)
-ALERT_EMAIL = os.getenv("ALERT_EMAIL")
-
-# So we don't spam alerts every 60s for the same problem: at most one alert
-# per business every ALERT_COOLDOWN_SECONDS. Kept in the process's memory.
-ALERT_COOLDOWN_SECONDS = 6 * 60 * 60
-_last_alert = {}
+INTERVAL_SECONDS = 3600  # hourly is plenty - both jobs below are self-gated to once/day
 
 
-def send_alert(business_name, error):
-    if not ALERT_EMAIL:
+def refresh_instagram_tokens_if_needed():
+    """Once per day: refresh every connected business's Instagram access token. Reuses
+    the same "already ran today" file-marker approach as backup.py, keyed separately."""
+    import os
+    from backup import BACKUP_DIR
+
+    if not BACKUP_DIR:
+        return  # no persistent volume configured to store the day-marker in
+
+    marker = os.path.join(BACKUP_DIR, f"instagram-token-refresh-{date.today().isoformat()}.done")
+    if os.path.exists(marker):
         return
 
-    now = time.time()
-    last = _last_alert.get(business_name, 0)
-    if now - last < ALERT_COOLDOWN_SECONDS:
-        return
-
-    try:
-        send_email(
-            recipient=ALERT_EMAIL,
-            subject=f"[Camilius AI ALERT] Error for business: {business_name}",
-            body=(
-                f"Processing messages for business '{business_name}' failed.\n\n"
-                f"Error: {error}\n\n"
-                f"Other businesses are processing normally. If the error is an IMAP login\n"
-                f"failure, the business probably changed their Gmail password or revoked the app password."
-            ),
-            business_name="Camilius AI system",
-            reply_to=ALERT_EMAIL,
-        )
-        _last_alert[business_name] = now
-    except Exception as e:
-        # An alert failure must never crash the loop - just log it
-        print(f"[ALERT] Failed to send alert: {e}")
-
-
-def process_one_business(business_row):
-    business_id, name, email, email_app_password, working_hours, price_list, faq, subscription_status = business_row
-
-    if not subscription_active(subscription_status):
-        print(f"[{name}] Subscription not active ({subscription_status}) - skipping.")
-        return
-
-    remaining_today = DAILY_REPLY_LIMIT - replies_today_count(business_id)
-    if remaining_today <= 0:
-        print(f"[{name}] Daily limit reached ({DAILY_REPLY_LIMIT}) - skipping until tomorrow.")
-        return
-
-    business = {
-        "business_name": name,
-        "working_hours": working_hours,
-        "price_list": price_list,
-        "faq": faq,
-    }
-
-    all_messages = get_new_messages(email, email_app_password)
-
-    # Messages stay UNREAD in Gmail (see read_email.py) so they come back every cycle -
-    # filter out the ones we already processed last cycle, then apply the daily limit
-    # to the actually-new ones.
-    processed = already_processed_messages(business_id, [m["message_id"] for m in all_messages if m["message_id"]])
-    new_messages = [m for m in all_messages if m["message_id"] not in processed][:remaining_today]
-    print(f"[{name}] New message count: {len(new_messages)}")
-
-    for message in new_messages:
-        sender_name, sender_address = parseaddr(message["sender"])
-
-        print(f"[{name}] Processing message from: {sender_address}")
-
-        history = previous_conversations_with(business_id, sender_address)
-        suggested_reply = generate_reply(message["text"], business, history=history)
-
-        new_conversation_id = save_draft_reply(business_id, sender_address, message["subject"], message["text"], suggested_reply)
-        if message["message_id"]:
-            mark_message_processed(business_id, message["message_id"])
-        print(f"[{name}] Draft saved, waiting for approval in the dashboard.")
-
+    for business in all_businesses():
+        business_id, name = business[0], business[1]
+        instagram_account_id, instagram_username, access_token = business[5], business[6], business[7]
         try:
-            send_push_to_business(
-                business_id,
-                title="New customer question",
-                body=f"{sender_name or sender_address}: {message['text'][:80]}",
-                data={"conversation_id": str(new_conversation_id)},
-            )
-        except Exception as e:
-            # A push failure must never block draft processing
-            print(f"[{name}] Push notification failed: {e}")
-
-
-def process_new_messages():
-    for business_row in all_businesses():
-        # A failure for one business (e.g. a changed Gmail password) must not
-        # stop processing of the other businesses in the same cycle
-        try:
-            process_one_business(business_row)
+            new_token = refresh_long_lived_token(access_token)
+            link_instagram_account(business_id, instagram_account_id, instagram_username, new_token)
         except Exception as error:
-            name = business_row[1]
-            print(f"[{name}] Error while processing - skipping this business: {error}")
-            send_alert(name, error)
+            # One business's refresh failing (e.g. they revoked access) must not stop
+            # the others - worst case its token expires and sending starts failing,
+            # which surfaces to that business the next time they try to reply.
+            print(f"[{name}] Instagram token refresh failed: {error}")
 
-
-INTERVAL_SECONDS = 60
+    os.makedirs(BACKUP_DIR, exist_ok=True)
+    open(marker, "w").close()
+    print("[instagram-token-refresh] Daily refresh pass complete.")
 
 
 def run_loop():
     create_database()
-    print(f"Started - checking for new messages every {INTERVAL_SECONDS} seconds. (Ctrl+C to stop)")
+    print(f"Started - background worker checking in every {INTERVAL_SECONDS} seconds. (Ctrl+C to stop)")
 
     while True:
         now = datetime.now().strftime("%H:%M:%S")
         try:
-            print(f"\n[{now}] Checking for new messages...")
-            process_new_messages()
             daily_backup_if_needed()
+            refresh_instagram_tokens_if_needed()
         except Exception as error:
-            # Don't let one error (e.g. a temporary internet outage) crash the whole program
+            # Don't let one error (e.g. a temporary network blip) crash the whole loop
             print(f"[{now}] An error occurred: {error}")
 
         time.sleep(INTERVAL_SECONDS)

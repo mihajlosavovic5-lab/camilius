@@ -649,7 +649,7 @@ async function loadSettingsIntoForm() {
     try {
         const data = await api("/api/settings");
         el("settings-name").value = data.name;
-        el("settings-email").value = data.email;
+        el("settings-instagram-account").value = data.instagram_username ? "@" + data.instagram_username : "";
         el("settings-hours").value = data.working_hours;
         el("settings-prices").value = data.price_list;
         el("settings-faq").value = data.faq;
@@ -675,10 +675,8 @@ el("settings-save").addEventListener("click", async () => {
                 working_hours: el("settings-hours").value,
                 price_list: el("settings-prices").value,
                 faq: el("settings-faq").value,
-                email_app_password: el("settings-app-password").value,
             },
         });
-        el("settings-app-password").value = "";
         messageBox.textContent = t("settings.saved");
         messageBox.classList.remove("hidden");
         el("inbox-business-name").textContent = el("settings-name").value;

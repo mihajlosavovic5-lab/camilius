@@ -19,13 +19,40 @@ def create_database():
             name TEXT NOT NULL,
             username TEXT NOT NULL UNIQUE,
             password TEXT NOT NULL,
-            email TEXT NOT NULL UNIQUE,
-            email_app_password TEXT NOT NULL,
+            contact_email TEXT NOT NULL UNIQUE,
+            instagram_account_id TEXT,
+            instagram_username TEXT,
+            instagram_access_token TEXT,
             working_hours TEXT NOT NULL,
             price_list TEXT NOT NULL,
             faq TEXT NOT NULL
         )
     """)
+
+    # Migrating off Gmail/IMAP to Instagram DMs (2026-07-19) - contact_email is a NEW
+    # column that replaces the old "email" column's purpose (which used to be both the
+    # Gmail inbox we read AND the account-recovery address). Now it's account recovery
+    # only; the actual message channel is Instagram, connected separately via OAuth
+    # (instagram_account_id/instagram_username/instagram_access_token below). Checking
+    # information_schema first (rather than try/except on the UPDATE) avoids leaving the
+    # transaction in an aborted state on a fresh database that never had an "email" column.
+    cursor.execute("ALTER TABLE businesses ADD COLUMN IF NOT EXISTS contact_email TEXT")
+    cursor.execute("""
+        SELECT column_name FROM information_schema.columns
+        WHERE table_name = 'businesses' AND column_name = 'email'
+    """)
+    if cursor.fetchone():
+        cursor.execute("UPDATE businesses SET contact_email = email WHERE contact_email IS NULL")
+        cursor.execute("ALTER TABLE businesses DROP COLUMN email")
+    cursor.execute("ALTER TABLE businesses DROP COLUMN IF EXISTS email_app_password")
+    cursor.execute("ALTER TABLE businesses ADD COLUMN IF NOT EXISTS instagram_account_id TEXT")
+    cursor.execute("ALTER TABLE businesses ADD COLUMN IF NOT EXISTS instagram_username TEXT")
+    cursor.execute("ALTER TABLE businesses ADD COLUMN IF NOT EXISTS instagram_access_token TEXT")
+    # A plain UNIQUE column constraint can only be declared inline at CREATE TABLE time;
+    # a unique index gives the same guarantee and works identically whether the table was
+    # just created above or already existed from before this migration. Multiple NULLs
+    # (businesses that haven't connected Instagram yet) are allowed under UNIQUE in Postgres.
+    cursor.execute("CREATE UNIQUE INDEX IF NOT EXISTS businesses_instagram_account_id_idx ON businesses (instagram_account_id)")
 
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS conversations (
@@ -45,6 +72,12 @@ def create_database():
     # this lets the existing production table pick up these columns without a manual migration
     cursor.execute("ALTER TABLE businesses ADD COLUMN IF NOT EXISTS reset_token TEXT")
     cursor.execute("ALTER TABLE businesses ADD COLUMN IF NOT EXISTS reset_expires TIMESTAMP")
+
+    # sender (above) is what's shown in the UI - a resolved Instagram @username where
+    # available. sender_igsid is the Instagram-scoped ID actually needed to send a reply
+    # back (Instagram's Send API takes that id, not a username) - kept separate since a
+    # username isn't necessarily resolvable (or stable) and isn't valid as a send target.
+    cursor.execute("ALTER TABLE conversations ADD COLUMN IF NOT EXISTS sender_igsid TEXT")
 
     # Paddle subscription - added after the original schema (same reason as reset_token above).
     # subscription_status tracks Paddle's own subscription status: 'none' (never subscribed),
@@ -108,25 +141,34 @@ def create_database():
 
 
 # --- Businesses ---
+#
+# Canonical row shape returned by business_by_id/business_by_username/
+# business_by_instagram_account_id (and, plus subscription_status, all_businesses):
+#   0 id, 1 name, 2 username, 3 password (hashed), 4 contact_email, 5 instagram_account_id,
+#   6 instagram_username, 7 instagram_access_token (decrypted, None if not connected yet),
+#   8 working_hours, 9 price_list, 10 faq
 
-def add_business(name, username, password, email, email_app_password, working_hours, price_list, faq):
+_BUSINESS_COLUMNS = """id, name, username, password, contact_email, instagram_account_id,
+                       instagram_username, instagram_access_token, working_hours, price_list, faq"""
+
+
+def _decrypt_row_token(row):
+    # instagram_access_token is at index 7 - decrypt it before use. A business that
+    # hasn't connected Instagram yet has NULL here, not an encrypted empty string.
+    token = decrypt(row[7]) if row[7] else None
+    return row[:7] + (token,) + row[8:]
+
+
+def add_business(name, username, password, contact_email, working_hours, price_list, faq):
+    """Creates the account itself. Instagram isn't connected yet at this point - that
+    happens afterward via link_instagram_account(), once the OAuth redirect completes."""
     connection = connect()
     cursor = connection.cursor()
 
     cursor.execute(
-        """INSERT INTO businesses
-           (name, username, password, email, email_app_password, working_hours, price_list, faq)
-           VALUES (%s, %s, %s, %s, %s, %s, %s, %s) RETURNING id""",
-        (
-            name,
-            username,
-            generate_password_hash(password),
-            email,
-            encrypt(email_app_password),
-            working_hours,
-            price_list,
-            faq,
-        ),
+        """INSERT INTO businesses (name, username, password, contact_email, working_hours, price_list, faq)
+           VALUES (%s, %s, %s, %s, %s, %s, %s) RETURNING id""",
+        (name, username, generate_password_hash(password), contact_email, working_hours, price_list, faq),
     )
 
     new_id = cursor.fetchone()[0]
@@ -135,41 +177,68 @@ def add_business(name, username, password, email, email_app_password, working_ho
     return new_id
 
 
-def all_businesses():
+def link_instagram_account(business_id, instagram_account_id, instagram_username, access_token):
+    """Saves the Instagram Business account connected via OAuth - the access token is what
+    the webhook handler and send-reply code use afterward. Called from the OAuth callback."""
     connection = connect()
     cursor = connection.cursor()
-    cursor.execute("""
-        SELECT id, name, email, email_app_password, working_hours, price_list, faq, subscription_status
+    cursor.execute(
+        """UPDATE businesses
+           SET instagram_account_id = %s, instagram_username = %s, instagram_access_token = %s
+           WHERE id = %s""",
+        (instagram_account_id, instagram_username, encrypt(access_token), business_id),
+    )
+    connection.commit()
+    connection.close()
+
+
+def all_businesses():
+    """Only businesses that have actually connected an Instagram account - used by the
+    periodic worker (token-refresh checks, backups), not message ingestion, which is the
+    webhook's job now."""
+    connection = connect()
+    cursor = connection.cursor()
+    cursor.execute(f"""
+        SELECT {_BUSINESS_COLUMNS}, subscription_status
         FROM businesses
+        WHERE instagram_access_token IS NOT NULL
     """)
     result = cursor.fetchall()
     connection.close()
-
-    # email_app_password is encrypted at rest (index 3) - decrypt it before use
-    return [row[:3] + (decrypt(row[3]),) + row[4:] for row in result]
+    return [_decrypt_row_token(row[:11]) + (row[11],) for row in result]
 
 
 def business_by_id(business_id):
     connection = connect()
     cursor = connection.cursor()
-    cursor.execute(
-        "SELECT id, name, username, password, email, email_app_password, working_hours, price_list, faq FROM businesses WHERE id = %s",
-        (business_id,),
-    )
+    cursor.execute(f"SELECT {_BUSINESS_COLUMNS} FROM businesses WHERE id = %s", (business_id,))
     row = cursor.fetchone()
     connection.close()
 
     if row is None:
         return None
-    # email_app_password is at index 5 - decrypt it before use
-    return row[:5] + (decrypt(row[5]),) + row[6:]
+    return _decrypt_row_token(row)
+
+
+def business_by_instagram_account_id(instagram_account_id):
+    """Looks up which business a webhook event belongs to - Instagram identifies the
+    message recipient by ITS OWN account id, not any id of ours."""
+    connection = connect()
+    cursor = connection.cursor()
+    cursor.execute(f"SELECT {_BUSINESS_COLUMNS} FROM businesses WHERE instagram_account_id = %s", (instagram_account_id,))
+    row = cursor.fetchone()
+    connection.close()
+
+    if row is None:
+        return None
+    return _decrypt_row_token(row)
 
 
 def business_by_username(username):
     connection = connect()
     cursor = connection.cursor()
     cursor.execute(
-        "SELECT id, name, username, password, email, email_app_password, working_hours, price_list, faq FROM businesses WHERE username = %s",
+        f"SELECT {_BUSINESS_COLUMNS} FROM businesses WHERE username = %s",
         (username,),
     )
     row = cursor.fetchone()
@@ -178,8 +247,8 @@ def business_by_username(username):
     if row is None:
         return None
     # NOTE: 'password' (index 3) stays hashed - login checks it via check_password_hash,
-    # never decrypted. email_app_password (index 5) is decrypted.
-    return row[:5] + (decrypt(row[5]),) + row[6:]
+    # never decrypted.
+    return _decrypt_row_token(row)
 
 
 # --- Conversations ---
@@ -198,13 +267,17 @@ def replies_today_count(business_id):
     return count
 
 
-def save_draft_reply(business_id, sender, subject, question, suggested_reply):
+def save_draft_reply(business_id, sender, question, suggested_reply, subject=None, sender_igsid=None):
+    # subject only ever came from email (there's no such thing on an Instagram DM) - kept
+    # as an optional column rather than dropped, since dashboard.html already guards its
+    # display with {% if subject %} and removing the column outright isn't worth the churn.
     connection = connect()
     cursor = connection.cursor()
 
     cursor.execute(
-        "INSERT INTO conversations (business_id, sender, subject, question, suggested_reply) VALUES (%s, %s, %s, %s, %s) RETURNING id",
-        (business_id, sender, subject, question, suggested_reply),
+        """INSERT INTO conversations (business_id, sender, subject, question, suggested_reply, sender_igsid)
+           VALUES (%s, %s, %s, %s, %s, %s) RETURNING id""",
+        (business_id, sender, subject, question, suggested_reply, sender_igsid),
     )
 
     new_id = cursor.fetchone()[0]
@@ -259,7 +332,7 @@ def get_conversation(conversation_id):
     cursor = connection.cursor()
 
     cursor.execute(
-        "SELECT id, business_id, sender, subject, question, suggested_reply FROM conversations WHERE id = %s",
+        "SELECT id, business_id, sender, subject, question, suggested_reply, sender_igsid FROM conversations WHERE id = %s",
         (conversation_id,),
     )
     row = cursor.fetchone()
@@ -284,19 +357,18 @@ def conversations_for_business(business_id):
     return result
 
 
-def business_by_email(email):
+def business_by_contact_email(contact_email):
+    """Used by the forgot-password flow - contact_email is purely for account recovery,
+    unrelated to the Instagram account actually being messaged."""
     connection = connect()
     cursor = connection.cursor()
-    cursor.execute(
-        "SELECT id, name, username, password, email, email_app_password, working_hours, price_list, faq FROM businesses WHERE email = %s",
-        (email,),
-    )
+    cursor.execute(f"SELECT {_BUSINESS_COLUMNS} FROM businesses WHERE contact_email = %s", (contact_email,))
     row = cursor.fetchone()
     connection.close()
 
     if row is None:
         return None
-    return row[:5] + (decrypt(row[5]),) + row[6:]
+    return _decrypt_row_token(row)
 
 
 def save_reset_token(business_id, token, expires):
@@ -333,27 +405,15 @@ def set_new_password(business_id, new_password):
     connection.close()
 
 
-def update_business(business_id, name, working_hours, price_list, faq, email_app_password=None):
+def update_business(business_id, name, working_hours, price_list, faq):
+    # Reconnecting Instagram is a separate OAuth round-trip (link_instagram_account), not
+    # a settings-form field like the old Gmail app password was - nothing to branch on here.
     connection = connect()
     cursor = connection.cursor()
-
-    # email_app_password is only updated if provided (user changed it); otherwise it stays
-    # as-is. When updated, it's re-encrypted.
-    if email_app_password is not None:
-        cursor.execute(
-            """UPDATE businesses
-               SET name=%s, working_hours=%s, price_list=%s, faq=%s, email_app_password=%s
-               WHERE id=%s""",
-            (name, working_hours, price_list, faq, encrypt(email_app_password), business_id),
-        )
-    else:
-        cursor.execute(
-            """UPDATE businesses
-               SET name=%s, working_hours=%s, price_list=%s, faq=%s
-               WHERE id=%s""",
-            (name, working_hours, price_list, faq, business_id),
-        )
-
+    cursor.execute(
+        "UPDATE businesses SET name=%s, working_hours=%s, price_list=%s, faq=%s WHERE id=%s",
+        (name, working_hours, price_list, faq, business_id),
+    )
     connection.commit()
     connection.close()
 

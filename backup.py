@@ -25,10 +25,18 @@ def create_backup():
 
     data = {"created_at": datetime.now().isoformat()}
 
-    cursor.execute("SELECT id, name, username, password, email, email_app_password, working_hours, price_list, faq FROM businesses ORDER BY id")
+    cursor.execute("""
+        SELECT id, name, username, password, contact_email, instagram_account_id,
+               instagram_username, instagram_access_token, working_hours, price_list, faq
+        FROM businesses ORDER BY id
+    """)
     data["businesses"] = cursor.fetchall()
 
-    cursor.execute("SELECT id, business_id, sender, subject, question, suggested_reply, final_reply, status, created_at::text FROM conversations ORDER BY id")
+    cursor.execute("""
+        SELECT id, business_id, sender, subject, question, suggested_reply, final_reply,
+               status, created_at::text, sender_igsid
+        FROM conversations ORDER BY id
+    """)
     data["conversations"] = cursor.fetchall()
 
     connection.close()

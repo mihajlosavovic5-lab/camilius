@@ -24,25 +24,25 @@
         <p>From the business owner, at registration:</p>
         <ul>
             <li>Business name, username, and password (the password is stored hashed, never in readable form)</li>
-            <li>The email address and "app password" of the Gmail account you use to communicate with customers (the app password is stored encrypted)</li>
+            <li>A contact email address, used only for account recovery (password resets) and important account notices</li>
             <li>The working hours, price list, and FAQ you enter</li>
         </ul>
-        <p>As part of providing the service, the system also reads the content of incoming emails sent to your business account (your customers' questions) in order to generate suggested replies.</p>
+        <p>When you connect your Instagram Business account, we receive and store an access token (via Instagram's official Business Login/OAuth flow) that lets the service read and reply to your account's direct messages on your behalf. As part of providing the service, the system also reads the content of incoming Instagram messages sent to your connected account (your customers' questions) in order to generate suggested replies, and stores the sender's Instagram-scoped identifier and (where available) username so replies can be sent back to the right person.</p>
 
         <h2>Why we collect this data</h2>
-        <p>Solely to provide the service's function: automatically reading customer inquiries and suggesting replies based on your business's data, which you manually review and approve before sending. No reply is ever sent without your approval.</p>
+        <p>Solely to provide the service's function: automatically reading customer inquiries sent via Instagram and suggesting replies based on your business's data, which you manually review and approve before sending. No reply is ever sent without your approval.</p>
 
         <h2>Who we share data with</h2>
         <p>We don't sell your data. To provide the service, certain data is processed through the following external services (data processors):</p>
         <ul>
             <li><strong>OpenAI</strong> - the text of your customer's question and your business data (working hours, price list, FAQ) are sent to OpenAI to generate suggested replies.</li>
-            <li><strong>Resend</strong> - used to send approved replies to customers; processes the customer's email address and the reply content.</li>
-            <li><strong>Google (Gmail)</strong> - the system connects to your Gmail account (IMAP/SMTP) to read new messages, using the app password you entered.</li>
+            <li><strong>Meta (Instagram)</strong> - the system connects to your Instagram Business account via Instagram's official Messaging API, using the access token you granted, to read incoming direct messages and send your approved replies.</li>
+            <li><strong>Resend</strong> - used to send account-related emails (e.g. password resets); processes your contact email address.</li>
             <li><strong>Railway</strong> - our hosting provider; all data is physically stored on their servers (outside Serbia).</li>
         </ul>
 
         <h2>How we store data</h2>
-        <p>Dashboard login passwords are stored hashed (irreversibly). The Gmail app password is stored encrypted in the database. All communication with the site goes over HTTPS. That said, no system is 100% secure, and we can't guarantee absolute security.</p>
+        <p>Dashboard login passwords are stored hashed (irreversibly). The Instagram access token is stored encrypted in the database. All communication with the site goes over HTTPS. That said, no system is 100% secure, and we can't guarantee absolute security.</p>
 
         <h2>How long we keep data</h2>
         <p>We keep your data for as long as your account exists. If you'd like your account and all associated data deleted, send a request to the contact email above.</p>

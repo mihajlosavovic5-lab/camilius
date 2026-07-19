@@ -6,6 +6,7 @@ from datetime import datetime, timedelta, timezone
 from functools import wraps
 
 import psycopg2
+import requests
 from dotenv import load_dotenv
 from flask import Flask, render_template, request, redirect, url_for, session, abort, jsonify, send_from_directory
 from flask_limiter import Limiter
@@ -17,12 +18,20 @@ from werkzeug.security import check_password_hash
 from database import (
     conversations_for_business, get_conversation, mark_sent, business_by_username,
     business_by_id, add_business, create_database, delete_business, replies_today_count,
-    update_business, business_by_email, save_reset_token, business_by_reset_token, set_new_password,
+    update_business, business_by_contact_email, save_reset_token, business_by_reset_token, set_new_password,
     link_subscription, update_subscription_status, get_subscription_status, subscription_active,
     business_stats, log_event, event_funnel, recent_client_errors,
+    link_instagram_account, business_by_instagram_account_id, already_processed_messages,
+    mark_message_processed, save_draft_reply, previous_conversations_with,
 )
 from send_email import send_email
-from read_email import verify_credentials
+from generate_reply import generate_reply
+from push_notifications import send_push_to_business
+from instagram_api import (
+    authorize_url as instagram_authorize_url, exchange_code_for_token, exchange_for_long_lived_token,
+    get_account_info, subscribe_account_to_webhook, send_message as send_instagram_message,
+    verify_webhook_challenge, verify_webhook_signature, parse_webhook_messages, get_sender_username,
+)
 from api import api as api_blueprint, APK_VERSION
 
 load_dotenv()
@@ -112,33 +121,25 @@ def register():
         if len(request.form.get("password", "")) < 8:
             return render_template("register.html", error="Password must be at least 8 characters.", data=request.form)
 
-        # Verify the entered Gmail + app password actually work before creating the account.
-        # This proves the user controls the account and that the system will be able to read messages.
-        if not verify_credentials(request.form["email"], request.form["email_app_password"]):
-            return render_template(
-                "register.html",
-                error="We couldn't connect to Gmail with that address and app password. Check that the app password is correct (16 characters from your Google account) and that IMAP is enabled in Gmail settings.",
-                data=request.form,
-            )
-
         try:
             new_id = add_business(
                 name=request.form["name"],
                 username=request.form["username"],
                 password=request.form["password"],
-                email=request.form["email"],
-                email_app_password=request.form["email_app_password"],
+                contact_email=request.form["contact_email"],
                 working_hours=request.form["working_hours"],
                 price_list=request.form["price_list"],
                 faq=request.form["faq"],
             )
         except psycopg2.errors.UniqueViolation:
-            return render_template("register.html", error="That username or email address is already taken.", data=request.form)
+            return render_template("register.html", error="That username or contact email is already taken.", data=request.form)
 
         log_event("register_completed", business_id=new_id)
         session["business_id"] = new_id
         session["business_name"] = request.form["name"]
-        return redirect(url_for("home"))
+        # Instagram isn't connected yet - that's a separate OAuth round-trip, can't happen
+        # inside this same form POST. connect_instagram() (and home()) enforce it from here.
+        return redirect(url_for("connect_instagram"))
 
     if not session.get("_seen_register"):
         log_event("register_view")
@@ -146,11 +147,55 @@ def register():
     return render_template("register.html", error=None, data={})
 
 
+@app.route("/connect-instagram")
+@login_required
+def connect_instagram():
+    business = business_by_id(session["business_id"])
+    if business[5]:  # instagram_account_id already set - nothing to do
+        return redirect(url_for("home"))
+    return render_template("connect_instagram.html", error=request.args.get("error"))
+
+
+@app.route("/connect-instagram/start")
+@login_required
+def connect_instagram_start():
+    redirect_uri = url_for("instagram_oauth_callback", _external=True)
+    return redirect(instagram_authorize_url(redirect_uri))
+
+
+@app.route("/instagram-oauth-callback")
+@login_required
+def instagram_oauth_callback():
+    code = request.args.get("code")
+    if request.args.get("error") or not code:
+        # User declined the Instagram permission prompt, or it otherwise failed before
+        # ever giving us a code - not our error, just let them try again.
+        return redirect(url_for("connect_instagram", error="Instagram connection was cancelled. Try again whenever you're ready."))
+
+    redirect_uri = url_for("instagram_oauth_callback", _external=True)
+    try:
+        short_lived = exchange_code_for_token(code, redirect_uri)
+        long_lived_token = exchange_for_long_lived_token(short_lived["access_token"])
+        account_info = get_account_info(long_lived_token)
+        subscribe_account_to_webhook(long_lived_token)
+        link_instagram_account(
+            session["business_id"],
+            str(account_info["user_id"]),
+            account_info.get("username"),
+            long_lived_token,
+        )
+    except requests.RequestException:
+        return redirect(url_for("connect_instagram", error="Couldn't connect to Instagram - please try again."))
+
+    log_event("instagram_connected", business_id=session["business_id"])
+    return redirect(url_for("home"))
+
+
 @app.route("/forgot-password", methods=["GET", "POST"])
 @limiter.limit("5 per hour", methods=["POST"])
 def forgot_password():
     if request.method == "POST":
-        business = business_by_email(request.form["email"])
+        business = business_by_contact_email(request.form["email"])
 
         if business:
             token = secrets.token_urlsafe(32)
@@ -207,41 +252,38 @@ def logout():
 @login_required
 def settings():
     business = business_by_id(session["business_id"])
-    # indices: 0 id, 1 name, 4 email, 6 working_hours, 7 price_list, 8 faq
-    email = business[4]
+    # indices: 0 id, 1 name, 4 contact_email, 5 instagram_account_id, 6 instagram_username,
+    # 8 working_hours, 9 price_list, 10 faq
+    contact_email = business[4]
+    instagram_username = business[6]
 
     if request.method == "POST":
         name = request.form["name"]
         working_hours = request.form["working_hours"]
         price_list = request.form["price_list"]
         faq = request.form["faq"]
-        # Empty field = keep the existing app password; filled in = change it
-        new_app_password = request.form.get("email_app_password", "").strip() or None
 
-        # If changing the app password, first verify the new one actually works (same as at registration)
-        if new_app_password and not verify_credentials(email, new_app_password):
-            return render_template(
-                "settings.html",
-                error="The new app password doesn't work - we couldn't connect to Gmail. Your previous data was kept.",
-                business={"name": name, "email": email, "working_hours": working_hours, "price_list": price_list, "faq": faq},
-                message=None,
-            )
-
-        update_business(session["business_id"], name, working_hours, price_list, faq, email_app_password=new_app_password)
+        update_business(session["business_id"], name, working_hours, price_list, faq)
         session["business_name"] = name
 
         return render_template(
             "settings.html",
             error=None,
             message="Your details have been saved.",
-            business={"name": name, "email": email, "working_hours": working_hours, "price_list": price_list, "faq": faq},
+            business={
+                "name": name, "contact_email": contact_email, "instagram_username": instagram_username,
+                "working_hours": working_hours, "price_list": price_list, "faq": faq,
+            },
         )
 
     return render_template(
         "settings.html",
         error=None,
         message=None,
-        business={"name": business[1], "email": email, "working_hours": business[6], "price_list": business[7], "faq": business[8]},
+        business={
+            "name": business[1], "contact_email": contact_email, "instagram_username": instagram_username,
+            "working_hours": business[8], "price_list": business[9], "faq": business[10],
+        },
     )
 
 
@@ -271,11 +313,6 @@ def privacy():
 @app.route("/terms")
 def terms():
     return render_template("terms.html")
-
-
-@app.route("/gmail-help")
-def gmail_help():
-    return render_template("gmail_help.html")
 
 
 # Swipeable onboarding slides shown once, only inside the installed Android app
@@ -358,14 +395,15 @@ def android_asset_links():
     ])
 
 
-DAILY_REPLY_LIMIT = 50  # same limit as in process_emails.py
+DAILY_REPLY_LIMIT = 50  # also enforced in the /instagram-webhook handler below
 
 
 @app.route("/")
 def home():
     # Logged-out visitors see the public landing page (marketing + call to register)
     # instead of a redirect to login. Logged-in visitors get the dashboard.
-    if not session.get("business_id") or business_by_id(session["business_id"]) is None:
+    business = session.get("business_id") and business_by_id(session["business_id"])
+    if not business:
         # Read the flag before clear() wipes it - it's what lets us count each
         # visitor session once instead of logging every page refresh.
         already_seen = session.get("_seen_landing", False)
@@ -374,6 +412,9 @@ def home():
         if not already_seen:
             log_event("landing_view")
         return render_template("landing.html")
+
+    if not business[5]:  # instagram_account_id not set - can't do anything without it
+        return redirect(url_for("connect_instagram"))
 
     conversations = conversations_for_business(session["business_id"])
 
@@ -400,6 +441,7 @@ def home():
         today=today,
         daily_limit=DAILY_REPLY_LIMIT,
         sent=request.args.get("sent"),
+        send_error=request.args.get("send_error"),
         subscription_active_flag=subscription_active(current_subscription_status),
         stats=stats,
     )
@@ -410,7 +452,7 @@ def home():
 def send_reply(conversation_id):
     final_reply = request.form["reply"]
 
-    _, business_id, sender, subject, question, suggested_reply = get_conversation(conversation_id)
+    _, business_id, sender, subject, question, suggested_reply, sender_igsid = get_conversation(conversation_id)
 
     # Security check: this conversation must belong to the logged-in business,
     # otherwise someone could guess other people's IDs in the URL and send replies on their behalf
@@ -419,13 +461,14 @@ def send_reply(conversation_id):
 
     business = business_by_id(business_id)
 
-    send_email(
-        recipient=sender,
-        subject=f"Re: {subject}",
-        body=final_reply,
-        business_name=business[1],
-        reply_to=business[4],
-    )
+    try:
+        # Instagram only allows sending within 24h of the customer's last message (same
+        # policy every DM platform has) - a send past that window fails here, which is an
+        # expected business outcome (not a bug), hence the friendly redirect rather than
+        # letting it 500.
+        send_instagram_message(sender_igsid, final_reply, business[7], business[5])
+    except requests.RequestException:
+        return redirect(url_for("home", send_error=1))
 
     mark_sent(conversation_id, final_reply)
 
@@ -510,6 +553,89 @@ def paddle_webhook():
 
     # Paddle expects a 2xx to consider the webhook delivered; otherwise it retries
     return "", 200
+
+
+# --- Instagram DM webhook (replaces the old IMAP polling loop as the message-ingestion
+# path - Instagram pushes new messages to us instead of us checking every 60s) ---
+
+@app.route("/instagram-webhook", methods=["GET", "POST"])
+@csrf.exempt  # external request from Meta, no session/CSRF token of ours - signed instead (checked below)
+def instagram_webhook():
+    if request.method == "GET":
+        # One-time check Meta does when you first save the webhook URL in the App
+        # dashboard - must echo back hub.challenge if hub.verify_token matches.
+        challenge = verify_webhook_challenge(
+            request.args.get("hub.mode"),
+            request.args.get("hub.verify_token"),
+            request.args.get("hub.challenge"),
+        )
+        if challenge is None:
+            abort(403)
+        return challenge, 200
+
+    raw_body = request.get_data()
+    if not verify_webhook_signature(raw_body, request.headers.get("X-Hub-Signature-256", "")):
+        abort(403)
+
+    payload = request.get_json(silent=True) or {}
+    for message in parse_webhook_messages(payload):
+        try:
+            _process_instagram_message(message)
+        except Exception as error:
+            # One bad message must never break Meta's delivery of the rest of the batch,
+            # or cause Meta to keep retrying the whole payload forever.
+            print(f"[instagram-webhook] Error processing message: {error}")
+
+    # Meta expects a fast 2xx - it retries (and can eventually pause the subscription) if
+    # this hangs or errors. Processing inline is fine at our current volume (a handful of
+    # businesses, and every reply is human-approved anyway, so there's no burst of AI
+    # calls to worry about pacing).
+    return "", 200
+
+
+def _process_instagram_message(message):
+    business = business_by_instagram_account_id(message["ig_account_id"])
+    if business is None:
+        return  # webhook for an Instagram account we don't have on file - shouldn't happen
+
+    business_id = business[0]
+    if not subscription_active(get_subscription_status(business_id)):
+        return
+    if replies_today_count(business_id) >= DAILY_REPLY_LIMIT:
+        return
+
+    message_id = message["message_id"]
+    if message_id and already_processed_messages(business_id, [message_id]):
+        return  # Meta redelivers on retry - this is what stops a duplicate reply
+
+    sender_igsid = message["sender_igsid"]
+    access_token = business[7]
+    business_info = {
+        "business_name": business[1],
+        "working_hours": business[8],
+        "price_list": business[9],
+        "faq": business[10],
+    }
+    history = previous_conversations_with(business_id, sender_igsid)
+    suggested_reply = generate_reply(message["text"], business_info, history=history)
+
+    sender_display = get_sender_username(sender_igsid, access_token) or sender_igsid
+    new_conversation_id = save_draft_reply(
+        business_id, sender_display, message["text"], suggested_reply, sender_igsid=sender_igsid,
+    )
+    if message_id:
+        mark_message_processed(business_id, message_id)
+
+    try:
+        send_push_to_business(
+            business_id,
+            title="New customer question",
+            body=f"{sender_display}: {message['text'][:80]}",
+            data={"conversation_id": str(new_conversation_id)},
+        )
+    except Exception as error:
+        # A push failure must never block draft processing
+        print(f"[instagram-webhook] Push notification failed: {error}")
 
 
 if __name__ == "__main__":

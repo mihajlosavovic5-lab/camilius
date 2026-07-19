@@ -24,16 +24,17 @@ def restore_from_backup(path):
     for row in data["businesses"]:
         cursor.execute(
             """INSERT INTO businesses
-               (id, name, username, password, email, email_app_password, working_hours, price_list, faq)
-               VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)""",
+               (id, name, username, password, contact_email, instagram_account_id,
+                instagram_username, instagram_access_token, working_hours, price_list, faq)
+               VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""",
             tuple(row),
         )
 
     for row in data["conversations"]:
         cursor.execute(
             """INSERT INTO conversations
-               (id, business_id, sender, subject, question, suggested_reply, final_reply, status, created_at)
-               VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)""",
+               (id, business_id, sender, subject, question, suggested_reply, final_reply, status, created_at, sender_igsid)
+               VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""",
             tuple(row),
         )
 

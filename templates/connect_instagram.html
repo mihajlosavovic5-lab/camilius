@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}Connect Instagram - Camilius AI{% endblock %}
+{% block body_class %}auth{% endblock %}
+
+{% block content %}
+<div class="auth-wrapper">
+    <div class="auth-brand">
+        <span class="brand">
+            <span class="brand-mark">C</span>
+            <span class="brand-name">Camilius<span class="brand-ai">AI</span></span>
+        </span>
+        <p class="auth-tagline">One last step &mdash; connect the Instagram account customers message.</p>
+    </div>
+
+    <div class="auth-card auth-card-wide">
+        <h1>Connect your Instagram account</h1>
+        <p class="auth-subtitle">Camilius AI reads new direct messages sent to this account and drafts replies for you to approve. Nothing is ever sent without your review.</p>
+
+        {% if error %}
+            <div class="alert alert-error"><span class="alert-icon">&#9888;&#65039;</span><span>{{ error }}</span></div>
+        {% endif %}
+
+        <div class="card step" style="margin-top: 4px;">
+            <h3>Before you connect</h3>
+            <p>Your Instagram account needs to be a <strong>Professional account</strong> (Business or Creator), not a personal one - this is Instagram's own requirement for any app that reads or sends DMs, not something specific to us.</p>
+            <p style="margin-top: 10px;">Already professional? Great, skip ahead. If not: open the Instagram app &rarr; your profile &rarr; menu &rarr; Settings &rarr; Account type and tools &rarr; Switch to professional account. It's free and takes under a minute.</p>
+        </div>
+
+        <div class="form-actions" style="margin-top: 20px;">
+            <a href="{{ url_for('connect_instagram_start') }}" class="button button-full">Connect Instagram</a>
+        </div>
+
+        <div class="auth-links">
+            <a href="{{ url_for('logout') }}">Log out</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -11,8 +11,8 @@ from database import (
     business_by_id, replies_today_count, update_business, get_subscription_status,
     subscription_active, business_stats, log_event, save_push_token, log_client_error,
 )
-from send_email import send_email
-from read_email import verify_credentials
+from instagram_api import send_message as send_instagram_message
+import requests
 
 api = Blueprint("api", __name__, url_prefix="/api")
 
@@ -147,18 +147,19 @@ def api_send_reply(conversation_id):
     if conversation is None:
         return jsonify(error="not found"), 404
 
-    _, business_id, sender, subject, question, suggested_reply = conversation
+    _, business_id, sender, subject, question, suggested_reply, sender_igsid = conversation
     if business_id != request.business_id:
         return jsonify(error="forbidden"), 403
 
     business = business_by_id(business_id)
-    send_email(
-        recipient=sender,
-        subject=f"Re: {subject}",
-        body=final_reply,
-        business_name=business[1],
-        reply_to=business[4],
-    )
+    # indices: 5 instagram_account_id, 7 instagram_access_token
+    try:
+        send_instagram_message(sender_igsid, final_reply, business[7], business[5])
+    except requests.RequestException:
+        # Most likely Instagram's 24-hour reply window has passed - an expected business
+        # outcome, not a bug, hence the specific message rather than a generic 500.
+        return jsonify(error="Couldn't send - Instagram only allows replying within 24 hours of the customer's last message."), 400
+
     mark_sent(conversation_id, final_reply)
 
     if business_stats(business_id)["total_sent"] == 1:
@@ -173,10 +174,11 @@ def api_get_settings():
     business = business_by_id(request.business_id)
     return jsonify(
         name=business[1],
-        email=business[4],
-        working_hours=business[6],
-        price_list=business[7],
-        faq=business[8],
+        contact_email=business[4],
+        instagram_username=business[6],
+        working_hours=business[8],
+        price_list=business[9],
+        faq=business[10],
     )
 
 
@@ -186,19 +188,14 @@ def api_update_settings():
     data = request.get_json(silent=True) or {}
     business_id = request.business_id
     business = business_by_id(business_id)
-    email = business[4]
 
     name = data.get("name", business[1])
-    working_hours = data.get("working_hours", business[6])
-    price_list = data.get("price_list", business[7])
-    faq = data.get("faq", business[8])
-    new_app_password = (data.get("email_app_password") or "").strip() or None
+    working_hours = data.get("working_hours", business[8])
+    price_list = data.get("price_list", business[9])
+    faq = data.get("faq", business[10])
 
-    if new_app_password and not verify_credentials(email, new_app_password):
-        return jsonify(error="The new app password doesn't work - we couldn't connect to Gmail. Your previous data was kept."), 400
-
-    update_business(business_id, name, working_hours, price_list, faq, email_app_password=new_app_password)
-    return jsonify(message="Saved.", name=name, email=email, working_hours=working_hours, price_list=price_list, faq=faq)
+    update_business(business_id, name, working_hours, price_list, faq)
+    return jsonify(message="Saved.", name=name, working_hours=working_hours, price_list=price_list, faq=faq)
 
 
 @api.route("/push-token", methods=["POST"])

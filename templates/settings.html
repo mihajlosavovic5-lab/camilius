@@ -25,13 +25,13 @@
             <label style="margin-top: 0;">Business name</label>
             <input type="text" name="name" value="{{ business.name }}" required>
 
-            <label>Email address</label>
-            <input type="email" value="{{ business.email }}" readonly>
-            <p class="note">The email address can't be changed here. If you need to change accounts, delete your account and register again.</p>
+            <label>Instagram account</label>
+            <input type="text" value="{{ '@' + business.instagram_username if business.instagram_username else 'Not connected' }}" readonly>
+            <p class="note">Connected via Instagram - <a href="{{ url_for('connect_instagram_start') }}">reconnect or switch account &rarr;</a></p>
 
-            <label>Email app password</label>
-            <input type="text" name="email_app_password" placeholder="Leave blank to keep the current one">
-            <p class="note">Only fill this in if you're changing the app password (e.g. if you rotated it in your Google account). Blank = keeps the current one.</p>
+            <label>Contact email</label>
+            <input type="email" value="{{ business.contact_email }}" readonly>
+            <p class="note">Used only for password resets - can't be changed here.</p>
 
             <div class="form-section">
                 <p class="form-section-title">Business details</p>
