@@ -599,7 +599,11 @@ def _process_instagram_message(message):
         return  # webhook for an Instagram account we don't have on file - shouldn't happen
 
     business_id = business[0]
-    if not subscription_active(get_subscription_status(business_id)):
+    # BETA_FREE_MODE means every registered business is processed regardless of billing
+    # status (same reasoning as the dashboard banner elsewhere) - without this, a freshly
+    # registered business defaults to subscription_status='none' and every message would
+    # silently be dropped here until someone manually flips it to 'active'.
+    if not BETA_FREE_MODE and not subscription_active(get_subscription_status(business_id)):
         return
     if replies_today_count(business_id) >= DAILY_REPLY_LIMIT:
         return
