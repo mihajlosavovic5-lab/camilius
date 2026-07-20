@@ -599,13 +599,21 @@ def send_reply(conversation_id):
 
     business = business_by_id(business_id)
 
+    # Temporary diagnostic: the dashboard was showing "Sent" (Instagram's API accepted
+    # the request with 2xx) while the reply never reached the customer's real Instagram
+    # DM thread - logging Instagram's own response body here (viewable at
+    # /admin/client-errors) so we can see exactly what it returned instead of guessing.
+    debug_context = f"web-reply-send-debug conversation_id={conversation_id} sender_igsid={sender_igsid} ig_account_id={business[5]} final_reply={final_reply!r}"
     try:
         # Instagram only allows sending within 24h of the customer's last message (same
         # policy every DM platform has) - a send past that window fails here, which is an
         # expected business outcome (not a bug), hence the friendly redirect rather than
         # letting it 500.
-        send_instagram_message(sender_igsid, final_reply, business[7], business[5])
-    except requests.RequestException:
+        result = send_instagram_message(sender_igsid, final_reply, business[7], business[5])
+        log_client_error(business_id, f"instagram send OK: {result}", "", debug_context, "")
+    except requests.RequestException as e:
+        error_body = e.response.text if getattr(e, "response", None) is not None else str(e)
+        log_client_error(business_id, f"instagram send FAILED: {error_body}", "", debug_context, "")
         return redirect(url_for("home", send_error=1))
 
     mark_sent(conversation_id, final_reply)
@@ -783,12 +791,11 @@ def _process_instagram_message(message):
     history = previous_conversations_with(business_id, sender_igsid)
     suggested_reply = generate_reply(message["text"], business_info, history=history)
     print(f"[instagram-webhook] AI reply generated: {suggested_reply!r}", flush=True)
-    if suggested_reply.startswith("Sorry, I couldn't draft an automatic reply"):
-        # generate_reply() already logged the finish_reason/refusal detail to Railway's
-        # own logs (not reachable from here without the Railway CLI, which is blocked on
-        # this machine) - mirror a note into client_errors too, since that IS reachable
-        # via /admin/client-errors, so this doesn't go unnoticed.
-        log_client_error(business_id, f"AI reply fallback used for text={message['text']!r}", "", "ai-reply-empty-debug", "")
+    # Temporary diagnostic (unconditional, not just on the fallback case) - Railway's own
+    # logs aren't reachable from here without the Railway CLI, which is blocked on this
+    # machine, but /admin/client-errors is, so mirror every generated reply there until
+    # the "None" reply bug is confirmed fixed.
+    log_client_error(business_id, f"AI reply generated: {suggested_reply!r} for text={message['text']!r}", "", "ai-reply-debug", "")
 
     sender_display = get_sender_username(sender_igsid, access_token) or sender_igsid
     new_conversation_id = save_draft_reply(
