@@ -5,6 +5,34 @@ from werkzeug.security import generate_password_hash
 from encryption import encrypt, decrypt
 
 
+class _ReusableConnection:
+    """Wraps a real psycopg2 connection so every call site's existing connection.close()
+    ends the current transaction (commit) instead of tearing the connection down - a
+    plain wrapper because psycopg2's C-implemented connection object doesn't allow
+    overriding .close directly (its attributes are read-only). Only .cursor()/.commit()/
+    .closed/.close() are used anywhere in this file, so that's all that needs forwarding."""
+
+    def __init__(self, real_connection):
+        self._real = real_connection
+
+    def cursor(self, *args, **kwargs):
+        return self._real.cursor(*args, **kwargs)
+
+    def commit(self):
+        self._real.commit()
+
+    @property
+    def closed(self):
+        return self._real.closed
+
+    def close(self):
+        try:
+            self._real.commit()
+        except psycopg2.Error:
+            pass  # a broken connection here just means the next connect() call's probe
+            # will detect it and open a fresh one instead
+
+
 _shared_connection = None
 
 
@@ -14,11 +42,11 @@ def connect():
     do - every route that touches the DB was paying that full setup cost on every
     request, sometimes more than once per request.
 
-    Every call site still does connection.close() at the end exactly as before - redirected
-    here to end whatever transaction is open (via commit - some call sites, like reads
-    that never call .commit() themselves, would otherwise leave a transaction sitting
-    open indefinitely now that the connection outlives a single call) instead of tearing
-    the connection down, since a single process only ever needs one open connection at a
+    Every call site still does connection.close() at the end exactly as before - that
+    now ends whatever transaction is open (via commit - some call sites, like reads that
+    never call .commit() themselves, would otherwise leave a transaction sitting open
+    indefinitely now that the connection outlives a single call) instead of tearing the
+    connection down, since a single process only ever needs one open connection at a
     time. NOT autocommit: several call sites (e.g. delete_business) run multiple
     statements that must commit together atomically, which autocommit would break by
     committing each statement the instant it runs.
@@ -34,26 +62,15 @@ def connect():
                 probe.execute("SELECT 1")
             return _shared_connection
         except psycopg2.Error:
-            # Stale or left in an aborted-transaction state - actually close it (bypassing
-            # our own .close override below via the class method directly) before
-            # replacing it, so it doesn't linger as an orphaned connection on Postgres's
-            # side until garbage collection gets around to it.
+            # Stale or left in an aborted-transaction state - actually close the real
+            # connection before replacing it, so it doesn't linger as an orphaned
+            # connection on Postgres's side until garbage collection gets to it.
             try:
-                psycopg2.extensions.connection.close(_shared_connection)
+                _shared_connection._real.close()
             except psycopg2.Error:
                 pass
 
-    new_connection = psycopg2.connect(os.environ["DATABASE_URL"])
-
-    def _end_of_use(conn=new_connection):
-        try:
-            conn.commit()
-        except psycopg2.Error:
-            pass  # a broken connection here just means the next connect() call's probe
-            # will detect it and open a fresh one instead
-
-    new_connection.close = _end_of_use
-    _shared_connection = new_connection
+    _shared_connection = _ReusableConnection(psycopg2.connect(os.environ["DATABASE_URL"]))
     return _shared_connection
 
 
