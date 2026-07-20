@@ -157,26 +157,33 @@ button { font-family: inherit; }
 }
 .lang-option-btn:active { background: var(--background); }
 
-/* --- Country code picker (phone number field) - a compact scrollable dropdown (flag +
-   dial code only, no search/name) anchored right below the button that opened it (top
-   AND left set inline by JS from that button's own getBoundingClientRect()), instead of
-   the language picker's fixed mid-screen spot - this one should read as attached to the
-   field it belongs to. --- */
+/* --- Country code picker (phone number field) - full searchable list (flag + name +
+   dial code), sized and positioned inline by JS to match the width of the whole
+   phone-input-row (button + number field) and sit right below it, instead of the
+   language picker's fixed mid-screen spot - reads as attached to the field it belongs
+   to rather than an unrelated popup. --- */
 .country-modal-sheet {
-    width: 108px; max-height: 260px; padding: 6px;
+    max-height: min(320px, 60vh); padding: 8px;
     transform-origin: top left;
-    transform: scale(.94) translateY(-4px);
+    transform: scale(.96) translateY(-4px);
+    display: flex; flex-direction: column;
 }
 .lang-modal.open .country-modal-sheet { transform: scale(1) translateY(0); }
+.country-search-input {
+    width: 100%; padding: 11px 13px; margin-bottom: 6px; flex-shrink: 0;
+    border: 1px solid var(--border); border-radius: 10px;
+    font-family: inherit; font-size: 15px; color: var(--text); background: var(--background);
+}
 .country-modal-list { overflow-y: auto; }
 .country-option-btn {
-    display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%;
-    background: none; border: none; padding: 10px 8px; border-radius: 10px;
+    display: flex; align-items: center; gap: 10px; width: 100%;
+    background: none; border: none; text-align: left; padding: 11px 14px; border-radius: 10px;
     font-family: inherit; font-size: 15px; color: var(--text); cursor: pointer;
 }
 .country-option-btn:active { background: var(--background); }
 .country-option-flag { font-size: 18px; flex-shrink: 0; }
-.country-option-dial { color: var(--text-muted); font-size: 13.5px; }
+.country-option-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.country-option-dial { color: var(--text-muted); font-size: 13.5px; flex-shrink: 0; }
 
 .phone-input-row { display: flex; gap: 8px; }
 .phone-country-btn {
