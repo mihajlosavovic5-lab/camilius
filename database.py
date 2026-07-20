@@ -5,8 +5,56 @@ from werkzeug.security import generate_password_hash
 from encryption import encrypt, decrypt
 
 
+_shared_connection = None
+
+
 def connect():
-    return psycopg2.connect(os.environ["DATABASE_URL"])
+    """Returns a shared, reused Postgres connection instead of opening a brand new one
+    (fresh TCP + SSL handshake + auth) on every single call, which is what this used to
+    do - every route that touches the DB was paying that full setup cost on every
+    request, sometimes more than once per request.
+
+    Every call site still does connection.close() at the end exactly as before - redirected
+    here to end whatever transaction is open (via commit - some call sites, like reads
+    that never call .commit() themselves, would otherwise leave a transaction sitting
+    open indefinitely now that the connection outlives a single call) instead of tearing
+    the connection down, since a single process only ever needs one open connection at a
+    time. NOT autocommit: several call sites (e.g. delete_business) run multiple
+    statements that must commit together atomically, which autocommit would break by
+    committing each statement the instant it runs.
+
+    A cheap SELECT 1 probe catches a connection that's gone stale or was left in an
+    aborted-transaction state by some earlier error (e.g. a caught UniqueViolation that
+    skipped straight past its own .commit()/.close()) and transparently reconnects, so
+    one bad request can't wedge every request after it."""
+    global _shared_connection
+    if _shared_connection is not None and _shared_connection.closed == 0:
+        try:
+            with _shared_connection.cursor() as probe:
+                probe.execute("SELECT 1")
+            return _shared_connection
+        except psycopg2.Error:
+            # Stale or left in an aborted-transaction state - actually close it (bypassing
+            # our own .close override below via the class method directly) before
+            # replacing it, so it doesn't linger as an orphaned connection on Postgres's
+            # side until garbage collection gets around to it.
+            try:
+                psycopg2.extensions.connection.close(_shared_connection)
+            except psycopg2.Error:
+                pass
+
+    new_connection = psycopg2.connect(os.environ["DATABASE_URL"])
+
+    def _end_of_use(conn=new_connection):
+        try:
+            conn.commit()
+        except psycopg2.Error:
+            pass  # a broken connection here just means the next connect() call's probe
+            # will detect it and open a fresh one instead
+
+    new_connection.close = _end_of_use
+    _shared_connection = new_connection
+    return _shared_connection
 
 
 def create_database():
