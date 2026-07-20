@@ -218,6 +218,13 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
    the same box (freeing up the rest of the field for the value) on focus or once
    something's typed - the pattern Meta's own login screens use. */
 .floating-field { position: relative; }
+/* <input> defaults to display:inline-block (never overridden anywhere in this file),
+   which leaves room below it for descenders in an anonymous inline formatting context -
+   invisible on its own, but it makes .floating-field (which sizes to the input) taller
+   than the input's own visible rounded box. The label was centering within that extra
+   height, landing visibly below the true center of the box - forcing block display
+   removes the phantom space so the wrapper's height exactly matches what's drawn. */
+.floating-field input { display: block; }
 .floating-field label {
     /* Resets the shared label rule above (margin/font-weight/font-size) - those are
        meant for normal above-the-field labels elsewhere, and were leaking through here
