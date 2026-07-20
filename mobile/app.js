@@ -261,6 +261,205 @@ if (capacitorPlugins) {
     })();
 }
 
+// --- Working hours / price list pickers (Create Account and Profile both use these -
+// a real "pick from options" UI instead of a freeform textarea, serializing to/from the
+// same plain-text format the backend/AI already expect, so nothing else has to change) ---
+
+const HOURS_DAYS = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
+const HOURS_DAY_LABELS_EN = {
+    monday: "Monday", tuesday: "Tuesday", wednesday: "Wednesday", thursday: "Thursday",
+    friday: "Friday", saturday: "Saturday", sunday: "Sunday",
+};
+
+function buildHoursTimeOptions() {
+    const options = [];
+    for (let h = 0; h < 24; h++) {
+        for (let m = 0; m < 60; m += 30) {
+            options.push(`${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`);
+        }
+    }
+    return options;
+}
+const HOURS_TIME_OPTIONS = buildHoursTimeOptions();
+
+function createHoursPicker(containerId) {
+    const container = el(containerId);
+    const rows = {};
+
+    HOURS_DAYS.forEach((day) => {
+        const row = document.createElement("div");
+        row.className = "hours-day-row";
+
+        const header = document.createElement("div");
+        header.className = "hours-day-header";
+
+        const label = document.createElement("span");
+        label.className = "hours-day-name";
+        label.dataset.i18n = `days.${day}`;
+        label.textContent = HOURS_DAY_LABELS_EN[day];
+
+        const toggleLabel = document.createElement("label");
+        toggleLabel.className = "hours-day-toggle";
+        const checkbox = document.createElement("input");
+        checkbox.type = "checkbox";
+        checkbox.checked = true;
+        const track = document.createElement("span");
+        track.className = "hours-day-toggle-track";
+        const thumb = document.createElement("span");
+        thumb.className = "hours-day-toggle-thumb";
+        track.appendChild(thumb);
+        toggleLabel.appendChild(checkbox);
+        toggleLabel.appendChild(track);
+
+        header.appendChild(label);
+        header.appendChild(toggleLabel);
+
+        const times = document.createElement("div");
+        times.className = "hours-day-times";
+        const openSelect = document.createElement("select");
+        openSelect.className = "hours-time-select";
+        const closeSelect = document.createElement("select");
+        closeSelect.className = "hours-time-select";
+        HOURS_TIME_OPTIONS.forEach((time) => {
+            const openOption = document.createElement("option");
+            openOption.value = time;
+            openOption.textContent = time;
+            openSelect.appendChild(openOption);
+            const closeOption = document.createElement("option");
+            closeOption.value = time;
+            closeOption.textContent = time;
+            closeSelect.appendChild(closeOption);
+        });
+        openSelect.value = "09:00";
+        closeSelect.value = "18:00";
+        const sep = document.createElement("span");
+        sep.className = "hours-time-sep";
+        sep.textContent = "–";
+        times.appendChild(openSelect);
+        times.appendChild(sep);
+        times.appendChild(closeSelect);
+
+        checkbox.addEventListener("change", () => {
+            times.classList.toggle("hidden", !checkbox.checked);
+        });
+
+        row.appendChild(header);
+        row.appendChild(times);
+        container.appendChild(row);
+
+        rows[day] = { checkbox, openSelect, closeSelect, times };
+    });
+
+    return {
+        getValue() {
+            return HOURS_DAYS.map((day) => {
+                const r = rows[day];
+                if (!r.checkbox.checked) return `${HOURS_DAY_LABELS_EN[day]}: closed`;
+                return `${HOURS_DAY_LABELS_EN[day]}: ${r.openSelect.value}-${r.closeSelect.value}`;
+            }).join("\n");
+        },
+        // Best-effort parse of our own generated format (or something close enough to
+        // it) back into picker state - used when loading a business's existing hours
+        // into the Profile screen. Leaves a day's defaults alone if its line isn't found
+        // or doesn't parse, rather than guessing.
+        setValue(text) {
+            const lines = (text || "").split("\n");
+            HOURS_DAYS.forEach((day) => {
+                const dayLabel = HOURS_DAY_LABELS_EN[day].toLowerCase();
+                const line = lines.find((l) => l.trim().toLowerCase().startsWith(dayLabel));
+                if (!line) return;
+                const r = rows[day];
+                if (/closed/i.test(line)) {
+                    r.checkbox.checked = false;
+                    r.times.classList.add("hidden");
+                    return;
+                }
+                const match = line.match(/(\d{1,2}):(\d{2})\s*-\s*(\d{1,2}):(\d{2})/);
+                if (!match) return;
+                const openTime = `${match[1].padStart(2, "0")}:${match[2]}`;
+                const closeTime = `${match[3].padStart(2, "0")}:${match[4]}`;
+                if (HOURS_TIME_OPTIONS.includes(openTime)) r.openSelect.value = openTime;
+                if (HOURS_TIME_OPTIONS.includes(closeTime)) r.closeSelect.value = closeTime;
+                r.checkbox.checked = true;
+                r.times.classList.remove("hidden");
+            });
+        },
+    };
+}
+
+function createPricePicker(rowsContainerId, addButtonId) {
+    const rowsContainer = el(rowsContainerId);
+
+    function addRow(service = "", price = "") {
+        const row = document.createElement("div");
+        row.className = "price-row";
+
+        const serviceInput = document.createElement("input");
+        serviceInput.type = "text";
+        serviceInput.className = "price-service-input";
+        serviceInput.dataset.i18nPlaceholder = "pricePicker.servicePlaceholder";
+        serviceInput.placeholder = t("pricePicker.servicePlaceholder");
+        serviceInput.value = service;
+
+        const priceInput = document.createElement("input");
+        priceInput.type = "text";
+        priceInput.className = "price-amount-input";
+        priceInput.dataset.i18nPlaceholder = "pricePicker.pricePlaceholder";
+        priceInput.placeholder = t("pricePicker.pricePlaceholder");
+        priceInput.value = price;
+
+        const removeBtn = document.createElement("button");
+        removeBtn.type = "button";
+        removeBtn.className = "price-remove-btn";
+        removeBtn.setAttribute("aria-label", "Remove");
+        removeBtn.textContent = "×";
+        removeBtn.addEventListener("click", () => row.remove());
+
+        row.appendChild(serviceInput);
+        row.appendChild(priceInput);
+        row.appendChild(removeBtn);
+        rowsContainer.appendChild(row);
+    }
+
+    el(addButtonId).addEventListener("click", () => addRow());
+
+    return {
+        getValue() {
+            return Array.from(rowsContainer.querySelectorAll(".price-row"))
+                .map((row) => {
+                    const service = row.querySelector(".price-service-input").value.trim();
+                    const price = row.querySelector(".price-amount-input").value.trim();
+                    return service && price ? `${service}: ${price}` : null;
+                })
+                .filter(Boolean)
+                .join("\n");
+        },
+        setValue(text) {
+            rowsContainer.innerHTML = "";
+            const lines = (text || "").split("\n").map((l) => l.trim()).filter(Boolean);
+            if (lines.length === 0) {
+                addRow();
+                return;
+            }
+            lines.forEach((line) => {
+                const idx = line.indexOf(":");
+                if (idx === -1) {
+                    addRow(line, "");
+                } else {
+                    addRow(line.slice(0, idx).trim(), line.slice(idx + 1).trim());
+                }
+            });
+        },
+    };
+}
+
+const registerHoursPicker = createHoursPicker("register-hours-picker");
+const registerPricesPicker = createPricePicker("register-prices-rows", "register-prices-add");
+registerPricesPicker.setValue("");
+const profileHoursPicker = createHoursPicker("settings-hours-picker");
+const profilePricesPicker = createPricePicker("settings-prices-rows", "settings-prices-add");
+profilePricesPicker.setValue("");
+
 // --- API helper ---
 
 async function api(path, { method = "GET", body } = {}) {
@@ -415,8 +614,8 @@ el("register-form").addEventListener("submit", async (event) => {
                 password: el("register-password").value,
                 contact_email: el("register-contact-email").value.trim(),
                 phone_number: el("register-phone").value.trim(),
-                working_hours: el("register-hours").value,
-                price_list: el("register-prices").value,
+                working_hours: registerHoursPicker.getValue(),
+                price_list: registerPricesPicker.getValue(),
                 faq: el("register-faq").value,
                 accept_terms: el("register-terms").checked,
             },
@@ -812,8 +1011,8 @@ async function loadSettingsIntoForm() {
         const data = await api("/api/settings");
         el("settings-name").value = data.name;
         el("settings-instagram-account").value = data.instagram_username ? "@" + data.instagram_username : "";
-        el("settings-hours").value = data.working_hours;
-        el("settings-prices").value = data.price_list;
+        profileHoursPicker.setValue(data.working_hours);
+        profilePricesPicker.setValue(data.price_list);
         el("settings-faq").value = data.faq;
     } catch (err) {
         if (err.status === 401) logout();
@@ -834,8 +1033,8 @@ el("settings-save").addEventListener("click", async () => {
             method: "POST",
             body: {
                 name: el("settings-name").value,
-                working_hours: el("settings-hours").value,
-                price_list: el("settings-prices").value,
+                working_hours: profileHoursPicker.getValue(),
+                price_list: profilePricesPicker.getValue(),
                 faq: el("settings-faq").value,
             },
         });
