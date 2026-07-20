@@ -235,7 +235,8 @@ def request_password_reset(email):
         subject="Password reset - Camilius AI",
         body=(
             f"Hi,\n\n"
-            f"Someone (hopefully you) requested a password reset for the account '{business[1]}'.\n\n"
+            f"Someone (hopefully you) requested a password reset for '{business[1]}'.\n\n"
+            f"Your username is: {business[2]}\n\n"
             f"Click the link to set a new password (valid for 1 hour):\n{link}\n\n"
             f"If this wasn't you, feel free to ignore this email."
         ),
@@ -326,6 +327,68 @@ def delete_account():
     delete_business(session["business_id"])
     session.clear()
     return redirect(url_for("login"))
+
+
+def business_export_data(business_id):
+    """Shared by the web /export-data route (session auth) and the mobile app's
+    token-gated /export-data/<token> (see api.py's /api/export-data-link) - a
+    self-serve GDPR-style export of a business's own data. Deliberately excludes
+    secrets (password hash, encrypted Instagram access token) even though those
+    fields aren't otherwise sensitive to the business itself, since there's no
+    reason to ever put them in a downloadable file."""
+    business = business_by_id(business_id)
+    conversations = conversations_for_business(business_id)
+    return {
+        "business": {
+            "name": business[1],
+            "username": business[2],
+            "contact_email": business[4],
+            "instagram_username": business[6],
+            "working_hours": business[8],
+            "price_list": business[9],
+            "faq": business[10],
+        },
+        "conversations": [
+            {
+                "sender": c[1],
+                "subject": c[2],
+                "question": c[3],
+                "suggested_reply": c[4],
+                "final_reply": c[5],
+                "status": c[6],
+                "created_at": c[7].isoformat() if c[7] else None,
+            }
+            for c in conversations
+        ],
+    }
+
+
+def _export_data_response(business_id):
+    response = jsonify(business_export_data(business_id))
+    response.headers["Content-Disposition"] = "attachment; filename=camilius-ai-data-export.json"
+    return response
+
+
+@app.route("/export-data")
+@login_required
+def export_data():
+    return _export_data_response(session["business_id"])
+
+
+# Mobile-app equivalent of /export-data above - the app can't use session-cookie auth
+# (Bearer token only, see api.py), and Capacitor's Browser plugin (used to trigger the
+# actual download, same as the APK-update flow) can't attach an Authorization header to
+# the request it opens - so business identity is carried via a short-lived signed token
+# instead, requested first through /api/export-data-link. Same bridge pattern as the
+# Instagram-connect OAuth "state" token, see api.py's make_instagram_connect_state.
+@app.route("/export-data/<token>")
+def export_data_mobile(token):
+    from api import business_id_from_export_link_token  # deferred: avoid circular import at module load
+
+    business_id = business_id_from_export_link_token(token)
+    if business_id is None:
+        abort(404)
+    return _export_data_response(business_id)
 
 
 @app.errorhandler(404)

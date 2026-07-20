@@ -838,6 +838,34 @@ el("settings-save").addEventListener("click", async () => {
     }
 });
 
+// Export my data (GDPR-style self-serve export) - mirrors the APK-update-download
+// pattern: fetch a short-lived signed link with the Bearer token, then hand the actual
+// download off to the in-app browser (which can't carry that header itself, hence the
+// link-based bridge - see api.py's /api/export-data-link).
+el("settings-export").addEventListener("click", async () => {
+    const button = el("settings-export");
+    const errorBox = el("settings-error");
+    errorBox.classList.add("hidden");
+    button.disabled = true;
+    button.textContent = t("settings.exportLoading");
+
+    try {
+        const data = await api("/api/export-data-link");
+        if (capacitorPlugins && capacitorPlugins.Browser) {
+            await capacitorPlugins.Browser.open({ url: data.url });
+        } else {
+            window.open(data.url, "_blank");
+        }
+    } catch (err) {
+        if (err.status === 401) { logout(); return; }
+        errorBox.textContent = err.message || t("settings.exportError");
+        errorBox.classList.remove("hidden");
+    } finally {
+        button.disabled = false;
+        button.textContent = t("settings.export");
+    }
+});
+
 el("settings-logout").addEventListener("click", logout);
 
 // --- Tab bar ---

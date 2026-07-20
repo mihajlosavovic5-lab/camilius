@@ -84,6 +84,31 @@ def business_id_from_instagram_connect_state(state):
     return data.get("business_id")
 
 
+# Same bridge pattern as the Instagram-connect state token above, for the same reason:
+# the mobile app can't attach its Bearer token to a request opened via Capacitor's
+# Browser plugin, so /api/export-data-link hands out one of these short-lived signed
+# tokens instead, which app.py's /export-data/<token> accepts in place of a session.
+EXPORT_LINK_MAX_AGE = 60 * 10
+
+
+def _export_link_serializer():
+    return URLSafeTimedSerializer(os.environ["FLASK_SECRET_KEY"], salt="mobile-export-data-link")
+
+
+def make_export_link_token(business_id):
+    return _export_link_serializer().dumps({"business_id": business_id})
+
+
+def business_id_from_export_link_token(token):
+    if not token:
+        return None
+    try:
+        data = _export_link_serializer().loads(token, max_age=EXPORT_LINK_MAX_AGE)
+    except (BadSignature, SignatureExpired):
+        return None
+    return data.get("business_id")
+
+
 def require_api_auth(function):
     @wraps(function)
     def wrapped(*args, **kwargs):
@@ -185,6 +210,16 @@ def api_instagram_connect_url():
     redirect_uri = url_for("instagram_oauth_callback", _external=True)
     state = make_instagram_connect_state(request.business_id)
     return jsonify(url=instagram_authorize_url(redirect_uri, state=state))
+
+
+# Returns a short-lived link the mobile app opens via its in-app browser (same mechanism
+# as the "Download update" flow) to trigger a downloadable JSON export of the business's
+# own data - see make_export_link_token and app.py's /export-data/<token>.
+@api.route("/export-data-link")
+@require_api_auth
+def api_export_data_link():
+    token = make_export_link_token(request.business_id)
+    return jsonify(url=f"{request.url_root}export-data/{token}")
 
 
 @api.route("/dashboard")

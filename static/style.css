@@ -261,13 +261,16 @@ body.auth {
 .form-section-title { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: .6px; color: var(--text-muted); margin: 0; }
 
 /* --- Danger zone --- */
-.danger-zone {
+.danger-zone, .export-zone {
     margin-top: 48px; padding: 20px 22px;
     background: var(--surface);
     border: 1px solid var(--danger-border); border-radius: var(--radius);
 }
 .danger-zone h2 { font-size: 15px; color: var(--danger); margin-bottom: 4px; }
 .danger-zone p { font-size: 13.5px; color: var(--text-muted); margin: 0 0 14px; }
+.export-zone { border-color: var(--border); margin-top: 32px; }
+.export-zone h2 { font-size: 15px; color: var(--text); margin-bottom: 4px; }
+.export-zone p { font-size: 13.5px; color: var(--text-muted); margin: 0 0 14px; }
 
 /* --- Pricing / subscription --- */
 .price-row { display: flex; align-items: baseline; gap: 6px; margin-bottom: 4px; }
