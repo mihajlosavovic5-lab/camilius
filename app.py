@@ -18,7 +18,7 @@ from database import (
     business_by_id, add_business, create_database, delete_business, replies_today_count,
     update_business, business_by_contact_email, save_reset_token, business_by_reset_token, set_new_password,
     link_subscription, update_subscription_status, get_subscription_status, subscription_active,
-    business_stats, log_event, event_funnel, recent_client_errors,
+    business_stats, log_event, event_funnel, recent_client_errors, log_client_error,
     link_instagram_account, business_by_instagram_account_id, already_processed_messages,
     mark_message_processed, save_draft_reply, previous_conversations_with,
     log_webhook_hit, recent_webhook_hits,
@@ -783,6 +783,12 @@ def _process_instagram_message(message):
     history = previous_conversations_with(business_id, sender_igsid)
     suggested_reply = generate_reply(message["text"], business_info, history=history)
     print(f"[instagram-webhook] AI reply generated: {suggested_reply!r}", flush=True)
+    if suggested_reply.startswith("Sorry, I couldn't draft an automatic reply"):
+        # generate_reply() already logged the finish_reason/refusal detail to Railway's
+        # own logs (not reachable from here without the Railway CLI, which is blocked on
+        # this machine) - mirror a note into client_errors too, since that IS reachable
+        # via /admin/client-errors, so this doesn't go unnoticed.
+        log_client_error(business_id, f"AI reply fallback used for text={message['text']!r}", "", "ai-reply-empty-debug", "")
 
     sender_display = get_sender_username(sender_igsid, access_token) or sender_igsid
     new_conversation_id = save_draft_reply(

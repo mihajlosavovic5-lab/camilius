@@ -50,8 +50,23 @@ def generate_reply(customer_question, business, history=None):
         model="gpt-4o-mini",
         messages=messages,
     )
+    choice = response.choices[0]
+    content = choice.message.content
+    if not content:
+        # Rare, but the model can return no content (e.g. finish_reason="content_filter",
+        # or a refusal via the newer message.refusal field) - without this, the caller
+        # would save/render/send the literal Python value None, which showed up to a real
+        # customer as the reply text "None" (found when testing the Instagram DM flow
+        # right after the app went live). Print the actual reason to Railway's logs for
+        # diagnosis, and always return a real string instead.
+        print(
+            f"generate_reply got empty content - finish_reason={choice.finish_reason!r} "
+            f"refusal={getattr(choice.message, 'refusal', None)!r} question={customer_question!r}",
+            flush=True,
+        )
+        return "Sorry, I couldn't draft an automatic reply for this one - please reply to this customer manually."
 
-    return response.choices[0].message.content
+    return content
 
 
 if __name__ == "__main__":
