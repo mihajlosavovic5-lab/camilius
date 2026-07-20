@@ -221,13 +221,18 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
 .floating-field label {
     /* Resets the shared label rule above (margin/font-weight/font-size) - those are
        meant for normal above-the-field labels elsewhere, and were leaking through here
-       since this rule never overrode them, which is why the label sat low instead of
-       centered (that 14px top margin was pushing it down from its computed position). */
+       since this rule never overrode them. Centered via flex height+align-items rather
+       than top:50%/transform - that math assumed a line-height that Android's WebView
+       computes slightly differently than desktop Chrome, so it still sat low on a real
+       device even after the margin fix. Flex-centering within a height that itself
+       transitions (100% -> a small top strip) stays visually centered regardless of
+       exact line-height, on any engine. */
     margin: 0; font-weight: 400;
-    position: absolute; left: 16px; top: 50%; transform: translateY(-50%);
+    position: absolute; left: 16px; right: 16px; top: 0; height: 100%;
+    display: flex; align-items: center;
     font-size: 16px; color: var(--text-muted); pointer-events: none;
-    max-width: calc(100% - 32px); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-    transition: top .15s ease, font-size .15s ease, color .15s ease;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    transition: height .15s ease, font-size .15s ease, color .15s ease;
 }
 .screen-login .floating-field input[type="text"],
 .screen-login .floating-field input[type="password"] {
@@ -235,7 +240,7 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
 }
 .floating-field input:focus + label,
 .floating-field input:not(:placeholder-shown) + label {
-    top: 10px; font-size: 11.5px; color: var(--primary);
+    height: 26px; font-size: 11.5px; color: var(--primary);
 }
 
 .button {
