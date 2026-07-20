@@ -1,4 +1,4 @@
-/* Camilius AI — mobile app shell. Same brand palette as the website (static/style.css),
+/* Camilius — mobile app shell. Same brand palette as the website (static/style.css),
    restructured for a native-feeling touch UI: fixed bottom tab bar, full-screen views
    with slide transitions instead of a scrolling page. */
 
@@ -93,7 +93,6 @@ button { font-family: inherit; }
 }
 .brand-mark-sm { width: 28px; height: 28px; }
 .brand-name { font-family: Georgia, "Times New Roman", serif; font-weight: 700; font-size: 20px; }
-.brand-ai { font-family: -apple-system, "Segoe UI", sans-serif; text-transform: uppercase; font-size: 11px; letter-spacing: .14em; font-weight: 700; margin-left: 6px; color: var(--text-muted); }
 
 /* --- Login screen --- */
 .screen-login { overflow: hidden; }
@@ -220,6 +219,11 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
    something's typed - the pattern Meta's own login screens use. */
 .floating-field { position: relative; }
 .floating-field label {
+    /* Resets the shared label rule above (margin/font-weight/font-size) - those are
+       meant for normal above-the-field labels elsewhere, and were leaking through here
+       since this rule never overrode them, which is why the label sat low instead of
+       centered (that 14px top margin was pushing it down from its computed position). */
+    margin: 0; font-weight: 400;
     position: absolute; left: 16px; top: 50%; transform: translateY(-50%);
     font-size: 16px; color: var(--text-muted); pointer-events: none;
     max-width: calc(100% - 32px); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
@@ -231,7 +235,7 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
 }
 .floating-field input:focus + label,
 .floating-field input:not(:placeholder-shown) + label {
-    top: 13px; font-size: 11.5px; color: var(--primary);
+    top: 10px; font-size: 11.5px; color: var(--primary);
 }
 
 .button {
@@ -256,7 +260,12 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
    transform+transition slide the screen-to-screen navigation itself uses (see .screen
    below), just horizontal-within-a-screen instead of screen-to-screen, so switching
    steps reads as the same motion as opening Create Account did in the first place. */
-.register-steps-viewport { overflow: hidden; }
+/* Height is set inline by JS to match only the CURRENT step's own content (see
+   showRegisterStep) - without that, a flex row of 3 side-by-side steps sizes itself to
+   the TALLEST of the three, leaving dead scrollable space below shorter steps (step 2's
+   working-hours list is noticeably shorter than steps 1/3) even though there's nothing
+   actually down there. */
+.register-steps-viewport { overflow: hidden; transition: height .22s ease; }
 .register-steps-track { display: flex; align-items: flex-start; transition: transform .22s ease; }
 .register-steps-track .register-step { flex: 0 0 100%; min-width: 0; }
 /* Pinned at the true bottom of the screen (outside the scrollable .detail-body) so the

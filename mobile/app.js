@@ -1,4 +1,4 @@
-// Camilius AI — mobile app shell (vanilla JS, no build step, no framework).
+// Camilius — mobile app shell (vanilla JS, no build step, no framework).
 // Talks only to the JSON API (api.py) on the production Flask backend; renders its own
 // screens instead of loading the server-rendered website.
 
@@ -853,6 +853,11 @@ function showRegisterStep(n) {
     // same transform+transition technique .screen itself uses for screen-to-screen nav.
     const viewport = el("register-steps-viewport");
     el("register-steps-track").style.transform = `translateX(-${viewport.clientWidth * (n - 1)}px)`;
+    // A flex row of all 3 steps side by side sizes itself to the TALLEST one by default,
+    // leaving dead scrollable space below shorter steps - matching the viewport's height
+    // to just the step actually being shown removes that (and animates alongside the
+    // horizontal slide via the CSS transition on .register-steps-viewport).
+    viewport.style.height = `${el(`register-step-${n}`).scrollHeight}px`;
     document.querySelectorAll(".register-step-dot").forEach((dot, i) => {
         dot.classList.toggle("active", i === n - 1);
     });
@@ -1538,7 +1543,7 @@ const SUPPORT_EMAIL = "mihajlosavovic75757@gmail.com";
 el("help-email-btn").addEventListener("click", () => {
     // Plain mailto navigation - works when the device has a mail app configured (most
     // do). "Copy email address" right below is the guaranteed fallback for when it isn't.
-    window.open(`mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent("Camilius AI support")}`, "_system");
+    window.open(`mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent("Camilius support")}`, "_system");
 });
 
 el("help-copy-btn").addEventListener("click", async () => {
@@ -1614,7 +1619,7 @@ document.querySelectorAll(".theme-option").forEach((btn) => {
     btn.addEventListener("click", () => setTheme(btn.dataset.themeChoice));
 });
 
-el("settings-app-version").textContent = `Camilius AI · v${APP_VERSION}`;
+el("settings-app-version").textContent = `Camilius · v${APP_VERSION}`;
 
 // --- Boot ---
 

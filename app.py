@@ -275,7 +275,7 @@ def request_password_reset(email):
     link = url_for("reset_password", token=token, _external=True)
     send_email(
         recipient=business[4],
-        subject="Password reset - Camilius AI",
+        subject="Password reset - Camilius",
         body=(
             f"Hi,\n\n"
             f"Someone (hopefully you) requested a password reset for '{business[1]}'.\n\n"
@@ -283,7 +283,7 @@ def request_password_reset(email):
             f"Click the link to set a new password (valid for 1 hour):\n{link}\n\n"
             f"If this wasn't you, feel free to ignore this email."
         ),
-        business_name="Camilius AI",
+        business_name="Camilius",
         reply_to=os.getenv("ALERT_EMAIL") or business[4],
     )
     return True
@@ -598,7 +598,7 @@ def admin_conversations_debug():
     return jsonify(lines)
 
 
-# Proves to Android that the "Camilius AI" APK and this website are owned by the
+# Proves to Android that the "Camilius" APK and this website are owned by the
 # same party, so the installed app opens fullscreen without a browser URL bar.
 # The fingerprint matches the signing key in ai-auto-reply-secrets/android-signing/.
 @app.route("/.well-known/assetlinks.json")

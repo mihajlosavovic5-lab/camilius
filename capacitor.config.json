@@ -1,6 +1,6 @@
 {
   "appId": "com.ai_auto_reply_mail.app.twa",
-  "appName": "Camilius AI",
+  "appName": "Camilius",
   "webDir": "mobile",
   "plugins": {
     "CapacitorUpdater": {

@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">Camilius AI</string>
-    <string name="title_activity_main">Camilius AI</string>
+    <string name="app_name">Camilius</string>
+    <string name="title_activity_main">Camilius</string>
     <string name="package_name">com.ai_auto_reply_mail.app.twa</string>
     <string name="custom_url_scheme">com.ai_auto_reply_mail.app.twa</string>
 </resources>

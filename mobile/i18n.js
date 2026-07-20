@@ -1,4 +1,4 @@
-// Camilius AI — lightweight translation layer (vanilla JS, no framework, no build step,
+// Camilius — lightweight translation layer (vanilla JS, no framework, no build step,
 // same philosophy as app.js). Loaded BEFORE app.js in index.html so its functions exist
 // in time, but nothing here calls storageGet/storageSet at the top level - those are
 // defined in app.js and are only actually called later, from initLanguage(), by which
@@ -21,7 +21,7 @@ const LANGUAGES = [
 const TRANSLATIONS = {
     en: {
         "onboarding.skip": "Skip",
-        "onboarding.slide1.title": "Welcome to Camilius AI",
+        "onboarding.slide1.title": "Welcome to Camilius",
         "onboarding.slide1.body": "Your AI assistant for customer Instagram messages.",
         "onboarding.slide2.title": "Reads DMs for you",
         "onboarding.slide2.body": "When a customer messages your business on Instagram, Camilius reads it right away — day or night.",
@@ -72,7 +72,7 @@ const TRANSLATIONS = {
 
         "connect.title": "Connect Instagram",
         "connect.subtitle": "One last step — connect the Instagram account customers message.",
-        "connect.body": "Camilius AI reads new direct messages sent to this account and drafts replies for you to approve. Nothing is ever sent without your review.",
+        "connect.body": "Camilius reads new direct messages sent to this account and drafts replies for you to approve. Nothing is ever sent without your review.",
         "connect.professionalTitle": "Before you connect",
         "connect.professionalBody": "Your account needs to be a Professional account (Business or Creator), not personal — Instagram's own requirement. In the Instagram app: Profile → menu → Settings → Account type and tools → Switch to professional account. Free, under a minute.",
         "connect.button": "Connect Instagram",
@@ -198,7 +198,7 @@ const TRANSLATIONS = {
     },
     sr: {
         "onboarding.skip": "Preskoči",
-        "onboarding.slide1.title": "Dobrodošli u Camilius AI",
+        "onboarding.slide1.title": "Dobrodošli u Camilius",
         "onboarding.slide1.body": "Vaš AI asistent za Instagram poruke kupaca.",
         "onboarding.slide2.title": "Čita DM poruke umesto vas",
         "onboarding.slide2.body": "Kada kupac pošalje poruku vašoj firmi na Instagramu, Camilius je odmah pročita — danju ili noću.",
@@ -249,7 +249,7 @@ const TRANSLATIONS = {
 
         "connect.title": "Poveži Instagram",
         "connect.subtitle": "Još samo jedan korak — povežite Instagram nalog na koji vam kupci pišu.",
-        "connect.body": "Camilius AI čita nove direktne poruke poslate na ovaj nalog i piše predloge odgovora koje vi odobravate. Ništa se ne šalje bez vašeg pregleda.",
+        "connect.body": "Camilius čita nove direktne poruke poslate na ovaj nalog i piše predloge odgovora koje vi odobravate. Ništa se ne šalje bez vašeg pregleda.",
         "connect.professionalTitle": "Pre povezivanja",
         "connect.professionalBody": "Vaš Instagram nalog mora biti Profesionalni nalog (Biznis ili Kreator), ne lični — to je Instagramov zahtev. U Instagram aplikaciji: Profil → meni → Podešavanja → Vrsta naloga i alati → Pređi na profesionalni nalog. Besplatno je i traje manje od minuta.",
         "connect.button": "Poveži Instagram",
@@ -375,7 +375,7 @@ const TRANSLATIONS = {
     },
     es: {
         "onboarding.skip": "Omitir",
-        "onboarding.slide1.title": "Bienvenido a Camilius AI",
+        "onboarding.slide1.title": "Bienvenido a Camilius",
         "onboarding.slide1.body": "Tu asistente de IA para los mensajes de Instagram de tus clientes.",
         "onboarding.slide2.title": "Lee los DM por ti",
         "onboarding.slide2.body": "Cuando un cliente escribe a tu negocio por Instagram, Camilius lo lee al instante — de día o de noche.",
@@ -426,7 +426,7 @@ const TRANSLATIONS = {
 
         "connect.title": "Conectar Instagram",
         "connect.subtitle": "Un último paso — conecta la cuenta de Instagram donde te escriben tus clientes.",
-        "connect.body": "Camilius AI lee los nuevos mensajes directos de esta cuenta y redacta respuestas para que tú las apruebes. Nada se envía sin tu revisión.",
+        "connect.body": "Camilius lee los nuevos mensajes directos de esta cuenta y redacta respuestas para que tú las apruebes. Nada se envía sin tu revisión.",
         "connect.professionalTitle": "Antes de conectar",
         "connect.professionalBody": "Tu cuenta de Instagram debe ser una cuenta Profesional (Empresa o Creador de contenido), no personal — es un requisito de Instagram. En la app de Instagram: Perfil → menú → Configuración → Tipo de cuenta y herramientas → Cambiar a cuenta profesional. Es gratis y tarda menos de un minuto.",
         "connect.button": "Conectar Instagram",
@@ -552,7 +552,7 @@ const TRANSLATIONS = {
     },
     pt: {
         "onboarding.skip": "Pular",
-        "onboarding.slide1.title": "Bem-vindo ao Camilius AI",
+        "onboarding.slide1.title": "Bem-vindo ao Camilius",
         "onboarding.slide1.body": "Seu assistente de IA para as mensagens do Instagram dos seus clientes.",
         "onboarding.slide2.title": "Lê as DMs por você",
         "onboarding.slide2.body": "Quando um cliente envia uma mensagem para sua empresa no Instagram, o Camilius a lê na hora — de dia ou de noite.",
@@ -603,7 +603,7 @@ const TRANSLATIONS = {
 
         "connect.title": "Conectar Instagram",
         "connect.subtitle": "Última etapa — conecte a conta do Instagram onde seus clientes enviam mensagens.",
-        "connect.body": "O Camilius AI lê as novas mensagens diretas dessa conta e redige respostas para você aprovar. Nada é enviado sem sua revisão.",
+        "connect.body": "O Camilius lê as novas mensagens diretas dessa conta e redige respostas para você aprovar. Nada é enviado sem sua revisão.",
         "connect.professionalTitle": "Antes de conectar",
         "connect.professionalBody": "Sua conta do Instagram precisa ser uma conta Profissional (Empresa ou Criador de conteúdo), não pessoal — é uma exigência do próprio Instagram. No app do Instagram: Perfil → menu → Configurações → Tipo de conta e ferramentas → Mudar para conta profissional. É grátis e leva menos de um minuto.",
         "connect.button": "Conectar Instagram",
@@ -729,7 +729,7 @@ const TRANSLATIONS = {
     },
     fr: {
         "onboarding.skip": "Passer",
-        "onboarding.slide1.title": "Bienvenue sur Camilius AI",
+        "onboarding.slide1.title": "Bienvenue sur Camilius",
         "onboarding.slide1.body": "Votre assistant IA pour les messages Instagram de vos clients.",
         "onboarding.slide2.title": "Lit les DM à votre place",
         "onboarding.slide2.body": "Quand un client écrit à votre entreprise sur Instagram, Camilius le lit aussitôt — de jour comme de nuit.",
@@ -780,7 +780,7 @@ const TRANSLATIONS = {
 
         "connect.title": "Connecter Instagram",
         "connect.subtitle": "Dernière étape — connectez le compte Instagram que vos clients contactent.",
-        "connect.body": "Camilius AI lit les nouveaux messages directs reçus sur ce compte et rédige des réponses que vous approuvez. Rien n'est envoyé sans votre validation.",
+        "connect.body": "Camilius lit les nouveaux messages directs reçus sur ce compte et rédige des réponses que vous approuvez. Rien n'est envoyé sans votre validation.",
         "connect.professionalTitle": "Avant de vous connecter",
         "connect.professionalBody": "Votre compte Instagram doit être un compte Professionnel (Entreprise ou Créateur de contenu), pas personnel — c'est une exigence propre à Instagram. Dans l'application Instagram : Profil → menu → Paramètres → Type de compte et outils → Passer à un compte professionnel. C'est gratuit et ça prend moins d'une minute.",
         "connect.button": "Connecter Instagram",
@@ -906,7 +906,7 @@ const TRANSLATIONS = {
     },
     de: {
         "onboarding.skip": "Überspringen",
-        "onboarding.slide1.title": "Willkommen bei Camilius AI",
+        "onboarding.slide1.title": "Willkommen bei Camilius",
         "onboarding.slide1.body": "Dein KI-Assistent für die Instagram-Nachrichten deiner Kunden.",
         "onboarding.slide2.title": "Liest DMs für dich",
         "onboarding.slide2.body": "Wenn ein Kunde deinem Unternehmen auf Instagram schreibt, liest Camilius die Nachricht sofort — Tag und Nacht.",
@@ -957,7 +957,7 @@ const TRANSLATIONS = {
 
         "connect.title": "Instagram verbinden",
         "connect.subtitle": "Nur noch ein Schritt — verbinde das Instagram-Konto, über das dich Kunden anschreiben.",
-        "connect.body": "Camilius AI liest neue Direktnachrichten an dieses Konto und verfasst Antworten, die du freigibst. Nichts wird ohne deine Prüfung verschickt.",
+        "connect.body": "Camilius liest neue Direktnachrichten an dieses Konto und verfasst Antworten, die du freigibst. Nichts wird ohne deine Prüfung verschickt.",
         "connect.professionalTitle": "Bevor du dich verbindest",
         "connect.professionalBody": "Dein Instagram-Konto muss ein professionelles Konto sein (Unternehmen oder Creator), kein privates — das ist eine Vorgabe von Instagram. In der Instagram-App: Profil → Menü → Einstellungen → Kontotyp und Tools → Zu professionellem Konto wechseln. Kostenlos und dauert unter einer Minute.",
         "connect.button": "Instagram verbinden",
@@ -1083,7 +1083,7 @@ const TRANSLATIONS = {
     },
     it: {
         "onboarding.skip": "Salta",
-        "onboarding.slide1.title": "Benvenuto su Camilius AI",
+        "onboarding.slide1.title": "Benvenuto su Camilius",
         "onboarding.slide1.body": "Il tuo assistente IA per i messaggi Instagram dei clienti.",
         "onboarding.slide2.title": "Legge i DM al posto tuo",
         "onboarding.slide2.body": "Quando un cliente scrive alla tua attività su Instagram, Camilius lo legge subito — giorno e notte.",
@@ -1134,7 +1134,7 @@ const TRANSLATIONS = {
 
         "connect.title": "Collega Instagram",
         "connect.subtitle": "Ultimo passaggio — collega l'account Instagram su cui i clienti ti scrivono.",
-        "connect.body": "Camilius AI legge i nuovi messaggi diretti ricevuti su questo account e prepara risposte che tu approvi. Niente viene inviato senza la tua revisione.",
+        "connect.body": "Camilius legge i nuovi messaggi diretti ricevuti su questo account e prepara risposte che tu approvi. Niente viene inviato senza la tua revisione.",
         "connect.professionalTitle": "Prima di collegare",
         "connect.professionalBody": "Il tuo account Instagram deve essere un account Professionale (Business o Creator), non personale — è un requisito di Instagram stesso. Nell'app Instagram: Profilo → menu → Impostazioni → Tipo di account e strumenti → Passa a un account professionale. È gratis e richiede meno di un minuto.",
         "connect.button": "Collega Instagram",
@@ -1260,7 +1260,7 @@ const TRANSLATIONS = {
     },
     ru: {
         "onboarding.skip": "Пропустить",
-        "onboarding.slide1.title": "Добро пожаловать в Camilius AI",
+        "onboarding.slide1.title": "Добро пожаловать в Camilius",
         "onboarding.slide1.body": "Ваш ИИ-помощник для Instagram-сообщений от клиентов.",
         "onboarding.slide2.title": "Читает сообщения за вас",
         "onboarding.slide2.body": "Когда клиент пишет вашей компании в Instagram, Camilius сразу же читает сообщение — днём и ночью.",
@@ -1311,7 +1311,7 @@ const TRANSLATIONS = {
 
         "connect.title": "Подключить Instagram",
         "connect.subtitle": "Последний шаг — подключите аккаунт Instagram, куда пишут ваши клиенты.",
-        "connect.body": "Camilius AI читает новые сообщения на этот аккаунт и готовит ответы, которые вы одобряете. Ничего не отправляется без вашей проверки.",
+        "connect.body": "Camilius читает новые сообщения на этот аккаунт и готовит ответы, которые вы одобряете. Ничего не отправляется без вашей проверки.",
         "connect.professionalTitle": "Перед подключением",
         "connect.professionalBody": "Ваш аккаунт Instagram должен быть Профессиональным (Бизнес или Автор), а не личным — это требование самого Instagram. В приложении Instagram: Профиль → меню → Настройки → Тип аккаунта и инструменты → Переключиться на профессиональный аккаунт. Бесплатно и займёт меньше минуты.",
         "connect.button": "Подключить Instagram",
@@ -1437,7 +1437,7 @@ const TRANSLATIONS = {
     },
     zh: {
         "onboarding.skip": "跳过",
-        "onboarding.slide1.title": "欢迎使用 Camilius AI",
+        "onboarding.slide1.title": "欢迎使用 Camilius",
         "onboarding.slide1.body": "您的客户 Instagram 私信人工智能助手。",
         "onboarding.slide2.title": "自动帮您阅读私信",
         "onboarding.slide2.body": "客户在 Instagram 上给您的企业发私信时，Camilius 会立即读取——不分白天黑夜。",
@@ -1488,7 +1488,7 @@ const TRANSLATIONS = {
 
         "connect.title": "连接 Instagram",
         "connect.subtitle": "最后一步——连接客户发消息的 Instagram 账户。",
-        "connect.body": "Camilius AI 会读取发送到该账户的新私信，并起草回复供您审核批准。未经您确认，不会发送任何内容。",
+        "connect.body": "Camilius 会读取发送到该账户的新私信，并起草回复供您审核批准。未经您确认，不会发送任何内容。",
         "connect.professionalTitle": "连接前须知",
         "connect.professionalBody": "您的 Instagram 账户需要是专业账户（企业或创作者），而非个人账户——这是 Instagram 自身的要求。在 Instagram 应用中：个人主页 → 菜单 → 设置 → 账户类型和工具 → 切换为专业账户。免费，不到一分钟即可完成。",
         "connect.button": "连接 Instagram",
@@ -1614,7 +1614,7 @@ const TRANSLATIONS = {
     },
     tr: {
         "onboarding.skip": "Geç",
-        "onboarding.slide1.title": "Camilius AI'a Hoş Geldiniz",
+        "onboarding.slide1.title": "Camilius'a Hoş Geldiniz",
         "onboarding.slide1.body": "Müşterilerinizin Instagram mesajları için yapay zeka asistanınız.",
         "onboarding.slide2.title": "DM'leri sizin için okur",
         "onboarding.slide2.body": "Bir müşteri işletmenize Instagram'dan mesaj gönderdiğinde, Camilius onu hemen okur — gece gündüz.",
@@ -1665,7 +1665,7 @@ const TRANSLATIONS = {
 
         "connect.title": "Instagram'ı bağla",
         "connect.subtitle": "Son adım — müşterilerinizin mesaj attığı Instagram hesabını bağlayın.",
-        "connect.body": "Camilius AI bu hesaba gelen yeni doğrudan mesajları okur ve onaylamanız için yanıt taslakları hazırlar. Onayınız olmadan hiçbir şey gönderilmez.",
+        "connect.body": "Camilius bu hesaba gelen yeni doğrudan mesajları okur ve onaylamanız için yanıt taslakları hazırlar. Onayınız olmadan hiçbir şey gönderilmez.",
         "connect.professionalTitle": "Bağlamadan önce",
         "connect.professionalBody": "Instagram hesabınızın kişisel değil, Profesyonel hesap (İşletme veya İçerik Üreticisi) olması gerekir — bu Instagram'ın kendi gereksinimidir. Instagram uygulamasında: Profil → menü → Ayarlar → Hesap türü ve araçlar → Profesyonel hesaba geç. Ücretsizdir ve bir dakikadan az sürer.",
         "connect.button": "Instagram'ı bağla",
