@@ -9,7 +9,7 @@
     <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
     <meta name="theme-color" content="#d69410">
     <link rel="apple-touch-icon" href="{{ url_for('static', filename='icon-512.png') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v={{ static_versions['style.css'] }}">
 </head>
 <body class="{% block body_class %}{% endblock %}">
 <script>

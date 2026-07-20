@@ -40,7 +40,7 @@ body {
 
 h1, h2, h3 { line-height: 1.25; margin: 0 0 8px 0; text-wrap: balance; }
 a { color: var(--primary-ink); text-decoration: none; }
-a:hover { text-decoration: underline; }
+a:hover { text-decoration: none; }
 
 /* No highlight on mouse/touch click (the browser's default blue tap/focus
    box); a visible ring still appears for keyboard navigation (Tab), just

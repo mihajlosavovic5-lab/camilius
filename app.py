@@ -80,6 +80,45 @@ def inject_beta_free_mode():
     return {"beta_free_mode": BETA_FREE_MODE}
 
 
+# --- Static asset caching (perf) ---
+# Flask/Werkzeug's default static-file serving sends Cache-Control: no-cache, which
+# forces the browser to round-trip to the server on every single page navigation just
+# to ask "did this change?" - even for style.css, which barely ever changes within a
+# session. Fixed by long-caching a small allowlist of assets instead of applying this
+# blanket (SEND_FILE_MAX_AGE_DEFAULT) - a blanket default would also long-cache
+# /static/mobile-bundle.zip, which the mobile app's OTA updater depends on always being
+# able to fetch the latest copy of.
+def _static_file_version(filename):
+    path = os.path.join(app.static_folder, filename)
+    try:
+        with open(path, "rb") as f:
+            return hashlib.sha256(f.read()).hexdigest()[:12]
+    except OSError:
+        return "0"
+
+
+# style.css is cache-busted via a content-hash query param (see base.html), so it's
+# safe to cache "forever" - a content change always means a new URL. The others aren't
+# versioned, so they get a moderate cache instead of a full year.
+STATIC_VERSIONS = {"style.css": _static_file_version("style.css")}
+_FOREVER_CACHE_STATIC_PATHS = {"/static/style.css"}
+_MODERATE_CACHE_STATIC_PATHS = {"/static/manifest.json", "/static/icon-192.png", "/static/icon-512.png"}
+
+
+@app.context_processor
+def inject_static_versions():
+    return {"static_versions": STATIC_VERSIONS}
+
+
+@app.after_request
+def cache_static_assets(response):
+    if request.path in _FOREVER_CACHE_STATIC_PATHS:
+        response.headers["Cache-Control"] = "public, max-age=31536000, immutable"
+    elif request.path in _MODERATE_CACHE_STATIC_PATHS:
+        response.headers["Cache-Control"] = "public, max-age=604800"
+    return response
+
+
 def login_required(function):
     @wraps(function)
     def wrapped_function(*args, **kwargs):
