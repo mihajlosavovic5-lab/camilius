@@ -848,9 +848,11 @@ let registerStep = 1;
 
 function showRegisterStep(n) {
     registerStep = n;
-    for (let i = 1; i <= REGISTER_STEP_COUNT; i++) {
-        el(`register-step-${i}`).classList.toggle("hidden", i !== n);
-    }
+    // Slide the steps track by exact viewport-widths (pixels, not %, so this doesn't
+    // depend on how the browser reports the track's own overflowing box width) - the
+    // same transform+transition technique .screen itself uses for screen-to-screen nav.
+    const viewport = el("register-steps-viewport");
+    el("register-steps-track").style.transform = `translateX(-${viewport.clientWidth * (n - 1)}px)`;
     document.querySelectorAll(".register-step-dot").forEach((dot, i) => {
         dot.classList.toggle("active", i === n - 1);
     });

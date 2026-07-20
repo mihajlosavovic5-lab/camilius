@@ -214,6 +214,25 @@ input:focus, textarea:focus { outline: none; border-color: var(--primary); box-s
 textarea { resize: vertical; line-height: 1.5; }
 input[readonly] { background: var(--background); color: var(--text-muted); }
 .screen-login input[type="text"], .screen-login input[type="password"] { border-radius: 16px; padding: 14px 16px; margin-bottom: 12px; }
+/* Floating labels (login username/password) - label sits centered like a placeholder
+   when the field is empty and unfocused, then rises to a small caption at the top of
+   the same box (freeing up the rest of the field for the value) on focus or once
+   something's typed - the pattern Meta's own login screens use. */
+.floating-field { position: relative; }
+.floating-field label {
+    position: absolute; left: 16px; top: 50%; transform: translateY(-50%);
+    font-size: 16px; color: var(--text-muted); pointer-events: none;
+    max-width: calc(100% - 32px); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    transition: top .15s ease, font-size .15s ease, color .15s ease;
+}
+.screen-login .floating-field input[type="text"],
+.screen-login .floating-field input[type="password"] {
+    padding: 22px 16px 8px; margin-bottom: 12px;
+}
+.floating-field input:focus + label,
+.floating-field input:not(:placeholder-shown) + label {
+    top: 13px; font-size: 11.5px; color: var(--primary);
+}
 
 .button {
     display: flex; align-items: center; justify-content: center; gap: 8px;
@@ -232,8 +251,23 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
 
 /* --- Create Account: multi-step wizard (Account -> Working hours -> Prices/FAQ/Terms),
    a step-dots + bottom-right arrow pattern instead of one long scrolling form --- */
-.register-step.hidden { display: none; }
-.register-step-nav { display: flex; align-items: center; justify-content: space-between; margin-top: 26px; }
+.register-form { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+/* Steps sit side by side in a row and only one is ever scrolled into view - the same
+   transform+transition slide the screen-to-screen navigation itself uses (see .screen
+   below), just horizontal-within-a-screen instead of screen-to-screen, so switching
+   steps reads as the same motion as opening Create Account did in the first place. */
+.register-steps-viewport { overflow: hidden; }
+.register-steps-track { display: flex; align-items: flex-start; transition: transform .22s ease; }
+.register-steps-track .register-step { flex: 0 0 100%; min-width: 0; }
+/* Pinned at the true bottom of the screen (outside the scrollable .detail-body) so the
+   arrow/submit button is always right at the user's thumb regardless of how much
+   content a given step has, on every step alike. */
+.register-bottom-bar {
+    flex-shrink: 0; padding: 14px 18px calc(18px + var(--safe-bottom));
+    border-top: 1px solid var(--border); background: var(--surface);
+}
+.screen-register .detail-body { padding-bottom: 18px; }
+.register-step-nav { display: flex; align-items: center; justify-content: space-between; }
 .register-step-dots { display: flex; gap: 6px; }
 .register-step-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--border); transition: background .2s ease, width .2s ease; }
 .register-step-dot.active { width: 18px; border-radius: 99px; background: var(--primary); }
