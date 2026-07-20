@@ -41,5 +41,28 @@
         });
     }
 </script>
+<script>
+    // Warms up the page a nav link points to as soon as the user's mouse/finger reaches
+    // it - before they actually click - so the TCP connection is already open and the
+    // server has often already finished rendering by the time the click lands. Scoped
+    // deliberately to just the main nav (not every link on the page): this is a
+    // navigation-only request, not a click, so it must never be pointed at anything
+    // that has a side effect on GET (Log out clears the session immediately) or that
+    // triggers a file download (wasted bandwidth, no benefit - downloads don't reuse a
+    // background fetch() anyway).
+    (function () {
+        var warmed = new Set();
+        document.querySelectorAll(".nav-links a").forEach((link) => {
+            if (link.classList.contains("nav-logout")) return;
+            const warm = () => {
+                if (warmed.has(link.href)) return;
+                warmed.add(link.href);
+                fetch(link.href, { credentials: "same-origin" }).catch(() => {});
+            };
+            link.addEventListener("mouseenter", warm, { passive: true });
+            link.addEventListener("touchstart", warm, { passive: true });
+        });
+    })();
+</script>
 </body>
 </html>
