@@ -1,0 +1,50 @@
+name: Tests
+
+# Runs the pytest suite on every push/PR to master, against a real throwaway Postgres
+# service container. This is the only automated safety net before a change reaches
+# production - there is no local way to run these on the maintainer's machine (psycopg2's
+# DLL is blocked by a Windows Application Control policy there), so CI is load-bearing,
+# not just a nicety.
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/postgres
+      FLASK_SECRET_KEY: ci-test-secret-key
+      # Valid Fernet-format key (encryption.py raises at import time without one) -
+      # test-only placeholder, not a real secret.
+      ENCRYPTION_KEY: lq6DN50PbDefktBQDzopjb_x9c2Ry7lxHtn3o3q69dU=
+      OPENAI_API_KEY: sk-test-dummy-not-real
+      INSTAGRAM_APP_SECRET: test-instagram-app-secret
+      FLASK_DEBUG: "true"
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install -r requirements-dev.txt
+
+      - name: Run tests
+        run: pytest -v
