@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
 <title>Camilius AI</title>
-<link rel="stylesheet" href="app.css?v=d892a167831a">
+<link rel="stylesheet" href="app.css?v=851ff1fcfcb9">
 </head>
 <body>
 
@@ -36,12 +36,13 @@
 </div>
 
 <!-- Country code picker (phone number field on Create Account) - same fixed-overlay
-     mechanism as the language modal above, its own instance since it needs a search box
-     and a wider/taller sheet. -->
+     mechanism as the language modal above, its own instance since it's anchored right
+     next to the phone field it belongs to instead of a fixed mid-screen spot, and shows
+     just flag + dial code per row (no search, no country name - a compact scrollable
+     dropdown, not a searchable directory). -->
 <div id="country-modal" class="lang-modal">
   <div class="lang-modal-backdrop" id="country-modal-backdrop"></div>
   <div class="lang-modal-sheet country-modal-sheet">
-    <input type="text" id="country-search-input" class="country-search-input" data-i18n-placeholder="countryPicker.searchPlaceholder" placeholder="Search country">
     <div id="country-modal-list" class="country-modal-list"></div>
   </div>
 </div>
@@ -519,7 +520,7 @@
   </button>
 </nav>
 
-<script src="i18n.js?v=d892a167831a"></script>
-<script src="app.js?v=d892a167831a"></script>
+<script src="i18n.js?v=851ff1fcfcb9"></script>
+<script src="app.js?v=851ff1fcfcb9"></script>
 </body>
 </html>

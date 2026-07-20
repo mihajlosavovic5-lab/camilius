@@ -157,34 +157,26 @@ button { font-family: inherit; }
 }
 .lang-option-btn:active { background: var(--background); }
 
-/* --- Country code picker (phone number field) - same fixed-overlay modal mechanism as
-   the language picker above, just a wider/taller sheet (country name + dial code needs
-   more room than a language name) with a search box, since scrolling ~195 countries
-   unfiltered would be tedious. --- */
+/* --- Country code picker (phone number field) - a compact scrollable dropdown (flag +
+   dial code only, no search/name) anchored right below the button that opened it (top
+   AND left set inline by JS from that button's own getBoundingClientRect()), instead of
+   the language picker's fixed mid-screen spot - this one should read as attached to the
+   field it belongs to. --- */
 .country-modal-sheet {
-    width: min(340px, calc(100% - 32px)); max-height: 70vh;
-    /* top is set inline by JS, right at the phone field's own on-screen position, rather
-       than a fixed CSS value - this is the one modal instance meant to feel anchored to
-       the field that opened it instead of popping up mid-screen. */
-    left: 50%; transform: translateX(-50%) translateY(-6px) scale(.96);
-    display: flex; flex-direction: column;
+    width: 108px; max-height: 260px; padding: 6px;
+    transform-origin: top left;
+    transform: scale(.94) translateY(-4px);
 }
-.lang-modal.open .country-modal-sheet { transform: translateX(-50%) translateY(0) scale(1); }
-.country-search-input {
-    width: 100%; padding: 11px 13px; margin-bottom: 6px; flex-shrink: 0;
-    border: 1px solid var(--border); border-radius: 10px;
-    font-family: inherit; font-size: 15px; color: var(--text); background: var(--background);
-}
+.lang-modal.open .country-modal-sheet { transform: scale(1) translateY(0); }
 .country-modal-list { overflow-y: auto; }
 .country-option-btn {
-    display: flex; align-items: center; gap: 10px; width: 100%;
-    background: none; border: none; text-align: left; padding: 11px 14px; border-radius: 10px;
+    display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%;
+    background: none; border: none; padding: 10px 8px; border-radius: 10px;
     font-family: inherit; font-size: 15px; color: var(--text); cursor: pointer;
 }
 .country-option-btn:active { background: var(--background); }
 .country-option-flag { font-size: 18px; flex-shrink: 0; }
-.country-option-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.country-option-dial { color: var(--text-muted); font-size: 13.5px; flex-shrink: 0; }
+.country-option-dial { color: var(--text-muted); font-size: 13.5px; }
 
 .phone-input-row { display: flex; gap: 8px; }
 .phone-country-btn {

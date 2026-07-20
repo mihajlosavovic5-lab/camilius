@@ -604,49 +604,40 @@ function setupCountryPicker() {
     const sheet = modal.querySelector(".country-modal-sheet");
     const backdrop = el("country-modal-backdrop");
     const list = el("country-modal-list");
-    const search = el("country-search-input");
     const flagEl = el("register-phone-country-flag");
     const dialEl = el("register-phone-country-dial");
 
-    function renderList(filter) {
-        list.innerHTML = "";
-        const q = (filter || "").trim().toLowerCase();
-        const filtered = q
-            ? COUNTRIES.filter((c) => c.name.toLowerCase().includes(q) || c.dial.includes(q))
-            : COUNTRIES;
-        filtered.forEach((c) => {
-            const row = document.createElement("button");
-            row.type = "button";
-            row.className = "country-option-btn";
-            row.innerHTML = `<span class="country-option-flag">${countryFlagEmoji(c.code)}</span>` +
-                `<span class="country-option-name">${escapeHtml(c.name)}</span>` +
-                `<span class="country-option-dial">${c.dial}</span>`;
-            row.addEventListener("click", () => {
-                selectedPhoneCountry = c;
-                flagEl.textContent = countryFlagEmoji(c.code);
-                dialEl.textContent = c.dial;
-                closeCountryModal();
-            });
-            list.appendChild(row);
+    // Rendered once - no search, so the list never changes after this.
+    COUNTRIES.forEach((c) => {
+        const row = document.createElement("button");
+        row.type = "button";
+        row.className = "country-option-btn";
+        row.innerHTML = `<span class="country-option-flag">${countryFlagEmoji(c.code)}</span>` +
+            `<span class="country-option-dial">${c.dial}</span>`;
+        row.addEventListener("click", () => {
+            selectedPhoneCountry = c;
+            flagEl.textContent = countryFlagEmoji(c.code);
+            dialEl.textContent = c.dial;
+            closeCountryModal();
         });
-    }
+        list.appendChild(row);
+    });
 
     function openCountryModal() {
-        search.value = "";
-        renderList("");
-
-        // Anchor the sheet right at the phone field's own on-screen position (instead of
-        // a fixed mid-screen spot) - keeps it fully on-screen by clamping against a
-        // rough estimate of its own height, since the actual rendered height depends on
-        // how many rows are showing.
+        // Anchored right below the button (flipping above it if there's not enough room
+        // underneath) instead of the language picker's fixed mid-screen spot - this one
+        // should read as attached to the field it belongs to, not a separate popup.
         const rect = btn.getBoundingClientRect();
-        const estimatedHeight = Math.min(window.innerHeight * 0.7, 420);
-        const margin = 16;
-        const top = Math.max(margin, Math.min(rect.top, window.innerHeight - estimatedHeight - margin));
+        const sheetHeight = Math.min(260, window.innerHeight * 0.5);
+        const margin = 12;
+        let top = rect.bottom + 6;
+        if (top + sheetHeight > window.innerHeight - margin) {
+            top = Math.max(margin, rect.top - sheetHeight - 6);
+        }
         sheet.style.top = `${top}px`;
+        sheet.style.left = `${rect.left}px`;
 
         modal.classList.add("open");
-        setTimeout(() => search.focus(), 50);
     }
     function closeCountryModal() {
         modal.classList.remove("open");
@@ -657,7 +648,6 @@ function setupCountryPicker() {
         else openCountryModal();
     });
     backdrop.addEventListener("click", closeCountryModal);
-    search.addEventListener("input", () => renderList(search.value));
 
     flagEl.textContent = countryFlagEmoji(selectedPhoneCountry.code);
     dialEl.textContent = selectedPhoneCountry.dial;
