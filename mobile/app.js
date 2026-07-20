@@ -601,6 +601,7 @@ if (localeRegionMatch) {
 function setupCountryPicker() {
     const btn = el("register-phone-country-btn");
     const modal = el("country-modal");
+    const sheet = modal.querySelector(".country-modal-sheet");
     const backdrop = el("country-modal-backdrop");
     const list = el("country-modal-list");
     const search = el("country-search-input");
@@ -633,6 +634,17 @@ function setupCountryPicker() {
     function openCountryModal() {
         search.value = "";
         renderList("");
+
+        // Anchor the sheet right at the phone field's own on-screen position (instead of
+        // a fixed mid-screen spot) - keeps it fully on-screen by clamping against a
+        // rough estimate of its own height, since the actual rendered height depends on
+        // how many rows are showing.
+        const rect = btn.getBoundingClientRect();
+        const estimatedHeight = Math.min(window.innerHeight * 0.7, 420);
+        const margin = 16;
+        const top = Math.max(margin, Math.min(rect.top, window.innerHeight - estimatedHeight - margin));
+        sheet.style.top = `${top}px`;
+
         modal.classList.add("open");
         setTimeout(() => search.focus(), 50);
     }

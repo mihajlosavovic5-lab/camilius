@@ -163,10 +163,13 @@ button { font-family: inherit; }
    unfiltered would be tedious. --- */
 .country-modal-sheet {
     width: min(340px, calc(100% - 32px)); max-height: 70vh;
-    top: calc(50% + var(--safe-top) / 2); transform: translate(-50%, calc(-50% - 6px)) scale(.96);
+    /* top is set inline by JS, right at the phone field's own on-screen position, rather
+       than a fixed CSS value - this is the one modal instance meant to feel anchored to
+       the field that opened it instead of popping up mid-screen. */
+    left: 50%; transform: translateX(-50%) translateY(-6px) scale(.96);
     display: flex; flex-direction: column;
 }
-.lang-modal.open .country-modal-sheet { transform: translate(-50%, -50%) scale(1); }
+.lang-modal.open .country-modal-sheet { transform: translateX(-50%) translateY(0) scale(1); }
 .country-search-input {
     width: 100%; padding: 11px 13px; margin-bottom: 6px; flex-shrink: 0;
     border: 1px solid var(--border); border-radius: 10px;
