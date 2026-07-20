@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
 <title>Camilius</title>
-<link rel="stylesheet" href="app.css?v=b43fc2367391">
+<link rel="stylesheet" href="app.css?v=ba711a991e10">
 </head>
 <body>
 
@@ -432,6 +432,12 @@
       </div>
       <p class="field-hint" data-i18n="appSettings.autoSendHint">When on, the AI sends replies to customers right away instead of waiting for your approval.</p>
 
+      <div class="block-label" data-i18n="appSettings.billing">Billing</div>
+      <div class="settings-row" id="settings-subscription-row">
+        <span data-i18n="appSettings.subscription">Subscription</span>
+        <span class="settings-row-chevron">›</span>
+      </div>
+
       <div class="block-label" data-i18n="appSettings.about">About</div>
       <div class="settings-row" id="settings-terms-row">
         <span data-i18n="appSettings.terms">Terms of Service</span>
@@ -559,6 +565,25 @@
     </div>
   </section>
 
+  <!-- SUBSCRIPTION (beta: informational only, no checkout - see subscription.html on
+       the website for the same messaging) -->
+  <section id="screen-subscription" class="screen screen-legal">
+    <header class="topbar">
+      <button class="back-btn" id="subscription-back" aria-label="Back">‹</button>
+      <div class="topbar-title"><div><h1 data-i18n="appSettings.subscription">Subscription</h1></div></div>
+    </header>
+    <div class="detail-body legal-body">
+      <div class="alert alert-success" data-i18n="subscription.betaBadge">Free during beta</div>
+      <p data-i18n="subscription.betaBody">Camilius is completely free while it's in beta - no card required, nothing to cancel. Paid plans are coming once beta wraps up; you'll get plenty of notice before anything changes.</p>
+      <ul>
+        <li data-i18n="subscription.benefit1">AI automatically reads new Instagram messages and prepares suggested replies</li>
+        <li data-i18n="subscription.benefit2">You just approve and send from the dashboard</li>
+        <li data-i18n="subscription.benefit3">Up to 50 replies per day</li>
+        <li data-i18n="subscription.benefit4">Replies learn from your conversation history with each customer</li>
+      </ul>
+    </div>
+  </section>
+
 </div>
 
 <!-- BOTTOM TAB BAR -->
@@ -574,7 +599,7 @@
   </button>
 </nav>
 
-<script src="i18n.js?v=b43fc2367391"></script>
-<script src="app.js?v=b43fc2367391"></script>
+<script src="i18n.js?v=ba711a991e10"></script>
+<script src="app.js?v=ba711a991e10"></script>
 </body>
 </html>

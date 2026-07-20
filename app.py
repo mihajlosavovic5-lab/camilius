@@ -715,9 +715,6 @@ def send_reply(conversation_id):
 @app.route("/subscription")
 @login_required
 def subscription():
-    if BETA_FREE_MODE:
-        return redirect(url_for("home"))
-
     business = business_by_id(session["business_id"])
     status = get_subscription_status(session["business_id"])
     return render_template(

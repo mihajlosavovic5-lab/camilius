@@ -37,6 +37,7 @@ const screens = {
     help: el("screen-help"),
     terms: el("screen-terms"),
     privacy: el("screen-privacy"),
+    subscription: el("screen-subscription"),
 };
 const tabbar = el("tabbar");
 const offlineBanner = el("offline-banner");
@@ -129,7 +130,7 @@ if (capacitorPlugins) {
             // let one back-press quit the app mid-setup, right after creating an account.
         } else if (screens.terms.classList.contains("active") || screens.privacy.classList.contains("active")) {
             showScreen(legalReturnTo);
-        } else if (screens.help.classList.contains("active")) {
+        } else if (screens.help.classList.contains("active") || screens.subscription.classList.contains("active")) {
             showScreen("settings");
         } else if (canGoBack) {
             history.back();
@@ -1537,6 +1538,8 @@ el("settings-terms-row").addEventListener("click", () => showLegalScreen("terms"
 el("settings-privacy-row").addEventListener("click", () => showLegalScreen("privacy", "settings"));
 el("settings-help-row").addEventListener("click", () => showScreen("help"));
 el("help-back").addEventListener("click", () => showScreen("settings"));
+el("settings-subscription-row").addEventListener("click", () => showScreen("subscription"));
+el("subscription-back").addEventListener("click", () => showScreen("settings"));
 
 const SUPPORT_EMAIL = "mihajlosavovic75757@gmail.com";
 
