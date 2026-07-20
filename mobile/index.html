@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
 <title>Camilius AI</title>
-<link rel="stylesheet" href="app.css?v=5fe2248c1e17">
+<link rel="stylesheet" href="app.css?v=7df8dd440da6">
 </head>
 <body>
 
@@ -32,6 +32,17 @@
   <div class="lang-modal-backdrop" id="lang-modal-backdrop"></div>
   <div class="lang-modal-sheet">
     <div id="lang-modal-list" class="lang-modal-list"></div>
+  </div>
+</div>
+
+<!-- Country code picker (phone number field on Create Account) - same fixed-overlay
+     mechanism as the language modal above, its own instance since it needs a search box
+     and a wider/taller sheet. -->
+<div id="country-modal" class="lang-modal">
+  <div class="lang-modal-backdrop" id="country-modal-backdrop"></div>
+  <div class="lang-modal-sheet country-modal-sheet">
+    <input type="text" id="country-search-input" class="country-search-input" data-i18n-placeholder="countryPicker.searchPlaceholder" placeholder="Search country">
+    <div id="country-modal-list" class="country-modal-list"></div>
   </div>
 </div>
 
@@ -149,7 +160,14 @@
           <input type="email" id="register-contact-email" data-i18n-placeholder="register.contactEmailPlaceholder" placeholder="you@example.com" autocomplete="email" autocapitalize="off" required>
 
           <label data-i18n="register.phone">Phone number (optional)</label>
-          <input type="tel" id="register-phone" data-i18n-placeholder="register.phonePlaceholder" placeholder="+381 6X XXX XXXX" autocomplete="tel">
+          <div class="phone-input-row">
+            <button type="button" class="phone-country-btn" id="register-phone-country-btn">
+              <span class="phone-country-flag" id="register-phone-country-flag">🇷🇸</span>
+              <span id="register-phone-country-dial">+381</span>
+              <span class="phone-country-chevron">⌄</span>
+            </button>
+            <input type="tel" id="register-phone" data-i18n-placeholder="register.phonePlaceholder" placeholder="6X XXX XXXX" autocomplete="tel">
+          </div>
         </div>
 
         <div class="register-step hidden" id="register-step-2">
@@ -501,7 +519,7 @@
   </button>
 </nav>
 
-<script src="i18n.js?v=5fe2248c1e17"></script>
-<script src="app.js?v=5fe2248c1e17"></script>
+<script src="i18n.js?v=7df8dd440da6"></script>
+<script src="app.js?v=7df8dd440da6"></script>
 </body>
 </html>

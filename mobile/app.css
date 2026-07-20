@@ -157,6 +157,42 @@ button { font-family: inherit; }
 }
 .lang-option-btn:active { background: var(--background); }
 
+/* --- Country code picker (phone number field) - same fixed-overlay modal mechanism as
+   the language picker above, just a wider/taller sheet (country name + dial code needs
+   more room than a language name) with a search box, since scrolling ~195 countries
+   unfiltered would be tedious. --- */
+.country-modal-sheet {
+    width: min(340px, calc(100% - 32px)); max-height: 70vh;
+    top: calc(50% + var(--safe-top) / 2); transform: translate(-50%, calc(-50% - 6px)) scale(.96);
+    display: flex; flex-direction: column;
+}
+.lang-modal.open .country-modal-sheet { transform: translate(-50%, -50%) scale(1); }
+.country-search-input {
+    width: 100%; padding: 11px 13px; margin-bottom: 6px; flex-shrink: 0;
+    border: 1px solid var(--border); border-radius: 10px;
+    font-family: inherit; font-size: 15px; color: var(--text); background: var(--background);
+}
+.country-modal-list { overflow-y: auto; }
+.country-option-btn {
+    display: flex; align-items: center; gap: 10px; width: 100%;
+    background: none; border: none; text-align: left; padding: 11px 14px; border-radius: 10px;
+    font-family: inherit; font-size: 15px; color: var(--text); cursor: pointer;
+}
+.country-option-btn:active { background: var(--background); }
+.country-option-flag { font-size: 18px; flex-shrink: 0; }
+.country-option-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.country-option-dial { color: var(--text-muted); font-size: 13.5px; flex-shrink: 0; }
+
+.phone-input-row { display: flex; gap: 8px; }
+.phone-country-btn {
+    display: flex; align-items: center; gap: 6px; flex-shrink: 0;
+    padding: 12px 10px; border: 1px solid var(--border); border-radius: 10px;
+    background: var(--surface); font-family: inherit; font-size: 15px; color: var(--text); cursor: pointer;
+}
+.phone-country-flag { font-size: 17px; }
+.phone-country-chevron { font-size: 11px; color: var(--text-muted); }
+.phone-input-row input[type="tel"] { flex: 1; min-width: 0; }
+
 /* --- Forms --- */
 label { display: block; font-weight: 600; font-size: 13.5px; margin: 14px 0 5px; }
 .field-hint { color: var(--text-muted); font-size: 12px; margin: 5px 2px 0; }
