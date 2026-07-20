@@ -118,7 +118,10 @@ if (capacitorPlugins) {
     capacitorPlugins.App.addListener("backButton", ({ canGoBack }) => {
         if (screens.detail.classList.contains("active")) {
             history.back();
-        } else if (screens.register.classList.contains("active") || screens.forgotPassword.classList.contains("active")) {
+        } else if (screens.register.classList.contains("active")) {
+            if (registerStep > 1) showRegisterStep(registerStep - 1);
+            else showScreen("login");
+        } else if (screens.forgotPassword.classList.contains("active")) {
             showScreen("login");
         } else if (screens.connectInstagram.classList.contains("active")) {
             // Deliberately swallowed - the only ways out are finishing the connection or
@@ -591,6 +594,46 @@ el("forgot-form").addEventListener("submit", async (event) => {
 // below. On success, replaces itself with the Connect Instagram screen (not pushed - the
 // account already exists at that point, so the back button shouldn't return here). ---
 
+// --- Create Account is a 3-step wizard (Account -> Working hours -> Prices/FAQ/Terms)
+// instead of one long scrolling form: step-dots + a bottom-right arrow that only lights
+// up once the current step's required fields are actually filled in. All three steps
+// stay inside the same <form> the whole time (nothing is created/destroyed switching
+// steps) - hidden steps are simply skipped by the browser's own validation, and the
+// final submit still gathers every field exactly like before. ---
+
+const REGISTER_STEP_COUNT = 3;
+let registerStep = 1;
+
+function showRegisterStep(n) {
+    registerStep = n;
+    for (let i = 1; i <= REGISTER_STEP_COUNT; i++) {
+        el(`register-step-${i}`).classList.toggle("hidden", i !== n);
+    }
+    document.querySelectorAll(".register-step-dot").forEach((dot, i) => {
+        dot.classList.toggle("active", i === n - 1);
+    });
+    el("register-next-btn").classList.toggle("hidden", n === REGISTER_STEP_COUNT);
+    el("register-submit").classList.toggle("hidden", n !== REGISTER_STEP_COUNT);
+    if (n === 1) updateRegisterStep1Validity();
+}
+
+function updateRegisterStep1Validity() {
+    const name = el("register-name").value.trim();
+    const username = el("register-username").value.trim();
+    const password = el("register-password").value;
+    const emailField = el("register-contact-email");
+    const valid = !!(name && username && password.length >= 8 && emailField.value.trim() && emailField.checkValidity());
+    el("register-next-btn").disabled = !valid;
+}
+["register-name", "register-username", "register-password", "register-contact-email"].forEach((id) => {
+    el(id).addEventListener("input", updateRegisterStep1Validity);
+});
+
+el("register-next-btn").addEventListener("click", () => {
+    if (el("register-next-btn").disabled) return;
+    if (registerStep < REGISTER_STEP_COUNT) showRegisterStep(registerStep + 1);
+});
+
 el("login-signup-link").addEventListener("click", () => {
     // Deliberately NOT register-form.reset() - the working-hours/price-list pickers
     // contain dynamically-created <select>/checkbox elements with no selected/checked
@@ -604,10 +647,18 @@ el("login-signup-link").addEventListener("click", () => {
     registerHoursPicker.reset();
     registerPricesPicker.setValue("");
     el("register-error").classList.add("hidden");
+    showRegisterStep(1);
     showScreen("register");
 });
 
-el("register-back").addEventListener("click", () => showScreen("login"));
+// Back either steps back within the wizard, or (from step 1) exits to Login.
+el("register-back").addEventListener("click", () => {
+    if (registerStep > 1) {
+        showRegisterStep(registerStep - 1);
+    } else {
+        showScreen("login");
+    }
+});
 
 // Terms/Privacy are native screens now (not a browser tab) - reachable from here and
 // from Settings, so back needs to know which one to return to (see legalReturnTo above).
@@ -622,6 +673,16 @@ el("privacy-back").addEventListener("click", () => showScreen(legalReturnTo));
 
 el("register-form").addEventListener("submit", async (event) => {
     event.preventDefault();
+
+    // Enter key in a text field implicitly submits the form regardless of which step is
+    // visible - treat that the same as tapping the arrow (advance a step) unless we're
+    // actually on the last one.
+    if (registerStep < REGISTER_STEP_COUNT) {
+        if (registerStep === 1 && el("register-next-btn").disabled) return;
+        showRegisterStep(registerStep + 1);
+        return;
+    }
+
     const errorBox = el("register-error");
     const submitBtn = el("register-submit");
 
