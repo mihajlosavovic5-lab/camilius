@@ -157,11 +157,11 @@ button { font-family: inherit; }
 }
 .lang-option-btn:active { background: var(--background); }
 
-/* --- Country code picker (phone number field) - full searchable list (flag + name +
-   dial code), sized and positioned inline by JS to match the width of the whole
-   phone-input-row (button + number field) and sit right below it, instead of the
-   language picker's fixed mid-screen spot - reads as attached to the field it belongs
-   to rather than an unrelated popup. --- */
+/* --- Country code picker (phone number field) - list (flag + name + dial code), sized
+   and positioned inline by JS to match the width of the whole phone-input-row (button +
+   number field) and sit right below it, instead of the language picker's fixed
+   mid-screen spot - reads as attached to the field it belongs to rather than an
+   unrelated popup. --- */
 .country-modal-sheet {
     max-height: min(320px, 60vh); padding: 8px;
     transform-origin: top left;
@@ -169,11 +169,6 @@ button { font-family: inherit; }
     display: flex; flex-direction: column;
 }
 .lang-modal.open .country-modal-sheet { transform: scale(1) translateY(0); }
-.country-search-input {
-    width: 100%; padding: 11px 13px; margin-bottom: 6px; flex-shrink: 0;
-    border: 1px solid var(--border); border-radius: 10px;
-    font-family: inherit; font-size: 15px; color: var(--text); background: var(--background);
-}
 .country-modal-list { overflow-y: auto; }
 .country-option-btn {
     display: flex; align-items: center; gap: 10px; width: 100%;

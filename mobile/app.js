@@ -605,37 +605,27 @@ function setupCountryPicker() {
     const sheet = modal.querySelector(".country-modal-sheet");
     const backdrop = el("country-modal-backdrop");
     const list = el("country-modal-list");
-    const search = el("country-search-input");
     const flagEl = el("register-phone-country-flag");
     const dialEl = el("register-phone-country-dial");
 
-    function renderList(filter) {
-        list.innerHTML = "";
-        const q = (filter || "").trim().toLowerCase();
-        const filtered = q
-            ? COUNTRIES.filter((c) => c.name.toLowerCase().includes(q) || c.dial.includes(q))
-            : COUNTRIES;
-        filtered.forEach((c) => {
-            const row = document.createElement("button");
-            row.type = "button";
-            row.className = "country-option-btn";
-            row.innerHTML = `<span class="country-option-flag">${countryFlagEmoji(c.code)}</span>` +
-                `<span class="country-option-name">${escapeHtml(c.name)}</span>` +
-                `<span class="country-option-dial">${c.dial}</span>`;
-            row.addEventListener("click", () => {
-                selectedPhoneCountry = c;
-                flagEl.textContent = countryFlagEmoji(c.code);
-                dialEl.textContent = c.dial;
-                closeCountryModal();
-            });
-            list.appendChild(row);
+    // Rendered once - no search, so the list never changes after this.
+    COUNTRIES.forEach((c) => {
+        const row = document.createElement("button");
+        row.type = "button";
+        row.className = "country-option-btn";
+        row.innerHTML = `<span class="country-option-flag">${countryFlagEmoji(c.code)}</span>` +
+            `<span class="country-option-name">${escapeHtml(c.name)}</span>` +
+            `<span class="country-option-dial">${c.dial}</span>`;
+        row.addEventListener("click", () => {
+            selectedPhoneCountry = c;
+            flagEl.textContent = countryFlagEmoji(c.code);
+            dialEl.textContent = c.dial;
+            closeCountryModal();
         });
-    }
+        list.appendChild(row);
+    });
 
     function openCountryModal() {
-        search.value = "";
-        renderList("");
-
         // Sized to match the whole phone-input-row (button + number field) and anchored
         // right below it (never above) - reads as attached to that field instead of a
         // separate popup. If there isn't full room underneath, shrink the list's
@@ -650,7 +640,6 @@ function setupCountryPicker() {
         sheet.style.maxHeight = `${Math.max(160, Math.min(320, available))}px`;
 
         modal.classList.add("open");
-        setTimeout(() => search.focus(), 50);
     }
     function closeCountryModal() {
         modal.classList.remove("open");
@@ -661,7 +650,6 @@ function setupCountryPicker() {
         else openCountryModal();
     });
     backdrop.addEventListener("click", closeCountryModal);
-    search.addEventListener("input", () => renderList(search.value));
 
     flagEl.textContent = countryFlagEmoji(selectedPhoneCountry.code);
     dialEl.textContent = selectedPhoneCountry.dial;
