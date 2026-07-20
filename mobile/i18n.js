@@ -7,13 +7,13 @@
 
 const LANGUAGES = [
     { code: "en", name: "English" },
-    { code: "sr", name: "Srpski" },
     { code: "es", name: "Español" },
     { code: "pt", name: "Português" },
     { code: "fr", name: "Français" },
     { code: "de", name: "Deutsch" },
     { code: "it", name: "Italiano" },
     { code: "ru", name: "Русский" },
+    { code: "sr", name: "Srpski" },
     { code: "zh", name: "中文" },
     { code: "tr", name: "Türkçe" },
 ];
@@ -31,6 +31,7 @@ const TRANSLATIONS = {
         "onboarding.slide4.body": "Nothing goes out without your approval — review, edit if you like, then send.",
         "onboarding.getStarted": "Get started",
 
+        "login.tagline": "AI replies for your Instagram DMs",
         "login.username": "Username, email, or phone",
         "login.password": "Password",
         "login.submit": "Log in",
@@ -40,7 +41,7 @@ const TRANSLATIONS = {
         "login.signup": "Create account",
 
         "register.title": "Create account",
-        "register.subtitle": "Set up your business — you can change all of this later in Settings.",
+        "register.subtitle": "Set up your business — you can change all of this later in Profile.",
         "register.name": "Business name",
         "register.namePlaceholder": "e.g. Style Hair Salon",
         "register.username": "Username",
@@ -85,7 +86,7 @@ const TRANSLATIONS = {
         "forgot.emailPlaceholder": "Email",
         "forgot.submit": "Send reset link",
         "forgot.submitLoading": "Sending…",
-        "forgot.success": "If that email is registered, we've sent a password reset link.",
+        "forgot.success": "We've sent a password reset link to that email.",
         "forgot.error": "Something went wrong. Try again.",
         "forgot.backToLogin": "Back to login",
 
@@ -118,6 +119,13 @@ const TRANSLATIONS = {
 
         "settings.title": "Settings",
         "settings.name": "Business name",
+        "settings.username": "Username",
+        "settings.contactEmail": "Contact email",
+        "settings.phone": "Phone number (optional)",
+        "settings.security": "Security",
+        "settings.currentPassword": "Current password",
+        "settings.newPassword": "New password (leave blank to keep current)",
+        "settings.errorCurrentPasswordRequired": "Enter your current password to set a new one.",
         "settings.instagramAccount": "Instagram account (read-only)",
         "settings.hours": "Working hours",
         "settings.prices": "Price list",
@@ -200,6 +208,7 @@ const TRANSLATIONS = {
         "onboarding.slide4.body": "Ništa se ne šalje bez vašeg odobrenja — pregledajte, izmenite ako želite, pa pošaljite.",
         "onboarding.getStarted": "Počnimo",
 
+        "login.tagline": "AI odgovori za vaše Instagram poruke",
         "login.username": "Korisničko ime, email ili telefon",
         "login.password": "Lozinka",
         "login.submit": "Prijavi se",
@@ -209,7 +218,7 @@ const TRANSLATIONS = {
         "login.signup": "Napravi nalog",
 
         "register.title": "Napravi nalog",
-        "register.subtitle": "Podesite svoju firmu — sve ovo možete kasnije promeniti u Podešavanjima.",
+        "register.subtitle": "Podesite svoju firmu — sve ovo možete kasnije promeniti u Profilu.",
         "register.name": "Naziv firme",
         "register.namePlaceholder": "npr. Frizerski salon Stil",
         "register.username": "Korisničko ime",
@@ -254,7 +263,7 @@ const TRANSLATIONS = {
         "forgot.emailPlaceholder": "Email",
         "forgot.submit": "Pošalji link za reset",
         "forgot.submitLoading": "Slanje…",
-        "forgot.success": "Ako je taj email registrovan, poslali smo link za reset lozinke.",
+        "forgot.success": "Poslali smo link za reset lozinke na taj email.",
         "forgot.error": "Nešto nije u redu. Pokušajte ponovo.",
         "forgot.backToLogin": "Nazad na prijavu",
 
@@ -287,6 +296,13 @@ const TRANSLATIONS = {
 
         "settings.title": "Podešavanja",
         "settings.name": "Naziv firme",
+        "settings.username": "Korisničko ime",
+        "settings.contactEmail": "Kontakt email",
+        "settings.phone": "Broj telefona (opciono)",
+        "settings.security": "Bezbednost",
+        "settings.currentPassword": "Trenutna lozinka",
+        "settings.newPassword": "Nova lozinka (ostavite prazno da zadržite trenutnu)",
+        "settings.errorCurrentPasswordRequired": "Unesite trenutnu lozinku da biste postavili novu.",
         "settings.instagramAccount": "Instagram nalog (samo za čitanje)",
         "settings.hours": "Radno vreme",
         "settings.prices": "Cenovnik",
@@ -369,6 +385,7 @@ const TRANSLATIONS = {
         "onboarding.slide4.body": "Nada se envía sin tu aprobación — revisa, edita si quieres, y luego envía.",
         "onboarding.getStarted": "Empezar",
 
+        "login.tagline": "Respuestas con IA para tus DM de Instagram",
         "login.username": "Usuario, email o teléfono",
         "login.password": "Contraseña",
         "login.submit": "Iniciar sesión",
@@ -378,7 +395,7 @@ const TRANSLATIONS = {
         "login.signup": "Crear cuenta",
 
         "register.title": "Crear cuenta",
-        "register.subtitle": "Configura tu negocio — puedes cambiar todo esto más tarde en Ajustes.",
+        "register.subtitle": "Configura tu negocio — puedes cambiar todo esto más tarde en Perfil.",
         "register.name": "Nombre del negocio",
         "register.namePlaceholder": "ej. Salón de belleza Estilo",
         "register.username": "Usuario",
@@ -423,7 +440,7 @@ const TRANSLATIONS = {
         "forgot.emailPlaceholder": "Correo electrónico",
         "forgot.submit": "Enviar enlace",
         "forgot.submitLoading": "Enviando…",
-        "forgot.success": "Si ese correo está registrado, te hemos enviado un enlace para restablecer la contraseña.",
+        "forgot.success": "Hemos enviado un enlace para restablecer la contraseña a ese correo.",
         "forgot.error": "Algo salió mal. Inténtalo de nuevo.",
         "forgot.backToLogin": "Volver a iniciar sesión",
 
@@ -456,6 +473,13 @@ const TRANSLATIONS = {
 
         "settings.title": "Ajustes",
         "settings.name": "Nombre del negocio",
+        "settings.username": "Usuario",
+        "settings.contactEmail": "Correo de contacto",
+        "settings.phone": "Número de teléfono (opcional)",
+        "settings.security": "Seguridad",
+        "settings.currentPassword": "Contraseña actual",
+        "settings.newPassword": "Nueva contraseña (deja en blanco para mantener la actual)",
+        "settings.errorCurrentPasswordRequired": "Introduce tu contraseña actual para establecer una nueva.",
         "settings.instagramAccount": "Cuenta de Instagram (solo lectura)",
         "settings.hours": "Horario de atención",
         "settings.prices": "Lista de precios",
@@ -538,6 +562,7 @@ const TRANSLATIONS = {
         "onboarding.slide4.body": "Nada é enviado sem sua aprovação — revise, edite se quiser, e depois envie.",
         "onboarding.getStarted": "Começar",
 
+        "login.tagline": "Respostas com IA para seus DMs do Instagram",
         "login.username": "Usuário, email ou telefone",
         "login.password": "Senha",
         "login.submit": "Entrar",
@@ -547,7 +572,7 @@ const TRANSLATIONS = {
         "login.signup": "Criar conta",
 
         "register.title": "Criar conta",
-        "register.subtitle": "Configure sua empresa — você pode alterar tudo isso depois em Configurações.",
+        "register.subtitle": "Configure sua empresa — você pode alterar tudo isso depois em Perfil.",
         "register.name": "Nome da empresa",
         "register.namePlaceholder": "ex. Salão de Beleza Estilo",
         "register.username": "Usuário",
@@ -592,7 +617,7 @@ const TRANSLATIONS = {
         "forgot.emailPlaceholder": "Email",
         "forgot.submit": "Enviar link de redefinição",
         "forgot.submitLoading": "Enviando…",
-        "forgot.success": "Se esse email estiver registrado, enviamos um link para redefinir a senha.",
+        "forgot.success": "Enviamos um link para redefinir a senha para esse email.",
         "forgot.error": "Algo deu errado. Tente novamente.",
         "forgot.backToLogin": "Voltar ao login",
 
@@ -625,6 +650,13 @@ const TRANSLATIONS = {
 
         "settings.title": "Configurações",
         "settings.name": "Nome da empresa",
+        "settings.username": "Usuário",
+        "settings.contactEmail": "Email de contato",
+        "settings.phone": "Número de telefone (opcional)",
+        "settings.security": "Segurança",
+        "settings.currentPassword": "Senha atual",
+        "settings.newPassword": "Nova senha (deixe em branco para manter a atual)",
+        "settings.errorCurrentPasswordRequired": "Digite sua senha atual para definir uma nova.",
         "settings.instagramAccount": "Conta do Instagram (somente leitura)",
         "settings.hours": "Horário de funcionamento",
         "settings.prices": "Tabela de preços",
@@ -707,6 +739,7 @@ const TRANSLATIONS = {
         "onboarding.slide4.body": "Rien n'est envoyé sans votre accord — relisez, modifiez si besoin, puis envoyez.",
         "onboarding.getStarted": "Commencer",
 
+        "login.tagline": "Réponses IA pour vos DM Instagram",
         "login.username": "Nom d'utilisateur, email ou téléphone",
         "login.password": "Mot de passe",
         "login.submit": "Se connecter",
@@ -716,7 +749,7 @@ const TRANSLATIONS = {
         "login.signup": "Créer un compte",
 
         "register.title": "Créer un compte",
-        "register.subtitle": "Configurez votre entreprise — vous pourrez tout modifier plus tard dans les Paramètres.",
+        "register.subtitle": "Configurez votre entreprise — vous pourrez tout modifier plus tard dans Profil.",
         "register.name": "Nom de l'entreprise",
         "register.namePlaceholder": "ex. Salon de coiffure Style",
         "register.username": "Nom d'utilisateur",
@@ -761,7 +794,7 @@ const TRANSLATIONS = {
         "forgot.emailPlaceholder": "Email",
         "forgot.submit": "Envoyer le lien",
         "forgot.submitLoading": "Envoi…",
-        "forgot.success": "Si cet email est enregistré, nous avons envoyé un lien de réinitialisation.",
+        "forgot.success": "Nous avons envoyé un lien de réinitialisation à cet email.",
         "forgot.error": "Une erreur s'est produite. Réessayez.",
         "forgot.backToLogin": "Retour à la connexion",
 
@@ -794,6 +827,13 @@ const TRANSLATIONS = {
 
         "settings.title": "Paramètres",
         "settings.name": "Nom de l'entreprise",
+        "settings.username": "Nom d'utilisateur",
+        "settings.contactEmail": "Email de contact",
+        "settings.phone": "Numéro de téléphone (facultatif)",
+        "settings.security": "Sécurité",
+        "settings.currentPassword": "Mot de passe actuel",
+        "settings.newPassword": "Nouveau mot de passe (laissez vide pour conserver l'actuel)",
+        "settings.errorCurrentPasswordRequired": "Entrez votre mot de passe actuel pour en définir un nouveau.",
         "settings.instagramAccount": "Compte Instagram (lecture seule)",
         "settings.hours": "Horaires d'ouverture",
         "settings.prices": "Grille tarifaire",
@@ -876,6 +916,7 @@ const TRANSLATIONS = {
         "onboarding.slide4.body": "Nichts wird ohne deine Zustimmung verschickt — prüfen, bei Bedarf bearbeiten, dann senden.",
         "onboarding.getStarted": "Los geht's",
 
+        "login.tagline": "KI-Antworten für deine Instagram-DMs",
         "login.username": "Benutzername, E-Mail oder Telefon",
         "login.password": "Passwort",
         "login.submit": "Anmelden",
@@ -885,7 +926,7 @@ const TRANSLATIONS = {
         "login.signup": "Konto erstellen",
 
         "register.title": "Konto erstellen",
-        "register.subtitle": "Richte dein Unternehmen ein — du kannst später alles in den Einstellungen ändern.",
+        "register.subtitle": "Richte dein Unternehmen ein — du kannst später alles in deinem Profil ändern.",
         "register.name": "Firmenname",
         "register.namePlaceholder": "z. B. Friseursalon Stil",
         "register.username": "Benutzername",
@@ -930,7 +971,7 @@ const TRANSLATIONS = {
         "forgot.emailPlaceholder": "E-Mail",
         "forgot.submit": "Link senden",
         "forgot.submitLoading": "Wird gesendet…",
-        "forgot.success": "Falls diese E-Mail registriert ist, haben wir einen Link zum Zurücksetzen gesendet.",
+        "forgot.success": "Wir haben einen Link zum Zurücksetzen des Passworts an diese E-Mail gesendet.",
         "forgot.error": "Etwas ist schiefgelaufen. Versuch's noch mal.",
         "forgot.backToLogin": "Zurück zur Anmeldung",
 
@@ -963,6 +1004,13 @@ const TRANSLATIONS = {
 
         "settings.title": "Einstellungen",
         "settings.name": "Firmenname",
+        "settings.username": "Benutzername",
+        "settings.contactEmail": "Kontakt-E-Mail",
+        "settings.phone": "Telefonnummer (optional)",
+        "settings.security": "Sicherheit",
+        "settings.currentPassword": "Aktuelles Passwort",
+        "settings.newPassword": "Neues Passwort (leer lassen, um das aktuelle zu behalten)",
+        "settings.errorCurrentPasswordRequired": "Gib dein aktuelles Passwort ein, um ein neues festzulegen.",
         "settings.instagramAccount": "Instagram-Konto (schreibgeschützt)",
         "settings.hours": "Öffnungszeiten",
         "settings.prices": "Preisliste",
@@ -1045,6 +1093,7 @@ const TRANSLATIONS = {
         "onboarding.slide4.body": "Niente viene inviato senza la tua approvazione — controlla, modifica se vuoi, poi invia.",
         "onboarding.getStarted": "Inizia",
 
+        "login.tagline": "Risposte IA per i tuoi DM di Instagram",
         "login.username": "Nome utente, email o telefono",
         "login.password": "Password",
         "login.submit": "Accedi",
@@ -1054,7 +1103,7 @@ const TRANSLATIONS = {
         "login.signup": "Crea account",
 
         "register.title": "Crea account",
-        "register.subtitle": "Configura la tua attività — potrai modificare tutto in seguito nelle Impostazioni.",
+        "register.subtitle": "Configura la tua attività — potrai modificare tutto in seguito nel Profilo.",
         "register.name": "Nome dell'attività",
         "register.namePlaceholder": "es. Salone di parrucchiere Stile",
         "register.username": "Nome utente",
@@ -1099,7 +1148,7 @@ const TRANSLATIONS = {
         "forgot.emailPlaceholder": "Email",
         "forgot.submit": "Invia link di reset",
         "forgot.submitLoading": "Invio…",
-        "forgot.success": "Se questa email è registrata, abbiamo inviato un link per reimpostare la password.",
+        "forgot.success": "Abbiamo inviato un link per reimpostare la password a quell'email.",
         "forgot.error": "Qualcosa è andato storto. Riprova.",
         "forgot.backToLogin": "Torna al login",
 
@@ -1132,6 +1181,13 @@ const TRANSLATIONS = {
 
         "settings.title": "Impostazioni",
         "settings.name": "Nome dell'attività",
+        "settings.username": "Nome utente",
+        "settings.contactEmail": "Email di contatto",
+        "settings.phone": "Numero di telefono (facoltativo)",
+        "settings.security": "Sicurezza",
+        "settings.currentPassword": "Password attuale",
+        "settings.newPassword": "Nuova password (lascia vuoto per mantenere quella attuale)",
+        "settings.errorCurrentPasswordRequired": "Inserisci la password attuale per impostarne una nuova.",
         "settings.instagramAccount": "Account Instagram (sola lettura)",
         "settings.hours": "Orari di apertura",
         "settings.prices": "Listino prezzi",
@@ -1214,6 +1270,7 @@ const TRANSLATIONS = {
         "onboarding.slide4.body": "Ничего не отправляется без вашего одобрения — просмотрите, отредактируйте при желании, затем отправьте.",
         "onboarding.getStarted": "Начать",
 
+        "login.tagline": "ИИ-ответы для ваших Instagram-сообщений",
         "login.username": "Имя пользователя, email или телефон",
         "login.password": "Пароль",
         "login.submit": "Войти",
@@ -1223,7 +1280,7 @@ const TRANSLATIONS = {
         "login.signup": "Создать аккаунт",
 
         "register.title": "Создать аккаунт",
-        "register.subtitle": "Настройте свою компанию — позже вы сможете изменить всё это в Настройках.",
+        "register.subtitle": "Настройте свою компанию — позже вы сможете изменить всё это в Профиле.",
         "register.name": "Название компании",
         "register.namePlaceholder": "напр. Салон красоты Стиль",
         "register.username": "Имя пользователя",
@@ -1268,7 +1325,7 @@ const TRANSLATIONS = {
         "forgot.emailPlaceholder": "Email",
         "forgot.submit": "Отправить ссылку",
         "forgot.submitLoading": "Отправка…",
-        "forgot.success": "Если этот email зарегистрирован, мы отправили ссылку для сброса пароля.",
+        "forgot.success": "Мы отправили ссылку для сброса пароля на этот email.",
         "forgot.error": "Что-то пошло не так. Попробуйте снова.",
         "forgot.backToLogin": "Назад ко входу",
 
@@ -1301,6 +1358,13 @@ const TRANSLATIONS = {
 
         "settings.title": "Настройки",
         "settings.name": "Название компании",
+        "settings.username": "Имя пользователя",
+        "settings.contactEmail": "Контактный email",
+        "settings.phone": "Номер телефона (необязательно)",
+        "settings.security": "Безопасность",
+        "settings.currentPassword": "Текущий пароль",
+        "settings.newPassword": "Новый пароль (оставьте пустым, чтобы сохранить текущий)",
+        "settings.errorCurrentPasswordRequired": "Введите текущий пароль, чтобы установить новый.",
         "settings.instagramAccount": "Аккаунт Instagram (только чтение)",
         "settings.hours": "Часы работы",
         "settings.prices": "Прайс-лист",
@@ -1383,6 +1447,7 @@ const TRANSLATIONS = {
         "onboarding.slide4.body": "未经您批准，任何内容都不会发出——先查看，需要可编辑，然后发送。",
         "onboarding.getStarted": "开始使用",
 
+        "login.tagline": "为您的 Instagram 私信提供 AI 回复",
         "login.username": "用户名、邮箱或电话",
         "login.password": "密码",
         "login.submit": "登录",
@@ -1392,7 +1457,7 @@ const TRANSLATIONS = {
         "login.signup": "创建账户",
 
         "register.title": "创建账户",
-        "register.subtitle": "设置您的企业信息——之后可以随时在设置中修改。",
+        "register.subtitle": "设置您的企业信息——之后可以随时在个人资料中修改。",
         "register.name": "企业名称",
         "register.namePlaceholder": "例如：风格美发沙龙",
         "register.username": "用户名",
@@ -1437,7 +1502,7 @@ const TRANSLATIONS = {
         "forgot.emailPlaceholder": "邮箱",
         "forgot.submit": "发送重置链接",
         "forgot.submitLoading": "发送中…",
-        "forgot.success": "如果该邮箱已注册，我们已发送密码重置链接。",
+        "forgot.success": "我们已将密码重置链接发送到该邮箱。",
         "forgot.error": "出了点问题，请重试。",
         "forgot.backToLogin": "返回登录",
 
@@ -1470,6 +1535,13 @@ const TRANSLATIONS = {
 
         "settings.title": "设置",
         "settings.name": "企业名称",
+        "settings.username": "用户名",
+        "settings.contactEmail": "联系邮箱",
+        "settings.phone": "电话号码（选填）",
+        "settings.security": "安全",
+        "settings.currentPassword": "当前密码",
+        "settings.newPassword": "新密码（留空则保持不变）",
+        "settings.errorCurrentPasswordRequired": "请输入当前密码以设置新密码。",
         "settings.instagramAccount": "Instagram 账户（只读）",
         "settings.hours": "营业时间",
         "settings.prices": "价目表",
@@ -1552,6 +1624,7 @@ const TRANSLATIONS = {
         "onboarding.slide4.body": "Onayınız olmadan hiçbir şey gönderilmez — inceleyin, isterseniz düzenleyin, sonra gönderin.",
         "onboarding.getStarted": "Başla",
 
+        "login.tagline": "Instagram DM'leriniz için yapay zeka yanıtları",
         "login.username": "Kullanıcı adı, e-posta veya telefon",
         "login.password": "Şifre",
         "login.submit": "Giriş yap",
@@ -1561,7 +1634,7 @@ const TRANSLATIONS = {
         "login.signup": "Hesap oluştur",
 
         "register.title": "Hesap oluştur",
-        "register.subtitle": "İşletmenizi ayarlayın — tüm bunları daha sonra Ayarlar'dan değiştirebilirsiniz.",
+        "register.subtitle": "İşletmenizi ayarlayın — tüm bunları daha sonra Profil'den değiştirebilirsiniz.",
         "register.name": "İşletme adı",
         "register.namePlaceholder": "ör. Stil Kuaför Salonu",
         "register.username": "Kullanıcı adı",
@@ -1606,7 +1679,7 @@ const TRANSLATIONS = {
         "forgot.emailPlaceholder": "E-posta",
         "forgot.submit": "Sıfırlama bağlantısı gönder",
         "forgot.submitLoading": "Gönderiliyor…",
-        "forgot.success": "Bu e-posta kayıtlıysa, şifre sıfırlama bağlantısı gönderdik.",
+        "forgot.success": "Şifre sıfırlama bağlantısını bu e-postaya gönderdik.",
         "forgot.error": "Bir şeyler ters gitti. Tekrar deneyin.",
         "forgot.backToLogin": "Girişe dön",
 
@@ -1639,6 +1712,13 @@ const TRANSLATIONS = {
 
         "settings.title": "Ayarlar",
         "settings.name": "İşletme adı",
+        "settings.username": "Kullanıcı adı",
+        "settings.contactEmail": "İletişim e-postası",
+        "settings.phone": "Telefon numarası (isteğe bağlı)",
+        "settings.security": "Güvenlik",
+        "settings.currentPassword": "Mevcut şifre",
+        "settings.newPassword": "Yeni şifre (mevcut şifreyi korumak için boş bırakın)",
+        "settings.errorCurrentPasswordRequired": "Yeni bir şifre belirlemek için mevcut şifrenizi girin.",
         "settings.instagramAccount": "Instagram hesabı (salt okunur)",
         "settings.hours": "Çalışma saatleri",
         "settings.prices": "Fiyat listesi",

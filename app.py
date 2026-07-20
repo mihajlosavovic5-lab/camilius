@@ -219,12 +219,12 @@ def instagram_oauth_callback():
 
 def request_password_reset(email):
     """Shared by the web /forgot-password route and the mobile app's /api/forgot-password -
-    looks up the account and, if found, emails a reset link. Always safe to call even if
-    no account matches (just does nothing) - the caller is responsible for returning the
-    same response either way, so as not to reveal whether an account exists."""
+    looks up the account and, if found, emails a reset link. Returns True/False so the
+    caller can tell the user whether that email is actually registered (a deliberate
+    product choice - see the callers for the tradeoff)."""
     business = business_by_contact_email(email)
     if not business:
-        return
+        return False
 
     token = secrets.token_urlsafe(32)
     expires = datetime.now(timezone.utc).replace(tzinfo=None) + timedelta(hours=1)
@@ -244,17 +244,23 @@ def request_password_reset(email):
         business_name="Camilius AI",
         reply_to=os.getenv("ALERT_EMAIL") or business[4],
     )
+    return True
 
 
 @app.route("/forgot-password", methods=["GET", "POST"])
 @limiter.limit("5 per hour", methods=["POST"])
 def forgot_password():
     if request.method == "POST":
-        request_password_reset(request.form["email"])
-        # Same message regardless of whether the email was found - don't reveal whether an account exists
+        email = request.form["email"]
+        if not request_password_reset(email):
+            return render_template(
+                "forgot_password.html",
+                error="No account found with that email address.",
+                email=email,
+            )
         return render_template(
             "forgot_password.html",
-            message="If that email is registered, we've sent a password reset link.",
+            message="We've sent a password reset link to that email.",
         )
 
     return render_template("forgot_password.html", message=None)
@@ -287,8 +293,8 @@ def logout():
 @login_required
 def settings():
     business = business_by_id(session["business_id"])
-    # indices: 0 id, 1 name, 4 contact_email, 5 instagram_account_id, 6 instagram_username,
-    # 8 working_hours, 9 price_list, 10 faq
+    # indices: 0 id, 1 name, 2 username, 4 contact_email, 5 instagram_account_id,
+    # 6 instagram_username, 8 working_hours, 9 price_list, 10 faq, 11 phone_number
     contact_email = business[4]
     instagram_username = business[6]
 
@@ -298,7 +304,9 @@ def settings():
         price_list = request.form["price_list"]
         faq = request.form["faq"]
 
-        update_business(session["business_id"], name, working_hours, price_list, faq)
+        # Username/email/phone aren't editable from this page (the mobile app's Profile
+        # screen is where that lives) - carry the existing values through unchanged.
+        update_business(session["business_id"], name, business[2], contact_email, business[11], working_hours, price_list, faq)
         session["business_name"] = name
 
         return render_template(

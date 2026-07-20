@@ -608,24 +608,54 @@ function countryFlagEmoji(iso) {
     return iso.toUpperCase().replace(/./g, (c) => String.fromCodePoint(127397 + c.charCodeAt(0)));
 }
 
-let selectedPhoneCountry = COUNTRIES.find((c) => c.code === "RS");
 // Best-effort default from the device's own locale (e.g. "de-DE" -> Germany) - falls
 // back to Serbia (this product's home market) when that doesn't resolve to a real country.
-const localeRegionMatch = /-([A-Za-z]{2})$/.exec(navigator.language || "");
-if (localeRegionMatch) {
-    const guess = COUNTRIES.find((c) => c.code === localeRegionMatch[1].toUpperCase());
-    if (guess) selectedPhoneCountry = guess;
+function defaultPhoneCountry() {
+    const localeRegionMatch = /-([A-Za-z]{2})$/.exec(navigator.language || "");
+    if (localeRegionMatch) {
+        const guess = COUNTRIES.find((c) => c.code === localeRegionMatch[1].toUpperCase());
+        if (guess) return guess;
+    }
+    return COUNTRIES.find((c) => c.code === "RS");
 }
 
+let selectedPhoneCountry = defaultPhoneCountry();
+let selectedProfilePhoneCountry = defaultPhoneCountry();
+
+// Best-effort split of a stored "+381 6X XXX XXXX"-shaped phone number back into
+// {country, rest} for re-populating the Profile screen's picker + input. Longest dial
+// code first, since some codes are prefixes of others (e.g. "+1" vs "+1876").
+function splitStoredPhoneNumber(stored) {
+    const value = (stored || "").trim();
+    if (!value) return { country: defaultPhoneCountry(), rest: "" };
+    const byDialLengthDesc = [...COUNTRIES].sort((a, b) => b.dial.length - a.dial.length);
+    const match = byDialLengthDesc.find((c) => value.startsWith(c.dial));
+    if (!match) return { country: defaultPhoneCountry(), rest: value };
+    return { country: match, rest: value.slice(match.dial.length).trim() };
+}
+
+// One shared country-modal instance reused across every phone field (Create Account's
+// and Profile's) - same multi-trigger pattern as setupLanguagePicker() above, since each
+// field needs its own selected-country state and its own flag/dial display.
 function setupCountryPicker() {
-    const btn = el("register-phone-country-btn");
-    const phoneRow = el("register-phone-row");
     const modal = el("country-modal");
     const sheet = modal.querySelector(".country-modal-sheet");
     const backdrop = el("country-modal-backdrop");
     const list = el("country-modal-list");
-    const flagEl = el("register-phone-country-flag");
-    const dialEl = el("register-phone-country-dial");
+
+    const bindings = [
+        {
+            btn: el("register-phone-country-btn"), row: el("register-phone-row"),
+            flagEl: el("register-phone-country-flag"), dialEl: el("register-phone-country-dial"),
+            onSelect: (c) => { selectedPhoneCountry = c; },
+        },
+        {
+            btn: el("settings-phone-country-btn"), row: el("settings-phone-row"),
+            flagEl: el("settings-phone-country-flag"), dialEl: el("settings-phone-country-dial"),
+            onSelect: (c) => { selectedProfilePhoneCountry = c; },
+        },
+    ];
+    let active = null;
 
     // Rendered once - no search, so the list never changes after this.
     COUNTRIES.forEach((c) => {
@@ -636,20 +666,22 @@ function setupCountryPicker() {
             `<span class="country-option-name">${escapeHtml(c.name)}</span>` +
             `<span class="country-option-dial">${c.dial}</span>`;
         row.addEventListener("click", () => {
-            selectedPhoneCountry = c;
-            flagEl.textContent = countryFlagEmoji(c.code);
-            dialEl.textContent = c.dial;
+            if (!active) return;
+            active.onSelect(c);
+            active.flagEl.textContent = countryFlagEmoji(c.code);
+            active.dialEl.textContent = c.dial;
             closeCountryModal();
         });
         list.appendChild(row);
     });
 
-    function openCountryModal() {
+    function openCountryModal(binding) {
+        active = binding;
         // Sized to match the whole phone-input-row (button + number field) and anchored
         // right below it (never above) - reads as attached to that field instead of a
         // separate popup. If there isn't full room underneath, shrink the list's
         // max-height to what's left rather than moving it above the field.
-        const rect = phoneRow.getBoundingClientRect();
+        const rect = binding.row.getBoundingClientRect();
         const margin = 12;
         const top = rect.bottom + 6;
         const available = window.innerHeight - top - margin;
@@ -662,18 +694,31 @@ function setupCountryPicker() {
     }
     function closeCountryModal() {
         modal.classList.remove("open");
+        active = null;
     }
 
-    btn.addEventListener("click", () => {
-        if (modal.classList.contains("open")) closeCountryModal();
-        else openCountryModal();
+    bindings.forEach((binding) => {
+        binding.btn.addEventListener("click", () => {
+            if (modal.classList.contains("open") && active === binding) closeCountryModal();
+            else openCountryModal(binding);
+        });
     });
     backdrop.addEventListener("click", closeCountryModal);
 
-    flagEl.textContent = countryFlagEmoji(selectedPhoneCountry.code);
-    dialEl.textContent = selectedPhoneCountry.dial;
+    bindings[0].flagEl.textContent = countryFlagEmoji(selectedPhoneCountry.code);
+    bindings[0].dialEl.textContent = selectedPhoneCountry.dial;
+    bindings[1].flagEl.textContent = countryFlagEmoji(selectedProfilePhoneCountry.code);
+    bindings[1].dialEl.textContent = selectedProfilePhoneCountry.dial;
 }
 setupCountryPicker();
+
+// Updates the Profile phone-country display/state after loadSettingsIntoForm parses the
+// stored number - separate from the picker's own click handling above.
+function setProfilePhoneCountry(country) {
+    selectedProfilePhoneCountry = country;
+    el("settings-phone-country-flag").textContent = countryFlagEmoji(country.code);
+    el("settings-phone-country-dial").textContent = country.dial;
+}
 
 // --- API helper ---
 
@@ -1348,10 +1393,17 @@ async function loadSettingsIntoForm() {
     try {
         const data = await api("/api/settings");
         el("settings-name").value = data.name;
+        el("settings-username").value = data.username;
+        el("settings-contact-email").value = data.contact_email;
+        const { country, rest } = splitStoredPhoneNumber(data.phone_number);
+        setProfilePhoneCountry(country);
+        el("settings-phone").value = rest;
         el("settings-instagram-account").value = data.instagram_username ? "@" + data.instagram_username : "";
         profileHoursPicker.setValue(data.working_hours);
         profilePricesPicker.setValue(data.price_list);
         el("settings-faq").value = data.faq;
+        el("settings-current-password").value = "";
+        el("settings-new-password").value = "";
     } catch (err) {
         if (err.status === 401) logout();
     }
@@ -1364,6 +1416,27 @@ el("settings-save").addEventListener("click", async () => {
     messageBox.classList.add("hidden");
     errorBox.classList.add("hidden");
 
+    const username = el("settings-username").value.trim();
+    const contactEmailField = el("settings-contact-email");
+    const contactEmail = contactEmailField.value.trim();
+    const newPassword = el("settings-new-password").value;
+    const currentPassword = el("settings-current-password").value;
+
+    if (!username || !contactEmail || !contactEmailField.checkValidity()) {
+        errorBox.textContent = t("register.errorFillRequired");
+        errorBox.classList.remove("hidden");
+        return;
+    }
+    if (newPassword && !currentPassword) {
+        errorBox.textContent = t("settings.errorCurrentPasswordRequired");
+        errorBox.classList.remove("hidden");
+        return;
+    }
+    if (newPassword && newPassword.length < 8) {
+        errorBox.textContent = t("register.errorPasswordLength");
+        errorBox.classList.remove("hidden");
+        return;
+    }
     if (!profileHoursPicker.validate()) {
         errorBox.textContent = t("hoursPicker.errorOrder");
         errorBox.classList.remove("hidden");
@@ -1379,18 +1452,26 @@ el("settings-save").addEventListener("click", async () => {
     button.textContent = t("settings.saveLoading");
 
     try {
+        const phone = el("settings-phone").value.trim();
         await api("/api/settings", {
             method: "POST",
             body: {
                 name: el("settings-name").value,
+                username,
+                contact_email: contactEmail,
+                phone_number: phone ? `${selectedProfilePhoneCountry.dial} ${phone}` : "",
                 working_hours: profileHoursPicker.getValue(),
                 price_list: profilePricesPicker.getValue(),
                 faq: el("settings-faq").value,
+                current_password: currentPassword || undefined,
+                new_password: newPassword || undefined,
             },
         });
         messageBox.textContent = t("settings.saved");
         messageBox.classList.remove("hidden");
         el("inbox-business-name").textContent = el("settings-name").value;
+        el("settings-current-password").value = "";
+        el("settings-new-password").value = "";
     } catch (err) {
         errorBox.textContent = err.message || t("settings.error");
         errorBox.classList.remove("hidden");

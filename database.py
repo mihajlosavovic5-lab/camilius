@@ -475,14 +475,19 @@ def set_new_password(business_id, new_password):
     connection.close()
 
 
-def update_business(business_id, name, working_hours, price_list, faq):
+def update_business(business_id, name, username, contact_email, phone_number, working_hours, price_list, faq):
     # Reconnecting Instagram is a separate OAuth round-trip (link_instagram_account), not
     # a settings-form field like the old Gmail app password was - nothing to branch on here.
+    # username/contact_email/phone_number share the same UNIQUE constraints as at
+    # registration - the caller is expected to catch psycopg2.errors.UniqueViolation.
     connection = connect()
     cursor = connection.cursor()
     cursor.execute(
-        "UPDATE businesses SET name=%s, working_hours=%s, price_list=%s, faq=%s WHERE id=%s",
-        (name, working_hours, price_list, faq, business_id),
+        """UPDATE businesses
+           SET name=%s, username=%s, contact_email=%s, phone_number=%s,
+               working_hours=%s, price_list=%s, faq=%s
+           WHERE id=%s""",
+        (name, username, contact_email, phone_number or None, working_hours, price_list, faq, business_id),
     )
     connection.commit()
     connection.close()

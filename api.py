@@ -11,7 +11,7 @@ from database import (
     conversations_for_business, get_conversation, mark_sent, business_by_login_identifier,
     business_by_id, replies_today_count, update_business, get_subscription_status,
     subscription_active, business_stats, log_event, save_push_token, log_client_error,
-    add_business, delete_business,
+    add_business, delete_business, set_new_password,
 )
 from instagram_api import send_message as send_instagram_message, authorize_url as instagram_authorize_url
 from extensions import limiter
@@ -195,9 +195,9 @@ def api_forgot_password():
     from app import request_password_reset
 
     data = request.get_json(silent=True) or {}
-    request_password_reset(data.get("email", ""))
-    # Same message regardless of whether the email was found - don't reveal whether an account exists
-    return jsonify(message="If that email is registered, we've sent a password reset link.")
+    if not request_password_reset(data.get("email", "")):
+        return jsonify(error="No account found with that email address."), 404
+    return jsonify(message="We've sent a password reset link to that email.")
 
 
 # Returns the Instagram OAuth authorize URL for the mobile app to open in its in-app
@@ -307,11 +307,13 @@ def api_get_settings():
     business = business_by_id(request.business_id)
     return jsonify(
         name=business[1],
+        username=business[2],
         contact_email=business[4],
         instagram_username=business[6],
         working_hours=business[8],
         price_list=business[9],
         faq=business[10],
+        phone_number=business[11] or "",
     )
 
 
@@ -323,12 +325,37 @@ def api_update_settings():
     business = business_by_id(business_id)
 
     name = data.get("name", business[1])
+    username = data.get("username", business[2]).strip()
+    contact_email = data.get("contact_email", business[4]).strip()
+    phone_number = data.get("phone_number", business[11] or "").strip()
     working_hours = data.get("working_hours", business[8])
     price_list = data.get("price_list", business[9])
     faq = data.get("faq", business[10])
 
-    update_business(business_id, name, working_hours, price_list, faq)
-    return jsonify(message="Saved.", name=name, working_hours=working_hours, price_list=price_list, faq=faq)
+    if not username:
+        return jsonify(error="Username is required."), 400
+    if not contact_email:
+        return jsonify(error="Contact email is required."), 400
+
+    new_password = data.get("new_password") or None
+    if new_password:
+        if not check_password_hash(business[3], data.get("current_password", "")):
+            return jsonify(error="Current password is incorrect."), 400
+        if len(new_password) < 8:
+            return jsonify(error="New password must be at least 8 characters."), 400
+
+    try:
+        update_business(business_id, name, username, contact_email, phone_number or None, working_hours, price_list, faq)
+    except psycopg2.errors.UniqueViolation:
+        return jsonify(error="That username, contact email, or phone number is already taken."), 409
+
+    if new_password:
+        set_new_password(business_id, new_password)
+
+    return jsonify(
+        message="Saved.", name=name, username=username, contact_email=contact_email,
+        phone_number=phone_number, working_hours=working_hours, price_list=price_list, faq=faq,
+    )
 
 
 @api.route("/push-token", methods=["POST"])

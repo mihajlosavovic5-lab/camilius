@@ -21,6 +21,7 @@
     --danger: #b3341f;
     --danger-bg: #f9e8e2;
     --danger-border: #eec6ba;
+    --brand-glow: rgba(214, 148, 16, .14);
     --radius: 14px;
     --tabbar-h: 58px;
     --safe-top: env(safe-area-inset-top, 0px);
@@ -95,7 +96,18 @@ button { font-family: inherit; }
 .brand-ai { font-family: -apple-system, "Segoe UI", sans-serif; text-transform: uppercase; font-size: 11px; letter-spacing: .14em; font-weight: 700; margin-left: 6px; color: var(--text-muted); }
 
 /* --- Login screen --- */
+.screen-login { overflow: hidden; }
+/* Soft decorative glow behind the brand cluster - gives the screen its own identity
+   instead of the plain icon-on-blank-background look, and sits behind everything else
+   (login-wrap gets z-index so the actual form is always on top of it). */
+.screen-login::before {
+    content: ""; position: absolute; top: -150px; left: 50%; transform: translateX(-50%);
+    width: 380px; height: 380px; border-radius: 50%;
+    background: radial-gradient(circle, var(--brand-glow), transparent 70%);
+    pointer-events: none;
+}
 .login-wrap {
+    position: relative; z-index: 1;
     flex: 1; display: flex; flex-direction: column;
     padding: calc(22px + var(--safe-top)) 26px calc(28px + var(--safe-bottom));
 }
@@ -108,12 +120,13 @@ button { font-family: inherit; }
 .lang-select-btn.active { background: var(--background); }
 .lang-chevron { font-size: 12px; transform: translateY(1px); transition: transform .18s ease; }
 .lang-select-btn.active .lang-chevron { transform: translateY(1px) rotate(180deg); }
-/* Flexible spacers above/below the form cluster - bottom gets more share so the
-   cluster sits a bit above center (like the Instagram reference) while Sign up
-   still pins near the very bottom via the larger share. */
-.login-top-spacer { flex: 0.7; min-height: 8px; }
-.login-brand { display: flex; justify-content: center; margin: 0 0 34px; }
+/* Flexible spacers above/below the form cluster, close to an even split so the cluster
+   reads as centered rather than deliberately offset. */
+.login-top-spacer { flex: 0.9; min-height: 8px; }
+.login-brand { display: flex; flex-direction: column; align-items: center; gap: 10px; margin: 0 0 30px; }
 .login-icon { width: 76px; height: 76px; border-radius: 22%; box-shadow: 0 10px 26px rgba(43,32,19,.16); }
+.login-wordmark { margin: 0; }
+.login-tagline { margin: 0; font-size: 13.5px; color: var(--text-muted); text-align: center; }
 .login-spacer { flex: 1; min-height: 20px; }
 .link-btn {
     background: none; border: none; padding: 0; margin: 0; cursor: pointer;
@@ -423,6 +436,7 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
         --danger: #e0796a;
         --danger-bg: #2e1a16;
         --danger-border: #4a2b24;
+        --brand-glow: rgba(232, 164, 22, .10);
     }
     .avatar, .inbox-avatar { background: rgba(232, 164, 22, .18); }
     input[type="text"], input[type="password"], input[type="email"], input[type="tel"], textarea { color-scheme: dark; }
@@ -446,6 +460,7 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
     --danger: #e0796a;
     --danger-bg: #2e1a16;
     --danger-border: #4a2b24;
+    --brand-glow: rgba(232, 164, 22, .10);
     color-scheme: dark;
 }
 :root[data-theme="dark"] .avatar, :root[data-theme="dark"] .inbox-avatar { background: rgba(232, 164, 22, .18); }
@@ -468,6 +483,7 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
     --danger: #b3341f;
     --danger-bg: #f9e8e2;
     --danger-border: #eec6ba;
+    --brand-glow: rgba(214, 148, 16, .14);
     color-scheme: light;
 }
 
