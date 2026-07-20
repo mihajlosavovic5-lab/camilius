@@ -624,18 +624,17 @@ function setupCountryPicker() {
     });
 
     function openCountryModal() {
-        // Anchored right below the button (flipping above it if there's not enough room
-        // underneath) instead of the language picker's fixed mid-screen spot - this one
-        // should read as attached to the field it belongs to, not a separate popup.
+        // Always anchored below the button (never flips above it) - this one should read
+        // as attached to the field it belongs to, not a separate popup. If there isn't
+        // full room underneath, shrink the list's max-height to what's left instead of
+        // moving it above the field.
         const rect = btn.getBoundingClientRect();
-        const sheetHeight = Math.min(260, window.innerHeight * 0.5);
         const margin = 12;
-        let top = rect.bottom + 6;
-        if (top + sheetHeight > window.innerHeight - margin) {
-            top = Math.max(margin, rect.top - sheetHeight - 6);
-        }
+        const top = rect.bottom + 6;
+        const available = window.innerHeight - top - margin;
         sheet.style.top = `${top}px`;
         sheet.style.left = `${rect.left}px`;
+        sheet.style.maxHeight = `${Math.max(120, Math.min(260, available))}px`;
 
         modal.classList.add("open");
     }
