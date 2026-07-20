@@ -104,8 +104,9 @@ def _static_file_version(filename):
 STATIC_VERSIONS = {
     "style.css": _static_file_version("style.css"),
     "htmx.min.js": _static_file_version("htmx.min.js"),
+    "site-i18n.js": _static_file_version("site-i18n.js"),
 }
-_FOREVER_CACHE_STATIC_PATHS = {"/static/style.css", "/static/htmx.min.js"}
+_FOREVER_CACHE_STATIC_PATHS = {"/static/style.css", "/static/htmx.min.js", "/static/site-i18n.js"}
 _MODERATE_CACHE_STATIC_PATHS = {"/static/manifest.json", "/static/icon-192.png", "/static/icon-512.png"}
 
 

@@ -9,12 +9,12 @@
             <span class="brand-mark">C</span>
             <span class="brand-name">Camilius</span>
         </span>
-        <p class="auth-tagline">AI reads your customers' Instagram messages and drafts replies &mdash; you just review and send.</p>
+        <p class="auth-tagline" data-i18n="login.tagline">AI reads your customers' Instagram messages and drafts replies &mdash; you just review and send.</p>
     </div>
 
     <div class="auth-card">
-        <h1>Log in</h1>
-        <p class="auth-subtitle">Welcome back.</p>
+        <h1 data-i18n="login.title">Log in</h1>
+        <p class="auth-subtitle" data-i18n="login.subtitle">Welcome back.</p>
 
         {% if error %}
             <div class="alert alert-error"><span class="alert-icon">&#9888;&#65039;</span><span>{{ error }}</span></div>
@@ -25,27 +25,27 @@
 
         <form method="POST">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <label>Username, email, or phone number</label>
+            <label data-i18n="login.usernameLabel">Username, email, or phone number</label>
             <input type="text" name="username" autocomplete="username" autofocus>
 
-            <label>Password</label>
+            <label data-i18n="login.passwordLabel">Password</label>
             <input type="password" name="password" autocomplete="current-password">
 
             <div class="form-actions">
-                <button class="button button-full" type="submit">Log in</button>
+                <button class="button button-full" type="submit" data-i18n="common.logIn">Log in</button>
             </div>
         </form>
 
         <div class="auth-links">
-            <a href="{{ url_for('register') }}">Don't have an account? <strong>Register your business</strong></a>
-            <a href="{{ url_for('forgot_password') }}">Forgot your password?</a>
+            <a href="{{ url_for('register') }}"><span data-i18n="login.noAccount">Don't have an account?</span> <strong data-i18n="login.registerLink">Register your business</strong></a>
+            <a href="{{ url_for('forgot_password') }}" data-i18n="login.forgotLink">Forgot your password?</a>
         </div>
     </div>
 
     <p class="auth-footer">
-        <a href="{{ url_for('terms') }}">Terms of Service</a> &middot;
-        <a href="{{ url_for('privacy') }}">Privacy Policy</a> &middot;
-        <a href="{{ url_for('intro') }}" onclick="try { localStorage.removeItem('introSeen'); } catch (e) {}">Replay intro</a>
+        <a href="{{ url_for('terms') }}" data-i18n="common.termsOfService">Terms of Service</a> &middot;
+        <a href="{{ url_for('privacy') }}" data-i18n="common.privacyPolicy">Privacy Policy</a> &middot;
+        <a href="{{ url_for('intro') }}" data-i18n="login.replayIntro" onclick="try { localStorage.removeItem('introSeen'); } catch (e) {}">Replay intro</a>
     </p>
 </div>
 {% endblock %}
