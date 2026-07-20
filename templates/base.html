@@ -10,6 +10,15 @@
     <meta name="theme-color" content="#d69410">
     <link rel="apple-touch-icon" href="{{ url_for('static', filename='icon-512.png') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v={{ static_versions['style.css'] }}">
+    <!-- htmx (vendored, not CDN-loaded - see static/htmx.min.js) powers hx-boost on the
+         main nav (see _nav.html): clicking Conversations/Profile/Settings/Subscription
+         fetches the page via AJAX and swaps it into the current <body> instead of a full
+         browser navigation, so the shared CSS/JS/head don't get re-fetched and re-parsed
+         on every click - a nav click that no longer feels like leaving the app to reload
+         a whole new one. Falls back to a completely normal full-page link if JS fails to
+         load or an older browser doesn't cooperate - hx-boost only enhances a real <a
+         href>, it never replaces it. -->
+    <script src="{{ url_for('static', filename='htmx.min.js') }}?v={{ static_versions['htmx.min.js'] }}" defer></script>
 </head>
 <body class="{% block body_class %}{% endblock %}">
 <script>

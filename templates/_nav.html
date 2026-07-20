@@ -4,14 +4,19 @@
             <span class="brand-mark">C</span>
             <span class="brand-name">Camilius<span class="brand-ai">AI</span></span>
         </a>
-        <div class="nav-links">
+        <!-- hx-boost: these links are fetched via AJAX and swapped into the current
+             page's <body> instead of a full browser navigation (htmx handles history/
+             back-forward transparently) - only the nav, deliberately, not every link or
+             form on the site; see base.html for the vendored htmx script. Log out is
+             excluded on purpose further down, same reasoning as the hover-prefetch. -->
+        <div class="nav-links" hx-boost="true">
             <a href="{{ url_for('home') }}" class="{{ 'active' if request.endpoint == 'home' }}">Conversations</a>
             {% if not beta_free_mode %}
             <a href="{{ url_for('subscription') }}" class="{{ 'active' if request.endpoint == 'subscription' }}">Subscription</a>
             {% endif %}
             <a href="{{ url_for('settings') }}" class="{{ 'active' if request.endpoint == 'settings' }}">Profile</a>
             <a href="{{ url_for('app_settings') }}" class="{{ 'active' if request.endpoint == 'app_settings' }}">Settings</a>
-            <a href="{{ url_for('logout') }}" class="nav-logout">Log out</a>
+            <a href="{{ url_for('logout') }}" class="nav-logout" hx-boost="false">Log out</a>
         </div>
     </div>
 </nav>

@@ -100,8 +100,11 @@ def _static_file_version(filename):
 # style.css is cache-busted via a content-hash query param (see base.html), so it's
 # safe to cache "forever" - a content change always means a new URL. The others aren't
 # versioned, so they get a moderate cache instead of a full year.
-STATIC_VERSIONS = {"style.css": _static_file_version("style.css")}
-_FOREVER_CACHE_STATIC_PATHS = {"/static/style.css"}
+STATIC_VERSIONS = {
+    "style.css": _static_file_version("style.css"),
+    "htmx.min.js": _static_file_version("htmx.min.js"),
+}
+_FOREVER_CACHE_STATIC_PATHS = {"/static/style.css", "/static/htmx.min.js"}
 _MODERATE_CACHE_STATIC_PATHS = {"/static/manifest.json", "/static/icon-192.png", "/static/icon-512.png"}
 
 
