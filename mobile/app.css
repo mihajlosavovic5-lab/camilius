@@ -159,6 +159,7 @@ button { font-family: inherit; }
 
 /* --- Forms --- */
 label { display: block; font-weight: 600; font-size: 13.5px; margin: 14px 0 5px; }
+.field-hint { color: var(--text-muted); font-size: 12px; margin: 5px 2px 0; }
 input[type="text"], input[type="password"], input[type="email"], input[type="tel"], textarea {
     width: 100%; padding: 12px 13px; border: 1px solid var(--border); border-radius: 10px;
     font-family: inherit; font-size: 16px; color: var(--text); background: var(--surface);
@@ -198,7 +199,10 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
     transition: background .15s ease, box-shadow .15s ease, transform .1s ease;
 }
 .register-next-btn:active { transform: scale(.94); }
-.register-next-btn:disabled { background: var(--border); color: var(--text-muted); box-shadow: none; cursor: default; }
+/* A class, not :disabled - the button stays genuinely tappable even when dimmed, so
+   tapping it while a required field is missing can still explain what's missing
+   (a truly disabled button fires no click event at all, giving zero feedback). */
+.register-next-btn-dim { background: var(--border); color: var(--text-muted); box-shadow: none; }
 
 /* --- Auth sub-screens (Register / Forgot password / Connect Instagram) - pushed on
    top of Login with the same slide-in transition as the conversation detail screen --- */

@@ -617,20 +617,41 @@ function showRegisterStep(n) {
     if (n === 1) updateRegisterStep1Validity();
 }
 
-function updateRegisterStep1Validity() {
+// Returns a specific error message if step 1 isn't ready to advance, or null if it is.
+// Deliberately NOT gated behind the button's disabled attribute (a truly disabled button
+// fires no click event at all, so tapping it gives zero feedback about WHY - confusing,
+// since e.g. "password must be at least 8 characters" isn't shown anywhere else on the
+// form). The arrow stays tappable; tapping it while incomplete explains what's missing.
+function registerStep1ValidationError() {
     const name = el("register-name").value.trim();
     const username = el("register-username").value.trim();
     const password = el("register-password").value;
     const emailField = el("register-contact-email");
-    const valid = !!(name && username && password.length >= 8 && emailField.value.trim() && emailField.checkValidity());
-    el("register-next-btn").disabled = !valid;
+    if (!name || !username) return t("register.errorFillRequired");
+    if (password.length < 8) return t("register.errorPasswordLength");
+    if (!emailField.value.trim() || !emailField.checkValidity()) return t("register.errorFillRequired");
+    return null;
+}
+
+// Purely visual (dims the arrow) - advancing is still always attempted on click, which
+// is what actually surfaces a specific reason if something's missing.
+function updateRegisterStep1Validity() {
+    el("register-next-btn").classList.toggle("register-next-btn-dim", !!registerStep1ValidationError());
 }
 ["register-name", "register-username", "register-password", "register-contact-email"].forEach((id) => {
     el(id).addEventListener("input", updateRegisterStep1Validity);
 });
 
 el("register-next-btn").addEventListener("click", () => {
-    if (el("register-next-btn").disabled) return;
+    if (registerStep === 1) {
+        const error = registerStep1ValidationError();
+        if (error) {
+            el("register-error").textContent = error;
+            el("register-error").classList.remove("hidden");
+            return;
+        }
+    }
+    el("register-error").classList.add("hidden");
     if (registerStep < REGISTER_STEP_COUNT) showRegisterStep(registerStep + 1);
 });
 
@@ -675,10 +696,18 @@ el("register-form").addEventListener("submit", async (event) => {
     event.preventDefault();
 
     // Enter key in a text field implicitly submits the form regardless of which step is
-    // visible - treat that the same as tapping the arrow (advance a step) unless we're
-    // actually on the last one.
+    // visible - treat that the same as tapping the arrow (advance a step, or explain
+    // what's missing) unless we're actually on the last one.
     if (registerStep < REGISTER_STEP_COUNT) {
-        if (registerStep === 1 && el("register-next-btn").disabled) return;
+        if (registerStep === 1) {
+            const error = registerStep1ValidationError();
+            if (error) {
+                el("register-error").textContent = error;
+                el("register-error").classList.remove("hidden");
+                return;
+            }
+        }
+        el("register-error").classList.add("hidden");
         showRegisterStep(registerStep + 1);
         return;
     }
