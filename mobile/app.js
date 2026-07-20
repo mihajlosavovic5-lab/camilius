@@ -384,6 +384,21 @@ function createHoursPicker(containerId) {
                 r.times.classList.remove("hidden");
             });
         },
+        // Restores every day to the default open 09:00-18:00 - NOT the same as
+        // setValue("") (a no-op, since an empty string matches no day's line). Used when
+        // opening a fresh Create Account form, since a plain form.reset() would instead
+        // revert these dynamically-created <select>/<input> elements to the browser's
+        // own default (first option / unchecked), not our intended defaults, because
+        // they were never given selected/checked HTML attributes at creation time.
+        reset() {
+            HOURS_DAYS.forEach((day) => {
+                const r = rows[day];
+                r.checkbox.checked = true;
+                r.openSelect.value = "09:00";
+                r.closeSelect.value = "18:00";
+                r.times.classList.remove("hidden");
+            });
+        },
     };
 }
 
@@ -572,13 +587,22 @@ el("forgot-form").addEventListener("submit", async (event) => {
 });
 
 // --- Create account (its own native screen - full registration form, pushed on top of
-// Login. Terms/Privacy still open in the in-app browser - two static legal pages aren't
-// worth a native rebuild, same as every other app's "view in browser" legal links). On
-// success, replaces itself with the Connect Instagram screen (not pushed - the account
-// already exists at that point, so the back button shouldn't return to this form). ---
+// Login. Terms of Service/Privacy Policy are native screens too - see showLegalScreen
+// below. On success, replaces itself with the Connect Instagram screen (not pushed - the
+// account already exists at that point, so the back button shouldn't return here). ---
 
 el("login-signup-link").addEventListener("click", () => {
-    el("register-form").reset();
+    // Deliberately NOT register-form.reset() - the working-hours/price-list pickers
+    // contain dynamically-created <select>/checkbox elements with no selected/checked
+    // HTML attribute set, so a native form reset would revert them to the browser's own
+    // default (first option / unchecked) instead of our intended defaults. Clear the
+    // plain fields by hand and use each picker's own .reset()/.setValue("") instead.
+    ["register-name", "register-username", "register-password", "register-contact-email", "register-phone", "register-faq"].forEach((id) => {
+        el(id).value = "";
+    });
+    el("register-terms").checked = false;
+    registerHoursPicker.reset();
+    registerPricesPicker.setValue("");
     el("register-error").classList.add("hidden");
     showScreen("register");
 });
