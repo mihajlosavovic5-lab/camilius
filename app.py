@@ -22,6 +22,7 @@ from database import (
     link_instagram_account, business_by_instagram_account_id, already_processed_messages,
     mark_message_processed, save_draft_reply, previous_conversations_with,
     log_webhook_hit, recent_webhook_hits, raw_conversation_rows, is_auto_send_enabled,
+    set_auto_send,
 )
 from send_email import send_email
 from generate_reply import generate_reply
@@ -378,7 +379,18 @@ def settings():
 @app.route("/app-settings")
 @login_required
 def app_settings():
-    return render_template("app_settings.html")
+    return render_template("app_settings.html", auto_send=is_auto_send_enabled(session["business_id"]))
+
+
+# Website equivalent of the mobile app's Auto-send toggle (see api.py's
+# /api/notification-preferences) - same underlying businesses.auto_send column, just
+# session-authenticated instead of Bearer-token, since the website never had a way to
+# change this at all before now.
+@app.route("/app-settings/auto-send", methods=["POST"])
+@login_required
+def update_auto_send():
+    set_auto_send(session["business_id"], bool(request.form.get("auto_send")))
+    return redirect(url_for("app_settings"))
 
 
 @app.route("/delete-account", methods=["POST"])

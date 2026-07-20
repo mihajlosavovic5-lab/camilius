@@ -13,6 +13,18 @@
     </div>
 
     <div class="card">
+        <h2 style="margin-top:0;">Automation</h2>
+        <p class="note">When on, the AI sends replies to customers right away instead of waiting for your approval.</p>
+        <form method="POST" action="{{ url_for('update_auto_send') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <label class="checkbox-row" style="margin-top:0;">
+                <input type="checkbox" name="auto_send" {% if auto_send %}checked{% endif %} onchange="this.form.submit()">
+                <span>Auto-send AI replies</span>
+            </label>
+        </form>
+    </div>
+
+    <div class="card" style="margin-top:20px;">
         <h2 style="margin-top:0;">Legal</h2>
         <p class="note">Read our policies any time.</p>
         <div class="form-actions" style="gap:12px;">
@@ -26,7 +38,7 @@
         <p class="note">Questions or ran into an issue? We're happy to help.</p>
         <p><strong>mihajlosavovic75757@gmail.com</strong></p>
         <div class="form-actions">
-            <a class="button" href="mailto:mihajlosavovic75757@gmail.com?subject=Camilius%20AI%20support">Send us an email</a>
+            <a class="button" href="mailto:mihajlosavovic75757@gmail.com?subject=Camilius%20support">Send us an email</a>
         </div>
     </div>
 
