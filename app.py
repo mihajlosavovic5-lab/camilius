@@ -21,7 +21,7 @@ from database import (
     business_stats, log_event, event_funnel, recent_client_errors, log_client_error,
     link_instagram_account, business_by_instagram_account_id, already_processed_messages,
     mark_message_processed, save_draft_reply, previous_conversations_with,
-    log_webhook_hit, recent_webhook_hits,
+    log_webhook_hit, recent_webhook_hits, raw_conversation_rows,
 )
 from send_email import send_email
 from generate_reply import generate_reply
@@ -512,6 +512,30 @@ def admin_client_errors():
 
     errors = recent_client_errors(limit=100)
     return render_template("admin_client_errors.html", errors=errors)
+
+
+# Temporary diagnostic: dumps the raw conversation rows straight from the DB (status,
+# suggested_reply, final_reply as actually stored) so we can see the ground truth behind
+# the dashboard showing "None" replies, instead of inferring it from the rendered page.
+# Remove once the reply bug is confirmed fixed.
+@app.route("/admin/conversations-debug")
+def admin_conversations_debug():
+    token = os.getenv("ADMIN_TOKEN")
+    if not token or request.args.get("token") != token:
+        abort(404)
+
+    rows = raw_conversation_rows(limit=30)
+    lines = []
+    for r in rows:
+        lines.append({
+            "id": r[0],
+            "business_id": r[1],
+            "status": repr(r[2]),
+            "suggested_reply": repr(r[3]),
+            "final_reply": repr(r[4]),
+            "created_at": r[5].isoformat() if r[5] else None,
+        })
+    return jsonify(lines)
 
 
 # Proves to Android that the "Camilius AI" APK and this website are owned by the

@@ -353,6 +353,21 @@ def get_conversation(conversation_id):
     return row
 
 
+def raw_conversation_rows(limit=30):
+    """Temporary diagnostic - raw status/suggested_reply/final_reply straight from the DB
+    for the most recent conversations, used by /admin/conversations-debug to see ground
+    truth behind the dashboard's "None" replies. Remove with that endpoint once fixed."""
+    connection = connect()
+    cursor = connection.cursor()
+    cursor.execute("""
+        SELECT id, business_id, status, suggested_reply, final_reply, created_at
+        FROM conversations ORDER BY created_at DESC LIMIT %s
+    """, (limit,))
+    result = cursor.fetchall()
+    connection.close()
+    return result
+
+
 def conversations_for_business(business_id):
     connection = connect()
     cursor = connection.cursor()
