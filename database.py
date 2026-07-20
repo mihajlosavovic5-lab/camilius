@@ -79,6 +79,23 @@ def create_database():
     # username isn't necessarily resolvable (or stable) and isn't valid as a send target.
     cursor.execute("ALTER TABLE conversations ADD COLUMN IF NOT EXISTS sender_igsid TEXT")
 
+    # Real production bug found 2026-07-20: the 2026-07-16 Serbian->English migration
+    # renamed the status VALUES used going forward ('na_cekanju'/'poslato' -> 'pending'/
+    # 'sent'), but never touched the conversations.status COLUMN'S DEFAULT constraint
+    # itself, which was still the old literal 'na_cekanju' from before the rename -
+    # CREATE TABLE IF NOT EXISTS above is a no-op on an already-existing table, so it
+    # never applied the "DEFAULT 'pending'" written there. Every conversation created
+    # since the migration silently got status='na_cekanju' on insert (save_draft_reply
+    # never sets status explicitly, relying on the column default) - a value that matches
+    # neither 'pending' nor 'sent' anywhere in app.py/dashboard.html, so those
+    # conversations were invisible to the pending-approval UI and instead fell into the
+    # template's "else" (sent) branch with an empty final_reply, rendering literally
+    # "None" to the business owner. Fixes both the default going forward and every
+    # already-stuck row (safe to rerun - both are no-ops once already corrected).
+    cursor.execute("ALTER TABLE conversations ALTER COLUMN status SET DEFAULT 'pending'")
+    cursor.execute("UPDATE conversations SET status = 'pending' WHERE status = 'na_cekanju'")
+    cursor.execute("UPDATE conversations SET status = 'sent' WHERE status = 'poslato'")
+
     # Paddle subscription - added after the original schema (same reason as reset_token above).
     # subscription_status tracks Paddle's own subscription status: 'none' (never subscribed),
     # 'trialing', 'active', 'past_due', 'paused', 'canceled'. The worker only processes
