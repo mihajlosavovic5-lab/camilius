@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
 <title>Camilius</title>
-<link rel="stylesheet" href="app.css?v=ea95f5cff98c">
+<link rel="stylesheet" href="app.css?v=b43fc2367391">
 </head>
 <body>
 
@@ -193,8 +193,9 @@
                 <button type="button" class="price-add-btn" id="register-prices-add" data-i18n="pricePicker.addButton">+ Add service</button>
               </div>
 
-              <label data-i18n="register.faq">FAQ (optional)</label>
+              <label data-i18n="register.faq">Tell us more about your business</label>
               <textarea id="register-faq" rows="3" data-i18n-placeholder="register.faqPlaceholder"></textarea>
+              <p class="field-hint" data-i18n="register.faqHint">The more you share, the more questions our AI can answer for your customers.</p>
 
               <label class="checkbox-row">
                 <input type="checkbox" id="register-terms" required>
@@ -374,8 +375,9 @@
         <button type="button" class="price-add-btn" id="settings-prices-add" data-i18n="pricePicker.addButton">+ Add service</button>
       </div>
 
-      <label data-i18n="settings.faq">FAQ</label>
+      <label data-i18n="settings.faq">Tell us more about your business</label>
       <textarea id="settings-faq" rows="4"></textarea>
+      <p class="field-hint" data-i18n="settings.faqHint">The more you share, the more questions our AI can answer for your customers.</p>
 
       <div class="block-label" data-i18n="settings.security">Security</div>
       <label data-i18n="settings.currentPassword">Current password</label>
@@ -412,6 +414,23 @@
           <button type="button" class="theme-option" data-theme-choice="dark" data-i18n="appSettings.themeDark">Dark</button>
         </div>
       </div>
+      <div class="settings-row">
+        <span data-i18n="appSettings.notifications">Push notifications</span>
+        <label class="hours-day-toggle">
+          <input type="checkbox" id="settings-push-toggle">
+          <span class="hours-day-toggle-track"><span class="hours-day-toggle-thumb"></span></span>
+        </label>
+      </div>
+
+      <div class="block-label" data-i18n="appSettings.automation">Automation</div>
+      <div class="settings-row">
+        <span data-i18n="appSettings.autoSend">Auto-send AI replies</span>
+        <label class="hours-day-toggle">
+          <input type="checkbox" id="settings-autosend-toggle">
+          <span class="hours-day-toggle-track"><span class="hours-day-toggle-thumb"></span></span>
+        </label>
+      </div>
+      <p class="field-hint" data-i18n="appSettings.autoSendHint">When on, the AI sends replies to customers right away instead of waiting for your approval.</p>
 
       <div class="block-label" data-i18n="appSettings.about">About</div>
       <div class="settings-row" id="settings-terms-row">
@@ -555,7 +574,7 @@
   </button>
 </nav>
 
-<script src="i18n.js?v=ea95f5cff98c"></script>
-<script src="app.js?v=ea95f5cff98c"></script>
+<script src="i18n.js?v=b43fc2367391"></script>
+<script src="app.js?v=b43fc2367391"></script>
 </body>
 </html>

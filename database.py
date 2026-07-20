@@ -125,6 +125,15 @@ def create_database():
     cursor.execute("ALTER TABLE businesses ADD COLUMN IF NOT EXISTS phone_number TEXT")
     cursor.execute("CREATE UNIQUE INDEX IF NOT EXISTS businesses_phone_number_idx ON businesses (phone_number)")
 
+    # Push notifications default ON (existing behavior for everyone who already has a
+    # device token registered - this is purely an opt-OUT preference, not a safety
+    # change). Auto-send defaults OFF - unlike push, this changes what actually happens
+    # to a real customer (a reply goes out with no human review), so every existing and
+    # new business keeps today's safe approve-then-send flow unless they deliberately
+    # turn it on.
+    cursor.execute("ALTER TABLE businesses ADD COLUMN IF NOT EXISTS push_enabled BOOLEAN NOT NULL DEFAULT TRUE")
+    cursor.execute("ALTER TABLE businesses ADD COLUMN IF NOT EXISTS auto_send BOOLEAN NOT NULL DEFAULT FALSE")
+
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS conversations (
             id SERIAL PRIMARY KEY,
@@ -624,6 +633,40 @@ def get_subscription_status(business_id):
     row = cursor.fetchone()
     connection.close()
     return row[0] if row else None
+
+
+def is_push_enabled(business_id):
+    connection = connect()
+    cursor = connection.cursor()
+    cursor.execute("SELECT push_enabled FROM businesses WHERE id = %s", (business_id,))
+    row = cursor.fetchone()
+    connection.close()
+    return bool(row[0]) if row else False
+
+
+def set_push_enabled(business_id, enabled):
+    connection = connect()
+    cursor = connection.cursor()
+    cursor.execute("UPDATE businesses SET push_enabled = %s WHERE id = %s", (enabled, business_id))
+    connection.commit()
+    connection.close()
+
+
+def is_auto_send_enabled(business_id):
+    connection = connect()
+    cursor = connection.cursor()
+    cursor.execute("SELECT auto_send FROM businesses WHERE id = %s", (business_id,))
+    row = cursor.fetchone()
+    connection.close()
+    return bool(row[0]) if row else False
+
+
+def set_auto_send(business_id, enabled):
+    connection = connect()
+    cursor = connection.cursor()
+    cursor.execute("UPDATE businesses SET auto_send = %s WHERE id = %s", (enabled, business_id))
+    connection.commit()
+    connection.close()
 
 
 def business_stats(business_id):

@@ -1571,10 +1571,43 @@ function setActiveTab(tab) {
     state.activeTab = tab;
     document.querySelectorAll(".tab-btn").forEach((b) => b.classList.toggle("active", b.dataset.tab === tab));
     showScreen(tab);
+    if (tab === "settings") loadNotificationPreferences();
 }
 
 document.querySelectorAll(".tab-btn").forEach((btn) => {
     btn.addEventListener("click", () => setActiveTab(btn.dataset.tab));
+});
+
+// Instant-apply preference, same as language/theme above it - unlike those (local-only),
+// the server needs to know this one, since it's the server that decides whether to send
+// a push at all.
+async function loadNotificationPreferences() {
+    try {
+        const data = await api("/api/notification-preferences");
+        el("settings-push-toggle").checked = !!data.push_enabled;
+        el("settings-autosend-toggle").checked = !!data.auto_send;
+    } catch (err) {
+        if (err.status === 401) logout();
+    }
+}
+
+el("settings-push-toggle").addEventListener("change", async () => {
+    const enabled = el("settings-push-toggle").checked;
+    try {
+        await api("/api/notification-preferences", { method: "POST", body: { push_enabled: enabled } });
+    } catch (err) {
+        // Save failed - revert the toggle visually so it doesn't lie about the real state.
+        el("settings-push-toggle").checked = !enabled;
+    }
+});
+
+el("settings-autosend-toggle").addEventListener("change", async () => {
+    const enabled = el("settings-autosend-toggle").checked;
+    try {
+        await api("/api/notification-preferences", { method: "POST", body: { auto_send: enabled } });
+    } catch (err) {
+        el("settings-autosend-toggle").checked = !enabled;
+    }
 });
 
 // --- Onboarding (shown once, only inside the installed app) ---

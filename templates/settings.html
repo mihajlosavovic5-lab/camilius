@@ -19,37 +19,59 @@
         <div class="alert alert-success"><span class="alert-icon">&#10003;</span><span>{{ message }}</span></div>
     {% endif %}
 
-    <div class="card">
-        <form method="POST">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <form method="POST">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        <div class="card profile-section">
+            <div class="profile-section-header">
+                <span class="profile-section-icon">🏪</span>
+                <div>
+                    <p class="profile-section-title">Account</p>
+                    <p class="profile-section-subtitle">Who you are and how customers reach you.</p>
+                </div>
+            </div>
+
             <label style="margin-top: 0;">Business name</label>
             <input type="text" name="name" value="{{ business.name }}" required>
 
             <label>Instagram account</label>
-            <input type="text" value="{{ '@' + business.instagram_username if business.instagram_username else 'Not connected' }}" readonly>
-            <p class="note">Connected via Instagram - <a href="{{ url_for('connect_instagram_start') }}">reconnect or switch account &rarr;</a></p>
+            <div class="profile-instagram-row">
+                {% if business.instagram_username %}
+                    <span class="badge badge-sent"><span class="badge-dot"></span>@{{ business.instagram_username }}</span>
+                {% else %}
+                    <span class="badge badge-pending"><span class="badge-dot"></span>Not connected</span>
+                {% endif %}
+                <a href="{{ url_for('connect_instagram_start') }}">{{ 'Reconnect or switch account' if business.instagram_username else 'Connect Instagram' }} &rarr;</a>
+            </div>
 
             <label>Contact email</label>
             <input type="email" value="{{ business.contact_email }}" readonly>
             <p class="note">Used only for password resets - can't be changed here.</p>
+        </div>
 
-            <div class="form-section">
-                <p class="form-section-title">Business details</p>
-
-                <label>Working hours</label>
-                <textarea name="working_hours" required>{{ business.working_hours }}</textarea>
-
-                <label>Price list</label>
-                <textarea name="price_list" required>{{ business.price_list }}</textarea>
-
-                <label>Frequently asked questions</label>
-                <textarea name="faq">{{ business.faq }}</textarea>
+        <div class="card profile-section">
+            <div class="profile-section-header">
+                <span class="profile-section-icon">🤖</span>
+                <div>
+                    <p class="profile-section-title">Business details</p>
+                    <p class="profile-section-subtitle">What the AI uses to write replies - keep it up to date.</p>
+                </div>
             </div>
 
-            <div class="form-actions">
-                <button class="button" type="submit">Save changes</button>
-            </div>
-        </form>
-    </div>
+            <label style="margin-top: 0;">Working hours</label>
+            <textarea name="working_hours" required>{{ business.working_hours }}</textarea>
+
+            <label>Price list</label>
+            <textarea name="price_list" required>{{ business.price_list }}</textarea>
+
+            <label>Tell us more about your business</label>
+            <textarea name="faq">{{ business.faq }}</textarea>
+            <p class="note">The more you share, the more questions our AI can answer for your customers.</p>
+        </div>
+
+        <div class="form-actions">
+            <button class="button" type="submit">Save changes</button>
+        </div>
+    </form>
 </div>
 {% endblock %}

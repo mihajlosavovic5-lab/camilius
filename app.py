@@ -21,7 +21,7 @@ from database import (
     business_stats, log_event, event_funnel, recent_client_errors, log_client_error,
     link_instagram_account, business_by_instagram_account_id, already_processed_messages,
     mark_message_processed, save_draft_reply, previous_conversations_with,
-    log_webhook_hit, recent_webhook_hits, raw_conversation_rows,
+    log_webhook_hit, recent_webhook_hits, raw_conversation_rows, is_auto_send_enabled,
 )
 from send_email import send_email
 from generate_reply import generate_reply
@@ -889,10 +889,24 @@ def _process_instagram_message(message):
     if message_id:
         mark_message_processed(business_id, message_id)
 
+    # Opt-in (default off) - when a business turns this on in Settings, the AI's draft
+    # goes straight out instead of waiting for manual approval. Falls back to a normal
+    # pending draft if the send itself fails (most likely Instagram's 24h reply window),
+    # same as the dashboard's own manual send route.
+    auto_sent = False
+    if is_auto_send_enabled(business_id):
+        try:
+            send_instagram_message(sender_igsid, suggested_reply, access_token, business[5])
+            mark_sent(new_conversation_id, suggested_reply)
+            auto_sent = True
+            print(f"[instagram-webhook] Auto-sent reply for conversation_id={new_conversation_id}", flush=True)
+        except requests.RequestException as error:
+            print(f"[instagram-webhook] Auto-send failed for conversation_id={new_conversation_id}, left as pending: {error}", flush=True)
+
     try:
         send_push_to_business(
             business_id,
-            title="New customer question",
+            title="Auto-replied to a customer" if auto_sent else "New customer question",
             body=f"{sender_display}: {message['text'][:80]}",
             data={"conversation_id": str(new_conversation_id)},
         )

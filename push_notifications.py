@@ -14,7 +14,7 @@ import requests
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import padding
 
-from database import push_tokens_for_business, remove_push_token
+from database import push_tokens_for_business, remove_push_token, is_push_enabled
 
 FCM_SCOPE = "https://www.googleapis.com/auth/firebase.messaging"
 TOKEN_URL = "https://oauth2.googleapis.com/token"
@@ -72,11 +72,15 @@ def _get_access_token(account):
 
 def send_push_to_business(business_id, title, body, data=None):
     """Sends a push notification to every device registered for this business.
-    Silently does nothing if Firebase isn't configured yet, and prunes any device
-    token FCM reports as no-longer-valid (app uninstalled, etc.)."""
+    Silently does nothing if Firebase isn't configured yet, or if the business has
+    turned notifications off in Settings - and prunes any device token FCM reports as
+    no-longer-valid (app uninstalled, etc.)."""
     account = _service_account()
     project_id = os.getenv("FIREBASE_PROJECT_ID")
     if not account or not project_id:
+        return
+
+    if not is_push_enabled(business_id):
         return
 
     tokens = push_tokens_for_business(business_id)

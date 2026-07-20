@@ -11,7 +11,8 @@ from database import (
     conversations_for_business, get_conversation, mark_sent, business_by_login_identifier,
     business_by_id, replies_today_count, update_business, get_subscription_status,
     subscription_active, business_stats, log_event, save_push_token, log_client_error,
-    add_business, delete_business, set_new_password,
+    add_business, delete_business, set_new_password, is_push_enabled, set_push_enabled,
+    is_auto_send_enabled, set_auto_send,
 )
 from instagram_api import send_message as send_instagram_message, authorize_url as instagram_authorize_url
 from extensions import limiter
@@ -367,6 +368,33 @@ def api_save_push_token():
         return jsonify(error="missing token"), 400
     save_push_token(request.business_id, token)
     return jsonify(message="saved")
+
+
+# Instant-apply preferences shown in the app's Settings tab (as opposed to Profile's
+# bulk "Save changes" form) - each one is its own small GET/POST pair, same pattern as
+# language/theme (except those are local-only, these need the server to actually know).
+@api.route("/notification-preferences", methods=["GET"])
+@require_api_auth
+def api_get_notification_preferences():
+    return jsonify(
+        push_enabled=is_push_enabled(request.business_id),
+        auto_send=is_auto_send_enabled(request.business_id),
+    )
+
+
+@api.route("/notification-preferences", methods=["POST"])
+@require_api_auth
+def api_update_notification_preferences():
+    data = request.get_json(silent=True) or {}
+    if "push_enabled" in data:
+        set_push_enabled(request.business_id, bool(data["push_enabled"]))
+    if "auto_send" in data:
+        set_auto_send(request.business_id, bool(data["auto_send"]))
+    return jsonify(
+        message="saved",
+        push_enabled=is_push_enabled(request.business_id),
+        auto_send=is_auto_send_enabled(request.business_id),
+    )
 
 
 # Mobile equivalent of the web dashboard's "Delete account" button - same underlying

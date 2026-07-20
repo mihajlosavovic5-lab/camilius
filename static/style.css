@@ -255,6 +255,19 @@ body.auth {
 .form-section { border-top: 1px solid var(--border); margin-top: 26px; padding-top: 18px; }
 .form-section-title { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: .6px; color: var(--text-muted); margin: 0; }
 
+/* --- Profile page: distinct cards per topic instead of one long list --- */
+.profile-section + .profile-section { margin-top: 20px; }
+.profile-section-header { display: flex; align-items: flex-start; gap: 14px; margin-bottom: 18px; }
+.profile-section-icon {
+    flex-shrink: 0; width: 40px; height: 40px; border-radius: 11px;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--primary-light); font-size: 19px;
+}
+.profile-section-title { font-size: 16px; font-weight: 700; margin: 0; }
+.profile-section-subtitle { color: var(--text-muted); font-size: 13.5px; margin: 2px 0 0; }
+.profile-instagram-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 4px; }
+.profile-instagram-row a { font-size: 13.5px; }
+
 /* --- Danger zone --- */
 .danger-zone, .export-zone {
     margin-top: 48px; padding: 20px 22px;

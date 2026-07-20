@@ -48,8 +48,9 @@
                 <label>Price list</label>
                 <textarea name="price_list" placeholder="Men's haircut: 800 din&#10;Women's haircut: 1500 din" required>{{ data.get('price_list', '') }}</textarea>
 
-                <label>Frequently asked questions</label>
-                <textarea name="faq" placeholder="Q: Do I need to book an appointment?&#10;A: Yes, we recommend booking in advance.">{{ data.get('faq', '') }}</textarea>
+                <label>Tell us more about your business</label>
+                <textarea name="faq" placeholder="Q: Do I need to book an appointment?&#10;A: Yes, we recommend booking in advance.&#10;&#10;Anything else worth knowing about your business.">{{ data.get('faq', '') }}</textarea>
+                <p class="note">The more you share, the more questions our AI can answer for your customers.</p>
             </div>
 
             <label class="checkbox-row">
