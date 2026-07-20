@@ -32,7 +32,11 @@ const screens = {
     connectInstagram: el("screen-connect-instagram"),
     inbox: el("screen-inbox"),
     detail: el("screen-detail"),
+    profile: el("screen-profile"),
     settings: el("screen-settings"),
+    help: el("screen-help"),
+    terms: el("screen-terms"),
+    privacy: el("screen-privacy"),
 };
 const tabbar = el("tabbar");
 const offlineBanner = el("offline-banner");
@@ -103,6 +107,10 @@ window.addEventListener("unhandledrejection", (event) => {
 
 // --- Native setup (status bar, back button, OTA + native update checks) ---
 
+// Terms/Privacy are reachable from two places (Register, and Settings) - back should
+// return to whichever one opened them, not always the same place.
+let legalReturnTo = "settings";
+
 if (capacitorPlugins) {
     capacitorPlugins.StatusBar.setBackgroundColor({ color: "#d69410" });
     capacitorPlugins.StatusBar.setStyle({ style: "LIGHT" });
@@ -116,6 +124,10 @@ if (capacitorPlugins) {
             // Deliberately swallowed - the only ways out are finishing the connection or
             // the explicit "Log out" link. Falling through to canGoBack/exitApp here would
             // let one back-press quit the app mid-setup, right after creating an account.
+        } else if (screens.terms.classList.contains("active") || screens.privacy.classList.contains("active")) {
+            showScreen(legalReturnTo);
+        } else if (screens.help.classList.contains("active")) {
+            showScreen("settings");
         } else if (canGoBack) {
             history.back();
         } else {
@@ -374,16 +386,16 @@ el("login-signup-link").addEventListener("click", () => {
 
 el("register-back").addEventListener("click", () => showScreen("login"));
 
-async function openLegalPage(path) {
-    const url = API_BASE + path;
-    if (capacitorPlugins && capacitorPlugins.Browser) {
-        await capacitorPlugins.Browser.open({ url });
-    } else {
-        window.open(url, "_blank");
-    }
+// Terms/Privacy are native screens now (not a browser tab) - reachable from here and
+// from Settings, so back needs to know which one to return to (see legalReturnTo above).
+function showLegalScreen(name, returnTo) {
+    legalReturnTo = returnTo;
+    showScreen(name);
 }
-el("register-view-terms").addEventListener("click", () => openLegalPage("/terms"));
-el("register-view-privacy").addEventListener("click", () => openLegalPage("/privacy"));
+el("register-view-terms").addEventListener("click", () => showLegalScreen("terms", "register"));
+el("register-view-privacy").addEventListener("click", () => showLegalScreen("privacy", "register"));
+el("terms-back").addEventListener("click", () => showScreen(legalReturnTo));
+el("privacy-back").addEventListener("click", () => showScreen(legalReturnTo));
 
 el("register-form").addEventListener("submit", async (event) => {
     event.preventDefault();
@@ -402,6 +414,7 @@ el("register-form").addEventListener("submit", async (event) => {
                 username: el("register-username").value.trim(),
                 password: el("register-password").value,
                 contact_email: el("register-contact-email").value.trim(),
+                phone_number: el("register-phone").value.trim(),
                 working_hours: el("register-hours").value,
                 price_list: el("register-prices").value,
                 faq: el("register-faq").value,
@@ -844,7 +857,7 @@ el("settings-save").addEventListener("click", async () => {
 // link-based bridge - see api.py's /api/export-data-link).
 el("settings-export").addEventListener("click", async () => {
     const button = el("settings-export");
-    const errorBox = el("settings-error");
+    const errorBox = el("settings-app-error");
     errorBox.classList.add("hidden");
     button.disabled = true;
     button.textContent = t("settings.exportLoading");
@@ -866,14 +879,61 @@ el("settings-export").addEventListener("click", async () => {
     }
 });
 
+el("settings-delete-account").addEventListener("click", async () => {
+    if (!window.confirm(t("appSettings.deleteConfirm"))) return;
+    const errorBox = el("settings-app-error");
+    errorBox.classList.add("hidden");
+    try {
+        await api("/api/delete-account", { method: "POST" });
+        await logout();
+    } catch (err) {
+        errorBox.textContent = err.message || t("appSettings.deleteError");
+        errorBox.classList.remove("hidden");
+    }
+});
+
 el("settings-logout").addEventListener("click", logout);
+
+// --- Settings: Terms/Privacy/Help rows, and the Help screen itself ---
+
+el("settings-terms-row").addEventListener("click", () => showLegalScreen("terms", "settings"));
+el("settings-privacy-row").addEventListener("click", () => showLegalScreen("privacy", "settings"));
+el("settings-help-row").addEventListener("click", () => showScreen("help"));
+el("help-back").addEventListener("click", () => showScreen("settings"));
+
+const SUPPORT_EMAIL = "mihajlosavovic75757@gmail.com";
+
+el("help-email-btn").addEventListener("click", () => {
+    // Plain mailto navigation - works when the device has a mail app configured (most
+    // do). "Copy email address" right below is the guaranteed fallback for when it isn't.
+    window.open(`mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent("Camilius AI support")}`, "_system");
+});
+
+el("help-copy-btn").addEventListener("click", async () => {
+    try {
+        await navigator.clipboard.writeText(SUPPORT_EMAIL);
+    } catch (e) {
+        // Clipboard API can be unavailable in some WebView configs - a manual
+        // select-all-and-copy fallback via a temporary input.
+        const temp = document.createElement("input");
+        temp.value = SUPPORT_EMAIL;
+        document.body.appendChild(temp);
+        temp.select();
+        document.execCommand("copy");
+        document.body.removeChild(temp);
+    }
+    const confirmation = el("help-copy-confirmation");
+    confirmation.classList.remove("hidden");
+    setTimeout(() => confirmation.classList.add("hidden"), 2500);
+    if (capacitorPlugins && capacitorPlugins.Haptics) capacitorPlugins.Haptics.impact({ style: "LIGHT" });
+});
 
 // --- Tab bar ---
 
 function setActiveTab(tab) {
     state.activeTab = tab;
     document.querySelectorAll(".tab-btn").forEach((b) => b.classList.toggle("active", b.dataset.tab === tab));
-    showScreen(tab === "inbox" ? "inbox" : "settings");
+    showScreen(tab);
 }
 
 document.querySelectorAll(".tab-btn").forEach((btn) => {
@@ -899,17 +959,44 @@ function setupOnboarding() {
 setupOnboarding();
 setupLanguagePicker();
 
+// --- Theme (System default via prefers-color-scheme, or an explicit Light/Dark
+// override chosen in Settings and remembered from then on) ---
+
+function applyTheme(theme) {
+    if (theme === "light" || theme === "dark") {
+        document.documentElement.setAttribute("data-theme", theme);
+    } else {
+        document.documentElement.removeAttribute("data-theme");
+    }
+    document.querySelectorAll(".theme-option").forEach((btn) => {
+        btn.classList.toggle("active", btn.dataset.themeChoice === theme);
+    });
+}
+
+async function setTheme(theme) {
+    await storageSet("theme", theme);
+    applyTheme(theme);
+}
+
+document.querySelectorAll(".theme-option").forEach((btn) => {
+    btn.addEventListener("click", () => setTheme(btn.dataset.themeChoice));
+});
+
+el("settings-app-version").textContent = `Camilius AI · v${APP_VERSION}`;
+
 // --- Boot ---
 
 updateOfflineBanner();
 
 (async () => {
-    const [token, businessName, onboardingSeen] = await Promise.all([
+    const [token, businessName, onboardingSeen, theme] = await Promise.all([
         storageGet("token"),
         storageGet("businessName"),
         storageGet("onboardingSeen"),
+        storageGet("theme"),
     ]);
     await initLanguage();
+    applyTheme(theme || "system");
 
     state.token = token || null;
     state.businessName = businessName || "";

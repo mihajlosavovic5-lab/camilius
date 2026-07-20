@@ -14,7 +14,7 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 from werkzeug.security import check_password_hash
 
 from database import (
-    conversations_for_business, get_conversation, mark_sent, business_by_username,
+    conversations_for_business, get_conversation, mark_sent, business_by_login_identifier,
     business_by_id, add_business, create_database, delete_business, replies_today_count,
     update_business, business_by_contact_email, save_reset_token, business_by_reset_token, set_new_password,
     link_subscription, update_subscription_status, get_subscription_status, subscription_active,
@@ -101,7 +101,7 @@ def login():
         username = request.form["username"]
         password = request.form["password"]
 
-        business = business_by_username(username)
+        business = business_by_login_identifier(username)
 
         if business and check_password_hash(business[3], password):
             session["business_id"] = business[0]
@@ -132,9 +132,10 @@ def register():
                 working_hours=request.form["working_hours"],
                 price_list=request.form["price_list"],
                 faq=request.form["faq"],
+                phone_number=request.form.get("phone_number") or None,
             )
         except psycopg2.errors.UniqueViolation:
-            return render_template("register.html", error="That username or contact email is already taken.", data=request.form)
+            return render_template("register.html", error="That username, contact email, or phone number is already taken.", data=request.form)
 
         log_event("register_completed", business_id=new_id)
         session["business_id"] = new_id
@@ -319,6 +320,15 @@ def settings():
             "working_hours": business[8], "price_list": business[9], "faq": business[10],
         },
     )
+
+
+# Distinct from /settings above (renamed "Profile" in the nav - business info the AI
+# uses) - this is app-level preferences: legal, help, and account-data actions, mirroring
+# the mobile app's own Settings screen split.
+@app.route("/app-settings")
+@login_required
+def app_settings():
+    return render_template("app_settings.html")
 
 
 @app.route("/delete-account", methods=["POST"])

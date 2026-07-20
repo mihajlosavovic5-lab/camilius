@@ -36,6 +36,9 @@
             <label>Contact email <span style="font-weight:400; color: var(--text-muted);">(for account recovery only - not read by the AI)</span></label>
             <input type="email" name="contact_email" value="{{ data.get('contact_email', '') }}" placeholder="you@example.com" required>
 
+            <label>Phone number <span style="font-weight:400; color: var(--text-muted);">(optional - lets you log in with it too)</span></label>
+            <input type="tel" name="phone_number" value="{{ data.get('phone_number', '') }}" placeholder="+381 6X XXX XXXX">
+
             <div class="form-section">
                 <p class="form-section-title">Business details &mdash; the AI uses this to write replies</p>
 

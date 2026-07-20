@@ -9,8 +9,8 @@
             {% if not beta_free_mode %}
             <a href="{{ url_for('subscription') }}" class="{{ 'active' if request.endpoint == 'subscription' }}">Subscription</a>
             {% endif %}
-            <a href="{{ url_for('settings') }}" class="{{ 'active' if request.endpoint == 'settings' }}">Settings</a>
-            <a href="mailto:mihajlosavovic75757@gmail.com">Help</a>
+            <a href="{{ url_for('settings') }}" class="{{ 'active' if request.endpoint == 'settings' }}">Profile</a>
+            <a href="{{ url_for('app_settings') }}" class="{{ 'active' if request.endpoint == 'app_settings' }}">Settings</a>
             <a href="{{ url_for('logout') }}" class="nav-logout">Log out</a>
         </div>
     </div>

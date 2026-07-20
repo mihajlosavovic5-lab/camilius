@@ -59,7 +59,7 @@ button { font-family: inherit; }
 }
 .screen.active { transform: translateX(0); visibility: visible; }
 /* Inbox and Settings are the two tab "home" screens - they don't slide, they're just shown/hidden */
-.screen-inbox, .screen-settings { transition: none; }
+.screen-inbox, .screen-profile, .screen-settings { transition: none; }
 .screen-login, .screen-onboarding { transition: none; }
 
 .hidden { display: none !important; }
@@ -193,6 +193,38 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
 }
 .info-card strong { color: var(--text); }
 
+/* --- Settings screen (app preferences - distinct from Profile's business-info form) --- */
+.settings-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 2px; border-bottom: 1px solid var(--border);
+    font-size: 15px; cursor: pointer;
+}
+.settings-row:active { background: var(--background); }
+.settings-row-value { color: var(--text-muted); font-size: 14px; }
+.settings-row-chevron { color: var(--text-muted); font-size: 18px; }
+.settings-row-stack { flex-direction: column; align-items: stretch; gap: 10px; cursor: default; }
+.settings-row-stack:active { background: none; }
+
+.theme-toggle { display: flex; background: var(--background); border-radius: 10px; padding: 3px; gap: 3px; }
+.theme-option {
+    flex: 1; background: none; border: none; padding: 9px 6px; border-radius: 8px;
+    font-family: inherit; font-size: 13.5px; font-weight: 600; color: var(--text-muted); cursor: pointer;
+}
+.theme-option.active { background: var(--surface); color: var(--text); box-shadow: 0 1px 3px rgba(43,32,19,.12); }
+
+.button-danger-outline { color: var(--danger); border-color: var(--danger-border); }
+.button-danger-outline:active { background: var(--danger-bg); }
+
+.settings-version { text-align: center; color: var(--text-muted); font-size: 12.5px; margin: 30px 0 6px; }
+
+/* --- Help + legal (Terms/Privacy) screens --- */
+.legal-body { padding-bottom: 32px; }
+.legal-body h2 { font-size: 15.5px; margin: 22px 0 8px; }
+.legal-body p { font-size: 14px; line-height: 1.6; color: var(--text); margin: 0 0 10px; }
+.legal-body ul { margin: 0 0 12px; padding-left: 20px; }
+.legal-body li { font-size: 14px; line-height: 1.6; margin-bottom: 6px; }
+.legal-updated { color: var(--text-muted); font-size: 12.5px; margin-bottom: 16px; }
+
 /* --- Alerts --- */
 .alert { padding: 12px 14px; border-radius: 10px; font-size: 14px; margin: 0 0 14px; border: 1px solid; }
 .alert-error { background: var(--danger-bg); border-color: var(--danger-border); color: #991b1b; }
@@ -267,7 +299,10 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
 .tab-btn.active { color: var(--primary-ink); }
 .tab-btn.active .tab-icon { filter: none; opacity: 1; }
 
-/* --- Dark mode (follows the OS setting) --- */
+/* --- Dark mode: follows the OS setting by default (System), but a manual choice made
+   in Settings (Light/Dark) is stored as data-theme on <html> and always wins - the
+   attribute selectors below outrank the bare :root selectors either way regardless of
+   which the OS happens to be in. No data-theme attribute = System (media query only). */
 @media (prefers-color-scheme: dark) {
     :root {
         --primary: #e8a416;
@@ -291,6 +326,49 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
     }
     .avatar, .inbox-avatar { background: rgba(232, 164, 22, .18); }
     input[type="text"], input[type="password"], input[type="email"], textarea { color-scheme: dark; }
+}
+:root[data-theme="dark"] {
+    --primary: #e8a416;
+    --primary-dark: #c78b0f;
+    --primary-light: #3a2f14;
+    --primary-ink: #f2b93f;
+    --background: #17140f;
+    --surface: #221d15;
+    --border: #362e21;
+    --text: #f2ece0;
+    --text-muted: #a89a80;
+    --success: #7fb768;
+    --success-bg: #1e2a19;
+    --success-border: #35462b;
+    --warning: #e0a750;
+    --warning-bg: #2e2413;
+    --warning-border: #4a3a1e;
+    --danger: #e0796a;
+    --danger-bg: #2e1a16;
+    --danger-border: #4a2b24;
+    color-scheme: dark;
+}
+:root[data-theme="dark"] .avatar, :root[data-theme="dark"] .inbox-avatar { background: rgba(232, 164, 22, .18); }
+:root[data-theme="light"] {
+    --primary: #d69410;
+    --primary-dark: #b57d0c;
+    --primary-light: #fbeecb;
+    --primary-ink: #9a6a08;
+    --background: #fdfcfa;
+    --surface: #ffffff;
+    --border: #ece6da;
+    --text: #2b2013;
+    --text-muted: #7a6c52;
+    --success: #4d7c3f;
+    --success-bg: #eef3e5;
+    --success-border: #cbe0b3;
+    --warning: #b45309;
+    --warning-bg: #fbf1df;
+    --warning-border: #f0d9a8;
+    --danger: #b3341f;
+    --danger-bg: #f9e8e2;
+    --danger-border: #eec6ba;
+    color-scheme: light;
 }
 
 /* --- Offline banner --- */

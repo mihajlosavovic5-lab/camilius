@@ -45,3 +45,20 @@ def test_login_rejects_wrong_password(client, unique_username, unique_email):
 def test_login_rejects_unknown_username(client):
     response = client.post("/api/login", json={"username": "no-such-user", "password": "whatever"})
     assert response.status_code == 401
+
+
+def test_login_with_email_instead_of_username(client, unique_username, unique_email):
+    """Login now accepts username, contact email, or phone number - same "any of these
+    identifies you" pattern most consumer apps use."""
+    register_business(client, unique_username, unique_email)
+    response = client.post("/api/login", json={"username": unique_email, "password": "TestPassword123"})
+    assert response.status_code == 200
+    assert response.get_json()["token"]
+
+
+def test_login_with_phone_number(client, unique_username, unique_email):
+    phone = f"+38160{unique_username[-7:]}"
+    register_business(client, unique_username, unique_email, phone_number=phone)
+    response = client.post("/api/login", json={"username": phone, "password": "TestPassword123"})
+    assert response.status_code == 200
+    assert response.get_json()["token"]

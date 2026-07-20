@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
 <title>Camilius AI</title>
-<link rel="stylesheet" href="app.css?v=5ff16a9a0736">
+<link rel="stylesheet" href="app.css?v=2e5b181cde82">
 </head>
 <body>
 
@@ -146,6 +146,9 @@
         <label data-i18n="register.contactEmail">Contact email</label>
         <input type="email" id="register-contact-email" data-i18n-placeholder="register.contactEmailPlaceholder" placeholder="you@example.com" autocomplete="email" autocapitalize="off" required>
 
+        <label data-i18n="register.phone">Phone number (optional)</label>
+        <input type="tel" id="register-phone" data-i18n-placeholder="register.phonePlaceholder" placeholder="+381 6X XXX XXXX" autocomplete="tel">
+
         <div class="block-label" data-i18n="register.businessDetails">Business details — the AI uses this to write replies</div>
 
         <label data-i18n="register.hours">Working hours</label>
@@ -278,11 +281,11 @@
     </div>
   </section>
 
-  <!-- SETTINGS -->
-  <section id="screen-settings" class="screen screen-settings">
+  <!-- PROFILE (business info the AI uses - was called "Settings") -->
+  <section id="screen-profile" class="screen screen-profile">
     <header class="topbar">
       <div class="topbar-title">
-        <div><h1 data-i18n="settings.title">Settings</h1></div>
+        <div><h1 data-i18n="profile.title">Profile</h1></div>
       </div>
     </header>
 
@@ -306,12 +309,159 @@
       <textarea id="settings-faq" rows="4"></textarea>
 
       <button class="button button-full" id="settings-save" style="margin-top:18px;" data-i18n="settings.save">Save changes</button>
+    </div>
+  </section>
 
-      <button type="button" class="button button-secondary button-full" id="settings-export" style="margin-top:14px;" data-i18n="settings.export">Export my data</button>
+  <!-- SETTINGS (app preferences - language, theme, legal, help, data, logout) -->
+  <section id="screen-settings" class="screen screen-settings">
+    <header class="topbar">
+      <div class="topbar-title">
+        <div><h1 data-i18n="appSettings.title">Settings</h1></div>
+      </div>
+    </header>
 
-      <a href="mailto:mihajlosavovic75757@gmail.com" class="link-btn" style="display:block; text-align:center; margin-top:26px;" data-i18n="settings.help">Need help?</a>
+    <div class="detail-body">
+      <div id="settings-app-message" class="alert alert-success hidden"></div>
+      <div id="settings-app-error" class="alert alert-error hidden"></div>
 
-      <button class="button button-secondary button-full" id="settings-logout" style="margin-top:18px;" data-i18n="settings.logout">Log out</button>
+      <div class="block-label" data-i18n="appSettings.preferences">Preferences</div>
+      <div class="settings-row" id="settings-language-row">
+        <span data-i18n="appSettings.language">Language</span>
+        <span class="settings-row-value" id="settings-language-value">English</span>
+      </div>
+      <div class="settings-row settings-row-stack">
+        <span data-i18n="appSettings.theme">Theme</span>
+        <div class="theme-toggle" id="theme-toggle">
+          <button type="button" class="theme-option" data-theme-choice="system" data-i18n="appSettings.themeSystem">System</button>
+          <button type="button" class="theme-option" data-theme-choice="light" data-i18n="appSettings.themeLight">Light</button>
+          <button type="button" class="theme-option" data-theme-choice="dark" data-i18n="appSettings.themeDark">Dark</button>
+        </div>
+      </div>
+
+      <div class="block-label" data-i18n="appSettings.about">About</div>
+      <div class="settings-row" id="settings-terms-row">
+        <span data-i18n="appSettings.terms">Terms of Service</span>
+        <span class="settings-row-chevron">›</span>
+      </div>
+      <div class="settings-row" id="settings-privacy-row">
+        <span data-i18n="appSettings.privacy">Privacy Policy</span>
+        <span class="settings-row-chevron">›</span>
+      </div>
+      <div class="settings-row" id="settings-help-row">
+        <span data-i18n="appSettings.help">Help &amp; support</span>
+        <span class="settings-row-chevron">›</span>
+      </div>
+
+      <div class="block-label" data-i18n="appSettings.data">Your data</div>
+      <button type="button" class="button button-secondary button-full" id="settings-export" data-i18n="settings.export">Export my data</button>
+      <button type="button" class="button button-secondary button-full button-danger-outline" id="settings-delete-account" style="margin-top:12px;" data-i18n="appSettings.deleteAccount">Delete account</button>
+
+      <button class="button button-secondary button-full" id="settings-logout" style="margin-top:28px;" data-i18n="settings.logout">Log out</button>
+
+      <p class="settings-version" id="settings-app-version">Camilius AI</p>
+    </div>
+  </section>
+
+  <!-- HELP -->
+  <section id="screen-help" class="screen screen-help">
+    <header class="topbar">
+      <button class="back-btn" id="help-back" aria-label="Back">‹</button>
+      <div class="topbar-title"><div><h1 data-i18n="help.title">Help &amp; support</h1></div></div>
+    </header>
+    <div class="detail-body">
+      <p class="screen-subtitle" data-i18n="help.subtitle">Questions or ran into an issue? We're happy to help.</p>
+
+      <div class="info-card">
+        <strong data-i18n="help.emailLabel">Email us</strong><br>
+        <span id="help-email-text">mihajlosavovic75757@gmail.com</span>
+      </div>
+
+      <button type="button" class="button button-full" id="help-email-btn" data-i18n="help.emailButton">Send us an email</button>
+      <button type="button" class="button button-secondary button-full" id="help-copy-btn" style="margin-top:12px;" data-i18n="help.copyButton">Copy email address</button>
+      <div id="help-copy-confirmation" class="alert alert-success hidden" style="margin-top:14px;" data-i18n="help.copied">Copied to clipboard.</div>
+
+      <div class="block-label" style="margin-top:28px;" data-i18n="help.faqTitle">Common questions</div>
+      <div class="info-card">
+        <strong data-i18n="help.faq1Q">Why didn't a customer message show up?</strong><br>
+        <span data-i18n="help.faq1A">Make sure your Instagram account is still connected in Profile, and that it's a Professional (Business or Creator) account - that's required for Camilius to read its messages.</span>
+      </div>
+      <div class="info-card">
+        <strong data-i18n="help.faq2Q">Can I edit a reply before sending?</strong><br>
+        <span data-i18n="help.faq2A">Yes - every AI-drafted reply is just a suggestion. Open it from the inbox, edit the text if you like, then send.</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- TERMS OF SERVICE -->
+  <section id="screen-terms" class="screen screen-legal">
+    <header class="topbar">
+      <button class="back-btn" id="terms-back" aria-label="Back">‹</button>
+      <div class="topbar-title"><div><h1>Terms of Service</h1></div></div>
+    </header>
+    <div class="detail-body legal-body">
+      <p class="legal-updated">Last updated: July 15, 2026.</p>
+      <p>By registering and using Camilius AI you accept these terms. The service is currently operated by Mihajlo Savovic as an individual. Questions: <strong>mihajlosavovic75757@gmail.com</strong></p>
+      <h2>What the service does</h2>
+      <p>Camilius AI reads direct messages sent to your connected Instagram Business account and automatically generates a <strong>suggested</strong> reply using artificial intelligence, based on the business data you've entered. The suggestion is not sent automatically - you must manually review it, edit it if needed, and approve sending through the dashboard. You are solely responsible for the content of every reply you approve and send.</p>
+      <h2>Your responsibilities</h2>
+      <ul>
+        <li>You're responsible for the accuracy of the data you enter (working hours, price list, FAQ) - AI replies rely on that data.</li>
+        <li>You're responsible for checking that an AI suggestion is accurate and appropriate before sending - we don't guarantee the accuracy of AI-generated content.</li>
+        <li>You agree not to use the service to send inappropriate, misleading, or unlawful content.</li>
+        <li>You're responsible for the security of your credentials (username, password) and for keeping your connected Instagram account secure.</li>
+      </ul>
+      <h2>Limitation of liability</h2>
+      <p>The service is provided "as is", without a guarantee of uninterrupted operation or freedom from errors. We are not liable for damages arising from an inaccurate AI reply that you approved and sent, service downtime, or data loss. You use the service at your own risk.</p>
+      <h2>Pricing</h2>
+      <p>The service is currently free, in a testing phase. We reserve the right to introduce a paid plan in the future, and will notify existing users in advance.</p>
+      <h2>Account termination</h2>
+      <p>We reserve the right to suspend or terminate an account in case of misuse of the service (e.g. sending spam, attempting to bypass limits, unlawful use). You may request deletion of your account at any time.</p>
+      <h2>Changes to these terms</h2>
+      <p>These terms may change from time to time. We'll try to announce significant changes via email. Continued use of the service after a change means you accept the new terms.</p>
+      <h2>Governing law</h2>
+      <p>These terms are governed by the law of the Republic of Serbia.</p>
+    </div>
+  </section>
+
+  <!-- PRIVACY POLICY -->
+  <section id="screen-privacy" class="screen screen-legal">
+    <header class="topbar">
+      <button class="back-btn" id="privacy-back" aria-label="Back">‹</button>
+      <div class="topbar-title"><div><h1>Privacy Policy</h1></div></div>
+    </header>
+    <div class="detail-body legal-body">
+      <p class="legal-updated">Last updated: July 15, 2026.</p>
+      <p>This policy explains what data Camilius AI collects, why, and how it's stored. The service is currently operated by Mihajlo Savovic as an individual (note: this will be updated if the service is registered as a company).</p>
+      <h2>Contact</h2>
+      <p>For any privacy questions or data access/deletion requests, write to: <strong>mihajlosavovic75757@gmail.com</strong></p>
+      <h2>What data we collect</h2>
+      <p>From the business owner, at registration:</p>
+      <ul>
+        <li>Business name, username, and password (the password is stored hashed, never in readable form)</li>
+        <li>A contact email address, used only for account recovery (password resets) and important account notices</li>
+        <li>The working hours, price list, and FAQ you enter</li>
+      </ul>
+      <p>When you connect your Instagram Business account, we receive and store an access token (via Instagram's official Business Login/OAuth flow) that lets the service read and reply to your account's direct messages on your behalf. As part of providing the service, the system also reads the content of incoming Instagram messages sent to your connected account (your customers' questions) in order to generate suggested replies, and stores the sender's Instagram-scoped identifier and (where available) username so replies can be sent back to the right person.</p>
+      <h2>Why we collect this data</h2>
+      <p>Solely to provide the service's function: automatically reading customer inquiries sent via Instagram and suggesting replies based on your business's data, which you manually review and approve before sending. No reply is ever sent without your approval.</p>
+      <h2>Who we share data with</h2>
+      <p>We don't sell your data. To provide the service, certain data is processed through the following external services (data processors):</p>
+      <ul>
+        <li><strong>OpenAI</strong> - the text of your customer's question and your business data (working hours, price list, FAQ) are sent to OpenAI to generate suggested replies.</li>
+        <li><strong>Meta (Instagram)</strong> - the system connects to your Instagram Business account via Instagram's official Messaging API, using the access token you granted, to read incoming direct messages and send your approved replies.</li>
+        <li><strong>Resend</strong> - used to send account-related emails (e.g. password resets); processes your contact email address.</li>
+        <li><strong>Railway</strong> - our hosting provider; all data is physically stored on their servers (outside Serbia).</li>
+      </ul>
+      <h2>How we store data</h2>
+      <p>Dashboard login passwords are stored hashed (irreversibly). The Instagram access token is stored encrypted in the database. All communication with the site goes over HTTPS. That said, no system is 100% secure, and we can't guarantee absolute security.</p>
+      <h2>How long we keep data</h2>
+      <p>We keep your data for as long as your account exists. If you'd like your account and all associated data deleted, use the "Delete account" option in Settings, or send a request to the contact email above.</p>
+      <h2>Cookies</h2>
+      <p>We use only one necessary (session) cookie to keep you logged into the dashboard. We don't use cookies for marketing or tracking.</p>
+      <h2>Your rights</h2>
+      <p>You have the right to request access to the data we hold about you, its correction, or its complete deletion. For any of these requests, write to the contact email above - we'll respond within a reasonable time.</p>
+      <h2>Changes to this policy</h2>
+      <p>This policy may be updated from time to time. We'll try to notify users of significant changes via email.</p>
     </div>
   </section>
 
@@ -322,12 +472,15 @@
   <button class="tab-btn active" data-tab="inbox">
     <span class="tab-icon">📥</span><span data-i18n="tab.inbox">Inbox</span>
   </button>
+  <button class="tab-btn" data-tab="profile">
+    <span class="tab-icon">👤</span><span data-i18n="tab.profile">Profile</span>
+  </button>
   <button class="tab-btn" data-tab="settings">
     <span class="tab-icon">⚙️</span><span data-i18n="tab.settings">Settings</span>
   </button>
 </nav>
 
-<script src="i18n.js?v=5ff16a9a0736"></script>
-<script src="app.js?v=5ff16a9a0736"></script>
+<script src="i18n.js?v=2e5b181cde82"></script>
+<script src="app.js?v=2e5b181cde82"></script>
 </body>
 </html>

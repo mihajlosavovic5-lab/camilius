@@ -54,6 +54,12 @@ def create_database():
     # (businesses that haven't connected Instagram yet) are allowed under UNIQUE in Postgres.
     cursor.execute("CREATE UNIQUE INDEX IF NOT EXISTS businesses_instagram_account_id_idx ON businesses (instagram_account_id)")
 
+    # Optional phone number - lets a business log in with username, contact email, OR
+    # phone (same "any of these identify you" pattern most consumer apps use), without
+    # requiring it at registration. Same unique-but-multiple-NULLs-allowed index pattern.
+    cursor.execute("ALTER TABLE businesses ADD COLUMN IF NOT EXISTS phone_number TEXT")
+    cursor.execute("CREATE UNIQUE INDEX IF NOT EXISTS businesses_phone_number_idx ON businesses (phone_number)")
+
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS conversations (
             id SERIAL PRIMARY KEY,
@@ -175,10 +181,11 @@ def create_database():
 # business_by_instagram_account_id (and, plus subscription_status, all_businesses):
 #   0 id, 1 name, 2 username, 3 password (hashed), 4 contact_email, 5 instagram_account_id,
 #   6 instagram_username, 7 instagram_access_token (decrypted, None if not connected yet),
-#   8 working_hours, 9 price_list, 10 faq
+#   8 working_hours, 9 price_list, 10 faq, 11 phone_number (None if never set)
 
 _BUSINESS_COLUMNS = """id, name, username, password, contact_email, instagram_account_id,
-                       instagram_username, instagram_access_token, working_hours, price_list, faq"""
+                       instagram_username, instagram_access_token, working_hours, price_list, faq,
+                       phone_number"""
 
 
 def _decrypt_row_token(row):
@@ -188,16 +195,17 @@ def _decrypt_row_token(row):
     return row[:7] + (token,) + row[8:]
 
 
-def add_business(name, username, password, contact_email, working_hours, price_list, faq):
+def add_business(name, username, password, contact_email, working_hours, price_list, faq, phone_number=None):
     """Creates the account itself. Instagram isn't connected yet at this point - that
-    happens afterward via link_instagram_account(), once the OAuth redirect completes."""
+    happens afterward via link_instagram_account(), once the OAuth redirect completes.
+    phone_number is optional - purely an extra way to log in later, not required."""
     connection = connect()
     cursor = connection.cursor()
 
     cursor.execute(
-        """INSERT INTO businesses (name, username, password, contact_email, working_hours, price_list, faq)
-           VALUES (%s, %s, %s, %s, %s, %s, %s) RETURNING id""",
-        (name, username, generate_password_hash(password), contact_email, working_hours, price_list, faq),
+        """INSERT INTO businesses (name, username, password, contact_email, working_hours, price_list, faq, phone_number)
+           VALUES (%s, %s, %s, %s, %s, %s, %s, %s) RETURNING id""",
+        (name, username, generate_password_hash(password), contact_email, working_hours, price_list, faq, phone_number or None),
     )
 
     new_id = cursor.fetchone()[0]
@@ -234,7 +242,7 @@ def all_businesses():
     """)
     result = cursor.fetchall()
     connection.close()
-    return [_decrypt_row_token(row[:11]) + (row[11],) for row in result]
+    return [_decrypt_row_token(row[:12]) + (row[12],) for row in result]
 
 
 def business_by_id(business_id):
@@ -277,6 +285,24 @@ def business_by_username(username):
         return None
     # NOTE: 'password' (index 3) stays hashed - login checks it via check_password_hash,
     # never decrypted.
+    return _decrypt_row_token(row)
+
+
+def business_by_login_identifier(identifier):
+    """Login accepts username, contact email, OR phone number - same "any of these
+    identifies you" pattern most consumer apps use. One query checking all three rather
+    than three separate round-trips."""
+    connection = connect()
+    cursor = connection.cursor()
+    cursor.execute(
+        f"SELECT {_BUSINESS_COLUMNS} FROM businesses WHERE username = %s OR contact_email = %s OR phone_number = %s",
+        (identifier, identifier, identifier),
+    )
+    row = cursor.fetchone()
+    connection.close()
+
+    if row is None:
+        return None
     return _decrypt_row_token(row)
 
 

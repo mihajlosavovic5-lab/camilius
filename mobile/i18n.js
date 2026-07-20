@@ -31,7 +31,7 @@ const TRANSLATIONS = {
         "onboarding.slide4.body": "Nothing goes out without your approval — review, edit if you like, then send.",
         "onboarding.getStarted": "Get started",
 
-        "login.username": "Username",
+        "login.username": "Username, email, or phone",
         "login.password": "Password",
         "login.submit": "Log in",
         "login.submitLoading": "Logging in…",
@@ -47,6 +47,8 @@ const TRANSLATIONS = {
         "register.password": "Password",
         "register.contactEmail": "Contact email",
         "register.contactEmailPlaceholder": "you@example.com",
+        "register.phone": "Phone number (optional)",
+        "register.phonePlaceholder": "+1 555 123 4567",
         "register.businessDetails": "Business details — the AI uses this to write replies",
         "register.hours": "Working hours",
         "register.hoursPlaceholder": "Monday: 09:00–20:00\nSunday: closed",
@@ -127,7 +129,38 @@ const TRANSLATIONS = {
         "settings.help": "Need help?",
         "settings.logout": "Log out",
 
+        "profile.title": "Profile",
+
+        "appSettings.title": "Settings",
+        "appSettings.preferences": "Preferences",
+        "appSettings.language": "Language",
+        "appSettings.theme": "Theme",
+        "appSettings.themeSystem": "System",
+        "appSettings.themeLight": "Light",
+        "appSettings.themeDark": "Dark",
+        "appSettings.about": "About",
+        "appSettings.terms": "Terms of Service",
+        "appSettings.privacy": "Privacy Policy",
+        "appSettings.help": "Help & support",
+        "appSettings.data": "Your data",
+        "appSettings.deleteAccount": "Delete account",
+        "appSettings.deleteConfirm": "Are you sure? Your account and all conversations will be permanently deleted.",
+        "appSettings.deleteError": "Couldn't delete your account. Try again.",
+
+        "help.title": "Help & support",
+        "help.subtitle": "Questions or ran into an issue? We're happy to help.",
+        "help.emailLabel": "Email us",
+        "help.emailButton": "Send us an email",
+        "help.copyButton": "Copy email address",
+        "help.copied": "Copied to clipboard.",
+        "help.faqTitle": "Common questions",
+        "help.faq1Q": "Why didn't a customer message show up?",
+        "help.faq1A": "Make sure your Instagram account is still connected in Profile, and that it's a Professional (Business or Creator) account - that's required for Camilius to read its messages.",
+        "help.faq2Q": "Can I edit a reply before sending?",
+        "help.faq2A": "Yes - every AI-drafted reply is just a suggestion. Open it from the inbox, edit the text if you like, then send.",
+
         "tab.inbox": "Inbox",
+        "tab.profile": "Profile",
         "tab.settings": "Settings",
 
         "offline": "No internet connection",
@@ -151,7 +184,7 @@ const TRANSLATIONS = {
         "onboarding.slide4.body": "Ništa se ne šalje bez vašeg odobrenja — pregledajte, izmenite ako želite, pa pošaljite.",
         "onboarding.getStarted": "Počnimo",
 
-        "login.username": "Korisničko ime",
+        "login.username": "Korisničko ime, email ili telefon",
         "login.password": "Lozinka",
         "login.submit": "Prijavi se",
         "login.submitLoading": "Prijavljivanje…",
@@ -167,6 +200,8 @@ const TRANSLATIONS = {
         "register.password": "Lozinka",
         "register.contactEmail": "Kontakt email",
         "register.contactEmailPlaceholder": "vi@primer.com",
+        "register.phone": "Broj telefona (opciono)",
+        "register.phonePlaceholder": "+381 6X XXX XXXX",
         "register.businessDetails": "Detalji o firmi — AI ovo koristi za pisanje odgovora",
         "register.hours": "Radno vreme",
         "register.hoursPlaceholder": "Ponedeljak: 09:00–20:00\nNedelja: ne radi",
@@ -247,7 +282,38 @@ const TRANSLATIONS = {
         "settings.help": "Potrebna vam je pomoć?",
         "settings.logout": "Odjavi se",
 
+        "profile.title": "Profil",
+
+        "appSettings.title": "Podešavanja",
+        "appSettings.preferences": "Podešavanja aplikacije",
+        "appSettings.language": "Jezik",
+        "appSettings.theme": "Tema",
+        "appSettings.themeSystem": "Sistemski",
+        "appSettings.themeLight": "Svetla",
+        "appSettings.themeDark": "Tamna",
+        "appSettings.about": "O aplikaciji",
+        "appSettings.terms": "Uslovi korišćenja",
+        "appSettings.privacy": "Politika privatnosti",
+        "appSettings.help": "Pomoć i podrška",
+        "appSettings.data": "Vaši podaci",
+        "appSettings.deleteAccount": "Obriši nalog",
+        "appSettings.deleteConfirm": "Da li ste sigurni? Vaš nalog i svi razgovori će biti trajno obrisani.",
+        "appSettings.deleteError": "Nije moguće obrisati nalog. Pokušajte ponovo.",
+
+        "help.title": "Pomoć i podrška",
+        "help.subtitle": "Imate pitanje ili problem? Rado ćemo pomoći.",
+        "help.emailLabel": "Pišite nam",
+        "help.emailButton": "Pošalji nam email",
+        "help.copyButton": "Kopiraj email adresu",
+        "help.copied": "Kopirano u clipboard.",
+        "help.faqTitle": "Česta pitanja",
+        "help.faq1Q": "Zašto se poruka kupca nije pojavila?",
+        "help.faq1A": "Proverite da li je vaš Instagram nalog i dalje povezan u Profilu, i da li je Profesionalni nalog (Biznis ili Kreator) - to je neophodno da bi Camilius mogao da čita poruke.",
+        "help.faq2Q": "Mogu li da izmenim odgovor pre slanja?",
+        "help.faq2A": "Da - svaki AI predlog je samo predlog. Otvorite ga iz inboksa, izmenite tekst ako želite, pa pošaljite.",
+
         "tab.inbox": "Inboks",
+        "tab.profile": "Profil",
         "tab.settings": "Podešavanja",
 
         "offline": "Nema internet konekcije",
@@ -271,7 +337,7 @@ const TRANSLATIONS = {
         "onboarding.slide4.body": "Nada se envía sin tu aprobación — revisa, edita si quieres, y luego envía.",
         "onboarding.getStarted": "Empezar",
 
-        "login.username": "Usuario",
+        "login.username": "Usuario, email o teléfono",
         "login.password": "Contraseña",
         "login.submit": "Iniciar sesión",
         "login.submitLoading": "Iniciando sesión…",
@@ -287,6 +353,8 @@ const TRANSLATIONS = {
         "register.password": "Contraseña",
         "register.contactEmail": "Correo de contacto",
         "register.contactEmailPlaceholder": "tu@ejemplo.com",
+        "register.phone": "Número de teléfono (opcional)",
+        "register.phonePlaceholder": "+34 6XX XXX XXX",
         "register.businessDetails": "Detalles del negocio — la IA los usa para redactar respuestas",
         "register.hours": "Horario de atención",
         "register.hoursPlaceholder": "Lunes: 09:00–20:00\nDomingo: cerrado",
@@ -367,7 +435,38 @@ const TRANSLATIONS = {
         "settings.help": "¿Necesitas ayuda?",
         "settings.logout": "Cerrar sesión",
 
+        "profile.title": "Perfil",
+
+        "appSettings.title": "Ajustes",
+        "appSettings.preferences": "Preferencias",
+        "appSettings.language": "Idioma",
+        "appSettings.theme": "Tema",
+        "appSettings.themeSystem": "Sistema",
+        "appSettings.themeLight": "Claro",
+        "appSettings.themeDark": "Oscuro",
+        "appSettings.about": "Acerca de",
+        "appSettings.terms": "Términos de Servicio",
+        "appSettings.privacy": "Política de Privacidad",
+        "appSettings.help": "Ayuda y soporte",
+        "appSettings.data": "Tus datos",
+        "appSettings.deleteAccount": "Eliminar cuenta",
+        "appSettings.deleteConfirm": "¿Estás seguro? Tu cuenta y todas las conversaciones se eliminarán permanentemente.",
+        "appSettings.deleteError": "No se pudo eliminar tu cuenta. Inténtalo de nuevo.",
+
+        "help.title": "Ayuda y soporte",
+        "help.subtitle": "¿Tienes preguntas o algún problema? Estamos para ayudarte.",
+        "help.emailLabel": "Escríbenos",
+        "help.emailButton": "Enviar un correo",
+        "help.copyButton": "Copiar dirección de correo",
+        "help.copied": "Copiado al portapapeles.",
+        "help.faqTitle": "Preguntas frecuentes",
+        "help.faq1Q": "¿Por qué no apareció un mensaje de un cliente?",
+        "help.faq1A": "Asegúrate de que tu cuenta de Instagram siga conectada en Perfil, y que sea una cuenta Profesional (Empresa o Creador de contenido) - es necesario para que Camilius pueda leer sus mensajes.",
+        "help.faq2Q": "¿Puedo editar una respuesta antes de enviarla?",
+        "help.faq2A": "Sí - cada respuesta redactada por la IA es solo una sugerencia. Ábrela desde la bandeja de entrada, edita el texto si quieres, y envíala.",
+
         "tab.inbox": "Bandeja",
+        "tab.profile": "Perfil",
         "tab.settings": "Ajustes",
 
         "offline": "Sin conexión a internet",
@@ -391,7 +490,7 @@ const TRANSLATIONS = {
         "onboarding.slide4.body": "Nada é enviado sem sua aprovação — revise, edite se quiser, e depois envie.",
         "onboarding.getStarted": "Começar",
 
-        "login.username": "Usuário",
+        "login.username": "Usuário, email ou telefone",
         "login.password": "Senha",
         "login.submit": "Entrar",
         "login.submitLoading": "Entrando…",
@@ -407,6 +506,8 @@ const TRANSLATIONS = {
         "register.password": "Senha",
         "register.contactEmail": "Email de contato",
         "register.contactEmailPlaceholder": "voce@exemplo.com",
+        "register.phone": "Número de telefone (opcional)",
+        "register.phonePlaceholder": "+351 9XX XXX XXX",
         "register.businessDetails": "Detalhes da empresa — a IA usa isso para escrever respostas",
         "register.hours": "Horário de funcionamento",
         "register.hoursPlaceholder": "Segunda: 09:00–20:00\nDomingo: fechado",
@@ -487,7 +588,38 @@ const TRANSLATIONS = {
         "settings.help": "Precisa de ajuda?",
         "settings.logout": "Sair",
 
+        "profile.title": "Perfil",
+
+        "appSettings.title": "Configurações",
+        "appSettings.preferences": "Preferências",
+        "appSettings.language": "Idioma",
+        "appSettings.theme": "Tema",
+        "appSettings.themeSystem": "Sistema",
+        "appSettings.themeLight": "Claro",
+        "appSettings.themeDark": "Escuro",
+        "appSettings.about": "Sobre",
+        "appSettings.terms": "Termos de Serviço",
+        "appSettings.privacy": "Política de Privacidade",
+        "appSettings.help": "Ajuda e suporte",
+        "appSettings.data": "Seus dados",
+        "appSettings.deleteAccount": "Excluir conta",
+        "appSettings.deleteConfirm": "Tem certeza? Sua conta e todas as conversas serão excluídas permanentemente.",
+        "appSettings.deleteError": "Não foi possível excluir sua conta. Tente novamente.",
+
+        "help.title": "Ajuda e suporte",
+        "help.subtitle": "Dúvidas ou algum problema? Estamos aqui para ajudar.",
+        "help.emailLabel": "Envie-nos um email",
+        "help.emailButton": "Enviar um email",
+        "help.copyButton": "Copiar endereço de email",
+        "help.copied": "Copiado para a área de transferência.",
+        "help.faqTitle": "Perguntas frequentes",
+        "help.faq1Q": "Por que a mensagem de um cliente não apareceu?",
+        "help.faq1A": "Verifique se sua conta do Instagram ainda está conectada no Perfil, e se é uma conta Profissional (Empresa ou Criador de conteúdo) - isso é necessário para o Camilius ler as mensagens.",
+        "help.faq2Q": "Posso editar uma resposta antes de enviar?",
+        "help.faq2A": "Sim - cada resposta redigida pela IA é apenas uma sugestão. Abra-a na caixa de entrada, edite o texto se quiser, e envie.",
+
         "tab.inbox": "Caixa de entrada",
+        "tab.profile": "Perfil",
         "tab.settings": "Configurações",
 
         "offline": "Sem conexão com a internet",
@@ -511,7 +643,7 @@ const TRANSLATIONS = {
         "onboarding.slide4.body": "Rien n'est envoyé sans votre accord — relisez, modifiez si besoin, puis envoyez.",
         "onboarding.getStarted": "Commencer",
 
-        "login.username": "Nom d'utilisateur",
+        "login.username": "Nom d'utilisateur, email ou téléphone",
         "login.password": "Mot de passe",
         "login.submit": "Se connecter",
         "login.submitLoading": "Connexion…",
@@ -527,6 +659,8 @@ const TRANSLATIONS = {
         "register.password": "Mot de passe",
         "register.contactEmail": "Email de contact",
         "register.contactEmailPlaceholder": "vous@exemple.com",
+        "register.phone": "Numéro de téléphone (facultatif)",
+        "register.phonePlaceholder": "+33 6 XX XX XX XX",
         "register.businessDetails": "Détails de l'entreprise — l'IA les utilise pour rédiger les réponses",
         "register.hours": "Horaires d'ouverture",
         "register.hoursPlaceholder": "Lundi : 09h00–20h00\nDimanche : fermé",
@@ -607,7 +741,38 @@ const TRANSLATIONS = {
         "settings.help": "Besoin d'aide ?",
         "settings.logout": "Se déconnecter",
 
+        "profile.title": "Profil",
+
+        "appSettings.title": "Paramètres",
+        "appSettings.preferences": "Préférences",
+        "appSettings.language": "Langue",
+        "appSettings.theme": "Thème",
+        "appSettings.themeSystem": "Système",
+        "appSettings.themeLight": "Clair",
+        "appSettings.themeDark": "Sombre",
+        "appSettings.about": "À propos",
+        "appSettings.terms": "Conditions d'utilisation",
+        "appSettings.privacy": "Politique de confidentialité",
+        "appSettings.help": "Aide et support",
+        "appSettings.data": "Vos données",
+        "appSettings.deleteAccount": "Supprimer le compte",
+        "appSettings.deleteConfirm": "Êtes-vous sûr ? Votre compte et toutes les conversations seront définitivement supprimés.",
+        "appSettings.deleteError": "Impossible de supprimer votre compte. Réessayez.",
+
+        "help.title": "Aide et support",
+        "help.subtitle": "Des questions ou un problème ? Nous sommes là pour vous aider.",
+        "help.emailLabel": "Écrivez-nous",
+        "help.emailButton": "Nous envoyer un email",
+        "help.copyButton": "Copier l'adresse email",
+        "help.copied": "Copié dans le presse-papiers.",
+        "help.faqTitle": "Questions fréquentes",
+        "help.faq1Q": "Pourquoi le message d'un client n'est-il pas apparu ?",
+        "help.faq1A": "Vérifiez que votre compte Instagram est toujours connecté dans Profil, et qu'il s'agit d'un compte Professionnel (Entreprise ou Créateur) - c'est requis pour que Camilius puisse lire ses messages.",
+        "help.faq2Q": "Puis-je modifier une réponse avant de l'envoyer ?",
+        "help.faq2A": "Oui - chaque réponse rédigée par l'IA n'est qu'une suggestion. Ouvrez-la depuis la boîte de réception, modifiez le texte si besoin, puis envoyez.",
+
         "tab.inbox": "Boîte de réception",
+        "tab.profile": "Profil",
         "tab.settings": "Paramètres",
 
         "offline": "Pas de connexion internet",
@@ -631,7 +796,7 @@ const TRANSLATIONS = {
         "onboarding.slide4.body": "Nichts wird ohne deine Zustimmung verschickt — prüfen, bei Bedarf bearbeiten, dann senden.",
         "onboarding.getStarted": "Los geht's",
 
-        "login.username": "Benutzername",
+        "login.username": "Benutzername, E-Mail oder Telefon",
         "login.password": "Passwort",
         "login.submit": "Anmelden",
         "login.submitLoading": "Anmeldung…",
@@ -647,6 +812,8 @@ const TRANSLATIONS = {
         "register.password": "Passwort",
         "register.contactEmail": "Kontakt-E-Mail",
         "register.contactEmailPlaceholder": "du@beispiel.de",
+        "register.phone": "Telefonnummer (optional)",
+        "register.phonePlaceholder": "+49 15X XXXXXXX",
         "register.businessDetails": "Unternehmensdetails — die KI nutzt diese zum Verfassen von Antworten",
         "register.hours": "Öffnungszeiten",
         "register.hoursPlaceholder": "Montag: 09:00–20:00\nSonntag: geschlossen",
@@ -727,7 +894,38 @@ const TRANSLATIONS = {
         "settings.help": "Brauchst du Hilfe?",
         "settings.logout": "Abmelden",
 
+        "profile.title": "Profil",
+
+        "appSettings.title": "Einstellungen",
+        "appSettings.preferences": "Einstellungen",
+        "appSettings.language": "Sprache",
+        "appSettings.theme": "Design",
+        "appSettings.themeSystem": "System",
+        "appSettings.themeLight": "Hell",
+        "appSettings.themeDark": "Dunkel",
+        "appSettings.about": "Über",
+        "appSettings.terms": "Nutzungsbedingungen",
+        "appSettings.privacy": "Datenschutzerklärung",
+        "appSettings.help": "Hilfe & Support",
+        "appSettings.data": "Deine Daten",
+        "appSettings.deleteAccount": "Konto löschen",
+        "appSettings.deleteConfirm": "Bist du sicher? Dein Konto und alle Unterhaltungen werden endgültig gelöscht.",
+        "appSettings.deleteError": "Dein Konto konnte nicht gelöscht werden. Versuch's noch mal.",
+
+        "help.title": "Hilfe & Support",
+        "help.subtitle": "Fragen oder ein Problem? Wir helfen gerne.",
+        "help.emailLabel": "Schreib uns",
+        "help.emailButton": "E-Mail senden",
+        "help.copyButton": "E-Mail-Adresse kopieren",
+        "help.copied": "In die Zwischenablage kopiert.",
+        "help.faqTitle": "Häufige Fragen",
+        "help.faq1Q": "Warum ist eine Kundennachricht nicht erschienen?",
+        "help.faq1A": "Stelle sicher, dass dein Instagram-Konto noch im Profil verbunden ist und dass es sich um ein professionelles Konto (Unternehmen oder Creator) handelt - das ist erforderlich, damit Camilius Nachrichten lesen kann.",
+        "help.faq2Q": "Kann ich eine Antwort vor dem Senden bearbeiten?",
+        "help.faq2A": "Ja - jede KI-Antwort ist nur ein Vorschlag. Öffne sie im Posteingang, bearbeite den Text bei Bedarf und sende sie dann.",
+
         "tab.inbox": "Posteingang",
+        "tab.profile": "Profil",
         "tab.settings": "Einstellungen",
 
         "offline": "Keine Internetverbindung",
@@ -751,7 +949,7 @@ const TRANSLATIONS = {
         "onboarding.slide4.body": "Niente viene inviato senza la tua approvazione — controlla, modifica se vuoi, poi invia.",
         "onboarding.getStarted": "Inizia",
 
-        "login.username": "Nome utente",
+        "login.username": "Nome utente, email o telefono",
         "login.password": "Password",
         "login.submit": "Accedi",
         "login.submitLoading": "Accesso in corso…",
@@ -767,6 +965,8 @@ const TRANSLATIONS = {
         "register.password": "Password",
         "register.contactEmail": "Email di contatto",
         "register.contactEmailPlaceholder": "tu@esempio.com",
+        "register.phone": "Numero di telefono (facoltativo)",
+        "register.phonePlaceholder": "+39 3XX XXX XXXX",
         "register.businessDetails": "Dettagli dell'attività — l'IA li usa per scrivere le risposte",
         "register.hours": "Orari di apertura",
         "register.hoursPlaceholder": "Lunedì: 09:00–20:00\nDomenica: chiuso",
@@ -847,7 +1047,38 @@ const TRANSLATIONS = {
         "settings.help": "Hai bisogno di aiuto?",
         "settings.logout": "Esci",
 
+        "profile.title": "Profilo",
+
+        "appSettings.title": "Impostazioni",
+        "appSettings.preferences": "Preferenze",
+        "appSettings.language": "Lingua",
+        "appSettings.theme": "Tema",
+        "appSettings.themeSystem": "Sistema",
+        "appSettings.themeLight": "Chiaro",
+        "appSettings.themeDark": "Scuro",
+        "appSettings.about": "Informazioni",
+        "appSettings.terms": "Termini di Servizio",
+        "appSettings.privacy": "Informativa sulla Privacy",
+        "appSettings.help": "Assistenza",
+        "appSettings.data": "I tuoi dati",
+        "appSettings.deleteAccount": "Elimina account",
+        "appSettings.deleteConfirm": "Sei sicuro? Il tuo account e tutte le conversazioni verranno eliminati permanentemente.",
+        "appSettings.deleteError": "Impossibile eliminare il tuo account. Riprova.",
+
+        "help.title": "Assistenza",
+        "help.subtitle": "Domande o un problema? Siamo felici di aiutarti.",
+        "help.emailLabel": "Scrivici",
+        "help.emailButton": "Inviaci un'email",
+        "help.copyButton": "Copia indirizzo email",
+        "help.copied": "Copiato negli appunti.",
+        "help.faqTitle": "Domande frequenti",
+        "help.faq1Q": "Perché non è apparso un messaggio di un cliente?",
+        "help.faq1A": "Assicurati che il tuo account Instagram sia ancora collegato nel Profilo, e che sia un account Professionale (Business o Creator) - è necessario perché Camilius possa leggere i messaggi.",
+        "help.faq2Q": "Posso modificare una risposta prima di inviarla?",
+        "help.faq2A": "Sì - ogni risposta generata dall'IA è solo un suggerimento. Aprila dalla posta in arrivo, modifica il testo se vuoi, poi invia.",
+
         "tab.inbox": "Posta",
+        "tab.profile": "Profilo",
         "tab.settings": "Impostazioni",
 
         "offline": "Nessuna connessione internet",
@@ -871,7 +1102,7 @@ const TRANSLATIONS = {
         "onboarding.slide4.body": "Ничего не отправляется без вашего одобрения — просмотрите, отредактируйте при желании, затем отправьте.",
         "onboarding.getStarted": "Начать",
 
-        "login.username": "Имя пользователя",
+        "login.username": "Имя пользователя, email или телефон",
         "login.password": "Пароль",
         "login.submit": "Войти",
         "login.submitLoading": "Вход…",
@@ -887,6 +1118,8 @@ const TRANSLATIONS = {
         "register.password": "Пароль",
         "register.contactEmail": "Контактный email",
         "register.contactEmailPlaceholder": "vy@primer.com",
+        "register.phone": "Номер телефона (необязательно)",
+        "register.phonePlaceholder": "+7 9XX XXX-XX-XX",
         "register.businessDetails": "Данные о компании — ИИ использует их для составления ответов",
         "register.hours": "Часы работы",
         "register.hoursPlaceholder": "Понедельник: 09:00–20:00\nВоскресенье: выходной",
@@ -967,7 +1200,38 @@ const TRANSLATIONS = {
         "settings.help": "Нужна помощь?",
         "settings.logout": "Выйти",
 
+        "profile.title": "Профиль",
+
+        "appSettings.title": "Настройки",
+        "appSettings.preferences": "Настройки приложения",
+        "appSettings.language": "Язык",
+        "appSettings.theme": "Тема",
+        "appSettings.themeSystem": "Системная",
+        "appSettings.themeLight": "Светлая",
+        "appSettings.themeDark": "Тёмная",
+        "appSettings.about": "О приложении",
+        "appSettings.terms": "Условия использования",
+        "appSettings.privacy": "Политика конфиденциальности",
+        "appSettings.help": "Помощь и поддержка",
+        "appSettings.data": "Ваши данные",
+        "appSettings.deleteAccount": "Удалить аккаунт",
+        "appSettings.deleteConfirm": "Вы уверены? Ваш аккаунт и все переписки будут удалены навсегда.",
+        "appSettings.deleteError": "Не удалось удалить аккаунт. Попробуйте снова.",
+
+        "help.title": "Помощь и поддержка",
+        "help.subtitle": "Есть вопросы или проблема? Мы всегда рады помочь.",
+        "help.emailLabel": "Напишите нам",
+        "help.emailButton": "Отправить email",
+        "help.copyButton": "Скопировать email",
+        "help.copied": "Скопировано в буфер обмена.",
+        "help.faqTitle": "Частые вопросы",
+        "help.faq1Q": "Почему не появилось сообщение клиента?",
+        "help.faq1A": "Убедитесь, что ваш аккаунт Instagram всё ещё подключён в Профиле и что это Профессиональный аккаунт (Бизнес или Автор) - это необходимо, чтобы Camilius мог читать сообщения.",
+        "help.faq2Q": "Могу ли я отредактировать ответ перед отправкой?",
+        "help.faq2A": "Да - каждый ответ от ИИ - это только предложение. Откройте его во входящих, при необходимости отредактируйте текст, затем отправьте.",
+
         "tab.inbox": "Входящие",
+        "tab.profile": "Профиль",
         "tab.settings": "Настройки",
 
         "offline": "Нет подключения к интернету",
@@ -991,7 +1255,7 @@ const TRANSLATIONS = {
         "onboarding.slide4.body": "未经您批准，任何内容都不会发出——先查看，需要可编辑，然后发送。",
         "onboarding.getStarted": "开始使用",
 
-        "login.username": "用户名",
+        "login.username": "用户名、邮箱或电话",
         "login.password": "密码",
         "login.submit": "登录",
         "login.submitLoading": "正在登录…",
@@ -1007,6 +1271,8 @@ const TRANSLATIONS = {
         "register.password": "密码",
         "register.contactEmail": "联系邮箱",
         "register.contactEmailPlaceholder": "you@example.com",
+        "register.phone": "电话号码（选填）",
+        "register.phonePlaceholder": "+86 138 0000 0000",
         "register.businessDetails": "企业详情 — AI 将据此撰写回复",
         "register.hours": "营业时间",
         "register.hoursPlaceholder": "周一：09:00–20:00\n周日：休息",
@@ -1087,7 +1353,38 @@ const TRANSLATIONS = {
         "settings.help": "需要帮助？",
         "settings.logout": "退出登录",
 
+        "profile.title": "个人资料",
+
+        "appSettings.title": "设置",
+        "appSettings.preferences": "偏好设置",
+        "appSettings.language": "语言",
+        "appSettings.theme": "主题",
+        "appSettings.themeSystem": "跟随系统",
+        "appSettings.themeLight": "浅色",
+        "appSettings.themeDark": "深色",
+        "appSettings.about": "关于",
+        "appSettings.terms": "服务条款",
+        "appSettings.privacy": "隐私政策",
+        "appSettings.help": "帮助与支持",
+        "appSettings.data": "您的数据",
+        "appSettings.deleteAccount": "删除账户",
+        "appSettings.deleteConfirm": "确定吗？您的账户和所有对话将被永久删除。",
+        "appSettings.deleteError": "无法删除账户，请重试。",
+
+        "help.title": "帮助与支持",
+        "help.subtitle": "有疑问或遇到问题？我们乐意提供帮助。",
+        "help.emailLabel": "给我们发邮件",
+        "help.emailButton": "发送邮件",
+        "help.copyButton": "复制邮箱地址",
+        "help.copied": "已复制到剪贴板。",
+        "help.faqTitle": "常见问题",
+        "help.faq1Q": "为什么没有显示客户的消息？",
+        "help.faq1A": "请确认您的 Instagram 账户在个人资料中仍处于连接状态，并且是专业账户（企业或创作者）——这是 Camilius 读取消息所必需的。",
+        "help.faq2Q": "发送前可以编辑回复吗？",
+        "help.faq2A": "可以——每条 AI 起草的回复都只是建议。请在收件箱中打开它，如需可编辑文字，然后发送。",
+
         "tab.inbox": "收件箱",
+        "tab.profile": "资料",
         "tab.settings": "设置",
 
         "offline": "无网络连接",
@@ -1111,7 +1408,7 @@ const TRANSLATIONS = {
         "onboarding.slide4.body": "Onayınız olmadan hiçbir şey gönderilmez — inceleyin, isterseniz düzenleyin, sonra gönderin.",
         "onboarding.getStarted": "Başla",
 
-        "login.username": "Kullanıcı adı",
+        "login.username": "Kullanıcı adı, e-posta veya telefon",
         "login.password": "Şifre",
         "login.submit": "Giriş yap",
         "login.submitLoading": "Giriş yapılıyor…",
@@ -1127,6 +1424,8 @@ const TRANSLATIONS = {
         "register.password": "Şifre",
         "register.contactEmail": "İletişim e-postası",
         "register.contactEmailPlaceholder": "siz@ornek.com",
+        "register.phone": "Telefon numarası (isteğe bağlı)",
+        "register.phonePlaceholder": "+90 5XX XXX XX XX",
         "register.businessDetails": "İşletme detayları — yapay zeka yanıt yazarken bunları kullanır",
         "register.hours": "Çalışma saatleri",
         "register.hoursPlaceholder": "Pazartesi: 09:00–20:00\nPazar: kapalı",
@@ -1207,7 +1506,38 @@ const TRANSLATIONS = {
         "settings.help": "Yardıma mı ihtiyacınız var?",
         "settings.logout": "Çıkış yap",
 
+        "profile.title": "Profil",
+
+        "appSettings.title": "Ayarlar",
+        "appSettings.preferences": "Tercihler",
+        "appSettings.language": "Dil",
+        "appSettings.theme": "Tema",
+        "appSettings.themeSystem": "Sistem",
+        "appSettings.themeLight": "Açık",
+        "appSettings.themeDark": "Koyu",
+        "appSettings.about": "Hakkında",
+        "appSettings.terms": "Hizmet Şartları",
+        "appSettings.privacy": "Gizlilik Politikası",
+        "appSettings.help": "Yardım ve destek",
+        "appSettings.data": "Verileriniz",
+        "appSettings.deleteAccount": "Hesabı sil",
+        "appSettings.deleteConfirm": "Emin misiniz? Hesabınız ve tüm görüşmeler kalıcı olarak silinecek.",
+        "appSettings.deleteError": "Hesabınız silinemedi. Tekrar deneyin.",
+
+        "help.title": "Yardım ve destek",
+        "help.subtitle": "Sorularınız mı var ya da bir sorunla mı karşılaştınız? Yardımcı olmaktan mutluluk duyarız.",
+        "help.emailLabel": "Bize yazın",
+        "help.emailButton": "Bize e-posta gönderin",
+        "help.copyButton": "E-posta adresini kopyala",
+        "help.copied": "Panoya kopyalandı.",
+        "help.faqTitle": "Sık sorulan sorular",
+        "help.faq1Q": "Bir müşteri mesajı neden görünmedi?",
+        "help.faq1A": "Instagram hesabınızın Profil'de hâlâ bağlı olduğundan ve Profesyonel hesap (İşletme veya İçerik Üreticisi) olduğundan emin olun - Camilius'un mesajları okuyabilmesi için bu gereklidir.",
+        "help.faq2Q": "Göndermeden önce bir yanıtı düzenleyebilir miyim?",
+        "help.faq2A": "Evet - yapay zekanın hazırladığı her yanıt yalnızca bir öneridir. Gelen kutusundan açın, isterseniz metni düzenleyin, ardından gönderin.",
+
         "tab.inbox": "Gelen kutusu",
+        "tab.profile": "Profil",
         "tab.settings": "Ayarlar",
 
         "offline": "İnternet bağlantısı yok",
@@ -1236,11 +1566,11 @@ function applyTranslations() {
     document.querySelectorAll("[data-i18n-placeholder]").forEach((node) => {
         node.placeholder = t(node.getAttribute("data-i18n-placeholder"));
     });
+    const lang = LANGUAGES.find((l) => l.code === currentLang);
     const label = document.getElementById("lang-select-label");
-    if (label) {
-        const lang = LANGUAGES.find((l) => l.code === currentLang);
-        label.textContent = lang ? lang.name : currentLang;
-    }
+    if (label) label.textContent = lang ? lang.name : currentLang;
+    const settingsValue = document.getElementById("settings-language-value");
+    if (settingsValue) settingsValue.textContent = lang ? lang.name : currentLang;
 }
 
 async function setLanguage(code) {
@@ -1262,19 +1592,24 @@ async function initLanguage() {
 }
 
 function setupLanguagePicker() {
-    const btn = document.getElementById("lang-select-btn");
+    // Two triggers open the same shared modal - the login screen's own "English v"
+    // button, and the "Language" row in the new Settings screen.
+    const triggers = [
+        document.getElementById("lang-select-btn"),
+        document.getElementById("settings-language-row"),
+    ].filter(Boolean);
     const modal = document.getElementById("lang-modal");
     const backdrop = document.getElementById("lang-modal-backdrop");
     const list = document.getElementById("lang-modal-list");
-    if (!btn || !modal || !list) return;
+    if (!triggers.length || !modal || !list) return;
 
     const openPicker = () => {
         modal.classList.add("open");
-        btn.classList.add("active");
+        triggers.forEach((t) => t.classList.add("active"));
     };
     const closePicker = () => {
         modal.classList.remove("open");
-        btn.classList.remove("active");
+        triggers.forEach((t) => t.classList.remove("active"));
     };
 
     LANGUAGES.forEach((lang) => {
@@ -1289,9 +1624,11 @@ function setupLanguagePicker() {
         list.appendChild(row);
     });
 
-    btn.addEventListener("click", () => {
-        if (modal.classList.contains("open")) closePicker();
-        else openPicker();
+    triggers.forEach((btn) => {
+        btn.addEventListener("click", () => {
+            if (modal.classList.contains("open")) closePicker();
+            else openPicker();
+        });
     });
     backdrop.addEventListener("click", closePicker);
 }

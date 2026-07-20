@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}Settings - Camilius AI{% endblock %}
+
+{% block content %}
+{% include "_nav.html" %}
+
+<div class="content content-narrow">
+    <div class="page-header">
+        <div>
+            <h1>Settings</h1>
+            <p class="subtitle">App-level preferences, legal, and account data.</p>
+        </div>
+    </div>
+
+    <div class="card">
+        <h2 style="margin-top:0;">Legal</h2>
+        <p class="note">Read our policies any time.</p>
+        <div class="form-actions" style="gap:12px;">
+            <a class="button button-secondary" href="{{ url_for('terms') }}">Terms of Service</a>
+            <a class="button button-secondary" href="{{ url_for('privacy') }}">Privacy Policy</a>
+        </div>
+    </div>
+
+    <div class="card" style="margin-top:20px;">
+        <h2 style="margin-top:0;">Help &amp; support</h2>
+        <p class="note">Questions or ran into an issue? We're happy to help.</p>
+        <p><strong>mihajlosavovic75757@gmail.com</strong></p>
+        <div class="form-actions">
+            <a class="button" href="mailto:mihajlosavovic75757@gmail.com?subject=Camilius%20AI%20support">Send us an email</a>
+        </div>
+    </div>
+
+    <div class="export-zone" style="margin-top:20px;">
+        <h2>Export your data</h2>
+        <p>Download a copy of your business profile and every conversation, as a JSON file.</p>
+        <a class="button button-secondary" href="{{ url_for('export_data') }}">Export my data</a>
+    </div>
+
+    <div class="danger-zone">
+        <h2>Delete account</h2>
+        <p>Permanently deletes your account and all conversations. This action cannot be undone.</p>
+        <form method="POST" action="{{ url_for('delete_account') }}"
+              onsubmit="return confirm('Are you sure? Your account and all conversations will be permanently deleted.');">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button class="button button-danger" type="submit">Delete account</button>
+        </form>
+    </div>
+</div>
+{% endblock %}

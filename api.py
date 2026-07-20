@@ -8,10 +8,10 @@ from itsdangerous import URLSafeTimedSerializer, BadSignature, SignatureExpired
 from werkzeug.security import check_password_hash
 
 from database import (
-    conversations_for_business, get_conversation, mark_sent, business_by_username,
+    conversations_for_business, get_conversation, mark_sent, business_by_login_identifier,
     business_by_id, replies_today_count, update_business, get_subscription_status,
     subscription_active, business_stats, log_event, save_push_token, log_client_error,
-    add_business,
+    add_business, delete_business,
 )
 from instagram_api import send_message as send_instagram_message, authorize_url as instagram_authorize_url
 from extensions import limiter
@@ -145,7 +145,7 @@ def api_login():
     username = data.get("username", "")
     password = data.get("password", "")
 
-    business = business_by_username(username)
+    business = business_by_login_identifier(username)
     if not business or not check_password_hash(business[3], password):
         return jsonify(error="Wrong username or password."), 401
 
@@ -176,9 +176,10 @@ def api_register():
             working_hours=data.get("working_hours", ""),
             price_list=data.get("price_list", ""),
             faq=data.get("faq", ""),
+            phone_number=data.get("phone_number") or None,
         )
     except psycopg2.errors.UniqueViolation:
-        return jsonify(error="That username or contact email is already taken."), 409
+        return jsonify(error="That username, contact email, or phone number is already taken."), 409
 
     log_event("register_completed", business_id=new_id)
     return jsonify(token=make_token(new_id), business_id=new_id, business_name=data.get("name", ""))
@@ -339,6 +340,15 @@ def api_save_push_token():
         return jsonify(error="missing token"), 400
     save_push_token(request.business_id, token)
     return jsonify(message="saved")
+
+
+# Mobile equivalent of the web dashboard's "Delete account" button - same underlying
+# delete_business(), just Bearer-authed instead of session-based.
+@api.route("/delete-account", methods=["POST"])
+@require_api_auth
+def api_delete_account():
+    delete_business(request.business_id)
+    return jsonify(message="deleted")
 
 
 # Unauthenticated on purpose - a crash can happen before login (or because the auth
