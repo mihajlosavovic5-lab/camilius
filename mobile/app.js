@@ -402,6 +402,15 @@ function createHoursPicker(containerId) {
                 r.times.classList.remove("hidden");
             });
         },
+        // False if any open day's closing time isn't after its opening time (the
+        // dropdowns only ever hold valid times, so this is the one way the picker's own
+        // state can still be nonsensical - e.g. "09:00-09:00" or "18:00-09:00").
+        validate() {
+            return HOURS_DAYS.every((day) => {
+                const r = rows[day];
+                return !r.checkbox.checked || r.closeSelect.value > r.openSelect.value;
+            });
+        },
     };
 }
 
@@ -466,6 +475,16 @@ function createPricePicker(rowsContainerId, addButtonId) {
                 } else {
                     addRow(line.slice(0, idx).trim(), line.slice(idx + 1).trim());
                 }
+            });
+        },
+        // False if any row has only one of service/price filled in - getValue() silently
+        // drops such a row instead of erroring, which used to mean whatever the user typed
+        // there just vanished with no explanation.
+        validate() {
+            return Array.from(rowsContainer.querySelectorAll(".price-row")).every((row) => {
+                const service = row.querySelector(".price-service-input").value.trim();
+                const price = row.querySelector(".price-amount-input").value.trim();
+                return (!!service === !!price);
             });
         },
     };
@@ -792,7 +811,7 @@ function showRegisterStep(n) {
     });
     el("register-next-btn").classList.toggle("hidden", n === REGISTER_STEP_COUNT);
     el("register-submit").classList.toggle("hidden", n !== REGISTER_STEP_COUNT);
-    if (n === 1) updateRegisterStep1Validity();
+    updateRegisterNextButtonValidity();
 }
 
 // Returns a specific error message if step 1 isn't ready to advance, or null if it is.
@@ -811,23 +830,45 @@ function registerStep1ValidationError() {
     return null;
 }
 
+// Working hours only ever holds valid times (it's all dropdowns/toggles), so the one way
+// it can still be wrong is a closing time not after its opening time on an open day.
+function registerStep2ValidationError() {
+    if (!registerHoursPicker.validate()) return t("hoursPicker.errorOrder");
+    return null;
+}
+
+// Price list rows are optional, but a half-filled one (service typed, price left blank
+// or vice versa) used to just silently vanish on submit with no explanation. Terms
+// acceptance is checked here too since it's on the same step.
+function registerStep3ValidationError() {
+    if (!registerPricesPicker.validate()) return t("pricePicker.errorIncomplete");
+    if (!el("register-terms").checked) return t("register.errorTermsRequired");
+    return null;
+}
+
+function currentRegisterStepError() {
+    if (registerStep === 1) return registerStep1ValidationError();
+    if (registerStep === 2) return registerStep2ValidationError();
+    if (registerStep === 3) return registerStep3ValidationError();
+    return null;
+}
+
 // Purely visual (dims the arrow) - advancing is still always attempted on click, which
 // is what actually surfaces a specific reason if something's missing.
-function updateRegisterStep1Validity() {
-    el("register-next-btn").classList.toggle("register-next-btn-dim", !!registerStep1ValidationError());
+function updateRegisterNextButtonValidity() {
+    el("register-next-btn").classList.toggle("register-next-btn-dim", !!currentRegisterStepError());
 }
 ["register-name", "register-username", "register-password", "register-contact-email"].forEach((id) => {
-    el(id).addEventListener("input", updateRegisterStep1Validity);
+    el(id).addEventListener("input", updateRegisterNextButtonValidity);
 });
+el("register-hours-picker").addEventListener("change", updateRegisterNextButtonValidity);
 
 el("register-next-btn").addEventListener("click", () => {
-    if (registerStep === 1) {
-        const error = registerStep1ValidationError();
-        if (error) {
-            el("register-error").textContent = error;
-            el("register-error").classList.remove("hidden");
-            return;
-        }
+    const error = currentRegisterStepError();
+    if (error) {
+        el("register-error").textContent = error;
+        el("register-error").classList.remove("hidden");
+        return;
     }
     el("register-error").classList.add("hidden");
     if (registerStep < REGISTER_STEP_COUNT) showRegisterStep(registerStep + 1);
@@ -877,13 +918,11 @@ el("register-form").addEventListener("submit", async (event) => {
     // visible - treat that the same as tapping the arrow (advance a step, or explain
     // what's missing) unless we're actually on the last one.
     if (registerStep < REGISTER_STEP_COUNT) {
-        if (registerStep === 1) {
-            const error = registerStep1ValidationError();
-            if (error) {
-                el("register-error").textContent = error;
-                el("register-error").classList.remove("hidden");
-                return;
-            }
+        const error = currentRegisterStepError();
+        if (error) {
+            el("register-error").textContent = error;
+            el("register-error").classList.remove("hidden");
+            return;
         }
         el("register-error").classList.add("hidden");
         showRegisterStep(registerStep + 1);
@@ -892,6 +931,13 @@ el("register-form").addEventListener("submit", async (event) => {
 
     const errorBox = el("register-error");
     const submitBtn = el("register-submit");
+
+    const finalError = registerStep3ValidationError();
+    if (finalError) {
+        errorBox.textContent = finalError;
+        errorBox.classList.remove("hidden");
+        return;
+    }
 
     errorBox.classList.add("hidden");
     submitBtn.disabled = true;
@@ -1317,6 +1363,18 @@ el("settings-save").addEventListener("click", async () => {
     const errorBox = el("settings-error");
     messageBox.classList.add("hidden");
     errorBox.classList.add("hidden");
+
+    if (!profileHoursPicker.validate()) {
+        errorBox.textContent = t("hoursPicker.errorOrder");
+        errorBox.classList.remove("hidden");
+        return;
+    }
+    if (!profilePricesPicker.validate()) {
+        errorBox.textContent = t("pricePicker.errorIncomplete");
+        errorBox.classList.remove("hidden");
+        return;
+    }
+
     button.disabled = true;
     button.textContent = t("settings.saveLoading");
 

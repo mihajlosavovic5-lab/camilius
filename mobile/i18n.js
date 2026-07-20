@@ -176,6 +176,8 @@ const TRANSLATIONS = {
         "pricePicker.servicePlaceholder": "Service",
         "pricePicker.pricePlaceholder": "Price",
         "pricePicker.addButton": "+ Add service",
+        "pricePicker.errorIncomplete": "Enter both a service and a price, or remove the empty row.",
+        "hoursPicker.errorOrder": "Closing time must be after opening time.",
 
         "offline": "No internet connection",
         "update.available": "A new version of the app is available.",
@@ -343,6 +345,8 @@ const TRANSLATIONS = {
         "pricePicker.servicePlaceholder": "Usluga",
         "pricePicker.pricePlaceholder": "Cena",
         "pricePicker.addButton": "+ Dodaj uslugu",
+        "pricePicker.errorIncomplete": "Unesite i uslugu i cenu, ili obrišite prazan red.",
+        "hoursPicker.errorOrder": "Vreme zatvaranja mora biti posle vremena otvaranja.",
 
         "offline": "Nema internet konekcije",
         "update.available": "Dostupna je nova verzija aplikacije.",
@@ -510,6 +514,8 @@ const TRANSLATIONS = {
         "pricePicker.servicePlaceholder": "Servicio",
         "pricePicker.pricePlaceholder": "Precio",
         "pricePicker.addButton": "+ Añadir servicio",
+        "pricePicker.errorIncomplete": "Introduce tanto el servicio como el precio, o elimina la fila vacía.",
+        "hoursPicker.errorOrder": "La hora de cierre debe ser posterior a la hora de apertura.",
 
         "offline": "Sin conexión a internet",
         "update.available": "Hay una nueva versión de la aplicación disponible.",
@@ -677,6 +683,8 @@ const TRANSLATIONS = {
         "pricePicker.servicePlaceholder": "Serviço",
         "pricePicker.pricePlaceholder": "Preço",
         "pricePicker.addButton": "+ Adicionar serviço",
+        "pricePicker.errorIncomplete": "Informe o serviço e o preço, ou remova a linha vazia.",
+        "hoursPicker.errorOrder": "O horário de fechamento deve ser depois do horário de abertura.",
 
         "offline": "Sem conexão com a internet",
         "update.available": "Uma nova versão do aplicativo está disponível.",
@@ -844,6 +852,8 @@ const TRANSLATIONS = {
         "pricePicker.servicePlaceholder": "Service",
         "pricePicker.pricePlaceholder": "Prix",
         "pricePicker.addButton": "+ Ajouter un service",
+        "pricePicker.errorIncomplete": "Indiquez à la fois le service et le prix, ou supprimez la ligne vide.",
+        "hoursPicker.errorOrder": "L'heure de fermeture doit être après l'heure d'ouverture.",
 
         "offline": "Pas de connexion internet",
         "update.available": "Une nouvelle version de l'application est disponible.",
@@ -1011,6 +1021,8 @@ const TRANSLATIONS = {
         "pricePicker.servicePlaceholder": "Leistung",
         "pricePicker.pricePlaceholder": "Preis",
         "pricePicker.addButton": "+ Leistung hinzufügen",
+        "pricePicker.errorIncomplete": "Gib sowohl die Leistung als auch den Preis ein oder entferne die leere Zeile.",
+        "hoursPicker.errorOrder": "Die Schließzeit muss nach der Öffnungszeit liegen.",
 
         "offline": "Keine Internetverbindung",
         "update.available": "Eine neue Version der App ist verfügbar.",
@@ -1178,6 +1190,8 @@ const TRANSLATIONS = {
         "pricePicker.servicePlaceholder": "Servizio",
         "pricePicker.pricePlaceholder": "Prezzo",
         "pricePicker.addButton": "+ Aggiungi servizio",
+        "pricePicker.errorIncomplete": "Inserisci sia il servizio che il prezzo, oppure rimuovi la riga vuota.",
+        "hoursPicker.errorOrder": "L'orario di chiusura deve essere successivo all'orario di apertura.",
 
         "offline": "Nessuna connessione internet",
         "update.available": "È disponibile una nuova versione dell'app.",
@@ -1345,6 +1359,8 @@ const TRANSLATIONS = {
         "pricePicker.servicePlaceholder": "Услуга",
         "pricePicker.pricePlaceholder": "Цена",
         "pricePicker.addButton": "+ Добавить услугу",
+        "pricePicker.errorIncomplete": "Укажите и услугу, и цену, либо удалите пустую строку.",
+        "hoursPicker.errorOrder": "Время закрытия должно быть позже времени открытия.",
 
         "offline": "Нет подключения к интернету",
         "update.available": "Доступна новая версия приложения.",
@@ -1512,6 +1528,8 @@ const TRANSLATIONS = {
         "pricePicker.servicePlaceholder": "服务",
         "pricePicker.pricePlaceholder": "价格",
         "pricePicker.addButton": "+ 添加服务",
+        "pricePicker.errorIncomplete": "请同时填写服务项目和价格，或删除空行。",
+        "hoursPicker.errorOrder": "关闭时间必须晚于开放时间。",
 
         "offline": "无网络连接",
         "update.available": "有可用的应用新版本。",
@@ -1679,6 +1697,8 @@ const TRANSLATIONS = {
         "pricePicker.servicePlaceholder": "Hizmet",
         "pricePicker.pricePlaceholder": "Fiyat",
         "pricePicker.addButton": "+ Hizmet ekle",
+        "pricePicker.errorIncomplete": "Hem hizmeti hem de fiyatı girin ya da boş satırı kaldırın.",
+        "hoursPicker.errorOrder": "Kapanış saati açılış saatinden sonra olmalıdır.",
 
         "offline": "İnternet bağlantısı yok",
         "update.available": "Uygulamanın yeni bir sürümü mevcut.",
