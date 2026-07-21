@@ -848,11 +848,9 @@ def send_reply(conversation_id):
 
 # --- Subscription (Paddle) ---
 
-@app.route("/subscription")
-@login_required
-def subscription():
-    business = business_by_id(session["business_id"])
-    status = get_subscription_status(session["business_id"])
+def _subscription_response(business_id, hide_nav=False):
+    business = business_by_id(business_id)
+    status = get_subscription_status(business_id)
     return render_template(
         "subscription.html",
         client_token=os.getenv("PADDLE_CLIENT_TOKEN", ""),
@@ -870,11 +868,33 @@ def subscription():
             "pro_yearly": os.getenv("PADDLE_PRICE_PRO_YEARLY", ""),
         },
         paddle_env=os.getenv("PADDLE_ENV", "sandbox"),
-        business_id=session["business_id"],
+        business_id=business_id,
         email=business[4],
         status=status,
-        active=effective_subscription_active(session["business_id"]),
+        active=effective_subscription_active(business_id),
+        hide_nav=hide_nav,
     )
+
+
+@app.route("/subscription")
+@login_required
+def subscription():
+    return _subscription_response(session["business_id"])
+
+
+# Mobile-app equivalent of /subscription above ("Choose a plan" on the Subscription
+# screen) - same token-bridge pattern as /export-data/<token>, since the mobile app's
+# Bearer token can't be attached to a request Capacitor's Browser plugin opens. Hides the
+# website nav (hide_nav) since a mobile user has no website session for those links to
+# make sense against - see api.py's make_subscription_link_token.
+@app.route("/subscription/<token>")
+def subscription_mobile(token):
+    from api import business_id_from_subscription_link_token  # deferred: avoid circular import at module load
+
+    business_id = business_id_from_subscription_link_token(token)
+    if business_id is None:
+        abort(404)
+    return _subscription_response(business_id, hide_nav=True)
 
 
 def verify_paddle_signature(header, raw_body, secret_key):

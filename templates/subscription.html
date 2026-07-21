@@ -2,7 +2,7 @@
 {% block title %}Subscription - Camilius{% endblock %}
 
 {% block content %}
-{% include "_nav.html" %}
+{% if not hide_nav %}{% include "_nav.html" %}{% endif %}
 
 <div class="content content-narrow">
     <div class="page-header">

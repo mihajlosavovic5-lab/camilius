@@ -9,7 +9,7 @@ from werkzeug.security import check_password_hash
 
 from database import (
     conversations_for_business, get_conversation, mark_sent, business_by_login_identifier,
-    business_by_id, replies_today_count, update_business,
+    business_by_id, replies_today_count, update_business, get_subscription_status,
     effective_subscription_active, business_stats, log_event, save_push_token, log_client_error,
     add_business, delete_business, set_new_password, is_push_enabled, set_push_enabled,
     is_auto_send_enabled, set_auto_send,
@@ -110,6 +110,29 @@ def business_id_from_export_link_token(token):
         return None
     try:
         data = _export_link_serializer().loads(token, max_age=EXPORT_LINK_MAX_AGE)
+    except (BadSignature, SignatureExpired):
+        return None
+    return data.get("business_id")
+
+
+# Same bridge, for the Subscription screen's "Choose a plan" button - see
+# api_subscription_link above and app.py's /subscription/<token>.
+SUBSCRIPTION_LINK_MAX_AGE = 60 * 10
+
+
+def _subscription_link_serializer():
+    return URLSafeTimedSerializer(os.environ["FLASK_SECRET_KEY"], salt="mobile-subscription-link")
+
+
+def make_subscription_link_token(business_id):
+    return _subscription_link_serializer().dumps({"business_id": business_id})
+
+
+def business_id_from_subscription_link_token(token):
+    if not token:
+        return None
+    try:
+        data = _subscription_link_serializer().loads(token, max_age=SUBSCRIPTION_LINK_MAX_AGE)
     except (BadSignature, SignatureExpired):
         return None
     return data.get("business_id")
@@ -282,6 +305,17 @@ def api_export_data_link():
     return jsonify(url=f"{request.url_root}export-data/{token}")
 
 
+# Same bridge pattern as the two above, for the Subscription screen's "Choose a plan"
+# button (Faza 5) - the full Starter/Pro pricing UI (Monthly/Yearly toggle, Paddle
+# checkout) only exists on the website, not duplicated natively. See
+# make_subscription_link_token and app.py's /subscription/<token>.
+@api.route("/subscription-link")
+@require_api_auth
+def api_subscription_link():
+    token = make_subscription_link_token(request.business_id)
+    return jsonify(url=f"{request.url_root}subscription/{token}")
+
+
 @api.route("/dashboard")
 @require_api_auth
 def api_dashboard():
@@ -321,6 +355,7 @@ def api_dashboard():
         today_processed=replies_today_count(business_id),
         daily_limit=DAILY_REPLY_LIMIT,
         subscription_active=effective_subscription_active(business_id),
+        subscription_status=get_subscription_status(business_id),
         beta_free_mode=BETA_FREE_MODE,
         stats=business_stats(business_id),
         # The app only ever calls PushNotifications.register() when this is true - avoids

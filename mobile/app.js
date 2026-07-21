@@ -22,6 +22,9 @@ const state = {
     search: "",
     activeDetail: null,
     activeTab: "inbox",
+    betaFreeMode: false,
+    subscriptionActive: false,
+    subscriptionStatus: "none",
 };
 
 const screens = {
@@ -1539,6 +1542,11 @@ async function loadDashboard({ silent = false } = {}) {
 
         el("banner-inactive").classList.toggle("hidden", data.beta_free_mode || data.subscription_active);
 
+        state.betaFreeMode = !!data.beta_free_mode;
+        state.subscriptionActive = !!data.subscription_active;
+        state.subscriptionStatus = data.subscription_status || "none";
+        renderSubscriptionScreen();
+
         renderInboxList(filteredConversations());
 
         if (capacitorPlugins && capacitorPlugins.Badge) {
@@ -1950,6 +1958,38 @@ el("settings-help-row").addEventListener("click", () => showScreen("help"));
 el("help-back").addEventListener("click", () => showScreen("settings"));
 el("settings-subscription-row").addEventListener("click", () => showScreen("subscription"));
 el("subscription-back").addEventListener("click", () => showScreen("settings"));
+
+// --- Subscription screen content (Faza 5) - which of the beta/trialing/active/needs-
+// plan blocks is shown, driven entirely by the same fields /api/dashboard already
+// returns (see loadDashboard above) - no separate fetch needed just to open this screen. ---
+function renderSubscriptionScreen() {
+    const needsPlan = !state.betaFreeMode && !state.subscriptionActive;
+    const trialing = !state.betaFreeMode && state.subscriptionActive && state.subscriptionStatus === "trialing";
+    const active = !state.betaFreeMode && state.subscriptionActive && state.subscriptionStatus !== "trialing";
+    el("subscription-beta").classList.toggle("hidden", !state.betaFreeMode);
+    el("subscription-trialing").classList.toggle("hidden", !trialing);
+    el("subscription-active").classList.toggle("hidden", !active);
+    el("subscription-needs-plan").classList.toggle("hidden", !needsPlan);
+}
+
+// "Choose a plan" opens the website's own Starter/Pro pricing page (built for the web,
+// not duplicated natively) in the in-app browser - same short-lived-signed-link bridge
+// already used for Export my data and Connect Instagram, since the mobile app's Bearer
+// token can't be attached to a request the Browser plugin opens.
+async function openChoosePlan() {
+    try {
+        const data = await api("/api/subscription-link");
+        if (capacitorPlugins && capacitorPlugins.Browser) {
+            await capacitorPlugins.Browser.open({ url: data.url });
+        } else {
+            window.open(data.url, "_blank");
+        }
+    } catch (err) {
+        reportClientError(err.message, err.stack, "subscription-link");
+    }
+}
+el("subscription-choose-plan-btn").addEventListener("click", openChoosePlan);
+el("subscription-choose-plan-btn-2").addEventListener("click", openChoosePlan);
 
 const SUPPORT_EMAIL = "mihajlosavovic75757@gmail.com";
 

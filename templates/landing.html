@@ -31,13 +31,13 @@
             {% if beta_free_mode %}
             <a href="{{ url_for('register') }}" class="button lp-shine" style="font-size: 16px; padding: 13px 28px;">Get started for free</a>
             {% else %}
-            <a href="{{ url_for('register') }}" class="button lp-shine" style="font-size: 16px; padding: 13px 28px;">Try free for 14 days</a>
+            <a href="{{ url_for('register') }}" class="button lp-shine" style="font-size: 16px; padding: 13px 28px;">Try free for 7 days</a>
             {% endif %}
         </div>
         {% if beta_free_mode %}
         <p class="hero-fine-print lp-enter lp-enter-3">Free during the beta &middot; you're always in control of what gets sent</p>
         {% else %}
-        <p class="hero-fine-print lp-enter lp-enter-3">No commitment &middot; cancel anytime &middot; you're always in control of what gets sent</p>
+        <p class="hero-fine-print lp-enter lp-enter-3">No card required for the trial &middot; cancel anytime &middot; you're always in control of what gets sent</p>
         {% endif %}
     </section>
 
@@ -112,18 +112,20 @@ Want me to book you in for a time?</p>
     </section>
 
     {% if not beta_free_mode %}
-    <!-- Pricing -->
+    <!-- Pricing - a teaser only; the real Starter/Pro breakdown with a Monthly/Yearly
+         toggle lives on /subscription (inside Settings once logged in) - see
+         subscription.html. -->
     <section class="section">
         <h2 class="section-title lp-reveal">Simple pricing</h2>
         <div class="card price-card lp-card-hover lp-reveal">
             <div class="price-row" style="justify-content: center;">
-                <span class="price-amount">&euro;19</span>
+                <span class="price-amount">&euro;29</span>
                 <span class="price-period">/ month</span>
             </div>
-            <span class="trial-info">First 14 days free</span>
+            <span class="trial-info">First 7 days free, no card required</span>
             <ul class="benefits" style="text-align: left;">
-                <li><span class="checkmark">&#10003;</span> Up to 50 AI replies per day</li>
-                <li><span class="checkmark">&#10003;</span> All features included</li>
+                <li><span class="checkmark">&#10003;</span> Up to 300 conversations per month</li>
+                <li><span class="checkmark">&#10003;</span> A Pro plan is also available, with smart appointment scheduling and an AI support assistant</li>
                 <li><span class="checkmark">&#10003;</span> Cancel anytime</li>
             </ul>
             <a href="{{ url_for('register') }}" class="button button-full" style="margin-top: 8px;">Start your free trial</a>
