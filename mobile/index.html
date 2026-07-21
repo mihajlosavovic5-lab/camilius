@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
 <title>Camilius</title>
-<link rel="stylesheet" href="app.css?v=9063bdf7fefb">
+<link rel="stylesheet" href="app.css?v=9c620fd6eb7b">
 </head>
 <body>
 
@@ -149,15 +149,13 @@
     </header>
     <form id="register-form" class="register-form">
       <div class="detail-body">
-        <p class="screen-subtitle" data-i18n="register.subtitle">Set up your business — you can change all of this later in Settings.</p>
-
         <div id="register-error" class="alert alert-error hidden"></div>
 
         <div class="register-steps-viewport" id="register-steps-viewport">
           <div class="register-steps-track" id="register-steps-track">
             <div class="register-step" id="register-step-1">
               <label data-i18n="register.name">Business name</label>
-              <input type="text" id="register-name" data-i18n-placeholder="register.namePlaceholder" placeholder="e.g. Style Hair Salon" required>
+              <input type="text" id="register-name" required>
 
               <label data-i18n="register.username">Username</label>
               <input type="text" id="register-username" autocomplete="username" autocapitalize="off" autocorrect="off" required>
@@ -167,7 +165,7 @@
               <p class="field-hint" data-i18n="register.passwordHint">At least 8 characters</p>
 
               <label data-i18n="register.contactEmail">Contact email</label>
-              <input type="email" id="register-contact-email" data-i18n-placeholder="register.contactEmailPlaceholder" placeholder="you@example.com" autocomplete="email" autocapitalize="off" required>
+              <input type="email" id="register-contact-email" autocomplete="email" autocapitalize="off" required>
 
               <label data-i18n="register.phone">Phone number (optional)</label>
               <div class="phone-input-row" id="register-phone-row">
@@ -176,7 +174,7 @@
                   <span id="register-phone-country-dial">+381</span>
                   <span class="phone-country-chevron">⌄</span>
                 </button>
-                <input type="tel" id="register-phone" data-i18n-placeholder="register.phonePlaceholder" placeholder="6X XXX XXXX" autocomplete="tel">
+                <input type="tel" id="register-phone" autocomplete="tel">
               </div>
             </div>
 
@@ -194,7 +192,7 @@
               </div>
 
               <label data-i18n="register.faq">Tell us more about your business</label>
-              <textarea id="register-faq" rows="3" data-i18n-placeholder="register.faqPlaceholder"></textarea>
+              <textarea id="register-faq" rows="3"></textarea>
               <p class="field-hint" data-i18n="register.faqHint">The more you share, the more questions our AI can answer for your customers.</p>
 
               <label class="checkbox-row">
@@ -382,7 +380,7 @@
       <div class="block-label" data-i18n="settings.security">Security</div>
       <label data-i18n="settings.currentPassword">Current password</label>
       <input type="password" id="settings-current-password" autocomplete="current-password">
-      <label data-i18n="settings.newPassword">New password (leave blank to keep current)</label>
+      <label data-i18n="settings.newPassword">New password</label>
       <input type="password" id="settings-new-password" autocomplete="new-password">
 
       <button class="button button-full" id="settings-save" style="margin-top:18px;" data-i18n="settings.save">Save changes</button>
@@ -599,7 +597,7 @@
   </button>
 </nav>
 
-<script src="i18n.js?v=9063bdf7fefb"></script>
-<script src="app.js?v=9063bdf7fefb"></script>
+<script src="i18n.js?v=9c620fd6eb7b"></script>
+<script src="app.js?v=9c620fd6eb7b"></script>
 </body>
 </html>

@@ -23,7 +23,7 @@ api = Blueprint("api", __name__, url_prefix="/api")
 # Current signed-APK release - bumped alongside android/app/build.gradle's versionName
 # on every native release. app.py's /download route imports this too, so it's the one
 # place to update.
-APK_VERSION = "1.9.6"
+APK_VERSION = "1.9.7"
 
 
 @api.after_request
