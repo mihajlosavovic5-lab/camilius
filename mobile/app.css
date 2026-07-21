@@ -205,6 +205,9 @@ button { font-family: inherit; }
 /* --- Forms --- */
 label { display: block; font-weight: 600; font-size: 13.5px; margin: 14px 0 5px; }
 .field-hint { color: var(--text-muted); font-size: 12px; margin: 5px 2px 0; }
+/* Inline "already taken" errors shown live under a field as the user types (Create
+   Account step 1 + Profile) - see setupAvailabilityField() in app.js. */
+.field-error { color: var(--danger); font-size: 12px; margin: 5px 2px 0; }
 input[type="text"], input[type="password"], input[type="email"], input[type="tel"], textarea {
     width: 100%; padding: 12px 13px; border: 1px solid var(--border); border-radius: 10px;
     font-family: inherit; font-size: 16px; color: var(--text); background: var(--surface);
@@ -242,12 +245,38 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
     transition: height .15s ease, font-size .15s ease, color .15s ease;
 }
 .screen-login .floating-field input[type="text"],
-.screen-login .floating-field input[type="password"] {
-    padding: 22px 16px 8px; margin-bottom: 12px;
+.screen-login .floating-field input[type="password"],
+.screen-forgot-password .floating-field input[type="text"] {
+    padding: 22px 16px 8px; margin-bottom: 12px; border-radius: 16px;
 }
 .floating-field input:focus + label,
 .floating-field input:not(:placeholder-shown) + label {
     height: 26px; font-size: 11.5px; color: var(--primary);
+}
+
+/* Search conversations (inbox) - same floating mechanism, compact sizing to match the
+   search bar's original height instead of the taller login/forgot-password fields. */
+.search-row .floating-field input[type="text"] {
+    padding: 17px 14px 5px; font-size: 15px; border-radius: 10px;
+}
+.search-row .floating-field label { font-size: 15px; }
+.search-row .floating-field input:focus + label,
+.search-row .floating-field input:not(:placeholder-shown) + label {
+    height: 20px; font-size: 10px;
+}
+
+/* Price list rows (Service / Price) - two floating fields side by side, compact to fit
+   the row alongside the remove (×) button. Replaces the old placeholder-only inputs. */
+.price-row .floating-field { min-width: 0; }
+.price-row .floating-field-service { flex: 2; }
+.price-row .floating-field-price { flex: 1; }
+.price-row .floating-field input[type="text"] {
+    padding: 15px 10px 3px; font-size: 14px; border-radius: 8px;
+}
+.price-row .floating-field label { left: 10px; right: 10px; font-size: 14px; }
+.price-row .floating-field input:focus + label,
+.price-row .floating-field input:not(:placeholder-shown) + label {
+    height: 15px; font-size: 9px;
 }
 
 .button {
@@ -365,12 +394,6 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
 /* --- Price list picker: repeatable service + price rows instead of a freeform textarea --- */
 .price-picker { margin: 6px 0 16px; }
 .price-row { display: flex; gap: 8px; margin-bottom: 8px; align-items: center; }
-.price-row input {
-    padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px;
-    font-family: inherit; font-size: 14px; color: var(--text); background: var(--surface);
-}
-.price-service-input { flex: 2; min-width: 0; }
-.price-amount-input { flex: 1; min-width: 0; }
 .price-remove-btn {
     width: 32px; height: 32px; border-radius: 50%; border: none; background: var(--background);
     color: var(--text-muted); font-size: 18px; line-height: 1; cursor: pointer; flex-shrink: 0;

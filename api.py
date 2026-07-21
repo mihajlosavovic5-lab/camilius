@@ -13,6 +13,7 @@ from database import (
     subscription_active, business_stats, log_event, save_push_token, log_client_error,
     add_business, delete_business, set_new_password, is_push_enabled, set_push_enabled,
     is_auto_send_enabled, set_auto_send,
+    username_taken, contact_email_taken, phone_number_taken,
 )
 from instagram_api import send_message as send_instagram_message, authorize_url as instagram_authorize_url
 from extensions import limiter
@@ -29,9 +30,11 @@ APK_VERSION = "1.9.7"
 @api.after_request
 def add_cors_headers(response):
     # The mobile app's requests come from the bundled app shell's own origin, not this
-    # site's - a wildcard is safe here because every route below is Bearer-token
-    # authenticated (no ambient cookie), so a stray cross-site request without the
-    # token still gets a 401 regardless of origin.
+    # site's - a wildcard is safe here because every route that touches account data is
+    # Bearer-token authenticated (no ambient cookie), so a stray cross-site request
+    # without the token still gets a 401 regardless of origin. The handful of routes that
+    # are intentionally public (login, register, forgot-password, check-availability)
+    # don't return or act on anything a token would have gated anyway.
     response.headers["Access-Control-Allow-Origin"] = "*"
     response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
     response.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
@@ -189,16 +192,64 @@ def api_register():
 # Native forgot-password screen in the mobile app (replaces opening the website's
 # /forgot-password in an in-app browser tab). Reuses app.py's request_password_reset
 # helper (deferred import - avoids a circular import at module load) so the actual
-# lookup/email logic isn't duplicated between the web route and this one.
+# lookup/email logic isn't duplicated between the web route and this one. Accepts either
+# an email or a username (field is labeled "Email or username" on the screen).
 @api.route("/forgot-password", methods=["POST"])
 @limiter.limit("5 per hour")
 def api_forgot_password():
     from app import request_password_reset
 
     data = request.get_json(silent=True) or {}
-    if not request_password_reset(data.get("email", "")):
-        return jsonify(error="No account found with that email address."), 404
-    return jsonify(message="We've sent a password reset link to that email.")
+    if not request_password_reset(data.get("identifier", "")):
+        return jsonify(error="No account found with that email or username."), 404
+    return jsonify(message="We've sent a password reset link to the email on file.")
+
+
+# "Find by mobile number" - same idea as /api/forgot-password above, but looks the
+# account up by its registered phone number instead. See app.py's
+# request_password_reset_by_phone for why the actual link still only ever goes out by email.
+@api.route("/forgot-password/phone", methods=["POST"])
+@limiter.limit("5 per hour")
+def api_forgot_password_phone():
+    from app import request_password_reset_by_phone
+
+    data = request.get_json(silent=True) or {}
+    if not request_password_reset_by_phone(data.get("phone_number", "")):
+        return jsonify(error="No account found with that phone number."), 404
+    return jsonify(message="We found your account - we've sent a password reset link to the email on file.")
+
+
+# Behind both the Create Account screen (no auth yet) and the Profile screen (Bearer-
+# authed) - lets the app show an inline "already taken" error as the user types, instead
+# of only finding out from a 409 after submitting. Deliberately NOT behind
+# @require_api_auth since Create Account has no token yet; when a valid Bearer token IS
+# present (Profile), the caller's own current value is excluded so editing a field
+# without changing it never flags itself as taken. Same underlying checks as the web
+# /check-availability in app.py.
+_AVAILABILITY_CHECKS = {
+    "username": username_taken,
+    "contact_email": contact_email_taken,
+    "phone_number": phone_number_taken,
+}
+
+
+@api.route("/check-availability", methods=["POST"])
+@limiter.limit("60 per minute")
+def api_check_availability():
+    data = request.get_json(silent=True) or {}
+    value = (data.get("value") or "").strip()
+    check = _AVAILABILITY_CHECKS.get(data.get("field"))
+    if check is None:
+        return jsonify(error="invalid field"), 400
+    if not value:
+        return jsonify(taken=False)
+
+    exclude_id = None
+    auth_header = request.headers.get("Authorization", "")
+    if auth_header.startswith("Bearer "):
+        exclude_id = _business_id_from_token(auth_header[len("Bearer "):])
+
+    return jsonify(taken=check(value, exclude_business_id=exclude_id))
 
 
 # Returns the Instagram OAuth authorize URL for the mobile app to open in its in-app

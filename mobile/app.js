@@ -418,23 +418,40 @@ function createHoursPicker(containerId) {
 function createPricePicker(rowsContainerId, addButtonId) {
     const rowsContainer = el(rowsContainerId);
 
+    // Each row is two floating-label fields (Service / Price - same floating mechanism as
+    // the login screen, see .floating-field in app.css) plus a remove button. The label
+    // IS the translated text now (there's no separate example placeholder to show once
+    // the label has risen), so it's set directly via t() at creation time, with
+    // data-i18n left on for correctness if the user switches language afterward.
     function addRow(service = "", price = "") {
         const row = document.createElement("div");
         row.className = "price-row";
 
+        const serviceField = document.createElement("div");
+        serviceField.className = "floating-field floating-field-service";
         const serviceInput = document.createElement("input");
         serviceInput.type = "text";
         serviceInput.className = "price-service-input";
-        serviceInput.dataset.i18nPlaceholder = "pricePicker.servicePlaceholder";
-        serviceInput.placeholder = t("pricePicker.servicePlaceholder");
+        serviceInput.placeholder = " ";
         serviceInput.value = service;
+        const serviceLabel = document.createElement("label");
+        serviceLabel.dataset.i18n = "pricePicker.servicePlaceholder";
+        serviceLabel.textContent = t("pricePicker.servicePlaceholder");
+        serviceField.appendChild(serviceInput);
+        serviceField.appendChild(serviceLabel);
 
+        const priceField = document.createElement("div");
+        priceField.className = "floating-field floating-field-price";
         const priceInput = document.createElement("input");
         priceInput.type = "text";
         priceInput.className = "price-amount-input";
-        priceInput.dataset.i18nPlaceholder = "pricePicker.pricePlaceholder";
-        priceInput.placeholder = t("pricePicker.pricePlaceholder");
+        priceInput.placeholder = " ";
         priceInput.value = price;
+        const priceLabel = document.createElement("label");
+        priceLabel.dataset.i18n = "pricePicker.pricePlaceholder";
+        priceLabel.textContent = t("pricePicker.pricePlaceholder");
+        priceField.appendChild(priceInput);
+        priceField.appendChild(priceLabel);
 
         const removeBtn = document.createElement("button");
         removeBtn.type = "button";
@@ -443,8 +460,8 @@ function createPricePicker(rowsContainerId, addButtonId) {
         removeBtn.textContent = "×";
         removeBtn.addEventListener("click", () => row.remove());
 
-        row.appendChild(serviceInput);
-        row.appendChild(priceInput);
+        row.appendChild(serviceField);
+        row.appendChild(priceField);
         row.appendChild(removeBtn);
         rowsContainer.appendChild(row);
     }
@@ -622,6 +639,7 @@ function defaultPhoneCountry() {
 
 let selectedPhoneCountry = defaultPhoneCountry();
 let selectedProfilePhoneCountry = defaultPhoneCountry();
+let selectedForgotPhoneCountry = defaultPhoneCountry();
 
 // Best-effort split of a stored "+381 6X XXX XXXX"-shaped phone number back into
 // {country, rest} for re-populating the Profile screen's picker + input. Longest dial
@@ -655,6 +673,11 @@ function setupCountryPicker() {
             flagEl: el("settings-phone-country-flag"), dialEl: el("settings-phone-country-dial"),
             onSelect: (c) => { selectedProfilePhoneCountry = c; },
         },
+        {
+            btn: el("forgot-phone-country-btn"), row: el("forgot-phone-row"),
+            flagEl: el("forgot-phone-country-flag"), dialEl: el("forgot-phone-country-dial"),
+            onSelect: (c) => { selectedForgotPhoneCountry = c; },
+        },
     ];
     let active = null;
 
@@ -671,6 +694,12 @@ function setupCountryPicker() {
             active.onSelect(c);
             active.flagEl.textContent = countryFlagEmoji(c.code);
             active.dialEl.textContent = c.dial;
+            // The phone number field's own value didn't change (only which country it's
+            // attached to did) - dispatch a synthetic "input" so anything listening for
+            // that event on the field (e.g. the live "already taken" check, which needs
+            // the full international number) re-runs with the newly-selected dial code.
+            const phoneInput = active.row.querySelector('input[type="tel"]');
+            if (phoneInput) phoneInput.dispatchEvent(new Event("input", { bubbles: true }));
             closeCountryModal();
         });
         list.appendChild(row);
@@ -706,10 +735,11 @@ function setupCountryPicker() {
     });
     backdrop.addEventListener("click", closeCountryModal);
 
-    bindings[0].flagEl.textContent = countryFlagEmoji(selectedPhoneCountry.code);
-    bindings[0].dialEl.textContent = selectedPhoneCountry.dial;
-    bindings[1].flagEl.textContent = countryFlagEmoji(selectedProfilePhoneCountry.code);
-    bindings[1].dialEl.textContent = selectedProfilePhoneCountry.dial;
+    const initial = [selectedPhoneCountry, selectedProfilePhoneCountry, selectedForgotPhoneCountry];
+    bindings.forEach((binding, i) => {
+        binding.flagEl.textContent = countryFlagEmoji(initial[i].code);
+        binding.dialEl.textContent = initial[i].dial;
+    });
 }
 setupCountryPicker();
 
@@ -719,6 +749,87 @@ function setProfilePhoneCountry(country) {
     selectedProfilePhoneCountry = country;
     el("settings-phone-country-flag").textContent = countryFlagEmoji(country.code);
     el("settings-phone-country-dial").textContent = country.dial;
+}
+
+// Builds the final international phone number to send to the server. If the user typed
+// their own leading "+" (detected live below - e.g. refining the shared NANP "+1" code
+// into a more specific "+1876..."), trust exactly what they typed instead of prepending
+// the picker's own dial code on top of it (which would double it up).
+function composePhoneNumber(inputEl, selectedCountry) {
+    const raw = inputEl.value.trim();
+    if (!raw) return "";
+    return raw[0] === "+" ? raw : `${selectedCountry.dial} ${raw}`;
+}
+
+// Live country detection as the user types "+381..." directly into a phone number field
+// (in addition to the manual picker button above) - matches the longest calling code
+// that's a prefix of what's typed so far and updates that field's flag/dial display.
+// Deliberately non-destructive (doesn't strip the typed "+381" back out of the field):
+// some calling codes share a prefix with a more specific one (the NANP "+1" covers the
+// US/Canada/several Caribbean nations, each with their own longer area-code-based
+// distinction, e.g. Jamaica's "+1876") - stripping early would make it impossible to
+// tell those apart as more digits arrive. composePhoneNumber() above handles not
+// double-prefixing a number the user already typed with its own "+".
+function attachLivePhoneCountryDetection(inputEl, flagEl, dialEl, onMatch) {
+    const byDialLengthDesc = [...COUNTRIES].sort((a, b) => b.dial.length - a.dial.length);
+    inputEl.addEventListener("input", () => {
+        const raw = inputEl.value.trim();
+        if (raw[0] !== "+") return;
+        const match = byDialLengthDesc.find((c) => raw.startsWith(c.dial));
+        if (!match) return;
+        onMatch(match);
+        flagEl.textContent = countryFlagEmoji(match.code);
+        dialEl.textContent = match.dial;
+    });
+}
+attachLivePhoneCountryDetection(el("register-phone"), el("register-phone-country-flag"), el("register-phone-country-dial"), (c) => { selectedPhoneCountry = c; });
+attachLivePhoneCountryDetection(el("settings-phone"), el("settings-phone-country-flag"), el("settings-phone-country-dial"), (c) => { selectedProfilePhoneCountry = c; });
+attachLivePhoneCountryDetection(el("forgot-phone"), el("forgot-phone-country-flag"), el("forgot-phone-country-dial"), (c) => { selectedForgotPhoneCountry = c; });
+
+// --- Live "already taken" checks (Create Account step 1 + Profile) ---
+//
+// Debounced calls to /api/check-availability (api.py) as the user types into a
+// username/contact-email/phone field. Before login (Create Account) there's no Bearer
+// token, so the server checks against every account; once logged in (Profile), the
+// server excludes the caller's own current value automatically via the token - see
+// api.py's api_check_availability. getValue is a function rather than reading
+// inputEl.value directly so the phone fields can check the FULL composed international
+// number (country dial code + typed digits) instead of just the local part.
+function setupAvailabilityField(inputEl, errorEl, field, errorKey, getValue, onStatusChange) {
+    let status = "unknown"; // unknown | checking | available | taken
+    let timer = null;
+
+    function setStatus(next) {
+        status = next;
+        errorEl.classList.toggle("hidden", status !== "taken");
+        if (status === "taken") errorEl.textContent = t(errorKey);
+        if (onStatusChange) onStatusChange();
+    }
+
+    function check() {
+        clearTimeout(timer);
+        const value = getValue();
+        if (!value) {
+            setStatus("unknown");
+            return;
+        }
+        setStatus("checking");
+        timer = setTimeout(async () => {
+            try {
+                const data = await api("/api/check-availability", { method: "POST", body: { field, value } });
+                if (getValue() !== value) return; // superseded by a newer edit
+                setStatus(data.taken ? "taken" : "available");
+            } catch (err) {
+                if (getValue() !== value) return;
+                // Network hiccup or offline - don't block the user forever on a check we
+                // couldn't complete; the server still re-validates on actual submit.
+                setStatus("unknown");
+            }
+        }, 450);
+    }
+
+    inputEl.addEventListener("input", check);
+    return { isBlocking: () => status === "taken" || status === "checking", recheck: check, reset: () => setStatus("unknown") };
 }
 
 // --- API helper ---
@@ -799,19 +910,39 @@ el("login-form").addEventListener("submit", async (event) => {
 // --- Forgot password (its own native screen, pushed on top of Login - no browser
 // involved at all, unlike the old flow which opened the website's page in a browser tab) ---
 
+function showForgotIdentifierMode() {
+    el("forgot-phone-mode").classList.add("hidden");
+    el("forgot-identifier-mode").classList.remove("hidden");
+    el("forgot-identifier").focus();
+}
+function showForgotPhoneMode() {
+    el("forgot-identifier-mode").classList.add("hidden");
+    el("forgot-phone-mode").classList.remove("hidden");
+    el("forgot-phone").focus();
+}
+
 el("login-forgot-link").addEventListener("click", () => {
     el("forgot-form").reset();
-    el("forgot-form").classList.remove("hidden");
+    el("forgot-phone-form").reset();
+    showForgotIdentifierMode();
     el("forgot-error").classList.add("hidden");
     el("forgot-success").classList.add("hidden");
     showScreen("forgotPassword");
 });
 
 el("forgot-back").addEventListener("click", () => showScreen("login"));
+el("forgot-show-phone").addEventListener("click", () => {
+    el("forgot-error").classList.add("hidden");
+    showForgotPhoneMode();
+});
+el("forgot-show-identifier").addEventListener("click", () => {
+    el("forgot-error").classList.add("hidden");
+    showForgotIdentifierMode();
+});
 
 el("forgot-form").addEventListener("submit", async (event) => {
     event.preventDefault();
-    const email = el("forgot-email").value.trim();
+    const identifier = el("forgot-identifier").value.trim();
     const errorBox = el("forgot-error");
     const successBox = el("forgot-success");
     const submitBtn = el("forgot-submit");
@@ -821,14 +952,40 @@ el("forgot-form").addEventListener("submit", async (event) => {
     submitBtn.textContent = t("forgot.submitLoading");
 
     try {
-        await api("/api/forgot-password", { method: "POST", body: { email } });
+        await api("/api/forgot-password", { method: "POST", body: { identifier } });
         successBox.classList.remove("hidden");
-        el("forgot-form").classList.add("hidden");
+        el("forgot-identifier-mode").classList.add("hidden");
     } catch (err) {
         errorBox.textContent = err.message || t("forgot.error");
         errorBox.classList.remove("hidden");
         submitBtn.disabled = false;
         submitBtn.textContent = t("forgot.submit");
+    }
+});
+
+// "Find by mobile number" - same success/error UI as the email-or-username path above,
+// just looked up by phone_number instead (see api.py's /api/forgot-password/phone). The
+// reset link still only ever goes out by email - there's no SMS channel.
+el("forgot-phone-form").addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const phoneNumber = composePhoneNumber(el("forgot-phone"), selectedForgotPhoneCountry);
+    const errorBox = el("forgot-error");
+    const successBox = el("forgot-success");
+    const submitBtn = el("forgot-phone-submit");
+
+    errorBox.classList.add("hidden");
+    submitBtn.disabled = true;
+    submitBtn.textContent = t("forgot.submitLoading");
+
+    try {
+        await api("/api/forgot-password/phone", { method: "POST", body: { phone_number: phoneNumber } });
+        successBox.classList.remove("hidden");
+        el("forgot-phone-mode").classList.add("hidden");
+    } catch (err) {
+        errorBox.textContent = err.message || t("forgot.phoneError");
+        errorBox.classList.remove("hidden");
+        submitBtn.disabled = false;
+        submitBtn.textContent = t("forgot.phoneSubmit");
     }
 });
 
@@ -867,11 +1024,25 @@ function showRegisterStep(n) {
     updateRegisterNextButtonValidity();
 }
 
+// Live "already taken" checks for step 1's three unique fields - see
+// setupAvailabilityField() above. Unlike steps 2/3 (still just a dimmed-but-tappable
+// arrow that explains what's missing on tap), step 1's arrow is genuinely disabled once
+// any of these comes back taken, or while a check is still in flight - see
+// updateRegisterNextButtonValidity() below.
+const registerUsernameAvailability = setupAvailabilityField(
+    el("register-username"), el("register-username-error"), "username", "register.usernameTaken",
+    () => el("register-username").value.trim(), updateRegisterNextButtonValidity,
+);
+const registerEmailAvailability = setupAvailabilityField(
+    el("register-contact-email"), el("register-contact-email-error"), "contact_email", "register.emailTaken",
+    () => el("register-contact-email").value.trim(), updateRegisterNextButtonValidity,
+);
+const registerPhoneAvailability = setupAvailabilityField(
+    el("register-phone"), el("register-phone-error"), "phone_number", "register.phoneTaken",
+    () => composePhoneNumber(el("register-phone"), selectedPhoneCountry), updateRegisterNextButtonValidity,
+);
+
 // Returns a specific error message if step 1 isn't ready to advance, or null if it is.
-// Deliberately NOT gated behind the button's disabled attribute (a truly disabled button
-// fires no click event at all, so tapping it gives zero feedback about WHY - confusing,
-// since e.g. "password must be at least 8 characters" isn't shown anywhere else on the
-// form). The arrow stays tappable; tapping it while incomplete explains what's missing.
 function registerStep1ValidationError() {
     const name = el("register-name").value.trim();
     const username = el("register-username").value.trim();
@@ -906,10 +1077,26 @@ function currentRegisterStepError() {
     return null;
 }
 
-// Purely visual (dims the arrow) - advancing is still always attempted on click, which
-// is what actually surfaces a specific reason if something's missing.
+// Step 1 (Account) has its two named conditions (all required fields filled, and none
+// of username/contact email/phone number taken) genuinely gate the arrow via .disabled -
+// the inline field errors above already explain "why" for the taken case, and empty
+// required fields are visually obvious, so there's no need to keep it tappable-but-dim
+// there. Steps 2/3 (hours/prices/terms) keep the original behavior: dim only, still
+// tappable, since tapping is what surfaces a specific reason via register-error - there's
+// nothing here that needs a live per-field message the way "already taken" does.
 function updateRegisterNextButtonValidity() {
-    el("register-next-btn").classList.toggle("register-next-btn-dim", !!currentRegisterStepError());
+    const btn = el("register-next-btn");
+    if (registerStep === 1) {
+        const blocked = !!registerStep1ValidationError()
+            || registerUsernameAvailability.isBlocking()
+            || registerEmailAvailability.isBlocking()
+            || registerPhoneAvailability.isBlocking();
+        btn.classList.toggle("register-next-btn-dim", blocked);
+        btn.disabled = blocked;
+    } else {
+        btn.classList.toggle("register-next-btn-dim", !!currentRegisterStepError());
+        btn.disabled = false;
+    }
 }
 ["register-name", "register-username", "register-password", "register-contact-email"].forEach((id) => {
     el(id).addEventListener("input", updateRegisterNextButtonValidity);
@@ -939,6 +1126,9 @@ el("login-signup-link").addEventListener("click", () => {
     el("register-terms").checked = false;
     registerHoursPicker.reset();
     registerPricesPicker.setValue("");
+    registerUsernameAvailability.reset();
+    registerEmailAvailability.reset();
+    registerPhoneAvailability.reset();
     el("register-error").classList.add("hidden");
     showRegisterStep(1);
     showScreen("register");
@@ -1004,7 +1194,7 @@ el("register-form").addEventListener("submit", async (event) => {
                 username: el("register-username").value.trim(),
                 password: el("register-password").value,
                 contact_email: el("register-contact-email").value.trim(),
-                phone_number: el("register-phone").value.trim() ? `${selectedPhoneCountry.dial} ${el("register-phone").value.trim()}` : "",
+                phone_number: composePhoneNumber(el("register-phone"), selectedPhoneCountry),
                 working_hours: registerHoursPicker.getValue(),
                 price_list: registerPricesPicker.getValue(),
                 faq: el("register-faq").value,
@@ -1397,6 +1587,29 @@ el("detail-send").addEventListener("click", async () => {
 
 // --- Settings ---
 
+// Same live "already taken" mechanism as Create Account step 1 (see
+// setupAvailabilityField above) - here the caller IS logged in, so the Bearer token lets
+// the server exclude this business's own current value automatically (editing a field
+// without changing it never flags itself as taken).
+function updateSettingsSaveValidity() {
+    el("settings-save").disabled = profileUsernameAvailability.isBlocking()
+        || profileEmailAvailability.isBlocking()
+        || profilePhoneAvailability.isBlocking();
+}
+
+const profileUsernameAvailability = setupAvailabilityField(
+    el("settings-username"), el("settings-username-error"), "username", "register.usernameTaken",
+    () => el("settings-username").value.trim(), updateSettingsSaveValidity,
+);
+const profileEmailAvailability = setupAvailabilityField(
+    el("settings-contact-email"), el("settings-contact-email-error"), "contact_email", "register.emailTaken",
+    () => el("settings-contact-email").value.trim(), updateSettingsSaveValidity,
+);
+const profilePhoneAvailability = setupAvailabilityField(
+    el("settings-phone"), el("settings-phone-error"), "phone_number", "register.phoneTaken",
+    () => composePhoneNumber(el("settings-phone"), selectedProfilePhoneCountry), updateSettingsSaveValidity,
+);
+
 async function loadSettingsIntoForm() {
     try {
         const data = await api("/api/settings");
@@ -1435,6 +1648,11 @@ el("settings-save").addEventListener("click", async () => {
         errorBox.classList.remove("hidden");
         return;
     }
+    if (profileUsernameAvailability.isBlocking() || profileEmailAvailability.isBlocking() || profilePhoneAvailability.isBlocking()) {
+        errorBox.textContent = t("settings.errorFieldTaken");
+        errorBox.classList.remove("hidden");
+        return;
+    }
     if (newPassword && !currentPassword) {
         errorBox.textContent = t("settings.errorCurrentPasswordRequired");
         errorBox.classList.remove("hidden");
@@ -1460,14 +1678,13 @@ el("settings-save").addEventListener("click", async () => {
     button.textContent = t("settings.saveLoading");
 
     try {
-        const phone = el("settings-phone").value.trim();
         await api("/api/settings", {
             method: "POST",
             body: {
                 name: el("settings-name").value,
                 username,
                 contact_email: contactEmail,
-                phone_number: phone ? `${selectedProfilePhoneCountry.dial} ${phone}` : "",
+                phone_number: composePhoneNumber(el("settings-phone"), selectedProfilePhoneCountry),
                 working_hours: profileHoursPicker.getValue(),
                 price_list: profilePricesPicker.getValue(),
                 faq: el("settings-faq").value,
@@ -1484,7 +1701,13 @@ el("settings-save").addEventListener("click", async () => {
         errorBox.textContent = err.message || t("settings.error");
         errorBox.classList.remove("hidden");
     } finally {
-        button.disabled = false;
+        // NOT an unconditional button.disabled = false - if the user edited a field to a
+        // value that resolved as "taken" while this request was in flight, that check
+        // runs independently (see updateSettingsSaveValidity) and may have already set
+        // disabled = true; unconditionally clearing it here would silently re-enable
+        // Save over a known-taken value. Deferring to the same validity check keeps
+        // there being exactly one source of truth for this button's disabled state.
+        updateSettingsSaveValidity();
         button.textContent = t("settings.save");
     }
 });

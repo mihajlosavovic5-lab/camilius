@@ -10,11 +10,11 @@
              form on the site; see base.html for the vendored htmx script. Log out is
              excluded on purpose further down, same reasoning as the hover-prefetch. -->
         <div class="nav-links" hx-boost="true">
-            <a href="{{ url_for('home') }}" class="{{ 'active' if request.endpoint == 'home' }}">Conversations</a>
-            <a href="{{ url_for('subscription') }}" class="{{ 'active' if request.endpoint == 'subscription' }}">Subscription</a>
-            <a href="{{ url_for('settings') }}" class="{{ 'active' if request.endpoint == 'settings' }}">Profile</a>
-            <a href="{{ url_for('app_settings') }}" class="{{ 'active' if request.endpoint == 'app_settings' }}">Settings</a>
-            <a href="{{ url_for('logout') }}" class="nav-logout" hx-boost="false">Log out</a>
+            <a href="{{ url_for('home') }}" class="{{ 'active' if request.endpoint == 'home' }}" data-i18n="common.conversations">Conversations</a>
+            <a href="{{ url_for('subscription') }}" class="{{ 'active' if request.endpoint == 'subscription' }}" data-i18n="common.subscription">Subscription</a>
+            <a href="{{ url_for('settings') }}" class="{{ 'active' if request.endpoint == 'settings' }}" data-i18n="common.profile">Profile</a>
+            <a href="{{ url_for('app_settings') }}" class="{{ 'active' if request.endpoint == 'app_settings' }}" data-i18n="common.settings">Settings</a>
+            <a href="{{ url_for('logout') }}" class="nav-logout" hx-boost="false" data-i18n="common.logOut">Log out</a>
         </div>
     </div>
 </nav>

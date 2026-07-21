@@ -22,7 +22,8 @@ from database import (
     link_instagram_account, business_by_instagram_account_id, already_processed_messages,
     mark_message_processed, save_draft_reply, previous_conversations_with,
     log_webhook_hit, recent_webhook_hits, raw_conversation_rows, is_auto_send_enabled,
-    set_auto_send,
+    set_auto_send, business_by_username, business_by_phone_number,
+    username_taken, contact_email_taken, phone_number_taken,
 )
 from send_email import send_email
 from generate_reply import generate_reply
@@ -261,15 +262,11 @@ def instagram_oauth_callback():
     return redirect(url_for("home"))
 
 
-def request_password_reset(email):
-    """Shared by the web /forgot-password route and the mobile app's /api/forgot-password -
-    looks up the account and, if found, emails a reset link. Returns True/False so the
-    caller can tell the user whether that email is actually registered (a deliberate
-    product choice - see the callers for the tradeoff)."""
-    business = business_by_contact_email(email)
-    if not business:
-        return False
-
+def _email_password_reset_link(business):
+    """Shared final step once an account has been found by whichever lookup (email,
+    username, or phone number) - issues a fresh single-use token and emails the link to
+    the account's contact email (the only channel we can actually deliver it through -
+    there's no SMS integration, so even the phone-number lookup path ends here)."""
     token = secrets.token_urlsafe(32)
     expires = datetime.now(timezone.utc).replace(tzinfo=None) + timedelta(hours=1)
     save_reset_token(business[0], token, expires)
@@ -288,6 +285,30 @@ def request_password_reset(email):
         business_name="Camilius",
         reply_to=os.getenv("ALERT_EMAIL") or business[4],
     )
+
+
+def request_password_reset(identifier):
+    """Shared by the web /forgot-password route and the mobile app's /api/forgot-password.
+    The field is labeled "Email or username" - looks up the account by either, and if
+    found, emails a reset link. Returns True/False so the caller can tell the user
+    whether that email/username is actually registered (a deliberate product choice -
+    see the callers for the tradeoff)."""
+    business = business_by_contact_email(identifier) or business_by_username(identifier)
+    if not business:
+        return False
+    _email_password_reset_link(business)
+    return True
+
+
+def request_password_reset_by_phone(phone_number):
+    """"Find by mobile number" recovery path - same idea as request_password_reset, but
+    looks the account up by its registered phone number instead. There's still no SMS
+    channel, so the actual reset link is emailed to the contact email already on file,
+    same as every other path."""
+    business = business_by_phone_number(phone_number)
+    if not business:
+        return False
+    _email_password_reset_link(business)
     return True
 
 
@@ -295,19 +316,62 @@ def request_password_reset(email):
 @limiter.limit("5 per hour", methods=["POST"])
 def forgot_password():
     if request.method == "POST":
-        email = request.form["email"]
-        if not request_password_reset(email):
+        identifier = request.form["identifier"]
+        if not request_password_reset(identifier):
             return render_template(
                 "forgot_password.html",
-                error="No account found with that email address.",
-                email=email,
+                error="No account found with that email or username.",
+                identifier=identifier,
             )
         return render_template(
             "forgot_password.html",
-            message="We've sent a password reset link to that email.",
+            message="We've sent a password reset link to the email on file.",
         )
 
     return render_template("forgot_password.html", message=None)
+
+
+@app.route("/forgot-password/phone", methods=["POST"])
+@limiter.limit("5 per hour")
+def forgot_password_phone():
+    phone_number = request.form.get("phone_number", "").strip()
+    if not request_password_reset_by_phone(phone_number):
+        return render_template(
+            "forgot_password.html",
+            error="No account found with that phone number.",
+            phone_mode=True,
+            phone_number=phone_number,
+        )
+    return render_template(
+        "forgot_password.html",
+        message="We found your account - we've sent a password reset link to the email on file.",
+    )
+
+
+# Behind both the web Create Account form (register.html) and the Profile settings form
+# (settings.html only exposes name/hours/prices/faq for now, but Profile edits live in the
+# mobile app - see api.py's own /api/check-availability for that side) - lets the frontend
+# show an inline "already taken" error as the user types, instead of only finding out from
+# a UniqueViolation after submitting. Session-aware: a logged-in caller's OWN current
+# value is excluded so editing a field without changing it never flags itself as taken.
+_AVAILABILITY_CHECKS = {
+    "username": username_taken,
+    "contact_email": contact_email_taken,
+    "phone_number": phone_number_taken,
+}
+
+
+@app.route("/check-availability", methods=["POST"])
+@limiter.limit("60 per minute")
+def check_availability():
+    data = request.get_json(silent=True) or {}
+    value = (data.get("value") or "").strip()
+    check = _AVAILABILITY_CHECKS.get(data.get("field"))
+    if check is None:
+        abort(400)
+    if not value:
+        return jsonify(taken=False)
+    return jsonify(taken=check(value, exclude_business_id=session.get("business_id")))
 
 
 @app.route("/reset-password/<token>", methods=["GET", "POST"])

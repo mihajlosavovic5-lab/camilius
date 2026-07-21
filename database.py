@@ -515,6 +515,64 @@ def business_by_contact_email(contact_email):
     return _decrypt_row_token(row)
 
 
+def business_by_phone_number(phone_number):
+    """Used by the "find account by phone number" password-recovery path - looks up the
+    account the same way business_by_contact_email does, just by phone_number instead."""
+    connection = connect()
+    cursor = connection.cursor()
+    cursor.execute(f"SELECT {_BUSINESS_COLUMNS} FROM businesses WHERE phone_number = %s", (phone_number,))
+    row = cursor.fetchone()
+    connection.close()
+
+    if row is None:
+        return None
+    return _decrypt_row_token(row)
+
+
+# --- Live availability checks (Create Account + Profile "already taken" inline errors) ---
+#
+# Each mirrors one of the UNIQUE constraints on businesses (username, contact_email,
+# phone_number) so the frontend can ask "is this taken?" before the user submits the
+# form, instead of only finding out from a UniqueViolation after the fact.
+# exclude_business_id lets the Profile screen check a field against everyone ELSE's
+# value without a business always seeing its own current value as "taken".
+
+def username_taken(username, exclude_business_id=None):
+    connection = connect()
+    cursor = connection.cursor()
+    cursor.execute(
+        "SELECT 1 FROM businesses WHERE username = %s AND id != %s",
+        (username, exclude_business_id or 0),
+    )
+    taken = cursor.fetchone() is not None
+    connection.close()
+    return taken
+
+
+def contact_email_taken(contact_email, exclude_business_id=None):
+    connection = connect()
+    cursor = connection.cursor()
+    cursor.execute(
+        "SELECT 1 FROM businesses WHERE contact_email = %s AND id != %s",
+        (contact_email, exclude_business_id or 0),
+    )
+    taken = cursor.fetchone() is not None
+    connection.close()
+    return taken
+
+
+def phone_number_taken(phone_number, exclude_business_id=None):
+    connection = connect()
+    cursor = connection.cursor()
+    cursor.execute(
+        "SELECT 1 FROM businesses WHERE phone_number = %s AND id != %s",
+        (phone_number, exclude_business_id or 0),
+    )
+    taken = cursor.fetchone() is not None
+    connection.close()
+    return taken
+
+
 def save_reset_token(business_id, token, expires):
     connection = connect()
     cursor = connection.cursor()

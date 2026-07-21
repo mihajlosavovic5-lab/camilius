@@ -9,12 +9,12 @@
             <span class="brand-mark">C</span>
             <span class="brand-name">Camilius</span>
         </span>
-        <p class="auth-tagline">Register your business in a few minutes &mdash; AI starts drafting replies to customer Instagram messages right away.</p>
+        <p class="auth-tagline" data-i18n="register.tagline">Register your business in a few minutes &mdash; AI starts drafting replies to customer Instagram messages right away.</p>
     </div>
 
     <div class="auth-card auth-card-wide">
-        <h1>Register your business</h1>
-        <p class="auth-subtitle">You can change all of these fields later in settings. You'll connect your Instagram account in the next step.</p>
+        <h1 data-i18n="register.title">Register your business</h1>
+        <p class="auth-subtitle" data-i18n="register.subtitle">You can change all of these fields later in settings. You'll connect your Instagram account in the next step.</p>
 
         {% if error %}
             <div class="alert alert-error"><span class="alert-icon">&#9888;&#65039;</span><span>{{ error }}</span></div>
@@ -22,50 +22,239 @@
 
         <form method="POST">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <p class="form-section-title" style="margin-top: 6px;">Account</p>
+            <p class="form-section-title" style="margin-top: 6px;" data-i18n="register.accountSection">Account</p>
 
-            <label>Business name</label>
-            <input type="text" name="name" value="{{ data.get('name', '') }}" placeholder="e.g. Frizerski salon Stil" required>
+            <label data-i18n="register.businessName">Business name</label>
+            <input type="text" name="name" value="{{ data.get('name', '') }}" data-i18n-placeholder="register.businessNamePlaceholder" placeholder="e.g. Frizerski salon Stil" required>
 
-            <label>Username <span style="font-weight:400; color: var(--text-muted);">(for dashboard login)</span></label>
-            <input type="text" name="username" value="{{ data.get('username', '') }}" autocomplete="username" required>
+            <label><span data-i18n="register.username">Username</span> <span style="font-weight:400; color: var(--text-muted);" data-i18n="register.usernameHint">(for dashboard login)</span></label>
+            <input type="text" id="register-username-input" name="username" value="{{ data.get('username', '') }}" autocomplete="username" required>
+            <p class="field-error hidden" id="register-username-error"></p>
 
-            <label>Password</label>
+            <label data-i18n="register.password">Password</label>
             <input type="password" name="password" autocomplete="new-password" required>
 
-            <label>Contact email <span style="font-weight:400; color: var(--text-muted);">(for account recovery only - not read by the AI)</span></label>
-            <input type="email" name="contact_email" value="{{ data.get('contact_email', '') }}" placeholder="you@example.com" required>
+            <label><span data-i18n="register.contactEmail">Contact email</span> <span style="font-weight:400; color: var(--text-muted);" data-i18n="register.contactEmailHint">(for account recovery only - not read by the AI)</span></label>
+            <input type="email" id="register-contact-email-input" name="contact_email" value="{{ data.get('contact_email', '') }}" placeholder="you@example.com" required>
+            <p class="field-error hidden" id="register-contact-email-error"></p>
 
-            <label>Phone number <span style="font-weight:400; color: var(--text-muted);">(optional - lets you log in with it too)</span></label>
-            <input type="tel" name="phone_number" value="{{ data.get('phone_number', '') }}" placeholder="+381 6X XXX XXXX">
+            <label><span data-i18n="register.phone">Phone number</span> <span style="font-weight:400; color: var(--text-muted);" data-i18n="register.phoneHint">(optional - lets you log in with it too)</span></label>
+            <input type="tel" id="register-phone-input" name="phone_number" value="{{ data.get('phone_number', '') }}" placeholder="+381 6X XXX XXXX">
+            <p class="phone-country-hint hidden" id="register-phone-country-hint"><span class="flag" id="register-phone-country-flag"></span><span id="register-phone-country-name"></span></p>
+            <p class="field-error hidden" id="register-phone-error"></p>
 
             <div class="form-section">
-                <p class="form-section-title">Business details &mdash; the AI uses this to write replies</p>
+                <p class="form-section-title" data-i18n="register.businessDetailsSection">Business details &mdash; the AI uses this to write replies</p>
 
-                <label>Working hours</label>
-                <textarea name="working_hours" placeholder="Monday: 09:00 - 20:00&#10;Saturday: 09:00 - 16:00&#10;Sunday: closed" required>{{ data.get('working_hours', '') }}</textarea>
+                <label data-i18n="register.hours">Working hours</label>
+                <textarea name="working_hours" data-i18n-placeholder="register.hoursPlaceholder" placeholder="Monday: 09:00 - 20:00&#10;Saturday: 09:00 - 16:00&#10;Sunday: closed" required>{{ data.get('working_hours', '') }}</textarea>
 
-                <label>Price list</label>
-                <textarea name="price_list" placeholder="Men's haircut: 800 din&#10;Women's haircut: 1500 din" required>{{ data.get('price_list', '') }}</textarea>
+                <label data-i18n="register.prices">Price list</label>
+                <textarea name="price_list" data-i18n-placeholder="register.pricesPlaceholder" placeholder="Men's haircut: 800 din&#10;Women's haircut: 1500 din" required>{{ data.get('price_list', '') }}</textarea>
 
-                <label>Tell us more about your business</label>
-                <textarea name="faq" placeholder="Q: Do I need to book an appointment?&#10;A: Yes, we recommend booking in advance.&#10;&#10;Anything else worth knowing about your business.">{{ data.get('faq', '') }}</textarea>
-                <p class="note">The more you share, the more questions our AI can answer for your customers.</p>
+                <label data-i18n="register.faq">Tell us more about your business</label>
+                <textarea name="faq" data-i18n-placeholder="register.faqPlaceholder" placeholder="Q: Do I need to book an appointment?&#10;A: Yes, we recommend booking in advance.&#10;&#10;Anything else worth knowing about your business.">{{ data.get('faq', '') }}</textarea>
+                <p class="note" data-i18n="register.faqHint">The more you share, the more questions our AI can answer for your customers.</p>
             </div>
 
             <label class="checkbox-row">
                 <input type="checkbox" name="accept_terms" required {% if data.get('accept_terms') %}checked{% endif %}>
-                <span>I accept the <a href="{{ url_for('terms') }}" target="_blank">Terms of Service</a> and <a href="{{ url_for('privacy') }}" target="_blank">Privacy Policy</a></span>
+                <span><span data-i18n="register.acceptPrefix">I accept the</span> <a href="{{ url_for('terms') }}" target="_blank" data-i18n="common.termsOfService">Terms of Service</a> <span data-i18n="register.acceptAnd">and</span> <a href="{{ url_for('privacy') }}" target="_blank" data-i18n="common.privacyPolicy">Privacy Policy</a></span>
             </label>
 
             <div class="form-actions">
-                <button class="button button-full" type="submit">Register</button>
+                <button class="button button-full" type="submit" id="register-submit-btn" data-i18n="register.submit">Register</button>
             </div>
         </form>
 
         <div class="auth-links">
-            <a href="{{ url_for('login') }}">Already have an account? <strong>Log in</strong></a>
+            <a href="{{ url_for('login') }}"><span data-i18n="register.alreadyHaveAccount">Already have an account?</span> <strong data-i18n="common.logIn">Log in</strong></a>
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Runs on DOMContentLoaded (not immediately) - site-i18n.js is loaded with `defer` in
+// <head>, so its t() function isn't defined yet if this ran synchronously during parsing;
+// DOMContentLoaded is guaranteed to fire after every deferred script has executed.
+document.addEventListener("DOMContentLoaded", function () {
+    // Every ITU calling code, longest-prefix-first, so a live "+1876..." doesn't get
+    // mis-detected as the shorter "+1" (US/Canada) - same list/approach as the mobile
+    // app's own country picker (mobile/app.js), duplicated here since the web has no
+    // shared bundle with it. Only used for the live "+381 -> Serbia" hint below; the
+    // number is still stored exactly as typed (no reformatting).
+    var COUNTRIES = [
+        ["Afghanistan","AF","+93"],["Albania","AL","+355"],["Algeria","DZ","+213"],["Andorra","AD","+376"],
+        ["Angola","AO","+244"],["Antigua and Barbuda","AG","+1268"],["Argentina","AR","+54"],["Armenia","AM","+374"],
+        ["Australia","AU","+61"],["Austria","AT","+43"],["Azerbaijan","AZ","+994"],["Bahamas","BS","+1242"],
+        ["Bahrain","BH","+973"],["Bangladesh","BD","+880"],["Barbados","BB","+1246"],["Belarus","BY","+375"],
+        ["Belgium","BE","+32"],["Belize","BZ","+501"],["Benin","BJ","+229"],["Bhutan","BT","+975"],
+        ["Bolivia","BO","+591"],["Bosnia and Herzegovina","BA","+387"],["Botswana","BW","+267"],["Brazil","BR","+55"],
+        ["Brunei","BN","+673"],["Bulgaria","BG","+359"],["Burkina Faso","BF","+226"],["Burundi","BI","+257"],
+        ["Cabo Verde","CV","+238"],["Cambodia","KH","+855"],["Cameroon","CM","+237"],["Canada","CA","+1"],
+        ["Central African Republic","CF","+236"],["Chad","TD","+235"],["Chile","CL","+56"],["China","CN","+86"],
+        ["Colombia","CO","+57"],["Comoros","KM","+269"],["Congo","CG","+242"],["Costa Rica","CR","+506"],
+        ["Croatia","HR","+385"],["Cuba","CU","+53"],["Cyprus","CY","+357"],["Czechia","CZ","+420"],
+        ["DR Congo","CD","+243"],["Denmark","DK","+45"],["Djibouti","DJ","+253"],["Dominica","DM","+1767"],
+        ["Dominican Republic","DO","+1809"],["Ecuador","EC","+593"],["Egypt","EG","+20"],["El Salvador","SV","+503"],
+        ["Equatorial Guinea","GQ","+240"],["Eritrea","ER","+291"],["Estonia","EE","+372"],["Eswatini","SZ","+268"],
+        ["Ethiopia","ET","+251"],["Fiji","FJ","+679"],["Finland","FI","+358"],["France","FR","+33"],
+        ["Gabon","GA","+241"],["Gambia","GM","+220"],["Georgia","GE","+995"],["Germany","DE","+49"],
+        ["Ghana","GH","+233"],["Greece","GR","+30"],["Grenada","GD","+1473"],["Guatemala","GT","+502"],
+        ["Guinea","GN","+224"],["Guinea-Bissau","GW","+245"],["Guyana","GY","+592"],["Haiti","HT","+509"],
+        ["Honduras","HN","+504"],["Hungary","HU","+36"],["Iceland","IS","+354"],["India","IN","+91"],
+        ["Indonesia","ID","+62"],["Iran","IR","+98"],["Iraq","IQ","+964"],["Ireland","IE","+353"],
+        ["Israel","IL","+972"],["Italy","IT","+39"],["Ivory Coast","CI","+225"],["Jamaica","JM","+1876"],
+        ["Japan","JP","+81"],["Jordan","JO","+962"],["Kazakhstan","KZ","+7"],["Kenya","KE","+254"],
+        ["Kiribati","KI","+686"],["Kosovo","XK","+383"],["Kuwait","KW","+965"],["Kyrgyzstan","KG","+996"],
+        ["Laos","LA","+856"],["Latvia","LV","+371"],["Lebanon","LB","+961"],["Lesotho","LS","+266"],
+        ["Liberia","LR","+231"],["Libya","LY","+218"],["Liechtenstein","LI","+423"],["Lithuania","LT","+370"],
+        ["Luxembourg","LU","+352"],["Madagascar","MG","+261"],["Malawi","MW","+265"],["Malaysia","MY","+60"],
+        ["Maldives","MV","+960"],["Mali","ML","+223"],["Malta","MT","+356"],["Marshall Islands","MH","+692"],
+        ["Mauritania","MR","+222"],["Mauritius","MU","+230"],["Mexico","MX","+52"],["Micronesia","FM","+691"],
+        ["Moldova","MD","+373"],["Monaco","MC","+377"],["Mongolia","MN","+976"],["Montenegro","ME","+382"],
+        ["Morocco","MA","+212"],["Mozambique","MZ","+258"],["Myanmar","MM","+95"],["Namibia","NA","+264"],
+        ["Nauru","NR","+674"],["Nepal","NP","+977"],["Netherlands","NL","+31"],["New Zealand","NZ","+64"],
+        ["Nicaragua","NI","+505"],["Niger","NE","+227"],["Nigeria","NG","+234"],["North Korea","KP","+850"],
+        ["North Macedonia","MK","+389"],["Norway","NO","+47"],["Oman","OM","+968"],["Pakistan","PK","+92"],
+        ["Palau","PW","+680"],["Palestine","PS","+970"],["Panama","PA","+507"],["Papua New Guinea","PG","+675"],
+        ["Paraguay","PY","+595"],["Peru","PE","+51"],["Philippines","PH","+63"],["Poland","PL","+48"],
+        ["Portugal","PT","+351"],["Qatar","QA","+974"],["Romania","RO","+40"],["Russia","RU","+7"],
+        ["Rwanda","RW","+250"],["Saint Kitts and Nevis","KN","+1869"],["Saint Lucia","LC","+1758"],
+        ["Saint Vincent and the Grenadines","VC","+1784"],["Samoa","WS","+685"],["San Marino","SM","+378"],
+        ["Sao Tome and Principe","ST","+239"],["Saudi Arabia","SA","+966"],["Senegal","SN","+221"],["Serbia","RS","+381"],
+        ["Seychelles","SC","+248"],["Sierra Leone","SL","+232"],["Singapore","SG","+65"],["Slovakia","SK","+421"],
+        ["Slovenia","SI","+386"],["Solomon Islands","SB","+677"],["Somalia","SO","+252"],["South Africa","ZA","+27"],
+        ["South Korea","KR","+82"],["South Sudan","SS","+211"],["Spain","ES","+34"],["Sri Lanka","LK","+94"],
+        ["Sudan","SD","+249"],["Suriname","SR","+597"],["Sweden","SE","+46"],["Switzerland","CH","+41"],
+        ["Syria","SY","+963"],["Taiwan","TW","+886"],["Tajikistan","TJ","+992"],["Tanzania","TZ","+255"],
+        ["Thailand","TH","+66"],["Timor-Leste","TL","+670"],["Togo","TG","+228"],["Tonga","TO","+676"],
+        ["Trinidad and Tobago","TT","+1868"],["Tunisia","TN","+216"],["Turkey","TR","+90"],["Turkmenistan","TM","+993"],
+        ["Tuvalu","TV","+688"],["Uganda","UG","+256"],["Ukraine","UA","+380"],["United Arab Emirates","AE","+971"],
+        ["United Kingdom","GB","+44"],["United States","US","+1"],["Uruguay","UY","+598"],["Uzbekistan","UZ","+998"],
+        ["Vanuatu","VU","+678"],["Vatican City","VA","+379"],["Venezuela","VE","+58"],["Vietnam","VN","+84"],
+        ["Yemen","YE","+967"],["Zambia","ZM","+260"],["Zimbabwe","ZW","+263"]
+    ].sort(function (a, b) { return b[2].length - a[2].length; });
+
+    function flagEmoji(iso) {
+        return iso.replace(/./g, function (c) { return String.fromCodePoint(127397 + c.charCodeAt(0)); });
+    }
+
+    function detectCountry(value) {
+        var digits = (value || "").trim();
+        if (digits[0] !== "+") return null;
+        for (var i = 0; i < COUNTRIES.length; i++) {
+            if (digits.indexOf(COUNTRIES[i][2]) === 0) return COUNTRIES[i];
+        }
+        return null;
+    }
+
+    var phoneInput = document.getElementById("register-phone-input");
+    var phoneHint = document.getElementById("register-phone-country-hint");
+    var phoneFlag = document.getElementById("register-phone-country-flag");
+    var phoneName = document.getElementById("register-phone-country-name");
+    phoneInput.addEventListener("input", function () {
+        var match = detectCountry(phoneInput.value);
+        if (match) {
+            phoneFlag.textContent = flagEmoji(match[1]);
+            phoneName.textContent = match[0] + " (" + match[2] + ")";
+            phoneHint.classList.remove("hidden");
+        } else {
+            phoneHint.classList.add("hidden");
+        }
+    });
+
+    // --- Live "already taken" checks (username, contact email, phone number) ---
+
+    var csrfToken = document.querySelector('input[name="csrf_token"]').value;
+    var form = document.querySelector("form");
+    var submitBtn = document.getElementById("register-submit-btn");
+
+    var fields = {
+        username: { input: document.getElementById("register-username-input"), error: document.getElementById("register-username-error"), required: true, status: "unknown" },
+        contact_email: { input: document.getElementById("register-contact-email-input"), error: document.getElementById("register-contact-email-error"), required: true, status: "unknown" },
+        phone_number: { input: document.getElementById("register-phone-input"), error: document.getElementById("register-phone-error"), required: false, status: "unknown" },
+    };
+
+    function updateSubmitState() {
+        var ready = true;
+        Object.keys(fields).forEach(function (name) {
+            var f = fields[name];
+            var value = f.input.value.trim();
+            if (f.required && !value) ready = false;
+            else if (value && (f.status === "taken" || f.status === "checking")) ready = false;
+        });
+        // Also require the rest of the form's own native validity (password length,
+        // required textareas, terms checkbox) - a cheap way to fold that in without
+        // re-implementing it here.
+        if (!form.checkValidity()) ready = false;
+        submitBtn.disabled = !ready;
+    }
+
+    function debounce(fn, wait) {
+        var timer = null;
+        return function () {
+            var args = arguments;
+            clearTimeout(timer);
+            timer = setTimeout(function () { fn.apply(null, args); }, wait);
+        };
+    }
+
+    function checkField(name) {
+        var f = fields[name];
+        var value = f.input.value.trim();
+        if (!value) {
+            f.status = "unknown";
+            f.error.classList.add("hidden");
+            updateSubmitState();
+            return;
+        }
+        f.status = "checking";
+        updateSubmitState();
+        fetch("{{ url_for('check_availability') }}", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "X-CSRFToken": csrfToken },
+            body: JSON.stringify({ field: name, value: value }),
+        })
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+                // Ignore a stale response if the field's value has changed since this
+                // request was sent (fast typing + network jitter can reorder responses).
+                if (f.input.value.trim() !== value) return;
+                f.status = data.taken ? "taken" : "available";
+                if (data.taken) {
+                    f.error.textContent = f.errorText;
+                    f.error.classList.remove("hidden");
+                } else {
+                    f.error.classList.add("hidden");
+                }
+                updateSubmitState();
+            })
+            .catch(function () {
+                // Network hiccup - don't block the user forever on a check we couldn't
+                // complete; server-side still re-validates on actual submit.
+                f.status = "unknown";
+                updateSubmitState();
+            });
+    }
+
+    fields.username.errorText = t("register.usernameTaken");
+    fields.contact_email.errorText = t("register.emailTaken");
+    fields.phone_number.errorText = t("register.phoneTaken");
+
+    Object.keys(fields).forEach(function (name) {
+        var debounced = debounce(function () { checkField(name); }, 450);
+        fields[name].input.addEventListener("input", function () {
+            fields[name].status = "checking";
+            updateSubmitState();
+            debounced();
+        });
+    });
+
+    form.addEventListener("input", updateSubmitState);
+    updateSubmitState();
+});
+</script>
 {% endblock %}

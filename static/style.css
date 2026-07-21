@@ -159,7 +159,7 @@ a:focus-visible, button:focus-visible, [tabindex]:focus-visible {
 
 /* --- Forms --- */
 label { display: block; font-weight: 600; font-size: 14px; margin: 16px 0 5px; }
-input[type="text"], input[type="password"], input[type="email"], textarea {
+input[type="text"], input[type="password"], input[type="email"], input[type="tel"], textarea {
     width: 100%; padding: 10px 12px;
     border: 1px solid var(--border); border-radius: 9px;
     font-family: inherit; font-size: 15px; color: var(--text);
@@ -174,6 +174,20 @@ textarea { min-height: 90px; resize: vertical; }
 input[readonly] { background: var(--background); color: var(--text-muted); }
 .note { color: var(--text-muted); font-size: 13px; margin: 5px 0 0; }
 .form-actions { margin-top: 24px; }
+.hidden { display: none !important; }
+
+/* Inline "already taken" / validation messages shown live under a field as the user
+   types (see register.html's script block) - deliberately not reusing .alert, which is
+   too heavy (border/background/icon) for a single small per-field message. */
+.field-error { color: var(--danger); font-size: 12.5px; margin: 5px 0 0; }
+
+/* Live country-code hint shown next to the phone field once enough digits have been
+   typed to recognize a calling code (e.g. "+381" -> Serbia) - see register.html. */
+.phone-country-hint {
+    display: inline-flex; align-items: center; gap: 6px;
+    margin-top: 6px; font-size: 13px; color: var(--text-muted);
+}
+.phone-country-hint .flag { font-size: 15px; }
 
 .checkbox-row { display: flex; align-items: flex-start; gap: 9px; margin-top: 20px; font-size: 14px; font-weight: 400; }
 .checkbox-row input { width: 17px; height: 17px; margin-top: 2px; flex-shrink: 0; accent-color: var(--primary); }
@@ -282,6 +296,16 @@ body.auth {
 .auth-subtitle { color: var(--text-muted); font-size: 14px; margin: 0 0 10px; }
 .auth-links { margin-top: 18px; text-align: center; font-size: 14px; }
 .auth-links a { display: block; margin-top: 8px; }
+
+/* A <button> that reads as a plain text link - used where a toggle needs a real button
+   (e.g. switching the forgot-password form between email/username and phone lookup)
+   but should look identical to the .auth-links anchors around it. */
+.link-btn {
+    display: block; margin-top: 8px; width: 100%; text-align: center;
+    background: none; border: none; padding: 0; cursor: pointer;
+    color: var(--primary-ink); font-size: 14px; font-family: inherit;
+}
+.link-btn:hover { text-decoration: underline; }
 .auth-footer { margin-top: 26px; font-size: 12.5px; color: #a89a7d; text-align: center; }
 .auth-footer a { color: #a89a7d; }
 
