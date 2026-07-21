@@ -1,4 +1,6 @@
 import os
+from datetime import datetime, timedelta, timezone
+
 import psycopg2
 from werkzeug.security import generate_password_hash
 
@@ -280,13 +282,17 @@ def _decrypt_row_token(row):
 def add_business(name, username, password, contact_email, working_hours, price_list, faq, phone_number=None):
     """Creates the account itself. Instagram isn't connected yet at this point - that
     happens afterward via link_instagram_account(), once the OAuth redirect completes.
-    phone_number is optional - purely an extra way to log in later, not required."""
+    phone_number is optional - purely an extra way to log in later, not required.
+
+    subscription_status starts at 'trialing' (not the column's own 'none' default) -
+    every new account gets our own self-serve 7-day trial immediately, see
+    trial_expired()/effective_subscription_active() above."""
     connection = connect()
     cursor = connection.cursor()
 
     cursor.execute(
-        """INSERT INTO businesses (name, username, password, contact_email, working_hours, price_list, faq, phone_number)
-           VALUES (%s, %s, %s, %s, %s, %s, %s, %s) RETURNING id""",
+        """INSERT INTO businesses (name, username, password, contact_email, working_hours, price_list, faq, phone_number, subscription_status)
+           VALUES (%s, %s, %s, %s, %s, %s, %s, %s, 'trialing') RETURNING id""",
         (name, username, generate_password_hash(password), contact_email, working_hours, price_list, faq, phone_number or None),
     )
 
@@ -785,6 +791,42 @@ def get_subscription_status(business_id):
     row = cursor.fetchone()
     connection.close()
     return row[0] if row else None
+
+
+# New accounts start in our own self-serve 7-day trial (subscription_status='trialing'
+# set directly at registration - see add_business() - with no real Paddle subscription
+# attached yet). This is a grace period WE invented, distinct from any real trial Paddle
+# itself later tracks once a subscription actually exists (paddle_subscription_id set) -
+# once that happens, link_subscription()/update_subscription_status() (driven by Paddle's
+# own webhooks) own the status from then on and this expiry no longer applies.
+SELF_SERVE_TRIAL_DAYS = 7
+
+
+def trial_expired(business_id):
+    connection = connect()
+    cursor = connection.cursor()
+    cursor.execute(
+        "SELECT subscription_status, paddle_subscription_id, created_at FROM businesses WHERE id = %s",
+        (business_id,),
+    )
+    row = cursor.fetchone()
+    connection.close()
+    if not row:
+        return False
+    status, paddle_subscription_id, created_at = row
+    if status != "trialing" or paddle_subscription_id:
+        return False
+    now = datetime.now(timezone.utc).replace(tzinfo=None)
+    return now - created_at > timedelta(days=SELF_SERVE_TRIAL_DAYS)
+
+
+def effective_subscription_active(business_id):
+    """The single source of truth for "does this business currently have access" -
+    subscription_active() (status in trialing/active) plus our own self-serve trial
+    expiry on top. Used everywhere access is gated: webhook message processing, the
+    dashboard banner, and the subscription page's own active/inactive branch."""
+    status = get_subscription_status(business_id)
+    return subscription_active(status) and not trial_expired(business_id)
 
 
 def is_push_enabled(business_id):

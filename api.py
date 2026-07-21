@@ -9,8 +9,8 @@ from werkzeug.security import check_password_hash
 
 from database import (
     conversations_for_business, get_conversation, mark_sent, business_by_login_identifier,
-    business_by_id, replies_today_count, update_business, get_subscription_status,
-    subscription_active, business_stats, log_event, save_push_token, log_client_error,
+    business_by_id, replies_today_count, update_business,
+    effective_subscription_active, business_stats, log_event, save_push_token, log_client_error,
     add_business, delete_business, set_new_password, is_push_enabled, set_push_enabled,
     is_auto_send_enabled, set_auto_send,
     username_taken, contact_email_taken, phone_number_taken,
@@ -308,7 +308,6 @@ def api_dashboard():
         shown = conversations
 
     pending_count = sum(1 for c in conversations if c[6] == "pending")
-    subscription_status = get_subscription_status(business_id)
 
     return jsonify(
         business_name=business[1],
@@ -321,7 +320,7 @@ def api_dashboard():
         trash_count=len(trashed),
         today_processed=replies_today_count(business_id),
         daily_limit=DAILY_REPLY_LIMIT,
-        subscription_active=subscription_active(subscription_status),
+        subscription_active=effective_subscription_active(business_id),
         beta_free_mode=BETA_FREE_MODE,
         stats=business_stats(business_id),
         # The app only ever calls PushNotifications.register() when this is true - avoids

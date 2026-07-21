@@ -17,7 +17,8 @@ from database import (
     conversations_for_business, get_conversation, mark_sent, business_by_login_identifier,
     business_by_id, add_business, create_database, delete_business, replies_today_count,
     update_business, business_by_contact_email, save_reset_token, business_by_reset_token, set_new_password,
-    link_subscription, update_subscription_status, get_subscription_status, subscription_active,
+    link_subscription, update_subscription_status, get_subscription_status,
+    effective_subscription_active,
     business_stats, log_event, event_funnel, recent_client_errors, log_client_error,
     link_instagram_account, business_by_instagram_account_id, already_processed_messages,
     mark_message_processed, save_draft_reply, previous_conversations_with,
@@ -71,12 +72,14 @@ app.register_blueprint(api_blueprint)
 # cookie + CSRF token pair used by browser form submissions, so these routes are exempt.
 csrf.exempt(api_blueprint)
 
-# During the free beta, all billing/subscription UI is hidden from users (nav link,
-# dashboard banner, landing page pricing, the /subscription page itself) - nothing about
-# payment is shown or mentioned anywhere. The underlying Paddle integration and the
-# /subscription route are NOT removed, just unreachable/invisible, so flipping this back
-# to False re-enables everything with no further code changes needed.
-BETA_FREE_MODE = True
+# Faza 5 (2026-07-21): flipped off - real trial/pricing is live. New accounts now get
+# our own self-serve 7-day trial at registration (subscription_status='trialing', see
+# add_business()) and, once that runs out without a real Paddle subscription, land on
+# the Starter/Pro pricing page (see effective_subscription_active()/trial_expired() in
+# database.py). NOTE: the four Paddle prices (Starter/Pro x monthly/yearly) don't exist
+# yet as of this commit - checkout buttons show "Coming soon" until PADDLE_PRICE_
+# STARTER_MONTHLY/STARTER_YEARLY/PRO_MONTHLY/PRO_YEARLY are set on Railway.
+BETA_FREE_MODE = False
 
 
 @app.context_processor
@@ -742,7 +745,6 @@ def home():
 
     pending_count = sum(1 for c in conversations if c[6] == "pending")
     today = replies_today_count(session["business_id"])
-    current_subscription_status = get_subscription_status(session["business_id"])
     stats = business_stats(session["business_id"])
 
     return render_template(
@@ -758,7 +760,7 @@ def home():
         daily_limit=DAILY_REPLY_LIMIT,
         sent=request.args.get("sent"),
         send_error=request.args.get("send_error"),
-        subscription_active_flag=subscription_active(current_subscription_status),
+        subscription_active_flag=effective_subscription_active(session["business_id"]),
         stats=stats,
     )
 
@@ -871,7 +873,7 @@ def subscription():
         business_id=session["business_id"],
         email=business[4],
         status=status,
-        active=subscription_active(status),
+        active=effective_subscription_active(session["business_id"]),
     )
 
 
@@ -991,10 +993,11 @@ def _process_instagram_message(message):
     print(f"[instagram-webhook] Matched business_id={business_id} name={business[1]!r}", flush=True)
 
     # BETA_FREE_MODE means every registered business is processed regardless of billing
-    # status (same reasoning as the dashboard banner elsewhere) - without this, a freshly
-    # registered business defaults to subscription_status='none' and every message would
-    # silently be dropped here until someone manually flips it to 'active'.
-    if not BETA_FREE_MODE and not subscription_active(get_subscription_status(business_id)):
+    # status (same reasoning as the dashboard banner elsewhere). With it off, a business
+    # still gets processed through its own 7-day self-serve trial (subscription_status=
+    # 'trialing', set at registration - see add_business()) before needing a real Paddle
+    # subscription - see effective_subscription_active()/trial_expired() in database.py.
+    if not BETA_FREE_MODE and not effective_subscription_active(business_id):
         print(f"[instagram-webhook] business_id={business_id} subscription not active - skipping", flush=True)
         return
     if replies_today_count(business_id) >= DAILY_REPLY_LIMIT:
