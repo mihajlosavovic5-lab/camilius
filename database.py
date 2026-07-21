@@ -159,6 +159,14 @@ def create_database():
     # username isn't necessarily resolvable (or stable) and isn't valid as a send target.
     cursor.execute("ALTER TABLE conversations ADD COLUMN IF NOT EXISTS sender_igsid TEXT")
 
+    # Archive/Trash (Faza 3) - deliberately separate from `status` (pending/sent), which
+    # tracks the reply-approval workflow, not which "folder" a conversation sits in. Both
+    # are nullable timestamps rather than booleans so "when" is available for free (e.g.
+    # the 30-day trash countdown). A conversation can be archived_at AND later deleted_at
+    # (deleting from the Archived tab) - the two aren't mutually exclusive.
+    cursor.execute("ALTER TABLE conversations ADD COLUMN IF NOT EXISTS archived_at TIMESTAMP")
+    cursor.execute("ALTER TABLE conversations ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP")
+
     # Real production bug found 2026-07-20: the 2026-07-16 Serbian->English migration
     # renamed the status VALUES used going forward ('na_cekanju'/'poslato' -> 'pending'/
     # 'sent'), but never touched the conversations.status COLUMN'S DEFAULT constraint
@@ -486,19 +494,105 @@ def raw_conversation_rows(limit=30):
 
 
 def conversations_for_business(business_id):
+    """The normal Inbox view (All/Pending/Sent) - excludes anything archived or in the
+    Trash, which live in their own separate views below."""
     connection = connect()
     cursor = connection.cursor()
 
     cursor.execute("""
         SELECT id, sender, subject, question, suggested_reply, final_reply, status, created_at
         FROM conversations
-        WHERE business_id = %s
+        WHERE business_id = %s AND archived_at IS NULL AND deleted_at IS NULL
         ORDER BY created_at DESC
     """, (business_id,))
     result = cursor.fetchall()
 
     connection.close()
     return result
+
+
+def archived_conversations_for_business(business_id):
+    connection = connect()
+    cursor = connection.cursor()
+
+    cursor.execute("""
+        SELECT id, sender, subject, question, suggested_reply, final_reply, status, created_at
+        FROM conversations
+        WHERE business_id = %s AND archived_at IS NOT NULL AND deleted_at IS NULL
+        ORDER BY archived_at DESC
+    """, (business_id,))
+    result = cursor.fetchall()
+
+    connection.close()
+    return result
+
+
+def trashed_conversations_for_business(business_id):
+    """Same row shape as conversations_for_business/archived_conversations_for_business
+    (deliberately - both the web template's tuple-unpacking and the mobile app's
+    _serialize_conversation assume one consistent shape everywhere). The UI shows a
+    generic "auto-purges after 30 days" note rather than a per-row countdown, so
+    deleted_at itself doesn't need to be exposed here - see purge_expired_trash()."""
+    connection = connect()
+    cursor = connection.cursor()
+
+    cursor.execute("""
+        SELECT id, sender, subject, question, suggested_reply, final_reply, status, created_at
+        FROM conversations
+        WHERE business_id = %s AND deleted_at IS NOT NULL
+        ORDER BY deleted_at DESC
+    """, (business_id,))
+    result = cursor.fetchall()
+
+    connection.close()
+    return result
+
+
+def archive_conversation(conversation_id):
+    connection = connect()
+    cursor = connection.cursor()
+    cursor.execute("UPDATE conversations SET archived_at = NOW() WHERE id = %s", (conversation_id,))
+    connection.commit()
+    connection.close()
+
+
+def unarchive_conversation(conversation_id):
+    connection = connect()
+    cursor = connection.cursor()
+    cursor.execute("UPDATE conversations SET archived_at = NULL WHERE id = %s", (conversation_id,))
+    connection.commit()
+    connection.close()
+
+
+def soft_delete_conversation(conversation_id):
+    connection = connect()
+    cursor = connection.cursor()
+    cursor.execute("UPDATE conversations SET deleted_at = NOW() WHERE id = %s", (conversation_id,))
+    connection.commit()
+    connection.close()
+
+
+def restore_conversation(conversation_id):
+    """Pulls a conversation back out of the Trash. Deliberately doesn't touch
+    archived_at - restoring something that was archived before it was deleted puts it
+    back in the Archived tab, not the main Inbox, which matches how it got there."""
+    connection = connect()
+    cursor = connection.cursor()
+    cursor.execute("UPDATE conversations SET deleted_at = NULL WHERE id = %s", (conversation_id,))
+    connection.commit()
+    connection.close()
+
+
+def purge_expired_trash():
+    """Permanently deletes anything that's been in the Trash for 30+ days. Called once a
+    day from process_emails.py's loop, same pattern as the daily backup/token refresh."""
+    connection = connect()
+    cursor = connection.cursor()
+    cursor.execute("DELETE FROM conversations WHERE deleted_at IS NOT NULL AND deleted_at < NOW() - INTERVAL '30 days'")
+    purged = cursor.rowcount
+    connection.commit()
+    connection.close()
+    return purged
 
 
 def business_by_contact_email(contact_email):

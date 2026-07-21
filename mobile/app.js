@@ -1271,7 +1271,12 @@ if (capacitorPlugins && capacitorPlugins.Browser) {
     });
 }
 
-el("connect-logout").addEventListener("click", logout);
+// Connect Instagram is a mandatory gate with nowhere else to "go back" to (it replaces
+// the register screen rather than being pushed on top of it, and a logged-in-but-not-
+// yet-connected business lands here straight from login too) - the back arrow's only
+// sensible action is the same one the old "Log out" link performed, just presented as
+// standard back-navigation chrome instead of an explicit logout affordance.
+el("connect-instagram-back").addEventListener("click", logout);
 
 function enterApp() {
     showTabbar(true);
@@ -1319,9 +1324,23 @@ function registerForPushNotifications() {
             if (match) openDetail(match);
         }
     });
+
+    // This is what makes the inbox feel real-time without any manual "Refresh" action
+    // (Faza 3): Capacitor fires "pushNotificationReceived" instead of showing a system
+    // notification banner when a push arrives while the app is already open - a new
+    // customer message shows up in the list within a second or two of arriving, with no
+    // pull-to-refresh or tap required. The 15s poll below is just the safety net for
+    // when this doesn't fire (push permission declined, a dropped push, etc.).
+    capacitorPlugins.PushNotifications.addListener("pushNotificationReceived", () => {
+        if (state.activeTab === "inbox") loadDashboard({ silent: true });
+    });
 }
 
-// --- Auto-refresh (only while the app is in the foreground, on the inbox tab) ---
+// --- Auto-refresh (only while the app is in the foreground, on the inbox tab) - a
+// fallback safety net underneath the instant push-triggered refresh above, for whenever
+// that doesn't fire (push permission declined, Firebase not configured, a dropped
+// push...). Short enough that even without a single push ever arriving, the inbox still
+// reads as "basically real-time" rather than something you have to remember to refresh. ---
 
 let autoRefreshTimer = null;
 
@@ -1331,7 +1350,7 @@ function startAutoRefresh() {
         if (document.visibilityState === "visible" && state.activeTab === "inbox" && state.token) {
             loadDashboard({ silent: true });
         }
-    }, 45000);
+    }, 15000);
 }
 
 // --- Inbox ---
@@ -1387,6 +1406,9 @@ async function loadDashboard({ silent = false } = {}) {
         el("count-all").textContent = data.total_count;
         el("count-pending").textContent = data.pending_count;
         el("count-sent").textContent = data.sent_count;
+        el("count-archived").textContent = data.archived_count;
+        el("count-trash").textContent = data.trash_count;
+        el("trash-note").classList.toggle("hidden", state.filter !== "trash");
 
         el("banner-inactive").classList.toggle("hidden", data.beta_free_mode || data.subscription_active);
 
@@ -1424,16 +1446,31 @@ function renderInboxList(conversations) {
 
     if (conversations.length === 0) {
         el("inbox-empty").classList.remove("hidden");
-        el("inbox-empty-title").textContent = state.search.trim() ? t("inbox.emptySearchTitle") : t("inbox.emptyTitle");
-        el("inbox-empty-detail").textContent = state.search.trim() ? t("inbox.emptySearchDetail") : t("inbox.emptyDetail");
+        if (state.search.trim()) {
+            el("inbox-empty-title").textContent = t("inbox.emptySearchTitle");
+            el("inbox-empty-detail").textContent = t("inbox.emptySearchDetail");
+        } else if (state.filter === "archived") {
+            el("inbox-empty-title").textContent = t("inbox.emptyArchivedTitle");
+            el("inbox-empty-detail").textContent = t("inbox.emptyArchivedDetail");
+        } else if (state.filter === "trash") {
+            el("inbox-empty-title").textContent = t("inbox.emptyTrashTitle");
+            el("inbox-empty-detail").textContent = t("inbox.emptyTrashDetail");
+        } else {
+            el("inbox-empty-title").textContent = t("inbox.emptyTitle");
+            el("inbox-empty-detail").textContent = t("inbox.emptyDetail");
+        }
         return;
     }
     el("inbox-empty").classList.add("hidden");
 
     conversations.forEach((c) => {
-        const row = document.createElement("button");
+        const row = document.createElement("div");
         row.className = "inbox-row";
-        row.innerHTML = `
+
+        const tapArea = document.createElement("button");
+        tapArea.type = "button";
+        tapArea.className = "inbox-row-tap";
+        tapArea.innerHTML = `
             <span class="inbox-avatar">${(c.sender[0] || "?").toUpperCase()}</span>
             <span class="inbox-row-main">
                 <span class="inbox-row-top">
@@ -1444,10 +1481,70 @@ function renderInboxList(conversations) {
             </span>
             <span class="inbox-dot ${c.status === "sent" ? "sent" : ""}"></span>
         `;
-        row.addEventListener("click", () => openDetail(c));
+        tapArea.addEventListener("click", () => openDetail(c));
+
+        const moreBtn = document.createElement("button");
+        moreBtn.type = "button";
+        moreBtn.className = "inbox-row-more";
+        moreBtn.setAttribute("aria-label", "More options");
+        moreBtn.textContent = "⋯";
+        moreBtn.addEventListener("click", (event) => {
+            event.stopPropagation();
+            openRowActions(c);
+        });
+
+        row.appendChild(tapArea);
+        row.appendChild(moreBtn);
         list.appendChild(row);
     });
 }
+
+// --- Archive / Delete / Restore / Unarchive (Faza 3) ---
+//
+// A "more options" (⋯) button per row opens a bottom-sheet with just the actions that
+// make sense for the tab it's shown from - reuses the same fixed-overlay pattern as the
+// language/country pickers (see #row-actions-modal in index.html).
+let rowActionsTarget = null;
+
+function openRowActions(conversation) {
+    rowActionsTarget = conversation;
+    const inTrash = state.filter === "trash";
+    const inArchive = state.filter === "archived";
+    el("row-action-archive").classList.toggle("hidden", inTrash || inArchive);
+    el("row-action-unarchive").classList.toggle("hidden", !inArchive);
+    el("row-action-restore").classList.toggle("hidden", !inTrash);
+    // Trash already means "deleted" - nothing further to delete to from there (no manual
+    // permanent-delete action; purge_expired_trash() on the server handles that after
+    // 30 days). Archive and the normal tabs can both delete straight to Trash.
+    el("row-action-delete").classList.toggle("hidden", inTrash);
+    el("row-actions-modal").classList.add("open");
+}
+
+function closeRowActions() {
+    el("row-actions-modal").classList.remove("open");
+    rowActionsTarget = null;
+}
+
+el("row-actions-backdrop").addEventListener("click", closeRowActions);
+el("row-action-cancel").addEventListener("click", closeRowActions);
+
+async function runRowAction(path) {
+    if (!rowActionsTarget) return;
+    const conversationId = rowActionsTarget.id;
+    closeRowActions();
+    try {
+        await api(`/api/conversations/${conversationId}/${path}`, { method: "POST" });
+        if (capacitorPlugins && capacitorPlugins.Haptics) capacitorPlugins.Haptics.impact({ style: "LIGHT" });
+        loadDashboard();
+    } catch (err) {
+        reportClientError(err.message, err.stack, `inbox-${path}`);
+    }
+}
+
+el("row-action-archive").addEventListener("click", () => runRowAction("archive"));
+el("row-action-unarchive").addEventListener("click", () => runRowAction("unarchive"));
+el("row-action-delete").addEventListener("click", () => runRowAction("delete"));
+el("row-action-restore").addEventListener("click", () => runRowAction("restore"));
 
 function escapeHtml(text) {
     const div = document.createElement("div");
@@ -1471,47 +1568,9 @@ el("inbox-search").addEventListener("input", (event) => {
 
 el("inbox-retry").addEventListener("click", () => loadDashboard());
 
-// --- Pull-to-refresh ---
-
-(function setupPullToRefresh() {
-    const list = el("inbox-list");
-    const indicator = el("pull-indicator");
-    const THRESHOLD = 70;
-    let startY = null;
-    let pulling = false;
-
-    list.addEventListener("touchstart", (e) => {
-        if (list.scrollTop <= 0) {
-            startY = e.touches[0].clientY;
-            pulling = true;
-        }
-    }, { passive: true });
-
-    list.addEventListener("touchmove", (e) => {
-        if (!pulling || startY === null) return;
-        const delta = e.touches[0].clientY - startY;
-        if (delta > 0 && list.scrollTop <= 0) {
-            const capped = Math.min(delta * 0.5, 90);
-            indicator.style.height = capped + "px";
-            indicator.style.opacity = Math.min(capped / THRESHOLD, 1);
-            indicator.classList.toggle("pull-ready", capped >= THRESHOLD * 0.6);
-        }
-    }, { passive: true });
-
-    list.addEventListener("touchend", () => {
-        if (!pulling) return;
-        const height = parseFloat(indicator.style.height) || 0;
-        indicator.style.height = "0px";
-        indicator.style.opacity = "0";
-        indicator.classList.remove("pull-ready");
-        if (height >= THRESHOLD * 0.6) {
-            indicator.classList.add("pull-spinning");
-            loadDashboard().finally(() => indicator.classList.remove("pull-spinning"));
-        }
-        startY = null;
-        pulling = false;
-    });
-})();
+// Pull-to-refresh removed (Faza 3) - the inbox now updates on its own (instant
+// push-triggered refresh + a 15s poll fallback, see startAutoRefresh above), so there's
+// no longer a manual "Refresh" gesture to offer.
 
 // --- Conversation detail (its own screen, not inline in the list) ---
 
@@ -1528,13 +1587,17 @@ function openDetail(conversation) {
     badge.textContent = isPending ? t("detail.badgePending") : t("detail.badgeSent");
     badge.className = "badge " + (isPending ? "badge-pending" : "badge-sent");
 
-    el("detail-pending-block").classList.toggle("hidden", !isPending);
-    el("detail-sent-block").classList.toggle("hidden", isPending);
+    // Archived/Trash conversations are read-only here too (matches the web dashboard's
+    // same restriction) - sending a reply to something already archived or deleted would
+    // be a confusing way to act on it without restoring/unarchiving it first.
+    const canReply = isPending && state.filter !== "archived" && state.filter !== "trash";
+    el("detail-pending-block").classList.toggle("hidden", !canReply);
+    el("detail-sent-block").classList.toggle("hidden", canReply);
 
-    if (isPending) {
+    if (canReply) {
         el("detail-reply").value = conversation.suggested_reply;
     } else {
-        el("detail-final-reply").textContent = conversation.final_reply;
+        el("detail-final-reply").textContent = isPending ? conversation.suggested_reply : conversation.final_reply;
     }
 
     if (!screens.detail.classList.contains("active")) {

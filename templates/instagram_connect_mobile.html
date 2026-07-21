@@ -13,10 +13,33 @@
 
     <div class="auth-card">
         {% if success %}
-            <div class="alert alert-success"><span class="alert-icon">&#9989;</span><span>Instagram connected! You can close this and go back to the Camilius app.</span></div>
+            <div class="alert alert-success"><span class="alert-icon">&#9989;</span><span>Instagram connected! Returning you to Camilius&hellip;</span></div>
         {% else %}
-            <div class="alert alert-error"><span class="alert-icon">&#9888;&#65039;</span><span>Something went wrong connecting Instagram. Close this and try again from the app.</span></div>
+            <div class="alert alert-error"><span class="alert-icon">&#9888;&#65039;</span><span>Something went wrong connecting Instagram. Returning you to Camilius&hellip;</span></div>
         {% endif %}
+        <p class="note hidden" id="connect-mobile-fallback-note">If this doesn't close on its own, go ahead and close this tab.</p>
     </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Auto-return to the app instead of requiring the user to manually close this tab -
+// window.close() reliably dismisses an Android Chrome Custom Tab (what Capacitor's
+// Browser plugin opens for the Instagram OAuth flow) when this page is the top of its
+// own history stack, which it always is here (a fresh OAuth-redirect landing page). The
+// app itself already listens for the tab closing (browserFinished, see mobile/app.js)
+// and checks /api/settings right after - this just removes the manual tap that used to
+// be required to get back to that point.
+setTimeout(function () {
+    window.close();
+    // Still here after a beat - closing didn't work (e.g. this loaded in a regular
+    // browser tab instead of an in-app Custom Tab). Show the manual fallback rather than
+    // leaving the user looking at a page that seems to be doing nothing.
+    setTimeout(function () {
+        var note = document.getElementById("connect-mobile-fallback-note");
+        if (note) note.classList.remove("hidden");
+    }, 400);
+}, 300);
+</script>
 {% endblock %}

@@ -50,7 +50,13 @@
         <a href="{{ url_for('home') }}" class="{{ 'active' if filter_status == 'all' }}">All ({{ total_count }})</a>
         <a href="{{ url_for('home', filter='pending') }}" class="{{ 'active' if filter_status == 'pending' }}">Pending ({{ pending_count }})</a>
         <a href="{{ url_for('home', filter='sent') }}" class="{{ 'active' if filter_status == 'sent' }}">Sent ({{ total_count - pending_count }})</a>
+        <a href="{{ url_for('home', filter='archived') }}" class="{{ 'active' if filter_status == 'archived' }}">Archived ({{ archived_count }})</a>
+        <a href="{{ url_for('home', filter='trash') }}" class="{{ 'active' if filter_status == 'trash' }}">Trash ({{ trash_count }})</a>
     </div>
+
+    {% if filter_status == 'trash' and trash_count > 0 %}
+        <p class="note" style="margin-bottom: 16px;">Items in Trash are permanently deleted after 30 days.</p>
+    {% endif %}
 
     {% if conversations|length == 0 %}
         <div class="empty">
@@ -87,10 +93,10 @@
                 <p class="question">{{ question }}</p>
             </div>
 
-            {% if status == 'pending' %}
+            {% if status == 'pending' and filter_status not in ('archived', 'trash') %}
                 <div class="conversation-block">
                     <div class="conversation-label">Suggested reply &mdash; you can edit before sending</div>
-                    <!-- onsubmit disables the button so a double-click can't send the email twice -->
+                    <!-- onsubmit disables the button so a double-click can't send the reply twice -->
                     <form method="POST" action="{{ url_for('send_reply', conversation_id=id) }}"
                           onsubmit="var d = this.querySelector('button'); d.disabled = true; d.textContent = 'Sending...';">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
@@ -100,12 +106,51 @@
                         </div>
                     </form>
                 </div>
+            {% elif status == 'pending' %}
+                <!-- Archived/Trash: a still-pending conversation has no final_reply yet -
+                     show the AI's suggestion read-only rather than final_reply (empty). -->
+                <div class="conversation-block">
+                    <div class="conversation-label">Suggested reply</div>
+                    <p class="reply">{{ suggested_reply }}</p>
+                </div>
             {% else %}
                 <div class="conversation-block">
                     <div class="conversation-label">Sent reply</div>
                     <p class="reply">{{ final_reply }}</p>
                 </div>
             {% endif %}
+
+            <div class="conversation-actions">
+                {% if filter_status == 'trash' %}
+                    <form method="POST" action="{{ url_for('restore_conversation_route', conversation_id=id) }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <input type="hidden" name="from_filter" value="trash">
+                        <button class="button button-secondary" type="submit">Restore</button>
+                    </form>
+                {% elif filter_status == 'archived' %}
+                    <form method="POST" action="{{ url_for('unarchive_conversation_route', conversation_id=id) }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <input type="hidden" name="from_filter" value="archived">
+                        <button class="button button-secondary" type="submit">Unarchive</button>
+                    </form>
+                    <form method="POST" action="{{ url_for('delete_conversation_route', conversation_id=id) }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <input type="hidden" name="from_filter" value="archived">
+                        <button class="button button-secondary" type="submit">Delete</button>
+                    </form>
+                {% else %}
+                    <form method="POST" action="{{ url_for('archive_conversation_route', conversation_id=id) }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <input type="hidden" name="from_filter" value="{{ filter_status }}">
+                        <button class="button button-secondary" type="submit">Archive</button>
+                    </form>
+                    <form method="POST" action="{{ url_for('delete_conversation_route', conversation_id=id) }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <input type="hidden" name="from_filter" value="{{ filter_status }}">
+                        <button class="button button-secondary" type="submit">Delete</button>
+                    </form>
+                {% endif %}
+            </div>
         </div>
     {% endfor %}
 </div>

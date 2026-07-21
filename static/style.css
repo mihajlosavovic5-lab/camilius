@@ -262,6 +262,12 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
     font-size: 14.5px;
 }
 
+/* Archive/Delete/Restore/Unarchive buttons on each conversation card - secondary
+   (outlined) style so they read as lower-priority than Send reply's primary button. */
+.conversation-actions { display: flex; gap: 8px; margin-top: 14px; }
+.conversation-actions form { margin: 0; }
+.conversation-actions .button { padding: 7px 14px; font-size: 13.5px; }
+
 /* --- Empty state --- */
 .empty {
     text-align: center; padding: 56px 20px; color: var(--text-muted);
@@ -292,6 +298,10 @@ body.auth {
     padding: 28px;
 }
 .auth-card-wide { max-width: 560px; }
+
+/* Connect Instagram - centered descriptive text instead of left-aligned (no longer has
+   a "Before you connect" info card competing for attention, per Faza 3). */
+.connect-instagram-center { text-align: center; }
 .auth-card h1 { font-size: 19px; margin-bottom: 4px; }
 .auth-subtitle { color: var(--text-muted); font-size: 14px; margin: 0 0 10px; }
 .auth-links { margin-top: 18px; text-align: center; font-size: 14px; }

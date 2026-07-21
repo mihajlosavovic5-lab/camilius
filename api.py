@@ -14,6 +14,8 @@ from database import (
     add_business, delete_business, set_new_password, is_push_enabled, set_push_enabled,
     is_auto_send_enabled, set_auto_send,
     username_taken, contact_email_taken, phone_number_taken,
+    archived_conversations_for_business, trashed_conversations_for_business,
+    archive_conversation, unarchive_conversation, soft_delete_conversation, restore_conversation,
 )
 from instagram_api import send_message as send_instagram_message, authorize_url as instagram_authorize_url
 from extensions import limiter
@@ -283,9 +285,18 @@ def api_dashboard():
     business_id = request.business_id
     business = business_by_id(business_id)
     conversations = conversations_for_business(business_id)
+    # Archived/Trash counts and rows are fetched every call (not just when that tab is
+    # selected) so their filter-pill badges stay accurate no matter which tab is active -
+    # same reasoning as pending_count/sent_count already being computed unconditionally.
+    archived = archived_conversations_for_business(business_id)
+    trashed = trashed_conversations_for_business(business_id)
 
     filter_status = request.args.get("filter")
-    if filter_status in ("pending", "sent"):
+    if filter_status == "archived":
+        shown = archived
+    elif filter_status == "trash":
+        shown = trashed
+    elif filter_status in ("pending", "sent"):
         shown = [c for c in conversations if c[6] == filter_status]
     else:
         filter_status = "all"
@@ -301,6 +312,8 @@ def api_dashboard():
         total_count=len(conversations),
         pending_count=pending_count,
         sent_count=len(conversations) - pending_count,
+        archived_count=len(archived),
+        trash_count=len(trashed),
         today_processed=replies_today_count(business_id),
         daily_limit=DAILY_REPLY_LIMIT,
         subscription_active=subscription_active(subscription_status),
@@ -311,6 +324,59 @@ def api_dashboard():
         # exists (FIREBASE_PROJECT_ID + FIREBASE_SERVICE_ACCOUNT_JSON are set on the server).
         push_enabled=bool(os.getenv("FIREBASE_PROJECT_ID")),
     )
+
+
+def _owned_conversation(conversation_id):
+    """Shared ownership check for the archive/delete/restore endpoints below - returns
+    (conversation, None) on success or (None, (json, status)) on failure, mirroring
+    api_send_reply's existing 404-vs-403 distinction (guessable IDs shouldn't let one
+    business act on another's conversations)."""
+    conversation = get_conversation(conversation_id)
+    if conversation is None:
+        return None, (jsonify(error="not found"), 404)
+    if conversation[1] != request.business_id:
+        return None, (jsonify(error="forbidden"), 403)
+    return conversation, None
+
+
+@api.route("/conversations/<int:conversation_id>/archive", methods=["POST"])
+@require_api_auth
+def api_archive_conversation(conversation_id):
+    _, error = _owned_conversation(conversation_id)
+    if error:
+        return error
+    archive_conversation(conversation_id)
+    return jsonify(message="archived")
+
+
+@api.route("/conversations/<int:conversation_id>/unarchive", methods=["POST"])
+@require_api_auth
+def api_unarchive_conversation(conversation_id):
+    _, error = _owned_conversation(conversation_id)
+    if error:
+        return error
+    unarchive_conversation(conversation_id)
+    return jsonify(message="unarchived")
+
+
+@api.route("/conversations/<int:conversation_id>/delete", methods=["POST"])
+@require_api_auth
+def api_delete_conversation(conversation_id):
+    _, error = _owned_conversation(conversation_id)
+    if error:
+        return error
+    soft_delete_conversation(conversation_id)
+    return jsonify(message="deleted")
+
+
+@api.route("/conversations/<int:conversation_id>/restore", methods=["POST"])
+@require_api_auth
+def api_restore_conversation(conversation_id):
+    _, error = _owned_conversation(conversation_id)
+    if error:
+        return error
+    restore_conversation(conversation_id)
+    return jsonify(message="restored")
 
 
 @api.route("/conversations/<int:conversation_id>/send", methods=["POST"])

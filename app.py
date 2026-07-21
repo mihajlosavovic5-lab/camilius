@@ -24,6 +24,8 @@ from database import (
     log_webhook_hit, recent_webhook_hits, raw_conversation_rows, is_auto_send_enabled,
     set_auto_send, business_by_username, business_by_phone_number,
     username_taken, contact_email_taken, phone_number_taken,
+    archived_conversations_for_business, trashed_conversations_for_business,
+    archive_conversation, unarchive_conversation, soft_delete_conversation, restore_conversation,
 )
 from send_email import send_email
 from generate_reply import generate_reply
@@ -716,10 +718,16 @@ def home():
         return redirect(url_for("connect_instagram"))
 
     conversations = conversations_for_business(session["business_id"])
+    archived = archived_conversations_for_business(session["business_id"])
+    trashed = trashed_conversations_for_business(session["business_id"])
 
-    # Filter by status via ?filter=pending or ?filter=sent (default: all)
+    # Filter by status via ?filter=pending/sent/archived/trash (default: all)
     filter_status = request.args.get("filter")
-    if filter_status in ("pending", "sent"):
+    if filter_status == "archived":
+        shown = archived
+    elif filter_status == "trash":
+        shown = trashed
+    elif filter_status in ("pending", "sent"):
         shown = [c for c in conversations if c[6] == filter_status]
     else:
         filter_status = "all"
@@ -737,6 +745,8 @@ def home():
         filter_status=filter_status,
         total_count=len(conversations),
         pending_count=pending_count,
+        archived_count=len(archived),
+        trash_count=len(trashed),
         today=today,
         daily_limit=DAILY_REPLY_LIMIT,
         sent=request.args.get("sent"),
@@ -744,6 +754,46 @@ def home():
         subscription_active_flag=subscription_active(current_subscription_status),
         stats=stats,
     )
+
+
+@app.route("/conversations/<int:conversation_id>/archive", methods=["POST"])
+@login_required
+def archive_conversation_route(conversation_id):
+    conversation = get_conversation(conversation_id)
+    if conversation is None or conversation[1] != session["business_id"]:
+        abort(404)
+    archive_conversation(conversation_id)
+    return redirect(url_for("home", filter=request.form.get("from_filter", "all")))
+
+
+@app.route("/conversations/<int:conversation_id>/unarchive", methods=["POST"])
+@login_required
+def unarchive_conversation_route(conversation_id):
+    conversation = get_conversation(conversation_id)
+    if conversation is None or conversation[1] != session["business_id"]:
+        abort(404)
+    unarchive_conversation(conversation_id)
+    return redirect(url_for("home", filter=request.form.get("from_filter", "archived")))
+
+
+@app.route("/conversations/<int:conversation_id>/delete", methods=["POST"])
+@login_required
+def delete_conversation_route(conversation_id):
+    conversation = get_conversation(conversation_id)
+    if conversation is None or conversation[1] != session["business_id"]:
+        abort(404)
+    soft_delete_conversation(conversation_id)
+    return redirect(url_for("home", filter=request.form.get("from_filter", "all")))
+
+
+@app.route("/conversations/<int:conversation_id>/restore", methods=["POST"])
+@login_required
+def restore_conversation_route(conversation_id):
+    conversation = get_conversation(conversation_id)
+    if conversation is None or conversation[1] != session["business_id"]:
+        abort(404)
+    restore_conversation(conversation_id)
+    return redirect(url_for("home", filter=request.form.get("from_filter", "trash")))
 
 
 @app.route("/send/<int:conversation_id>", methods=["POST"])

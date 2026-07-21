@@ -13,17 +13,13 @@
     </div>
 
     <div class="auth-card auth-card-wide">
-        <h1>Connect your Instagram account</h1>
-        <p class="auth-subtitle">Camilius reads new direct messages sent to this account and drafts replies - you approve each one by default, with an optional auto-send in Settings.</p>
+        <div class="connect-instagram-center">
+            <h1>Connect your Instagram account</h1>
+            <p class="auth-subtitle">Camilius reads new direct messages sent to this account and drafts replies - you approve each one by default, with an optional auto-send in Settings.</p>
 
-        {% if error %}
-            <div class="alert alert-error"><span class="alert-icon">&#9888;&#65039;</span><span>{{ error }}</span></div>
-        {% endif %}
-
-        <div class="card step" style="margin-top: 4px;">
-            <h3>Before you connect</h3>
-            <p>Your Instagram account needs to be a <strong>Professional account</strong> (Business or Creator), not a personal one - this is Instagram's own requirement for any app that reads or sends DMs, not something specific to us.</p>
-            <p style="margin-top: 10px;">Already professional? Great, skip ahead. If not: open the Instagram app &rarr; your profile &rarr; menu &rarr; Settings &rarr; Account type and tools &rarr; Switch to professional account. It's free and takes under a minute.</p>
+            {% if error %}
+                <div class="alert alert-error"><span class="alert-icon">&#9888;&#65039;</span><span>{{ error }}</span></div>
+            {% endif %}
         </div>
 
         <div class="form-actions" style="margin-top: 20px;">

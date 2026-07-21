@@ -23,7 +23,7 @@ sys.stdout.reconfigure(encoding="utf-8")
 import time
 from datetime import datetime, date
 
-from database import create_database, all_businesses, link_instagram_account
+from database import create_database, all_businesses, link_instagram_account, purge_expired_trash
 from backup import daily_backup_if_needed
 from instagram_api import refresh_long_lived_token
 
@@ -60,6 +60,26 @@ def refresh_instagram_tokens_if_needed():
     print("[instagram-token-refresh] Daily refresh pass complete.")
 
 
+def purge_expired_trash_if_needed():
+    """Once per day: permanently delete anything that's sat in the Trash for 30+ days
+    (Faza 3). Same "already ran today" file-marker approach as the other daily jobs above."""
+    import os
+    from backup import BACKUP_DIR
+
+    if not BACKUP_DIR:
+        return
+
+    marker = os.path.join(BACKUP_DIR, f"trash-purge-{date.today().isoformat()}.done")
+    if os.path.exists(marker):
+        return
+
+    purged = purge_expired_trash()
+
+    os.makedirs(BACKUP_DIR, exist_ok=True)
+    open(marker, "w").close()
+    print(f"[trash-purge] Daily purge complete - removed {purged} conversation(s).")
+
+
 def run_loop():
     create_database()
     print(f"Started - background worker checking in every {INTERVAL_SECONDS} seconds. (Ctrl+C to stop)")
@@ -69,6 +89,7 @@ def run_loop():
         try:
             daily_backup_if_needed()
             refresh_instagram_tokens_if_needed()
+            purge_expired_trash_if_needed()
         except Exception as error:
             # Don't let one error (e.g. a temporary network blip) crash the whole loop
             print(f"[{now}] An error occurred: {error}")
