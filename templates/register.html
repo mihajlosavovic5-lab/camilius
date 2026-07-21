@@ -47,14 +47,30 @@
                 <p class="form-section-title" data-i18n="register.businessDetailsSection">Business details &mdash; the AI uses this to write replies</p>
 
                 <label data-i18n="register.hours">Working hours</label>
-                <textarea name="working_hours" data-i18n-placeholder="register.hoursPlaceholder" placeholder="Monday: 09:00 - 20:00&#10;Saturday: 09:00 - 16:00&#10;Sunday: closed" required>{{ data.get('working_hours', '') }}</textarea>
+                <input type="hidden" name="working_hours" id="register-working-hours" value="{{ data.get('working_hours', '') }}">
+                <div class="hours-picker" id="register-hours-picker-mount"></div>
 
                 <label data-i18n="register.prices">Price list</label>
-                <textarea name="price_list" data-i18n-placeholder="register.pricesPlaceholder" placeholder="Men's haircut: 800 din&#10;Women's haircut: 1500 din" required>{{ data.get('price_list', '') }}</textarea>
+                <input type="hidden" name="price_list" id="register-price-list" value="{{ data.get('price_list', '') }}">
+                <div class="price-currency-row">
+                    <span data-i18n="pricePicker.currencyLabel">Currency</span>
+                    <select id="register-price-currency"></select>
+                </div>
+                <div class="price-picker-rows" id="register-price-picker-mount"></div>
+                <button type="button" class="price-add-btn" id="register-price-add" data-i18n="pricePicker.addButton">+ Add service</button>
 
                 <label data-i18n="register.faq">Tell us more about your business</label>
                 <textarea name="faq" data-i18n-placeholder="register.faqPlaceholder" placeholder="Q: Do I need to book an appointment?&#10;A: Yes, we recommend booking in advance.&#10;&#10;Anything else worth knowing about your business.">{{ data.get('faq', '') }}</textarea>
                 <p class="note" data-i18n="register.faqHint">The more you share, the more questions our AI can answer for your customers.</p>
+            </div>
+
+            <div class="form-section">
+                <p class="form-section-title">Automation</p>
+                <label class="checkbox-row" style="margin-top: 10px;">
+                    <input type="checkbox" name="auto_send" {% if data.get('auto_send') %}checked{% endif %}>
+                    <span>Auto-send AI replies</span>
+                </label>
+                <p class="note">When on, the AI sends replies to customers right away instead of waiting for your approval. You can change this later in Settings.</p>
             </div>
 
             <label class="checkbox-row">
@@ -75,11 +91,17 @@
 {% endblock %}
 
 {% block scripts %}
+<script src="{{ url_for('static', filename='pickers.js') }}?v={{ static_versions['pickers.js'] }}" defer></script>
 <script>
 // Runs on DOMContentLoaded (not immediately) - site-i18n.js is loaded with `defer` in
 // <head>, so its t() function isn't defined yet if this ran synchronously during parsing;
-// DOMContentLoaded is guaranteed to fire after every deferred script has executed.
+// DOMContentLoaded is guaranteed to fire after every deferred script has executed. Same
+// reasoning applies to pickers.js (also deferred) - createHoursPicker/createPricePicker
+// must exist before this runs.
 document.addEventListener("DOMContentLoaded", function () {
+    createHoursPicker("register-hours-picker-mount", "register-working-hours");
+    createPricePicker("register-price-picker-mount", "register-price-add", "register-price-currency", "register-price-list");
+
     // Every ITU calling code, longest-prefix-first, so a live "+1876..." doesn't get
     // mis-detected as the shorter "+1" (US/Canada) - same list/approach as the mobile
     // app's own country picker (mobile/app.js), duplicated here since the web has no

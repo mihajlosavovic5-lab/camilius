@@ -108,8 +108,9 @@ STATIC_VERSIONS = {
     "style.css": _static_file_version("style.css"),
     "htmx.min.js": _static_file_version("htmx.min.js"),
     "site-i18n.js": _static_file_version("site-i18n.js"),
+    "pickers.js": _static_file_version("pickers.js"),
 }
-_FOREVER_CACHE_STATIC_PATHS = {"/static/style.css", "/static/htmx.min.js", "/static/site-i18n.js"}
+_FOREVER_CACHE_STATIC_PATHS = {"/static/style.css", "/static/htmx.min.js", "/static/site-i18n.js", "/static/pickers.js"}
 _MODERATE_CACHE_STATIC_PATHS = {"/static/manifest.json", "/static/icon-192.png", "/static/icon-512.png"}
 
 
@@ -183,6 +184,12 @@ def register():
             )
         except psycopg2.errors.UniqueViolation:
             return render_template("register.html", error="That username, contact email, or phone number is already taken.", data=request.form)
+
+        # Auto-send is offered as a step on the registration form itself (Faza 5, matches
+        # the mobile app's own registration wizard) - defaults to off (add_business's own
+        # column default) if the checkbox wasn't ticked.
+        if request.form.get("auto_send"):
+            set_auto_send(new_id, True)
 
         log_event("register_completed", business_id=new_id)
         session["business_id"] = new_id
@@ -847,7 +854,19 @@ def subscription():
     return render_template(
         "subscription.html",
         client_token=os.getenv("PADDLE_CLIENT_TOKEN", ""),
-        price_id=os.getenv("PADDLE_PRICE_ID", ""),
+        # Faza 5: two plans (Starter/Pro) x two billing intervals (monthly/yearly) - four
+        # distinct Paddle prices, each its own env var (not yet created in Paddle as of
+        # this writing - these will all be empty strings until the user creates them in
+        # the Paddle dashboard and sets the vars on Railway, same "preserve() in
+        # railway.ts" pattern as PADDLE_PRICE_ID before it). The old single PADDLE_PRICE_ID
+        # is left alone/unused here, kept only for the already-active-subscriber branch's
+        # historical reference and any existing sandbox subscription tied to it.
+        price_ids={
+            "starter_monthly": os.getenv("PADDLE_PRICE_STARTER_MONTHLY", ""),
+            "starter_yearly": os.getenv("PADDLE_PRICE_STARTER_YEARLY", ""),
+            "pro_monthly": os.getenv("PADDLE_PRICE_PRO_MONTHLY", ""),
+            "pro_yearly": os.getenv("PADDLE_PRICE_PRO_YEARLY", ""),
+        },
         paddle_env=os.getenv("PADDLE_ENV", "sandbox"),
         business_id=session["business_id"],
         email=business[4],

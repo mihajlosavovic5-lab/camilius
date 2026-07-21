@@ -4,8 +4,10 @@
    widget/behavior as the mobile app's login-screen language picker: a text+chevron
    button opening a dropdown of the same 10 languages, translations applied client-side
    via static/site-i18n.js. --- */
+:root { --install-banner-h: 0px; }
 .site-lang-select-btn {
-    position: fixed; top: 16px; right: 16px; z-index: 50;
+    position: fixed; top: calc(16px + var(--install-banner-h)); right: 16px; z-index: 50;
+    transition: top .2s ease;
     display: flex; align-items: center; gap: 5px;
     background: var(--surface); border: 1px solid var(--border);
     cursor: pointer; font-family: inherit; font-size: 13.5px; font-weight: 600; color: var(--text-muted);
@@ -14,6 +16,26 @@
 .site-lang-select-btn:hover { background: var(--background); }
 .site-lang-select-btn.active .site-lang-chevron { transform: rotate(180deg); }
 .site-lang-chevron { font-size: 11px; display: inline-block; transition: transform .18s ease; }
+/* --- Smart mobile-web install banner (Faza 5) - sits in normal document flow at the
+   very top of the page (not fixed), so it simply pushes the sticky nav down when
+   present and scrolls away with the rest of the page once you scroll past it. --- */
+.mobile-install-banner {
+    display: flex; align-items: center; gap: 10px;
+    background: var(--primary); color: #fff;
+    padding: 9px 16px; font-size: 13.5px; font-weight: 500;
+}
+.mobile-install-banner-icon { width: 24px; height: 24px; flex-shrink: 0; border-radius: 22%; }
+.mobile-install-banner-text { flex: 1; min-width: 0; }
+.mobile-install-banner-btn {
+    background: #fff; color: var(--primary-dark); font-weight: 700; font-size: 13px;
+    padding: 6px 14px; border-radius: 8px; white-space: nowrap; flex-shrink: 0;
+}
+.mobile-install-banner-btn:hover { text-decoration: none; opacity: .9; }
+.mobile-install-banner-dismiss {
+    background: none; border: none; color: #fff; opacity: .8; font-size: 20px; line-height: 1;
+    padding: 2px 4px; cursor: pointer; flex-shrink: 0;
+}
+
 .site-lang-modal { position: fixed; inset: 0; z-index: 60; visibility: hidden; pointer-events: none; }
 .site-lang-modal.open { visibility: visible; pointer-events: auto; }
 .site-lang-modal-backdrop { position: absolute; inset: 0; background: rgba(20,15,8,.32); opacity: 0; transition: opacity .2s ease; }
@@ -105,8 +127,11 @@ a:focus-visible, button:focus-visible, [tabindex]:focus-visible {
     border-bottom: 1px solid var(--border);
     position: sticky; top: 0; z-index: 10;
 }
+/* Full-bleed, not capped/centered like .content - the brand sits flush in the true
+   left corner and the nav links flush in the true right corner of the browser window,
+   regardless of viewport width (Faza 5). */
 .navbar-inner {
-    max-width: 960px; margin: 0 auto; padding: 14px 22px;
+    padding: 14px 28px;
     display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
 }
 .nav-links { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
@@ -189,8 +214,20 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
 }
 .phone-country-hint .flag { font-size: 15px; }
 
+/* Settings row that links to its own page (e.g. Billing -> Subscription) - mirrors the
+   mobile app's Settings screen rows (a label + chevron, whole row clickable). */
+.settings-link-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 2px; border-radius: 8px; color: var(--text); font-weight: 500;
+    transition: background .15s ease;
+}
+.settings-link-row:hover { background: var(--background); text-decoration: none; }
+.settings-link-chevron { color: var(--text-muted); font-size: 20px; }
+
 .checkbox-row { display: flex; align-items: flex-start; gap: 9px; margin-top: 20px; font-size: 14px; font-weight: 400; }
-.checkbox-row input { width: 17px; height: 17px; margin-top: 2px; flex-shrink: 0; accent-color: var(--primary); }
+/* accent-color uses --text (not --primary/gold) - clean checkmark, no yellow-filled
+   box when checked (Faza 5 - matches the same fix already made in the mobile app). */
+.checkbox-row input { width: 17px; height: 17px; margin-top: 2px; flex-shrink: 0; accent-color: var(--text); }
 
 /* --- Alerts --- */
 .alert {
@@ -323,6 +360,53 @@ body.auth {
 .form-section { border-top: 1px solid var(--border); margin-top: 26px; padding-top: 18px; }
 .form-section-title { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: .6px; color: var(--text-muted); margin: 0; }
 
+/* --- Working hours + price list pickers (Faza 5) - functional parity with the mobile
+   app's own pickers (see static/pickers.js); a real "pick from options" UI instead of a
+   freeform textarea, on both Register and Profile. --- */
+.hours-picker { display: flex; flex-direction: column; gap: 8px; margin: 6px 0 4px; }
+.hours-day-row { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; }
+.hours-day-header { display: flex; align-items: center; justify-content: space-between; }
+.hours-day-name { font-weight: 600; font-size: 14.5px; }
+.hours-day-times { display: flex; align-items: center; gap: 8px; margin-top: 10px; }
+.hours-day-times.hidden { display: none; }
+.hours-day-times select {
+    flex: 1; min-width: 0; padding: 9px 8px; border: 1px solid var(--border); border-radius: 8px;
+    font-family: inherit; font-size: 14px; color: var(--text); background: var(--background);
+}
+.hours-time-sep { color: var(--text-muted); font-size: 13px; flex-shrink: 0; }
+
+.hours-day-toggle { position: relative; display: inline-block; width: 40px; height: 23px; cursor: pointer; flex-shrink: 0; }
+.hours-day-toggle input { position: absolute; inset: 0; opacity: 0; margin: 0; cursor: pointer; }
+.hours-day-toggle-track { position: absolute; inset: 0; background: var(--border); border-radius: 999px; transition: background .2s ease; }
+.hours-day-toggle-thumb {
+    position: absolute; top: 3px; left: 3px; width: 17px; height: 17px;
+    background: #fff; border-radius: 50%; transition: transform .2s ease; box-shadow: 0 1px 3px rgba(0,0,0,.2);
+}
+.hours-day-toggle input:checked ~ .hours-day-toggle-track { background: var(--primary); }
+.hours-day-toggle input:checked ~ .hours-day-toggle-track .hours-day-toggle-thumb { transform: translateX(17px); }
+
+.price-currency-row { display: flex; align-items: center; justify-content: space-between; margin: 6px 0 10px; }
+.price-currency-row span { font-size: 13.5px; color: var(--text-muted); font-weight: 600; }
+.price-currency-row select {
+    padding: 7px 10px; border: 1px solid var(--border); border-radius: 8px;
+    font-family: inherit; font-size: 13.5px; font-weight: 600; color: var(--text); background: var(--surface); cursor: pointer;
+}
+.price-picker-rows { display: flex; flex-direction: column; gap: 8px; }
+.price-row-picker { display: flex; gap: 8px; align-items: center; }
+.price-row-picker input { flex: 1; min-width: 0; }
+.price-remove-btn {
+    width: 32px; height: 32px; border-radius: 50%; border: none; background: var(--background);
+    color: var(--text-muted); font-size: 18px; line-height: 1; cursor: pointer; flex-shrink: 0;
+}
+.price-remove-btn:hover { background: var(--danger-bg); color: var(--danger); }
+.price-add-btn {
+    display: block; width: 100%; padding: 11px; margin-top: 10px;
+    border: 1.5px dashed var(--border); border-radius: 10px; background: none;
+    color: var(--primary-ink); font-family: inherit; font-size: 14px; font-weight: 600; cursor: pointer;
+    transition: background .15s ease;
+}
+.price-add-btn:hover { background: var(--primary-light); }
+
 /* --- Profile page: distinct cards per topic instead of one long list --- */
 .profile-section + .profile-section { margin-top: 20px; }
 .profile-section-header { display: flex; align-items: flex-start; gap: 14px; margin-bottom: 18px; }
@@ -360,6 +444,39 @@ body.auth {
 .benefits { list-style: none; padding: 0; margin: 0 0 8px; }
 .benefits li { display: flex; gap: 10px; align-items: flex-start; padding: 7px 0; font-size: 14.5px; }
 .benefits .checkmark { color: var(--success); font-weight: 700; flex-shrink: 0; }
+
+/* --- Two-plan pricing (Faza 5) - Monthly/Yearly toggle + Starter/Pro cards on the
+   real /subscription page, distinct from the older single-plan .price-row/.price-amount/
+   .trial-info classes above (still used by the landing page's teaser, untouched here). */
+.pricing-toggle-wrap { display: flex; justify-content: center; margin-bottom: 28px; }
+.pricing-toggle { display: flex; background: var(--background); border: 1px solid var(--border); border-radius: 999px; padding: 4px; gap: 4px; }
+.pricing-toggle-option {
+    display: flex; align-items: center; gap: 8px;
+    padding: 9px 18px; border: none; border-radius: 999px; background: none; cursor: pointer;
+    font-family: inherit; font-size: 14px; font-weight: 600; color: var(--text-muted);
+    transition: background .15s ease, color .15s ease;
+}
+.pricing-toggle-option.active { background: var(--surface); color: var(--text); box-shadow: 0 1px 3px rgba(43,32,19,.12); }
+.pricing-toggle-save {
+    background: var(--success-bg); color: var(--success); border: 1px solid var(--success-border);
+    font-size: 11px; font-weight: 700; padding: 2px 7px; border-radius: 99px;
+}
+
+.pricing-plans { display: flex; gap: 20px; flex-wrap: wrap; align-items: stretch; }
+.pricing-plan { flex: 1; min-width: 260px; position: relative; display: flex; flex-direction: column; }
+.pricing-plan-recommended { border-color: var(--primary); box-shadow: 0 10px 28px -10px rgba(214,148,16,.4); }
+.pricing-recommended-badge {
+    position: absolute; top: -13px; left: 50%; transform: translateX(-50%);
+    background: var(--primary); color: #fff; font-size: 12px; font-weight: 700;
+    padding: 4px 14px; border-radius: 999px; white-space: nowrap;
+}
+.pricing-plan-name { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--text-muted); margin: 4px 0 10px; }
+.pricing-plan-price { display: flex; align-items: baseline; gap: 6px; }
+.pricing-plan-price .pricing-amount { font-size: 34px; font-weight: 800; color: var(--text); letter-spacing: -1px; }
+.pricing-plan-price .pricing-period { color: var(--text-muted); font-size: 14px; }
+.pricing-yearly-total { margin-top: 2px; }
+.pricing-plan .benefits { margin-top: 18px; flex: 1; }
+.pricing-plan .form-actions { margin-top: 20px; }
 
 /* --- Legal pages (prose) --- */
 .prose { max-width: 720px; }

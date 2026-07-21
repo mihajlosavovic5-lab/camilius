@@ -40,6 +40,47 @@
         <div id="site-lang-modal-list" class="site-lang-modal-list"></div>
     </div>
 </div>
+
+<!-- Smart install banner (Faza 5) - a subtle top banner offering the Android app,
+     shown only when: on an Android phone's regular browser (not the installed app
+     itself, and not iOS/desktop - there's no iOS app to offer yet), and not previously
+     dismissed. Sits above the page content, not fixed, so it doesn't cover anything. -->
+<div id="mobile-install-banner" class="mobile-install-banner hidden">
+    <span class="brand-mark mobile-install-banner-icon"></span>
+    <span class="mobile-install-banner-text">Get the Camilius app for a faster, native experience.</span>
+    <a href="{{ url_for('download') }}" class="mobile-install-banner-btn">Install</a>
+    <button type="button" class="mobile-install-banner-dismiss" id="mobile-install-banner-dismiss" aria-label="Dismiss">&times;</button>
+</div>
+<script>
+    (function () {
+        var isStandalone = window.matchMedia("(display-mode: standalone)").matches
+            || window.navigator.standalone === true
+            || document.referrer.indexOf("android-app://") === 0;
+        if (isStandalone) return;
+        if (!/Android/i.test(navigator.userAgent)) return;
+        if (window.location.pathname === "/download" || window.location.pathname === "/intro") return;
+        var dismissed = false;
+        try { dismissed = localStorage.getItem("installBannerDismissed") === "1"; } catch (e) {}
+        if (dismissed) return;
+        var banner = document.getElementById("mobile-install-banner");
+        if (banner) {
+            banner.classList.remove("hidden");
+            // The site-wide language button is fixed top-right on every page - this
+            // pushes it (and anything else anchored the same way) down below the banner
+            // instead of the two overlapping, without hardcoding the banner's height
+            // (it can wrap to two lines on a narrow phone).
+            document.documentElement.style.setProperty("--install-banner-h", banner.offsetHeight + "px");
+        }
+    })();
+    document.addEventListener("DOMContentLoaded", function () {
+        var dismissBtn = document.getElementById("mobile-install-banner-dismiss");
+        if (!dismissBtn) return;
+        dismissBtn.addEventListener("click", function () {
+            try { localStorage.setItem("installBannerDismissed", "1"); } catch (e) {}
+            document.getElementById("mobile-install-banner").classList.add("hidden");
+        });
+    });
+</script>
 <script>
     // Only inside the installed Android app (never a regular browser tab), and only the
     // first time ever - show the swipeable onboarding slides, regardless of whether the

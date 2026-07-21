@@ -8,7 +8,7 @@
     <div class="page-header">
         <div>
             <h1>Subscription</h1>
-            <p class="subtitle">{% if beta_free_mode %}Free during the beta - no plan to manage yet.{% else %}One plan, everything included. Cancel anytime.{% endif %}</p>
+            <p class="subtitle">{% if beta_free_mode %}Free during the beta - no plan to manage yet.{% else %}Choose the plan that fits your business.{% endif %}</p>
         </div>
     </div>
 
@@ -25,34 +25,65 @@
         </div>
     {% elif active %}
         <div class="card" style="border-color: var(--success-border);">
-            <span class="badge badge-sent"><span class="badge-dot"></span>Subscription active ({{ status }})</span>
-            <p style="margin: 12px 0 0;">Your account is active and the AI is processing new messages. Thank you!</p>
+            {% if status == 'trialing' %}
+                <span class="badge badge-pending"><span class="badge-dot"></span>7-day Free Trial Active</span>
+                <p style="margin: 12px 0 0;">Your trial is active and the AI is processing new messages. You won't be charged until the trial ends.</p>
+            {% else %}
+                <span class="badge badge-sent"><span class="badge-dot"></span>Subscription active</span>
+                <p style="margin: 12px 0 0;">Your account is active and the AI is processing new messages. Thank you!</p>
+            {% endif %}
         </div>
     {% else %}
-        <div class="card">
-            <div class="price-row">
-                <span class="price-amount">&euro;19</span>
-                <span class="price-period">/ month</span>
+        <div class="pricing-toggle-wrap">
+            <div class="pricing-toggle" id="billing-toggle">
+                <button type="button" class="pricing-toggle-option active" data-interval="monthly">Monthly</button>
+                <button type="button" class="pricing-toggle-option" data-interval="yearly">Yearly <span class="pricing-toggle-save">2 months free</span></button>
             </div>
-            <span class="trial-info">First 14 days free</span>
-
-            <ul class="benefits">
-                <li><span class="checkmark">&#10003;</span> AI automatically reads new Instagram messages and prepares suggested replies</li>
-                <li><span class="checkmark">&#10003;</span> You just approve and send from the dashboard</li>
-                <li><span class="checkmark">&#10003;</span> Up to 50 replies per day</li>
-                <li><span class="checkmark">&#10003;</span> Replies learn from your conversation history with each customer</li>
-                <li><span class="checkmark">&#10003;</span> Cancel anytime &mdash; no contracts or obligations</li>
-            </ul>
-
-            {% if status and status != 'none' %}
-                <p><span class="badge badge-pending"><span class="badge-dot"></span>Status: {{ status }}</span></p>
-            {% endif %}
-
-            <div class="form-actions">
-                <button class="button button-full" id="subscribe-button" disabled>Loading...</button>
-            </div>
-            <p class="note" style="text-align: center; margin-top: 12px;">Payment is securely processed by Paddle (our authorized reseller). VAT is calculated automatically. You won't be charged during the trial period.</p>
         </div>
+
+        <div class="pricing-plans">
+            <div class="card pricing-plan">
+                <p class="pricing-plan-name">Starter</p>
+                <div class="pricing-plan-price">
+                    <span class="pricing-amount">&euro;<span class="pricing-amount-value" data-monthly="29" data-yearly="290">29</span></span>
+                    <span class="pricing-period" data-monthly="/ month" data-yearly="/ year">/ month</span>
+                </div>
+                <p class="note pricing-yearly-total hidden" data-monthly="" data-yearly="Billed &euro;290 / year">Billed &euro;290 / year</p>
+
+                <ul class="benefits">
+                    <li><span class="checkmark">&#10003;</span> Basic AI replies to Instagram DMs</li>
+                    <li><span class="checkmark">&#10003;</span> Up to 300 conversations / month</li>
+                </ul>
+
+                <div class="form-actions">
+                    <button class="button button-secondary button-full pricing-choose-btn" data-plan="starter" disabled>Loading...</button>
+                </div>
+            </div>
+
+            <div class="card pricing-plan pricing-plan-recommended">
+                <span class="pricing-recommended-badge">Recommended</span>
+                <p class="pricing-plan-name">Pro</p>
+                <div class="pricing-plan-price">
+                    <span class="pricing-amount">&euro;<span class="pricing-amount-value" data-monthly="59" data-yearly="590">59</span></span>
+                    <span class="pricing-period" data-monthly="/ month" data-yearly="/ year">/ month</span>
+                </div>
+                <p class="note pricing-yearly-total hidden" data-monthly="" data-yearly="Billed &euro;590 / year">Billed &euro;590 / year</p>
+
+                <ul class="benefits">
+                    <li><span class="checkmark">&#10003;</span> Everything in Starter</li>
+                    <li><span class="checkmark">&#10003;</span> Smart appointment scheduling to calendar</li>
+                    <li><span class="checkmark">&#10003;</span> Automatic reminders</li>
+                    <li><span class="checkmark">&#10003;</span> Appointment cancellation</li>
+                    <li><span class="checkmark">&#10003;</span> AI assistant for support questions</li>
+                </ul>
+
+                <div class="form-actions">
+                    <button class="button button-full pricing-choose-btn" data-plan="pro" disabled>Loading...</button>
+                </div>
+            </div>
+        </div>
+
+        <p class="note" style="text-align: center; margin-top: 16px;">Payment is securely processed by Paddle (our authorized reseller). VAT is calculated automatically. New accounts start with a 7-day free trial - you won't be charged until it ends.</p>
     {% endif %}
 </div>
 {% endblock %}
@@ -62,36 +93,79 @@
 <script src="https://cdn.paddle.com/paddle/v2/paddle.js"></script>
 <script>
     const CLIENT_TOKEN = "{{ client_token }}";
-    const PRICE_ID = "{{ price_id }}";
+    const PRICE_IDS = {
+        starter: { monthly: "{{ price_ids.starter_monthly }}", yearly: "{{ price_ids.starter_yearly }}" },
+        pro: { monthly: "{{ price_ids.pro_monthly }}", yearly: "{{ price_ids.pro_yearly }}" },
+    };
     const PADDLE_ENV = "{{ paddle_env }}";
     const BUSINESS_ID = "{{ business_id }}";
     const EMAIL = "{{ email }}";
 
-    const button = document.getElementById("subscribe-button");
+    let billingInterval = "monthly";
 
-    if (!CLIENT_TOKEN || !PRICE_ID) {
-        button.textContent = "Subscription currently unavailable";
+    // --- Monthly / Yearly toggle - swaps displayed price + period text for both plan
+    // cards at once, purely client-side (no reload, no server round-trip). ---
+    document.querySelectorAll(".pricing-toggle-option").forEach((btn) => {
+        btn.addEventListener("click", () => {
+            billingInterval = btn.dataset.interval;
+            document.querySelectorAll(".pricing-toggle-option").forEach((b) => b.classList.toggle("active", b === btn));
+            document.querySelectorAll(".pricing-amount-value").forEach((el) => {
+                el.textContent = el.dataset[billingInterval];
+            });
+            document.querySelectorAll(".pricing-period").forEach((el) => {
+                el.textContent = el.dataset[billingInterval];
+            });
+            document.querySelectorAll(".pricing-yearly-total").forEach((el) => {
+                el.classList.toggle("hidden", billingInterval !== "yearly");
+            });
+        });
+    });
+
+    // --- Checkout buttons - one Paddle Price per (plan, interval) combination. A plan
+    // whose price isn't configured yet (empty env var - see app.py's subscription()) is
+    // disabled with an explanatory label instead of opening a broken checkout. ---
+    if (!CLIENT_TOKEN) {
+        document.querySelectorAll(".pricing-choose-btn").forEach((btn) => {
+            btn.textContent = "Subscription currently unavailable";
+        });
     } else {
         if (PADDLE_ENV === "sandbox") {
             Paddle.Environment.set("sandbox");
         }
         Paddle.Initialize({ token: CLIENT_TOKEN });
 
-        button.disabled = false;
-        button.textContent = "Subscribe";
-
-        button.addEventListener("click", function () {
-            Paddle.Checkout.open({
-                items: [{ priceId: PRICE_ID, quantity: 1 }],
-                customer: { email: EMAIL },
-                // business_id travels through checkout so Paddle hands it back to us in the
-                // webhook - that's how we link the subscription to our account
-                customData: { business_id: BUSINESS_ID },
-                settings: {
-                    displayMode: "overlay",
-                    theme: "light",
-                    successUrl: "{{ url_for('home', _external=True) }}"
+        document.querySelectorAll(".pricing-choose-btn").forEach((btn) => {
+            const plan = btn.dataset.plan;
+            function refreshLabel() {
+                const priceId = PRICE_IDS[plan][billingInterval];
+                if (!priceId) {
+                    btn.disabled = true;
+                    btn.textContent = "Coming soon";
+                } else {
+                    btn.disabled = false;
+                    btn.textContent = plan === "pro" ? "Choose Pro" : "Choose Starter";
                 }
+            }
+            refreshLabel();
+            document.querySelectorAll(".pricing-toggle-option").forEach((toggleBtn) => {
+                toggleBtn.addEventListener("click", refreshLabel);
+            });
+
+            btn.addEventListener("click", () => {
+                const priceId = PRICE_IDS[plan][billingInterval];
+                if (!priceId) return;
+                Paddle.Checkout.open({
+                    items: [{ priceId: priceId, quantity: 1 }],
+                    customer: { email: EMAIL },
+                    // business_id (and which plan was chosen) travels through checkout so
+                    // Paddle hands it back to us in the webhook - see /paddle-webhook.
+                    customData: { business_id: BUSINESS_ID, plan: plan, interval: billingInterval },
+                    settings: {
+                        displayMode: "overlay",
+                        theme: "light",
+                        successUrl: "{{ url_for('home', _external=True) }}"
+                    }
+                });
             });
         });
     }

@@ -11,9 +11,11 @@
              excluded on purpose further down, same reasoning as the hover-prefetch. -->
         <div class="nav-links" hx-boost="true">
             <a href="{{ url_for('home') }}" class="{{ 'active' if request.endpoint == 'home' }}" data-i18n="common.conversations">Conversations</a>
-            <a href="{{ url_for('subscription') }}" class="{{ 'active' if request.endpoint == 'subscription' }}" data-i18n="common.subscription">Subscription</a>
             <a href="{{ url_for('settings') }}" class="{{ 'active' if request.endpoint == 'settings' }}" data-i18n="common.profile">Profile</a>
-            <a href="{{ url_for('app_settings') }}" class="{{ 'active' if request.endpoint == 'app_settings' }}" data-i18n="common.settings">Settings</a>
+            <!-- Subscription lives inside Settings now (Faza 5), same as the mobile app -
+                 not its own top-level nav item anymore, but "active" still applies here
+                 too so the Settings link stays highlighted while on /subscription. -->
+            <a href="{{ url_for('app_settings') }}" class="{{ 'active' if request.endpoint in ('app_settings', 'subscription') }}" data-i18n="common.settings">Settings</a>
             <a href="{{ url_for('logout') }}" class="nav-logout" hx-boost="false" data-i18n="common.logOut">Log out</a>
         </div>
     </div>

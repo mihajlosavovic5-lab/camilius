@@ -59,10 +59,17 @@
             </div>
 
             <label style="margin-top: 0;">Working hours</label>
-            <textarea name="working_hours" required>{{ business.working_hours }}</textarea>
+            <input type="hidden" name="working_hours" id="settings-working-hours" value="{{ business.working_hours }}">
+            <div class="hours-picker" id="settings-hours-picker-mount"></div>
 
             <label>Price list</label>
-            <textarea name="price_list" required>{{ business.price_list }}</textarea>
+            <input type="hidden" name="price_list" id="settings-price-list" value="{{ business.price_list }}">
+            <div class="price-currency-row">
+                <span>Currency</span>
+                <select id="settings-price-currency"></select>
+            </div>
+            <div class="price-picker-rows" id="settings-price-picker-mount"></div>
+            <button type="button" class="price-add-btn" id="settings-price-add">+ Add service</button>
 
             <label>Tell us more about your business</label>
             <textarea name="faq">{{ business.faq }}</textarea>
@@ -74,4 +81,14 @@
         </div>
     </form>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='pickers.js') }}?v={{ static_versions['pickers.js'] }}" defer></script>
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    createHoursPicker("settings-hours-picker-mount", "settings-working-hours");
+    createPricePicker("settings-price-picker-mount", "settings-price-add", "settings-price-currency", "settings-price-list");
+});
+</script>
 {% endblock %}

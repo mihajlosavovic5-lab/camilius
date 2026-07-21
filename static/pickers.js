@@ -1,0 +1,234 @@
+// Camilius — website Working Hours + Price List pickers (Faza 5).
+//
+// Functional parity with the mobile app's own pickers (mobile/app.js), but web-
+// appropriate: plain native <select> elements for the time/currency fields, since the
+// large-OS-modal problem that made mobile/app.js build a custom anchored dropdown is
+// specific to Android's native <select> rendering - a desktop/mobile browser's own
+// <select> has no such issue.
+//
+// Each picker renders into a mount <div> and keeps a same-named hidden <input> in sync
+// on every change, serializing to/from the exact same plain-text format the backend/AI
+// already expect ("Monday: 09:00-18:00" / "Service: Price CCY" per line) - so register()/
+// settings() in app.py need no changes at all; they still just read request.form["working_hours"]
+// and request.form["price_list"] as plain strings.
+
+const HOURS_DAYS = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
+const HOURS_DAY_LABELS = {
+    monday: "Monday", tuesday: "Tuesday", wednesday: "Wednesday", thursday: "Thursday",
+    friday: "Friday", saturday: "Saturday", sunday: "Sunday",
+};
+
+function buildHoursTimeOptions() {
+    const options = [];
+    for (let h = 0; h < 24; h++) {
+        for (let m = 0; m < 60; m += 30) {
+            options.push(`${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`);
+        }
+    }
+    return options;
+}
+const HOURS_TIME_OPTIONS = buildHoursTimeOptions();
+
+function createHoursPicker(mountId, hiddenFieldId) {
+    const mount = document.getElementById(mountId);
+    const hiddenField = document.getElementById(hiddenFieldId);
+    if (!mount || !hiddenField) return null;
+    const rows = {};
+
+    function sync() {
+        hiddenField.value = HOURS_DAYS.map((day) => {
+            const r = rows[day];
+            if (!r.checkbox.checked) return `${HOURS_DAY_LABELS[day]}: closed`;
+            return `${HOURS_DAY_LABELS[day]}: ${r.openSelect.value}-${r.closeSelect.value}`;
+        }).join("\n");
+    }
+
+    HOURS_DAYS.forEach((day) => {
+        const row = document.createElement("div");
+        row.className = "hours-day-row";
+
+        const header = document.createElement("div");
+        header.className = "hours-day-header";
+        const label = document.createElement("span");
+        label.className = "hours-day-name";
+        label.textContent = HOURS_DAY_LABELS[day];
+
+        const toggleLabel = document.createElement("label");
+        toggleLabel.className = "hours-day-toggle";
+        const checkbox = document.createElement("input");
+        checkbox.type = "checkbox";
+        checkbox.checked = true;
+        const track = document.createElement("span");
+        track.className = "hours-day-toggle-track";
+        const thumb = document.createElement("span");
+        thumb.className = "hours-day-toggle-thumb";
+        track.appendChild(thumb);
+        toggleLabel.appendChild(checkbox);
+        toggleLabel.appendChild(track);
+
+        header.appendChild(label);
+        header.appendChild(toggleLabel);
+
+        const times = document.createElement("div");
+        times.className = "hours-day-times";
+        const openSelect = document.createElement("select");
+        const closeSelect = document.createElement("select");
+        HOURS_TIME_OPTIONS.forEach((time) => {
+            const openOption = document.createElement("option");
+            openOption.value = time;
+            openOption.textContent = time;
+            openSelect.appendChild(openOption);
+            const closeOption = document.createElement("option");
+            closeOption.value = time;
+            closeOption.textContent = time;
+            closeSelect.appendChild(closeOption);
+        });
+        openSelect.value = "09:00";
+        closeSelect.value = "18:00";
+        const sep = document.createElement("span");
+        sep.className = "hours-time-sep";
+        sep.textContent = "–";
+        times.appendChild(openSelect);
+        times.appendChild(sep);
+        times.appendChild(closeSelect);
+
+        checkbox.addEventListener("change", () => {
+            times.classList.toggle("hidden", !checkbox.checked);
+            sync();
+        });
+        openSelect.addEventListener("change", sync);
+        closeSelect.addEventListener("change", sync);
+
+        row.appendChild(header);
+        row.appendChild(times);
+        mount.appendChild(row);
+
+        rows[day] = { checkbox, openSelect, closeSelect, times };
+    });
+
+    // Best-effort parse of our own generated format back into picker state - used when
+    // loading a business's existing hours into the Profile form. Leaves a day's defaults
+    // alone if its line isn't found or doesn't parse, same as the mobile app's picker.
+    function parse(text) {
+        const lines = (text || "").split("\n");
+        HOURS_DAYS.forEach((day) => {
+            const dayLabel = HOURS_DAY_LABELS[day].toLowerCase();
+            const line = lines.find((l) => l.trim().toLowerCase().startsWith(dayLabel));
+            if (!line) return;
+            const r = rows[day];
+            if (/closed/i.test(line)) {
+                r.checkbox.checked = false;
+                r.times.classList.add("hidden");
+                return;
+            }
+            const match = line.match(/(\d{1,2}):(\d{2})\s*-\s*(\d{1,2}):(\d{2})/);
+            if (!match) return;
+            const openTime = `${match[1].padStart(2, "0")}:${match[2]}`;
+            const closeTime = `${match[3].padStart(2, "0")}:${match[4]}`;
+            if (HOURS_TIME_OPTIONS.includes(openTime)) r.openSelect.value = openTime;
+            if (HOURS_TIME_OPTIONS.includes(closeTime)) r.closeSelect.value = closeTime;
+            r.checkbox.checked = true;
+            r.times.classList.remove("hidden");
+        });
+    }
+
+    if (hiddenField.value.trim()) parse(hiddenField.value);
+    sync();
+    return { sync };
+}
+
+// Major world currencies - same list as the mobile app's price-list currency picker
+// (mobile/app.js). Codes are used as-is, not translated.
+const CURRENCIES = ["RSD", "EUR", "USD", "GBP", "CHF", "CAD", "AUD", "JPY", "CNY", "TRY", "RUB", "SEK", "NOK", "DKK", "PLN", "AED", "INR", "BRL"];
+
+function createPricePicker(mountId, addButtonId, currencySelectId, hiddenFieldId) {
+    const mount = document.getElementById(mountId);
+    const currencySelect = document.getElementById(currencySelectId);
+    const hiddenField = document.getElementById(hiddenFieldId);
+    if (!mount || !currencySelect || !hiddenField) return null;
+
+    CURRENCIES.forEach((code) => {
+        const option = document.createElement("option");
+        option.value = code;
+        option.textContent = code;
+        currencySelect.appendChild(option);
+    });
+    currencySelect.value = "RSD";
+    currencySelect.addEventListener("change", sync);
+
+    function sync() {
+        const currency = currencySelect.value;
+        hiddenField.value = Array.from(mount.querySelectorAll(".price-row-picker"))
+            .map((row) => {
+                const service = row.querySelector(".price-service-input").value.trim();
+                const price = row.querySelector(".price-amount-input").value.trim();
+                return service && price ? `${service}: ${price} ${currency}` : null;
+            })
+            .filter(Boolean)
+            .join("\n");
+    }
+
+    function addRow(service, price) {
+        const row = document.createElement("div");
+        row.className = "price-row-picker";
+
+        const serviceInput = document.createElement("input");
+        serviceInput.type = "text";
+        serviceInput.placeholder = "Service";
+        serviceInput.value = service || "";
+        serviceInput.className = "price-service-input";
+
+        const priceInput = document.createElement("input");
+        priceInput.type = "text";
+        priceInput.placeholder = "Price";
+        priceInput.value = price || "";
+        priceInput.className = "price-amount-input";
+
+        const removeBtn = document.createElement("button");
+        removeBtn.type = "button";
+        removeBtn.className = "price-remove-btn";
+        removeBtn.textContent = "×";
+        removeBtn.setAttribute("aria-label", "Remove");
+        removeBtn.addEventListener("click", () => { row.remove(); sync(); });
+
+        serviceInput.addEventListener("input", sync);
+        priceInput.addEventListener("input", sync);
+
+        row.appendChild(serviceInput);
+        row.appendChild(priceInput);
+        row.appendChild(removeBtn);
+        mount.appendChild(row);
+    }
+
+    // Best-effort: if a saved price already ends with a known currency code, strip it
+    // back out of the price field being edited and preselect the currency dropdown -
+    // same logic as the mobile app's price picker.
+    function parse(text) {
+        mount.innerHTML = "";
+        const lines = (text || "").split("\n").map((l) => l.trim()).filter(Boolean);
+        if (lines.length === 0) {
+            addRow("", "");
+            return;
+        }
+        let detectedCurrency = null;
+        lines.forEach((line) => {
+            const idx = line.indexOf(":");
+            const service = idx === -1 ? line : line.slice(0, idx).trim();
+            let price = idx === -1 ? "" : line.slice(idx + 1).trim();
+            const currencyMatch = price.match(/\s([A-Za-z]{3})$/);
+            if (currencyMatch && CURRENCIES.includes(currencyMatch[1].toUpperCase())) {
+                if (!detectedCurrency) detectedCurrency = currencyMatch[1].toUpperCase();
+                price = price.slice(0, currencyMatch.index).trim();
+            }
+            addRow(service, price);
+        });
+        currencySelect.value = detectedCurrency || "RSD";
+    }
+
+    document.getElementById(addButtonId).addEventListener("click", () => { addRow("", ""); sync(); });
+
+    if (hiddenField.value.trim()) parse(hiddenField.value);
+    else addRow("", "");
+    sync();
+    return { sync };
+}
