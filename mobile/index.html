@@ -4,11 +4,13 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
 <title>Camilius</title>
-<link rel="stylesheet" href="app.css?v=d8727bc44cf7">
+<link rel="stylesheet" href="app.css?v=b473d568c936">
 </head>
 <body>
 
 <div id="offline-banner" class="offline-banner hidden" data-i18n="offline">No internet connection</div>
+
+<div id="toast" class="toast"></div>
 
 <div id="update-banner" class="update-banner hidden">
   <span data-i18n="update.available">A new version of the app is available.</span>
@@ -43,6 +45,18 @@
   <div class="lang-modal-backdrop" id="country-modal-backdrop"></div>
   <div class="lang-modal-sheet country-modal-sheet">
     <div id="country-modal-list" class="country-modal-list"></div>
+  </div>
+</div>
+
+<!-- Generic anchored option-list picker (Faza 4) - same fixed-overlay + anchor-below-
+     field mechanism as the country picker above, shared by every working-hours time
+     button and the price list's currency button (see createAnchoredListPicker() in
+     app.js). Replaces what used to be native <select> elements for these fields, which
+     opened as a large OS-centered dialog on Android. -->
+<div id="option-modal" class="lang-modal">
+  <div class="lang-modal-backdrop" id="option-modal-backdrop"></div>
+  <div class="lang-modal-sheet country-modal-sheet" id="option-modal-sheet">
+    <div id="option-modal-list" class="country-modal-list"></div>
   </div>
 </div>
 
@@ -227,6 +241,10 @@
             <div class="register-step" id="register-step-3">
               <label data-i18n="register.prices">Price list</label>
               <div class="price-picker">
+                <div class="price-currency-row">
+                  <span data-i18n="pricePicker.currencyLabel">Currency</span>
+                  <div id="register-price-currency"></div>
+                </div>
                 <div class="price-rows" id="register-prices-rows"></div>
                 <button type="button" class="price-add-btn" id="register-prices-add" data-i18n="pricePicker.addButton">+ Add service</button>
               </div>
@@ -234,6 +252,16 @@
               <label data-i18n="register.faq">Tell us more about your business</label>
               <textarea id="register-faq" rows="3"></textarea>
               <p class="field-hint" data-i18n="register.faqHint">The more you share, the more questions our AI can answer for your customers.</p>
+
+              <div class="block-label" data-i18n="appSettings.automation">Automation</div>
+              <div class="settings-row">
+                <span data-i18n="appSettings.autoSend">Auto-send AI replies</span>
+                <label class="hours-day-toggle">
+                  <input type="checkbox" id="register-autosend-toggle">
+                  <span class="hours-day-toggle-track"><span class="hours-day-toggle-thumb"></span></span>
+                </label>
+              </div>
+              <p class="field-hint" data-i18n="appSettings.autoSendHint">When on, the AI sends replies to customers right away instead of waiting for your approval.</p>
 
               <label class="checkbox-row">
                 <input type="checkbox" id="register-terms" required>
@@ -410,6 +438,10 @@
 
       <label data-i18n="settings.prices">Price list</label>
       <div class="price-picker">
+        <div class="price-currency-row">
+          <span data-i18n="pricePicker.currencyLabel">Currency</span>
+          <div id="settings-price-currency"></div>
+        </div>
         <div class="price-rows" id="settings-prices-rows"></div>
         <button type="button" class="price-add-btn" id="settings-prices-add" data-i18n="pricePicker.addButton">+ Add service</button>
       </div>
@@ -423,9 +455,8 @@
       <input type="password" id="settings-current-password" autocomplete="current-password">
       <label data-i18n="settings.newPassword">New password</label>
       <input type="password" id="settings-new-password" autocomplete="new-password">
-
-      <button class="button button-full" id="settings-save" style="margin-top:18px;" data-i18n="settings.save">Save changes</button>
     </div>
+    <button class="fab-save" id="settings-save" data-i18n="settings.save">Save changes</button>
   </section>
 
   <!-- SETTINGS (app preferences - language, theme, legal, help, data, logout) -->
@@ -499,6 +530,7 @@
 
       <p class="settings-version" id="settings-app-version">Camilius</p>
     </div>
+    <button class="fab-save" id="settings-app-save" data-i18n="settings.save">Save changes</button>
   </section>
 
   <!-- HELP -->
@@ -638,7 +670,7 @@
   </button>
 </nav>
 
-<script src="i18n.js?v=d8727bc44cf7"></script>
-<script src="app.js?v=d8727bc44cf7"></script>
+<script src="i18n.js?v=b473d568c936"></script>
+<script src="app.js?v=b473d568c936"></script>
 </body>
 </html>

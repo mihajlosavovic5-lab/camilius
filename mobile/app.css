@@ -292,7 +292,9 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
 .button-pill { border-radius: 999px; }
 
 .checkbox-row { display: flex; align-items: flex-start; gap: 9px; font-weight: 400; font-size: 14px; margin: 16px 0 4px; cursor: pointer; }
-.checkbox-row input[type="checkbox"] { width: 18px; height: 18px; margin-top: 1px; accent-color: var(--primary); flex-shrink: 0; }
+/* accent-color intentionally uses --text (not --primary/gold) - a plain, clean
+   checkmark instead of a bright yellow-filled box when checked. */
+.checkbox-row input[type="checkbox"] { width: 18px; height: 18px; margin-top: 1px; accent-color: var(--text); flex-shrink: 0; }
 
 /* --- Create Account: multi-step wizard (Account -> Working hours -> Prices/FAQ/Terms),
    a step-dots + bottom-right arrow pattern instead of one long scrolling form --- */
@@ -367,6 +369,9 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
 .settings-row-chevron { color: var(--text-muted); font-size: 18px; }
 .settings-row-stack { flex-direction: column; align-items: stretch; gap: 10px; cursor: default; }
 .settings-row-stack:active { background: none; }
+/* Language row's label and the current language name sit close together instead of
+   pushed to opposite edges like the other (chevron-ended) rows. */
+#settings-language-row { justify-content: flex-start; gap: 8px; }
 
 .theme-toggle { display: flex; background: var(--background); border-radius: 10px; padding: 3px; gap: 3px; }
 .theme-option {
@@ -378,19 +383,30 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
 .button-danger-outline { color: var(--danger); border-color: var(--danger-border); }
 .button-danger-outline:active { background: var(--danger-bg); }
 
+/* --- Shared anchored-dropdown button (Faza 4) - used for the working-hours time
+   fields and the price-list currency field (see createOptionButton()/optionPicker in
+   app.js). Looks like the old native <select> it replaces, but opens the shared
+   #option-modal anchored right below it instead of a large OS-centered dialog. --- */
+.picker-btn {
+    display: flex; align-items: center; justify-content: space-between; gap: 6px;
+    padding: 9px 10px; border: 1px solid var(--border); border-radius: 8px;
+    font-family: inherit; font-size: 14px; color: var(--text); background: var(--background); cursor: pointer;
+}
+.picker-btn:active { border-color: var(--primary); }
+.picker-chevron { font-size: 11px; color: var(--text-muted); flex-shrink: 0; }
+/* Options list inside the shared #option-modal - reuses the country picker's sheet/list
+   classes (same anchored-below-field mechanism), plus its own selected-state look. */
+.country-option-btn.selected { color: var(--primary-ink); font-weight: 700; background: var(--primary-light); }
+
 /* --- Working hours picker: a per-day card with an open/closed switch and, when open,
-   two native <select> time pickers - tapping one opens the platform's own picker UI
-   (a real wheel/list on Android), no custom scroll-wheel JS needed. --- */
+   two time picker buttons (full-width, split evenly) --- */
 .hours-picker { display: flex; flex-direction: column; gap: 8px; margin: 6px 0 16px; }
 .hours-day-row { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; }
 .hours-day-header { display: flex; align-items: center; justify-content: space-between; }
 .hours-day-name { font-weight: 600; font-size: 14.5px; }
 .hours-day-times { display: flex; align-items: center; gap: 8px; margin-top: 10px; }
 .hours-day-times.hidden { display: none; }
-.hours-time-select {
-    flex: 1; min-width: 0; padding: 9px 8px; border: 1px solid var(--border); border-radius: 8px;
-    font-family: inherit; font-size: 14px; color: var(--text); background: var(--background);
-}
+.time-picker-btn { flex: 1; min-width: 0; width: 100%; }
 .hours-time-sep { color: var(--text-muted); font-size: 13px; flex-shrink: 0; }
 
 .hours-day-toggle { position: relative; display: inline-block; width: 42px; height: 24px; cursor: pointer; flex-shrink: 0; }
@@ -415,10 +431,34 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
     display: block; width: 100%; padding: 11px; margin-top: 4px;
     border: 1.5px dashed var(--border); border-radius: 10px; background: none;
     color: var(--primary-ink); font-family: inherit; font-size: 14px; font-weight: 600; cursor: pointer;
+    transition: background .12s ease, transform .1s ease;
 }
-.price-add-btn:active { background: var(--primary-light); }
+.price-add-btn:active { background: var(--primary-light); transform: scale(.97); }
+
+/* --- Price list currency (Faza 4) - one dropdown applies to the whole list, shown
+   just above the rows themselves. .currency-picker-btn is a .picker-btn variant (see
+   above), sized to its content instead of stretched full-width like the time fields. */
+.price-currency-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.price-currency-row span { font-size: 13.5px; color: var(--text-muted); font-weight: 600; }
+.currency-picker-btn { padding: 7px 10px; font-size: 13.5px; font-weight: 600; background: var(--surface); }
 
 .settings-version { text-align: center; color: var(--text-muted); font-size: 12.5px; margin: 30px 0 6px; }
+
+/* --- Floating "Save changes" button (Profile + Settings) - pinned to the screen's own
+   bottom-right corner, above the tab bar, instead of an inline full-width button at the
+   end of the scrollable form. Positioned absolute (not fixed) against .screen itself,
+   which is already sized to exactly fill the viewport - same visual effect as fixed,
+   without the position:fixed-inside-a-transformed-.screen pitfall documented elsewhere
+   in this file (see the #lang-modal comment in index.html). */
+.fab-save {
+    position: absolute; right: 18px; bottom: calc(18px + var(--tabbar-h) + var(--safe-bottom)); z-index: 15;
+    padding: 14px 22px; border: none; border-radius: 999px; background: var(--primary); color: #fff;
+    font-family: inherit; font-size: 14.5px; font-weight: 700; cursor: pointer;
+    box-shadow: 0 8px 20px -4px rgba(214,148,16,.55);
+    transition: background .15s ease, transform .1s ease;
+}
+.fab-save:active { background: var(--primary-dark); transform: scale(.96); }
+.fab-save:disabled { background: #cabfa4; box-shadow: none; }
 
 /* --- Help + legal (Terms/Privacy) screens --- */
 .legal-body { padding-bottom: 32px; }
@@ -450,6 +490,9 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
     color: var(--text-muted); background: var(--surface); border: 1px solid var(--border); cursor: pointer;
     white-space: nowrap; flex-shrink: 0;
 }
+/* Light-mode look (dark near-black pill, white text) - overridden for dark mode below,
+   where --text is a pale cream and this same rule would render as a glaring near-white
+   pill against the dark background every time a filter (All/Pending/Sent/...) is tapped. */
 .filter-pill.active { background: var(--text); color: #fff; border-color: var(--text); }
 .filter-pill span { opacity: .75; margin-left: 3px; }
 .trash-note { padding: 0 18px; margin: 8px 0 0; }
@@ -512,7 +555,17 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
 .loading { text-align: center; padding: 30px; color: var(--text-muted); font-size: 14px; }
 
 /* --- Detail screen --- */
-.detail-body { flex: 1; overflow-y: auto; padding: 18px 18px calc(24px + var(--safe-bottom)); -webkit-overflow-scrolling: touch; }
+/* Bottom padding clears the fixed tab bar - every screen reachable after login keeps
+   the tab bar visible underneath it (it's only ever hidden pre-login), so without this
+   the last bit of content on any screen using .detail-body (Profile, Settings, Detail,
+   Help, legal pages...) was unreachably tucked behind it. */
+.detail-body { flex: 1; overflow-y: auto; padding: 18px 18px calc(24px + var(--tabbar-h) + var(--safe-bottom)); -webkit-overflow-scrolling: touch; }
+/* Profile and Settings also have their own floating "Save changes" button pinned above
+   the tab bar (see .fab-save) - extra clearance so the last field/row scrolls fully
+   clear of it too, not just the tab bar. */
+.screen-profile .detail-body, .screen-settings .detail-body {
+    padding-bottom: calc(92px + var(--tabbar-h) + var(--safe-bottom));
+}
 .block-label { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--text-muted); margin: 18px 0 6px; }
 .block-label:first-child { margin-top: 0; }
 .question { white-space: pre-wrap; margin: 0; padding: 13px 14px; background: var(--surface); border-radius: 10px; border-left: 3px solid var(--border); font-size: 14.5px; }
@@ -565,6 +618,9 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
     }
     .avatar, .inbox-avatar { background: rgba(232, 164, 22, .18); }
     input[type="text"], input[type="password"], input[type="email"], input[type="tel"], textarea { color-scheme: dark; }
+    /* Subtle warm glow instead of the light-mode near-white pill - see the comment on
+       the base .filter-pill.active rule above. */
+    .filter-pill.active { background: var(--primary-light); color: var(--primary-ink); border-color: var(--primary); }
 }
 :root[data-theme="dark"] {
     --primary: #e8a416;
@@ -589,6 +645,7 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
     color-scheme: dark;
 }
 :root[data-theme="dark"] .avatar, :root[data-theme="dark"] .inbox-avatar { background: rgba(232, 164, 22, .18); }
+:root[data-theme="dark"] .filter-pill.active { background: var(--primary-light); color: var(--primary-ink); border-color: var(--primary); }
 :root[data-theme="light"] {
     --primary: #d69410;
     --primary-dark: #b57d0c;
@@ -611,6 +668,20 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
     --brand-glow: rgba(214, 148, 16, .14);
     color-scheme: light;
 }
+
+/* --- Toast (brief confirmation, e.g. "Changes saved successfully") - lives at the top
+   level like the offline/update banners, but bottom-anchored and above them (z-index)
+   so it's never hidden behind the tab bar or a save FAB. --- */
+.toast {
+    position: fixed; left: 50%; bottom: calc(90px + var(--tabbar-h) + var(--safe-bottom)); z-index: 70;
+    transform: translate(-50%, 10px); opacity: 0; pointer-events: none;
+    max-width: calc(100% - 48px); text-align: center;
+    background: var(--text); color: var(--background);
+    padding: 12px 20px; border-radius: 999px; font-size: 14px; font-weight: 600;
+    box-shadow: 0 10px 28px rgba(0,0,0,.24);
+    transition: opacity .2s ease, transform .2s ease;
+}
+.toast.show { opacity: 1; transform: translate(-50%, 0); pointer-events: auto; }
 
 /* --- Offline banner --- */
 .offline-banner {

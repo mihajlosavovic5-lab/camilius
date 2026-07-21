@@ -286,6 +286,100 @@ function buildHoursTimeOptions() {
 }
 const HOURS_TIME_OPTIONS = buildHoursTimeOptions();
 
+// Shared anchored option-list picker (Faza 4) - replaces native <select> dropdowns
+// (working-hours times, price-list currency) that used to open as a large OS-centered
+// dialog on Android, which read as a jarring "zoomed modal" popping up over the whole
+// screen. Works exactly like the country-code picker above - one shared fixed-overlay
+// instance per field "kind", positioned by JS to sit right below whichever button was
+// tapped, so it reads as an inline dropdown attached to that field. Lives outside #app
+// for the same reason the language/country modals do (a .screen's CSS transform would
+// otherwise hijack position:fixed descendants - see the HTML comment above #lang-modal).
+// One instance (backed by one #<modalId> in index.html) can serve any number of buttons/
+// option-sets, since the option list itself is (re)rendered fresh on every open() call
+// rather than built once up front.
+function createAnchoredListPicker(modalId) {
+    const modal = el(modalId);
+    const sheet = modal.querySelector(".lang-modal-sheet");
+    const backdrop = modal.querySelector(".lang-modal-backdrop");
+    const list = modal.querySelector(".country-modal-list");
+    let openTriggerBtn = null;
+
+    function open(triggerBtn, options, currentValue, onSelect) {
+        openTriggerBtn = triggerBtn;
+        list.innerHTML = "";
+        let selectedEl = null;
+        options.forEach((opt) => {
+            const optionBtn = document.createElement("button");
+            optionBtn.type = "button";
+            optionBtn.className = "country-option-btn";
+            if (opt === currentValue) {
+                optionBtn.classList.add("selected");
+                selectedEl = optionBtn;
+            }
+            optionBtn.textContent = opt;
+            optionBtn.addEventListener("click", () => {
+                onSelect(opt);
+                close();
+            });
+            list.appendChild(optionBtn);
+        });
+
+        const rect = triggerBtn.getBoundingClientRect();
+        const margin = 12;
+        const top = rect.bottom + 6;
+        const available = window.innerHeight - top - margin;
+        sheet.style.top = `${top}px`;
+        sheet.style.left = `${rect.left}px`;
+        sheet.style.width = `${Math.max(rect.width, 120)}px`;
+        sheet.style.maxHeight = `${Math.max(160, Math.min(240, available))}px`;
+        modal.classList.add("open");
+        if (selectedEl) selectedEl.scrollIntoView({ block: "center" });
+    }
+    function close() {
+        modal.classList.remove("open");
+        openTriggerBtn = null;
+    }
+    backdrop.addEventListener("click", close);
+
+    return { open, close, isOpenFor: (btn) => openTriggerBtn === btn };
+}
+
+const optionPicker = createAnchoredListPicker("option-modal");
+
+// A button that looks like the old <select> but opens the shared optionPicker dropdown
+// right below itself instead of the platform's own picker UI. Used for both the hours
+// picker's time fields and the price list's currency field (see createPricePicker).
+function createOptionButton(initialValue, options, extraClass) {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "picker-btn" + (extraClass ? ` ${extraClass}` : "");
+    const label = document.createElement("span");
+    label.textContent = initialValue;
+    const chevron = document.createElement("span");
+    chevron.className = "picker-chevron";
+    chevron.textContent = "⌄";
+    btn.appendChild(label);
+    btn.appendChild(chevron);
+
+    let value = initialValue;
+    btn.addEventListener("click", () => {
+        if (optionPicker.isOpenFor(btn)) { optionPicker.close(); return; }
+        optionPicker.open(btn, options, value, (chosen) => {
+            value = chosen;
+            label.textContent = chosen;
+            // Bubbles up to the hours-picker container's own "change" listener, the same
+            // way a native <select>'s change event would have.
+            btn.dispatchEvent(new Event("change", { bubbles: true }));
+        });
+    });
+
+    return {
+        el: btn,
+        get value() { return value; },
+        set value(v) { value = v; label.textContent = v; },
+    };
+}
+
 function createHoursPicker(containerId) {
     const container = el(containerId);
     const rows = {};
@@ -320,28 +414,14 @@ function createHoursPicker(containerId) {
 
         const times = document.createElement("div");
         times.className = "hours-day-times";
-        const openSelect = document.createElement("select");
-        openSelect.className = "hours-time-select";
-        const closeSelect = document.createElement("select");
-        closeSelect.className = "hours-time-select";
-        HOURS_TIME_OPTIONS.forEach((time) => {
-            const openOption = document.createElement("option");
-            openOption.value = time;
-            openOption.textContent = time;
-            openSelect.appendChild(openOption);
-            const closeOption = document.createElement("option");
-            closeOption.value = time;
-            closeOption.textContent = time;
-            closeSelect.appendChild(closeOption);
-        });
-        openSelect.value = "09:00";
-        closeSelect.value = "18:00";
+        const openTimeBtn = createOptionButton("09:00", HOURS_TIME_OPTIONS, "time-picker-btn");
+        const closeTimeBtn = createOptionButton("18:00", HOURS_TIME_OPTIONS, "time-picker-btn");
         const sep = document.createElement("span");
         sep.className = "hours-time-sep";
         sep.textContent = "–";
-        times.appendChild(openSelect);
+        times.appendChild(openTimeBtn.el);
         times.appendChild(sep);
-        times.appendChild(closeSelect);
+        times.appendChild(closeTimeBtn.el);
 
         checkbox.addEventListener("change", () => {
             times.classList.toggle("hidden", !checkbox.checked);
@@ -351,7 +431,7 @@ function createHoursPicker(containerId) {
         row.appendChild(times);
         container.appendChild(row);
 
-        rows[day] = { checkbox, openSelect, closeSelect, times };
+        rows[day] = { checkbox, openTimeBtn, closeTimeBtn, times };
     });
 
     return {
@@ -359,7 +439,7 @@ function createHoursPicker(containerId) {
             return HOURS_DAYS.map((day) => {
                 const r = rows[day];
                 if (!r.checkbox.checked) return `${HOURS_DAY_LABELS_EN[day]}: closed`;
-                return `${HOURS_DAY_LABELS_EN[day]}: ${r.openSelect.value}-${r.closeSelect.value}`;
+                return `${HOURS_DAY_LABELS_EN[day]}: ${r.openTimeBtn.value}-${r.closeTimeBtn.value}`;
             }).join("\n");
         },
         // Best-effort parse of our own generated format (or something close enough to
@@ -382,8 +462,8 @@ function createHoursPicker(containerId) {
                 if (!match) return;
                 const openTime = `${match[1].padStart(2, "0")}:${match[2]}`;
                 const closeTime = `${match[3].padStart(2, "0")}:${match[4]}`;
-                if (HOURS_TIME_OPTIONS.includes(openTime)) r.openSelect.value = openTime;
-                if (HOURS_TIME_OPTIONS.includes(closeTime)) r.closeSelect.value = closeTime;
+                if (HOURS_TIME_OPTIONS.includes(openTime)) r.openTimeBtn.value = openTime;
+                if (HOURS_TIME_OPTIONS.includes(closeTime)) r.closeTimeBtn.value = closeTime;
                 r.checkbox.checked = true;
                 r.times.classList.remove("hidden");
             });
@@ -398,8 +478,8 @@ function createHoursPicker(containerId) {
             HOURS_DAYS.forEach((day) => {
                 const r = rows[day];
                 r.checkbox.checked = true;
-                r.openSelect.value = "09:00";
-                r.closeSelect.value = "18:00";
+                r.openTimeBtn.value = "09:00";
+                r.closeTimeBtn.value = "18:00";
                 r.times.classList.remove("hidden");
             });
         },
@@ -409,14 +489,21 @@ function createHoursPicker(containerId) {
         validate() {
             return HOURS_DAYS.every((day) => {
                 const r = rows[day];
-                return !r.checkbox.checked || r.closeSelect.value > r.openSelect.value;
+                return !r.checkbox.checked || r.closeTimeBtn.value > r.openTimeBtn.value;
             });
         },
     };
 }
 
-function createPricePicker(rowsContainerId, addButtonId) {
+// Major world currencies (the ones the user named explicitly first, then other common
+// ones) - shown next to the price list so a business can say what its prices are in.
+// Codes are used as-is in every language (ISO 4217, not translated).
+const CURRENCIES = ["RSD", "EUR", "USD", "GBP", "CHF", "CAD", "AUD", "JPY", "CNY", "TRY", "RUB", "SEK", "NOK", "DKK", "PLN", "AED", "INR", "BRL"];
+
+function createPricePicker(rowsContainerId, addButtonId, currencyContainerId) {
     const rowsContainer = el(rowsContainerId);
+    const currencyBtn = createOptionButton("RSD", CURRENCIES, "currency-picker-btn");
+    el(currencyContainerId).appendChild(currencyBtn.el);
 
     // Each row is two floating-label fields (Service / Price - same floating mechanism as
     // the login screen, see .floating-field in app.css) plus a remove button. The label
@@ -470,30 +557,43 @@ function createPricePicker(rowsContainerId, addButtonId) {
 
     return {
         getValue() {
+            const currency = currencyBtn.value;
             return Array.from(rowsContainer.querySelectorAll(".price-row"))
                 .map((row) => {
                     const service = row.querySelector(".price-service-input").value.trim();
                     const price = row.querySelector(".price-amount-input").value.trim();
-                    return service && price ? `${service}: ${price}` : null;
+                    return service && price ? `${service}: ${price} ${currency}` : null;
                 })
                 .filter(Boolean)
                 .join("\n");
         },
+        // Best-effort: if a saved price already ends with one of our known currency
+        // codes (i.e. it was saved by this same picker before), strip it back out of
+        // the price field being edited and use it to preselect the currency dropdown -
+        // a single currency applies to the whole list. Older data with no currency code
+        // (or free text that doesn't match one) is left exactly as typed, so nothing
+        // that already worked silently changes.
         setValue(text) {
             rowsContainer.innerHTML = "";
             const lines = (text || "").split("\n").map((l) => l.trim()).filter(Boolean);
             if (lines.length === 0) {
                 addRow();
+                currencyBtn.value = "RSD";
                 return;
             }
+            let detectedCurrency = null;
             lines.forEach((line) => {
                 const idx = line.indexOf(":");
-                if (idx === -1) {
-                    addRow(line, "");
-                } else {
-                    addRow(line.slice(0, idx).trim(), line.slice(idx + 1).trim());
+                const service = idx === -1 ? line : line.slice(0, idx).trim();
+                let price = idx === -1 ? "" : line.slice(idx + 1).trim();
+                const currencyMatch = price.match(/\s([A-Za-z]{3})$/);
+                if (currencyMatch && CURRENCIES.includes(currencyMatch[1].toUpperCase())) {
+                    if (!detectedCurrency) detectedCurrency = currencyMatch[1].toUpperCase();
+                    price = price.slice(0, currencyMatch.index).trim();
                 }
+                addRow(service, price);
             });
+            currencyBtn.value = detectedCurrency || "RSD";
         },
         // False if any row has only one of service/price filled in - getValue() silently
         // drops such a row instead of erroring, which used to mean whatever the user typed
@@ -509,10 +609,10 @@ function createPricePicker(rowsContainerId, addButtonId) {
 }
 
 const registerHoursPicker = createHoursPicker("register-hours-picker");
-const registerPricesPicker = createPricePicker("register-prices-rows", "register-prices-add");
+const registerPricesPicker = createPricePicker("register-prices-rows", "register-prices-add", "register-price-currency");
 registerPricesPicker.setValue("");
 const profileHoursPicker = createHoursPicker("settings-hours-picker");
-const profilePricesPicker = createPricePicker("settings-prices-rows", "settings-prices-add");
+const profilePricesPicker = createPricePicker("settings-prices-rows", "settings-prices-add", "settings-price-currency");
 profilePricesPicker.setValue("");
 
 // --- Country code picker (Create Account's phone number field) - every country with
@@ -868,6 +968,17 @@ function updateOfflineBanner() {
 window.addEventListener("online", updateOfflineBanner);
 window.addEventListener("offline", updateOfflineBanner);
 
+// --- Toast (brief bottom confirmation, e.g. after tapping "Save changes") ---
+
+let toastTimer = null;
+function showToast(message) {
+    const toast = el("toast");
+    toast.textContent = message;
+    toast.classList.add("show");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => toast.classList.remove("show"), 2400);
+}
+
 // --- Auth ---
 
 async function logout() {
@@ -1004,6 +1115,13 @@ el("forgot-phone-form").addEventListener("submit", async (event) => {
 const REGISTER_STEP_COUNT = 3;
 let registerStep = 1;
 
+// Keeps .register-steps-viewport's height matched to whichever step is currently
+// active even when that step's OWN content changes size afterward (e.g. adding/removing
+// a price row on step 3) - without this, the viewport's fixed height (set once in
+// showRegisterStep below) plus its overflow:hidden would silently clip any content that
+// grows past it.
+let registerStepResizeObserver = null;
+
 function showRegisterStep(n) {
     registerStep = n;
     // Slide the steps track by exact viewport-widths (pixels, not %, so this doesn't
@@ -1015,13 +1133,20 @@ function showRegisterStep(n) {
     // leaving dead scrollable space below shorter steps - matching the viewport's height
     // to just the step actually being shown removes that (and animates alongside the
     // horizontal slide via the CSS transition on .register-steps-viewport).
-    viewport.style.height = `${el(`register-step-${n}`).scrollHeight}px`;
+    const activeStep = el(`register-step-${n}`);
+    viewport.style.height = `${activeStep.scrollHeight}px`;
     document.querySelectorAll(".register-step-dot").forEach((dot, i) => {
         dot.classList.toggle("active", i === n - 1);
     });
     el("register-next-btn").classList.toggle("hidden", n === REGISTER_STEP_COUNT);
     el("register-submit").classList.toggle("hidden", n !== REGISTER_STEP_COUNT);
     updateRegisterNextButtonValidity();
+
+    if (registerStepResizeObserver) registerStepResizeObserver.disconnect();
+    registerStepResizeObserver = new ResizeObserver(() => {
+        viewport.style.height = `${activeStep.scrollHeight}px`;
+    });
+    registerStepResizeObserver.observe(activeStep);
 }
 
 // Live "already taken" checks for step 1's three unique fields - see
@@ -1124,6 +1249,7 @@ el("login-signup-link").addEventListener("click", () => {
         el(id).value = "";
     });
     el("register-terms").checked = false;
+    el("register-autosend-toggle").checked = false;
     registerHoursPicker.reset();
     registerPricesPicker.setValue("");
     registerUsernameAvailability.reset();
@@ -1199,6 +1325,7 @@ el("register-form").addEventListener("submit", async (event) => {
                 price_list: registerPricesPicker.getValue(),
                 faq: el("register-faq").value,
                 accept_terms: el("register-terms").checked,
+                auto_send: el("register-autosend-toggle").checked,
             },
         });
         state.token = data.token;
@@ -1695,9 +1822,7 @@ async function loadSettingsIntoForm() {
 
 el("settings-save").addEventListener("click", async () => {
     const button = el("settings-save");
-    const messageBox = el("settings-message");
     const errorBox = el("settings-error");
-    messageBox.classList.add("hidden");
     errorBox.classList.add("hidden");
 
     const username = el("settings-username").value.trim();
@@ -1755,8 +1880,7 @@ el("settings-save").addEventListener("click", async () => {
                 new_password: newPassword || undefined,
             },
         });
-        messageBox.textContent = t("settings.saved");
-        messageBox.classList.remove("hidden");
+        showToast(t("settings.saved"));
         el("inbox-business-name").textContent = el("settings-name").value;
         el("settings-current-password").value = "";
         el("settings-new-password").value = "";
@@ -1867,9 +1991,10 @@ document.querySelectorAll(".tab-btn").forEach((btn) => {
     btn.addEventListener("click", () => setActiveTab(btn.dataset.tab));
 });
 
-// Instant-apply preference, same as language/theme above it - unlike those (local-only),
-// the server needs to know this one, since it's the server that decides whether to send
-// a push at all.
+// Loads the current push/auto-send preferences into the toggles - purely local UI
+// state until the user taps "Save changes" below (Faza 4: these used to POST instantly
+// on every toggle flip; now nothing is sent to the server until Save is tapped, same as
+// the Profile screen's own Save button).
 async function loadNotificationPreferences() {
     try {
         const data = await api("/api/notification-preferences");
@@ -1880,22 +2005,26 @@ async function loadNotificationPreferences() {
     }
 }
 
-el("settings-push-toggle").addEventListener("change", async () => {
-    const enabled = el("settings-push-toggle").checked;
-    try {
-        await api("/api/notification-preferences", { method: "POST", body: { push_enabled: enabled } });
-    } catch (err) {
-        // Save failed - revert the toggle visually so it doesn't lie about the real state.
-        el("settings-push-toggle").checked = !enabled;
-    }
-});
+el("settings-app-save").addEventListener("click", async () => {
+    const button = el("settings-app-save");
+    const errorBox = el("settings-app-error");
+    errorBox.classList.add("hidden");
+    button.disabled = true;
 
-el("settings-autosend-toggle").addEventListener("change", async () => {
-    const enabled = el("settings-autosend-toggle").checked;
     try {
-        await api("/api/notification-preferences", { method: "POST", body: { auto_send: enabled } });
+        await api("/api/notification-preferences", {
+            method: "POST",
+            body: {
+                push_enabled: el("settings-push-toggle").checked,
+                auto_send: el("settings-autosend-toggle").checked,
+            },
+        });
+        showToast(t("settings.saved"));
     } catch (err) {
-        el("settings-autosend-toggle").checked = !enabled;
+        errorBox.textContent = err.message || t("settings.error");
+        errorBox.classList.remove("hidden");
+    } finally {
+        button.disabled = false;
     }
 });
 
