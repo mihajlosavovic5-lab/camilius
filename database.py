@@ -195,6 +195,14 @@ def create_database():
     cursor.execute("ALTER TABLE businesses ADD COLUMN IF NOT EXISTS paddle_subscription_id TEXT")
     cursor.execute("ALTER TABLE businesses ADD COLUMN IF NOT EXISTS subscription_status TEXT NOT NULL DEFAULT 'none'")
 
+    # Faza 5 (2026-07-21): the original schema never had a created_at on businesses at
+    # all (only conversations did) - needed now for trial_expired()'s 7-day self-serve
+    # trial cutoff below. Existing rows get "now" as their created_at (Postgres fills the
+    # DEFAULT in for pre-existing rows on ALTER TABLE), not their real registration date -
+    # harmless here, since trial_expired() only ever looks at this for status='trialing'
+    # with no paddle_subscription_id yet, which no pre-existing business is in.
+    cursor.execute("ALTER TABLE businesses ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
+
     # Tracks which IMAP messages have already been processed, per business. Needed because
     # the worker reads mail via BODY.PEEK (doesn't mark it read, to leave the owner's inbox
     # untouched) - without this the same unread message would be reprocessed every 60s.
