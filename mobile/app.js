@@ -25,6 +25,7 @@ const state = {
     betaFreeMode: false,
     subscriptionActive: false,
     subscriptionStatus: "none",
+    proAccess: false,
 };
 
 const screens = {
@@ -1545,7 +1546,9 @@ async function loadDashboard({ silent = false } = {}) {
         state.betaFreeMode = !!data.beta_free_mode;
         state.subscriptionActive = !!data.subscription_active;
         state.subscriptionStatus = data.subscription_status || "none";
+        state.proAccess = !!data.pro_access;
         renderSubscriptionScreen();
+        applyProAccessLocks();
 
         renderInboxList(filteredConversations());
 
@@ -1821,8 +1824,10 @@ async function loadSettingsIntoForm() {
         profileHoursPicker.setValue(data.working_hours);
         profilePricesPicker.setValue(data.price_list);
         el("settings-faq").value = data.faq;
+        el("settings-upsell-pairs").value = data.upsell_pairs || "";
         el("settings-current-password").value = "";
         el("settings-new-password").value = "";
+        applyProAccessLocks();
     } catch (err) {
         if (err.status === 401) logout();
     }
@@ -1884,6 +1889,7 @@ el("settings-save").addEventListener("click", async () => {
                 working_hours: profileHoursPicker.getValue(),
                 price_list: profilePricesPicker.getValue(),
                 faq: el("settings-faq").value,
+                upsell_pairs: state.proAccess ? el("settings-upsell-pairs").value : undefined,
                 current_password: currentPassword || undefined,
                 new_password: newPassword || undefined,
             },
@@ -1991,6 +1997,23 @@ async function openChoosePlan() {
 el("subscription-choose-plan-btn").addEventListener("click", openChoosePlan);
 el("subscription-choose-plan-btn-2").addEventListener("click", openChoosePlan);
 
+// Schedule (Faza 11) - same bridge pattern as "Choose a plan" above, opens the
+// website's day/week calendar (not duplicated natively) in the in-app browser. The
+// bridge route itself (app.py's /schedule/<token>) shows the Pro-locked upsell page
+// for a Starter-plan business, same as visiting it on the website directly.
+el("settings-schedule-row").addEventListener("click", async () => {
+    try {
+        const data = await api("/api/schedule-link");
+        if (capacitorPlugins && capacitorPlugins.Browser) {
+            await capacitorPlugins.Browser.open({ url: data.url });
+        } else {
+            window.open(data.url, "_blank");
+        }
+    } catch (err) {
+        reportClientError(err.message, err.stack, "schedule-link");
+    }
+});
+
 const SUPPORT_EMAIL = "mihajlosavovic75757@gmail.com";
 
 el("help-email-btn").addEventListener("click", () => {
@@ -2040,8 +2063,33 @@ async function loadNotificationPreferences() {
         const data = await api("/api/notification-preferences");
         el("settings-push-toggle").checked = !!data.push_enabled;
         el("settings-autosend-toggle").checked = !!data.auto_send;
+        el("settings-reminders-toggle").checked = !!data.reminders_enabled;
+        applyProAccessLocks();
     } catch (err) {
         if (err.status === 401) logout();
+    }
+}
+
+// Faza 11: locks the No-show reminders toggle and AI upsell field for a Starter-plan
+// (or lapsed) business - mirrors the website's .pro-locked treatment. state.proAccess
+// comes from /api/dashboard's response (see loadInbox), so this is called both there
+// and after loadNotificationPreferences/loadSettingsIntoForm in case Settings/Profile
+// is opened before the Inbox tab has ever loaded once.
+function applyProAccessLocks() {
+    const remindersToggle = el("settings-reminders-toggle");
+    const remindersRow = el("settings-reminders-row");
+    if (remindersToggle && remindersRow) {
+        remindersToggle.disabled = !state.proAccess;
+        remindersRow.classList.toggle("pro-locked", !state.proAccess);
+        if (!state.proAccess) remindersToggle.checked = false;
+    }
+    const upsellField = el("settings-upsell-pairs");
+    const upsellHint = el("settings-upsell-hint");
+    const upsellLockedHint = el("settings-upsell-locked-hint");
+    if (upsellField) {
+        upsellField.disabled = !state.proAccess;
+        if (upsellHint) upsellHint.classList.toggle("hidden", !state.proAccess);
+        if (upsellLockedHint) upsellLockedHint.classList.toggle("hidden", state.proAccess);
     }
 }
 
@@ -2057,6 +2105,7 @@ el("settings-app-save").addEventListener("click", async () => {
             body: {
                 push_enabled: el("settings-push-toggle").checked,
                 auto_send: el("settings-autosend-toggle").checked,
+                reminders_enabled: state.proAccess ? el("settings-reminders-toggle").checked : undefined,
             },
         });
         showToast(t("settings.saved"));

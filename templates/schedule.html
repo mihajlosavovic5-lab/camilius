@@ -92,41 +92,43 @@
                 <p>Pick another date, or update your working hours in Profile.</p>
             </div>
         {% else %}
-            <div class="schedule-slots">
+            <div class="schedule-timeline">
                 {% for row in slot_rows %}
-                    {% if row.appointment %}
-                        <div class="card schedule-slot schedule-slot-booked">
-                            <span class="schedule-slot-time">{{ row.time }}</span>
-                            <div class="schedule-slot-info">
-                                <strong>{{ row.appointment.customer_name }}</strong>
-                                {% if row.appointment.service %}<span class="note">{{ row.appointment.service }}</span>{% endif %}
-                                <span class="badge {{ 'badge-sent' if row.appointment.source == 'ai' else 'badge-pending' }}"><span class="badge-dot"></span>{{ 'AI booked' if row.appointment.source == 'ai' else 'Manual' }}</span>
-                            </div>
-                            <form method="POST" action="{{ url_for('cancel_appointment_route', appointment_id=row.appointment.id) }}">
-                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                <input type="hidden" name="date" value="{{ selected_date.isoformat() }}">
-                                <input type="hidden" name="view" value="day">
-                                <button class="button button-secondary" type="submit">Cancel</button>
-                            </form>
+                    <div class="schedule-timeline-row {{ 'schedule-timeline-hour' if row.time.endswith(':00') }}">
+                        <div class="schedule-timeline-time">{{ row.time }}</div>
+                        <div class="schedule-timeline-content">
+                            {% if row.appointment %}
+                                <div class="card schedule-slot schedule-slot-booked">
+                                    <div class="schedule-slot-info">
+                                        <strong>{{ row.appointment.customer_name }}</strong>
+                                        {% if row.appointment.service %}<span class="note">{{ row.appointment.service }}</span>{% endif %}
+                                        <span class="badge {{ 'badge-sent' if row.appointment.source == 'ai' else 'badge-pending' }}"><span class="badge-dot"></span>{{ 'AI booked' if row.appointment.source == 'ai' else 'Manual' }}</span>
+                                    </div>
+                                    <form method="POST" action="{{ url_for('cancel_appointment_route', appointment_id=row.appointment.id) }}">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                        <input type="hidden" name="date" value="{{ selected_date.isoformat() }}">
+                                        <input type="hidden" name="view" value="day">
+                                        <button class="button button-secondary" type="submit">Cancel</button>
+                                    </form>
+                                </div>
+                            {% elif row.is_past %}
+                                <div class="schedule-slot schedule-slot-free schedule-slot-past">
+                                    <span class="note">Past</span>
+                                </div>
+                            {% else %}
+                                <div class="schedule-slot schedule-slot-free">
+                                    <form method="POST" action="{{ url_for('create_appointment_route') }}" class="schedule-slot-form">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                        <input type="hidden" name="date" value="{{ selected_date.isoformat() }}">
+                                        <input type="hidden" name="time" value="{{ row.time }}">
+                                        <input type="text" name="customer_name" placeholder="Customer name" required>
+                                        <input type="text" name="service" placeholder="Service (optional)">
+                                        <button class="button" type="submit">Book</button>
+                                    </form>
+                                </div>
+                            {% endif %}
                         </div>
-                    {% elif row.is_past %}
-                        <div class="schedule-slot schedule-slot-free" style="opacity: .5;">
-                            <span class="schedule-slot-time">{{ row.time }}</span>
-                            <span class="note">Past</span>
-                        </div>
-                    {% else %}
-                        <div class="schedule-slot schedule-slot-free">
-                            <span class="schedule-slot-time">{{ row.time }}</span>
-                            <form method="POST" action="{{ url_for('create_appointment_route') }}" class="schedule-slot-form">
-                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                <input type="hidden" name="date" value="{{ selected_date.isoformat() }}">
-                                <input type="hidden" name="time" value="{{ row.time }}">
-                                <input type="text" name="customer_name" placeholder="Customer name" required>
-                                <input type="text" name="service" placeholder="Service (optional)">
-                                <button class="button" type="submit">Book</button>
-                            </form>
-                        </div>
-                    {% endif %}
+                    </div>
                 {% endfor %}
             </div>
         {% endif %}

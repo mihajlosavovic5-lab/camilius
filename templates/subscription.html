@@ -44,7 +44,15 @@
             {% else %}
                 <span class="badge badge-sent"><span class="badge-dot"></span>Starter plan active</span>
                 <p style="margin: 12px 0 0;">Your account is active and the AI is processing new messages. Thank you!</p>
-                <p class="pro-locked-note" style="margin-top: 12px;">&#10024; Want Schedule/AI booking, no-show reminders, and AI upsell too? <a href="mailto:mihajlosavovic5@gmail.com?subject=Upgrade%20to%20Pro">Email us to upgrade to Pro</a>.</p>
+                <p class="pro-locked-note" style="margin-top: 12px;">&#10024; Want Schedule/AI booking, no-show reminders, and AI upsell too? <a href="mailto:mihajlosavovic75757@gmail.com?subject=Upgrade%20to%20Pro">Email us to upgrade to Pro</a>.</p>
+            {% endif %}
+
+            {% if has_stripe_billing %}
+                <form method="POST" action="{{ url_for('stripe_manage_billing') }}" class="form-actions">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="button button-secondary">Manage billing</button>
+                </form>
+                <p class="note">Update your payment method, view invoices, or cancel - handled securely by Stripe.</p>
             {% endif %}
         </div>
     {% else %}

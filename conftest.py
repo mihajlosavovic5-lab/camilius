@@ -20,6 +20,7 @@ os.environ.setdefault("OPENAI_API_KEY", "sk-test-dummy-not-real")
 os.environ.setdefault("INSTAGRAM_APP_SECRET", "test-instagram-app-secret")
 os.environ.setdefault("FLASK_DEBUG", "true")  # test client uses plain http - avoids SESSION_COOKIE_SECURE dropping the session cookie
 
+import re
 import uuid
 
 import pytest
@@ -70,3 +71,51 @@ def register_business(client, username, email, **overrides):
     }
     payload.update(overrides)
     return client.post("/api/register", json=payload)
+
+
+def _csrf_token_from_html(html):
+    match = re.search(r'name="csrf_token" value="([^"]*)"', html)
+    return match.group(1) if match else None
+
+
+def register_business_web(client, username, email, **overrides):
+    """Web-form equivalent of register_business() above - posts to /register (not the
+    JSON /api/register the mobile app uses), so the Flask test client's session cookie
+    ends up logged in exactly like a browser would, for tests that need to exercise
+    session+CSRF-protected web routes (e.g. Schedule) rather than the Bearer-token API.
+    working_hours defaults to the day-by-day picker format (see booking.parse_working_
+    hours) rather than register_business()'s free-text placeholder, so a real business
+    day (Monday) is actually open for tests that need bookable slots."""
+    get_response = client.get("/register")
+    csrf_token = _csrf_token_from_html(get_response.get_data(as_text=True))
+
+    form = {
+        "csrf_token": csrf_token,
+        "name": "Test Salon",
+        "username": username,
+        "password": "TestPassword123",
+        "contact_email": email,
+        "working_hours": "Monday: 09:00-18:00\nTuesday: 09:00-18:00\nWednesday: 09:00-18:00\n"
+                          "Thursday: 09:00-18:00\nFriday: 09:00-18:00\nSaturday: closed\nSunday: closed",
+        "price_list": "Haircut: 20 EUR",
+        "faq": "",
+        "accept_terms": "on",
+    }
+    form.update(overrides)
+    return web_post(client, "/register", form)
+
+
+def get_csrf_token(client, path):
+    """Fetches a fresh CSRF token from any page's rendered HTML - CSRF tokens are
+    session-scoped (not page-scoped), so a token pulled from any page works for a POST
+    to any other page in the same session."""
+    response = client.get(path)
+    return _csrf_token_from_html(response.get_data(as_text=True))
+
+
+def web_post(client, path, data, **kwargs):
+    """POSTs to a session+CSRF-protected web route with a Referer header set - Flask-
+    WTF's CSRF protection also checks Referer when WTF_CSRF_SSL_STRICT is on, so this
+    keeps every web-route test consistent instead of each one needing to remember it."""
+    kwargs.setdefault("headers", {})["Referer"] = f"http://localhost{path}"
+    return client.post(path, data=data, follow_redirects=False, **kwargs)

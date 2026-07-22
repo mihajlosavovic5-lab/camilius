@@ -86,12 +86,14 @@
             </div>
             {% if pro_access %}
                 <label style="margin-top: 0;">Related services</label>
-                <textarea name="upsell_pairs" placeholder="One pair per line, e.g.:&#10;Haircut -> Treatment&#10;Manicure -> Pedicure">{{ business.upsell_pairs or '' }}</textarea>
-                <p class="note">Format: <code>Service A -&gt; Service B</code>, one pair per line. Use the exact same service names as in your price list above.</p>
+                <input type="hidden" name="upsell_pairs" id="settings-upsell-pairs" value="{{ business.upsell_pairs or '' }}">
+                <div class="upsell-picker-rows" id="settings-upsell-picker-mount"></div>
+                <button type="button" class="price-add-btn" id="settings-upsell-add">+ Add pair</button>
+                <p class="note">Pick (or type) a service on the left, and the complementary service to suggest on the right - suggestions from your price list appear as you type.</p>
             {% else %}
                 <div class="pro-locked">
                     <label style="margin-top: 0;">Related services</label>
-                    <textarea placeholder="Haircut -> Treatment" disabled></textarea>
+                    <div class="upsell-row-picker"><input type="text" placeholder="Haircut" disabled><span class="upsell-arrow">&rarr;</span><input type="text" placeholder="Treatment" disabled></div>
                 </div>
                 <p class="pro-locked-note">&#10024; <a href="{{ url_for('subscription') }}">Upgrade to Pro</a> to let the AI suggest complementary services.</p>
             {% endif %}
@@ -110,6 +112,7 @@
 document.addEventListener("DOMContentLoaded", function () {
     createHoursPicker("settings-hours-picker-mount", "settings-working-hours");
     createPricePicker("settings-price-picker-mount", "settings-price-add", "settings-price-currency", "settings-price-list");
+    createUpsellPicker("settings-upsell-picker-mount", "settings-upsell-add", "settings-upsell-pairs", "settings-price-list");
 });
 </script>
 {% endblock %}

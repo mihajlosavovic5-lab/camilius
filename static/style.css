@@ -83,6 +83,59 @@
     --radius: 12px;
 }
 
+/* --- Dark mode - follows the OS/browser preference (no in-app toggle). Redefining the
+   same custom properties here cascades automatically through every rule that already
+   uses var(--x), which is nearly everything on this site; only the handful of genuinely
+   hardcoded colors below (the body gradient, a couple of near-black shadow rgba()s) need
+   their own explicit override alongside it. Keeps the warm amber brand identity, just
+   inverted to a warm dark charcoal instead of pure black. --- */
+@media (prefers-color-scheme: dark) {
+    :root {
+        --primary: #e8a51c;
+        --primary-dark: #f2b342;
+        --primary-light: #3a2a10;
+        --primary-ink: #f2b342;
+        --gold: #ffd83d;
+        --gold-bright: #ffe27a;
+        --gold-dark: #d99e14;
+        --background: #1c1712;
+        --surface: #241e17;
+        --border: #3a332a;
+        --text: #f2ece0;
+        --text-muted: #ab9c86;
+        --success: #7cbf68;
+        --success-bg: #1f2e18;
+        --success-border: #3a5230;
+        --warning: #e0a355;
+        --warning-bg: #362512;
+        --warning-border: #5c4020;
+        --danger: #e2685a;
+        --danger-bg: #3a1e18;
+        --danger-border: #5c342a;
+        --shadow: 0 2px 6px rgba(0, 0, 0, .3), 0 1px 2px rgba(0, 0, 0, .25);
+        --shadow-lg: 0 16px 44px rgba(0, 0, 0, .45), 0 4px 10px rgba(0, 0, 0, .3);
+    }
+
+    body {
+        background: linear-gradient(170deg, #201a13 0%, #1c1712 45%, #191510 100%);
+    }
+
+    /* Hardcoded (not var-driven) muted tones used for footer/fine-print text - the
+       light-mode values are #a89a7d-ish "warm taupe on white", too dark to read against
+       the new dark background, so they get a lighter dark-mode-specific value here. */
+    .hero-fine-print, .footer, .footer a, .auth-footer, .auth-footer a, .lp-footer-bottom { color: #8c7d64; }
+
+    /* .prose (Terms/Privacy) paragraph text is a separate hardcoded near-black, not
+       var(--text) - same reasoning as above. */
+    .prose p, .prose li { color: #d8cdb8; }
+
+    /* .alert-error/.alert-success text colors are hardcoded dark red/green, chosen for
+       contrast against the LIGHT --danger-bg/--success-bg - without an override they'd
+       read as near-illegible dark-on-dark once those backgrounds flip above. */
+    .alert-error { color: #f2a89e; }
+    .alert-success { color: #a8d194; }
+}
+
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
 body {
@@ -262,7 +315,11 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
    to the feature's heading, plus a dimmed/disabled wrapper around the control itself. --- */
 .badge-pro { background: var(--primary-light); color: var(--primary-ink); border: 1px solid var(--primary); }
 .pro-locked { opacity: .55; filter: grayscale(.3); pointer-events: none; user-select: none; }
-.pro-locked-note { display: flex; align-items: center; gap: 8px; margin: 10px 0 0; font-size: 13.5px; color: var(--text-muted); }
+/* Plain block flow, not flex - this wraps a mix of an emoji + a link + a full sentence,
+   and flex would turn that text into non-wrapping anonymous flex items (each run of
+   text becomes its own item, laid out in a row with no wrap), overflowing on narrow
+   screens instead of reflowing like normal paragraph text. */
+.pro-locked-note { margin: 10px 0 0; font-size: 13.5px; color: var(--text-muted); }
 .pro-locked-note a { font-weight: 600; }
 
 /* --- Filters (tabs) --- */
@@ -424,6 +481,12 @@ body.auth {
 }
 .price-add-btn:hover { background: var(--primary-light); }
 
+/* --- AI upsell pairs picker (Faza 11 - reuses .price-add-btn/.price-remove-btn as-is) --- */
+.upsell-picker-rows { display: flex; flex-direction: column; gap: 8px; }
+.upsell-row-picker { display: flex; gap: 8px; align-items: center; }
+.upsell-row-picker input { flex: 1; min-width: 0; }
+.upsell-arrow { color: var(--text-muted); flex-shrink: 0; font-size: 15px; }
+
 /* --- Profile page: distinct cards per topic instead of one long list --- */
 .profile-section + .profile-section { margin-top: 20px; }
 .profile-section-header { display: flex; align-items: flex-start; gap: 14px; margin-bottom: 18px; }
@@ -509,10 +572,23 @@ body.auth {
 .schedule-slot-duration-form { display: flex; align-items: center; gap: 8px; }
 .schedule-slot-duration-form select { margin: 0; padding: 7px 10px; width: auto; }
 
-.schedule-slots { display: flex; flex-direction: column; gap: 8px; }
-.schedule-slot { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 10px; border: 1px solid var(--border); background: var(--surface); }
-.schedule-slot-time { font-weight: 700; font-size: 13.5px; color: var(--text-muted); min-width: 46px; flex-shrink: 0; }
+/* --- Day view: a real timeline (Faza 11) - a persistent time axis on the left with a
+   vertical line running through it, and a stronger rule + bold label at each hour
+   boundary, instead of a flat list where every row looked the same regardless of time. --- */
+.schedule-timeline { position: relative; margin-left: 4px; border-left: 2px solid var(--border); }
+.schedule-timeline-row {
+    display: grid; grid-template-columns: 52px 1fr; gap: 12px;
+    padding: 3px 0 3px 14px; position: relative;
+}
+.schedule-timeline-row.schedule-timeline-hour { border-top: 1px solid var(--border); margin-top: 3px; padding-top: 10px; }
+.schedule-timeline-row:first-child { margin-top: 0; border-top: none; padding-top: 0; }
+.schedule-timeline-time { font-size: 11.5px; color: var(--text-muted); padding-top: 11px; text-align: right; }
+.schedule-timeline-hour .schedule-timeline-time { font-weight: 700; color: var(--text); font-size: 13px; }
+.schedule-timeline-content { min-width: 0; padding: 2px 0; }
+
+.schedule-slot { display: flex; align-items: center; gap: 12px; padding: 10px 14px; border-radius: 10px; border: 1px solid var(--border); background: var(--surface); }
 .schedule-slot-free { background: var(--background); }
+.schedule-slot-past { opacity: .5; }
 .schedule-slot-form { display: flex; gap: 8px; flex: 1; flex-wrap: wrap; align-items: center; margin: 0; }
 .schedule-slot-form input[type="text"] { margin: 0; padding: 7px 10px; font-size: 13.5px; flex: 1; min-width: 130px; }
 .schedule-slot-form .button { padding: 7px 16px; font-size: 13px; flex-shrink: 0; }

@@ -232,3 +232,112 @@ function createPricePicker(mountId, addButtonId, currencySelectId, hiddenFieldId
     sync();
     return { sync };
 }
+
+// --- AI upsell pairs picker (Faza 11 polish - replaces the plain textarea from Faza 9)
+// "Service A -> Service B" per line (see booking.parse_upsell_pairs). Each side is a
+// text input with a <datalist> suggestion list built from the business's own price list
+// services - a plain <select> couldn't offer a service not yet added to the price list,
+// so this stays free-text with autocomplete instead of a rigid dropdown.
+function createUpsellPicker(mountId, addButtonId, hiddenFieldId, priceListHiddenFieldId) {
+    const mount = document.getElementById(mountId);
+    const hiddenField = document.getElementById(hiddenFieldId);
+    const priceListField = document.getElementById(priceListHiddenFieldId);
+    if (!mount || !hiddenField) return null;
+
+    const datalistId = mountId + "-services-list";
+    const datalist = document.createElement("datalist");
+    datalist.id = datalistId;
+    mount.appendChild(datalist);
+
+    function refreshServiceOptions() {
+        const text = priceListField ? priceListField.value : "";
+        const services = (text || "").split("\n")
+            .map((line) => line.split(":")[0].trim())
+            .filter(Boolean);
+        datalist.innerHTML = "";
+        services.forEach((service) => {
+            const option = document.createElement("option");
+            option.value = service;
+            datalist.appendChild(option);
+        });
+    }
+
+    function sync() {
+        hiddenField.value = Array.from(mount.querySelectorAll(".upsell-row-picker"))
+            .map((row) => {
+                const a = row.querySelector(".upsell-service-a").value.trim();
+                const b = row.querySelector(".upsell-service-b").value.trim();
+                return a && b ? `${a} -> ${b}` : null;
+            })
+            .filter(Boolean)
+            .join("\n");
+    }
+
+    function addRow(serviceA, serviceB) {
+        const row = document.createElement("div");
+        row.className = "upsell-row-picker";
+
+        const inputA = document.createElement("input");
+        inputA.type = "text";
+        inputA.placeholder = "Service";
+        inputA.value = serviceA || "";
+        inputA.className = "upsell-service-a";
+        inputA.setAttribute("list", datalistId);
+
+        const arrow = document.createElement("span");
+        arrow.className = "upsell-arrow";
+        arrow.textContent = "→";
+
+        const inputB = document.createElement("input");
+        inputB.type = "text";
+        inputB.placeholder = "Suggested add-on";
+        inputB.value = serviceB || "";
+        inputB.className = "upsell-service-b";
+        inputB.setAttribute("list", datalistId);
+
+        const removeBtn = document.createElement("button");
+        removeBtn.type = "button";
+        removeBtn.className = "price-remove-btn";
+        removeBtn.textContent = "×";
+        removeBtn.setAttribute("aria-label", "Remove");
+        removeBtn.addEventListener("click", () => { row.remove(); sync(); });
+
+        inputA.addEventListener("input", sync);
+        inputB.addEventListener("input", sync);
+
+        row.appendChild(inputA);
+        row.appendChild(arrow);
+        row.appendChild(inputB);
+        row.appendChild(removeBtn);
+        mount.appendChild(row);
+    }
+
+    // Only clears rendered rows (not the <datalist> also living in this mount) - unlike
+    // the price picker's parse(), which can safely wipe its whole mount since it has no
+    // sibling element like this to preserve.
+    function parse(text) {
+        Array.from(mount.querySelectorAll(".upsell-row-picker")).forEach((row) => row.remove());
+        const lines = (text || "").split("\n").map((l) => l.trim()).filter(Boolean);
+        if (lines.length === 0) {
+            addRow("", "");
+            return;
+        }
+        lines.forEach((line) => {
+            const idx = line.indexOf("->");
+            if (idx === -1) return;
+            addRow(line.slice(0, idx).trim(), line.slice(idx + 2).trim());
+        });
+    }
+
+    document.getElementById(addButtonId).addEventListener("click", () => {
+        refreshServiceOptions();
+        addRow("", "");
+        sync();
+    });
+
+    refreshServiceOptions();
+    if (hiddenField.value.trim()) parse(hiddenField.value);
+    else addRow("", "");
+    sync();
+    return { sync };
+}

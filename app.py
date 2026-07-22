@@ -30,6 +30,7 @@ from database import (
     archive_conversation, unarchive_conversation, soft_delete_conversation, restore_conversation,
     get_slot_duration, set_slot_duration, create_appointment, get_appointment, cancel_appointment,
     is_reminders_enabled, set_reminders_enabled, get_upsell_pairs, set_upsell_pairs,
+    all_appointments_for_business, get_stripe_customer_id,
 )
 from send_email import send_email
 from generate_reply import generate_reply, generate_reply_with_booking
@@ -43,7 +44,7 @@ from instagram_api import (
     verify_webhook_challenge, verify_webhook_signature, parse_webhook_messages, get_sender_username,
     get_webhook_subscription_status,
 )
-from database import all_businesses
+from database import all_businesses, all_businesses_unfiltered
 from api import api as api_blueprint, APK_VERSION
 from extensions import limiter
 
@@ -134,6 +135,36 @@ def cache_static_assets(response):
         response.headers["Cache-Control"] = "public, max-age=31536000, immutable"
     elif request.path in _MODERATE_CACHE_STATIC_PATHS:
         response.headers["Cache-Control"] = "public, max-age=604800"
+    return response
+
+
+# Baseline security headers on every response. CSP allows 'unsafe-inline' for script/
+# style deliberately - the site relies on many small inline <script> blocks (support
+# widget, scroll-to-top, service worker registration, language picker...) throughout
+# base.html and would need a broader nonce-based refactor to tighten further; this still
+# meaningfully blocks framing (clickjacking), object/embed content, and cross-origin
+# fetches, which cost nothing to add now. Stripe Checkout and the old Paddle overlay are
+# both same-origin-initiated redirects/scripts, not iframes, so no extra frame-src is needed.
+_CSP = (
+    "default-src 'self'; "
+    "script-src 'self' 'unsafe-inline'; "
+    "style-src 'self' 'unsafe-inline'; "
+    "img-src 'self' data: https:; "
+    "connect-src 'self'; "
+    "frame-ancestors 'self'; "
+    "base-uri 'self'; "
+    "object-src 'none'"
+)
+
+
+@app.after_request
+def set_security_headers(response):
+    response.headers["Content-Security-Policy"] = _CSP
+    response.headers["X-Frame-Options"] = "SAMEORIGIN"
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    if not app.debug:
+        response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
     return response
 
 
@@ -575,6 +606,19 @@ def business_export_data(business_id):
             }
             for c in conversations
         ],
+        "appointments": [
+            {
+                "customer_name": a[0],
+                "service": a[1],
+                "start_time": a[2].isoformat() if a[2] else None,
+                "end_time": a[3].isoformat() if a[3] else None,
+                "status": a[4],
+                "source": a[5],
+                "notes": a[6],
+                "created_at": a[7].isoformat() if a[7] else None,
+            }
+            for a in all_appointments_for_business(business_id)
+        ],
     }
 
 
@@ -697,6 +741,48 @@ def admin_instagram_debug():
         for h in recent_webhook_hits(20)
     ]
     return jsonify(businesses=result, recent_webhook_hits=hits)
+
+
+# Founder-only lookup/cleanup tool - unlike /admin/instagram-debug (which only lists
+# businesses that finished connecting Instagram), this finds EVERY business, including
+# abandoned test/onboarding-incomplete accounts, and can delete one by id. Same secret-
+# token gating as every other /admin route.
+@app.route("/admin/businesses")
+def admin_businesses():
+    token = os.getenv("ADMIN_TOKEN")
+    if not token or request.args.get("token") != token:
+        abort(404)
+
+    search = (request.args.get("q") or "").strip().lower()
+    result = []
+    for business in all_businesses_unfiltered():
+        # indices: 0 id, 1 name, 2 username, 4 contact_email, 12 subscription_status, 13 created_at
+        if search and search not in business[1].lower() and search not in business[2].lower() and search not in business[4].lower():
+            continue
+        result.append({
+            "id": business[0],
+            "name": business[1],
+            "username": business[2],
+            "contact_email": business[4],
+            "instagram_username": business[6],
+            "subscription_status": business[12],
+            "created_at": business[13].isoformat() if business[13] else None,
+        })
+    return jsonify(businesses=result)
+
+
+@app.route("/admin/businesses/<int:business_id>/delete", methods=["POST"])
+@csrf.exempt  # admin tooling authenticated by token (below), not a browser session
+def admin_delete_business(business_id):
+    token = os.getenv("ADMIN_TOKEN")
+    if not token or request.args.get("token") != token:
+        abort(404)
+
+    business = business_by_id(business_id)
+    if business is None:
+        abort(404)
+    delete_business(business_id)
+    return jsonify(deleted=True, business_id=business_id, name=business[1])
 
 
 # Private funnel dashboard for the founder only - gated by a secret token rather than a
@@ -992,8 +1078,29 @@ def schedule():
     return render_template("schedule.html", **context)
 
 
+# Mobile-app equivalent of /schedule above (Faza 11) - same token-bridge pattern as
+# /subscription/<token>/export-data/<token>, since the day/week calendar UI only exists
+# on the website (not worth duplicating natively) and Capacitor's Browser plugin can't
+# attach the app's Bearer token to a request it opens. Establishes a real session (see
+# the same fix on subscription_mobile above) so booking/canceling from this bridged tab
+# actually works instead of silently requiring a login the mobile user never gets asked for.
+@app.route("/schedule/<token>")
+def schedule_mobile(token):
+    from api import business_id_from_schedule_link_token  # deferred: avoid circular import at module load
+
+    business_id = business_id_from_schedule_link_token(token)
+    if business_id is None:
+        abort(404)
+    business = business_by_id(business_id)
+    if business:
+        session["business_id"] = business_id
+        session["business_name"] = business[1]
+    return redirect(url_for("schedule"))
+
+
 @app.route("/schedule/appointments", methods=["POST"])
 @login_required
+@limiter.limit("30 per minute")
 def create_appointment_route():
     business_id = session["business_id"]
     if not (BETA_FREE_MODE or has_pro_access(business_id)):
@@ -1097,6 +1204,7 @@ def _subscription_response(business_id, hide_nav=False, trial_ended=False):
         status=status,
         active=effective_subscription_active(business_id),
         pro_access=BETA_FREE_MODE or has_pro_access(business_id),
+        has_stripe_billing=bool(get_stripe_customer_id(business_id)),
         hide_nav=hide_nav,
         trial_ended=trial_ended,
     )
@@ -1120,6 +1228,16 @@ def subscription_mobile(token):
     business_id = business_id_from_subscription_link_token(token)
     if business_id is None:
         abort(404)
+    # Bug fix: this route used to render the pricing page for the token's business_id
+    # without ever logging the browser tab in - "Choose Pro" then POSTed to /subscription/
+    # checkout with no session at all and silently bounced to /login instead of actually
+    # starting checkout. The signed, 10-minute token already proves this request came
+    # from the mobile app's own Bearer-token-authenticated API call, so it's safe to
+    # treat it exactly like a normal login for the rest of this browser tab's session.
+    business = business_by_id(business_id)
+    if business:
+        session["business_id"] = business_id
+        session["business_name"] = business[1]
     return _subscription_response(business_id, hide_nav=True)
 
 
@@ -1143,6 +1261,21 @@ def stripe_checkout():
     if not checkout_url:
         return redirect(url_for("subscription", checkout_error=1))
     return redirect(checkout_url)
+
+
+# Self-service billing (update payment method, view invoices, cancel) via Stripe's own
+# hosted Customer Portal - so this app never needs to build any of that itself. Only
+# available once a business has actually checked out through Stripe at least once.
+@app.route("/subscription/manage", methods=["POST"])
+@login_required
+def stripe_manage_billing():
+    stripe_customer_id = get_stripe_customer_id(session["business_id"])
+    if not stripe_customer_id:
+        return redirect(url_for("subscription"))
+    portal_url = stripe_billing.create_billing_portal_session(stripe_customer_id, return_url=url_for("subscription", _external=True))
+    if not portal_url:
+        return redirect(url_for("subscription", checkout_error=1))
+    return redirect(portal_url)
 
 
 @app.route("/stripe-webhook", methods=["POST"])

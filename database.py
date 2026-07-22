@@ -391,6 +391,19 @@ def all_businesses():
     return [_decrypt_row_token(row[:12]) + (row[12],) for row in result]
 
 
+def all_businesses_unfiltered():
+    """Every business regardless of Instagram connection state - unlike all_businesses()
+    above, includes accounts that never finished onboarding. Used by /admin/businesses
+    for support/cleanup lookups (all_businesses() alone can't find a test/abandoned
+    account that never connected Instagram)."""
+    connection = connect()
+    cursor = connection.cursor()
+    cursor.execute(f"SELECT {_BUSINESS_COLUMNS}, subscription_status, created_at FROM businesses ORDER BY created_at DESC")
+    result = cursor.fetchall()
+    connection.close()
+    return [_decrypt_row_token(row[:12]) + (row[12], row[13]) for row in result]
+
+
 def business_by_id(business_id):
     connection = connect()
     cursor = connection.cursor()
@@ -922,6 +935,18 @@ def get_subscription_plan(business_id):
     return row[0] if row else None
 
 
+def get_stripe_customer_id(business_id):
+    """Used to open the Stripe Customer Portal (self-service billing) - see
+    stripe_billing.create_billing_portal_session. None for a business that has never
+    checked out through Stripe (e.g. still trialing, or on the legacy Paddle path)."""
+    connection = connect()
+    cursor = connection.cursor()
+    cursor.execute("SELECT stripe_customer_id FROM businesses WHERE id = %s", (business_id,))
+    row = cursor.fetchone()
+    connection.close()
+    return row[0] if row else None
+
+
 def set_subscription_plan(business_id, plan):
     connection = connect()
     cursor = connection.cursor()
@@ -1059,6 +1084,22 @@ def appointments_in_range(business_id, start_dt, end_dt):
            WHERE business_id = %s AND status = 'confirmed' AND start_time < %s AND end_time > %s
            ORDER BY start_time""",
         (business_id, end_dt, start_dt),
+    )
+    result = cursor.fetchall()
+    connection.close()
+    return result
+
+
+def all_appointments_for_business(business_id):
+    """Every appointment (any status, any date - unlike appointments_in_range, which is
+    scoped to a window) for a business's own data export - see app.py's
+    business_export_data()."""
+    connection = connect()
+    cursor = connection.cursor()
+    cursor.execute(
+        """SELECT customer_name, service, start_time, end_time, status, source, notes, created_at
+           FROM appointments WHERE business_id = %s ORDER BY start_time""",
+        (business_id,),
     )
     result = cursor.fetchall()
     connection.close()

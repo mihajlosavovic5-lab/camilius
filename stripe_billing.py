@@ -62,6 +62,17 @@ def create_checkout_session(business_id, email, plan, interval, success_url, can
     return session.url
 
 
+def create_billing_portal_session(stripe_customer_id, return_url):
+    """Returns a Stripe-hosted Customer Portal URL where a subscriber can update their
+    payment method, view invoices, or cancel - self-service, so this app never needs to
+    build any of that itself. None if Stripe isn't configured."""
+    if not is_configured():
+        return None
+    stripe.api_key = os.environ["STRIPE_SECRET_KEY"]
+    session = stripe.billing_portal.Session.create(customer=stripe_customer_id, return_url=return_url)
+    return session.url
+
+
 def verify_and_parse_webhook(payload, signature_header):
     """Verifies the Stripe-Signature header and returns the parsed event dict, or None
     if verification fails / the webhook secret isn't configured."""

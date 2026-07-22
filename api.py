@@ -10,12 +10,13 @@ from werkzeug.security import check_password_hash
 from database import (
     conversations_for_business, get_conversation, mark_sent, business_by_login_identifier,
     business_by_id, replies_today_count, update_business, get_subscription_status,
-    effective_subscription_active, business_stats, log_event, save_push_token, log_client_error,
+    effective_subscription_active, has_pro_access, business_stats, log_event, save_push_token, log_client_error,
     add_business, delete_business, set_new_password, is_push_enabled, set_push_enabled,
     is_auto_send_enabled, set_auto_send,
     username_taken, contact_email_taken, phone_number_taken,
     archived_conversations_for_business, trashed_conversations_for_business,
     archive_conversation, unarchive_conversation, soft_delete_conversation, restore_conversation,
+    is_reminders_enabled, set_reminders_enabled, get_upsell_pairs, set_upsell_pairs,
 )
 from instagram_api import send_message as send_instagram_message, authorize_url as instagram_authorize_url
 from extensions import limiter
@@ -133,6 +134,30 @@ def business_id_from_subscription_link_token(token):
         return None
     try:
         data = _subscription_link_serializer().loads(token, max_age=SUBSCRIPTION_LINK_MAX_AGE)
+    except (BadSignature, SignatureExpired):
+        return None
+    return data.get("business_id")
+
+
+# Same bridge, for the mobile app's "Schedule" row (Faza 11) - the day/week calendar
+# only exists on the website (a full custom calendar UI isn't worth duplicating
+# natively), so this opens it in the in-app browser exactly like Subscription does.
+SCHEDULE_LINK_MAX_AGE = 60 * 10
+
+
+def _schedule_link_serializer():
+    return URLSafeTimedSerializer(os.environ["FLASK_SECRET_KEY"], salt="mobile-schedule-link")
+
+
+def make_schedule_link_token(business_id):
+    return _schedule_link_serializer().dumps({"business_id": business_id})
+
+
+def business_id_from_schedule_link_token(token):
+    if not token:
+        return None
+    try:
+        data = _schedule_link_serializer().loads(token, max_age=SCHEDULE_LINK_MAX_AGE)
     except (BadSignature, SignatureExpired):
         return None
     return data.get("business_id")
@@ -316,6 +341,15 @@ def api_subscription_link():
     return jsonify(url=f"{request.url_root}subscription/{token}")
 
 
+# Same bridge pattern, for the Schedule row (Faza 11) - see make_schedule_link_token and
+# app.py's /schedule/<token>.
+@api.route("/schedule-link")
+@require_api_auth
+def api_schedule_link():
+    token = make_schedule_link_token(request.business_id)
+    return jsonify(url=f"{request.url_root}schedule/{token}")
+
+
 @api.route("/dashboard")
 @require_api_auth
 def api_dashboard():
@@ -356,6 +390,7 @@ def api_dashboard():
         daily_limit=DAILY_REPLY_LIMIT,
         subscription_active=effective_subscription_active(business_id),
         subscription_status=get_subscription_status(business_id),
+        pro_access=BETA_FREE_MODE or has_pro_access(business_id),
         beta_free_mode=BETA_FREE_MODE,
         stats=business_stats(business_id),
         # The app only ever calls PushNotifications.register() when this is true - avoids
@@ -471,12 +506,15 @@ def api_get_settings():
         price_list=business[9],
         faq=business[10],
         phone_number=business[11] or "",
+        upsell_pairs=get_upsell_pairs(request.business_id) or "",
     )
 
 
 @api.route("/settings", methods=["POST"])
 @require_api_auth
 def api_update_settings():
+    from app import BETA_FREE_MODE  # deferred to avoid a circular import at module load
+
     data = request.get_json(silent=True) or {}
     business_id = request.business_id
     business = business_by_id(business_id)
@@ -509,9 +547,19 @@ def api_update_settings():
     if new_password:
         set_new_password(business_id, new_password)
 
+    # AI upsell pairs (Faza 9/11) are Pro-only - same server-side gate as the website's
+    # /settings route, so a Starter-plan app user can't save one either. Silently ignored
+    # (not saved) rather than erroring if sent anyway, same "the UI already hides this,
+    # a raw request just gets no-oped" spirit as the reminders toggle above.
+    upsell_pairs = get_upsell_pairs(business_id) or ""
+    if "upsell_pairs" in data and (BETA_FREE_MODE or has_pro_access(business_id)):
+        upsell_pairs = data["upsell_pairs"]
+        set_upsell_pairs(business_id, upsell_pairs)
+
     return jsonify(
         message="Saved.", name=name, username=username, contact_email=contact_email,
         phone_number=phone_number, working_hours=working_hours, price_list=price_list, faq=faq,
+        upsell_pairs=upsell_pairs,
     )
 
 
@@ -535,21 +583,29 @@ def api_get_notification_preferences():
     return jsonify(
         push_enabled=is_push_enabled(request.business_id),
         auto_send=is_auto_send_enabled(request.business_id),
+        reminders_enabled=is_reminders_enabled(request.business_id),
     )
 
 
 @api.route("/notification-preferences", methods=["POST"])
 @require_api_auth
 def api_update_notification_preferences():
+    from app import BETA_FREE_MODE  # deferred to avoid a circular import at module load
+
     data = request.get_json(silent=True) or {}
     if "push_enabled" in data:
         set_push_enabled(request.business_id, bool(data["push_enabled"]))
     if "auto_send" in data:
         set_auto_send(request.business_id, bool(data["auto_send"]))
+    # No-show reminders (Faza 9/11) are Pro-only - same server-side gate as the website's
+    # /app-settings/reminders, so a Starter-plan app user can't flip this on either.
+    if "reminders_enabled" in data and (BETA_FREE_MODE or has_pro_access(request.business_id)):
+        set_reminders_enabled(request.business_id, bool(data["reminders_enabled"]))
     return jsonify(
         message="saved",
         push_enabled=is_push_enabled(request.business_id),
         auto_send=is_auto_send_enabled(request.business_id),
+        reminders_enabled=is_reminders_enabled(request.business_id),
     )
 
 
