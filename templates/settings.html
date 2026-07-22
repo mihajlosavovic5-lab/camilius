@@ -76,6 +76,27 @@
             <p class="note">The more you share, the more questions our AI can answer for your customers.</p>
         </div>
 
+        <div class="card profile-section" style="margin-top: 20px;">
+            <div class="profile-section-header">
+                <span class="profile-section-icon">&#10024;</span>
+                <div>
+                    <p class="profile-section-title">AI upsell <span class="badge badge-pro">Pro</span></p>
+                    <p class="profile-section-subtitle">Link related services - when the AI books one during a DM conversation, it'll gently suggest the other.</p>
+                </div>
+            </div>
+            {% if pro_access %}
+                <label style="margin-top: 0;">Related services</label>
+                <textarea name="upsell_pairs" placeholder="One pair per line, e.g.:&#10;Haircut -> Treatment&#10;Manicure -> Pedicure">{{ business.upsell_pairs or '' }}</textarea>
+                <p class="note">Format: <code>Service A -&gt; Service B</code>, one pair per line. Use the exact same service names as in your price list above.</p>
+            {% else %}
+                <div class="pro-locked">
+                    <label style="margin-top: 0;">Related services</label>
+                    <textarea placeholder="Haircut -> Treatment" disabled></textarea>
+                </div>
+                <p class="pro-locked-note">&#10024; <a href="{{ url_for('subscription') }}">Upgrade to Pro</a> to let the AI suggest complementary services.</p>
+            {% endif %}
+        </div>
+
         <div class="form-actions">
             <button class="button" type="submit">Save changes</button>
         </div>

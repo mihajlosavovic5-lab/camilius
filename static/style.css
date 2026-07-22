@@ -255,6 +255,14 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
 .badge-sent { background: var(--success-bg); color: var(--success); border: 1px solid var(--success-border); }
 .badge-dot { width: 6px; height: 6px; border-radius: 99px; background: currentColor; }
 
+/* --- "Upgrade to Pro" badge / locked-feature notice (Faza 9/10) - shared component for
+   any Pro-only feature shown to a Starter (or expired) business: a small pill badge next
+   to the feature's heading, plus a dimmed/disabled wrapper around the control itself. --- */
+.badge-pro { background: var(--primary-light); color: var(--primary-ink); border: 1px solid var(--primary); }
+.pro-locked { opacity: .55; filter: grayscale(.3); pointer-events: none; user-select: none; }
+.pro-locked-note { display: flex; align-items: center; gap: 8px; margin: 10px 0 0; font-size: 13.5px; color: var(--text-muted); }
+.pro-locked-note a { font-weight: 600; }
+
 /* --- Filters (tabs) --- */
 .filters { display: flex; gap: 6px; flex-wrap: wrap; }
 .filters a {

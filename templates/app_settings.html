@@ -25,6 +25,28 @@
     </div>
 
     <div class="card" style="margin-top:20px;">
+        <h2 style="margin-top:0;">No-show reminders <span class="badge badge-pro">Pro</span></h2>
+        <p class="note">When on, the AI automatically sends the customer a reminder DM 24 hours and 2 hours before their appointment (Instagram-booked appointments only).</p>
+        {% if pro_access %}
+            <form method="POST" action="{{ url_for('update_reminders') }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <label class="checkbox-row" style="margin-top:0;">
+                    <input type="checkbox" name="reminders_enabled" {% if reminders_enabled %}checked{% endif %} onchange="this.form.submit()">
+                    <span>Send automatic appointment reminders</span>
+                </label>
+            </form>
+        {% else %}
+            <div class="pro-locked">
+                <label class="checkbox-row" style="margin-top:0;">
+                    <input type="checkbox" disabled>
+                    <span>Send automatic appointment reminders</span>
+                </label>
+            </div>
+            <p class="pro-locked-note">&#10024; <a href="{{ url_for('subscription') }}">Upgrade to Pro</a> to turn on automatic reminders.</p>
+        {% endif %}
+    </div>
+
+    <div class="card" style="margin-top:20px;">
         <h2 style="margin-top:0;">Billing</h2>
         <a class="settings-link-row" href="{{ url_for('subscription') }}">
             <span>Subscription</span>

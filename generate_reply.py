@@ -70,13 +70,14 @@ def generate_reply(customer_question, business, history=None):
     return content
 
 
-# --- Smart Booking (Faza 8, Pro plan only - see database.has_pro_access) ---
+# --- Smart Booking (Faza 8/9, Pro plan only - see database.has_pro_access) ---
 #
-# Gives the model a real tool to check availability and book directly, instead of
-# guessing/hallucinating times from the free-text working_hours in the prompt. The tool
-# is executed locally (see booking.attempt_ai_booking, injected here as book_tool so this
-# module stays DB-agnostic, same separation as the rest of the file) - the model only
-# ever gets to describe what book_tool's return value actually says happened.
+# Gives the model real tools to check availability, book, cancel, and reschedule
+# directly, instead of guessing/hallucinating from the free-text working_hours in the
+# prompt. Tools are executed locally (see booking.attempt_ai_booking/
+# attempt_ai_cancel_or_reschedule, injected here via tool_impls so this module stays
+# DB-agnostic, same separation as the rest of the file) - the model only ever gets to
+# describe what a tool's return value actually says happened.
 
 BOOKING_TOOLS = [
     {
@@ -105,26 +106,66 @@ BOOKING_TOOLS = [
                 "required": ["requested_datetime"],
             },
         },
-    }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "cancel_appointment",
+            "description": (
+                "Cancels the customer's existing upcoming appointment with this "
+                "business, with no replacement. Call this only for a PLAIN "
+                "cancellation - if the customer wants to move their appointment to a "
+                "different time instead, call reschedule_appointment instead of this one."
+            ),
+            "parameters": {"type": "object", "properties": {}},
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "reschedule_appointment",
+            "description": (
+                "Moves the customer's existing upcoming appointment with this business "
+                "to a new date/time, in one step (cancels the old time and books the "
+                "new one). Call this as soon as the customer asks to move/reschedule "
+                "their appointment to a specific new time - always include that new "
+                "time; if they haven't given one yet, ask for it instead of calling "
+                "this tool without it."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "new_requested_datetime": {
+                        "type": "string",
+                        "description": "The new date/time the customer wants, resolved to an exact ISO 8601 datetime (YYYY-MM-DDTHH:MM:SS) in the business's local time.",
+                    },
+                },
+                "required": ["new_requested_datetime"],
+            },
+        },
+    },
 ]
 
 
 def build_booking_system_prompt(business, now_local_display):
     return build_system_prompt(business) + f"""
 
-You can also check appointment availability and book appointments directly, using the check_and_book_appointment tool.
-Right now it is {now_local_display} (the business's local time) - use this to resolve any relative date/time the customer mentions ("tomorrow", "this Friday", "in a couple hours", etc.) into an exact date and time before calling the tool.
-- Call the tool as soon as the customer has given (or confirmed) a specific appointment date and time.
-- If they haven't given a specific time yet, ask for one - never guess or call the tool without one.
-- Base your reply only on what the tool actually returns: if it confirms a booking, confirm that exact date/time back to the customer; if it says that time isn't available, apologize briefly and offer the alternative times it gives you, and ask them to pick one. Never claim a time is booked, free, or unavailable on your own.
+You can also check appointment availability, and book, cancel, or reschedule appointments directly, using the check_and_book_appointment, cancel_appointment, and reschedule_appointment tools.
+Right now it is {now_local_display} (the business's local time) - use this to resolve any relative date/time the customer mentions ("tomorrow", "this Friday", "in a couple hours", etc.) into an exact date and time before calling a tool.
+- Call check_and_book_appointment as soon as the customer has given (or confirmed) a specific appointment date and time for a NEW booking. If they haven't given a specific time yet, ask for one - never guess or call a tool without one.
+- If the customer wants to move/reschedule their existing appointment to a specific new time, call reschedule_appointment with that new time - do NOT call cancel_appointment and check_and_book_appointment separately for this, always use reschedule_appointment in one call so the old appointment is never lost if the new time turns out to be unavailable.
+- Call cancel_appointment only when the customer wants to cancel with no replacement.
+- Base your reply only on what a tool actually returns - never claim a time is booked, canceled, rescheduled, free, or unavailable on your own. If a tool reports no appointment was found, tell the customer and offer to book a new one instead.
+- If a tool's result includes "upsell_suggestion", weave one gentle, brief mention of that complementary service into your reply (e.g. "would you also like to add a {{upsell_suggestion}}?") - never pushy, and never repeat it if you've already suggested it earlier in this same conversation.
 """
 
 
-def generate_reply_with_booking(customer_question, business, history, now_local_display, book_tool):
-    """Same shape as generate_reply(), but also gives the model the booking tool above.
-    book_tool(requested_datetime_str, service) -> dict is called locally whenever the
-    model invokes check_and_book_appointment; its return value is fed back to the model
-    as the tool result before asking for the final customer-facing reply."""
+def generate_reply_with_booking(customer_question, business, history, now_local_display, tool_impls):
+    """Same shape as generate_reply(), but also gives the model the booking tools above.
+    tool_impls is {tool_name: callable(**kwargs) -> dict} for whichever of BOOKING_TOOLS
+    the caller wants enabled - called locally with the model's parsed JSON arguments as
+    keyword args whenever it invokes that tool; the return value is fed back to the
+    model as the tool result before asking for the final customer-facing reply."""
     system_prompt = build_booking_system_prompt(business, now_local_display)
     customer_question = customer_question[:MAX_QUESTION_LENGTH]
 
@@ -142,13 +183,19 @@ def generate_reply_with_booking(customer_question, business, history, now_local_
     if message.tool_calls:
         messages.append(message)
         for call in message.tool_calls:
-            if call.function.name != "check_and_book_appointment":
+            impl = tool_impls.get(call.function.name)
+            if impl is None:
                 continue
             try:
                 args = json.loads(call.function.arguments or "{}")
             except json.JSONDecodeError:
                 args = {}
-            result = book_tool(args.get("requested_datetime", ""), args.get("service"))
+            try:
+                result = impl(**args)
+            except TypeError:
+                # Unexpected/malformed arguments from the model - treat like any other
+                # tool failure rather than letting the whole reply crash.
+                result = {"status": "error", "message": "Could not process that request - ask the customer to clarify and try again."}
             messages.append({
                 "role": "tool",
                 "tool_call_id": call.id,

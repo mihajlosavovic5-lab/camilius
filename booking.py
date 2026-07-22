@@ -10,7 +10,7 @@ import re
 from datetime import datetime, timedelta, time as dtime
 from zoneinfo import ZoneInfo
 
-from database import appointments_in_range, create_appointment
+from database import appointments_in_range, create_appointment, cancel_appointment, next_upcoming_appointment_for_sender
 
 BUSINESS_TZ = ZoneInfo("Europe/Belgrade")
 
@@ -144,7 +144,33 @@ def slot_within_business_hours(working_hours_text, start_dt, end_dt):
     return start_dt >= day_start and end_dt <= day_end
 
 
-def attempt_ai_booking(business, business_id, slot_minutes, requested_dt_str, customer_name, sender_igsid, service=None):
+def parse_upsell_pairs(text):
+    """Parses "Service A -> Service B" (one pair per line, free text set by the owner on
+    the Profile page) into a bidirectional {service_name_lower: paired_service_display}
+    map - booking either service suggests the other. Best-effort/case-insensitive, same
+    "leave what doesn't parse alone" spirit as parse_working_hours."""
+    pairs = {}
+    for line in (text or "").split("\n"):
+        line = line.strip()
+        if "->" not in line:
+            continue
+        left, _, right = line.partition("->")
+        left, right = left.strip(), right.strip()
+        if left and right:
+            pairs[left.lower()] = right
+            pairs[right.lower()] = left
+    return pairs
+
+
+def upsell_suggestion_for(upsell_pairs_text, service):
+    """The complementary service to gently suggest after booking `service`, if the
+    business has defined one - None if not set up, service is blank, or no pair matches."""
+    if not service:
+        return None
+    return parse_upsell_pairs(upsell_pairs_text).get(service.strip().lower())
+
+
+def attempt_ai_booking(business, business_id, slot_minutes, requested_dt_str, customer_name, sender_igsid, service=None, upsell_pairs_text=None):
     """Tool executor for generate_reply.py's check_and_book_appointment tool - the single
     source of truth for what the AI is allowed to tell a customer, since the model only
     ever sees this function's return value and never touches the database itself.
@@ -171,8 +197,62 @@ def attempt_ai_booking(business, business_id, slot_minutes, requested_dt_str, cu
         return {"status": "unavailable", "alternatives": [a.strftime("%A %Y-%m-%d %H:%M") for a in alternatives]}
 
     create_appointment(business_id, customer_name, requested, end, sender_igsid=sender_igsid, service=service, source="ai")
-    return {
+    result = {
         "status": "booked",
         "start_time": requested.strftime("%A %Y-%m-%d %H:%M"),
         "end_time": end.strftime("%H:%M"),
     }
+    suggestion = upsell_suggestion_for(upsell_pairs_text, service)
+    if suggestion:
+        result["upsell_suggestion"] = suggestion
+    return result
+
+
+def attempt_ai_cancel_or_reschedule(business, business_id, slot_minutes, sender_igsid, new_requested_datetime=None, upsell_pairs_text=None):
+    """Tool executor for generate_reply.py's cancel_or_reschedule_appointment tool. Looks
+    up the customer's own next upcoming appointment by sender_igsid (the model never has
+    an appointment ID - the Instagram thread it's already in IS the identifier). A
+    reschedule verifies the NEW slot works BEFORE canceling the old one, so a failed
+    reschedule never leaves the customer with nothing booked."""
+    existing = next_upcoming_appointment_for_sender(business_id, sender_igsid)
+    if existing is None:
+        return {"status": "not_found"}
+    existing_id, existing_customer_name, existing_service, existing_start, existing_end = existing
+
+    if not new_requested_datetime:
+        cancel_appointment(existing_id)
+        return {"status": "canceled", "canceled_start_time": existing_start.astimezone(BUSINESS_TZ).strftime("%A %Y-%m-%d %H:%M")}
+
+    working_hours_text = business[8]
+    try:
+        requested = datetime.fromisoformat(new_requested_datetime)
+    except (ValueError, TypeError):
+        return {"status": "error", "message": "Could not understand that date/time - ask the customer for a clear date and time and try again."}
+    requested = requested.replace(tzinfo=BUSINESS_TZ) if requested.tzinfo is None else requested.astimezone(BUSINESS_TZ)
+    new_end = requested + timedelta(minutes=slot_minutes)
+
+    # The customer's own about-to-be-canceled appointment would otherwise look like a
+    # conflict against itself (e.g. shifting a booking 15 minutes later overlaps the old
+    # slot) - explicitly excluded from the availability check for that reason.
+    overlaps_own_existing_slot = requested < existing_end.astimezone(BUSINESS_TZ) and new_end > existing_start.astimezone(BUSINESS_TZ)
+    is_available = (
+        requested >= now_local()
+        and slot_within_business_hours(working_hours_text, requested, new_end)
+        and (is_slot_free(business_id, requested, new_end) or overlaps_own_existing_slot)
+    )
+    if not is_available:
+        alternatives = find_next_free_slots(business_id, working_hours_text, slot_minutes, max(requested, now_local()), count=2)
+        return {"status": "unavailable", "alternatives": [a.strftime("%A %Y-%m-%d %H:%M") for a in alternatives]}
+
+    cancel_appointment(existing_id)
+    create_appointment(business_id, existing_customer_name, requested, new_end, sender_igsid=sender_igsid, service=existing_service, source="ai")
+    result = {
+        "status": "rescheduled",
+        "old_start_time": existing_start.astimezone(BUSINESS_TZ).strftime("%A %Y-%m-%d %H:%M"),
+        "new_start_time": requested.strftime("%A %Y-%m-%d %H:%M"),
+        "new_end_time": new_end.strftime("%H:%M"),
+    }
+    suggestion = upsell_suggestion_for(upsell_pairs_text, existing_service)
+    if suggestion:
+        result["upsell_suggestion"] = suggestion
+    return result

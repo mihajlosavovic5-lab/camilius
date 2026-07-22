@@ -297,6 +297,15 @@ def create_database():
     """)
     cursor.execute("CREATE INDEX IF NOT EXISTS appointments_business_start_idx ON appointments (business_id, start_time)")
 
+    # Faza 9: No-show reminders (opt-in, off by default - same reasoning as auto_send)
+    # and AI upsell ("Service A -> Service B" pairs, free text, same style as
+    # working_hours/price_list - see booking.parse_upsell_pairs). reminder_*_sent_at are
+    # nullable markers so the reminder loop (reminders.py) never double-sends.
+    cursor.execute("ALTER TABLE businesses ADD COLUMN IF NOT EXISTS reminders_enabled BOOLEAN NOT NULL DEFAULT FALSE")
+    cursor.execute("ALTER TABLE businesses ADD COLUMN IF NOT EXISTS upsell_pairs TEXT")
+    cursor.execute("ALTER TABLE appointments ADD COLUMN IF NOT EXISTS reminder_24h_sent_at TIMESTAMP")
+    cursor.execute("ALTER TABLE appointments ADD COLUMN IF NOT EXISTS reminder_2h_sent_at TIMESTAMP")
+
     connection.commit()
     connection.close()
 
@@ -995,6 +1004,91 @@ def appointments_in_range(business_id, start_dt, end_dt):
     result = cursor.fetchall()
     connection.close()
     return result
+
+
+def next_upcoming_appointment_for_sender(business_id, sender_igsid):
+    """The customer's next confirmed appointment with this business, if any - used by the
+    AI's cancel/reschedule tool (see booking.attempt_ai_cancel_or_reschedule) to find
+    which appointment a DM conversation is actually about, since the model never has an
+    appointment ID to work with, only the Instagram thread it's already in."""
+    connection = connect()
+    cursor = connection.cursor()
+    cursor.execute(
+        """SELECT id, customer_name, service, start_time, end_time
+           FROM appointments
+           WHERE business_id = %s AND sender_igsid = %s AND status = 'confirmed' AND start_time > NOW()
+           ORDER BY start_time LIMIT 1""",
+        (business_id, sender_igsid),
+    )
+    row = cursor.fetchone()
+    connection.close()
+    return row
+
+
+# --- No-show reminders / AI upsell (Faza 9) ---
+
+def is_reminders_enabled(business_id):
+    connection = connect()
+    cursor = connection.cursor()
+    cursor.execute("SELECT reminders_enabled FROM businesses WHERE id = %s", (business_id,))
+    row = cursor.fetchone()
+    connection.close()
+    return bool(row[0]) if row else False
+
+
+def set_reminders_enabled(business_id, enabled):
+    connection = connect()
+    cursor = connection.cursor()
+    cursor.execute("UPDATE businesses SET reminders_enabled = %s WHERE id = %s", (enabled, business_id))
+    connection.commit()
+    connection.close()
+
+
+def get_upsell_pairs(business_id):
+    connection = connect()
+    cursor = connection.cursor()
+    cursor.execute("SELECT upsell_pairs FROM businesses WHERE id = %s", (business_id,))
+    row = cursor.fetchone()
+    connection.close()
+    return row[0] if row else None
+
+
+def set_upsell_pairs(business_id, text):
+    connection = connect()
+    cursor = connection.cursor()
+    cursor.execute("UPDATE businesses SET upsell_pairs = %s WHERE id = %s", (text, business_id))
+    connection.commit()
+    connection.close()
+
+
+def appointments_needing_reminders():
+    """Confirmed, Instagram-DM-originated appointments (sender_igsid set - a manually
+    entered appointment has no DM thread to remind) starting within the next 25 hours
+    that are still missing at least one of their two reminders - across every business.
+    reminders.py (the only caller) decides, per row, exactly which window (24h/2h, if
+    either) currently applies and whether that business even has reminders turned on."""
+    connection = connect()
+    cursor = connection.cursor()
+    cursor.execute("""
+        SELECT id, business_id, customer_name, sender_igsid, service, start_time,
+               reminder_24h_sent_at, reminder_2h_sent_at
+        FROM appointments
+        WHERE status = 'confirmed' AND sender_igsid IS NOT NULL
+          AND start_time > NOW() AND start_time <= NOW() + INTERVAL '25 hours'
+          AND (reminder_24h_sent_at IS NULL OR reminder_2h_sent_at IS NULL)
+    """)
+    result = cursor.fetchall()
+    connection.close()
+    return result
+
+
+def mark_reminder_sent(appointment_id, which):
+    column = "reminder_24h_sent_at" if which == "24h" else "reminder_2h_sent_at"
+    connection = connect()
+    cursor = connection.cursor()
+    cursor.execute(f"UPDATE appointments SET {column} = NOW() WHERE id = %s", (appointment_id,))
+    connection.commit()
+    connection.close()
 
 
 def is_push_enabled(business_id):

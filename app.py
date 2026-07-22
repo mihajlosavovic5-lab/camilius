@@ -28,6 +28,7 @@ from database import (
     archived_conversations_for_business, trashed_conversations_for_business,
     archive_conversation, unarchive_conversation, soft_delete_conversation, restore_conversation,
     get_slot_duration, set_slot_duration, create_appointment, get_appointment, cancel_appointment,
+    is_reminders_enabled, set_reminders_enabled, get_upsell_pairs, set_upsell_pairs,
 )
 from send_email import send_email
 from generate_reply import generate_reply, generate_reply_with_booking
@@ -415,11 +416,13 @@ def logout():
 @app.route("/settings", methods=["GET", "POST"])
 @login_required
 def settings():
-    business = business_by_id(session["business_id"])
+    business_id = session["business_id"]
+    business = business_by_id(business_id)
     # indices: 0 id, 1 name, 2 username, 4 contact_email, 5 instagram_account_id,
     # 6 instagram_username, 8 working_hours, 9 price_list, 10 faq, 11 phone_number
     contact_email = business[4]
     instagram_username = business[6]
+    pro_access = BETA_FREE_MODE or has_pro_access(business_id)
 
     if request.method == "POST":
         name = request.form["name"]
@@ -429,16 +432,25 @@ def settings():
 
         # Username/email/phone aren't editable from this page (the mobile app's Profile
         # screen is where that lives) - carry the existing values through unchanged.
-        update_business(session["business_id"], name, business[2], contact_email, business[11], working_hours, price_list, faq)
+        update_business(business_id, name, business[2], contact_email, business[11], working_hours, price_list, faq)
         session["business_name"] = name
+
+        # AI upsell pairs (Faza 9, Pro-only) - a separate call/column from the rest of
+        # the profile fields above, and only saved for Pro-access businesses so a raw
+        # POST can't bypass the Starter-plan gate the settings.html form UI enforces.
+        upsell_pairs = get_upsell_pairs(business_id)
+        if pro_access and "upsell_pairs" in request.form:
+            upsell_pairs = request.form["upsell_pairs"]
+            set_upsell_pairs(business_id, upsell_pairs)
 
         return render_template(
             "settings.html",
             error=None,
             message="Your details have been saved.",
+            pro_access=pro_access,
             business={
                 "name": name, "contact_email": contact_email, "instagram_username": instagram_username,
-                "working_hours": working_hours, "price_list": price_list, "faq": faq,
+                "working_hours": working_hours, "price_list": price_list, "faq": faq, "upsell_pairs": upsell_pairs,
             },
         )
 
@@ -446,9 +458,11 @@ def settings():
         "settings.html",
         error=None,
         message=None,
+        pro_access=pro_access,
         business={
             "name": business[1], "contact_email": contact_email, "instagram_username": instagram_username,
             "working_hours": business[8], "price_list": business[9], "faq": business[10],
+            "upsell_pairs": get_upsell_pairs(business_id),
         },
     )
 
@@ -459,7 +473,13 @@ def settings():
 @app.route("/app-settings")
 @login_required
 def app_settings():
-    return render_template("app_settings.html", auto_send=is_auto_send_enabled(session["business_id"]))
+    business_id = session["business_id"]
+    return render_template(
+        "app_settings.html",
+        auto_send=is_auto_send_enabled(business_id),
+        reminders_enabled=is_reminders_enabled(business_id),
+        pro_access=BETA_FREE_MODE or has_pro_access(business_id),
+    )
 
 
 # Website equivalent of the mobile app's Auto-send toggle (see api.py's
@@ -470,6 +490,17 @@ def app_settings():
 @login_required
 def update_auto_send():
     set_auto_send(session["business_id"], bool(request.form.get("auto_send")))
+    return redirect(url_for("app_settings"))
+
+
+# No-show reminders toggle (Faza 9, Pro-only) - Starter-plan businesses can't turn this
+# on even via a raw POST; the checkbox itself is locked/hidden for them in app_settings.html.
+@app.route("/app-settings/reminders", methods=["POST"])
+@login_required
+def update_reminders():
+    business_id = session["business_id"]
+    if BETA_FREE_MODE or has_pro_access(business_id):
+        set_reminders_enabled(business_id, bool(request.form.get("reminders_enabled")))
     return redirect(url_for("app_settings"))
 
 
@@ -1195,19 +1226,35 @@ def _process_instagram_message(message):
     print(f"[instagram-webhook] Generating AI reply for text={message['text']!r} from sender_igsid={sender_igsid}", flush=True)
     history = previous_conversations_with(business_id, sender_igsid)
 
-    # Faza 8: Pro-plan (or trialing) businesses get a smarter AI that can check the
-    # Schedule for a free slot and book an appointment directly during the DM
-    # conversation - see generate_reply.generate_reply_with_booking/booking.py.
+    # Faza 8/9: Pro-plan (or trialing) businesses get a smarter AI that can check the
+    # Schedule for a free slot and book, cancel, or reschedule an appointment directly
+    # during the DM conversation - see generate_reply.generate_reply_with_booking/booking.py.
     if BETA_FREE_MODE or has_pro_access(business_id):
         slot_minutes = get_slot_duration(business_id)
+        upsell_pairs_text = get_upsell_pairs(business_id)
         now_local_display = booking.now_local().strftime("%A, %Y-%m-%d %H:%M")
 
-        def book_tool(requested_datetime_str, service):
+        def book_tool(requested_datetime, service=None):
             return booking.attempt_ai_booking(
-                business, business_id, slot_minutes, requested_datetime_str, sender_display, sender_igsid, service,
+                business, business_id, slot_minutes, requested_datetime, sender_display, sender_igsid, service, upsell_pairs_text,
             )
 
-        suggested_reply = generate_reply_with_booking(message["text"], business_info, history, now_local_display, book_tool)
+        def cancel_tool():
+            return booking.attempt_ai_cancel_or_reschedule(
+                business, business_id, slot_minutes, sender_igsid, None, upsell_pairs_text,
+            )
+
+        def reschedule_tool(new_requested_datetime):
+            return booking.attempt_ai_cancel_or_reschedule(
+                business, business_id, slot_minutes, sender_igsid, new_requested_datetime, upsell_pairs_text,
+            )
+
+        tool_impls = {
+            "check_and_book_appointment": book_tool,
+            "cancel_appointment": cancel_tool,
+            "reschedule_appointment": reschedule_tool,
+        }
+        suggested_reply = generate_reply_with_booking(message["text"], business_info, history, now_local_display, tool_impls)
     else:
         suggested_reply = generate_reply(message["text"], business_info, history=history)
     print(f"[instagram-webhook] AI reply generated: {suggested_reply!r}", flush=True)
