@@ -88,7 +88,13 @@
 body {
     margin: 0;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-    background: var(--background);
+    /* Faza 6: one gentle cream/yellow gradient for the whole site (was a flat
+       var(--background) here, with a separate near-duplicate gradient only on
+       .auth pages below) - unifies the brand feel across logged-in app pages,
+       auth pages, and the landing page alike. background-attachment: fixed
+       keeps the tint from visibly repeating/banding on long scrolling pages. */
+    background: linear-gradient(170deg, #fffefb 0%, #fdf8ec 45%, #fbf0d6 100%);
+    background-attachment: fixed;
     color: var(--text);
     line-height: 1.55;
     -webkit-font-smoothing: antialiased;
@@ -316,7 +322,8 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
 
 /* --- Auth pages (login, register...) --- */
 body.auth {
-    background: linear-gradient(160deg, #fffdf8 0%, #fdfcfa 45%, #fef9f0 100%);
+    /* Background is now the shared body gradient above (Faza 6 unification) -
+       auth pages just need the full-viewport height for their centered card. */
     min-height: 100vh;
 }
 .auth-wrapper {
@@ -510,14 +517,27 @@ body.auth {
 .section { padding: 56px 0; }
 .section-title { text-align: center; font-family: Georgia, "Times New Roman", serif; font-weight: 700; font-size: 25px; margin-bottom: 28px; }
 
-.steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
-.step h3 { font-size: 16px; margin: 12px 0 6px; }
+/* Faza 6: "top modern SaaS" treatment - a connecting line running behind the
+   step numbers on desktop (ties the 3 steps into one visual flow instead of 3
+   unrelated cards), bigger ring-style numbers, and an arrow between cards as
+   a secondary flow cue for wide screens where cards sit side by side. */
+.steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; position: relative; }
+.step { position: relative; text-align: center; padding-top: 34px; }
+.step h3 { font-size: 16.5px; margin: 16px 0 7px; }
 .step p { color: var(--text-muted); font-size: 14px; margin: 0; }
 .step-number {
+    position: relative; z-index: 1;
     display: inline-flex; align-items: center; justify-content: center;
-    width: 32px; height: 32px; border-radius: 99px;
+    width: 44px; height: 44px; border-radius: 99px;
     background: var(--primary-light); color: var(--primary-ink);
-    font-weight: 800; font-size: 15px;
+    font-weight: 800; font-size: 17px;
+    box-shadow: 0 0 0 6px var(--surface);
+}
+.step:not(:last-child)::after {
+    content: "";
+    position: absolute; top: 51px; left: calc(50% + 38px); right: calc(-50% + 38px);
+    height: 2px;
+    background: linear-gradient(90deg, var(--border), var(--border) 70%, transparent);
 }
 
 .price-card { max-width: 380px; margin: 0 auto; text-align: center; padding: 30px; }
@@ -560,6 +580,7 @@ body.intro { margin: 0; height: 100dvh; overflow: hidden; }
 
 @media (max-width: 720px) {
     .steps { grid-template-columns: 1fr; }
+    .step::after { display: none; }
     .hero h1 { font-size: 28px; }
 }
 
@@ -721,6 +742,52 @@ body.intro { margin: 0; height: 100dvh; overflow: hidden; }
     box-shadow: var(--shadow);
 }
 .lp-trust-item .lp-trust-icon { color: var(--primary); font-size: 15px; }
+
+/* --- "See it in action" slider (Faza 6) - a single-active-card carousel of
+   realistic example conversations, replacing the old one-example static card.
+   Reuses .card/.conversation/.question/.reply as-is per slide; everything
+   below is just the carousel mechanics (viewport/track/arrows/dots). --- */
+.lp-slider { position: relative; max-width: 640px; margin: 0 auto; }
+.lp-slider-viewport { overflow: hidden; border-radius: var(--radius); }
+.lp-slider-track {
+    display: flex;
+    transition: transform .5s cubic-bezier(.16, 1, .3, 1);
+}
+.lp-slide {
+    flex: 0 0 100%;
+    min-width: 0;
+    margin-bottom: 0 !important; /* .conversation's own margin-bottom would add uneven gaps between slides in the flex track */
+}
+.lp-slider-arrow {
+    position: absolute; top: 50%; transform: translateY(-50%);
+    width: 42px; height: 42px; border-radius: 50%; z-index: 2;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--surface); border: 1px solid var(--border); box-shadow: var(--shadow-lg);
+    color: var(--text); font-size: 20px; cursor: pointer;
+    transition: transform .18s ease, background .18s ease, border-color .18s ease;
+}
+.lp-slider-arrow:hover { background: var(--primary-light); border-color: rgba(214, 148, 16, .35); }
+.lp-slider-arrow:active { transform: translateY(-50%) scale(.92); }
+.lp-slider-prev { left: -21px; }
+.lp-slider-next { right: -21px; }
+.lp-slider-dots { display: flex; justify-content: center; gap: 7px; margin-top: 18px; }
+.lp-slider-dot {
+    width: 7px; height: 7px; border-radius: 99px; background: var(--border);
+    border: none; padding: 0; cursor: pointer;
+    transition: background .2s ease, width .2s ease;
+}
+.lp-slider-dot.active { background: var(--primary); width: 20px; }
+
+@media (max-width: 720px) {
+    .lp-slider { max-width: 100%; }
+    /* Arrows are a desktop hover affordance; on touch, swipe + dots are the
+       native pattern and avoid the arrows overlapping card text at this width. */
+    .lp-slider-arrow { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .lp-slider-track { transition: none !important; }
+}
 
 /* --- Footer restructure --- */
 .lp-footer {

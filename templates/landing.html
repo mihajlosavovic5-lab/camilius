@@ -46,33 +46,201 @@
         <div class="lp-trust-strip">
             <span class="lp-trust-item"><span class="lp-trust-icon">&#9989;</span>You review every reply by default</span>
             <span class="lp-trust-item"><span class="lp-trust-icon">&#9200;</span>Drafted in ~60 seconds</span>
-            <span class="lp-trust-item"><span class="lp-trust-icon">&#128172;</span>Works with your existing Instagram</span>
         </div>
     </section>
 
-    <!-- Demo: a realistic example, so visitors see the reply quality before registering -->
+    <!-- Demo: a slider of realistic examples across different business types, so
+         visitors see the reply quality before registering. Each slide's question/
+         reply carries data-i18n (see static/site-i18n.js "landing.slider.*") so it
+         auto-translates with the rest of the site; sender names are left as-is
+         (proper nouns, same treatment as a real business's own name elsewhere). -->
     <section class="section">
         <h2 class="section-title lp-reveal">See it in action</h2>
-        <div class="card conversation lp-card-hover lp-reveal" style="max-width: 640px; margin: 0 auto;" id="lp-demo-card">
-            <div class="conversation-top">
-                <span class="avatar">E</span>
-                <div class="conversation-meta">
-                    <div class="conversation-sender">Emily M.</div>
-                    <div class="conversation-time">Instagram DM &middot; just now</div>
+        <div class="lp-slider lp-reveal" id="lp-slider">
+            <div class="lp-slider-viewport">
+                <div class="lp-slider-track" id="lp-slider-track">
+                    <div class="lp-slide card conversation">
+                        <div class="conversation-top">
+                            <span class="avatar">E</span>
+                            <div class="conversation-meta">
+                                <div class="conversation-sender">Emily M.</div>
+                                <div class="conversation-time" data-i18n="landing.slider.time.now">Just now</div>
+                            </div>
+                        </div>
+                        <div class="conversation-block">
+                            <div class="conversation-label">Customer question</div>
+                            <p class="question" data-i18n="landing.slider.example1.question">Hi! What are your Saturday hours, and how much is a women's haircut?</p>
+                        </div>
+                        <div class="conversation-block">
+                            <div class="conversation-label">AI-suggested reply</div>
+                            <p class="reply" data-i18n="landing.slider.example1.reply">Hi! We're open Saturdays from 9 to 16.
+A women's haircut is &euro;35.
+Want me to book you in for a time?</p>
+                        </div>
+                    </div>
+                    <div class="lp-slide card conversation">
+                        <div class="conversation-top">
+                            <span class="avatar">D</span>
+                            <div class="conversation-meta">
+                                <div class="conversation-sender">Daniel K.</div>
+                                <div class="conversation-time" data-i18n="landing.slider.time.m2">2m ago</div>
+                            </div>
+                        </div>
+                        <div class="conversation-block">
+                            <div class="conversation-label">Customer question</div>
+                            <p class="question" data-i18n="landing.slider.example2.question">Do you do teeth whitening, and can I just walk in or do I need an appointment?</p>
+                        </div>
+                        <div class="conversation-block">
+                            <div class="conversation-label">AI-suggested reply</div>
+                            <p class="reply" data-i18n="landing.slider.example2.reply">Yes, we offer teeth whitening for &euro;120. We recommend booking ahead so we can hold a slot for you &mdash; want me to check what's free this week?</p>
+                        </div>
+                    </div>
+                    <div class="lp-slide card conversation">
+                        <div class="conversation-top">
+                            <span class="avatar">M</span>
+                            <div class="conversation-meta">
+                                <div class="conversation-sender">Marko P.</div>
+                                <div class="conversation-time" data-i18n="landing.slider.time.m5">5m ago</div>
+                            </div>
+                        </div>
+                        <div class="conversation-block">
+                            <div class="conversation-label">Customer question</div>
+                            <p class="question" data-i18n="landing.slider.example3.question">My iPhone 13 screen is cracked &mdash; how much to fix it, and how long does it take?</p>
+                        </div>
+                        <div class="conversation-block">
+                            <div class="conversation-label">AI-suggested reply</div>
+                            <p class="reply" data-i18n="landing.slider.example3.reply">An iPhone 13 screen replacement is &euro;89, usually ready the same day if you drop it off before 2pm. Want to bring it in today?</p>
+                        </div>
+                    </div>
+                    <div class="lp-slide card conversation">
+                        <div class="conversation-top">
+                            <span class="avatar">A</span>
+                            <div class="conversation-meta">
+                                <div class="conversation-sender">Ana R.</div>
+                                <div class="conversation-time" data-i18n="landing.slider.time.m12">12m ago</div>
+                            </div>
+                        </div>
+                        <div class="conversation-block">
+                            <div class="conversation-label">Customer question</div>
+                            <p class="question" data-i18n="landing.slider.example4.question">My kitchen faucet is leaking &mdash; can someone come take a look this week?</p>
+                        </div>
+                        <div class="conversation-block">
+                            <div class="conversation-label">AI-suggested reply</div>
+                            <p class="reply" data-i18n="landing.slider.example4.reply">Sorry to hear that! We have openings Wednesday and Thursday afternoon. A callout and inspection is &euro;25, and we'll quote any parts before starting. Which day works better?</p>
+                        </div>
+                    </div>
+                    <div class="lp-slide card conversation">
+                        <div class="conversation-top">
+                            <span class="avatar">S</span>
+                            <div class="conversation-meta">
+                                <div class="conversation-sender">Sophie L.</div>
+                                <div class="conversation-time" data-i18n="landing.slider.time.h1">1h ago</div>
+                            </div>
+                        </div>
+                        <div class="conversation-block">
+                            <div class="conversation-label">Customer question</div>
+                            <p class="question" data-i18n="landing.slider.example5.question">What time is check-in, and are pets allowed?</p>
+                        </div>
+                        <div class="conversation-block">
+                            <div class="conversation-label">AI-suggested reply</div>
+                            <p class="reply" data-i18n="landing.slider.example5.reply">Check-in is from 15:00, check-out by 11:00.
+Yes, pets are welcome &mdash; just let us know in advance so we can prepare the space.</p>
+                        </div>
+                    </div>
+                    <div class="lp-slide card conversation">
+                        <div class="conversation-top">
+                            <span class="avatar">T</span>
+                            <div class="conversation-meta">
+                                <div class="conversation-sender">Thomas B.</div>
+                                <div class="conversation-time" data-i18n="landing.slider.time.now">Just now</div>
+                            </div>
+                        </div>
+                        <div class="conversation-block">
+                            <div class="conversation-label">Customer question</div>
+                            <p class="question" data-i18n="landing.slider.example6.question">How much for a one-hour strategy call, and how do I book?</p>
+                        </div>
+                        <div class="conversation-block">
+                            <div class="conversation-label">AI-suggested reply</div>
+                            <p class="reply" data-i18n="landing.slider.example6.reply">A one-hour strategy call is &euro;90. I can send you a booking link with my open slots for this week &mdash; want me to send it now?</p>
+                        </div>
+                    </div>
+                    <div class="lp-slide card conversation">
+                        <div class="conversation-top">
+                            <span class="avatar">N</span>
+                            <div class="conversation-meta">
+                                <div class="conversation-sender">Nina V.</div>
+                                <div class="conversation-time" data-i18n="landing.slider.time.m2">2m ago</div>
+                            </div>
+                        </div>
+                        <div class="conversation-block">
+                            <div class="conversation-label">Customer question</div>
+                            <p class="question" data-i18n="landing.slider.example7.question">Does the green midi dress come in size M, and what's your return policy?</p>
+                        </div>
+                        <div class="conversation-block">
+                            <div class="conversation-label">AI-suggested reply</div>
+                            <p class="reply" data-i18n="landing.slider.example7.reply">Yes, size M is in stock! Returns are accepted within 14 days with the tag still attached. Want me to hold one for you?</p>
+                        </div>
+                    </div>
+                    <div class="lp-slide card conversation">
+                        <div class="conversation-top">
+                            <span class="avatar">J</span>
+                            <div class="conversation-meta">
+                                <div class="conversation-sender">Jelena T.</div>
+                                <div class="conversation-time" data-i18n="landing.slider.time.m5">5m ago</div>
+                            </div>
+                        </div>
+                        <div class="conversation-block">
+                            <div class="conversation-label">Customer question</div>
+                            <p class="question" data-i18n="landing.slider.example8.question">How much is a gel manicure, and do I need to book in advance?</p>
+                        </div>
+                        <div class="conversation-block">
+                            <div class="conversation-label">AI-suggested reply</div>
+                            <p class="reply" data-i18n="landing.slider.example8.reply">A gel manicure is &euro;28. We recommend booking a day ahead, especially for weekends &mdash; want me to check tomorrow's availability?</p>
+                        </div>
+                    </div>
+                    <div class="lp-slide card conversation">
+                        <div class="conversation-top">
+                            <span class="avatar">L</span>
+                            <div class="conversation-meta">
+                                <div class="conversation-sender">Luka S.</div>
+                                <div class="conversation-time" data-i18n="landing.slider.time.m12">12m ago</div>
+                            </div>
+                        </div>
+                        <div class="conversation-block">
+                            <div class="conversation-label">Customer question</div>
+                            <p class="question" data-i18n="landing.slider.example9.question">What's the price for a monthly plan, and is it OK if I've never trained before?</p>
+                        </div>
+                        <div class="conversation-block">
+                            <div class="conversation-label">AI-suggested reply</div>
+                            <p class="reply" data-i18n="landing.slider.example9.reply">A monthly plan is &euro;80 for 8 sessions.
+Totally fine if you're just starting out &mdash; the first session is a light intro so we can build a plan around you.</p>
+                        </div>
+                    </div>
+                    <div class="lp-slide card conversation">
+                        <div class="conversation-top">
+                            <span class="avatar">M</span>
+                            <div class="conversation-meta">
+                                <div class="conversation-sender">Mia H.</div>
+                                <div class="conversation-time" data-i18n="landing.slider.time.h1">1h ago</div>
+                            </div>
+                        </div>
+                        <div class="conversation-block">
+                            <div class="conversation-label">Customer question</div>
+                            <p class="question" data-i18n="landing.slider.example10.question">Do you have availability for a wedding on September 12th, and what's included in your package?</p>
+                        </div>
+                        <div class="conversation-block">
+                            <div class="conversation-label">AI-suggested reply</div>
+                            <p class="reply" data-i18n="landing.slider.example10.reply">September 12th is still open!
+The standard package includes 6 hours of coverage and 300+ edited photos. Want me to send the full package details?</p>
+                        </div>
+                    </div>
                 </div>
             </div>
-            <div class="conversation-block">
-                <div class="conversation-label">Customer question</div>
-                <p class="question">Hey! What are your Saturday hours, and how much for a women's haircut?</p>
-            </div>
-            <div class="conversation-block">
-                <div class="conversation-label">AI-suggested reply</div>
-                <p class="reply" id="lp-demo-reply">Hey! We're open Saturdays from 9 to 16.
-A women's haircut is $17, men's is $11.
-Want me to book you in for a time?</p>
-            </div>
+            <button type="button" class="lp-slider-arrow lp-slider-prev" id="lp-slider-prev" aria-label="Previous example">&#8249;</button>
+            <button type="button" class="lp-slider-arrow lp-slider-next" id="lp-slider-next" aria-label="Next example">&#8250;</button>
+            <div class="lp-slider-dots" id="lp-slider-dots"></div>
         </div>
-        <p style="text-align: center; color: var(--text-muted); font-size: 13.5px; margin-top: 14px;" class="lp-reveal">Real example, based on the sample price list and hours shown during registration.</p>
+        <p style="text-align: center; color: var(--text-muted); font-size: 13.5px; margin-top: 14px;" class="lp-reveal">Real examples, based on the kind of price list and hours shown during registration.</p>
     </section>
 
     <!-- How it works -->
@@ -202,54 +370,121 @@ Want me to book you in for a time?</p>
         revealEls.forEach(function (el) { el.classList.add('lp-visible'); });
     }
 
-    // Demo reply: the real text is already in the HTML (works with no JS / for crawlers).
-    // With JS, we capture it, clear it, and replay it as a typing animation once the card
-    // scrolls into view - purely a progressive-enhancement flourish on top of real content.
-    var demoCard = document.getElementById('lp-demo-card');
-    var replyEl = document.getElementById('lp-demo-reply');
-    var fullText = replyEl.textContent;
-    var typed = false;
+    // "See it in action" slider: a single-active-card carousel over the 10 example
+    // slides. Text is read fresh from the DOM at the moment each slide activates
+    // (never captured/cached at parse time) so it always reflects whatever language
+    // site-i18n.js has already applied - including if the visitor switches language
+    // mid-visit, since applyTranslations() updates the same nodes we read from.
+    var slider = document.getElementById('lp-slider');
+    var track = document.getElementById('lp-slider-track');
+    var slides = track ? Array.prototype.slice.call(track.children) : [];
+    var dotsWrap = document.getElementById('lp-slider-dots');
+    var prevBtn = document.getElementById('lp-slider-prev');
+    var nextBtn = document.getElementById('lp-slider-next');
 
-    if (!prefersReducedMotion) {
-        replyEl.innerHTML = '<span class="lp-typing-dots"><span></span><span></span><span></span></span>';
-    }
+    if (slider && slides.length) {
+        var current = 0;
+        var autoplayTimer = null;
+        var typingTimers = [];
 
-    function typeReply() {
-        if (typed) return;
-        typed = true;
-        if (prefersReducedMotion) {
-            replyEl.textContent = fullText;
-            return;
+        var dots = slides.map(function (_, i) {
+            var dot = document.createElement('button');
+            dot.type = 'button';
+            dot.className = 'lp-slider-dot';
+            dot.setAttribute('aria-label', 'Go to example ' + (i + 1));
+            dot.addEventListener('click', function () { goTo(i); restartAutoplay(); });
+            dotsWrap.appendChild(dot);
+            return dot;
+        });
+
+        function clearTypingTimers() {
+            typingTimers.forEach(function (id) { clearTimeout(id); });
+            typingTimers = [];
         }
-        setTimeout(function () {
-            replyEl.innerHTML = '<span class="lp-reply-cursor"></span>';
-            var i = 0;
-            var speed = 14; // ms per character - fast enough to not feel slow, slow enough to read as "typing"
-            (function step() {
-                i += 2;
-                var slice = fullText.slice(0, i);
-                replyEl.innerHTML = slice.replace(/\n/g, '<br>') + '<span class="lp-reply-cursor"></span>';
-                if (i < fullText.length) {
-                    setTimeout(step, speed);
-                } else {
-                    replyEl.innerHTML = fullText.replace(/\n/g, '<br>');
-                }
-            })();
-        }, 900);
-    }
 
-    if ('IntersectionObserver' in window) {
-        var demoIo = new IntersectionObserver(function (entries) {
-            entries.forEach(function (entry) {
-                if (entry.isIntersecting) {
-                    typeReply();
-                    demoIo.unobserve(entry.target);
-                }
-            });
-        }, { threshold: 0.4 });
-        demoIo.observe(demoCard);
-    } else {
-        typeReply();
+        // Re-plays the typing effect for the reply in the given slide, reading its
+        // *current* textContent live (post-translation) rather than a cached value.
+        function typeSlideReply(slide) {
+            var replyEl = slide.querySelector('.reply');
+            if (!replyEl) return;
+            var fullText = replyEl.textContent;
+            if (prefersReducedMotion) { replyEl.textContent = fullText; return; }
+            replyEl.innerHTML = '<span class="lp-typing-dots"><span></span><span></span><span></span></span>';
+            typingTimers.push(setTimeout(function () {
+                replyEl.innerHTML = '<span class="lp-reply-cursor"></span>';
+                var i = 0;
+                var speed = 12;
+                (function step() {
+                    i += 2;
+                    var slice = fullText.slice(0, i);
+                    replyEl.innerHTML = slice.replace(/\n/g, '<br>') + '<span class="lp-reply-cursor"></span>';
+                    if (i < fullText.length) {
+                        typingTimers.push(setTimeout(step, speed));
+                    } else {
+                        replyEl.innerHTML = fullText.replace(/\n/g, '<br>');
+                    }
+                })();
+            }, 500));
+        }
+
+        function goTo(index) {
+            current = (index + slides.length) % slides.length;
+            track.style.transform = 'translateX(-' + (current * 100) + '%)';
+            dots.forEach(function (dot, i) { dot.classList.toggle('active', i === current); });
+            clearTypingTimers();
+            typeSlideReply(slides[current]);
+        }
+
+        function next() { goTo(current + 1); }
+        function prev() { goTo(current - 1); }
+
+        function startAutoplay() {
+            if (prefersReducedMotion || autoplayTimer) return;
+            autoplayTimer = setInterval(next, 5000);
+        }
+        function stopAutoplay() {
+            clearInterval(autoplayTimer);
+            autoplayTimer = null;
+        }
+        function restartAutoplay() { stopAutoplay(); startAutoplay(); }
+
+        if (prevBtn) prevBtn.addEventListener('click', function () { prev(); restartAutoplay(); });
+        if (nextBtn) nextBtn.addEventListener('click', function () { next(); restartAutoplay(); });
+        slider.addEventListener('mouseenter', stopAutoplay);
+        slider.addEventListener('mouseleave', startAutoplay);
+
+        // Touch swipe
+        var touchStartX = null;
+        slider.addEventListener('touchstart', function (e) {
+            touchStartX = e.touches[0].clientX;
+            stopAutoplay();
+        }, { passive: true });
+        slider.addEventListener('touchend', function (e) {
+            if (touchStartX === null) return;
+            var deltaX = e.changedTouches[0].clientX - touchStartX;
+            if (Math.abs(deltaX) > 40) { deltaX < 0 ? next() : prev(); }
+            touchStartX = null;
+            startAutoplay();
+        });
+
+        dots[0].classList.add('active');
+
+        // Don't type/autoplay until the slider actually scrolls into view.
+        if ('IntersectionObserver' in window) {
+            var sliderIo = new IntersectionObserver(function (entries) {
+                entries.forEach(function (entry) {
+                    if (entry.isIntersecting) {
+                        typeSlideReply(slides[current]);
+                        startAutoplay();
+                        sliderIo.unobserve(entry.target);
+                    }
+                });
+            }, { threshold: 0.4 });
+            sliderIo.observe(slider);
+        } else {
+            typeSlideReply(slides[current]);
+            startAutoplay();
+        }
     }
 })();
 </script>
