@@ -831,8 +831,68 @@ body.intro { margin: 0; height: 100dvh; overflow: hidden; }
     padding: 12px 0;
     box-shadow: 0 4px 20px rgba(38, 32, 20, .05);
 }
-#lp-header .public-header { padding-top: 0; padding-bottom: 0; }
+/* min-height: brand and (>=1001px) nav-links are pulled out of flow below for
+   corner-pinning, leaving no in-flow content to size this box - without it,
+   the header collapses and its scrolled frosted-glass background no longer
+   reaches down behind the now-floating buttons. */
+#lp-header .public-header { padding-top: 0; padding-bottom: 0; justify-content: flex-end; min-height: 38px; }
 .lp-header-spacer { height: 74px; }
+
+/* Logo pinned near the viewport corner, and no longer a link - #lp-header is
+   fixed/full-width so absolute here resolves against the viewport, not the
+   centered .public-header. Below 1080px it stays flush at the true corner
+   (left:20); above that it's nudged in a bit for breathing room next to the
+   center nav, see the shared breakpoint below. */
+#lp-corner-brand { position: absolute; top: 20px; left: 20px; cursor: default; }
+
+/* Above ~1080px the centered 960px column leaves visible daylight between
+   "Log in"/"Try for free" and the fixed language-picker button in the true
+   corner - pin the nav links too, nudged in from the edge (not flush against
+   the language button) so the whole row reads as evenly spaced rather than
+   pinned to extremes. Below 1080px .public-header is narrow enough that this
+   would crowd the still in-flow "Log in"/"Try for free" links (and the
+   center nav below is hidden entirely at that width). */
+@media (min-width: 1080px) {
+    #lp-corner-brand { left: 56px; }
+    #lp-header .nav-links {
+        position: fixed;
+        top: calc(13px + var(--install-banner-h));
+        right: 140px;
+    }
+}
+
+/* Center nav - real links into sections further down the page (not
+   decoration), filling the wide empty gap between the corner logo and the
+   corner buttons. Styled as one pill-shaped group (same visual language as
+   the trust-strip pills / language button elsewhere on the page) instead of
+   bare text, so it reads as a designed nav component. Desktop-only: below
+   1080px .public-header is narrow enough that a middle nav would crowd the
+   still in-flow "Log in"/"Try for free" links. */
+#lp-header .lp-center-nav { display: none; }
+@media (min-width: 1080px) {
+    #lp-header .lp-center-nav {
+        display: flex; align-items: center; gap: 2px;
+        position: absolute; left: 50%; top: 12px; transform: translateX(-50%);
+        background: var(--surface); border: 1px solid var(--border);
+        border-radius: 99px; padding: 4px; box-shadow: var(--shadow);
+    }
+    #lp-header .lp-center-nav a {
+        color: var(--text-muted); font-size: 14px; font-weight: 600;
+        padding: 8px 16px; border-radius: 99px;
+        transition: background .15s ease, color .15s ease;
+    }
+    #lp-header .lp-center-nav a:hover {
+        background: var(--primary-light); color: var(--primary-ink); text-decoration: none;
+    }
+}
+
+/* Smooth-scroll for the center nav's anchor links; scroll-margin-top keeps the
+   fixed header from covering the target section's heading on arrival. */
+html { scroll-behavior: smooth; }
+.lp-scroll-anchor { scroll-margin-top: 90px; }
+@media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+}
 
 /* --- Hero aurora background --- */
 .lp-hero { position: relative; overflow: hidden; }

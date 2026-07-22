@@ -9,10 +9,18 @@
 
 <header id="lp-header">
     <div class="public-header">
-        <a class="brand" href="{{ url_for('home') }}">
+        <span class="brand" id="lp-corner-brand">
             <span class="brand-mark">C</span>
             <span class="brand-name">Camilius</span>
-        </a>
+        </span>
+        <!-- Center nav (desktop only, see min-width:1001px in style.css) - anchors into
+             sections that already exist further down the page, reusing their own
+             section-title i18n keys instead of adding new translation entries. -->
+        <nav class="lp-center-nav">
+            <a href="#lp-examples" data-i18n="landing.slider.sectionTitle">See it in action</a>
+            <a href="#lp-how-it-works" data-i18n="landing.howItWorks.title">How it works</a>
+            {% if not beta_free_mode %}<a href="#lp-pricing" data-i18n="terms.pricing.heading">Pricing</a>{% endif %}
+        </nav>
         <div class="nav-links">
             <a href="{{ url_for('login') }}" data-i18n="landing.nav.login">Log in</a>
             <a href="{{ url_for('register') }}" class="button" style="padding: 8px 16px; font-size: 14px;" data-i18n="landing.nav.tryFree">Try for free</a>
@@ -54,7 +62,7 @@
          reply carries data-i18n (see static/site-i18n.js "landing.slider.*") so it
          auto-translates with the rest of the site; sender names are left as-is
          (proper nouns, same treatment as a real business's own name elsewhere). -->
-    <section class="section">
+    <section class="section lp-scroll-anchor" id="lp-examples">
         <h2 class="section-title lp-reveal" data-i18n="landing.slider.sectionTitle">See it in action</h2>
         <div class="lp-slider lp-reveal" id="lp-slider">
             <div class="lp-slider-viewport">
@@ -244,7 +252,7 @@ The standard package includes 6 hours of coverage and 300+ edited photos. Want m
     </section>
 
     <!-- How it works -->
-    <section class="section">
+    <section class="section lp-scroll-anchor" id="lp-how-it-works">
         <h2 class="section-title lp-reveal" data-i18n="landing.howItWorks.title">How it works</h2>
         <div class="steps lp-reveal-group">
             <div class="card step lp-card-hover lp-reveal">
@@ -283,7 +291,7 @@ The standard package includes 6 hours of coverage and 300+ edited photos. Want m
     <!-- Pricing - a teaser only; the real Starter/Pro breakdown with a Monthly/Yearly
          toggle lives on /subscription (inside Settings once logged in) - see
          subscription.html. -->
-    <section class="section">
+    <section class="section lp-scroll-anchor" id="lp-pricing">
         <h2 class="section-title lp-reveal" data-i18n="landing.pricing.title">Simple pricing</h2>
         <div class="card price-card lp-card-hover lp-reveal">
             <div class="price-row" style="justify-content: center;">
