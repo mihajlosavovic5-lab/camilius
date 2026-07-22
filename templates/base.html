@@ -86,7 +86,6 @@
     });
     window.addEventListener("appinstalled", function () {
         deferredInstallPrompt = null;
-        try { localStorage.setItem("installBannerDismissed", "1"); } catch (e) {}
         var banner = document.getElementById("mobile-install-banner");
         if (banner) banner.classList.add("hidden");
     });
@@ -97,9 +96,9 @@
         if (isStandalone) return;
         if (!/Android/i.test(navigator.userAgent)) return;
         if (window.location.pathname === "/download" || window.location.pathname === "/intro") return;
-        var dismissed = false;
-        try { dismissed = localStorage.getItem("installBannerDismissed") === "1"; } catch (e) {}
-        if (dismissed) return;
+        // Shown on every fresh page load, even if dismissed on a previous visit -
+        // deliberately not remembered via localStorage (user wants it to reappear
+        // every time rather than being suppressed forever after one dismissal).
         var banner = document.getElementById("mobile-install-banner");
         if (banner) {
             banner.classList.remove("hidden");
@@ -114,7 +113,6 @@
         var dismissBtn = document.getElementById("mobile-install-banner-dismiss");
         if (dismissBtn) {
             dismissBtn.addEventListener("click", function () {
-                try { localStorage.setItem("installBannerDismissed", "1"); } catch (e) {}
                 document.getElementById("mobile-install-banner").classList.add("hidden");
             });
         }
@@ -129,7 +127,6 @@
                 deferredInstallPrompt = null;
                 promptEvent.prompt();
                 promptEvent.userChoice.finally(function () {
-                    try { localStorage.setItem("installBannerDismissed", "1"); } catch (e) {}
                     document.getElementById("mobile-install-banner").classList.add("hidden");
                 });
             });

@@ -39,7 +39,7 @@
 <header id="lp-header">
     <!-- Same header at every viewport width: hamburger top-left opens a dropdown
          with everything the site nav has (See it in action/Pricing/How it works,
-         Log in, Try for free); the brand logo sits centered top. -->
+         Log in, Try for free, Download for Android); the brand logo sits centered top. -->
     <button type="button" id="lp-menu-btn" class="lp-menu-btn" aria-label="Menu" aria-expanded="false" aria-controls="lp-menu-modal">
         <span></span><span></span><span></span>
     </button>
@@ -52,6 +52,8 @@
             <div class="lp-menu-modal-divider"></div>
             <a href="{{ url_for('login') }}" data-i18n="landing.nav.login">Log in</a>
             <a href="{{ url_for('register') }}" class="button" data-i18n="landing.nav.tryFree">Try for free</a>
+            <div class="lp-menu-modal-divider"></div>
+            <a href="{{ url_for('download') }}" data-i18n="download.cta">Download for Android</a>
         </nav>
     </div>
     <div class="public-header">
