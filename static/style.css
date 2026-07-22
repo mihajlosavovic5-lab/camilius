@@ -9,19 +9,18 @@
    swallows clicks aimed at the button underneath. */
 .site-lang-select-btn {
     position: fixed; top: calc(16px + var(--install-banner-h)); right: 16px; z-index: 1001;
-    display: flex; align-items: center; gap: 6px;
-    background: var(--surface); border: 1px solid var(--border);
+    display: flex; align-items: center; gap: 5px;
+    background: none; border: none; padding: 4px;
     cursor: pointer; font-family: inherit; color: var(--text-muted);
-    padding: 7px 10px; border-radius: 999px; box-shadow: var(--shadow);
-    transition: top .2s ease, background .15s ease, box-shadow .15s ease;
+    transition: top .2s ease, transform .15s ease;
 }
-.site-lang-select-btn:hover { background: var(--background); box-shadow: var(--shadow-lg); }
+.site-lang-select-btn:hover { transform: scale(1.08); }
 .site-lang-select-btn.active .site-lang-chevron { transform: rotate(180deg); }
 .site-lang-flag {
-    width: 21px; height: 15px; object-fit: cover; border-radius: 3px; flex-shrink: 0;
-    box-shadow: 0 0 0 1px rgba(20,15,8,.12), var(--shadow);
+    width: 32px; height: 23px; object-fit: cover; border-radius: 5px; flex-shrink: 0;
+    box-shadow: 0 0 0 1px rgba(20,15,8,.15), var(--shadow-lg);
 }
-.site-lang-chevron { font-size: 11px; display: inline-block; transition: transform .18s ease; }
+.site-lang-chevron { font-size: 13px; display: inline-block; transition: transform .18s ease; filter: drop-shadow(0 1px 1px rgba(20,15,8,.2)); }
 /* --- Smart mobile-web install banner (Faza 5) - sits in normal document flow at the
    very top of the page (not fixed), so it simply pushes the sticky nav down when
    present and scrolls away with the rest of the page once you scroll past it. --- */
@@ -47,28 +46,42 @@
 .site-lang-modal-backdrop { position: absolute; inset: 0; background: rgba(20,15,8,.32); opacity: 0; transition: opacity .2s ease; }
 .site-lang-modal.open .site-lang-modal-backdrop { opacity: 1; }
 .site-lang-modal-sheet {
-    position: absolute; right: 16px; top: 60px;
-    width: min(220px, calc(100% - 32px)); max-height: 60vh; overflow-y: auto;
-    background: var(--surface); border-radius: 14px; box-shadow: var(--shadow-lg);
-    padding: 8px; transform-origin: top right;
+    position: absolute; right: 16px; top: 54px;
+    width: min(230px, calc(100% - 32px));
+    background: var(--surface); border: 1px solid var(--border); border-radius: 16px;
+    box-shadow: var(--shadow-lg); overflow: hidden;
+    transform-origin: top right;
     transform: translateY(-6px) scale(.94); opacity: 0;
     transition: transform .2s cubic-bezier(.22,.9,.32,1.2), opacity .16s ease;
 }
 .site-lang-modal.open .site-lang-modal-sheet { transform: translateY(0) scale(1); opacity: 1; }
-.site-lang-modal-list { display: flex; flex-direction: column; }
+/* brand accent strip - ties the otherwise-plain white dropdown back into the site's
+   amber/gold identity instead of looking like a generic system menu. */
+.site-lang-modal-sheet::before {
+    content: ""; display: block; height: 3px; flex-shrink: 0;
+    background: linear-gradient(90deg, var(--primary), var(--gold-dark));
+}
+.site-lang-modal-list {
+    display: flex; flex-direction: column; gap: 1px;
+    padding: 7px; max-height: min(60vh, 380px); overflow-y: auto;
+}
+.site-lang-modal-list::-webkit-scrollbar { width: 6px; }
+.site-lang-modal-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+.site-lang-modal-list::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
 .site-lang-option-btn {
-    background: none; border: none; text-align: left; padding: 9px 10px; border-radius: 9px;
+    background: none; border: none; text-align: left; padding: 9px 10px; border-radius: 10px;
     font-family: inherit; font-size: 14.5px; color: var(--text); cursor: pointer; width: 100%;
     display: flex; align-items: center; gap: 10px;
+    transition: background .12s ease;
 }
-.site-lang-option-btn:hover { background: var(--background); }
+.site-lang-option-btn:hover { background: var(--primary-light); }
 .site-lang-option-flag {
-    width: 24px; height: 17px; object-fit: cover; border-radius: 3px; flex-shrink: 0;
+    width: 26px; height: 19px; object-fit: cover; border-radius: 4px; flex-shrink: 0;
     box-shadow: 0 0 0 1px rgba(20,15,8,.12);
 }
 .site-lang-option-name { flex: 1; }
-.site-lang-option-btn.active { background: var(--background); font-weight: 600; color: var(--primary-dark); }
-.site-lang-option-btn.active::after { content: "\2713"; font-size: 13px; color: var(--primary); flex-shrink: 0; }
+.site-lang-option-btn.active { background: var(--primary-light); font-weight: 600; color: var(--primary-ink); }
+.site-lang-option-btn.active::after { content: "\2713"; font-size: 13px; font-weight: 700; color: var(--primary); flex-shrink: 0; }
 
 :root {
     --primary: #d69410;          /* deep amber - button fills (with white text) */
