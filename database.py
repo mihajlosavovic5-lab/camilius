@@ -203,6 +203,13 @@ def create_database():
     # with no paddle_subscription_id yet, which no pre-existing business is in.
     cursor.execute("ALTER TABLE businesses ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
 
+    # Faza 10: Stripe billing, added alongside the existing Paddle columns above rather
+    # than reusing them - a stored id needs to be unambiguous about which processor it
+    # belongs to. subscription_status/subscription_plan stay processor-agnostic and are
+    # shared by both (see link_stripe_subscription/update_stripe_subscription_status).
+    cursor.execute("ALTER TABLE businesses ADD COLUMN IF NOT EXISTS stripe_customer_id TEXT")
+    cursor.execute("ALTER TABLE businesses ADD COLUMN IF NOT EXISTS stripe_subscription_id TEXT")
+
     # Tracks which IMAP messages have already been processed, per business. Needed because
     # the worker reads mail via BODY.PEEK (doesn't mark it read, to leave the owner's inbox
     # untouched) - without this the same unread message would be reprocessed every 60s.
@@ -849,6 +856,58 @@ def update_subscription_status(paddle_subscription_id, status, plan=None):
         cursor.execute(
             "UPDATE businesses SET subscription_status = %s WHERE paddle_subscription_id = %s",
             (status, paddle_subscription_id),
+        )
+    connection.commit()
+    connection.close()
+
+
+# --- Subscription (Stripe, Faza 10) ---
+#
+# Parallel to the Paddle functions above rather than a shared/merged implementation -
+# each processor's webhook event shapes are different enough (and this app now supports
+# either one being linked to a business) that keeping them as separate, independently
+# readable functions is safer than forcing them through one abstraction under time
+# pressure. Both still write to the same processor-agnostic subscription_status/
+# subscription_plan columns that has_pro_access()/effective_subscription_active() read.
+
+def link_stripe_subscription(business_id, stripe_customer_id, stripe_subscription_id, status, plan=None):
+    """Called from /stripe-webhook the first time Stripe reports a subscription for this
+    business (checkout.session.completed) - see link_subscription (Paddle) above for the
+    equivalent Paddle flow this mirrors."""
+    connection = connect()
+    cursor = connection.cursor()
+    if plan:
+        cursor.execute(
+            """UPDATE businesses
+               SET stripe_customer_id = %s, stripe_subscription_id = %s, subscription_status = %s, subscription_plan = %s
+               WHERE id = %s""",
+            (stripe_customer_id, stripe_subscription_id, status, plan, business_id),
+        )
+    else:
+        cursor.execute(
+            """UPDATE businesses
+               SET stripe_customer_id = %s, stripe_subscription_id = %s, subscription_status = %s
+               WHERE id = %s""",
+            (stripe_customer_id, stripe_subscription_id, status, business_id),
+        )
+    connection.commit()
+    connection.close()
+
+
+def update_stripe_subscription_status(stripe_subscription_id, status, plan=None):
+    """Called from /stripe-webhook on later lifecycle events (customer.subscription.
+    updated/deleted) - finds the business by its already-saved Stripe subscription id."""
+    connection = connect()
+    cursor = connection.cursor()
+    if plan:
+        cursor.execute(
+            "UPDATE businesses SET subscription_status = %s, subscription_plan = %s WHERE stripe_subscription_id = %s",
+            (status, plan, stripe_subscription_id),
+        )
+    else:
+        cursor.execute(
+            "UPDATE businesses SET subscription_status = %s WHERE stripe_subscription_id = %s",
+            (status, stripe_subscription_id),
         )
     connection.commit()
     connection.close()

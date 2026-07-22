@@ -18,6 +18,7 @@ from database import (
     business_by_id, add_business, create_database, delete_business, replies_today_count,
     update_business, business_by_contact_email, save_reset_token, business_by_reset_token, set_new_password,
     link_subscription, update_subscription_status, get_subscription_status,
+    link_stripe_subscription, update_stripe_subscription_status,
     effective_subscription_active, has_pro_access,
     business_stats, log_event, event_funnel, recent_client_errors, log_client_error,
     link_instagram_account, business_by_instagram_account_id, already_processed_messages,
@@ -34,6 +35,7 @@ from send_email import send_email
 from generate_reply import generate_reply, generate_reply_with_booking
 from support_assistant import answer_support_question
 import booking
+import stripe_billing
 from push_notifications import send_push_to_business
 from instagram_api import (
     authorize_url as instagram_authorize_url, exchange_code_for_token, exchange_for_long_lived_token,
@@ -147,6 +149,36 @@ def login_required(function):
             return redirect(url_for("login"))
         return function(*args, **kwargs)
     return wrapped_function
+
+
+# Faza 10: once a logged-in business's 7-day self-serve trial (or paid plan) has
+# actually lapsed - not just "hasn't upgraded to Pro", see the Starter-vs-Pro
+# distinction on /schedule instead - core product pages redirect to /subscription
+# rather than just showing a banner (see dashboard.html's older banner for the softer
+# in-place warning this replaces on those pages). Only fires for a logged-in business
+# (business_id in session); a logged-out visitor is unaffected, since home() itself
+# branches on session before ever calling any decorated logic. Must sit UNDER
+# @login_required in the decorator stack (closer to the view function) so it only ever
+# runs after login is already confirmed.
+def subscription_required(function):
+    @wraps(function)
+    def wrapped_function(*args, **kwargs):
+        business_id = session.get("business_id")
+        if business_id and not BETA_FREE_MODE and not effective_subscription_active(business_id):
+            return redirect(url_for("subscription", trial_ended=1))
+        return function(*args, **kwargs)
+    return wrapped_function
+
+
+@app.context_processor
+def inject_nav_pro_access():
+    """Powers the small "Pro" hint badge on the Schedule nav link (_nav.html) for a
+    Starter-plan (or lapsed) business, before they even click in - computed globally
+    here rather than passed into every single route's render_template call."""
+    business_id = session.get("business_id")
+    if not business_id:
+        return {"nav_pro_access": None}
+    return {"nav_pro_access": BETA_FREE_MODE or has_pro_access(business_id)}
 
 
 @app.route("/login", methods=["GET", "POST"])
@@ -744,6 +776,7 @@ DAILY_REPLY_LIMIT = 50  # also enforced in the /instagram-webhook handler below
 
 
 @app.route("/")
+@subscription_required
 def home():
     # Logged-out visitors see the public landing page (marketing + call to register)
     # instead of a redirect to login. Logged-in visitors get the dashboard.
@@ -892,8 +925,16 @@ SLOT_DURATION_CHOICES = (15, 30, 45, 60, 90, 120)
 
 @app.route("/schedule")
 @login_required
+@subscription_required
 def schedule():
     business_id = session["business_id"]
+
+    # Faza 10 feature gating: Starter-plan businesses have NO access to Schedule at all
+    # (not even the manual calendar, unlike Faza 8/9's softer "AI booking only" gate) -
+    # shown a locked "Upgrade to Pro" page instead of any calendar content.
+    if not (BETA_FREE_MODE or has_pro_access(business_id)):
+        return render_template("schedule.html", locked=True)
+
     business = business_by_id(business_id)
     working_hours = business[8]
     slot_minutes = get_slot_duration(business_id)
@@ -907,13 +948,13 @@ def schedule():
         selected_date = booking.now_local().date()
 
     context = dict(
+        locked=False,
         view=view,
         selected_date=selected_date,
         today=booking.now_local().date(),
         slot_minutes=slot_minutes,
         slot_duration_choices=SLOT_DURATION_CHOICES,
         has_any_open_day=any(booking.parse_working_hours(working_hours).values()),
-        pro_access=BETA_FREE_MODE or has_pro_access(business_id),
         book_error=request.args.get("book_error"),
     )
 
@@ -955,6 +996,8 @@ def schedule():
 @login_required
 def create_appointment_route():
     business_id = session["business_id"]
+    if not (BETA_FREE_MODE or has_pro_access(business_id)):
+        abort(403)  # Starter-plan bypass attempt - the page itself is locked, see schedule()
     business = business_by_id(business_id)
     date_str = request.form.get("date", "")
     time_str = request.form.get("time", "")
@@ -985,6 +1028,8 @@ def create_appointment_route():
 @app.route("/schedule/appointments/<int:appointment_id>/cancel", methods=["POST"])
 @login_required
 def cancel_appointment_route(appointment_id):
+    if not (BETA_FREE_MODE or has_pro_access(session["business_id"])):
+        abort(403)
     appointment = get_appointment(appointment_id)
     if appointment is None or appointment[1] != session["business_id"]:
         abort(404)
@@ -995,6 +1040,8 @@ def cancel_appointment_route(appointment_id):
 @app.route("/schedule/slot-duration", methods=["POST"])
 @login_required
 def update_slot_duration():
+    if not (BETA_FREE_MODE or has_pro_access(session["business_id"])):
+        abort(403)
     try:
         minutes = int(request.form.get("slot_duration", 30))
     except ValueError:
@@ -1025,40 +1072,40 @@ def support_chat():
     return jsonify(reply=reply)
 
 
-# --- Subscription (Paddle) ---
+# --- Subscription (Paddle, kept live in the backend for any existing sandbox
+# subscription - see paddle_webhook below - but no longer linked from the pricing UI,
+# which now checks out through Stripe instead. See stripe_billing.py.) ---
 
-def _subscription_response(business_id, hide_nav=False):
+def _subscription_response(business_id, hide_nav=False, trial_ended=False):
     business = business_by_id(business_id)
     status = get_subscription_status(business_id)
     return render_template(
         "subscription.html",
-        client_token=os.getenv("PADDLE_CLIENT_TOKEN", ""),
-        # Faza 5: two plans (Starter/Pro) x two billing intervals (monthly/yearly) - four
-        # distinct Paddle prices, each its own env var (not yet created in Paddle as of
-        # this writing - these will all be empty strings until the user creates them in
-        # the Paddle dashboard and sets the vars on Railway, same "preserve() in
-        # railway.ts" pattern as PADDLE_PRICE_ID before it). The old single PADDLE_PRICE_ID
-        # is left alone/unused here, kept only for the already-active-subscriber branch's
-        # historical reference and any existing sandbox subscription tied to it.
-        price_ids={
-            "starter_monthly": os.getenv("PADDLE_PRICE_STARTER_MONTHLY", ""),
-            "starter_yearly": os.getenv("PADDLE_PRICE_STARTER_YEARLY", ""),
-            "pro_monthly": os.getenv("PADDLE_PRICE_PRO_MONTHLY", ""),
-            "pro_yearly": os.getenv("PADDLE_PRICE_PRO_YEARLY", ""),
+        stripe_configured=stripe_billing.is_configured(),
+        # Faza 10: two plans (Starter/Pro) x two billing intervals (monthly/yearly) -
+        # four distinct Stripe prices, each its own env var. A price whose env var isn't
+        # set on Railway yet just shows "Coming soon" on that button - see
+        # stripe_billing.price_id_for.
+        stripe_prices_configured={
+            "starter_monthly": bool(stripe_billing.price_id_for("starter", "monthly")),
+            "starter_yearly": bool(stripe_billing.price_id_for("starter", "yearly")),
+            "pro_monthly": bool(stripe_billing.price_id_for("pro", "monthly")),
+            "pro_yearly": bool(stripe_billing.price_id_for("pro", "yearly")),
         },
-        paddle_env=os.getenv("PADDLE_ENV", "sandbox"),
         business_id=business_id,
         email=business[4],
         status=status,
         active=effective_subscription_active(business_id),
+        pro_access=BETA_FREE_MODE or has_pro_access(business_id),
         hide_nav=hide_nav,
+        trial_ended=trial_ended,
     )
 
 
 @app.route("/subscription")
 @login_required
 def subscription():
-    return _subscription_response(session["business_id"])
+    return _subscription_response(session["business_id"], trial_ended=bool(request.args.get("trial_ended")))
 
 
 # Mobile-app equivalent of /subscription above ("Choose a plan" on the Subscription
@@ -1074,6 +1121,62 @@ def subscription_mobile(token):
     if business_id is None:
         abort(404)
     return _subscription_response(business_id, hide_nav=True)
+
+
+# --- Subscription (Stripe, Faza 10) ---
+
+@app.route("/subscription/checkout", methods=["POST"])
+@login_required
+def stripe_checkout():
+    business_id = session["business_id"]
+    business = business_by_id(business_id)
+    plan = request.form.get("plan")
+    interval = request.form.get("interval")
+    if plan not in ("starter", "pro") or interval not in ("monthly", "yearly"):
+        abort(400)
+
+    checkout_url = stripe_billing.create_checkout_session(
+        business_id, business[4], plan, interval,
+        success_url=url_for("home", _external=True),
+        cancel_url=url_for("subscription", _external=True),
+    )
+    if not checkout_url:
+        return redirect(url_for("subscription", checkout_error=1))
+    return redirect(checkout_url)
+
+
+@app.route("/stripe-webhook", methods=["POST"])
+@csrf.exempt  # external POST from Stripe, no session/CSRF token of ours - has its own signature check below
+def stripe_webhook():
+    event = stripe_billing.verify_and_parse_webhook(request.get_data(), request.headers.get("Stripe-Signature", ""))
+    if event is None:
+        abort(400)
+
+    event_type = event["type"]
+    data = event["data"]["object"]
+
+    if event_type == "checkout.session.completed":
+        metadata = data.get("metadata") or {}
+        business_id = metadata.get("business_id")
+        plan = metadata.get("plan")
+        subscription_id = data.get("subscription")
+        customer_id = data.get("customer")
+        if business_id and subscription_id:
+            link_stripe_subscription(int(business_id), customer_id, subscription_id, "active", plan=plan)
+
+    elif event_type in ("customer.subscription.updated", "customer.subscription.deleted"):
+        subscription_id = data.get("id")
+        # Stripe's own subscription statuses (active/past_due/canceled/unpaid/...) map
+        # directly onto what subscription_active() already checks for - no translation
+        # needed, same "trust the processor's own field" approach paddle_webhook uses.
+        status = "canceled" if event_type == "customer.subscription.deleted" else data.get("status")
+        metadata = data.get("metadata") or {}
+        plan = metadata.get("plan")
+        if subscription_id:
+            update_stripe_subscription_status(subscription_id, status, plan=plan)
+
+    # Stripe expects a 2xx to consider the webhook delivered; otherwise it retries
+    return "", 200
 
 
 def verify_paddle_signature(header, raw_body, secret_key):

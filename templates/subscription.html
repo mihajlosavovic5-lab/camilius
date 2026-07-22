@@ -12,6 +12,16 @@
         </div>
     </div>
 
+    {% if trial_ended %}
+        <div class="alert alert-warning">
+            <span class="alert-icon">&#9888;</span>
+            <span>Your 7-day free trial has ended. Choose a plan below to keep the AI processing your Instagram messages.</span>
+        </div>
+    {% endif %}
+    {% if request.args.get('checkout_error') %}
+        <div class="alert alert-error"><span class="alert-icon">&#9888;&#65039;</span><span>Couldn't start checkout - please try again in a moment.</span></div>
+    {% endif %}
+
     {% if beta_free_mode %}
         <div class="card" style="border-color: var(--success-border);">
             <span class="badge badge-sent"><span class="badge-dot"></span>Free during beta</span>
@@ -27,10 +37,14 @@
         <div class="card" style="border-color: var(--success-border);">
             {% if status == 'trialing' %}
                 <span class="badge badge-pending"><span class="badge-dot"></span>7-day Free Trial Active</span>
-                <p style="margin: 12px 0 0;">Your trial is active and the AI is processing new messages. You won't be charged until the trial ends.</p>
+                <p style="margin: 12px 0 0;">Your trial is active with every Pro feature unlocked, and the AI is processing new messages. You won't be charged until the trial ends - choose a plan any time before then to keep going without interruption.</p>
+            {% elif pro_access %}
+                <span class="badge badge-sent"><span class="badge-dot"></span>Pro plan active</span>
+                <p style="margin: 12px 0 0;">Your account is active and the AI is processing new messages, with every Pro feature unlocked. Thank you!</p>
             {% else %}
-                <span class="badge badge-sent"><span class="badge-dot"></span>Subscription active</span>
+                <span class="badge badge-sent"><span class="badge-dot"></span>Starter plan active</span>
                 <p style="margin: 12px 0 0;">Your account is active and the AI is processing new messages. Thank you!</p>
+                <p class="pro-locked-note" style="margin-top: 12px;">&#10024; Want Schedule/AI booking, no-show reminders, and AI upsell too? <a href="mailto:mihajlosavovic5@gmail.com?subject=Upgrade%20to%20Pro">Email us to upgrade to Pro</a>.</p>
             {% endif %}
         </div>
     {% else %}
@@ -55,9 +69,14 @@
                     <li><span class="checkmark">&#10003;</span> Up to 300 conversations / month</li>
                 </ul>
 
-                <div class="form-actions">
-                    <button class="button button-secondary button-full pricing-choose-btn" data-plan="starter" disabled>Loading...</button>
-                </div>
+                <form method="POST" action="{{ url_for('stripe_checkout') }}" class="form-actions">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="hidden" name="plan" value="starter">
+                    <input type="hidden" name="interval" class="pricing-interval-input" value="monthly">
+                    <button type="submit" class="button button-secondary button-full pricing-choose-btn" data-plan="starter" {% if not stripe_configured or not stripe_prices_configured.starter_monthly %}disabled{% endif %}>
+                        {% if not stripe_configured or not stripe_prices_configured.starter_monthly %}Coming soon{% else %}Choose Starter{% endif %}
+                    </button>
+                </form>
             </div>
 
             <div class="card pricing-plan pricing-plan-recommended">
@@ -72,103 +91,65 @@
                 <ul class="benefits">
                     <li><span class="checkmark">&#10003;</span> Everything in Starter</li>
                     <li><span class="checkmark">&#10003;</span> Smart appointment scheduling to calendar</li>
-                    <li><span class="checkmark">&#10003;</span> Automatic reminders</li>
-                    <li><span class="checkmark">&#10003;</span> Appointment cancellation</li>
+                    <li><span class="checkmark">&#10003;</span> Automatic no-show reminders</li>
+                    <li><span class="checkmark">&#10003;</span> AI upsell for related services</li>
+                    <li><span class="checkmark">&#10003;</span> AI cancellation &amp; rescheduling</li>
                     <li><span class="checkmark">&#10003;</span> AI assistant for support questions</li>
                 </ul>
 
-                <div class="form-actions">
-                    <button class="button button-full pricing-choose-btn" data-plan="pro" disabled>Loading...</button>
-                </div>
+                <form method="POST" action="{{ url_for('stripe_checkout') }}" class="form-actions">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="hidden" name="plan" value="pro">
+                    <input type="hidden" name="interval" class="pricing-interval-input" value="monthly">
+                    <button type="submit" class="button button-full pricing-choose-btn" data-plan="pro" {% if not stripe_configured or not stripe_prices_configured.pro_monthly %}disabled{% endif %}>
+                        {% if not stripe_configured or not stripe_prices_configured.pro_monthly %}Coming soon{% else %}Choose Pro{% endif %}
+                    </button>
+                </form>
             </div>
         </div>
 
-        <p class="note" style="text-align: center; margin-top: 16px;">Payment is securely processed by Paddle (our authorized reseller). VAT is calculated automatically. New accounts start with a 7-day free trial - you won't be charged until it ends.</p>
+        <p class="note" style="text-align: center; margin-top: 16px;">Payment is securely processed by Stripe. New accounts start with a 7-day free trial with every Pro feature unlocked - you won't be charged until it ends.</p>
     {% endif %}
 </div>
 {% endblock %}
 
 {% block scripts %}
 {% if not beta_free_mode and not active %}
-<script src="https://cdn.paddle.com/paddle/v2/paddle.js"></script>
 <script>
-    const CLIENT_TOKEN = "{{ client_token }}";
-    const PRICE_IDS = {
-        starter: { monthly: "{{ price_ids.starter_monthly }}", yearly: "{{ price_ids.starter_yearly }}" },
-        pro: { monthly: "{{ price_ids.pro_monthly }}", yearly: "{{ price_ids.pro_yearly }}" },
-    };
-    const PADDLE_ENV = "{{ paddle_env }}";
-    const BUSINESS_ID = "{{ business_id }}";
-    const EMAIL = "{{ email }}";
-
+    // Monthly / Yearly toggle - swaps displayed price/period text AND each checkout
+    // form's hidden "interval" field, purely client-side. No payment SDK needed here at
+    // all: each button is a plain form POST to /subscription/checkout, which creates the
+    // Stripe Checkout Session server-side and redirects the browser to it.
     let billingInterval = "monthly";
+    const priceButtons = {
+        starter: { monthly: {{ 'true' if stripe_configured and stripe_prices_configured.starter_monthly else 'false' }}, yearly: {{ 'true' if stripe_configured and stripe_prices_configured.starter_yearly else 'false' }} },
+        pro: { monthly: {{ 'true' if stripe_configured and stripe_prices_configured.pro_monthly else 'false' }}, yearly: {{ 'true' if stripe_configured and stripe_prices_configured.pro_yearly else 'false' }} },
+    };
 
-    // --- Monthly / Yearly toggle - swaps displayed price + period text for both plan
-    // cards at once, purely client-side (no reload, no server round-trip). ---
+    function refreshButtons() {
+        document.querySelectorAll(".pricing-choose-btn").forEach((btn) => {
+            const plan = btn.dataset.plan;
+            const available = priceButtons[plan][billingInterval];
+            btn.disabled = !available;
+            btn.textContent = available ? (plan === "pro" ? "Choose Pro" : "Choose Starter") : "Coming soon";
+        });
+        document.querySelectorAll(".pricing-interval-input").forEach((input) => {
+            input.value = billingInterval;
+        });
+    }
+
     document.querySelectorAll(".pricing-toggle-option").forEach((btn) => {
         btn.addEventListener("click", () => {
             billingInterval = btn.dataset.interval;
             document.querySelectorAll(".pricing-toggle-option").forEach((b) => b.classList.toggle("active", b === btn));
-            document.querySelectorAll(".pricing-amount-value").forEach((el) => {
-                el.textContent = el.dataset[billingInterval];
-            });
-            document.querySelectorAll(".pricing-period").forEach((el) => {
-                el.textContent = el.dataset[billingInterval];
-            });
-            document.querySelectorAll(".pricing-yearly-total").forEach((el) => {
-                el.classList.toggle("hidden", billingInterval !== "yearly");
-            });
+            document.querySelectorAll(".pricing-amount-value").forEach((el) => { el.textContent = el.dataset[billingInterval]; });
+            document.querySelectorAll(".pricing-period").forEach((el) => { el.textContent = el.dataset[billingInterval]; });
+            document.querySelectorAll(".pricing-yearly-total").forEach((el) => { el.classList.toggle("hidden", billingInterval !== "yearly"); });
+            refreshButtons();
         });
     });
 
-    // --- Checkout buttons - one Paddle Price per (plan, interval) combination. A plan
-    // whose price isn't configured yet (empty env var - see app.py's subscription()) is
-    // disabled with an explanatory label instead of opening a broken checkout. ---
-    if (!CLIENT_TOKEN) {
-        document.querySelectorAll(".pricing-choose-btn").forEach((btn) => {
-            btn.textContent = "Subscription currently unavailable";
-        });
-    } else {
-        if (PADDLE_ENV === "sandbox") {
-            Paddle.Environment.set("sandbox");
-        }
-        Paddle.Initialize({ token: CLIENT_TOKEN });
-
-        document.querySelectorAll(".pricing-choose-btn").forEach((btn) => {
-            const plan = btn.dataset.plan;
-            function refreshLabel() {
-                const priceId = PRICE_IDS[plan][billingInterval];
-                if (!priceId) {
-                    btn.disabled = true;
-                    btn.textContent = "Coming soon";
-                } else {
-                    btn.disabled = false;
-                    btn.textContent = plan === "pro" ? "Choose Pro" : "Choose Starter";
-                }
-            }
-            refreshLabel();
-            document.querySelectorAll(".pricing-toggle-option").forEach((toggleBtn) => {
-                toggleBtn.addEventListener("click", refreshLabel);
-            });
-
-            btn.addEventListener("click", () => {
-                const priceId = PRICE_IDS[plan][billingInterval];
-                if (!priceId) return;
-                Paddle.Checkout.open({
-                    items: [{ priceId: priceId, quantity: 1 }],
-                    customer: { email: EMAIL },
-                    // business_id (and which plan was chosen) travels through checkout so
-                    // Paddle hands it back to us in the webhook - see /paddle-webhook.
-                    customData: { business_id: BUSINESS_ID, plan: plan, interval: billingInterval },
-                    settings: {
-                        displayMode: "overlay",
-                        theme: "light",
-                        successUrl: "{{ url_for('home', _external=True) }}"
-                    }
-                });
-            });
-        });
-    }
+    refreshButtons();
 </script>
 {% endif %}
 {% endblock %}

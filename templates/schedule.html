@@ -7,9 +7,10 @@
 <div class="content">
     <div class="page-header">
         <div>
-            <h1>Schedule</h1>
+            <h1>Schedule {% if locked %}<span class="badge badge-pro">Pro</span>{% endif %}</h1>
             <p class="subtitle">Manage your appointment calendar.</p>
         </div>
+        {% if not locked %}
         <form method="POST" action="{{ url_for('update_slot_duration') }}" class="schedule-slot-duration-form">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <input type="hidden" name="date" value="{{ selected_date.isoformat() }}">
@@ -20,14 +21,19 @@
                 {% endfor %}
             </select>
         </form>
+        {% endif %}
     </div>
 
-    {% if not pro_access %}
-        <div class="alert alert-warning">
-            <span class="alert-icon">&#10024;</span>
-            <span>AI auto-booking from Instagram DMs is a Pro plan feature - you can still manage your calendar manually here. <a href="{{ url_for('subscription') }}">Upgrade to Pro</a> to let the AI book appointments for you.</span>
+    {% if locked %}
+        <div class="empty">
+            <div class="empty-icon">&#10024;</div>
+            <p class="title">Schedule is a Pro plan feature</p>
+            <p>View and manage a day/week calendar, and let the AI book, remind, and reschedule appointments straight from Instagram DMs.</p>
+            <div class="form-actions">
+                <a class="button" href="{{ url_for('subscription') }}">Upgrade to Pro</a>
+            </div>
         </div>
-    {% endif %}
+    {% else %}
 
     {% if not has_any_open_day %}
         <div class="alert alert-error">
@@ -124,6 +130,8 @@
                 {% endfor %}
             </div>
         {% endif %}
+    {% endif %}
+
     {% endif %}
 </div>
 {% endblock %}

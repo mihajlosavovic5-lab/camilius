@@ -153,6 +153,8 @@ a:focus-visible, button:focus-visible, [tabindex]:focus-visible {
    must keep white text - otherwise the .nav-links a rule overrides it */
 .nav-links a.button { color: #fff; }
 .nav-links a.button:hover { background: var(--primary-dark); color: #fff; }
+.nav-link-with-badge { display: inline-flex !important; align-items: center; gap: 5px; }
+.nav-pro-badge { padding: 1px 7px; font-size: 10px; }
 
 /* --- Basic layout --- */
 .content { max-width: 960px; margin: 0 auto; padding: 40px 20px 72px; }
