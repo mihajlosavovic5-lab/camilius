@@ -5,6 +5,23 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{% block title %}Camilius{% endblock %}</title>
     <meta name="description" content="{% block description %}Camilius reads your business's Instagram messages and drafts AI-suggested replies based on your working hours, price list, and FAQ - you just review and send.{% endblock %}">
+    <link rel="canonical" href="{{ request.base_url }}">
+    <!-- Open Graph / Twitter Card - reuses the title/description blocks above so link
+         previews (and search engines) always match what's actually on the page, no
+         separate copy to keep in sync. Also gives search engines/AI overviews an
+         explicit, unambiguous signal about what this product is and does - helps
+         distinguish "Camilius AI" (this product, Instagram DM auto-replies) from
+         unrelated same-ish-sounding products indexed elsewhere. -->
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="Camilius AI">
+    <meta property="og:title" content="{{ self.title() }}">
+    <meta property="og:description" content="{{ self.description() }}">
+    <meta property="og:url" content="{{ request.base_url }}">
+    <meta property="og:image" content="{{ url_for('static', filename='icon-512.png', _external=True) }}">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="{{ self.title() }}">
+    <meta name="twitter:description" content="{{ self.description() }}">
+    {% block structured_data %}{% endblock %}
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='icon-192.png') }}">
     <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
     <meta name="theme-color" content="#d69410">

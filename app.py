@@ -8,7 +8,7 @@ from functools import wraps
 import psycopg2
 import requests
 from dotenv import load_dotenv
-from flask import Flask, render_template, request, redirect, url_for, session, abort, jsonify, send_from_directory
+from flask import Flask, render_template, request, redirect, url_for, session, abort, jsonify, send_from_directory, Response
 from flask_wtf import CSRFProtect
 from werkzeug.middleware.proxy_fix import ProxyFix
 from werkzeug.security import check_password_hash
@@ -661,6 +661,27 @@ def page_not_found(e):
 @app.errorhandler(500)
 def server_error(e):
     return render_template("error.html", code=500, message="A server error occurred. Please try again in a minute."), 500
+
+
+# robots.txt/sitemap.xml - helps search engines find and re-crawl the public marketing
+# pages (esp. after content changes like the Gmail->Instagram DM pivot) instead of
+# relying only on their own crawl schedule against stale cached copies.
+@app.route("/robots.txt")
+def robots_txt():
+    body = "\n".join([
+        "User-agent: *",
+        "Allow: /",
+        f"Sitemap: {url_for('sitemap_xml', _external=True)}",
+    ])
+    return Response(body, mimetype="text/plain")
+
+
+@app.route("/sitemap.xml")
+def sitemap_xml():
+    pages = ["home", "login", "register", "terms", "privacy", "download"]
+    urls = "".join(f"<url><loc>{url_for(page, _external=True)}</loc></url>" for page in pages)
+    xml = f'<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">{urls}</urlset>'
+    return Response(xml, mimetype="application/xml")
 
 
 @app.route("/privacy")

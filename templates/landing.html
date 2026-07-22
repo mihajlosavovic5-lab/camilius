@@ -2,6 +2,35 @@
 {% block title %}Camilius — AI replies to your business's Instagram messages{% endblock %}
 {% block body_class %}auth{% endblock %}
 
+{% block structured_data %}
+<script type="application/ld+json">
+{
+    "@context": "https://schema.org",
+    "@graph": [
+        {
+            "@type": "Organization",
+            "name": "Camilius AI",
+            "url": "{{ url_for('home', _external=True) }}",
+            "logo": "{{ url_for('static', filename='icon-512.png', _external=True) }}"
+        },
+        {
+            "@type": "SoftwareApplication",
+            "name": "Camilius AI",
+            "applicationCategory": "BusinessApplication",
+            "operatingSystem": "Web, Android",
+            "description": "Camilius AI reads a business's Instagram messages and drafts AI-suggested replies based on its working hours, price list, and FAQ, so the owner can just review and send.",
+            "url": "{{ url_for('home', _external=True) }}",
+            "offers": {
+                "@type": "Offer",
+                "price": "29",
+                "priceCurrency": "EUR"
+            }
+        }
+    ]
+}
+</script>
+{% endblock %}
+
 {% block content %}
 <script>document.documentElement.classList.add('lp-js');</script>
 <div class="lp-grain"></div>
