@@ -52,8 +52,8 @@
      supports it, and falls back to the APK download page when it doesn't. -->
 <div id="mobile-install-banner" class="mobile-install-banner hidden">
     <span class="brand-mark mobile-install-banner-icon"></span>
-    <span class="mobile-install-banner-text">Get the Camilius app for a faster, native experience.</span>
-    <a href="{{ url_for('download') }}" class="mobile-install-banner-btn" id="mobile-install-banner-btn">Install</a>
+    <span class="mobile-install-banner-text" data-i18n="installBanner.text">Get the Camilius app for a faster, native experience.</span>
+    <a href="{{ url_for('download') }}" class="mobile-install-banner-btn" id="mobile-install-banner-btn" data-i18n="installBanner.install">Install</a>
     <button type="button" class="mobile-install-banner-dismiss" id="mobile-install-banner-dismiss" aria-label="Dismiss">&times;</button>
 </div>
 <script>
@@ -175,16 +175,16 @@
         <div class="support-widget-header">
             <span class="brand-mark support-widget-header-icon"></span>
             <div>
-                <p class="support-widget-title">Camilius Assistant</p>
-                <p class="support-widget-subtitle">Ask about settings, pricing, Instagram &amp; more</p>
+                <p class="support-widget-title" data-i18n="supportWidget.title">Camilius Assistant</p>
+                <p class="support-widget-subtitle" data-i18n="supportWidget.subtitle">Ask about settings, pricing, Instagram &amp; more</p>
             </div>
             <button type="button" id="support-widget-close" class="support-widget-close" aria-label="Close">&times;</button>
         </div>
         <div id="support-widget-messages" class="support-widget-messages">
-            <div class="support-widget-msg support-widget-msg-bot">Hi! I can help with settings, pricing, connecting Instagram, or anything else about Camilius. What do you need?</div>
+            <div class="support-widget-msg support-widget-msg-bot" data-i18n="supportWidget.greeting">Hi! I can help with settings, pricing, connecting Instagram, or anything else about Camilius. What do you need?</div>
         </div>
         <form id="support-widget-form" class="support-widget-form">
-            <input type="text" id="support-widget-input" placeholder="Type a message..." autocomplete="off">
+            <input type="text" id="support-widget-input" data-i18n-placeholder="supportWidget.inputPlaceholder" placeholder="Type a message..." autocomplete="off">
             <button type="submit" class="support-widget-send" aria-label="Send">&#10148;</button>
         </form>
     </div>
@@ -237,13 +237,13 @@
                 .then(function (r) { return r.json(); })
                 .then(function (data) {
                     typingEl.remove();
-                    var reply = data.reply || "Sorry, something went wrong - try again in a moment.";
+                    var reply = data.reply || t("supportWidget.error");
                     addMessage("bot", reply);
                     history.push({ role: "assistant", content: reply });
                 })
                 .catch(function () {
                     typingEl.remove();
-                    addMessage("bot", "Sorry, something went wrong - try again in a moment.");
+                    addMessage("bot", t("supportWidget.error"));
                 })
                 .finally(function () {
                     input.disabled = false;

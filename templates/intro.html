@@ -3,32 +3,32 @@
 {% block body_class %}intro{% endblock %}
 
 {% block content %}
-<div class="intro-skip"><a href="{{ url_for('login') }}" onclick="markIntroSeen()">Skip</a></div>
+<div class="intro-skip"><a href="{{ url_for('login') }}" onclick="markIntroSeen()" data-i18n="intro.skip">Skip</a></div>
 
 <div class="intro-slides" id="introSlides">
     <section class="intro-slide">
         <div class="coin-lg">C</div>
-        <h1>Welcome to Camilius</h1>
-        <p>Your AI assistant for customer Instagram messages.</p>
+        <h1 data-i18n="intro.slide1.title">Welcome to Camilius</h1>
+        <p data-i18n="intro.slide1.desc">Your AI assistant for customer Instagram messages.</p>
     </section>
 
     <section class="intro-slide">
         <div class="intro-emoji">&#128172;</div>
-        <h1>Reads DMs for you</h1>
-        <p>When a customer messages your business on Instagram, Camilius reads it right away &mdash; day or night.</p>
+        <h1 data-i18n="intro.slide2.title">Reads DMs for you</h1>
+        <p data-i18n="intro.slide2.desc">When a customer messages your business on Instagram, Camilius reads it right away &mdash; day or night.</p>
     </section>
 
     <section class="intro-slide">
         <div class="intro-emoji">&#9997;&#65039;</div>
-        <h1>Writes a reply for you</h1>
-        <p>The AI drafts a reply based on your working hours, price list, and FAQ.</p>
+        <h1 data-i18n="intro.slide3.title">Writes a reply for you</h1>
+        <p data-i18n="intro.slide3.desc">The AI drafts a reply based on your working hours, price list, and FAQ.</p>
     </section>
 
     <section class="intro-slide">
         <div class="intro-emoji">&#9989;</div>
-        <h1>You approve and send</h1>
-        <p>Review, edit if you like, then send &mdash; or turn on auto-send in Settings for instant replies.</p>
-        <a href="{{ url_for('home') }}" class="button intro-cta" onclick="markIntroSeen()">Continue</a>
+        <h1 data-i18n="intro.slide4.title">You approve and send</h1>
+        <p data-i18n="intro.slide4.desc">Review, edit if you like, then send &mdash; or turn on auto-send in Settings for instant replies.</p>
+        <a href="{{ url_for('home') }}" class="button intro-cta" onclick="markIntroSeen()" data-i18n="intro.continue">Continue</a>
     </section>
 </div>
 

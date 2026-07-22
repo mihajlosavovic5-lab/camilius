@@ -14,8 +14,8 @@
             <span class="brand-name">Camilius</span>
         </a>
         <div class="nav-links">
-            <a href="{{ url_for('login') }}">Log in</a>
-            <a href="{{ url_for('register') }}" class="button" style="padding: 8px 16px; font-size: 14px;">Try for free</a>
+            <a href="{{ url_for('login') }}" data-i18n="landing.nav.login">Log in</a>
+            <a href="{{ url_for('register') }}" class="button" style="padding: 8px 16px; font-size: 14px;" data-i18n="landing.nav.tryFree">Try for free</a>
         </div>
     </div>
 </header>
@@ -25,27 +25,27 @@
     <!-- Hero -->
     <section class="hero lp-hero">
         <div class="lp-aurora"></div>
-        <h1 class="lp-enter lp-enter-1">Customers message you on Instagram.<br><span class="lp-accent">The AI already has a reply ready.</span></h1>
-        <p class="hero-subtitle lp-enter lp-enter-2">Camilius reads your business's Instagram messages and drafts replies based on your working hours, price list, and FAQ. You just review, edit if you like &mdash; and send with one click.</p>
+        <h1 class="lp-enter lp-enter-1"><span data-i18n="landing.hero.title1">Customers message you on Instagram.</span><br><span class="lp-accent" data-i18n="landing.hero.title2">The AI already has a reply ready.</span></h1>
+        <p class="hero-subtitle lp-enter lp-enter-2" data-i18n="landing.hero.subtitle">Camilius reads your business's Instagram messages and drafts replies based on your working hours, price list, and FAQ. You just review, edit if you like &mdash; and send with one click.</p>
         <div class="hero-actions lp-enter lp-enter-3">
             {% if beta_free_mode %}
-            <a href="{{ url_for('register') }}" class="button lp-shine" style="font-size: 16px; padding: 13px 28px;">Get started for free</a>
+            <a href="{{ url_for('register') }}" class="button lp-shine" style="font-size: 16px; padding: 13px 28px;" data-i18n="landing.hero.ctaFree">Get started for free</a>
             {% else %}
-            <a href="{{ url_for('register') }}" class="button lp-shine" style="font-size: 16px; padding: 13px 28px;">Try free for 7 days</a>
+            <a href="{{ url_for('register') }}" class="button lp-shine" style="font-size: 16px; padding: 13px 28px;" data-i18n="landing.hero.ctaTrial">Try free for 7 days</a>
             {% endif %}
         </div>
         {% if beta_free_mode %}
-        <p class="hero-fine-print lp-enter lp-enter-3">Free during the beta &middot; you're always in control of what gets sent</p>
+        <p class="hero-fine-print lp-enter lp-enter-3" data-i18n="landing.hero.finePrintBeta">Free during the beta &middot; you're always in control of what gets sent</p>
         {% else %}
-        <p class="hero-fine-print lp-enter lp-enter-3">No card required for the trial &middot; cancel anytime &middot; you're always in control of what gets sent</p>
+        <p class="hero-fine-print lp-enter lp-enter-3" data-i18n="landing.hero.finePrintTrial">No card required for the trial &middot; cancel anytime &middot; you're always in control of what gets sent</p>
         {% endif %}
     </section>
 
     <!-- Trust strip -->
     <section class="lp-reveal">
         <div class="lp-trust-strip">
-            <span class="lp-trust-item"><span class="lp-trust-icon">&#9989;</span>You review every reply by default</span>
-            <span class="lp-trust-item"><span class="lp-trust-icon">&#9200;</span>Drafted in ~60 seconds</span>
+            <span class="lp-trust-item"><span class="lp-trust-icon">&#9989;</span><span data-i18n="landing.trust.reviewed">You review every reply by default</span></span>
+            <span class="lp-trust-item"><span class="lp-trust-icon">&#9200;</span><span data-i18n="landing.trust.drafted">Drafted in ~60 seconds</span></span>
         </div>
     </section>
 
@@ -55,7 +55,7 @@
          auto-translates with the rest of the site; sender names are left as-is
          (proper nouns, same treatment as a real business's own name elsewhere). -->
     <section class="section">
-        <h2 class="section-title lp-reveal">See it in action</h2>
+        <h2 class="section-title lp-reveal" data-i18n="landing.slider.sectionTitle">See it in action</h2>
         <div class="lp-slider lp-reveal" id="lp-slider">
             <div class="lp-slider-viewport">
                 <div class="lp-slider-track" id="lp-slider-track">
@@ -68,11 +68,11 @@
                             </div>
                         </div>
                         <div class="conversation-block">
-                            <div class="conversation-label">Customer question</div>
+                            <div class="conversation-label" data-i18n="landing.slider.customerQuestionLabel">Customer question</div>
                             <p class="question" data-i18n="landing.slider.example1.question">Hi! What are your Saturday hours, and how much is a women's haircut?</p>
                         </div>
                         <div class="conversation-block">
-                            <div class="conversation-label">AI-suggested reply</div>
+                            <div class="conversation-label" data-i18n="landing.slider.aiReplyLabel">AI-suggested reply</div>
                             <p class="reply" data-i18n="landing.slider.example1.reply">Hi! We're open Saturdays from 9 to 16.
 A women's haircut is &euro;35.
 Want me to book you in for a time?</p>
@@ -87,11 +87,11 @@ Want me to book you in for a time?</p>
                             </div>
                         </div>
                         <div class="conversation-block">
-                            <div class="conversation-label">Customer question</div>
+                            <div class="conversation-label" data-i18n="landing.slider.customerQuestionLabel">Customer question</div>
                             <p class="question" data-i18n="landing.slider.example2.question">Do you do teeth whitening, and can I just walk in or do I need an appointment?</p>
                         </div>
                         <div class="conversation-block">
-                            <div class="conversation-label">AI-suggested reply</div>
+                            <div class="conversation-label" data-i18n="landing.slider.aiReplyLabel">AI-suggested reply</div>
                             <p class="reply" data-i18n="landing.slider.example2.reply">Yes, we offer teeth whitening for &euro;120. We recommend booking ahead so we can hold a slot for you &mdash; want me to check what's free this week?</p>
                         </div>
                     </div>
@@ -104,11 +104,11 @@ Want me to book you in for a time?</p>
                             </div>
                         </div>
                         <div class="conversation-block">
-                            <div class="conversation-label">Customer question</div>
+                            <div class="conversation-label" data-i18n="landing.slider.customerQuestionLabel">Customer question</div>
                             <p class="question" data-i18n="landing.slider.example3.question">My iPhone 13 screen is cracked &mdash; how much to fix it, and how long does it take?</p>
                         </div>
                         <div class="conversation-block">
-                            <div class="conversation-label">AI-suggested reply</div>
+                            <div class="conversation-label" data-i18n="landing.slider.aiReplyLabel">AI-suggested reply</div>
                             <p class="reply" data-i18n="landing.slider.example3.reply">An iPhone 13 screen replacement is &euro;89, usually ready the same day if you drop it off before 2pm. Want to bring it in today?</p>
                         </div>
                     </div>
@@ -121,11 +121,11 @@ Want me to book you in for a time?</p>
                             </div>
                         </div>
                         <div class="conversation-block">
-                            <div class="conversation-label">Customer question</div>
+                            <div class="conversation-label" data-i18n="landing.slider.customerQuestionLabel">Customer question</div>
                             <p class="question" data-i18n="landing.slider.example4.question">My kitchen faucet is leaking &mdash; can someone come take a look this week?</p>
                         </div>
                         <div class="conversation-block">
-                            <div class="conversation-label">AI-suggested reply</div>
+                            <div class="conversation-label" data-i18n="landing.slider.aiReplyLabel">AI-suggested reply</div>
                             <p class="reply" data-i18n="landing.slider.example4.reply">Sorry to hear that! We have openings Wednesday and Thursday afternoon. A callout and inspection is &euro;25, and we'll quote any parts before starting. Which day works better?</p>
                         </div>
                     </div>
@@ -138,11 +138,11 @@ Want me to book you in for a time?</p>
                             </div>
                         </div>
                         <div class="conversation-block">
-                            <div class="conversation-label">Customer question</div>
+                            <div class="conversation-label" data-i18n="landing.slider.customerQuestionLabel">Customer question</div>
                             <p class="question" data-i18n="landing.slider.example5.question">What time is check-in, and are pets allowed?</p>
                         </div>
                         <div class="conversation-block">
-                            <div class="conversation-label">AI-suggested reply</div>
+                            <div class="conversation-label" data-i18n="landing.slider.aiReplyLabel">AI-suggested reply</div>
                             <p class="reply" data-i18n="landing.slider.example5.reply">Check-in is from 15:00, check-out by 11:00.
 Yes, pets are welcome &mdash; just let us know in advance so we can prepare the space.</p>
                         </div>
@@ -156,11 +156,11 @@ Yes, pets are welcome &mdash; just let us know in advance so we can prepare the 
                             </div>
                         </div>
                         <div class="conversation-block">
-                            <div class="conversation-label">Customer question</div>
+                            <div class="conversation-label" data-i18n="landing.slider.customerQuestionLabel">Customer question</div>
                             <p class="question" data-i18n="landing.slider.example6.question">How much for a one-hour strategy call, and how do I book?</p>
                         </div>
                         <div class="conversation-block">
-                            <div class="conversation-label">AI-suggested reply</div>
+                            <div class="conversation-label" data-i18n="landing.slider.aiReplyLabel">AI-suggested reply</div>
                             <p class="reply" data-i18n="landing.slider.example6.reply">A one-hour strategy call is &euro;90. I can send you a booking link with my open slots for this week &mdash; want me to send it now?</p>
                         </div>
                     </div>
@@ -173,11 +173,11 @@ Yes, pets are welcome &mdash; just let us know in advance so we can prepare the 
                             </div>
                         </div>
                         <div class="conversation-block">
-                            <div class="conversation-label">Customer question</div>
+                            <div class="conversation-label" data-i18n="landing.slider.customerQuestionLabel">Customer question</div>
                             <p class="question" data-i18n="landing.slider.example7.question">Does the green midi dress come in size M, and what's your return policy?</p>
                         </div>
                         <div class="conversation-block">
-                            <div class="conversation-label">AI-suggested reply</div>
+                            <div class="conversation-label" data-i18n="landing.slider.aiReplyLabel">AI-suggested reply</div>
                             <p class="reply" data-i18n="landing.slider.example7.reply">Yes, size M is in stock! Returns are accepted within 14 days with the tag still attached. Want me to hold one for you?</p>
                         </div>
                     </div>
@@ -190,11 +190,11 @@ Yes, pets are welcome &mdash; just let us know in advance so we can prepare the 
                             </div>
                         </div>
                         <div class="conversation-block">
-                            <div class="conversation-label">Customer question</div>
+                            <div class="conversation-label" data-i18n="landing.slider.customerQuestionLabel">Customer question</div>
                             <p class="question" data-i18n="landing.slider.example8.question">How much is a gel manicure, and do I need to book in advance?</p>
                         </div>
                         <div class="conversation-block">
-                            <div class="conversation-label">AI-suggested reply</div>
+                            <div class="conversation-label" data-i18n="landing.slider.aiReplyLabel">AI-suggested reply</div>
                             <p class="reply" data-i18n="landing.slider.example8.reply">A gel manicure is &euro;28. We recommend booking a day ahead, especially for weekends &mdash; want me to check tomorrow's availability?</p>
                         </div>
                     </div>
@@ -207,11 +207,11 @@ Yes, pets are welcome &mdash; just let us know in advance so we can prepare the 
                             </div>
                         </div>
                         <div class="conversation-block">
-                            <div class="conversation-label">Customer question</div>
+                            <div class="conversation-label" data-i18n="landing.slider.customerQuestionLabel">Customer question</div>
                             <p class="question" data-i18n="landing.slider.example9.question">What's the price for a monthly plan, and is it OK if I've never trained before?</p>
                         </div>
                         <div class="conversation-block">
-                            <div class="conversation-label">AI-suggested reply</div>
+                            <div class="conversation-label" data-i18n="landing.slider.aiReplyLabel">AI-suggested reply</div>
                             <p class="reply" data-i18n="landing.slider.example9.reply">A monthly plan is &euro;80 for 8 sessions.
 Totally fine if you're just starting out &mdash; the first session is a light intro so we can build a plan around you.</p>
                         </div>
@@ -225,11 +225,11 @@ Totally fine if you're just starting out &mdash; the first session is a light in
                             </div>
                         </div>
                         <div class="conversation-block">
-                            <div class="conversation-label">Customer question</div>
+                            <div class="conversation-label" data-i18n="landing.slider.customerQuestionLabel">Customer question</div>
                             <p class="question" data-i18n="landing.slider.example10.question">Do you have availability for a wedding on September 12th, and what's included in your package?</p>
                         </div>
                         <div class="conversation-block">
-                            <div class="conversation-label">AI-suggested reply</div>
+                            <div class="conversation-label" data-i18n="landing.slider.aiReplyLabel">AI-suggested reply</div>
                             <p class="reply" data-i18n="landing.slider.example10.reply">September 12th is still open!
 The standard package includes 6 hours of coverage and 300+ edited photos. Want me to send the full package details?</p>
                         </div>
@@ -240,41 +240,41 @@ The standard package includes 6 hours of coverage and 300+ edited photos. Want m
             <button type="button" class="lp-slider-arrow lp-slider-next" id="lp-slider-next" aria-label="Next example">&#8250;</button>
             <div class="lp-slider-dots" id="lp-slider-dots"></div>
         </div>
-        <p style="text-align: center; color: var(--text-muted); font-size: 13.5px; margin-top: 14px;" class="lp-reveal">Real examples, based on the kind of price list and hours shown during registration.</p>
+        <p style="text-align: center; color: var(--text-muted); font-size: 13.5px; margin-top: 14px;" class="lp-reveal" data-i18n="landing.slider.caption">Real examples, based on the kind of price list and hours shown during registration.</p>
     </section>
 
     <!-- How it works -->
     <section class="section">
-        <h2 class="section-title lp-reveal">How it works</h2>
+        <h2 class="section-title lp-reveal" data-i18n="landing.howItWorks.title">How it works</h2>
         <div class="steps lp-reveal-group">
             <div class="card step lp-card-hover lp-reveal">
                 <div class="step-number lp-step-number">1</div>
-                <h3>Connect your Instagram</h3>
-                <p>Registration takes a few minutes: enter your business's working hours, price list, and FAQ, then connect your Instagram Business account with one click (secure Instagram login, no passwords shared with us).</p>
+                <h3 data-i18n="landing.howItWorks.step1.title">Connect your Instagram</h3>
+                <p data-i18n="landing.howItWorks.step1.desc">Registration takes a few minutes: enter your business's working hours, price list, and FAQ, then connect your Instagram Business account with one click (secure Instagram login, no passwords shared with us).</p>
             </div>
             <div class="card step lp-card-hover lp-reveal">
                 <div class="step-number lp-step-number">2</div>
-                <h3>AI drafts replies</h3>
-                <p>Every new customer DM is read by the AI, which immediately drafts a reply &mdash; accurate, polite, and in the customer's own language, based on your business's data.</p>
+                <h3 data-i18n="landing.howItWorks.step2.title">AI drafts replies</h3>
+                <p data-i18n="landing.howItWorks.step2.desc">Every new customer DM is read by the AI, which immediately drafts a reply &mdash; accurate, polite, and in the customer's own language, based on your business's data.</p>
             </div>
             <div class="card step lp-card-hover lp-reveal">
                 <div class="step-number lp-step-number">3</div>
-                <h3>You approve and send</h3>
-                <p>Suggestions wait for you in the dashboard. Review, tweak if needed, click &mdash; and the reply reaches the customer. You're in control by default, with an optional auto-send for instant replies.</p>
+                <h3 data-i18n="landing.howItWorks.step3.title">You approve and send</h3>
+                <p data-i18n="landing.howItWorks.step3.desc">Suggestions wait for you in the dashboard. Review, tweak if needed, click &mdash; and the reply reaches the customer. You're in control by default, with an optional auto-send for instant replies.</p>
             </div>
         </div>
     </section>
 
     <!-- Who it's for -->
     <section class="section">
-        <h2 class="section-title lp-reveal">Built for every business that lives in its inbox</h2>
-        <p style="text-align: center; color: var(--text-muted); max-width: 560px; margin: -8px auto 24px;" class="lp-reveal">Salons, clinics, repair shops, tradespeople, vacation rentals, consultants, boutiques &mdash; if customers reach you on Instagram, Camilius already speaks your business.</p>
+        <h2 class="section-title lp-reveal" data-i18n="landing.whoFor.title">Built for every business that lives in its inbox</h2>
+        <p style="text-align: center; color: var(--text-muted); max-width: 560px; margin: -8px auto 24px;" class="lp-reveal" data-i18n="landing.whoFor.subtitle">Salons, clinics, repair shops, tradespeople, vacation rentals, consultants, boutiques &mdash; if customers reach you on Instagram, Camilius already speaks your business.</p>
         <div class="card lp-card-hover lp-reveal" style="max-width: 640px; margin: 0 auto;">
             <ul class="benefits">
-                <li><span class="checkmark">&#10003;</span> Replies go out even when you're busy &mdash; customers don't wait for days</li>
-                <li><span class="checkmark">&#10003;</span> AI remembers previous conversations with each customer</li>
-                <li><span class="checkmark">&#10003;</span> Never makes up prices or appointment times &mdash; only uses the data you entered</li>
-                <li><span class="checkmark">&#10003;</span> Works with your existing Instagram Business account, no need to change anything</li>
+                <li><span class="checkmark">&#10003;</span> <span data-i18n="landing.whoFor.benefit1">Replies go out even when you're busy &mdash; customers don't wait for days</span></li>
+                <li><span class="checkmark">&#10003;</span> <span data-i18n="landing.whoFor.benefit2">AI remembers previous conversations with each customer</span></li>
+                <li><span class="checkmark">&#10003;</span> <span data-i18n="landing.whoFor.benefit3">Never makes up prices or appointment times &mdash; only uses the data you entered</span></li>
+                <li><span class="checkmark">&#10003;</span> <span data-i18n="landing.whoFor.benefit4">Works with your existing Instagram Business account, no need to change anything</span></li>
             </ul>
         </div>
     </section>
@@ -284,19 +284,19 @@ The standard package includes 6 hours of coverage and 300+ edited photos. Want m
          toggle lives on /subscription (inside Settings once logged in) - see
          subscription.html. -->
     <section class="section">
-        <h2 class="section-title lp-reveal">Simple pricing</h2>
+        <h2 class="section-title lp-reveal" data-i18n="landing.pricing.title">Simple pricing</h2>
         <div class="card price-card lp-card-hover lp-reveal">
             <div class="price-row" style="justify-content: center;">
                 <span class="price-amount">&euro;29</span>
-                <span class="price-period">/ month</span>
+                <span class="price-period" data-i18n="landing.pricing.period">/ month</span>
             </div>
-            <span class="trial-info">First 7 days free, no card required</span>
+            <span class="trial-info" data-i18n="landing.pricing.trialInfo">First 7 days free, no card required</span>
             <ul class="benefits" style="text-align: left;">
-                <li><span class="checkmark">&#10003;</span> Up to 300 conversations per month</li>
-                <li><span class="checkmark">&#10003;</span> A Pro plan is also available, with AI appointment booking &amp; reminders, AI upsell, and a support assistant</li>
-                <li><span class="checkmark">&#10003;</span> Cancel anytime</li>
+                <li><span class="checkmark">&#10003;</span> <span data-i18n="landing.pricing.benefit1">Up to 300 conversations per month</span></li>
+                <li><span class="checkmark">&#10003;</span> <span data-i18n="landing.pricing.benefit2">A Pro plan is also available, with AI appointment booking &amp; reminders, AI upsell, and a support assistant</span></li>
+                <li><span class="checkmark">&#10003;</span> <span data-i18n="landing.pricing.benefit3">Cancel anytime</span></li>
             </ul>
-            <a href="{{ url_for('register') }}" class="button button-full" style="margin-top: 8px;">Start your free trial</a>
+            <a href="{{ url_for('register') }}" class="button button-full" style="margin-top: 8px;" data-i18n="landing.pricing.cta">Start your free trial</a>
         </div>
     </section>
     {% endif %}
@@ -309,19 +309,19 @@ The standard package includes 6 hours of coverage and 300+ edited photos. Want m
                     <span class="brand-mark">C</span>
                     <span class="brand-name">Camilius</span>
                 </span>
-                <p>AI reads your customers' Instagram messages and drafts replies &mdash; you just review and send.</p>
+                <p data-i18n="landing.footer.tagline">AI reads your customers' Instagram messages and drafts replies &mdash; you just review and send.</p>
             </div>
             <div class="lp-footer-cols">
                 <div class="lp-footer-col">
-                    <h4>Product</h4>
-                    <a href="{{ url_for('register') }}">Get started</a>
-                    <a href="{{ url_for('login') }}">Log in</a>
-                    <a href="{{ url_for('download') }}">Android app</a>
+                    <h4 data-i18n="landing.footer.productHeading">Product</h4>
+                    <a href="{{ url_for('register') }}" data-i18n="landing.footer.getStarted">Get started</a>
+                    <a href="{{ url_for('login') }}" data-i18n="landing.nav.login">Log in</a>
+                    <a href="{{ url_for('download') }}" data-i18n="landing.footer.androidApp">Android app</a>
                 </div>
                 <div class="lp-footer-col">
-                    <h4>Legal</h4>
-                    <a href="{{ url_for('terms') }}">Terms of Service</a>
-                    <a href="{{ url_for('privacy') }}">Privacy Policy</a>
+                    <h4 data-i18n="landing.footer.legalHeading">Legal</h4>
+                    <a href="{{ url_for('terms') }}" data-i18n="common.termsOfService">Terms of Service</a>
+                    <a href="{{ url_for('privacy') }}" data-i18n="common.privacyPolicy">Privacy Policy</a>
                 </div>
             </div>
         </div>

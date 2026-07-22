@@ -8,11 +8,11 @@
     <div class="page-header">
         <div>
             <h1>{{ business_name }}</h1>
-            <p class="subtitle">Review customer questions and approve AI-suggested replies.</p>
+            <p class="subtitle" data-i18n="dashboard.subtitle">Review customer questions and approve AI-suggested replies.</p>
         </div>
         <div class="quota">
             <div class="quota-text">
-                <span>Processed today</span>
+                <span data-i18n="dashboard.processedToday">Processed today</span>
                 <span><strong>{{ today }}</strong> / {{ daily_limit }}</span>
             </div>
             <div class="quota-bar">
@@ -22,52 +22,52 @@
     </div>
 
     {% if sent %}
-        <div class="alert alert-success"><span class="alert-icon">&#10003;</span><span>The reply has been sent to the customer.</span></div>
+        <div class="alert alert-success"><span class="alert-icon">&#10003;</span><span data-i18n="dashboard.sentSuccess">The reply has been sent to the customer.</span></div>
     {% endif %}
     {% if send_error %}
-        <div class="alert alert-error"><span class="alert-icon">&#9888;&#65039;</span><span>Couldn't send that reply - Instagram only allows replying within 24 hours of the customer's last message.</span></div>
+        <div class="alert alert-error"><span class="alert-icon">&#9888;&#65039;</span><span data-i18n="dashboard.sendError">Couldn't send that reply - Instagram only allows replying within 24 hours of the customer's last message.</span></div>
     {% endif %}
 
     <div class="stats-row">
         <div class="card stat-tile">
             <div class="stat-value">{{ stats.total_sent }}</div>
-            <div class="stat-label">Replies sent (all time)</div>
+            <div class="stat-label" data-i18n="dashboard.repliesSentAllTime">Replies sent (all time)</div>
         </div>
         <div class="card stat-tile">
             <div class="stat-value">{{ stats.sent_this_week }}</div>
-            <div class="stat-label">Sent this week</div>
+            <div class="stat-label" data-i18n="dashboard.sentThisWeek">Sent this week</div>
         </div>
     </div>
 
     {% if not beta_free_mode and not subscription_active_flag %}
         <div class="alert alert-warning">
             <span class="alert-icon">&#9888;</span>
-            <span>Subscription not active &mdash; the AI is currently not processing new messages. <a href="{{ url_for('subscription') }}">Activate your subscription</a> to continue.</span>
+            <span><span data-i18n="dashboard.subscriptionInactive">Subscription not active &mdash; the AI is currently not processing new messages.</span> <a href="{{ url_for('subscription') }}" data-i18n="dashboard.activateSubscription">Activate your subscription</a> <span data-i18n="dashboard.toContinue">to continue.</span></span>
         </div>
     {% endif %}
 
     <div class="filters" style="margin-bottom: 20px;">
-        <a href="{{ url_for('home') }}" class="{{ 'active' if filter_status == 'all' }}">All ({{ total_count }})</a>
-        <a href="{{ url_for('home', filter='pending') }}" class="{{ 'active' if filter_status == 'pending' }}">Pending ({{ pending_count }})</a>
-        <a href="{{ url_for('home', filter='sent') }}" class="{{ 'active' if filter_status == 'sent' }}">Sent ({{ total_count - pending_count }})</a>
-        <a href="{{ url_for('home', filter='archived') }}" class="{{ 'active' if filter_status == 'archived' }}">Archived ({{ archived_count }})</a>
-        <a href="{{ url_for('home', filter='trash') }}" class="{{ 'active' if filter_status == 'trash' }}">Trash ({{ trash_count }})</a>
+        <a href="{{ url_for('home') }}" class="{{ 'active' if filter_status == 'all' }}"><span data-i18n="dashboard.filterAll">All</span> ({{ total_count }})</a>
+        <a href="{{ url_for('home', filter='pending') }}" class="{{ 'active' if filter_status == 'pending' }}"><span data-i18n="dashboard.filterPending">Pending</span> ({{ pending_count }})</a>
+        <a href="{{ url_for('home', filter='sent') }}" class="{{ 'active' if filter_status == 'sent' }}"><span data-i18n="dashboard.filterSent">Sent</span> ({{ total_count - pending_count }})</a>
+        <a href="{{ url_for('home', filter='archived') }}" class="{{ 'active' if filter_status == 'archived' }}"><span data-i18n="dashboard.filterArchived">Archived</span> ({{ archived_count }})</a>
+        <a href="{{ url_for('home', filter='trash') }}" class="{{ 'active' if filter_status == 'trash' }}"><span data-i18n="dashboard.filterTrash">Trash</span> ({{ trash_count }})</a>
     </div>
 
     {% if filter_status == 'trash' and trash_count > 0 %}
-        <p class="note" style="margin-bottom: 16px;">Items in Trash are permanently deleted after 30 days.</p>
+        <p class="note" style="margin-bottom: 16px;" data-i18n="dashboard.trashNote">Items in Trash are permanently deleted after 30 days.</p>
     {% endif %}
 
     {% if conversations|length == 0 %}
         <div class="empty">
             <div class="empty-icon">&#128235;</div>
             {% if filter_status == 'all' %}
-                <p class="title">You're all set &mdash; Camilius is watching your inbox</p>
-                <p>As soon as a customer messages your business on Instagram, an AI-drafted reply will appear here for you to review and send.</p>
-                <p style="margin-top: 14px;">Tip: send a test DM to your own Instagram account to see it in action.</p>
+                <p class="title" data-i18n="dashboard.empty.title">You're all set &mdash; Camilius is watching your inbox</p>
+                <p data-i18n="dashboard.empty.body">As soon as a customer messages your business on Instagram, an AI-drafted reply will appear here for you to review and send.</p>
+                <p style="margin-top: 14px;" data-i18n="dashboard.empty.tip">Tip: send a test DM to your own Instagram account to see it in action.</p>
             {% else %}
-                <p class="title">No conversations in this filter</p>
-                <p>Try a different filter above.</p>
+                <p class="title" data-i18n="dashboard.emptyFilter.title">No conversations in this filter</p>
+                <p data-i18n="dashboard.emptyFilter.body">Try a different filter above.</p>
             {% endif %}
         </div>
     {% endif %}
@@ -82,27 +82,27 @@
                     <div class="conversation-time">{{ created_at.strftime('%m/%d/%Y at %H:%M') if created_at else '' }}{% if subject %} &middot; {{ subject }}{% endif %}</div>
                 </div>
                 {% if status == 'pending' %}
-                    <span class="badge badge-pending"><span class="badge-dot"></span>Awaiting approval</span>
+                    <span class="badge badge-pending"><span class="badge-dot"></span><span data-i18n="dashboard.awaitingApproval">Awaiting approval</span></span>
                 {% else %}
-                    <span class="badge badge-sent"><span class="badge-dot"></span>Sent</span>
+                    <span class="badge badge-sent"><span class="badge-dot"></span><span data-i18n="dashboard.sentBadge">Sent</span></span>
                 {% endif %}
             </div>
 
             <div class="conversation-block">
-                <div class="conversation-label">Customer question</div>
+                <div class="conversation-label" data-i18n="landing.slider.customerQuestionLabel">Customer question</div>
                 <p class="question">{{ question }}</p>
             </div>
 
             {% if status == 'pending' and filter_status not in ('archived', 'trash') %}
                 <div class="conversation-block">
-                    <div class="conversation-label">Suggested reply &mdash; you can edit before sending</div>
+                    <div class="conversation-label" data-i18n="dashboard.suggestedReplyEditable">Suggested reply &mdash; you can edit before sending</div>
                     <!-- onsubmit disables the button so a double-click can't send the reply twice -->
                     <form method="POST" action="{{ url_for('send_reply', conversation_id=id) }}"
-                          onsubmit="var d = this.querySelector('button'); d.disabled = true; d.textContent = 'Sending...';">
+                          onsubmit="var d = this.querySelector('button'); d.disabled = true; d.textContent = t('dashboard.sending');">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         <textarea name="reply">{{ suggested_reply }}</textarea>
                         <div class="form-actions" style="margin-top: 12px;">
-                            <button class="button" type="submit">Send reply</button>
+                            <button class="button" type="submit" data-i18n="dashboard.sendReply">Send reply</button>
                         </div>
                     </form>
                 </div>
@@ -110,12 +110,12 @@
                 <!-- Archived/Trash: a still-pending conversation has no final_reply yet -
                      show the AI's suggestion read-only rather than final_reply (empty). -->
                 <div class="conversation-block">
-                    <div class="conversation-label">Suggested reply</div>
+                    <div class="conversation-label" data-i18n="dashboard.suggestedReply">Suggested reply</div>
                     <p class="reply">{{ suggested_reply }}</p>
                 </div>
             {% else %}
                 <div class="conversation-block">
-                    <div class="conversation-label">Sent reply</div>
+                    <div class="conversation-label" data-i18n="dashboard.sentReply">Sent reply</div>
                     <p class="reply">{{ final_reply }}</p>
                 </div>
             {% endif %}
@@ -125,29 +125,29 @@
                     <form method="POST" action="{{ url_for('restore_conversation_route', conversation_id=id) }}">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         <input type="hidden" name="from_filter" value="trash">
-                        <button class="button button-secondary" type="submit">Restore</button>
+                        <button class="button button-secondary" type="submit" data-i18n="dashboard.restore">Restore</button>
                     </form>
                 {% elif filter_status == 'archived' %}
                     <form method="POST" action="{{ url_for('unarchive_conversation_route', conversation_id=id) }}">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         <input type="hidden" name="from_filter" value="archived">
-                        <button class="button button-secondary" type="submit">Unarchive</button>
+                        <button class="button button-secondary" type="submit" data-i18n="dashboard.unarchive">Unarchive</button>
                     </form>
                     <form method="POST" action="{{ url_for('delete_conversation_route', conversation_id=id) }}">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         <input type="hidden" name="from_filter" value="archived">
-                        <button class="button button-secondary" type="submit">Delete</button>
+                        <button class="button button-secondary" type="submit" data-i18n="dashboard.delete">Delete</button>
                     </form>
                 {% else %}
                     <form method="POST" action="{{ url_for('archive_conversation_route', conversation_id=id) }}">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         <input type="hidden" name="from_filter" value="{{ filter_status }}">
-                        <button class="button button-secondary" type="submit">Archive</button>
+                        <button class="button button-secondary" type="submit" data-i18n="dashboard.archive">Archive</button>
                     </form>
                     <form method="POST" action="{{ url_for('delete_conversation_route', conversation_id=id) }}">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         <input type="hidden" name="from_filter" value="{{ filter_status }}">
-                        <button class="button button-secondary" type="submit">Delete</button>
+                        <button class="button button-secondary" type="submit" data-i18n="dashboard.delete">Delete</button>
                     </form>
                 {% endif %}
             </div>

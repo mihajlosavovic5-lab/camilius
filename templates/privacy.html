@@ -7,56 +7,56 @@
         <span class="brand-mark">C</span>
         <span class="brand-name">Camilius</span>
     </a>
-    <a href="{{ url_for('login') }}">Log in</a>
+    <a href="{{ url_for('login') }}" data-i18n="common.logIn">Log in</a>
 </div>
 
 <div class="content prose">
     <div class="card" style="padding: 32px;">
-        <h1>Privacy Policy</h1>
-        <p class="updated">Last updated: July 15, 2026.</p>
+        <h1 data-i18n="privacy.title">Privacy Policy</h1>
+        <p class="updated" data-i18n="privacy.updated">Last updated: July 15, 2026.</p>
 
-        <p>This policy explains what data Camilius collects, why, and how it's stored. The service is currently operated by Mihajlo Savovic as an individual (note: this will be updated if the service is registered as a company).</p>
+        <p data-i18n="privacy.intro">This policy explains what data Camilius collects, why, and how it's stored. The service is currently operated by Mihajlo Savovic as an individual (note: this will be updated if the service is registered as a company).</p>
 
-        <h2>Contact</h2>
-        <p>For any privacy questions or data access/deletion requests, write to: <strong>mihajlosavovic75757@gmail.com</strong></p>
+        <h2 data-i18n="privacy.contact.heading">Contact</h2>
+        <p><span data-i18n="privacy.contact.body">For any privacy questions or data access/deletion requests, write to:</span> <strong>mihajlosavovic75757@gmail.com</strong></p>
 
-        <h2>What data we collect</h2>
-        <p>From the business owner, at registration:</p>
+        <h2 data-i18n="privacy.dataCollected.heading">What data we collect</h2>
+        <p data-i18n="privacy.dataCollected.intro">From the business owner, at registration:</p>
         <ul>
-            <li>Business name, username, and password (the password is stored hashed, never in readable form)</li>
-            <li>A contact email address, used only for account recovery (password resets) and important account notices</li>
-            <li>The working hours, price list, and FAQ you enter</li>
+            <li data-i18n="privacy.dataCollected.item1">Business name, username, and password (the password is stored hashed, never in readable form)</li>
+            <li data-i18n="privacy.dataCollected.item2">A contact email address, used only for account recovery (password resets) and important account notices</li>
+            <li data-i18n="privacy.dataCollected.item3">The working hours, price list, and FAQ you enter</li>
         </ul>
-        <p>When you connect your Instagram Business account, we receive and store an access token (via Instagram's official Business Login/OAuth flow) that lets the service read and reply to your account's direct messages on your behalf. As part of providing the service, the system also reads the content of incoming Instagram messages sent to your connected account (your customers' questions) in order to generate suggested replies, and stores the sender's Instagram-scoped identifier and (where available) username so replies can be sent back to the right person.</p>
+        <p data-i18n="privacy.dataCollected.instagram">When you connect your Instagram Business account, we receive and store an access token (via Instagram's official Business Login/OAuth flow) that lets the service read and reply to your account's direct messages on your behalf. As part of providing the service, the system also reads the content of incoming Instagram messages sent to your connected account (your customers' questions) in order to generate suggested replies, and stores the sender's Instagram-scoped identifier and (where available) username so replies can be sent back to the right person.</p>
 
-        <h2>Why we collect this data</h2>
-        <p>Solely to provide the service's function: automatically reading customer inquiries sent via Instagram and suggesting replies based on your business's data. By default, you manually review and approve each reply before it's sent; you may optionally enable automatic sending in Settings, in which case replies are sent without manual review.</p>
+        <h2 data-i18n="privacy.why.heading">Why we collect this data</h2>
+        <p data-i18n="privacy.why.body">Solely to provide the service's function: automatically reading customer inquiries sent via Instagram and suggesting replies based on your business's data. By default, you manually review and approve each reply before it's sent; you may optionally enable automatic sending in Settings, in which case replies are sent without manual review.</p>
 
-        <h2>Who we share data with</h2>
-        <p>We don't sell your data. To provide the service, certain data is processed through the following external services (data processors):</p>
+        <h2 data-i18n="privacy.sharing.heading">Who we share data with</h2>
+        <p data-i18n="privacy.sharing.intro">We don't sell your data. To provide the service, certain data is processed through the following external services (data processors):</p>
         <ul>
-            <li><strong>OpenAI</strong> - the text of your customer's question and your business data (working hours, price list, FAQ) are sent to OpenAI to generate suggested replies.</li>
-            <li><strong>Meta (Instagram)</strong> - the system connects to your Instagram Business account via Instagram's official Messaging API, using the access token you granted, to read incoming direct messages and send your approved replies.</li>
-            <li><strong>Resend</strong> - used to send account-related emails (e.g. password resets); processes your contact email address.</li>
-            <li><strong>Railway</strong> - our hosting provider; all data is physically stored on their servers (outside Serbia).</li>
+            <li><strong>OpenAI</strong> - <span data-i18n="privacy.sharing.openai">the text of your customer's question and your business data (working hours, price list, FAQ) are sent to OpenAI to generate suggested replies.</span></li>
+            <li><strong>Meta (Instagram)</strong> - <span data-i18n="privacy.sharing.meta">the system connects to your Instagram Business account via Instagram's official Messaging API, using the access token you granted, to read incoming direct messages and send your approved replies.</span></li>
+            <li><strong>Resend</strong> - <span data-i18n="privacy.sharing.resend">used to send account-related emails (e.g. password resets); processes your contact email address.</span></li>
+            <li><strong>Railway</strong> - <span data-i18n="privacy.sharing.railway">our hosting provider; all data is physically stored on their servers (outside Serbia).</span></li>
         </ul>
 
-        <h2>How we store data</h2>
-        <p>Dashboard login passwords are stored hashed (irreversibly). The Instagram access token is stored encrypted in the database. All communication with the site goes over HTTPS. That said, no system is 100% secure, and we can't guarantee absolute security.</p>
+        <h2 data-i18n="privacy.storage.heading">How we store data</h2>
+        <p data-i18n="privacy.storage.body">Dashboard login passwords are stored hashed (irreversibly). The Instagram access token is stored encrypted in the database. All communication with the site goes over HTTPS. That said, no system is 100% secure, and we can't guarantee absolute security.</p>
 
-        <h2>How long we keep data</h2>
-        <p>We keep your data for as long as your account exists. If you'd like your account and all associated data deleted, send a request to the contact email above.</p>
+        <h2 data-i18n="privacy.retention.heading">How long we keep data</h2>
+        <p data-i18n="privacy.retention.body">We keep your data for as long as your account exists. If you'd like your account and all associated data deleted, send a request to the contact email above.</p>
 
-        <h2>Cookies</h2>
-        <p>We use only one necessary (session) cookie to keep you logged into the dashboard. We don't use cookies for marketing or tracking.</p>
+        <h2 data-i18n="privacy.cookies.heading">Cookies</h2>
+        <p data-i18n="privacy.cookies.body">We use only one necessary (session) cookie to keep you logged into the dashboard. We don't use cookies for marketing or tracking.</p>
 
-        <h2>Your rights</h2>
-        <p>You have the right to request access to the data we hold about you, its correction, or its complete deletion. For any of these requests, write to the contact email above - we'll respond within a reasonable time.</p>
+        <h2 data-i18n="privacy.rights.heading">Your rights</h2>
+        <p data-i18n="privacy.rights.body">You have the right to request access to the data we hold about you, its correction, or its complete deletion. For any of these requests, write to the contact email above - we'll respond within a reasonable time.</p>
 
-        <h2>Changes to this policy</h2>
-        <p>This policy may be updated from time to time. We'll try to notify users of significant changes via email.</p>
+        <h2 data-i18n="privacy.changes.heading">Changes to this policy</h2>
+        <p data-i18n="privacy.changes.body">This policy may be updated from time to time. We'll try to notify users of significant changes via email.</p>
     </div>
 
-    <a class="back-link" href="{{ url_for('register') }}">&larr; Back to registration</a>
+    <a class="back-link" href="{{ url_for('register') }}" data-i18n="privacy.backToRegistration">&larr; Back to registration</a>
 </div>
 {% endblock %}

@@ -9,13 +9,13 @@
             <span class="brand-mark">C</span>
             <span class="brand-name">Camilius</span>
         </span>
-        <p class="auth-tagline">One last step &mdash; connect the Instagram account customers message.</p>
+        <p class="auth-tagline" data-i18n="connectInstagram.tagline">One last step &mdash; connect the Instagram account customers message.</p>
     </div>
 
     <div class="auth-card auth-card-wide">
         <div class="connect-instagram-center">
-            <h1>Connect your Instagram account</h1>
-            <p class="auth-subtitle">Camilius reads new direct messages sent to this account and drafts replies - you approve each one by default, with an optional auto-send in Settings.</p>
+            <h1 data-i18n="connectInstagram.title">Connect your Instagram account</h1>
+            <p class="auth-subtitle" data-i18n="connectInstagram.subtitle">Camilius reads new direct messages sent to this account and drafts replies - you approve each one by default, with an optional auto-send in Settings.</p>
 
             {% if error %}
                 <div class="alert alert-error"><span class="alert-icon">&#9888;&#65039;</span><span>{{ error }}</span></div>
@@ -23,11 +23,11 @@
         </div>
 
         <div class="form-actions" style="margin-top: 20px;">
-            <a href="{{ url_for('connect_instagram_start') }}" class="button button-full">Connect Instagram</a>
+            <a href="{{ url_for('connect_instagram_start') }}" class="button button-full" data-i18n="connectInstagram.cta">Connect Instagram</a>
         </div>
 
         <div class="auth-links">
-            <a href="{{ url_for('logout') }}">Log out</a>
+            <a href="{{ url_for('logout') }}" data-i18n="common.logOut">Log out</a>
         </div>
     </div>
 </div>

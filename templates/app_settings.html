@@ -7,84 +7,84 @@
 <div class="content content-narrow">
     <div class="page-header">
         <div>
-            <h1>Settings</h1>
-            <p class="subtitle">App-level preferences, legal, and account data.</p>
+            <h1 data-i18n="appSettings.title">Settings</h1>
+            <p class="subtitle" data-i18n="appSettings.subtitle">App-level preferences, legal, and account data.</p>
         </div>
     </div>
 
     <div class="card">
-        <h2 style="margin-top:0;">Automation</h2>
-        <p class="note">When on, the AI sends replies to customers right away instead of waiting for your approval.</p>
+        <h2 style="margin-top:0;" data-i18n="appSettings.automation.heading">Automation</h2>
+        <p class="note" data-i18n="appSettings.automation.note">When on, the AI sends replies to customers right away instead of waiting for your approval.</p>
         <form method="POST" action="{{ url_for('update_auto_send') }}">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <label class="checkbox-row" style="margin-top:0;">
                 <input type="checkbox" name="auto_send" {% if auto_send %}checked{% endif %} onchange="this.form.submit()">
-                <span>Auto-send AI replies</span>
+                <span data-i18n="register.autoSendLabel">Auto-send AI replies</span>
             </label>
         </form>
     </div>
 
     <div class="card" style="margin-top:20px;">
-        <h2 style="margin-top:0;">No-show reminders <span class="badge badge-pro">Pro</span></h2>
-        <p class="note">When on, the AI automatically sends the customer a reminder DM 24 hours and 2 hours before their appointment (Instagram-booked appointments only).</p>
+        <h2 style="margin-top:0;"><span data-i18n="appSettings.reminders.heading">No-show reminders</span> <span class="badge badge-pro">Pro</span></h2>
+        <p class="note" data-i18n="appSettings.reminders.note">When on, the AI automatically sends the customer a reminder DM 24 hours and 2 hours before their appointment (Instagram-booked appointments only).</p>
         {% if pro_access %}
             <form method="POST" action="{{ url_for('update_reminders') }}">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <label class="checkbox-row" style="margin-top:0;">
                     <input type="checkbox" name="reminders_enabled" {% if reminders_enabled %}checked{% endif %} onchange="this.form.submit()">
-                    <span>Send automatic appointment reminders</span>
+                    <span data-i18n="appSettings.reminders.checkboxLabel">Send automatic appointment reminders</span>
                 </label>
             </form>
         {% else %}
             <div class="pro-locked">
                 <label class="checkbox-row" style="margin-top:0;">
                     <input type="checkbox" disabled>
-                    <span>Send automatic appointment reminders</span>
+                    <span data-i18n="appSettings.reminders.checkboxLabel">Send automatic appointment reminders</span>
                 </label>
             </div>
-            <p class="pro-locked-note">&#10024; <a href="{{ url_for('subscription') }}">Upgrade to Pro</a> to turn on automatic reminders.</p>
+            <p class="pro-locked-note">&#10024; <a href="{{ url_for('subscription') }}" data-i18n="appSettings.reminders.upgradeCta">Upgrade to Pro</a> <span data-i18n="appSettings.reminders.upgradeSuffix">to turn on automatic reminders.</span></p>
         {% endif %}
     </div>
 
     <div class="card" style="margin-top:20px;">
-        <h2 style="margin-top:0;">Billing</h2>
+        <h2 style="margin-top:0;" data-i18n="appSettings.billing.heading">Billing</h2>
         <a class="settings-link-row" href="{{ url_for('subscription') }}">
-            <span>Subscription</span>
+            <span data-i18n="common.subscription">Subscription</span>
             <span class="settings-link-chevron">&rsaquo;</span>
         </a>
     </div>
 
     <div class="card" style="margin-top:20px;">
-        <h2 style="margin-top:0;">Legal</h2>
-        <p class="note">Read our policies any time.</p>
+        <h2 style="margin-top:0;" data-i18n="appSettings.legal.heading">Legal</h2>
+        <p class="note" data-i18n="appSettings.legal.note">Read our policies any time.</p>
         <div class="form-actions" style="gap:12px;">
-            <a class="button button-secondary" href="{{ url_for('terms') }}">Terms of Service</a>
-            <a class="button button-secondary" href="{{ url_for('privacy') }}">Privacy Policy</a>
+            <a class="button button-secondary" href="{{ url_for('terms') }}" data-i18n="common.termsOfService">Terms of Service</a>
+            <a class="button button-secondary" href="{{ url_for('privacy') }}" data-i18n="common.privacyPolicy">Privacy Policy</a>
         </div>
     </div>
 
     <div class="card" style="margin-top:20px;">
-        <h2 style="margin-top:0;">Help &amp; support</h2>
-        <p class="note">Questions or ran into an issue? We're happy to help.</p>
+        <h2 style="margin-top:0;" data-i18n="appSettings.support.heading">Help &amp; support</h2>
+        <p class="note" data-i18n="appSettings.support.note">Questions or ran into an issue? We're happy to help.</p>
         <p><strong>mihajlosavovic75757@gmail.com</strong></p>
         <div class="form-actions">
-            <a class="button" href="mailto:mihajlosavovic75757@gmail.com?subject=Camilius%20support">Send us an email</a>
+            <a class="button" href="mailto:mihajlosavovic75757@gmail.com?subject=Camilius%20support" data-i18n="appSettings.support.emailCta">Send us an email</a>
         </div>
     </div>
 
     <div class="export-zone" style="margin-top:20px;">
-        <h2>Export your data</h2>
-        <p>Download a copy of your business profile and every conversation, as a JSON file.</p>
-        <a class="button button-secondary" href="{{ url_for('export_data') }}">Export my data</a>
+        <h2 data-i18n="appSettings.export.heading">Export your data</h2>
+        <p data-i18n="appSettings.export.note">Download a copy of your business profile and every conversation, as a JSON file.</p>
+        <a class="button button-secondary" href="{{ url_for('export_data') }}" data-i18n="appSettings.export.cta">Export my data</a>
     </div>
 
     <div class="danger-zone">
-        <h2>Delete account</h2>
-        <p>Permanently deletes your account and all conversations. This action cannot be undone.</p>
+        <h2 data-i18n="appSettings.danger.heading">Delete account</h2>
+        <p data-i18n="appSettings.danger.note">Permanently deletes your account and all conversations. This action cannot be undone.</p>
         <form method="POST" action="{{ url_for('delete_account') }}"
-              onsubmit="return confirm('Are you sure? Your account and all conversations will be permanently deleted.');">
+              onsubmit="return confirm(t('appSettings.danger.confirm'));">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <button class="button button-danger" type="submit">Delete account</button>
+            <button class="button button-danger" type="submit" data-i18n="appSettings.danger.cta">Delete account</button>
         </form>
     </div>
 </div>

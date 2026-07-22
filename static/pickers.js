@@ -13,9 +13,17 @@
 // and request.form["price_list"] as plain strings.
 
 const HOURS_DAYS = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
+// English day names - this is the wire format saved to working_hours ("Monday: 09:00-
+// 18:00") that the backend/AI parse, NOT display text, so it must stay fixed regardless
+// of UI language (same reasoning as the {{ business.name }} exclusion elsewhere). The
+// visible label text is translated separately below via HOURS_DAY_I18N_KEYS + t().
 const HOURS_DAY_LABELS = {
     monday: "Monday", tuesday: "Tuesday", wednesday: "Wednesday", thursday: "Thursday",
     friday: "Friday", saturday: "Saturday", sunday: "Sunday",
+};
+const HOURS_DAY_I18N_KEYS = {
+    monday: "pickers.days.monday", tuesday: "pickers.days.tuesday", wednesday: "pickers.days.wednesday",
+    thursday: "pickers.days.thursday", friday: "pickers.days.friday", saturday: "pickers.days.saturday", sunday: "pickers.days.sunday",
 };
 
 function buildHoursTimeOptions() {
@@ -51,7 +59,8 @@ function createHoursPicker(mountId, hiddenFieldId) {
         header.className = "hours-day-header";
         const label = document.createElement("span");
         label.className = "hours-day-name";
-        label.textContent = HOURS_DAY_LABELS[day];
+        label.setAttribute("data-i18n", HOURS_DAY_I18N_KEYS[day]);
+        label.textContent = t(HOURS_DAY_I18N_KEYS[day]);
 
         const toggleLabel = document.createElement("label");
         toggleLabel.className = "hours-day-toggle";
@@ -174,13 +183,15 @@ function createPricePicker(mountId, addButtonId, currencySelectId, hiddenFieldId
 
         const serviceInput = document.createElement("input");
         serviceInput.type = "text";
-        serviceInput.placeholder = "Service";
+        serviceInput.placeholder = t("pickers.servicePlaceholder");
+        serviceInput.setAttribute("data-i18n-placeholder", "pickers.servicePlaceholder");
         serviceInput.value = service || "";
         serviceInput.className = "price-service-input";
 
         const priceInput = document.createElement("input");
         priceInput.type = "text";
-        priceInput.placeholder = "Price";
+        priceInput.placeholder = t("pickers.pricePlaceholder");
+        priceInput.setAttribute("data-i18n-placeholder", "pickers.pricePlaceholder");
         priceInput.value = price || "";
         priceInput.className = "price-amount-input";
 
@@ -279,7 +290,8 @@ function createUpsellPicker(mountId, addButtonId, hiddenFieldId, priceListHidden
 
         const inputA = document.createElement("input");
         inputA.type = "text";
-        inputA.placeholder = "Service";
+        inputA.placeholder = t("pickers.servicePlaceholder");
+        inputA.setAttribute("data-i18n-placeholder", "pickers.servicePlaceholder");
         inputA.value = serviceA || "";
         inputA.className = "upsell-service-a";
         inputA.setAttribute("list", datalistId);
@@ -290,7 +302,8 @@ function createUpsellPicker(mountId, addButtonId, hiddenFieldId, priceListHidden
 
         const inputB = document.createElement("input");
         inputB.type = "text";
-        inputB.placeholder = "Suggested add-on";
+        inputB.placeholder = t("pickers.addonPlaceholder");
+        inputB.setAttribute("data-i18n-placeholder", "pickers.addonPlaceholder");
         inputB.value = serviceB || "";
         inputB.className = "upsell-service-b";
         inputB.setAttribute("list", datalistId);

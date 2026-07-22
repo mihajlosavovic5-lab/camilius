@@ -7,59 +7,59 @@
 <div class="content content-narrow">
     <div class="page-header">
         <div>
-            <h1>Subscription</h1>
-            <p class="subtitle">{% if beta_free_mode %}Free during the beta - no plan to manage yet.{% else %}Choose the plan that fits your business.{% endif %}</p>
+            <h1 data-i18n="common.subscription">Subscription</h1>
+            <p class="subtitle" data-i18n="{{ 'subscription.subtitleBeta' if beta_free_mode else 'subscription.subtitleChoose' }}">{% if beta_free_mode %}Free during the beta - no plan to manage yet.{% else %}Choose the plan that fits your business.{% endif %}</p>
         </div>
     </div>
 
     {% if trial_ended %}
         <div class="alert alert-warning">
             <span class="alert-icon">&#9888;</span>
-            <span>Your 7-day free trial has ended. Choose a plan below to keep the AI processing your Instagram messages.</span>
+            <span data-i18n="subscription.trialEnded">Your 7-day free trial has ended. Choose a plan below to keep the AI processing your Instagram messages.</span>
         </div>
     {% endif %}
     {% if request.args.get('checkout_error') %}
-        <div class="alert alert-error"><span class="alert-icon">&#9888;&#65039;</span><span>Couldn't start checkout - please try again in a moment.</span></div>
+        <div class="alert alert-error"><span class="alert-icon">&#9888;&#65039;</span><span data-i18n="subscription.checkoutError">Couldn't start checkout - please try again in a moment.</span></div>
     {% endif %}
 
     {% if beta_free_mode %}
         <div class="card" style="border-color: var(--success-border);">
-            <span class="badge badge-sent"><span class="badge-dot"></span>Free during beta</span>
-            <p style="margin: 12px 0 0;">Camilius is completely free while it's in beta &mdash; no card required, nothing to cancel. Paid plans are coming once beta wraps up; you'll get plenty of notice before anything changes.</p>
+            <span class="badge badge-sent"><span class="badge-dot"></span><span data-i18n="subscription.beta.badge">Free during beta</span></span>
+            <p style="margin: 12px 0 0;" data-i18n="subscription.beta.body">Camilius is completely free while it's in beta &mdash; no card required, nothing to cancel. Paid plans are coming once beta wraps up; you'll get plenty of notice before anything changes.</p>
             <ul class="benefits" style="margin-top: 16px;">
-                <li><span class="checkmark">&#10003;</span> AI automatically reads new Instagram messages and prepares suggested replies</li>
-                <li><span class="checkmark">&#10003;</span> You just approve and send from the dashboard</li>
-                <li><span class="checkmark">&#10003;</span> Up to 50 replies per day</li>
-                <li><span class="checkmark">&#10003;</span> Replies learn from your conversation history with each customer</li>
+                <li><span class="checkmark">&#10003;</span> <span data-i18n="subscription.beta.benefit1">AI automatically reads new Instagram messages and prepares suggested replies</span></li>
+                <li><span class="checkmark">&#10003;</span> <span data-i18n="subscription.beta.benefit2">You just approve and send from the dashboard</span></li>
+                <li><span class="checkmark">&#10003;</span> <span data-i18n="subscription.beta.benefit3">Up to 50 replies per day</span></li>
+                <li><span class="checkmark">&#10003;</span> <span data-i18n="subscription.beta.benefit4">Replies learn from your conversation history with each customer</span></li>
             </ul>
         </div>
     {% elif active %}
         <div class="card" style="border-color: var(--success-border);">
             {% if status == 'trialing' %}
-                <span class="badge badge-pending"><span class="badge-dot"></span>7-day Free Trial Active</span>
-                <p style="margin: 12px 0 0;">Your trial is active with every Pro feature unlocked, and the AI is processing new messages. You won't be charged until the trial ends - choose a plan any time before then to keep going without interruption.</p>
+                <span class="badge badge-pending"><span class="badge-dot"></span><span data-i18n="subscription.active.trialBadge">7-day Free Trial Active</span></span>
+                <p style="margin: 12px 0 0;" data-i18n="subscription.active.trialBody">Your trial is active with every Pro feature unlocked, and the AI is processing new messages. You won't be charged until the trial ends - choose a plan any time before then to keep going without interruption.</p>
             {% elif pro_access %}
-                <span class="badge badge-sent"><span class="badge-dot"></span>Pro plan active</span>
-                <p style="margin: 12px 0 0;">Your account is active and the AI is processing new messages, with every Pro feature unlocked. Thank you!</p>
+                <span class="badge badge-sent"><span class="badge-dot"></span><span data-i18n="subscription.active.proBadge">Pro plan active</span></span>
+                <p style="margin: 12px 0 0;" data-i18n="subscription.active.proBody">Your account is active and the AI is processing new messages, with every Pro feature unlocked. Thank you!</p>
             {% else %}
-                <span class="badge badge-sent"><span class="badge-dot"></span>Starter plan active</span>
-                <p style="margin: 12px 0 0;">Your account is active and the AI is processing new messages. Thank you!</p>
-                <p class="pro-locked-note" style="margin-top: 12px;">&#10024; Want Schedule/AI booking, no-show reminders, and AI upsell too? <a href="mailto:mihajlosavovic75757@gmail.com?subject=Upgrade%20to%20Pro">Email us to upgrade to Pro</a>.</p>
+                <span class="badge badge-sent"><span class="badge-dot"></span><span data-i18n="subscription.active.starterBadge">Starter plan active</span></span>
+                <p style="margin: 12px 0 0;" data-i18n="subscription.active.starterBody">Your account is active and the AI is processing new messages. Thank you!</p>
+                <p class="pro-locked-note" style="margin-top: 12px;">&#10024; <span data-i18n="subscription.active.upgradePrompt">Want Schedule/AI booking, no-show reminders, and AI upsell too?</span> <a href="mailto:mihajlosavovic75757@gmail.com?subject=Upgrade%20to%20Pro" data-i18n="subscription.active.upgradeLink">Email us to upgrade to Pro</a>.</p>
             {% endif %}
 
             {% if has_stripe_billing %}
                 <form method="POST" action="{{ url_for('stripe_manage_billing') }}" class="form-actions">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                    <button type="submit" class="button button-secondary">Manage billing</button>
+                    <button type="submit" class="button button-secondary" data-i18n="subscription.manageBilling">Manage billing</button>
                 </form>
-                <p class="note">Update your payment method, view invoices, or cancel - handled securely by Stripe.</p>
+                <p class="note" data-i18n="subscription.manageBillingNote">Update your payment method, view invoices, or cancel - handled securely by Stripe.</p>
             {% endif %}
         </div>
     {% else %}
         <div class="pricing-toggle-wrap">
             <div class="pricing-toggle" id="billing-toggle">
-                <button type="button" class="pricing-toggle-option active" data-interval="monthly">Monthly</button>
-                <button type="button" class="pricing-toggle-option" data-interval="yearly">Yearly <span class="pricing-toggle-save">2 months free</span></button>
+                <button type="button" class="pricing-toggle-option active" data-interval="monthly" data-i18n="subscription.monthly">Monthly</button>
+                <button type="button" class="pricing-toggle-option" data-interval="yearly"><span data-i18n="subscription.yearly">Yearly</span> <span class="pricing-toggle-save" data-i18n="subscription.twoMonthsFree">2 months free</span></button>
             </div>
         </div>
 
@@ -68,55 +68,55 @@
                 <p class="pricing-plan-name">Starter</p>
                 <div class="pricing-plan-price">
                     <span class="pricing-amount">&euro;<span class="pricing-amount-value" data-monthly="29" data-yearly="290">29</span></span>
-                    <span class="pricing-period" data-monthly="/ month" data-yearly="/ year">/ month</span>
+                    <span class="pricing-period" data-i18n="subscription.perMonth">/ month</span>
                 </div>
-                <p class="note pricing-yearly-total hidden" data-monthly="" data-yearly="Billed &euro;290 / year">Billed &euro;290 / year</p>
+                <p class="note pricing-yearly-total hidden" data-i18n="subscription.billedYearlyStarter">Billed &euro;290 / year</p>
 
                 <ul class="benefits">
-                    <li><span class="checkmark">&#10003;</span> Basic AI replies to Instagram DMs</li>
-                    <li><span class="checkmark">&#10003;</span> Up to 300 conversations / month</li>
+                    <li><span class="checkmark">&#10003;</span> <span data-i18n="subscription.starter.benefit1">Basic AI replies to Instagram DMs</span></li>
+                    <li><span class="checkmark">&#10003;</span> <span data-i18n="subscription.starter.benefit2">Up to 300 conversations / month</span></li>
                 </ul>
 
                 <form method="POST" action="{{ url_for('stripe_checkout') }}" class="form-actions">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <input type="hidden" name="plan" value="starter">
                     <input type="hidden" name="interval" class="pricing-interval-input" value="monthly">
-                    <button type="submit" class="button button-secondary button-full pricing-choose-btn" data-plan="starter" {% if not stripe_configured or not stripe_prices_configured.starter_monthly %}disabled{% endif %}>
+                    <button type="submit" class="button button-secondary button-full pricing-choose-btn" data-plan="starter" data-i18n="{{ 'subscription.comingSoon' if not stripe_configured or not stripe_prices_configured.starter_monthly else 'subscription.chooseStarter' }}" {% if not stripe_configured or not stripe_prices_configured.starter_monthly %}disabled{% endif %}>
                         {% if not stripe_configured or not stripe_prices_configured.starter_monthly %}Coming soon{% else %}Choose Starter{% endif %}
                     </button>
                 </form>
             </div>
 
             <div class="card pricing-plan pricing-plan-recommended">
-                <span class="pricing-recommended-badge">Recommended</span>
+                <span class="pricing-recommended-badge" data-i18n="subscription.recommended">Recommended</span>
                 <p class="pricing-plan-name">Pro</p>
                 <div class="pricing-plan-price">
                     <span class="pricing-amount">&euro;<span class="pricing-amount-value" data-monthly="59" data-yearly="590">59</span></span>
-                    <span class="pricing-period" data-monthly="/ month" data-yearly="/ year">/ month</span>
+                    <span class="pricing-period" data-i18n="subscription.perMonth">/ month</span>
                 </div>
-                <p class="note pricing-yearly-total hidden" data-monthly="" data-yearly="Billed &euro;590 / year">Billed &euro;590 / year</p>
+                <p class="note pricing-yearly-total hidden" data-i18n="subscription.billedYearlyPro">Billed &euro;590 / year</p>
 
                 <ul class="benefits">
-                    <li><span class="checkmark">&#10003;</span> Everything in Starter</li>
-                    <li><span class="checkmark">&#10003;</span> Smart appointment scheduling to calendar</li>
-                    <li><span class="checkmark">&#10003;</span> Automatic no-show reminders</li>
-                    <li><span class="checkmark">&#10003;</span> AI upsell for related services</li>
-                    <li><span class="checkmark">&#10003;</span> AI cancellation &amp; rescheduling</li>
-                    <li><span class="checkmark">&#10003;</span> AI assistant for support questions</li>
+                    <li><span class="checkmark">&#10003;</span> <span data-i18n="subscription.pro.benefit1">Everything in Starter</span></li>
+                    <li><span class="checkmark">&#10003;</span> <span data-i18n="subscription.pro.benefit2">Smart appointment scheduling to calendar</span></li>
+                    <li><span class="checkmark">&#10003;</span> <span data-i18n="subscription.pro.benefit3">Automatic no-show reminders</span></li>
+                    <li><span class="checkmark">&#10003;</span> <span data-i18n="subscription.pro.benefit4">AI upsell for related services</span></li>
+                    <li><span class="checkmark">&#10003;</span> <span data-i18n="subscription.pro.benefit5">AI cancellation &amp; rescheduling</span></li>
+                    <li><span class="checkmark">&#10003;</span> <span data-i18n="subscription.pro.benefit6">AI assistant for support questions</span></li>
                 </ul>
 
                 <form method="POST" action="{{ url_for('stripe_checkout') }}" class="form-actions">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <input type="hidden" name="plan" value="pro">
                     <input type="hidden" name="interval" class="pricing-interval-input" value="monthly">
-                    <button type="submit" class="button button-full pricing-choose-btn" data-plan="pro" {% if not stripe_configured or not stripe_prices_configured.pro_monthly %}disabled{% endif %}>
+                    <button type="submit" class="button button-full pricing-choose-btn" data-plan="pro" data-i18n="{{ 'subscription.comingSoon' if not stripe_configured or not stripe_prices_configured.pro_monthly else 'subscription.choosePro' }}" {% if not stripe_configured or not stripe_prices_configured.pro_monthly %}disabled{% endif %}>
                         {% if not stripe_configured or not stripe_prices_configured.pro_monthly %}Coming soon{% else %}Choose Pro{% endif %}
                     </button>
                 </form>
             </div>
         </div>
 
-        <p class="note" style="text-align: center; margin-top: 16px;">Payment is securely processed by Stripe. New accounts start with a 7-day free trial with every Pro feature unlocked - you won't be charged until it ends.</p>
+        <p class="note" style="text-align: center; margin-top: 16px;" data-i18n="subscription.stripeNote">Payment is securely processed by Stripe. New accounts start with a 7-day free trial with every Pro feature unlocked - you won't be charged until it ends.</p>
     {% endif %}
 </div>
 {% endblock %}
@@ -139,7 +139,9 @@
             const plan = btn.dataset.plan;
             const available = priceButtons[plan][billingInterval];
             btn.disabled = !available;
-            btn.textContent = available ? (plan === "pro" ? "Choose Pro" : "Choose Starter") : "Coming soon";
+            const key = available ? (plan === "pro" ? "subscription.choosePro" : "subscription.chooseStarter") : "subscription.comingSoon";
+            btn.setAttribute("data-i18n", key);
+            btn.textContent = t(key);
         });
         document.querySelectorAll(".pricing-interval-input").forEach((input) => {
             input.value = billingInterval;
@@ -151,7 +153,11 @@
             billingInterval = btn.dataset.interval;
             document.querySelectorAll(".pricing-toggle-option").forEach((b) => b.classList.toggle("active", b === btn));
             document.querySelectorAll(".pricing-amount-value").forEach((el) => { el.textContent = el.dataset[billingInterval]; });
-            document.querySelectorAll(".pricing-period").forEach((el) => { el.textContent = el.dataset[billingInterval]; });
+            document.querySelectorAll(".pricing-period").forEach((el) => {
+                const key = billingInterval === "monthly" ? "subscription.perMonth" : "subscription.perYear";
+                el.setAttribute("data-i18n", key);
+                el.textContent = t(key);
+            });
             document.querySelectorAll(".pricing-yearly-total").forEach((el) => { el.classList.toggle("hidden", billingInterval !== "yearly"); });
             refreshButtons();
         });
