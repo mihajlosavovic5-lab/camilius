@@ -819,9 +819,9 @@ body.intro { margin: 0; height: 100dvh; overflow: hidden; }
 
 /* --- Scroll-aware header --- */
 #lp-header {
-    /* top tracks --install-banner-h (same variable the language button and desktop nav-links
-       already use) so the mobile-install-banner pushes the header down instead of the two
-       overlapping - the banner sits in normal flow above this, fixed elements otherwise ignore it. */
+    /* top tracks --install-banner-h (same variable the fixed language button uses) so the
+       mobile-install-banner pushes the header down instead of the two overlapping - the
+       banner sits in normal flow above this, fixed elements otherwise ignore it. */
     position: fixed; top: var(--install-banner-h); left: 0; right: 0; z-index: 999;
     padding: 18px 0; background: rgba(253, 252, 250, 0);
     border-bottom: 1px solid rgba(236, 230, 218, 0);
@@ -834,47 +834,28 @@ body.intro { margin: 0; height: 100dvh; overflow: hidden; }
     padding: 12px 0;
     box-shadow: 0 4px 20px rgba(38, 32, 20, .05);
 }
-/* min-height: brand and (>=1001px) nav-links are pulled out of flow below for
-   corner-pinning, leaving no in-flow content to size this box - without it,
-   the header collapses and its scrolled frosted-glass background no longer
-   reaches down behind the now-floating buttons. */
-#lp-header .public-header { padding-top: 0; padding-bottom: 0; justify-content: flex-end; min-height: 38px; }
+/* min-height: brand and the hamburger button are both pulled out of flow
+   below (absolute) for corner-pinning, leaving no in-flow content to size
+   this box - without it, the header collapses and its scrolled
+   frosted-glass background no longer reaches down behind them. */
+#lp-header .public-header { padding-top: 0; padding-bottom: 0; min-height: 38px; }
 .lp-header-spacer { height: 74px; }
 
-/* Logo pinned near the viewport corner, and no longer a link - #lp-header is
-   fixed/full-width so absolute here resolves against the viewport, not the
-   centered .public-header. Below 1080px it's centered instead (see the mobile
-   menu block below); above that it's nudged in from the true corner for
-   breathing room next to the center nav, see the shared breakpoint below. */
-#lp-corner-brand { position: absolute; top: 20px; left: 20px; cursor: default; }
+/* Logo centered, and no longer a link - #lp-header is fixed/full-width so
+   absolute here resolves against the viewport, not the centered
+   .public-header. */
+#lp-corner-brand { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); cursor: default; }
 
-/* Above ~1080px the centered 960px column leaves visible daylight between
-   "Log in"/"Try for free" and the fixed language-picker button in the true
-   corner - pin the nav links too, nudged in from the edge (not flush against
-   the language button) so the whole row reads as evenly spaced rather than
-   pinned to extremes. Below 1080px the nav links are hidden entirely behind
-   the mobile hamburger menu instead (see below), so there's nothing here to
-   crowd. */
-@media (min-width: 1080px) {
-    #lp-corner-brand { left: 56px; }
-    #lp-header .nav-links {
-        position: fixed;
-        top: calc(13px + var(--install-banner-h));
-        right: 140px;
-    }
-}
-
-/* --- Mobile header (<1080px): hamburger menu ---
-   The desktop row (logo left, center nav, Log in/Try for free right) doesn't
-   fit a phone width, and the in-flow "Log in"/"Try for free" pair used to
-   sit flush in the same corner as the fixed language-picker button, so the
-   two visibly overlapped. Below 1080px we instead: hide the nav links and
-   center nav, center the brand where they used to make room for it, and pin
-   a hamburger button in the brand's old corner that opens a dropdown with
-   everything the desktop header has (center nav + Log in + Try for free).
-   Desktop (>=1080px) is untouched - the button/menu are display:none there. */
+/* --- Header menu: hamburger + dropdown ---
+   Same header at every viewport width (mobile or desktop) - a centered
+   brand logo with a hamburger button in the top-left corner that opens a
+   dropdown with everything the site nav has: the "See it in action"/
+   Pricing/How it works anchors, Log in, and Try for free. Replaced an
+   earlier desktop-only row (logo left, center nav, Log in/Try for free
+   right) whose in-flow nav links sat flush in the same corner as the fixed
+   language-picker button and visibly overlapped it below 1080px. */
 .lp-menu-btn {
-    display: none;
+    display: inline-flex;
     position: absolute; top: 20px; left: 20px; z-index: 3;
     width: 34px; height: 34px; align-items: center; justify-content: center;
     flex-direction: column; gap: 5px;
@@ -911,42 +892,6 @@ body.intro { margin: 0; height: 100dvh; overflow: hidden; }
 .lp-menu-modal-sheet a.button { color: #fff; text-align: center; margin-top: 4px; }
 .lp-menu-modal-sheet a.button:hover { background: var(--primary-dark); color: #fff; }
 .lp-menu-modal-divider { height: 1px; background: var(--border); margin: 6px 4px; }
-
-@media (max-width: 1079px) {
-    #lp-header .nav-links { display: none; }
-    #lp-corner-brand { left: 50%; transform: translateX(-50%); }
-    .lp-menu-btn { display: inline-flex; }
-}
-/* Belt-and-braces: even if something resizes the window while the menu is
-   open, the dropdown itself never renders at desktop widths. */
-@media (min-width: 1080px) {
-    .lp-menu-modal { display: none; }
-}
-
-/* Center nav - real links into sections further down the page (not
-   decoration), filling the wide empty gap between the corner logo and the
-   corner buttons. Styled as one pill-shaped group (same visual language as
-   the trust-strip pills / language button elsewhere on the page) instead of
-   bare text, so it reads as a designed nav component. Desktop-only: below
-   1080px .public-header is narrow enough that a middle nav would crowd the
-   still in-flow "Log in"/"Try for free" links. */
-#lp-header .lp-center-nav { display: none; }
-@media (min-width: 1080px) {
-    #lp-header .lp-center-nav {
-        display: flex; align-items: center; gap: 2px;
-        position: absolute; left: 50%; top: 12px; transform: translateX(-50%);
-        background: var(--surface); border: 1px solid var(--border);
-        border-radius: 99px; padding: 4px; box-shadow: var(--shadow);
-    }
-    #lp-header .lp-center-nav a {
-        color: var(--text-muted); font-size: 14px; font-weight: 600;
-        padding: 8px 16px; border-radius: 99px;
-        transition: background .15s ease, color .15s ease;
-    }
-    #lp-header .lp-center-nav a:hover {
-        background: var(--primary-light); color: var(--primary-ink); text-decoration: none;
-    }
-}
 
 /* Smooth-scroll for the center nav's anchor links; scroll-margin-top keeps the
    fixed header from covering the target section's heading on arrival. */

@@ -37,11 +37,9 @@
 <div id="lp-progress"></div>
 
 <header id="lp-header">
-    <!-- Mobile-only (<1080px) hamburger - takes over the brand's old corner once
-         the brand itself centers on mobile (see #lp-corner-brand rules), and opens
-         everything the desktop row shows (center nav + Log in + Try for free),
-         which are otherwise hidden entirely below 1080px. display:none at
-         >=1080px, so the desktop layout is untouched. -->
+    <!-- Same header at every viewport width: hamburger top-left opens a dropdown
+         with everything the site nav has (See it in action/Pricing/How it works,
+         Log in, Try for free); the brand logo sits centered top. -->
     <button type="button" id="lp-menu-btn" class="lp-menu-btn" aria-label="Menu" aria-expanded="false" aria-controls="lp-menu-modal">
         <span></span><span></span><span></span>
     </button>
@@ -61,18 +59,6 @@
             <span class="brand-mark">C</span>
             <span class="brand-name">Camilius</span>
         </span>
-        <!-- Center nav (desktop only, see min-width:1001px in style.css) - anchors into
-             sections that already exist further down the page, reusing their own
-             section-title i18n keys instead of adding new translation entries. -->
-        <nav class="lp-center-nav">
-            <a href="#lp-examples" data-i18n="landing.slider.sectionTitle">See it in action</a>
-            {% if not beta_free_mode %}<a href="#lp-pricing" data-i18n="terms.pricing.heading">Pricing</a>{% endif %}
-            <a href="#lp-how-it-works" data-i18n="landing.howItWorks.title">How it works</a>
-        </nav>
-        <div class="nav-links">
-            <a href="{{ url_for('login') }}" data-i18n="landing.nav.login">Log in</a>
-            <a href="{{ url_for('register') }}" class="button" style="padding: 8px 16px; font-size: 14px;" data-i18n="landing.nav.tryFree">Try for free</a>
-        </div>
     </div>
 </header>
 <div class="lp-header-spacer"></div>
