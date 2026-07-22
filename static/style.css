@@ -819,10 +819,13 @@ body.intro { margin: 0; height: 100dvh; overflow: hidden; }
 
 /* --- Scroll-aware header --- */
 #lp-header {
-    position: fixed; top: 0; left: 0; right: 0; z-index: 999;
+    /* top tracks --install-banner-h (same variable the language button and desktop nav-links
+       already use) so the mobile-install-banner pushes the header down instead of the two
+       overlapping - the banner sits in normal flow above this, fixed elements otherwise ignore it. */
+    position: fixed; top: var(--install-banner-h); left: 0; right: 0; z-index: 999;
     padding: 18px 0; background: rgba(253, 252, 250, 0);
     border-bottom: 1px solid rgba(236, 230, 218, 0);
-    transition: background .25s ease, border-color .25s ease, padding .25s ease, box-shadow .25s ease;
+    transition: background .25s ease, border-color .25s ease, padding .25s ease, box-shadow .25s ease, top .2s ease;
 }
 #lp-header.lp-scrolled {
     background: rgba(255, 255, 255, .85);
