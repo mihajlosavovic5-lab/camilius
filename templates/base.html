@@ -27,11 +27,12 @@
 </head>
 <body class="{% block body_class %}{% endblock %}">
 <!-- Language picker - fixed top-right on every page (same widget as the mobile app's
-     login screen: a text+chevron button that opens a dropdown of the same 10 languages).
+     login screen, but shown as a flag instead of the language name: a flag+chevron
+     button that opens a dropdown of the same 10 languages, each shown with its own flag).
      Lives outside any page-specific header markup so it works identically whether the
      page uses _nav.html (logged-in) or its own public-header/auth-wrapper. -->
-<button type="button" id="site-lang-select-btn" class="site-lang-select-btn">
-    <span id="site-lang-select-label">English</span>
+<button type="button" id="site-lang-select-btn" class="site-lang-select-btn" title="English" aria-label="Change language (current: English)">
+    <img id="site-lang-select-flag" class="site-lang-flag" src="{{ url_for('static', filename='flags/gb.svg') }}" alt="">
     <span class="site-lang-chevron">&#8964;</span>
 </button>
 <div id="site-lang-modal" class="site-lang-modal">

@@ -1,23 +1,26 @@
 /* Camilius — shared styles for all pages */
 
-/* --- Site-wide language picker (fixed top-right on every page, base.html) - same
-   widget/behavior as the mobile app's login-screen language picker: a text+chevron
-   button opening a dropdown of the same 10 languages, translations applied client-side
-   via static/site-i18n.js. --- */
+/* --- Site-wide language picker (fixed top-right on every page, base.html) - a
+   flag+chevron button opening a dropdown of the same 10 languages (each shown with
+   its own flag), translations applied client-side via static/site-i18n.js. --- */
 :root { --install-banner-h: 0px; }
 /* z-index must clear #lp-header's 999 (landing page's fixed full-width header) - it's
    transparent so the button paints visibly through it, but without this it still
    swallows clicks aimed at the button underneath. */
 .site-lang-select-btn {
     position: fixed; top: calc(16px + var(--install-banner-h)); right: 16px; z-index: 1001;
-    transition: top .2s ease;
-    display: flex; align-items: center; gap: 5px;
+    display: flex; align-items: center; gap: 6px;
     background: var(--surface); border: 1px solid var(--border);
-    cursor: pointer; font-family: inherit; font-size: 13.5px; font-weight: 600; color: var(--text-muted);
-    padding: 8px 12px; border-radius: 999px; box-shadow: var(--shadow); transition: background .15s ease;
+    cursor: pointer; font-family: inherit; color: var(--text-muted);
+    padding: 7px 10px; border-radius: 999px; box-shadow: var(--shadow);
+    transition: top .2s ease, background .15s ease, box-shadow .15s ease;
 }
-.site-lang-select-btn:hover { background: var(--background); }
+.site-lang-select-btn:hover { background: var(--background); box-shadow: var(--shadow-lg); }
 .site-lang-select-btn.active .site-lang-chevron { transform: rotate(180deg); }
+.site-lang-flag {
+    width: 21px; height: 15px; object-fit: cover; border-radius: 3px; flex-shrink: 0;
+    box-shadow: 0 0 0 1px rgba(20,15,8,.12), var(--shadow);
+}
 .site-lang-chevron { font-size: 11px; display: inline-block; transition: transform .18s ease; }
 /* --- Smart mobile-web install banner (Faza 5) - sits in normal document flow at the
    very top of the page (not fixed), so it simply pushes the sticky nav down when
@@ -54,10 +57,18 @@
 .site-lang-modal.open .site-lang-modal-sheet { transform: translateY(0) scale(1); opacity: 1; }
 .site-lang-modal-list { display: flex; flex-direction: column; }
 .site-lang-option-btn {
-    background: none; border: none; text-align: left; padding: 10px 12px; border-radius: 9px;
+    background: none; border: none; text-align: left; padding: 9px 10px; border-radius: 9px;
     font-family: inherit; font-size: 14.5px; color: var(--text); cursor: pointer; width: 100%;
+    display: flex; align-items: center; gap: 10px;
 }
 .site-lang-option-btn:hover { background: var(--background); }
+.site-lang-option-flag {
+    width: 24px; height: 17px; object-fit: cover; border-radius: 3px; flex-shrink: 0;
+    box-shadow: 0 0 0 1px rgba(20,15,8,.12);
+}
+.site-lang-option-name { flex: 1; }
+.site-lang-option-btn.active { background: var(--background); font-weight: 600; color: var(--primary-dark); }
+.site-lang-option-btn.active::after { content: "\2713"; font-size: 13px; color: var(--primary); flex-shrink: 0; }
 
 :root {
     --primary: #d69410;          /* deep amber - button fills (with white text) */

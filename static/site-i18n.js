@@ -5,17 +5,23 @@
 // username or password.", {{ business.name }}, etc.) is NOT translated by this layer,
 // same accepted limitation the mobile app already has.
 
+// "flag" is a filename under /static/flags/ (from the flag-icons project, MIT
+// licensed), not the language code. Emoji flags were tried first but Chrome on Windows
+// renders them as plain "GB"/"ES" text instead of an actual flag glyph, so real image
+// files are used instead for consistent cross-platform rendering. Most are the
+// original SVGs, but Spain's and Serbia's coats of arms make their SVGs huge (80KB/
+// 175KB) for an icon shown at ~20px, so those two are pre-rasterized to small PNGs.
 const LANGUAGES = [
-    { code: "en", name: "English" },
-    { code: "es", name: "Español" },
-    { code: "pt", name: "Português" },
-    { code: "fr", name: "Français" },
-    { code: "de", name: "Deutsch" },
-    { code: "it", name: "Italiano" },
-    { code: "ru", name: "Русский" },
-    { code: "sr", name: "Srpski" },
-    { code: "zh", name: "中文" },
-    { code: "tr", name: "Türkçe" },
+    { code: "en", name: "English", flag: "gb.svg" },
+    { code: "es", name: "Español", flag: "es.png" },
+    { code: "pt", name: "Português", flag: "pt.svg" },
+    { code: "fr", name: "Français", flag: "fr.svg" },
+    { code: "de", name: "Deutsch", flag: "de.svg" },
+    { code: "it", name: "Italiano", flag: "it.svg" },
+    { code: "ru", name: "Русский", flag: "ru.svg" },
+    { code: "sr", name: "Srpski", flag: "rs.png" },
+    { code: "zh", name: "中文", flag: "cn.svg" },
+    { code: "tr", name: "Türkçe", flag: "tr.svg" },
 ];
 
 const TRANSLATIONS = {
@@ -396,8 +402,16 @@ function applyTranslations() {
         node.placeholder = t(node.getAttribute("data-i18n-placeholder"));
     });
     const lang = LANGUAGES.find((l) => l.code === currentLang);
-    const label = document.getElementById("site-lang-select-label");
-    if (label) label.textContent = lang ? lang.name : currentLang;
+    const btn = document.getElementById("site-lang-select-btn");
+    const flagEl = document.getElementById("site-lang-select-flag");
+    if (flagEl && lang) flagEl.src = `/static/flags/${lang.flag}`;
+    if (btn && lang) {
+        btn.title = lang.name;
+        btn.setAttribute("aria-label", `Change language (current: ${lang.name})`);
+    }
+    document.querySelectorAll(".site-lang-option-btn").forEach((row) => {
+        row.classList.toggle("active", row.dataset.code === currentLang);
+    });
 }
 
 function setLanguage(code) {
@@ -442,7 +456,15 @@ function setupLanguagePicker() {
         const row = document.createElement("button");
         row.type = "button";
         row.className = "site-lang-option-btn";
-        row.textContent = lang.name;
+        row.dataset.code = lang.code;
+        const flagImg = document.createElement("img");
+        flagImg.className = "site-lang-option-flag";
+        flagImg.src = `/static/flags/${lang.flag}`;
+        flagImg.alt = "";
+        const nameSpan = document.createElement("span");
+        nameSpan.className = "site-lang-option-name";
+        nameSpan.textContent = lang.name;
+        row.append(flagImg, nameSpan);
         row.addEventListener("click", () => {
             setLanguage(lang.code);
             closePicker();
