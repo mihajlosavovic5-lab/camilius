@@ -898,6 +898,26 @@ body.intro { margin: 0; height: 100dvh; overflow: hidden; }
 .lp-menu-modal-sheet a.button:hover { background: var(--primary-dark); color: #fff; }
 .lp-menu-modal-divider { height: 1px; background: var(--border); margin: 10px 4px; }
 
+/* Mobile-only tweaks (PC keeps the wider drawer/bounce/button-styled CTA
+   above for now - revisited separately): a narrower drawer, a subtler
+   deceleration instead of the overshoot "bounce", and "Try for free" styled
+   as a plain row like every other menu item instead of a filled CTA button. */
+@media (max-width: 1079px) {
+    .lp-menu-modal-sheet {
+        width: min(240px, 70vw);
+        transition: transform .3s ease-out;
+    }
+    .lp-menu-modal-sheet a.button {
+        display: block; background: none; color: var(--text);
+        border-radius: 0; text-align: left; margin-top: 0;
+        transform: none; box-shadow: none;
+    }
+    .lp-menu-modal-sheet a.button:hover {
+        background: var(--background); color: var(--text);
+        transform: none; box-shadow: none;
+    }
+}
+
 /* Smooth-scroll for the center nav's anchor links; scroll-margin-top keeps the
    fixed header from covering the target section's heading on arrival. */
 html { scroll-behavior: smooth; }
