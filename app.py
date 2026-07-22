@@ -2,7 +2,7 @@ import os
 import hmac
 import hashlib
 import secrets
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta, timezone, date as date_type
 from functools import wraps
 
 import psycopg2
@@ -18,7 +18,7 @@ from database import (
     business_by_id, add_business, create_database, delete_business, replies_today_count,
     update_business, business_by_contact_email, save_reset_token, business_by_reset_token, set_new_password,
     link_subscription, update_subscription_status, get_subscription_status,
-    effective_subscription_active,
+    effective_subscription_active, has_pro_access,
     business_stats, log_event, event_funnel, recent_client_errors, log_client_error,
     link_instagram_account, business_by_instagram_account_id, already_processed_messages,
     mark_message_processed, save_draft_reply, previous_conversations_with,
@@ -27,9 +27,12 @@ from database import (
     username_taken, contact_email_taken, phone_number_taken,
     archived_conversations_for_business, trashed_conversations_for_business,
     archive_conversation, unarchive_conversation, soft_delete_conversation, restore_conversation,
+    get_slot_duration, set_slot_duration, create_appointment, get_appointment, cancel_appointment,
 )
 from send_email import send_email
-from generate_reply import generate_reply
+from generate_reply import generate_reply, generate_reply_with_booking
+from support_assistant import answer_support_question
+import booking
 from push_notifications import send_push_to_business
 from instagram_api import (
     authorize_url as instagram_authorize_url, exchange_code_for_token, exchange_for_long_lived_token,
@@ -846,6 +849,151 @@ def send_reply(conversation_id):
     return redirect(url_for("home", sent=1))
 
 
+# --- Schedule / Smart Booking (Faza 8) ---
+#
+# The calendar itself (view/manually add/cancel appointments) is available to every
+# business regardless of plan - it's what the AI booking tool below writes into. Only
+# the AI auto-booking a slot directly from an Instagram DM (see _process_instagram_
+# message) is Pro-plan-exclusive; see has_pro_access() in database.py.
+
+SLOT_DURATION_CHOICES = (15, 30, 45, 60, 90, 120)
+
+
+@app.route("/schedule")
+@login_required
+def schedule():
+    business_id = session["business_id"]
+    business = business_by_id(business_id)
+    working_hours = business[8]
+    slot_minutes = get_slot_duration(business_id)
+
+    view = request.args.get("view", "day")
+    if view not in ("day", "week"):
+        view = "day"
+    try:
+        selected_date = date_type.fromisoformat(request.args.get("date", ""))
+    except ValueError:
+        selected_date = booking.now_local().date()
+
+    context = dict(
+        view=view,
+        selected_date=selected_date,
+        today=booking.now_local().date(),
+        slot_minutes=slot_minutes,
+        slot_duration_choices=SLOT_DURATION_CHOICES,
+        has_any_open_day=any(booking.parse_working_hours(working_hours).values()),
+        pro_access=BETA_FREE_MODE or has_pro_access(business_id),
+        book_error=request.args.get("book_error"),
+    )
+
+    if view == "week":
+        week_start = selected_date - timedelta(days=selected_date.weekday())
+        days = []
+        for i in range(7):
+            d = week_start + timedelta(days=i)
+            days.append({
+                "date": d,
+                "iso": d.isoformat(),
+                "is_today": d == context["today"],
+                "closed": not booking.is_open_on(working_hours, d),
+                "appointments": sorted(booking.appointments_for_local_day(business_id, d), key=lambda a: a["start_local"]),
+            })
+        context["days"] = days
+        context["prev_date"] = (week_start - timedelta(days=7)).isoformat()
+        context["next_date"] = (week_start + timedelta(days=7)).isoformat()
+    else:
+        slots = booking.day_slots(working_hours, slot_minutes, selected_date)
+        appts_by_start = {a["start_local"].strftime("%H:%M"): a for a in booking.appointments_for_local_day(business_id, selected_date)}
+        rows = []
+        for s in slots:
+            key = s.strftime("%H:%M")
+            rows.append({
+                "time": key,
+                "end_time": (s + timedelta(minutes=slot_minutes)).strftime("%H:%M"),
+                "appointment": appts_by_start.get(key),
+                "is_past": s < booking.now_local(),
+            })
+        context["slot_rows"] = rows
+        context["prev_date"] = (selected_date - timedelta(days=1)).isoformat()
+        context["next_date"] = (selected_date + timedelta(days=1)).isoformat()
+
+    return render_template("schedule.html", **context)
+
+
+@app.route("/schedule/appointments", methods=["POST"])
+@login_required
+def create_appointment_route():
+    business_id = session["business_id"]
+    business = business_by_id(business_id)
+    date_str = request.form.get("date", "")
+    time_str = request.form.get("time", "")
+    customer_name = (request.form.get("customer_name") or "").strip()
+    service = (request.form.get("service") or "").strip() or None
+
+    try:
+        local_dt = datetime.combine(date_type.fromisoformat(date_str), datetime.strptime(time_str, "%H:%M").time(), tzinfo=booking.BUSINESS_TZ)
+    except ValueError:
+        return redirect(url_for("schedule", date=date_str))
+
+    if customer_name:
+        slot_minutes = get_slot_duration(business_id)
+        end_dt = local_dt + timedelta(minutes=slot_minutes)
+        is_bookable = (
+            local_dt >= booking.now_local()
+            and booking.slot_within_business_hours(business[8], local_dt, end_dt)
+            and booking.is_slot_free(business_id, local_dt, end_dt)
+        )
+        if is_bookable:
+            create_appointment(business_id, customer_name, local_dt, end_dt, service=service, source="manual")
+        else:
+            return redirect(url_for("schedule", date=date_str, book_error=1))
+
+    return redirect(url_for("schedule", date=date_str))
+
+
+@app.route("/schedule/appointments/<int:appointment_id>/cancel", methods=["POST"])
+@login_required
+def cancel_appointment_route(appointment_id):
+    appointment = get_appointment(appointment_id)
+    if appointment is None or appointment[1] != session["business_id"]:
+        abort(404)
+    cancel_appointment(appointment_id)
+    return redirect(url_for("schedule", date=request.form.get("date", ""), view=request.form.get("view", "day")))
+
+
+@app.route("/schedule/slot-duration", methods=["POST"])
+@login_required
+def update_slot_duration():
+    try:
+        minutes = int(request.form.get("slot_duration", 30))
+    except ValueError:
+        minutes = 30
+    if minutes not in SLOT_DURATION_CHOICES:
+        minutes = 30
+    set_slot_duration(session["business_id"], minutes)
+    return redirect(url_for("schedule", date=request.form.get("date", "")))
+
+
+# --- Support AI assistant (Faza 8) - floating widget, see base.html ---
+
+@app.route("/support-chat", methods=["POST"])
+@limiter.limit("20 per hour")
+def support_chat():
+    data = request.get_json(silent=True) or {}
+    message = (data.get("message") or "").strip()
+    history = data.get("history") or []
+    if not message or not isinstance(history, list):
+        abort(400)
+    # Cap how much of the client-supplied history we forward - it's just a UX nicety for
+    # the model's context, not something we trust or store server-side.
+    safe_history = [
+        {"role": turn.get("role"), "content": turn.get("content")}
+        for turn in history[-12:] if isinstance(turn, dict)
+    ]
+    reply = answer_support_question(message, history=safe_history)
+    return jsonify(reply=reply)
+
+
 # --- Subscription (Paddle) ---
 
 def _subscription_response(business_id, hide_nav=False):
@@ -937,14 +1085,17 @@ def paddle_webhook():
         sub_id = data.get("id")
         status = data.get("status")
         customer_id = data.get("customer_id")
-        # We sent our business_id through checkout as custom_data - that's how we link
-        # the Paddle subscription to our business
-        business_id = (data.get("custom_data") or {}).get("business_id")
+        # We sent our business_id (and which plan was chosen) through checkout as
+        # custom_data - that's how we link the Paddle subscription to our business and
+        # know whether it's Starter or Pro (see database.has_pro_access).
+        custom_data = data.get("custom_data") or {}
+        business_id = custom_data.get("business_id")
+        plan = custom_data.get("plan")
 
         if business_id:
-            link_subscription(int(business_id), customer_id, sub_id, status)
+            link_subscription(int(business_id), customer_id, sub_id, status, plan=plan)
         elif sub_id:
-            update_subscription_status(sub_id, status)
+            update_subscription_status(sub_id, status, plan=plan)
 
     # Paddle expects a 2xx to consider the webhook delivered; otherwise it retries
     return "", 200
@@ -1037,9 +1188,28 @@ def _process_instagram_message(message):
         "price_list": business[9],
         "faq": business[10],
     }
+    # Resolved before generating the reply (rather than after, as before) - the AI
+    # booking tool below needs a customer name to attach to an appointment it books.
+    sender_display = get_sender_username(sender_igsid, access_token) or sender_igsid
+
     print(f"[instagram-webhook] Generating AI reply for text={message['text']!r} from sender_igsid={sender_igsid}", flush=True)
     history = previous_conversations_with(business_id, sender_igsid)
-    suggested_reply = generate_reply(message["text"], business_info, history=history)
+
+    # Faza 8: Pro-plan (or trialing) businesses get a smarter AI that can check the
+    # Schedule for a free slot and book an appointment directly during the DM
+    # conversation - see generate_reply.generate_reply_with_booking/booking.py.
+    if BETA_FREE_MODE or has_pro_access(business_id):
+        slot_minutes = get_slot_duration(business_id)
+        now_local_display = booking.now_local().strftime("%A, %Y-%m-%d %H:%M")
+
+        def book_tool(requested_datetime_str, service):
+            return booking.attempt_ai_booking(
+                business, business_id, slot_minutes, requested_datetime_str, sender_display, sender_igsid, service,
+            )
+
+        suggested_reply = generate_reply_with_booking(message["text"], business_info, history, now_local_display, book_tool)
+    else:
+        suggested_reply = generate_reply(message["text"], business_info, history=history)
     print(f"[instagram-webhook] AI reply generated: {suggested_reply!r}", flush=True)
     # Temporary diagnostic (unconditional, not just on the fallback case) - Railway's own
     # logs aren't reachable from here without the Railway CLI, which is blocked on this
@@ -1047,7 +1217,6 @@ def _process_instagram_message(message):
     # the "None" reply bug is confirmed fixed.
     log_client_error(business_id, f"AI reply generated: {suggested_reply!r} for text={message['text']!r}", "", "ai-reply-debug", "")
 
-    sender_display = get_sender_username(sender_igsid, access_token) or sender_igsid
     new_conversation_id = save_draft_reply(
         business_id, sender_display, message["text"], suggested_reply, sender_igsid=sender_igsid,
     )

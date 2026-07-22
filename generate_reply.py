@@ -70,6 +70,102 @@ def generate_reply(customer_question, business, history=None):
     return content
 
 
+# --- Smart Booking (Faza 8, Pro plan only - see database.has_pro_access) ---
+#
+# Gives the model a real tool to check availability and book directly, instead of
+# guessing/hallucinating times from the free-text working_hours in the prompt. The tool
+# is executed locally (see booking.attempt_ai_booking, injected here as book_tool so this
+# module stays DB-agnostic, same separation as the rest of the file) - the model only
+# ever gets to describe what book_tool's return value actually says happened.
+
+BOOKING_TOOLS = [
+    {
+        "type": "function",
+        "function": {
+            "name": "check_and_book_appointment",
+            "description": (
+                "Checks whether a specific appointment date/time is available for this "
+                "business and, if it is, books it immediately. Call this as soon as the "
+                "customer has given (or confirmed) a specific date and time for an "
+                "appointment - do not call it for a vague request like 'when are you "
+                "free' with no time attached; ask for a specific time first instead."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "requested_datetime": {
+                        "type": "string",
+                        "description": "The requested appointment date and time, resolved to an exact ISO 8601 datetime (YYYY-MM-DDTHH:MM:SS) in the business's local time.",
+                    },
+                    "service": {
+                        "type": "string",
+                        "description": "The service or reason for the appointment, if the customer mentioned one.",
+                    },
+                },
+                "required": ["requested_datetime"],
+            },
+        },
+    }
+]
+
+
+def build_booking_system_prompt(business, now_local_display):
+    return build_system_prompt(business) + f"""
+
+You can also check appointment availability and book appointments directly, using the check_and_book_appointment tool.
+Right now it is {now_local_display} (the business's local time) - use this to resolve any relative date/time the customer mentions ("tomorrow", "this Friday", "in a couple hours", etc.) into an exact date and time before calling the tool.
+- Call the tool as soon as the customer has given (or confirmed) a specific appointment date and time.
+- If they haven't given a specific time yet, ask for one - never guess or call the tool without one.
+- Base your reply only on what the tool actually returns: if it confirms a booking, confirm that exact date/time back to the customer; if it says that time isn't available, apologize briefly and offer the alternative times it gives you, and ask them to pick one. Never claim a time is booked, free, or unavailable on your own.
+"""
+
+
+def generate_reply_with_booking(customer_question, business, history, now_local_display, book_tool):
+    """Same shape as generate_reply(), but also gives the model the booking tool above.
+    book_tool(requested_datetime_str, service) -> dict is called locally whenever the
+    model invokes check_and_book_appointment; its return value is fed back to the model
+    as the tool result before asking for the final customer-facing reply."""
+    system_prompt = build_booking_system_prompt(business, now_local_display)
+    customer_question = customer_question[:MAX_QUESTION_LENGTH]
+
+    messages = [{"role": "system", "content": system_prompt}]
+    for previous_question, previous_reply in (history or []):
+        messages.append({"role": "user", "content": previous_question[:MAX_QUESTION_LENGTH]})
+        messages.append({"role": "assistant", "content": previous_reply})
+    messages.append({"role": "user", "content": customer_question})
+
+    response = client.chat.completions.create(
+        model="gpt-4o-mini", messages=messages, tools=BOOKING_TOOLS, tool_choice="auto",
+    )
+    message = response.choices[0].message
+
+    if message.tool_calls:
+        messages.append(message)
+        for call in message.tool_calls:
+            if call.function.name != "check_and_book_appointment":
+                continue
+            try:
+                args = json.loads(call.function.arguments or "{}")
+            except json.JSONDecodeError:
+                args = {}
+            result = book_tool(args.get("requested_datetime", ""), args.get("service"))
+            messages.append({
+                "role": "tool",
+                "tool_call_id": call.id,
+                "content": json.dumps(result, ensure_ascii=False),
+            })
+        follow_up = client.chat.completions.create(model="gpt-4o-mini", messages=messages)
+        content = follow_up.choices[0].message.content
+    else:
+        content = message.content
+
+    if not content:
+        print(f"generate_reply_with_booking got empty content - question={customer_question!r}", flush=True)
+        return "Sorry, I couldn't draft an automatic reply for this one - please reply to this customer manually."
+
+    return content
+
+
 if __name__ == "__main__":
     if len(sys.argv) > 1:
         # Question passed as an argument (e.g. python generate_reply.py "Are you open on Saturdays?")

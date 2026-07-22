@@ -263,6 +263,40 @@ def create_database():
         )
     """)
 
+    # Faza 8: which Paddle plan (starter/pro) a business is on - separate from
+    # subscription_status (which only tracks trialing/active/past_due/etc., not WHICH
+    # plan). NULL until a real Paddle checkout completes (see paddle_webhook() in app.py);
+    # a business in its own self-serve trial has no plan yet and is treated as full-access
+    # by has_pro_access() below regardless. slot_duration_minutes is the appointment
+    # length used by the Schedule page/AI booking (booking.py) to lay out bookable slots.
+    cursor.execute("ALTER TABLE businesses ADD COLUMN IF NOT EXISTS subscription_plan TEXT")
+    cursor.execute("ALTER TABLE businesses ADD COLUMN IF NOT EXISTS slot_duration_minutes INTEGER NOT NULL DEFAULT 30")
+
+    # Appointments (Faza 8 - Smart Booking/Schedule). start_time/end_time are TIMESTAMPTZ
+    # (unlike every naive-UTC TIMESTAMP column elsewhere in this file) deliberately - real
+    # wall-clock appointment times need unambiguous, DST-safe timezone handling, which
+    # psycopg2 gives for free with an aware column (see booking.py, the only module that
+    # writes/reads these). sender_igsid is set only for AI-booked appointments (links back
+    # to the Instagram conversation); manual bookings made from the Schedule page leave it
+    # NULL. status is 'confirmed'/'canceled' - cancellations are soft (kept for history),
+    # same spirit as conversations' archived_at/deleted_at.
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS appointments (
+            id SERIAL PRIMARY KEY,
+            business_id INTEGER NOT NULL REFERENCES businesses(id),
+            customer_name TEXT NOT NULL,
+            sender_igsid TEXT,
+            service TEXT,
+            start_time TIMESTAMPTZ NOT NULL,
+            end_time TIMESTAMPTZ NOT NULL,
+            status TEXT NOT NULL DEFAULT 'confirmed',
+            source TEXT NOT NULL DEFAULT 'manual',
+            notes TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+    cursor.execute("CREATE INDEX IF NOT EXISTS appointments_business_start_idx ON appointments (business_id, start_time)")
+
     connection.commit()
     connection.close()
 
@@ -747,6 +781,7 @@ def delete_business(business_id):
     cursor.execute("DELETE FROM analytics_events WHERE business_id = %s", (business_id,))
     cursor.execute("DELETE FROM push_tokens WHERE business_id = %s", (business_id,))
     cursor.execute("DELETE FROM client_errors WHERE business_id = %s", (business_id,))
+    cursor.execute("DELETE FROM appointments WHERE business_id = %s", (business_id,))
     cursor.execute("DELETE FROM businesses WHERE id = %s", (business_id,))
 
     connection.commit()
@@ -764,30 +799,65 @@ def subscription_active(status):
     return status in ACTIVE_STATUSES
 
 
-def link_subscription(business_id, paddle_customer_id, paddle_subscription_id, status):
+def link_subscription(business_id, paddle_customer_id, paddle_subscription_id, status, plan=None):
     """Called from the webhook the first time Paddle reports a subscription for this business.
-    Links the Paddle customer/subscription ID to our business and records the status."""
+    Links the Paddle customer/subscription ID to our business and records the status.
+    plan ('starter'/'pro') comes from the custom_data set at checkout (see
+    templates/subscription.html) - only overwritten when Paddle actually echoes one back,
+    so a webhook event that doesn't carry it never wipes out an already-known plan."""
     connection = connect()
     cursor = connection.cursor()
-    cursor.execute(
-        """UPDATE businesses
-           SET paddle_customer_id = %s, paddle_subscription_id = %s, subscription_status = %s
-           WHERE id = %s""",
-        (paddle_customer_id, paddle_subscription_id, status, business_id),
-    )
+    if plan:
+        cursor.execute(
+            """UPDATE businesses
+               SET paddle_customer_id = %s, paddle_subscription_id = %s, subscription_status = %s, subscription_plan = %s
+               WHERE id = %s""",
+            (paddle_customer_id, paddle_subscription_id, status, plan, business_id),
+        )
+    else:
+        cursor.execute(
+            """UPDATE businesses
+               SET paddle_customer_id = %s, paddle_subscription_id = %s, subscription_status = %s
+               WHERE id = %s""",
+            (paddle_customer_id, paddle_subscription_id, status, business_id),
+        )
     connection.commit()
     connection.close()
 
 
-def update_subscription_status(paddle_subscription_id, status):
+def update_subscription_status(paddle_subscription_id, status, plan=None):
     """Called from the webhook on later changes (trial->active, past_due, canceled...).
-    Finds the business by its already-saved subscription ID and updates just the status."""
+    Finds the business by its already-saved subscription ID and updates the status (and
+    plan, if this event happens to carry one - see link_subscription)."""
     connection = connect()
     cursor = connection.cursor()
-    cursor.execute(
-        "UPDATE businesses SET subscription_status = %s WHERE paddle_subscription_id = %s",
-        (status, paddle_subscription_id),
-    )
+    if plan:
+        cursor.execute(
+            "UPDATE businesses SET subscription_status = %s, subscription_plan = %s WHERE paddle_subscription_id = %s",
+            (status, plan, paddle_subscription_id),
+        )
+    else:
+        cursor.execute(
+            "UPDATE businesses SET subscription_status = %s WHERE paddle_subscription_id = %s",
+            (status, paddle_subscription_id),
+        )
+    connection.commit()
+    connection.close()
+
+
+def get_subscription_plan(business_id):
+    connection = connect()
+    cursor = connection.cursor()
+    cursor.execute("SELECT subscription_plan FROM businesses WHERE id = %s", (business_id,))
+    row = cursor.fetchone()
+    connection.close()
+    return row[0] if row else None
+
+
+def set_subscription_plan(business_id, plan):
+    connection = connect()
+    cursor = connection.cursor()
+    cursor.execute("UPDATE businesses SET subscription_plan = %s WHERE id = %s", (plan, business_id))
     connection.commit()
     connection.close()
 
@@ -835,6 +905,96 @@ def effective_subscription_active(business_id):
     dashboard banner, and the subscription page's own active/inactive branch."""
     status = get_subscription_status(business_id)
     return subscription_active(status) and not trial_expired(business_id)
+
+
+def has_pro_access(business_id):
+    """True when this business's AI should get Pro-only capabilities (currently: the
+    Schedule page's smart appointment-booking tool - see booking.py/generate_reply.py).
+    A business in its own self-serve trial (no Paddle plan chosen yet) gets full
+    Pro-level access for the length of the trial - standard "show the best of the
+    product" trial design, same reasoning ACTIVE_STATUSES already applies to basic
+    access. Real gating only starts once a specific paid plan exists."""
+    status = get_subscription_status(business_id)
+    if not subscription_active(status) or trial_expired(business_id):
+        return False
+    if status == "trialing":
+        return True
+    return get_subscription_plan(business_id) == "pro"
+
+
+# --- Appointments / Schedule (Faza 8) ---
+#
+# Raw CRUD only - slot generation, business-hours parsing, and availability logic live
+# in booking.py (which is this module's only caller for these functions), keeping the
+# "database.py = SQL only" separation used throughout this file.
+
+def get_slot_duration(business_id):
+    connection = connect()
+    cursor = connection.cursor()
+    cursor.execute("SELECT slot_duration_minutes FROM businesses WHERE id = %s", (business_id,))
+    row = cursor.fetchone()
+    connection.close()
+    return row[0] if row else 30
+
+
+def set_slot_duration(business_id, minutes):
+    connection = connect()
+    cursor = connection.cursor()
+    cursor.execute("UPDATE businesses SET slot_duration_minutes = %s WHERE id = %s", (minutes, business_id))
+    connection.commit()
+    connection.close()
+
+
+def create_appointment(business_id, customer_name, start_time, end_time, sender_igsid=None, service=None, source="manual", notes=None):
+    connection = connect()
+    cursor = connection.cursor()
+    cursor.execute(
+        """INSERT INTO appointments (business_id, customer_name, sender_igsid, service, start_time, end_time, source, notes)
+           VALUES (%s, %s, %s, %s, %s, %s, %s, %s) RETURNING id""",
+        (business_id, customer_name, sender_igsid, service, start_time, end_time, source, notes),
+    )
+    new_id = cursor.fetchone()[0]
+    connection.commit()
+    connection.close()
+    return new_id
+
+
+def get_appointment(appointment_id):
+    connection = connect()
+    cursor = connection.cursor()
+    cursor.execute(
+        "SELECT id, business_id, customer_name, start_time, end_time, status, source FROM appointments WHERE id = %s",
+        (appointment_id,),
+    )
+    row = cursor.fetchone()
+    connection.close()
+    return row
+
+
+def cancel_appointment(appointment_id):
+    connection = connect()
+    cursor = connection.cursor()
+    cursor.execute("UPDATE appointments SET status = 'canceled' WHERE id = %s", (appointment_id,))
+    connection.commit()
+    connection.close()
+
+
+def appointments_in_range(business_id, start_dt, end_dt):
+    """Confirmed appointments overlapping [start_dt, end_dt) - both must be timezone-aware
+    datetimes (see booking.py, the only caller). Used both to render the calendar and to
+    check availability before a manual or AI booking is confirmed."""
+    connection = connect()
+    cursor = connection.cursor()
+    cursor.execute(
+        """SELECT id, customer_name, sender_igsid, service, start_time, end_time, status, source, notes
+           FROM appointments
+           WHERE business_id = %s AND status = 'confirmed' AND start_time < %s AND end_time > %s
+           ORDER BY start_time""",
+        (business_id, end_dt, start_dt),
+    )
+    result = cursor.fetchall()
+    connection.close()
+    return result
 
 
 def is_push_enabled(business_id):

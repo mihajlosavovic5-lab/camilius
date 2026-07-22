@@ -138,6 +138,121 @@
         }
     })();
 </script>
+<!-- Scroll-to-top button (Faza 8) - shown on every page once the user has scrolled down
+     a bit. Bottom-left, deliberately opposite the Support widget below (bottom-right),
+     so the two never overlap. -->
+<button type="button" id="scroll-top-btn" class="scroll-top-btn hidden" aria-label="Scroll to top">&#8593;</button>
+<script>
+    (function () {
+        var btn = document.getElementById("scroll-top-btn");
+        if (!btn) return;
+        var visible = false;
+        window.addEventListener("scroll", function () {
+            var shouldShow = window.scrollY > 400;
+            if (shouldShow !== visible) {
+                visible = shouldShow;
+                btn.classList.toggle("hidden", !visible);
+            }
+        }, { passive: true });
+        btn.addEventListener("click", function () {
+            window.scrollTo({ top: 0, behavior: "smooth" });
+        });
+    })();
+</script>
+
+{% if request.endpoint != 'intro' %}
+<!-- Floating Support AI widget (Faza 8) - bottom-right on every page (logged in or not,
+     since the knowledge base covers pricing/how-it-works questions a visitor might have
+     before signing up too). Talks about USING Camilius itself, not a business's own
+     customers - see support_assistant.py. Excluded on /intro (full-bleed onboarding
+     slides, same reasoning as the install banner above). -->
+<div id="support-widget" class="support-widget">
+    <button type="button" id="support-widget-toggle" class="support-widget-fab" aria-label="Camilius support">
+        <span class="support-widget-fab-icon">&#128172;</span>
+    </button>
+    <div id="support-widget-panel" class="support-widget-panel hidden">
+        <div class="support-widget-header">
+            <span class="brand-mark support-widget-header-icon"></span>
+            <div>
+                <p class="support-widget-title">Camilius Assistant</p>
+                <p class="support-widget-subtitle">Ask about settings, pricing, Instagram &amp; more</p>
+            </div>
+            <button type="button" id="support-widget-close" class="support-widget-close" aria-label="Close">&times;</button>
+        </div>
+        <div id="support-widget-messages" class="support-widget-messages">
+            <div class="support-widget-msg support-widget-msg-bot">Hi! I can help with settings, pricing, connecting Instagram, or anything else about Camilius. What do you need?</div>
+        </div>
+        <form id="support-widget-form" class="support-widget-form">
+            <input type="text" id="support-widget-input" placeholder="Type a message..." autocomplete="off">
+            <button type="submit" class="support-widget-send" aria-label="Send">&#10148;</button>
+        </form>
+    </div>
+</div>
+<script>
+    (function () {
+        var csrfToken = "{{ csrf_token() }}";
+        var toggle = document.getElementById("support-widget-toggle");
+        var panel = document.getElementById("support-widget-panel");
+        var closeBtn = document.getElementById("support-widget-close");
+        var messagesEl = document.getElementById("support-widget-messages");
+        var form = document.getElementById("support-widget-form");
+        var input = document.getElementById("support-widget-input");
+        var history = [];
+        var open = false;
+
+        function setOpen(value) {
+            open = value;
+            panel.classList.toggle("hidden", !open);
+            if (open) input.focus();
+        }
+        toggle.addEventListener("click", function () { setOpen(!open); });
+        closeBtn.addEventListener("click", function () { setOpen(false); });
+
+        function addMessage(role, text) {
+            var el = document.createElement("div");
+            el.className = "support-widget-msg support-widget-msg-" + (role === "user" ? "user" : "bot");
+            el.textContent = text;
+            messagesEl.appendChild(el);
+            messagesEl.scrollTop = messagesEl.scrollHeight;
+            return el;
+        }
+
+        form.addEventListener("submit", function (event) {
+            event.preventDefault();
+            var text = input.value.trim();
+            if (!text) return;
+            input.value = "";
+            input.disabled = true;
+            addMessage("user", text);
+            history.push({ role: "user", content: text });
+            var typingEl = addMessage("bot", "...");
+            typingEl.classList.add("support-widget-typing");
+
+            fetch("{{ url_for('support_chat') }}", {
+                method: "POST",
+                headers: { "Content-Type": "application/json", "X-CSRFToken": csrfToken },
+                body: JSON.stringify({ message: text, history: history.slice(0, -1) }),
+            })
+                .then(function (r) { return r.json(); })
+                .then(function (data) {
+                    typingEl.remove();
+                    var reply = data.reply || "Sorry, something went wrong - try again in a moment.";
+                    addMessage("bot", reply);
+                    history.push({ role: "assistant", content: reply });
+                })
+                .catch(function () {
+                    typingEl.remove();
+                    addMessage("bot", "Sorry, something went wrong - try again in a moment.");
+                })
+                .finally(function () {
+                    input.disabled = false;
+                    input.focus();
+                });
+        });
+    })();
+</script>
+{% endif %}
+
 {% block content %}{% endblock %}
 {% block scripts %}{% endblock %}
 <script>

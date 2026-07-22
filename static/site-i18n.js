@@ -21,6 +21,7 @@ const LANGUAGES = [
 const TRANSLATIONS = {
     en: {
         "common.conversations": "Conversations",
+        "common.schedule": "Schedule",
         "common.subscription": "Subscription",
         "common.profile": "Profile",
         "common.settings": "Settings",

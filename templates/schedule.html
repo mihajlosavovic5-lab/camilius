@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+{% block title %}Schedule - {{ session['business_name'] }}{% endblock %}
+
+{% block content %}
+{% include "_nav.html" %}
+
+<div class="content">
+    <div class="page-header">
+        <div>
+            <h1>Schedule</h1>
+            <p class="subtitle">Manage your appointment calendar.</p>
+        </div>
+        <form method="POST" action="{{ url_for('update_slot_duration') }}" class="schedule-slot-duration-form">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="date" value="{{ selected_date.isoformat() }}">
+            <label style="margin: 0; font-weight: 500; font-size: 13.5px; color: var(--text-muted);">Appointment length</label>
+            <select name="slot_duration" onchange="this.form.submit()">
+                {% for choice in slot_duration_choices %}
+                    <option value="{{ choice }}" {{ 'selected' if choice == slot_minutes }}>{{ choice }} min</option>
+                {% endfor %}
+            </select>
+        </form>
+    </div>
+
+    {% if not pro_access %}
+        <div class="alert alert-warning">
+            <span class="alert-icon">&#10024;</span>
+            <span>AI auto-booking from Instagram DMs is a Pro plan feature - you can still manage your calendar manually here. <a href="{{ url_for('subscription') }}">Upgrade to Pro</a> to let the AI book appointments for you.</span>
+        </div>
+    {% endif %}
+
+    {% if not has_any_open_day %}
+        <div class="alert alert-error">
+            <span class="alert-icon">&#9888;&#65039;</span>
+            <span>We couldn't read your working hours, so no time slots are available yet. Please check your working hours on the <a href="{{ url_for('settings') }}">Profile</a> page.</span>
+        </div>
+    {% endif %}
+
+    {% if book_error %}
+        <div class="alert alert-error"><span class="alert-icon">&#9888;&#65039;</span><span>That time is no longer available - please pick another slot.</span></div>
+    {% endif %}
+
+    <div class="schedule-toolbar">
+        <div class="filters schedule-view-toggle">
+            <a href="{{ url_for('schedule', view='day', date=selected_date.isoformat()) }}" class="{{ 'active' if view == 'day' }}">Day</a>
+            <a href="{{ url_for('schedule', view='week', date=selected_date.isoformat()) }}" class="{{ 'active' if view == 'week' }}">Week</a>
+        </div>
+        <div class="schedule-date-nav">
+            <a href="{{ url_for('schedule', view=view, date=prev_date) }}">&larr;</a>
+            <span class="schedule-date-label">
+                {% if view == 'week' %}
+                    Week of {{ days[0].date.strftime('%b %d') }} - {{ days[6].date.strftime('%b %d, %Y') }}
+                {% else %}
+                    {{ selected_date.strftime('%A, %b %d, %Y') }}
+                {% endif %}
+            </span>
+            <a href="{{ url_for('schedule', view=view, date=next_date) }}">&rarr;</a>
+            <a href="{{ url_for('schedule', view=view, date=today.isoformat()) }}">Today</a>
+        </div>
+    </div>
+
+    {% if view == 'week' %}
+        <div class="schedule-week-grid">
+            {% for day in days %}
+                <div class="card schedule-week-day {{ 'today' if day.is_today }}">
+                    <a href="{{ url_for('schedule', view='day', date=day.iso) }}" class="schedule-week-day-header">
+                        <span>{{ day.date.strftime('%a') }}</span><span>{{ day.date.day }}</span>
+                    </a>
+                    {% if day.closed %}
+                        <p class="note">Closed</p>
+                    {% elif day.appointments|length == 0 %}
+                        <p class="note">No appointments</p>
+                    {% else %}
+                        {% for appt in day.appointments %}
+                            <div class="schedule-week-appt {{ 'schedule-week-appt-ai' if appt.source == 'ai' }}">{{ appt.start_local.strftime('%H:%M') }} &middot; {{ appt.customer_name }}</div>
+                        {% endfor %}
+                    {% endif %}
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        {% if slot_rows|length == 0 %}
+            <div class="empty">
+                <div class="empty-icon">&#128197;</div>
+                <p class="title">Closed on this day</p>
+                <p>Pick another date, or update your working hours in Profile.</p>
+            </div>
+        {% else %}
+            <div class="schedule-slots">
+                {% for row in slot_rows %}
+                    {% if row.appointment %}
+                        <div class="card schedule-slot schedule-slot-booked">
+                            <span class="schedule-slot-time">{{ row.time }}</span>
+                            <div class="schedule-slot-info">
+                                <strong>{{ row.appointment.customer_name }}</strong>
+                                {% if row.appointment.service %}<span class="note">{{ row.appointment.service }}</span>{% endif %}
+                                <span class="badge {{ 'badge-sent' if row.appointment.source == 'ai' else 'badge-pending' }}"><span class="badge-dot"></span>{{ 'AI booked' if row.appointment.source == 'ai' else 'Manual' }}</span>
+                            </div>
+                            <form method="POST" action="{{ url_for('cancel_appointment_route', appointment_id=row.appointment.id) }}">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <input type="hidden" name="date" value="{{ selected_date.isoformat() }}">
+                                <input type="hidden" name="view" value="day">
+                                <button class="button button-secondary" type="submit">Cancel</button>
+                            </form>
+                        </div>
+                    {% elif row.is_past %}
+                        <div class="schedule-slot schedule-slot-free" style="opacity: .5;">
+                            <span class="schedule-slot-time">{{ row.time }}</span>
+                            <span class="note">Past</span>
+                        </div>
+                    {% else %}
+                        <div class="schedule-slot schedule-slot-free">
+                            <span class="schedule-slot-time">{{ row.time }}</span>
+                            <form method="POST" action="{{ url_for('create_appointment_route') }}" class="schedule-slot-form">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <input type="hidden" name="date" value="{{ selected_date.isoformat() }}">
+                                <input type="hidden" name="time" value="{{ row.time }}">
+                                <input type="text" name="customer_name" placeholder="Customer name" required>
+                                <input type="text" name="service" placeholder="Service (optional)">
+                                <button class="button" type="submit">Book</button>
+                            </form>
+                        </div>
+                    {% endif %}
+                {% endfor %}
+            </div>
+        {% endif %}
+    {% endif %}
+</div>
+{% endblock %}
