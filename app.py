@@ -684,6 +684,15 @@ def sitemap_xml():
     return Response(xml, mimetype="application/xml")
 
 
+# Google Search Console domain-ownership verification (HTML file method) - the exact
+# filename and body content are dictated by Search Console, not chosen by us; must
+# keep serving this at the root even after verification succeeds, per Google's own
+# instructions, so it's a permanent route rather than a one-off file to delete later.
+@app.route("/googlea7b8cc332250151e.html")
+def google_site_verification():
+    return Response("google-site-verification: googlea7b8cc332250151e.html", mimetype="text/html")
+
+
 @app.route("/privacy")
 def privacy():
     return render_template("privacy.html")
