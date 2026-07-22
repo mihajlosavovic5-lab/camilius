@@ -856,7 +856,10 @@ body.intro { margin: 0; height: 100dvh; overflow: hidden; }
    language-picker button and visibly overlapped it below 1080px. */
 .lp-menu-btn {
     display: inline-flex;
-    position: absolute; top: 20px; left: 20px; z-index: 3;
+    /* z-index above .lp-menu-modal's 1002 - the drawer now covers this same
+       corner (full-height, from left:0), so the button (turned into an "X")
+       must stay on top of it to remain visible/clickable as the close control. */
+    position: absolute; top: 20px; left: 20px; z-index: 1003;
     width: 34px; height: 34px; align-items: center; justify-content: center;
     flex-direction: column; gap: 5px;
     background: none; border: none; cursor: pointer; padding: 0;
@@ -869,29 +872,31 @@ body.intro { margin: 0; height: 100dvh; overflow: hidden; }
 .lp-menu-btn.active span:nth-child(2) { opacity: 0; }
 .lp-menu-btn.active span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
 
+/* A classic slide-out side drawer (sharp corners, full-height, slides in from
+   the left) rather than a small floating notification-style dropdown - that
+   compact rounded-card treatment stays reserved for the language picker. */
 .lp-menu-modal { position: fixed; inset: 0; z-index: 1002; visibility: hidden; pointer-events: none; }
 .lp-menu-modal.open { visibility: visible; pointer-events: auto; }
-.lp-menu-modal-backdrop { position: absolute; inset: 0; background: rgba(20,15,8,.32); opacity: 0; transition: opacity .2s ease; }
+.lp-menu-modal-backdrop { position: absolute; inset: 0; background: rgba(20,15,8,.32); opacity: 0; transition: opacity .25s ease; }
 .lp-menu-modal.open .lp-menu-modal-backdrop { opacity: 1; }
 .lp-menu-modal-sheet {
-    position: absolute; left: 16px; top: 64px;
-    width: min(240px, calc(100% - 32px));
-    background: var(--surface); border: 1px solid var(--border); border-radius: 16px;
-    box-shadow: var(--shadow-lg); overflow: hidden;
-    display: flex; flex-direction: column; padding: 8px;
-    transform-origin: top left;
-    transform: translateY(-6px) scale(.94); opacity: 0;
-    transition: transform .2s cubic-bezier(.22,.9,.32,1.2), opacity .16s ease;
+    position: absolute; left: 0; top: 0; bottom: 0;
+    width: min(340px, 84vw);
+    background: var(--surface); border-right: 1px solid var(--border);
+    box-shadow: var(--shadow-lg); overflow-y: auto;
+    display: flex; flex-direction: column; padding: 84px 14px 24px;
+    transform: translateX(-100%);
+    transition: transform .3s cubic-bezier(.22,.9,.32,1.2);
 }
-.lp-menu-modal.open .lp-menu-modal-sheet { transform: translateY(0) scale(1); opacity: 1; }
+.lp-menu-modal.open .lp-menu-modal-sheet { transform: translateX(0); }
 .lp-menu-modal-sheet a {
-    padding: 11px 12px; border-radius: 10px; font-size: 15px; font-weight: 500;
+    padding: 15px 14px; font-size: 16px; font-weight: 500;
     color: var(--text); transition: background .12s ease;
 }
 .lp-menu-modal-sheet a:hover { background: var(--background); text-decoration: none; }
-.lp-menu-modal-sheet a.button { color: #fff; text-align: center; margin-top: 4px; }
+.lp-menu-modal-sheet a.button { color: #fff; text-align: center; margin-top: 8px; }
 .lp-menu-modal-sheet a.button:hover { background: var(--primary-dark); color: #fff; }
-.lp-menu-modal-divider { height: 1px; background: var(--border); margin: 6px 4px; }
+.lp-menu-modal-divider { height: 1px; background: var(--border); margin: 10px 4px; }
 
 /* Smooth-scroll for the center nav's anchor links; scroll-margin-top keeps the
    fixed header from covering the target section's heading on arrival. */
