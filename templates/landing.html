@@ -426,12 +426,20 @@
             typingTimers = [];
         }
 
-        // Re-plays the typing effect for the reply in the given slide, reading its
-        // *current* textContent live (post-translation) rather than a cached value.
+        // Re-plays the typing effect for the reply in the given slide. Reads the full
+        // text from the translation table (via the node's own data-i18n key) rather
+        // than the node's live textContent - textContent gets overwritten with partial
+        // slices while typing runs, so if a slide is revisited after its animation was
+        // interrupted (clearTypingTimers, e.g. clicking through slides quickly), reading
+        // it back would re-type/display only that leftover partial text forever instead
+        // of the real reply. The translation table itself is never mutated by typing, so
+        // it's always the true full text, and still reflects language switches (t() reads
+        // the live currentLang).
         function typeSlideReply(slide) {
             var replyEl = slide.querySelector('.reply');
             if (!replyEl) return;
-            var fullText = replyEl.textContent;
+            var i18nKey = replyEl.getAttribute('data-i18n');
+            var fullText = (i18nKey && typeof t === 'function') ? t(i18nKey) : replyEl.textContent;
             if (prefersReducedMotion) { replyEl.textContent = fullText; return; }
             replyEl.innerHTML = '<span class="lp-typing-dots"><span></span><span></span><span></span></span>';
             typingTimers.push(setTimeout(function () {
