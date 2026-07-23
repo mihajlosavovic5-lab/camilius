@@ -186,6 +186,15 @@
 
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
+/* Reserves the scrollbar's gutter permanently, whether or not it's actually
+   showing a scrollbar right now - without this, opening the hamburger menu
+   (body.lp-menu-open below locks scroll via position: fixed) makes the
+   vertical scrollbar disappear, which widens the whole viewport by the
+   scrollbar's width and visibly shifts everything a few pixels right
+   (centered content re-centers wider, right-anchored fixed elements like the
+   language flag sit further from the true edge) - and shifts back on close. */
+html { scrollbar-gutter: stable; }
+
 body {
     margin: 0;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
@@ -1013,6 +1022,11 @@ body.lp-menu-open { position: fixed; left: 0; right: 0; width: 100%; overflow: h
    behaves exactly like every other menu item, no special-cased styling. */
 .lp-menu-modal-sheet a.button { display: block; text-align: left; margin-top: 0; }
 .lp-menu-modal-divider { height: 1px; background: var(--menu-row-border); margin: 10px 4px; }
+/* "Download for Android" (and its preceding divider) only makes sense on an
+   actual phone - hidden once the viewport is desktop-sized. */
+@media (min-width: 1080px) {
+    .lp-menu-mobile-only { display: none; }
+}
 @media (prefers-reduced-motion: reduce) {
     .lp-menu-modal-sheet, .lp-menu-modal-sheet a, .lp-menu-modal-backdrop, .lp-menu-btn span {
         transition: none !important;

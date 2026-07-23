@@ -52,8 +52,10 @@
             <div class="lp-menu-modal-divider"></div>
             <a href="{{ url_for('login') }}" data-i18n="landing.nav.login">Log in</a>
             <a href="{{ url_for('register') }}" class="button" data-i18n="landing.nav.tryFree">Try for free</a>
-            <div class="lp-menu-modal-divider"></div>
-            <a href="{{ url_for('download') }}" data-i18n="download.cta">Download for Android</a>
+            <!-- Android-only download link - doesn't belong in a PC/desktop menu, so
+                 it's hidden above the mobile breakpoint (see .lp-menu-mobile-only). -->
+            <div class="lp-menu-modal-divider lp-menu-mobile-only"></div>
+            <a href="{{ url_for('download') }}" class="lp-menu-mobile-only" data-i18n="download.cta">Download for Android</a>
         </nav>
     </div>
     <div class="public-header">
