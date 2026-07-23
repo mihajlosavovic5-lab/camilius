@@ -179,28 +179,6 @@
         }
     })();
 </script>
-<!-- Scroll-to-top button (Faza 8) - shown on every page once the user has scrolled down
-     a bit. Bottom-left, deliberately opposite the Support widget below (bottom-right),
-     so the two never overlap. -->
-<button type="button" id="scroll-top-btn" class="scroll-top-btn hidden" aria-label="Scroll to top">&#8593;</button>
-<script>
-    (function () {
-        var btn = document.getElementById("scroll-top-btn");
-        if (!btn) return;
-        var visible = false;
-        window.addEventListener("scroll", function () {
-            var shouldShow = window.scrollY > 400;
-            if (shouldShow !== visible) {
-                visible = shouldShow;
-                btn.classList.toggle("hidden", !visible);
-            }
-        }, { passive: true });
-        btn.addEventListener("click", function () {
-            window.scrollTo({ top: 0, behavior: "smooth" });
-        });
-    })();
-</script>
-
 {% if request.endpoint != 'intro' %}
 <!-- Floating Support AI widget (Faza 8) - bottom-right on every page (logged in or not,
      since the knowledge base covers pricing/how-it-works questions a visitor might have

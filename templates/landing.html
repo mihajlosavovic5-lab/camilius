@@ -57,10 +57,10 @@
         </nav>
     </div>
     <div class="public-header">
-        <span class="brand" id="lp-corner-brand">
+        <button type="button" class="brand" id="lp-corner-brand" aria-label="Scroll to top">
             <span class="brand-mark">C</span>
             <span class="brand-name">Camilius</span>
-        </span>
+        </button>
     </div>
 </header>
 <div class="lp-header-spacer"></div>
@@ -406,6 +406,15 @@
         menuBackdrop.addEventListener('click', closeMenu);
         menuSheet.querySelectorAll('a').forEach(function (link) {
             link.addEventListener('click', closeMenu);
+        });
+    }
+
+    // Centered brand logo doubles as a scroll-to-top control (replaces the
+    // removed floating scroll-top button).
+    var cornerBrand = document.getElementById('lp-corner-brand');
+    if (cornerBrand) {
+        cornerBrand.addEventListener('click', function () {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
         });
     }
 
