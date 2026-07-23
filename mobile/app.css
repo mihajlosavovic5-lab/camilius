@@ -329,7 +329,16 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
    the TALLEST of the three, leaving dead scrollable space below shorter steps (step 2's
    working-hours list is noticeably shorter than steps 1/3) even though there's nothing
    actually down there. */
-.register-steps-viewport { overflow: hidden; transition: height .22s ease; }
+.register-steps-viewport {
+    overflow: hidden; transition: height .22s ease;
+    /* Vertically centers the step within .detail-body when its content is shorter
+       than the screen (step 1 especially, now that floating labels made it more
+       compact) - margin:auto rather than justify-content:center on the parent so a
+       TALLER step (2/3) degrades safely: the auto margins just resolve to 0 and the
+       step starts flush at the top, still fully scrollable, instead of a centered
+       flex line clipping its own top edge above the scroll container's reach. */
+    margin: auto 0;
+}
 .register-steps-track { display: flex; align-items: flex-start; transition: transform .22s ease; }
 .register-steps-track .register-step { flex: 0 0 100%; min-width: 0; }
 /* Pinned at the true bottom of the screen (outside the scrollable .detail-body) so the
@@ -339,7 +348,7 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
     flex-shrink: 0; padding: 14px 18px calc(18px + var(--safe-bottom));
     border-top: 1px solid var(--border); background: var(--surface);
 }
-.screen-register .detail-body { padding-bottom: 18px; }
+.screen-register .detail-body { padding-bottom: 18px; display: flex; flex-direction: column; }
 .register-step-nav { display: flex; align-items: center; justify-content: space-between; }
 .register-step-dots { display: flex; gap: 6px; }
 .register-step-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--border); transition: background .2s ease, width .2s ease; }
