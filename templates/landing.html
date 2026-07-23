@@ -48,6 +48,7 @@
         <nav class="lp-menu-modal-sheet" id="lp-menu-modal-sheet">
             <a href="#lp-examples" data-i18n="landing.slider.sectionTitle">See it in action</a>
             {% if not beta_free_mode %}<a href="#lp-pricing" data-i18n="terms.pricing.heading">Pricing</a>{% endif %}
+            <a href="#lp-who-for" data-i18n="landing.nav.whoFor">Who it's for</a>
             <a href="#lp-how-it-works" data-i18n="landing.howItWorks.title">How it works</a>
             <div class="lp-menu-modal-divider"></div>
             <a href="{{ url_for('login') }}" data-i18n="landing.nav.login">Log in</a>
@@ -335,7 +336,7 @@
     {% endif %}
 
     <!-- Who it's for -->
-    <section class="section">
+    <section class="section lp-scroll-anchor" id="lp-who-for">
         <h2 class="section-title lp-reveal" data-i18n="landing.whoFor.title">Built for every business that lives in its inbox</h2>
         <p style="text-align: center; color: var(--text-muted); max-width: 560px; margin: -8px auto 24px;" class="lp-reveal" data-i18n="landing.whoFor.subtitle">Salons, clinics, repair shops, tradespeople, vacation rentals, consultants, boutiques &mdash; if customers reach you on Instagram, Camilius already speaks your business.</p>
         <div class="card lp-card-hover lp-reveal" style="max-width: 640px; margin: 0 auto;">
