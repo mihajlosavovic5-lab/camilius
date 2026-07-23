@@ -338,18 +338,14 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
    centered, no icon - matches that screen's tone rather than the onboarding
    slides' more playful emoji treatment). */
 .register-step-intro { text-align: center; margin-bottom: 22px; }
-.register-step-intro h1 { font-family: Georgia, "Times New Roman", serif; font-weight: 700; font-size: 22px; margin: 0 0 6px; }
+.register-step-intro h1 { font-family: Georgia, "Times New Roman", serif; font-weight: 700; font-size: 22px; margin: 0 0 6px; color: var(--primary); }
 .register-step-intro .screen-subtitle { margin: 0; }
 
 .register-steps-viewport {
     overflow: hidden; transition: height .22s ease;
-    /* Vertically centers the step within .detail-body when its content is shorter
-       than the screen (step 1 especially, now that floating labels made it more
-       compact) - margin:auto rather than justify-content:center on the parent so a
-       TALLER step (2/3) degrades safely: the auto margins just resolve to 0 and the
-       step starts flush at the top, still fully scrollable, instead of a centered
-       flex line clipping its own top edge above the scroll container's reach. */
-    margin: auto 0;
+    /* Never let a TALLER step (2/3) get squeezed by the flex spacers below -
+       .detail-body scrolls instead, with the step itself always shown at full size. */
+    flex-shrink: 0;
 }
 .register-steps-track { display: flex; align-items: flex-start; transition: transform .22s ease; }
 .register-steps-track .register-step { flex: 0 0 100%; min-width: 0; }
@@ -361,6 +357,13 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
     border-top: 1px solid var(--border); background: var(--surface);
 }
 .screen-register .detail-body { padding-bottom: 18px; display: flex; flex-direction: column; }
+/* Weighted spacers rather than justify-content:center, so a short step (1
+   especially) sits a little above dead-center instead of exactly centered - and so
+   it degrades safely: a step tall enough to fill/overflow the screen just shrinks
+   both spacers to 0 (their basis is already 0) and scrolls normally, instead of a
+   centered flex line clipping its own top edge above the scroll container's reach. */
+.screen-register .detail-body::before { content: ''; flex: 2 0 0; }
+.screen-register .detail-body::after { content: ''; flex: 3 0 0; }
 .register-step-nav { display: flex; align-items: center; justify-content: space-between; }
 .register-step-dots { display: flex; gap: 6px; }
 .register-step-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--border); transition: background .2s ease, width .2s ease; }
