@@ -908,7 +908,11 @@ body.lp-menu-open { position: fixed; left: 0; right: 0; width: 100%; overflow: h
    "expo-out" curve (Linear/Stripe-style - fast start, long smooth settle) plus
    a touch of scale gives the open/close more presence than a flat slide,
    without tipping into the language picker's playful overshoot "bounce". */
-.lp-menu-modal { position: fixed; inset: 0; z-index: 1002; visibility: hidden; pointer-events: none; }
+/* top tracks --install-banner-h, same as #lp-header - without this the drawer
+   always started flush with the true top of the screen regardless of the
+   install banner, instead of opening from wherever the header currently sits
+   (lower, while the banner is still showing above it). */
+.lp-menu-modal { position: fixed; top: var(--install-banner-h); right: 0; bottom: 0; left: 0; z-index: 1002; visibility: hidden; pointer-events: none; }
 .lp-menu-modal.open { visibility: visible; pointer-events: auto; }
 .lp-menu-modal-backdrop {
     position: absolute; inset: 0; background: rgba(20,15,8,.42);

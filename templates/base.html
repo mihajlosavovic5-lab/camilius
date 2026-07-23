@@ -85,9 +85,11 @@
     // real height only while it's shown; without resetting it here, dismissing the
     // banner left a dead gap where it used to be, with everything below still
     // pushed down by its old height.
+    var installBannerScrollLinked = false;
     function hideInstallBanner() {
         var banner = document.getElementById("mobile-install-banner");
         if (banner) banner.classList.add("hidden");
+        installBannerScrollLinked = false;
         document.documentElement.style.setProperty("--install-banner-h", "0px");
     }
     window.addEventListener("beforeinstallprompt", function (event) {
@@ -115,7 +117,26 @@
             // pushes it (and anything else anchored the same way) down below the banner
             // instead of the two overlapping, without hardcoding the banner's height
             // (it can wrap to two lines on a narrow phone).
-            document.documentElement.style.setProperty("--install-banner-h", banner.offsetHeight + "px");
+            var fullHeight = banner.offsetHeight;
+            document.documentElement.style.setProperty("--install-banner-h", fullHeight + "px");
+            // The banner itself is normal in-flow content (not fixed), so it scrolls
+            // away with the rest of the page like anything else - but --install-banner-h
+            // was only ever set once, at load, so the fixed header/language button kept
+            // reserving its full height forever, leaving a dead gap at the top once the
+            // banner had actually scrolled out of view. Shrink the reserved space as the
+            // banner scrolls away (down to 0 once it's fully passed) so the header ends
+            // up flush with the top of the screen, exactly like an explicit dismiss.
+            installBannerScrollLinked = true;
+            var ticking = false;
+            window.addEventListener("scroll", function () {
+                if (!installBannerScrollLinked || ticking) return;
+                ticking = true;
+                requestAnimationFrame(function () {
+                    var remaining = Math.max(0, fullHeight - window.scrollY);
+                    document.documentElement.style.setProperty("--install-banner-h", remaining + "px");
+                    ticking = false;
+                });
+            }, { passive: true });
         }
     })();
     document.addEventListener("DOMContentLoaded", function () {
