@@ -671,6 +671,13 @@
             pricingTrack.style.transform = 'translateX(' + (pPeek - pCurrent * pSlideW) + '%)';
             pricingSlides.forEach(function (slide, i) { slide.classList.toggle('lp-slide-active', i === pCurrent); });
             pDots.forEach(function (dot, i) { dot.classList.toggle('active', i === pCurrent); });
+            // Only 2 plans, no wraparound in the visible arrows - showing both a prev
+            // AND a next arrow on each card was misleading (with just 2 slides, both
+            // would ever only lead to the exact same other slide), so hide whichever
+            // one has nothing further to actually go to. Autoplay/swipe still use the
+            // modulo above underneath so the auto-rotation itself keeps looping.
+            if (pricingPrevBtn) pricingPrevBtn.classList.toggle('hidden', pCurrent === 0);
+            if (pricingNextBtn) pricingNextBtn.classList.toggle('hidden', pCurrent === pricingSlides.length - 1);
         }
 
         function pNext() { pGoTo(pCurrent + 1); }
@@ -704,9 +711,10 @@
             pStartAutoplay();
         });
 
-        pricingTrack.style.transform = 'translateX(' + pPeek + '%)';
-        pricingSlides[0].classList.add('lp-slide-active');
-        pDots[0].classList.add('active');
+        // Same as goTo(0) for the examples slider above - sets the initial position/
+        // active state AND the prev-arrow-hidden-on-slide-0 state from the same single
+        // place pGoTo always uses, rather than duplicating that logic here.
+        pGoTo(0);
 
         // Same "don't run until scrolled into view" deferral as the examples slider.
         if ('IntersectionObserver' in window) {
