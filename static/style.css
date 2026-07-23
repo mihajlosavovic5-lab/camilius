@@ -1036,17 +1036,29 @@ body.lp-menu-open #lp-corner-brand {
     position: absolute; top: 20px; left: 20px; z-index: 1003;
     width: 34px; height: 34px; align-items: center; justify-content: center;
     flex-direction: column; gap: 5px;
-    background: none; border: none; cursor: pointer; padding: 0;
-    transition: transform .15s ease;
+    background: none; border: none; border-radius: 50%; cursor: pointer; padding: 0;
+    transition: transform .15s ease, background-color .2s ease;
 }
-.lp-menu-btn:hover { transform: scale(1.08); }
 .lp-menu-btn span {
     display: block; width: 22px; height: 2px; border-radius: 2px;
-    background: var(--text); transition: transform .3s cubic-bezier(.16,1,.3,1), opacity .2s ease;
+    background: var(--text); transition: transform .3s cubic-bezier(.16,1,.3,1), opacity .2s ease, background-color .2s ease;
 }
 .lp-menu-btn.active span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
 .lp-menu-btn.active span:nth-child(2) { opacity: 0; }
 .lp-menu-btn.active span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+/* Hover-only polish (amber wash + tinted bars), gated to real mice/trackpads -
+   on touch, `:hover` sticks after a tap until the next stray touch elsewhere,
+   which read as a stuck-highlighted button on mobile once this got richer
+   than a plain scale. Desktop keeps the richer treatment since a mouse
+   actually leaves on its own. */
+@media (hover: hover) and (pointer: fine) {
+    .lp-menu-btn:hover { transform: scale(1.08); background-color: var(--primary-light); }
+    .lp-menu-btn:hover span { background: var(--primary-ink); }
+}
+.lp-menu-btn:active { transform: scale(.92); }
+.lp-menu-btn:focus-visible {
+    outline: 2px solid var(--primary); outline-offset: 2px;
+}
 
 /* A classic slide-out side drawer (sharp corners, full-height, slides in from
    the left) rather than a small floating notification-style dropdown - that
@@ -1112,14 +1124,33 @@ body.lp-menu-open #lp-corner-brand {
 .lp-menu-modal.open .lp-menu-modal-sheet a:nth-of-type(7) { transition-delay: .32s; }
 /* Same warm amber hover tint as the site's other dropdown (.site-lang-option-btn)
    and active nav links, plus the same lift + amber glow the site's real .button
-   uses on hover/press, so these read as proper buttons, not flat list text. */
-.lp-menu-modal-sheet a:hover {
-    background: var(--primary-light); color: var(--primary-ink); text-decoration: none;
-    border-color: rgba(214, 148, 16, .4);
-    transform: translateY(-1px);
-    box-shadow: 0 8px 18px -8px rgba(214, 148, 16, .55);
+   uses on hover/press, so these read as proper buttons, not flat list text.
+   Selector is as specific as `.lp-menu-modal.open .lp-menu-modal-sheet a` above
+   (same 3 classes, plus :hover) - without matching that specificity, the open
+   state's `transform: translateX(0)` always won and the hover lift never
+   actually rendered while the drawer was open (i.e. always, since hover only
+   matters while it's open). Gated to real mice/trackpads: on touch, `:hover`
+   sticks after a tap until the next stray touch, which read as rows staying
+   lit/lifted after you'd already tapped one. */
+/* transition-delay: 0s - the per-row entrance stagger above (nth-of-type,
+   same 4-class/1-element specificity) sets its own transition-delay on this
+   same element, which otherwise also pushed back *this* rule's background/
+   transform/box-shadow transition, since they share one `transition-delay`
+   for the whole property list. Left alone, hovering a later row (Log in,
+   Try for free, up to .32s for the last one) responded to the mouse with a
+   visible lag - resetting it here keeps the stagger for the opening
+   animation but makes hover/press feedback instant regardless of row
+   position. */
+@media (hover: hover) and (pointer: fine) {
+    .lp-menu-modal.open .lp-menu-modal-sheet a:hover {
+        background: var(--primary-light); color: var(--primary-ink); text-decoration: none;
+        border-color: rgba(214, 148, 16, .4);
+        transform: translateY(-2px) scale(1.015);
+        box-shadow: 0 10px 20px -8px rgba(214, 148, 16, .55);
+        transition-delay: 0s;
+    }
 }
-.lp-menu-modal-sheet a:active { transform: translateY(1px); box-shadow: none; }
+.lp-menu-modal-sheet a:active { transform: translateY(1px); box-shadow: none; transition-delay: 0s; }
 /* "Try for free" is still the sitewide .button class underneath (inline-flex,
    filled amber, centered text) - reset it back to a plain row so it looks and
    behaves exactly like every other menu item, no special-cased styling. */
