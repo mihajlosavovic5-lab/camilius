@@ -125,6 +125,7 @@ const TRANSLATIONS = {
 
         "landing.nav.login": "Log in",
         "landing.nav.tryFree": "Try for free",
+        "landing.nav.whoFor": "Who it's for",
         "landing.hero.title1": "Customers message you on Instagram.",
         "landing.hero.title2": "The AI already has a reply ready.",
         "landing.hero.subtitle": "Camilius reads your business's Instagram messages and drafts replies based on your working hours, price list, and FAQ. You just review, edit if you like — and send with one click.",
@@ -518,6 +519,7 @@ const TRANSLATIONS = {
 
         "landing.nav.login": "Iniciar sesión",
         "landing.nav.tryFree": "Pruébalo gratis",
+        "landing.nav.whoFor": "Para quién es",
         "landing.hero.title1": "Los clientes te escriben por Instagram.",
         "landing.hero.title2": "La IA ya tiene una respuesta lista.",
         "landing.hero.subtitle": "Camilius lee los mensajes de Instagram de tu negocio y redacta respuestas según tu horario, lista de precios y preguntas frecuentes. Tú solo revisas, editas si quieres, y envías con un clic.",
@@ -911,6 +913,7 @@ const TRANSLATIONS = {
 
         "landing.nav.login": "Entrar",
         "landing.nav.tryFree": "Experimente grátis",
+        "landing.nav.whoFor": "Para quem é",
         "landing.hero.title1": "Clientes te mandam mensagem no Instagram.",
         "landing.hero.title2": "A IA já tem uma resposta pronta.",
         "landing.hero.subtitle": "O Camilius lê as mensagens do Instagram do seu negócio e redige respostas com base no seu horário, lista de preços e FAQ. Você só revisa, edita se quiser — e envia com um clique.",
@@ -1304,6 +1307,7 @@ const TRANSLATIONS = {
 
         "landing.nav.login": "Se connecter",
         "landing.nav.tryFree": "Essayer gratuitement",
+        "landing.nav.whoFor": "Pour qui c'est fait",
         "landing.hero.title1": "Vos clients vous écrivent sur Instagram.",
         "landing.hero.title2": "L'IA a déjà une réponse prête.",
         "landing.hero.subtitle": "Camilius lit les messages Instagram de votre entreprise et rédige des réponses selon vos horaires, votre liste de prix et votre FAQ. Vous n'avez qu'à relire, modifier si besoin — et envoyer en un clic.",
@@ -1697,6 +1701,7 @@ const TRANSLATIONS = {
 
         "landing.nav.login": "Anmelden",
         "landing.nav.tryFree": "Kostenlos testen",
+        "landing.nav.whoFor": "Für wen es ist",
         "landing.hero.title1": "Kunden schreiben dir auf Instagram.",
         "landing.hero.title2": "Die KI hat schon eine Antwort parat.",
         "landing.hero.subtitle": "Camilius liest die Instagram-Nachrichten deines Unternehmens und verfasst Antworten basierend auf deinen Öffnungszeiten, deiner Preisliste und FAQ. Du prüfst, bearbeitest bei Bedarf — und sendest mit einem Klick.",
@@ -2090,6 +2095,7 @@ const TRANSLATIONS = {
 
         "landing.nav.login": "Accedi",
         "landing.nav.tryFree": "Prova gratis",
+        "landing.nav.whoFor": "Per chi è pensato",
         "landing.hero.title1": "I clienti ti scrivono su Instagram.",
         "landing.hero.title2": "L'IA ha già una risposta pronta.",
         "landing.hero.subtitle": "Camilius legge i messaggi Instagram della tua attività e redige risposte in base a orari, listino prezzi e FAQ. Tu revisioni, modifichi se vuoi — e invii con un clic.",
@@ -2483,6 +2489,7 @@ const TRANSLATIONS = {
 
         "landing.nav.login": "Войти",
         "landing.nav.tryFree": "Попробовать бесплатно",
+        "landing.nav.whoFor": "Кому подойдёт",
         "landing.hero.title1": "Клиенты пишут вам в Instagram.",
         "landing.hero.title2": "У ИИ уже готов ответ.",
         "landing.hero.subtitle": "Camilius читает сообщения вашего бизнеса в Instagram и составляет ответы на основе ваших часов работы, прайс-листа и FAQ. Вы просто проверяете, при желании редактируете — и отправляете в один клик.",
@@ -2876,6 +2883,7 @@ const TRANSLATIONS = {
 
         "landing.nav.login": "Prijavi se",
         "landing.nav.tryFree": "Probaj besplatno",
+        "landing.nav.whoFor": "Za koga je",
         "landing.hero.title1": "Mušterije vam pišu na Instagramu.",
         "landing.hero.title2": "AI već ima spreman odgovor.",
         "landing.hero.subtitle": "Camilius čita poruke vašeg biznisa na Instagramu i sastavlja odgovore na osnovu radnog vremena, cenovnika i čestih pitanja. Vi samo pregledate, po želji izmenite — i pošaljete jednim klikom.",
@@ -3269,6 +3277,7 @@ const TRANSLATIONS = {
 
         "landing.nav.login": "登录",
         "landing.nav.tryFree": "免费试用",
+        "landing.nav.whoFor": "适合哪些商家",
         "landing.hero.title1": "顾客在Instagram上给您发消息。",
         "landing.hero.title2": "AI已经准备好回复了。",
         "landing.hero.subtitle": "Camilius读取您商家的Instagram消息,并根据您的营业时间、价目表和常见问题草拟回复。您只需审核、按需编辑——然后一键发送。",
@@ -3662,6 +3671,7 @@ const TRANSLATIONS = {
 
         "landing.nav.login": "Giriş yap",
         "landing.nav.tryFree": "Ücretsiz dene",
+        "landing.nav.whoFor": "Kimler için",
         "landing.hero.title1": "Müşteriler size Instagram'dan mesaj atıyor.",
         "landing.hero.title2": "Yapay zekânın yanıtı çoktan hazır.",
         "landing.hero.subtitle": "Camilius, işletmenizin Instagram mesajlarını okur ve çalışma saatlerinize, fiyat listenize ve SSS'lerinize göre yanıtlar hazırlar. Siz sadece gözden geçirir, isterseniz düzenler — ve tek tıkla gönderirsiniz.",
