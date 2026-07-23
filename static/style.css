@@ -71,13 +71,17 @@
 .site-lang-modal-backdrop { position: absolute; inset: 0; background: rgba(20,15,8,.32); opacity: 0; transition: opacity .2s ease; }
 .site-lang-modal.open .site-lang-modal-backdrop { opacity: 1; }
 .site-lang-modal-sheet {
-    position: absolute; right: 16px; top: 54px;
+    /* top must track --install-banner-h the same way .site-lang-select-btn does -
+       otherwise, whenever the install banner is showing, the button sits lower on
+       screen but this sheet stayed pinned to a fixed 54px from the viewport top,
+       opening from a point well above the button instead of right under it. */
+    position: absolute; right: 16px; top: calc(54px + var(--install-banner-h));
     width: min(230px, calc(100% - 32px));
     background: var(--surface); border: 1px solid var(--border); border-radius: 16px;
     box-shadow: var(--shadow-lg); overflow: hidden;
     transform-origin: top right;
     transform: translateY(-6px) scale(.94); opacity: 0;
-    transition: transform .2s cubic-bezier(.22,.9,.32,1.2), opacity .16s ease;
+    transition: top .2s cubic-bezier(.16,1,.3,1), transform .2s cubic-bezier(.22,.9,.32,1.2), opacity .16s ease;
 }
 .site-lang-modal.open .site-lang-modal-sheet { transform: translateY(0) scale(1); opacity: 1; }
 /* brand accent strip - ties the otherwise-plain white dropdown back into the site's
