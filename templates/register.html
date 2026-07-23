@@ -56,25 +56,34 @@
             <p class="phone-country-hint hidden" id="register-phone-country-hint"><span class="flag" id="register-phone-country-flag"></span><span id="register-phone-country-name"></span></p>
             <p class="field-error hidden" id="register-phone-error"></p>
 
+            {% set details_prefilled = data.get('working_hours') or data.get('price_list') or data.get('faq') %}
             <div class="form-section">
-                <p class="form-section-title" data-i18n="register.businessDetailsSection">Business details &mdash; the AI uses this to write replies</p>
+                <button type="button" class="form-section-toggle{{ ' open' if details_prefilled }}" id="register-details-toggle" aria-expanded="{{ 'true' if details_prefilled else 'false' }}" aria-controls="register-details-body">
+                    <span>
+                        <span class="form-section-title" data-i18n="register.businessDetailsSection">Business details &mdash; the AI uses this to write replies</span>
+                        <span class="note" style="display: block;" data-i18n="register.businessDetailsHint">Optional - add now, or register first and fill these in later in Settings</span>
+                    </span>
+                    <span class="form-section-toggle-chevron" aria-hidden="true">&#8964;</span>
+                </button>
 
-                <label data-i18n="register.hours">Working hours</label>
-                <input type="hidden" name="working_hours" id="register-working-hours" value="{{ data.get('working_hours', '') }}">
-                <div class="hours-picker" id="register-hours-picker-mount"></div>
+                <div class="form-section-body{{ ' open' if details_prefilled }}" id="register-details-body">
+                    <label data-i18n="register.hours">Working hours</label>
+                    <input type="hidden" name="working_hours" id="register-working-hours" value="{{ data.get('working_hours', '') }}">
+                    <div class="hours-picker" id="register-hours-picker-mount"></div>
 
-                <label data-i18n="register.prices">Price list</label>
-                <input type="hidden" name="price_list" id="register-price-list" value="{{ data.get('price_list', '') }}">
-                <div class="price-currency-row">
-                    <span data-i18n="pricePicker.currencyLabel">Currency</span>
-                    <select id="register-price-currency"></select>
+                    <label data-i18n="register.prices">Price list</label>
+                    <input type="hidden" name="price_list" id="register-price-list" value="{{ data.get('price_list', '') }}">
+                    <div class="price-currency-row">
+                        <span data-i18n="pricePicker.currencyLabel">Currency</span>
+                        <select id="register-price-currency"></select>
+                    </div>
+                    <div class="price-picker-rows" id="register-price-picker-mount"></div>
+                    <button type="button" class="price-add-btn" id="register-price-add" data-i18n="pricePicker.addButton">+ Add service</button>
+
+                    <label data-i18n="register.faq">Tell us more about your business</label>
+                    <textarea name="faq" data-i18n-placeholder="register.faqPlaceholder" placeholder="Q: Do I need to book an appointment?&#10;A: Yes, we recommend booking in advance.&#10;&#10;Anything else worth knowing about your business.">{{ data.get('faq', '') }}</textarea>
+                    <p class="note" data-i18n="register.faqHint">The more you share, the more questions our AI can answer for your customers.</p>
                 </div>
-                <div class="price-picker-rows" id="register-price-picker-mount"></div>
-                <button type="button" class="price-add-btn" id="register-price-add" data-i18n="pricePicker.addButton">+ Add service</button>
-
-                <label data-i18n="register.faq">Tell us more about your business</label>
-                <textarea name="faq" data-i18n-placeholder="register.faqPlaceholder" placeholder="Q: Do I need to book an appointment?&#10;A: Yes, we recommend booking in advance.&#10;&#10;Anything else worth knowing about your business.">{{ data.get('faq', '') }}</textarea>
-                <p class="note" data-i18n="register.faqHint">The more you share, the more questions our AI can answer for your customers.</p>
             </div>
 
             <div class="form-section">
@@ -112,6 +121,17 @@
 // reasoning applies to pickers.js (also deferred) - createHoursPicker/createPricePicker
 // must exist before this runs.
 document.addEventListener("DOMContentLoaded", function () {
+    // Collapsed-by-default "Business details" section (see the CSS comment on
+    // .form-section-toggle) - opens the same way as long as the user actually decides
+    // to fill these in now instead of skipping to Settings later.
+    var detailsToggle = document.getElementById("register-details-toggle");
+    var detailsBody = document.getElementById("register-details-body");
+    detailsToggle.addEventListener("click", function () {
+        var open = detailsBody.classList.toggle("open");
+        detailsToggle.classList.toggle("open", open);
+        detailsToggle.setAttribute("aria-expanded", open ? "true" : "false");
+    });
+
     createHoursPicker("register-hours-picker-mount", "register-working-hours");
     createPricePicker("register-price-picker-mount", "register-price-add", "register-price-currency", "register-price-list");
 

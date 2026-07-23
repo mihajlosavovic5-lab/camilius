@@ -552,6 +552,21 @@ body.auth {
 .form-section { border-top: 1px solid var(--border); margin-top: 26px; padding-top: 18px; }
 .form-section-title { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: .6px; color: var(--text-muted); margin: 0; }
 
+/* Collapsible section header (registration's "Business details") - collapsed by
+   default so a first-time visitor sees a short account-only form, not what looks like
+   a full business setup wizard, before they've even decided to try the product. Opening
+   it is optional either way: working hours/price list/FAQ aren't required to register,
+   just nice to have filled in before the AI starts drafting real replies. */
+.form-section-toggle {
+    display: flex; align-items: flex-start; justify-content: space-between; gap: 12px;
+    width: 100%; background: none; border: none; padding: 0; margin: 0; cursor: pointer;
+    text-align: left; font: inherit; color: inherit;
+}
+.form-section-toggle-chevron { color: var(--text-muted); font-size: 15px; flex-shrink: 0; margin-top: 1px; transition: transform .18s ease; }
+.form-section-toggle.open .form-section-toggle-chevron { transform: rotate(180deg); }
+.form-section-body { display: none; margin-top: 16px; }
+.form-section-body.open { display: block; }
+
 /* --- Working hours + price list pickers (Faza 5) - functional parity with the mobile
    app's own pickers (see static/pickers.js); a real "pick from options" UI instead of a
    freeform textarea, on both Register and Profile. --- */
