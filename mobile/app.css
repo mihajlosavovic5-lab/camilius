@@ -329,6 +329,18 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
    the TALLEST of the three, leaving dead scrollable space below shorter steps (step 2's
    working-hours list is noticeably shorter than steps 1/3) even though there's nothing
    actually down there. */
+/* Step 1's own intro - the other two steps already open with a .block-label
+   ("Business details...") plus a picker/textarea that fills the screen, but step 1
+   used to jump straight into fields with nothing above them; now that floating
+   labels made step 1 shorter, that made it look like an empty accident once
+   centered rather than a designed screen. This gives it the same kind of "screen
+   intro" weight Connect Instagram already has (plain h1 + .screen-subtitle,
+   centered, no icon - matches that screen's tone rather than the onboarding
+   slides' more playful emoji treatment). */
+.register-step-intro { text-align: center; margin-bottom: 22px; }
+.register-step-intro h1 { font-family: Georgia, "Times New Roman", serif; font-weight: 700; font-size: 22px; margin: 0 0 6px; }
+.register-step-intro .screen-subtitle { margin: 0; }
+
 .register-steps-viewport {
     overflow: hidden; transition: height .22s ease;
     /* Vertically centers the step within .detail-body when its content is shorter

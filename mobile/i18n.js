@@ -41,6 +41,8 @@ const TRANSLATIONS = {
         "login.signup": "Create account",
 
         "register.title": "Create account",
+        "register.step1.title": "Create your account",
+        "register.step1.subtitle": "Just the basics for now — working hours and price list are next.",
         "register.name": "Business name",
         "register.username": "Username",
         "register.password": "Password",
@@ -264,6 +266,8 @@ const TRANSLATIONS = {
         "login.signup": "Napravi nalog",
 
         "register.title": "Napravi nalog",
+        "register.step1.title": "Napravite nalog",
+        "register.step1.subtitle": "Za sada samo osnovno — radno vreme i cenovnik su sledeći na redu.",
         "register.name": "Naziv firme",
         "register.username": "Korisničko ime",
         "register.password": "Lozinka",
@@ -480,6 +484,8 @@ const TRANSLATIONS = {
         "login.signup": "Crear cuenta",
 
         "register.title": "Crear cuenta",
+        "register.step1.title": "Crea tu cuenta",
+        "register.step1.subtitle": "Por ahora solo lo básico — el horario y la lista de precios vienen después.",
         "register.name": "Nombre del negocio",
         "register.username": "Usuario",
         "register.password": "Contraseña",
@@ -696,6 +702,8 @@ const TRANSLATIONS = {
         "login.signup": "Criar conta",
 
         "register.title": "Criar conta",
+        "register.step1.title": "Crie sua conta",
+        "register.step1.subtitle": "Por enquanto, só o básico — o horário de funcionamento e a lista de preços vêm a seguir.",
         "register.name": "Nome da empresa",
         "register.username": "Usuário",
         "register.password": "Senha",
@@ -912,6 +920,8 @@ const TRANSLATIONS = {
         "login.signup": "Créer un compte",
 
         "register.title": "Créer un compte",
+        "register.step1.title": "Créez votre compte",
+        "register.step1.subtitle": "Pour l'instant, juste l'essentiel — les horaires et la liste de prix arrivent ensuite.",
         "register.name": "Nom de l'entreprise",
         "register.username": "Nom d'utilisateur",
         "register.password": "Mot de passe",
@@ -1128,6 +1138,8 @@ const TRANSLATIONS = {
         "login.signup": "Konto erstellen",
 
         "register.title": "Konto erstellen",
+        "register.step1.title": "Erstelle dein Konto",
+        "register.step1.subtitle": "Erst mal nur das Wichtigste — Öffnungszeiten und Preisliste kommen als Nächstes.",
         "register.name": "Firmenname",
         "register.username": "Benutzername",
         "register.password": "Passwort",
@@ -1344,6 +1356,8 @@ const TRANSLATIONS = {
         "login.signup": "Crea account",
 
         "register.title": "Crea account",
+        "register.step1.title": "Crea il tuo account",
+        "register.step1.subtitle": "Per ora solo le informazioni di base — orari e listino prezzi arrivano dopo.",
         "register.name": "Nome dell'attività",
         "register.username": "Nome utente",
         "register.password": "Password",
@@ -1560,6 +1574,8 @@ const TRANSLATIONS = {
         "login.signup": "Создать аккаунт",
 
         "register.title": "Создать аккаунт",
+        "register.step1.title": "Создайте аккаунт",
+        "register.step1.subtitle": "Пока только основное — рабочее время и прайс-лист будут дальше.",
         "register.name": "Название компании",
         "register.username": "Имя пользователя",
         "register.password": "Пароль",
@@ -1776,6 +1792,8 @@ const TRANSLATIONS = {
         "login.signup": "创建账户",
 
         "register.title": "创建账户",
+        "register.step1.title": "创建您的账户",
+        "register.step1.subtitle": "现在只需填写基本信息——营业时间和价目表在下一步。",
         "register.name": "企业名称",
         "register.username": "用户名",
         "register.password": "密码",
@@ -1992,6 +2010,8 @@ const TRANSLATIONS = {
         "login.signup": "Hesap oluştur",
 
         "register.title": "Hesap oluştur",
+        "register.step1.title": "Hesabınızı oluşturun",
+        "register.step1.subtitle": "Şimdilik sadece temel bilgiler — çalışma saatleri ve fiyat listesi sırada.",
         "register.name": "İşletme adı",
         "register.username": "Kullanıcı adı",
         "register.password": "Şifre",
