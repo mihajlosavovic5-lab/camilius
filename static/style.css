@@ -705,43 +705,70 @@ body.auth {
 
 /* --- Floating Support AI widget (Faza 8) --- */
 .support-widget { position: fixed; right: 20px; bottom: 20px; z-index: 55; }
+/* The launcher is the app's own icon (same PNG as the navbar brand mark/favicon/PWA
+   icon) in a circle, not a generic emoji glyph - a floating round avatar of the product
+   itself reads as "belongs to this page" rather than a bolted-on third-party widget. */
 .support-widget-fab {
-    width: 56px; height: 56px; border-radius: 50%; border: none; cursor: pointer;
-    background: var(--primary); color: #fff; font-size: 24px;
-    display: flex; align-items: center; justify-content: center;
-    box-shadow: var(--shadow-lg); transition: transform .15s ease, background .15s ease;
+    width: 54px; height: 54px; border-radius: 50%; border: 2px solid var(--surface); cursor: pointer; padding: 0;
+    background-image: url('/static/icon-512.png'); background-size: cover; background-position: center;
+    box-shadow: var(--shadow-lg); transition: transform .15s ease, box-shadow .15s ease;
 }
-.support-widget-fab:hover { background: var(--primary-dark); transform: translateY(-2px); }
+.support-widget-fab:hover { transform: translateY(-2px) scale(1.04); }
 .support-widget-panel {
-    position: absolute; right: 0; bottom: 68px; width: min(340px, calc(100vw - 32px));
-    height: min(460px, calc(100vh - 120px)); background: var(--surface);
-    border: 1px solid var(--border); border-radius: 16px; box-shadow: var(--shadow-lg);
+    position: absolute; right: 0; bottom: 66px; width: min(272px, calc(100vw - 32px));
+    height: min(370px, calc(100vh - 120px)); background: var(--surface);
+    border: 1px solid var(--border); border-radius: 18px; box-shadow: var(--shadow-lg);
     display: flex; flex-direction: column; overflow: hidden;
     transform-origin: bottom right; transition: transform .18s ease, opacity .15s ease;
 }
 .support-widget-panel.hidden { display: flex; pointer-events: none; opacity: 0; transform: translateY(8px) scale(.96); }
-.support-widget-header { display: flex; align-items: center; gap: 10px; padding: 14px 14px 12px; border-bottom: 1px solid var(--border); flex-shrink: 0; }
-.support-widget-header-icon { width: 30px; height: 30px; }
-.support-widget-title { font-weight: 700; font-size: 14.5px; margin: 0; }
-.support-widget-subtitle { color: var(--text-muted); font-size: 12px; margin: 1px 0 0; }
-.support-widget-close { margin-left: auto; background: none; border: none; color: var(--text-muted); font-size: 20px; cursor: pointer; padding: 2px 4px; flex-shrink: 0; }
-.support-widget-messages { flex: 1; overflow-y: auto; padding: 14px; display: flex; flex-direction: column; gap: 10px; }
-.support-widget-msg { max-width: 84%; padding: 9px 12px; border-radius: 12px; font-size: 13.5px; line-height: 1.4; white-space: pre-wrap; }
-.support-widget-msg-bot { align-self: flex-start; background: var(--background); color: var(--text); border-bottom-left-radius: 4px; }
+/* Same brand accent strip used atop the language dropdown (.site-lang-modal-sheet) -
+   ties this panel back into the site's amber/gold identity instead of a plain white
+   card that could belong to any product. */
+.support-widget-panel::before {
+    content: ""; display: block; height: 3px; flex-shrink: 0;
+    background: linear-gradient(90deg, var(--primary), var(--gold-dark));
+}
+.support-widget-header { display: flex; align-items: center; gap: 9px; padding: 11px 13px 10px; border-bottom: 1px solid var(--border); flex-shrink: 0; background: var(--primary-light); }
+.support-widget-header-icon { width: 27px; height: 27px; }
+.support-widget-title { font-family: Georgia, "Times New Roman", serif; font-weight: 700; font-size: 14px; margin: 0; color: var(--text); }
+.support-widget-subtitle { color: var(--text-muted); font-size: 11px; margin: 1px 0 0; }
+.support-widget-close { margin-left: auto; background: none; border: none; color: var(--text-muted); font-size: 18px; cursor: pointer; padding: 3px 5px; flex-shrink: 0; border-radius: 7px; transition: background .12s ease, color .12s ease; }
+.support-widget-close:hover { background: rgba(20,15,8,.08); color: var(--text); }
+.support-widget-messages { flex: 1; overflow-y: auto; padding: 12px; display: flex; flex-direction: column; gap: 8px; background: var(--background); }
+.support-widget-msg { max-width: 87%; padding: 8px 11px; border-radius: 14px; font-size: 12.5px; line-height: 1.45; }
+.support-widget-msg-bot { align-self: flex-start; background: var(--surface); color: var(--text); border: 1px solid var(--border); border-bottom-left-radius: 4px; }
 .support-widget-msg-user { align-self: flex-end; background: var(--primary); color: #fff; border-bottom-right-radius: 4px; }
-.support-widget-typing { opacity: .6; }
-.support-widget-form { display: flex; gap: 8px; padding: 10px; border-top: 1px solid var(--border); flex-shrink: 0; }
-.support-widget-form input { flex: 1; margin: 0; padding: 9px 12px; border: 1px solid var(--border); border-radius: 9px; font-family: inherit; font-size: 14px; }
+/* Bot replies are built as real <p>/<ul> nodes (see support-widget-form JS) so a
+   multi-fact answer reads as short scannable lines/bullets, not one dense paragraph -
+   the same "one fact per line" structure generate_reply.py uses for customer DMs. */
+.support-widget-msg-bot > * { margin: 0; }
+.support-widget-msg-bot > *:not(:first-child) { margin-top: 6px; }
+.support-widget-msg-list { padding-left: 16px; }
+.support-widget-msg-list li { margin-bottom: 2px; }
+.support-widget-msg-list li:last-child { margin-bottom: 0; }
+.support-widget-typing { opacity: .55; }
+.support-widget-form { display: flex; gap: 7px; padding: 10px; border-top: 1px solid var(--border); flex-shrink: 0; background: var(--surface); }
+.support-widget-form input {
+    flex: 1; margin: 0; padding: 8px 13px; border: 1px solid var(--border); border-radius: 20px;
+    font-family: inherit; font-size: 13px; background: var(--background); color: var(--text);
+    transition: border-color .12s ease, box-shadow .12s ease;
+}
+.support-widget-form input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-light); }
 .support-widget-send {
-    width: 38px; height: 38px; flex-shrink: 0; border: none; border-radius: 9px;
-    background: var(--primary); color: #fff; cursor: pointer; font-size: 15px;
-    display: flex; align-items: center; justify-content: center;
+    width: 34px; height: 34px; flex-shrink: 0; border: none; border-radius: 50%;
+    background: var(--primary); color: #fff; cursor: pointer; font-size: 13px;
+    display: flex; align-items: center; justify-content: center; transition: background .12s ease;
 }
 .support-widget-send:hover { background: var(--primary-dark); }
 
 @media (max-width: 480px) {
     .support-widget { right: 14px; bottom: 14px; }
-    .support-widget-panel { position: fixed; right: 10px; left: 10px; bottom: 84px; width: auto; }
+    /* Stays anchored to the right (inherits position: absolute; right: 0 from the base
+       rule above) instead of stretching edge-to-edge with left/right insets - a
+       full-width sheet reads as sitting in the middle of the screen rather than as a
+       corner widget belonging to the page. */
+    .support-widget-panel { width: min(272px, calc(100vw - 40px)); }
 }
 
 /* --- Legal pages (prose) --- */
