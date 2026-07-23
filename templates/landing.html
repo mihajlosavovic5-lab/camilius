@@ -469,6 +469,12 @@
 
     if (slider && slides.length) {
         var current = 0;
+        // Read straight from the CSS (.lp-slider's --lp-slide-w/--lp-slide-peek) so
+        // the translateX math here can never drift out of sync with the actual
+        // slide width the CSS uses to lay them out.
+        var sliderStyle = getComputedStyle(slider);
+        var slideW = parseFloat(sliderStyle.getPropertyValue('--lp-slide-w')) || 100;
+        var peek = (100 - slideW) / 2;
         var autoplayTimer = null;
         var typingTimers = [];
 
@@ -522,7 +528,8 @@
 
         function goTo(index) {
             current = (index + slides.length) % slides.length;
-            track.style.transform = 'translateX(-' + (current * 100) + '%)';
+            track.style.transform = 'translateX(' + (peek - current * slideW) + '%)';
+            slides.forEach(function (slide, i) { slide.classList.toggle('lp-slide-active', i === current); });
             dots.forEach(function (dot, i) { dot.classList.toggle('active', i === current); });
             clearTypingTimers();
             typeSlideReply(slides[current]);
@@ -560,6 +567,11 @@
             startAutoplay();
         });
 
+        // Position the track and mark slide 0 active up front, same as goTo(0)
+        // would, but without its typeSlideReply() call - typing is deliberately
+        // deferred until the slider actually scrolls into view, below.
+        track.style.transform = 'translateX(' + peek + '%)';
+        slides[0].classList.add('lp-slide-active');
         dots[0].classList.add('active');
 
         // Don't type/autoplay until the slider actually scrolls into view.
