@@ -192,7 +192,7 @@ button { font-family: inherit; }
 .country-option-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .country-option-dial { color: var(--text-muted); font-size: 13.5px; flex-shrink: 0; }
 
-.phone-input-row { display: flex; gap: 8px; }
+.phone-input-row { display: flex; gap: 8px; margin-top: 14px; }
 .phone-country-btn {
     display: flex; align-items: center; gap: 6px; flex-shrink: 0;
     padding: 12px 10px; border: 1px solid var(--border); border-radius: 10px;
@@ -200,7 +200,7 @@ button { font-family: inherit; }
 }
 .phone-country-flag { font-size: 17px; }
 .phone-country-chevron { font-size: 11px; color: var(--text-muted); }
-.phone-input-row input[type="tel"] { flex: 1; min-width: 0; }
+.phone-input-row .floating-field { flex: 1; min-width: 0; }
 
 /* --- Forms --- */
 label { display: block; font-weight: 600; font-size: 13.5px; margin: 14px 0 5px; }
@@ -220,7 +220,17 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
    when the field is empty and unfocused, then rises to a small caption at the top of
    the same box (freeing up the rest of the field for the value) on focus or once
    something's typed - the pattern Meta's own login screens use. */
-.floating-field { position: relative; }
+.floating-field { position: relative; margin-top: 14px; }
+/* Contexts that already space their own fields another way (login/forgot's own
+   margin-bottom on the input, the search bar's own row padding, price-row's side-
+   by-side pair, the phone-number row's own margin-top above) - cancel the default
+   top margin there so it isn't double-spaced. */
+.screen-login .floating-field,
+.search-row .floating-field,
+.price-row .floating-field,
+.phone-input-row .floating-field {
+    margin-top: 0;
+}
 /* <input> defaults to display:inline-block (never overridden anywhere in this file),
    which leaves room below it for descenders in an anonymous inline formatting context -
    invisible on its own, but it makes .floating-field (which sizes to the input) taller
@@ -252,6 +262,17 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
 .floating-field input:focus + label,
 .floating-field input:not(:placeholder-shown) + label {
     height: 26px; font-size: 11.5px; color: var(--primary);
+}
+
+/* Default floating-field sizing - Create Account, Profile, and any phone-number row
+   (anywhere not already given a bespoke size by a screen-specific rule above/below):
+   same 10px-radius input box as this file's base input rule (~L211), just with room
+   reserved above the value for the label to float into. */
+.floating-field input[type="text"],
+.floating-field input[type="password"],
+.floating-field input[type="email"],
+.floating-field input[type="tel"] {
+    padding: 20px 13px 6px;
 }
 
 /* Search conversations (inbox) - same floating mechanism, compact sizing to match the

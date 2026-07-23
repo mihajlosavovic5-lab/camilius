@@ -346,6 +346,37 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
 .form-actions { margin-top: 24px; }
 .hidden { display: none !important; }
 
+/* Floating labels - the label sits centered inside the empty field like a
+   placeholder, then rises to a small caption at the top of the same box on focus
+   or once something's typed (same pattern already shipped on the mobile app's
+   login screen, see mobile/app.css's .floating-field - this is the website's own
+   copy since the two run on separate CSS files). Only used for simple single-line
+   text/password/email/tel fields; textareas and the custom hours/price pickers keep
+   a normal label above them. */
+.floating-field { position: relative; margin-top: 16px; }
+/* <input> defaults to inline-block, which leaves room below it for descenders in an
+   anonymous inline formatting context - forcing block avoids the wrapper ending up
+   taller than the input's own visible box, which would center the label too low. */
+.floating-field input { display: block; }
+.floating-field label {
+    margin: 0; font-weight: 400;
+    position: absolute; left: 12px; right: 12px; top: 0; height: 100%;
+    display: flex; align-items: center;
+    font-size: 15px; color: var(--text-muted); pointer-events: none;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    transition: height .15s ease, font-size .15s ease, color .15s ease;
+}
+.floating-field input[type="text"],
+.floating-field input[type="password"],
+.floating-field input[type="email"],
+.floating-field input[type="tel"] {
+    padding: 18px 12px 4px;
+}
+.floating-field input:focus + label,
+.floating-field input:not(:placeholder-shown) + label {
+    height: 22px; font-size: 11px; color: var(--primary);
+}
+
 /* Inline "already taken" / validation messages shown live under a field as the user
    types (see register.html's script block) - deliberately not reusing .alert, which is
    too heavy (border/background/icon) for a single small per-field message. */

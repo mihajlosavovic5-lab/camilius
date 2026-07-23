@@ -176,14 +176,16 @@
       <div id="forgot-phone-mode" class="hidden">
         <p class="screen-subtitle" data-i18n="forgot.phoneSubtitle">Enter the phone number on your account and we'll send a link to the email on file.</p>
         <form id="forgot-phone-form">
-          <label data-i18n="forgot.phoneLabel">Phone number</label>
           <div class="phone-input-row" id="forgot-phone-row">
             <button type="button" class="phone-country-btn" id="forgot-phone-country-btn">
               <span class="phone-country-flag" id="forgot-phone-country-flag">🇷🇸</span>
               <span id="forgot-phone-country-dial">+381</span>
               <span class="phone-country-chevron">⌄</span>
             </button>
-            <input type="tel" id="forgot-phone" autocomplete="tel">
+            <div class="floating-field">
+              <input type="tel" id="forgot-phone" placeholder=" " autocomplete="tel">
+              <label for="forgot-phone" data-i18n="forgot.phoneLabel">Phone number</label>
+            </div>
           </div>
           <button class="button button-full button-pill" type="submit" id="forgot-phone-submit" data-i18n="forgot.phoneSubmit">Find account</button>
         </form>
@@ -205,29 +207,39 @@
         <div class="register-steps-viewport" id="register-steps-viewport">
           <div class="register-steps-track" id="register-steps-track">
             <div class="register-step" id="register-step-1">
-              <label data-i18n="register.name">Business name</label>
-              <input type="text" id="register-name" required>
+              <div class="floating-field">
+                <input type="text" id="register-name" placeholder=" " required>
+                <label for="register-name" data-i18n="register.name">Business name</label>
+              </div>
 
-              <label data-i18n="register.username">Username</label>
-              <input type="text" id="register-username" autocomplete="username" autocapitalize="off" autocorrect="off" required>
+              <div class="floating-field">
+                <input type="text" id="register-username" placeholder=" " autocomplete="username" autocapitalize="off" autocorrect="off" required>
+                <label for="register-username" data-i18n="register.username">Username</label>
+              </div>
               <p class="field-error hidden" id="register-username-error"></p>
 
-              <label data-i18n="register.password">Password</label>
-              <input type="password" id="register-password" autocomplete="new-password" required>
+              <div class="floating-field">
+                <input type="password" id="register-password" placeholder=" " autocomplete="new-password" required>
+                <label for="register-password" data-i18n="register.password">Password</label>
+              </div>
               <p class="field-hint" data-i18n="register.passwordHint">At least 8 characters</p>
 
-              <label data-i18n="register.contactEmail">Contact email</label>
-              <input type="email" id="register-contact-email" autocomplete="email" autocapitalize="off" required>
+              <div class="floating-field">
+                <input type="email" id="register-contact-email" placeholder=" " autocomplete="email" autocapitalize="off" required>
+                <label for="register-contact-email" data-i18n="register.contactEmail">Contact email</label>
+              </div>
               <p class="field-error hidden" id="register-contact-email-error"></p>
 
-              <label data-i18n="register.phone">Phone number (optional)</label>
               <div class="phone-input-row" id="register-phone-row">
                 <button type="button" class="phone-country-btn" id="register-phone-country-btn">
                   <span class="phone-country-flag" id="register-phone-country-flag">🇷🇸</span>
                   <span id="register-phone-country-dial">+381</span>
                   <span class="phone-country-chevron">⌄</span>
                 </button>
-                <input type="tel" id="register-phone" autocomplete="tel">
+                <div class="floating-field">
+                  <input type="tel" id="register-phone" placeholder=" " autocomplete="tel">
+                  <label for="register-phone" data-i18n="register.phone">Phone number (optional)</label>
+                </div>
               </div>
               <p class="field-error hidden" id="register-phone-error"></p>
             </div>
@@ -408,30 +420,40 @@
       <div id="settings-message" class="alert alert-success hidden"></div>
       <div id="settings-error" class="alert alert-error hidden"></div>
 
-      <label data-i18n="settings.name">Business name</label>
-      <input type="text" id="settings-name">
+      <div class="floating-field">
+        <input type="text" id="settings-name" placeholder=" ">
+        <label for="settings-name" data-i18n="settings.name">Business name</label>
+      </div>
 
-      <label data-i18n="settings.username">Username</label>
-      <input type="text" id="settings-username" autocapitalize="off" autocorrect="off">
+      <div class="floating-field">
+        <input type="text" id="settings-username" placeholder=" " autocapitalize="off" autocorrect="off">
+        <label for="settings-username" data-i18n="settings.username">Username</label>
+      </div>
       <p class="field-error hidden" id="settings-username-error"></p>
 
-      <label data-i18n="settings.contactEmail">Contact email</label>
-      <input type="email" id="settings-contact-email" autocapitalize="off" autocorrect="off">
+      <div class="floating-field">
+        <input type="email" id="settings-contact-email" placeholder=" " autocapitalize="off" autocorrect="off">
+        <label for="settings-contact-email" data-i18n="settings.contactEmail">Contact email</label>
+      </div>
       <p class="field-error hidden" id="settings-contact-email-error"></p>
 
-      <label data-i18n="settings.phone">Phone number (optional)</label>
       <div class="phone-input-row" id="settings-phone-row">
         <button type="button" class="phone-country-btn" id="settings-phone-country-btn">
           <span class="phone-country-flag" id="settings-phone-country-flag">🇷🇸</span>
           <span id="settings-phone-country-dial">+381</span>
           <span class="phone-country-chevron">⌄</span>
         </button>
-        <input type="tel" id="settings-phone" autocomplete="tel">
+        <div class="floating-field">
+          <input type="tel" id="settings-phone" placeholder=" " autocomplete="tel">
+          <label for="settings-phone" data-i18n="settings.phone">Phone number (optional)</label>
+        </div>
       </div>
       <p class="field-error hidden" id="settings-phone-error"></p>
 
-      <label data-i18n="settings.instagramAccount">Instagram account (read-only)</label>
-      <input type="text" id="settings-instagram-account" readonly>
+      <div class="floating-field">
+        <input type="text" id="settings-instagram-account" placeholder=" " readonly>
+        <label for="settings-instagram-account" data-i18n="settings.instagramAccount">Instagram account (read-only)</label>
+      </div>
 
       <label data-i18n="settings.hours">Working hours</label>
       <div class="hours-picker" id="settings-hours-picker"></div>
@@ -456,10 +478,14 @@
       <p class="field-hint hidden" id="settings-upsell-locked-hint" data-i18n="settings.upsellLockedHint">Upgrade to Pro to let the AI suggest complementary services.</p>
 
       <div class="block-label" data-i18n="settings.security">Security</div>
-      <label data-i18n="settings.currentPassword">Current password</label>
-      <input type="password" id="settings-current-password" autocomplete="current-password">
-      <label data-i18n="settings.newPassword">New password</label>
-      <input type="password" id="settings-new-password" autocomplete="new-password">
+      <div class="floating-field">
+        <input type="password" id="settings-current-password" placeholder=" " autocomplete="current-password">
+        <label for="settings-current-password" data-i18n="settings.currentPassword">Current password</label>
+      </div>
+      <div class="floating-field">
+        <input type="password" id="settings-new-password" placeholder=" " autocomplete="new-password">
+        <label for="settings-new-password" data-i18n="settings.newPassword">New password</label>
+      </div>
     </div>
     <button class="fab-save" id="settings-save" data-i18n="settings.save">Save changes</button>
   </section>

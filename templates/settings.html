@@ -31,8 +31,10 @@
                 </div>
             </div>
 
-            <label style="margin-top: 0;" data-i18n="settings.businessName">Business name</label>
-            <input type="text" name="name" value="{{ business.name }}" required>
+            <div class="floating-field" style="margin-top: 0;">
+                <input type="text" id="settings-name-input" name="name" value="{{ business.name }}" placeholder=" " required>
+                <label for="settings-name-input" data-i18n="settings.businessName">Business name</label>
+            </div>
 
             <label data-i18n="settings.instagramAccount">Instagram account</label>
             <div class="profile-instagram-row">
@@ -44,8 +46,10 @@
                 <a href="{{ url_for('connect_instagram_start') }}"><span data-i18n="{{ 'settings.instagramReconnect' if business.instagram_username else 'connectInstagram.cta' }}">{{ 'Reconnect or switch account' if business.instagram_username else 'Connect Instagram' }}</span> &rarr;</a>
             </div>
 
-            <label data-i18n="settings.contactEmail">Contact email</label>
-            <input type="email" value="{{ business.contact_email }}" readonly>
+            <div class="floating-field">
+                <input type="email" id="settings-contact-email-input" value="{{ business.contact_email }}" placeholder=" " readonly>
+                <label for="settings-contact-email-input" data-i18n="settings.contactEmail">Contact email</label>
+            </div>
             <p class="note" data-i18n="settings.contactEmailNote">Used only for password resets - can't be changed here.</p>
         </div>
 
