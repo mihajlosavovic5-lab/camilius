@@ -21,7 +21,6 @@
     --danger: #b3341f;
     --danger-bg: #f9e8e2;
     --danger-border: #eec6ba;
-    --brand-glow: rgba(214, 148, 16, .14);
     --radius: 14px;
     --tabbar-h: 58px;
     --safe-top: env(safe-area-inset-top, 0px);
@@ -103,15 +102,6 @@ button { font-family: inherit; }
     overflow: hidden;
     background: linear-gradient(180deg, var(--primary-light) 0%, var(--background) 42%);
 }
-/* Soft decorative glow behind the brand cluster - gives the screen its own identity
-   instead of the plain icon-on-blank-background look, and sits behind everything else
-   (login-wrap gets z-index so the actual form is always on top of it). */
-.screen-login::before {
-    content: ""; position: absolute; top: -150px; left: 50%; transform: translateX(-50%);
-    width: 380px; height: 380px; border-radius: 50%;
-    background: radial-gradient(circle, var(--brand-glow), transparent 70%);
-    pointer-events: none;
-}
 .login-wrap {
     position: relative; z-index: 1;
     flex: 1; display: flex; flex-direction: column;
@@ -130,14 +120,6 @@ button { font-family: inherit; }
    reads as centered rather than deliberately offset. */
 .login-top-spacer { flex: 0.9; min-height: 8px; }
 .login-brand { display: flex; flex-direction: column; align-items: center; gap: 10px; margin: 0 0 30px; }
-/* Icon sits inside its own soft gold badge/ring instead of floating bare on the
-   background - a small "crafted brand mark" touch Instagram's login doesn't have. */
-.login-icon-badge {
-    display: flex; align-items: center; justify-content: center;
-    width: 108px; height: 108px; border-radius: 50%;
-    background: radial-gradient(circle at 35% 30%, var(--primary-light), var(--surface) 72%);
-    box-shadow: 0 0 0 1px rgba(214, 148, 16, .18), 0 14px 30px -10px rgba(214, 148, 16, .35);
-}
 .login-icon { width: 76px; height: 76px; border-radius: 22%; box-shadow: 0 10px 26px rgba(43,32,19,.16); }
 .login-wordmark { margin: 0; }
 /* Small brand-colored flourish under the wordmark - another plain-vs-original cue. */
@@ -689,7 +671,6 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
         --danger: #e0796a;
         --danger-bg: #2e1a16;
         --danger-border: #4a2b24;
-        --brand-glow: rgba(232, 164, 22, .10);
     }
     .avatar, .inbox-avatar { background: rgba(232, 164, 22, .18); }
     input[type="text"], input[type="password"], input[type="email"], input[type="tel"], textarea { color-scheme: dark; }
@@ -716,7 +697,6 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
     --danger: #e0796a;
     --danger-bg: #2e1a16;
     --danger-border: #4a2b24;
-    --brand-glow: rgba(232, 164, 22, .10);
     color-scheme: dark;
 }
 :root[data-theme="dark"] .avatar, :root[data-theme="dark"] .inbox-avatar { background: rgba(232, 164, 22, .18); }
@@ -740,7 +720,6 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
     --danger: #b3341f;
     --danger-bg: #f9e8e2;
     --danger-border: #eec6ba;
-    --brand-glow: rgba(214, 148, 16, .14);
     color-scheme: light;
 }
 
