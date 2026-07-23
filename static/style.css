@@ -199,12 +199,20 @@ body {
        on its own. This universally reserves the same space for it on every page
        (auth pages, the logged-in .navbar, the landing page's #lp-header, which
        all otherwise know nothing about each other), synced to the same variable
-       the banner's own show/hide toggle updates. */
+       the banner's own show/hide toggle updates.
+       Deliberately NOT transitioned/animated, unlike the banner's own slide -
+       padding-top on <body> is a layout property, so animating it forces the
+       browser to reflow the ENTIRE page on every single animation frame (every
+       other fixed/sticky element's own top offset only repositions that one
+       element, a much smaller cost). That full-page-reflow-per-frame is what
+       made the banner's reappearance look glitchy specifically during a fast
+       scroll-up fling, when the main thread is already busy with scroll events
+       and has no spare budget to also repaint the whole document 60 times a
+       second. Snapping it instantly avoids the animated reflow entirely - the
+       banner itself still slides/fades in smoothly (transform/opacity are
+       compositor-only, no reflow), it just does so into space that was already
+       made instantly rather than space still visibly expanding underneath it. */
     padding-top: var(--install-banner-h);
-    transition: padding-top .4s cubic-bezier(.16,1,.3,1);
-}
-@media (prefers-reduced-motion: reduce) {
-    body { transition: none; }
 }
 
 h1, h2, h3 { line-height: 1.25; margin: 0 0 8px 0; text-wrap: balance; }
