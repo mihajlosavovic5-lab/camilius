@@ -375,12 +375,27 @@
     var menuBackdrop = document.getElementById('lp-menu-modal-backdrop');
     var menuSheet = document.getElementById('lp-menu-modal-sheet');
     if (menuBtn && menuModal && menuBackdrop && menuSheet) {
+        // Scroll lock: remembers the scroll position it opened at, pins the body
+        // there via position:fixed (see body.lp-menu-open in style.css) so the
+        // page behind can't scroll/bounce while the drawer is open, then restores
+        // the exact same scroll position on close instead of jumping to the top.
+        var lockedScrollY = 0;
         var closeMenu = function () {
             menuModal.classList.remove('open');
             menuBtn.classList.remove('active');
             menuBtn.setAttribute('aria-expanded', 'false');
+            document.body.classList.remove('lp-menu-open');
+            document.body.style.top = '';
+            // behavior: 'instant' overrides the site-wide smooth-scroll (html {
+            // scroll-behavior: smooth }, for the nav's anchor links) - this restore
+            // must snap back immediately, not animate, or closing the drawer would
+            // visibly scroll the page.
+            window.scrollTo({ top: lockedScrollY, left: 0, behavior: 'instant' });
         };
         var openMenu = function () {
+            lockedScrollY = window.scrollY || document.documentElement.scrollTop;
+            document.body.style.top = (-lockedScrollY) + 'px';
+            document.body.classList.add('lp-menu-open');
             menuModal.classList.add('open');
             menuBtn.classList.add('active');
             menuBtn.setAttribute('aria-expanded', 'true');

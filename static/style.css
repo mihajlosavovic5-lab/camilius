@@ -108,6 +108,10 @@
     --shadow: 0 2px 6px rgba(38, 32, 20, .05), 0 1px 2px rgba(38, 32, 20, .04);
     --shadow-lg: 0 16px 44px rgba(38, 32, 20, .10), 0 4px 10px rgba(38, 32, 20, .05);
     --radius: 12px;
+    /* Header-menu drawer glass panel + its row "chips" (static/style.css .lp-menu-modal-*) */
+    --menu-sheet-bg: rgba(255, 255, 255, .7);
+    --menu-row-bg: rgba(255, 255, 255, .55);
+    --menu-row-border: rgba(236, 230, 218, .8);
 }
 
 /* --- Dark mode - follows the OS/browser preference (no in-app toggle). Redefining the
@@ -141,6 +145,9 @@
         --danger-border: #5c342a;
         --shadow: 0 2px 6px rgba(0, 0, 0, .3), 0 1px 2px rgba(0, 0, 0, .25);
         --shadow-lg: 0 16px 44px rgba(0, 0, 0, .45), 0 4px 10px rgba(0, 0, 0, .3);
+        --menu-sheet-bg: rgba(36, 30, 23, .78);
+        --menu-row-bg: rgba(255, 255, 255, .05);
+        --menu-row-border: rgba(255, 255, 255, .09);
     }
 
     body {
@@ -834,6 +841,27 @@ body.intro { margin: 0; height: 100dvh; overflow: hidden; }
     padding: 12px 0;
     box-shadow: 0 4px 20px rgba(38, 32, 20, .05);
 }
+/* While the drawer is open, dim + disable the two other fixed/top-of-body
+   widgets that live outside the header (language flag, install banner).
+   #lp-header's own z-index makes it a stacking context that traps the
+   drawer/backdrop inside it, so numerically raising the drawer's z-index alone
+   never actually puts it above body-level siblings like the flag - it stayed
+   undimmed while everything else darkened. Targeting these two elements
+   directly (via a body class toggled from JS, see landing.html) sidesteps
+   that stacking-context math entirely, and pointer-events: none also stops
+   the flag's own language dropdown from being opened while the drawer is
+   still open/closing (the two dropdowns fighting over screen space otherwise). */
+body.lp-menu-open .site-lang-select-btn,
+body.lp-menu-open .mobile-install-banner {
+    opacity: .3; filter: blur(1.5px); pointer-events: none;
+    transition: opacity .25s ease, filter .25s ease;
+}
+/* Scroll lock: prevents the page behind the drawer from scrolling (and the
+   iOS/Android rubber-band bounce revealing it) while the drawer is open.
+   `top` is set inline by JS to the negative of the scroll position being
+   locked at, so the page doesn't visually jump when position flips to fixed;
+   closeMenu() restores the real scroll position afterwards. */
+body.lp-menu-open { position: fixed; left: 0; right: 0; width: 100%; overflow: hidden; }
 /* min-height: brand and the hamburger button are both pulled out of flow
    below (absolute) for corner-pinning, leaving no in-flow content to size
    this box - without it, the header collapses and its scrolled
@@ -863,10 +891,12 @@ body.intro { margin: 0; height: 100dvh; overflow: hidden; }
     width: 34px; height: 34px; align-items: center; justify-content: center;
     flex-direction: column; gap: 5px;
     background: none; border: none; cursor: pointer; padding: 0;
+    transition: transform .15s ease;
 }
+.lp-menu-btn:hover { transform: scale(1.08); }
 .lp-menu-btn span {
     display: block; width: 22px; height: 2px; border-radius: 2px;
-    background: var(--text); transition: transform .2s ease, opacity .2s ease;
+    background: var(--text); transition: transform .3s cubic-bezier(.16,1,.3,1), opacity .2s ease;
 }
 .lp-menu-btn.active span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
 .lp-menu-btn.active span:nth-child(2) { opacity: 0; }
@@ -874,36 +904,83 @@ body.intro { margin: 0; height: 100dvh; overflow: hidden; }
 
 /* A classic slide-out side drawer (sharp corners, full-height, slides in from
    the left) rather than a small floating notification-style dropdown - that
-   compact rounded-card treatment stays reserved for the language picker. */
+   compact rounded-card treatment stays reserved for the language picker. An
+   "expo-out" curve (Linear/Stripe-style - fast start, long smooth settle) plus
+   a touch of scale gives the open/close more presence than a flat slide,
+   without tipping into the language picker's playful overshoot "bounce". */
 .lp-menu-modal { position: fixed; inset: 0; z-index: 1002; visibility: hidden; pointer-events: none; }
 .lp-menu-modal.open { visibility: visible; pointer-events: auto; }
-.lp-menu-modal-backdrop { position: absolute; inset: 0; background: rgba(20,15,8,.32); opacity: 0; transition: opacity .25s ease; }
+.lp-menu-modal-backdrop {
+    position: absolute; inset: 0; background: rgba(20,15,8,.42);
+    backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
+    opacity: 0; transition: opacity .3s ease;
+}
 .lp-menu-modal.open .lp-menu-modal-backdrop { opacity: 1; }
 .lp-menu-modal-sheet {
     position: absolute; left: 0; top: 0; bottom: 0;
     width: min(240px, 70vw);
-    background: var(--surface); border-right: 1px solid var(--border);
+    /* Frosted glass panel, not a flat opaque white card - lets the dimmed/blurred
+       backdrop show through softly, so the drawer reads as a floating pane rather
+       than a solid slab. */
+    background: var(--menu-sheet-bg);
+    backdrop-filter: blur(20px) saturate(160%);
+    -webkit-backdrop-filter: blur(20px) saturate(160%);
     box-shadow: var(--shadow-lg); overflow-y: auto;
     display: flex; flex-direction: column; padding: 84px 14px 24px;
-    transform: translateX(-100%);
-    transition: transform .3s ease-out;
+    transform-origin: left center;
+    transform: translateX(-100%) scale(.98);
+    transition: transform .4s cubic-bezier(.16,1,.3,1);
 }
-.lp-menu-modal.open .lp-menu-modal-sheet { transform: translateX(0); }
+.lp-menu-modal.open .lp-menu-modal-sheet { transform: translateX(0) scale(1); }
+/* Brand accent spine down the open edge - ties the drawer back into the
+   site's amber/gold identity (same idea as the language dropdown's top accent
+   strip, .site-lang-modal-sheet::before) instead of a plain grey border. */
+.lp-menu-modal-sheet::after {
+    content: ""; position: absolute; top: 0; right: 0; bottom: 0; width: 3px;
+    background: linear-gradient(180deg, var(--primary), var(--gold-dark));
+}
+/* Rows fade/slide in with a slight per-item stagger once the drawer is open -
+   only while .open is present, so closing fades everything out together
+   instead of replaying the stagger in reverse. Each row is its own translucent
+   "chip" (background + border) rather than bare text, so they read as
+   distinct tappable fields against the glass panel behind them. */
 .lp-menu-modal-sheet a {
-    padding: 15px 14px; font-size: 16px; font-weight: 500;
-    color: var(--text); transition: background .12s ease;
+    padding: 13px 14px; margin: 3px 0; border-radius: 10px;
+    font-size: 16px; font-weight: 500; color: var(--text);
+    background: var(--menu-row-bg); border: 1px solid var(--menu-row-border);
+    opacity: 0; transform: translateX(-10px);
+    transition: opacity .3s ease, transform .22s cubic-bezier(.16,1,.3,1),
+                background .18s ease, color .18s ease, border-color .18s ease, box-shadow .18s ease;
 }
-.lp-menu-modal-sheet a:hover { background: var(--background); text-decoration: none; }
-.lp-menu-modal-sheet a.button {
-    display: block; background: none; color: var(--text);
-    border-radius: 0; text-align: left; margin-top: 0;
-    transform: none; box-shadow: none;
+.lp-menu-modal.open .lp-menu-modal-sheet a { opacity: 1; transform: translateX(0); }
+.lp-menu-modal.open .lp-menu-modal-sheet a:nth-of-type(1) { transition-delay: .08s; }
+.lp-menu-modal.open .lp-menu-modal-sheet a:nth-of-type(2) { transition-delay: .12s; }
+.lp-menu-modal.open .lp-menu-modal-sheet a:nth-of-type(3) { transition-delay: .16s; }
+.lp-menu-modal.open .lp-menu-modal-sheet a:nth-of-type(4) { transition-delay: .2s; }
+.lp-menu-modal.open .lp-menu-modal-sheet a:nth-of-type(5) { transition-delay: .24s; }
+.lp-menu-modal.open .lp-menu-modal-sheet a:nth-of-type(6) { transition-delay: .28s; }
+.lp-menu-modal.open .lp-menu-modal-sheet a:nth-of-type(7) { transition-delay: .32s; }
+/* Same warm amber hover tint as the site's other dropdown (.site-lang-option-btn)
+   and active nav links, plus the same lift + amber glow the site's real .button
+   uses on hover/press, so these read as proper buttons, not flat list text. */
+.lp-menu-modal-sheet a:hover {
+    background: var(--primary-light); color: var(--primary-ink); text-decoration: none;
+    border-color: rgba(214, 148, 16, .4);
+    transform: translateY(-1px);
+    box-shadow: 0 8px 18px -8px rgba(214, 148, 16, .55);
 }
-.lp-menu-modal-sheet a.button:hover {
-    background: var(--background); color: var(--text);
-    transform: none; box-shadow: none;
+.lp-menu-modal-sheet a:active { transform: translateY(1px); box-shadow: none; }
+/* "Try for free" is still the sitewide .button class underneath (inline-flex,
+   filled amber, centered text) - reset it back to a plain row so it looks and
+   behaves exactly like every other menu item, no special-cased styling. */
+.lp-menu-modal-sheet a.button { display: block; text-align: left; margin-top: 0; }
+.lp-menu-modal-divider { height: 1px; background: var(--menu-row-border); margin: 10px 4px; }
+@media (prefers-reduced-motion: reduce) {
+    .lp-menu-modal-sheet, .lp-menu-modal-sheet a, .lp-menu-modal-backdrop, .lp-menu-btn span {
+        transition: none !important;
+    }
+    .lp-menu-modal-sheet a { opacity: 1 !important; transform: none !important; }
 }
-.lp-menu-modal-divider { height: 1px; background: var(--border); margin: 10px 4px; }
 
 /* Smooth-scroll for the center nav's anchor links; scroll-margin-top keeps the
    fixed header from covering the target section's heading on arrival. */
