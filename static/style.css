@@ -650,7 +650,7 @@ body.auth {
 .price-amount { font-size: 40px; font-weight: 800; letter-spacing: -1px; }
 .price-period { color: var(--text-muted); font-size: 15px; }
 .trial-info {
-    display: inline-block; margin: 6px 0 14px; padding: 5px 12px;
+    display: inline-block; align-self: center; margin: 6px 0 14px; padding: 5px 12px;
     background: var(--primary-light); color: var(--primary-ink);
     border-radius: 99px; font-size: 13.5px; font-weight: 600;
 }
