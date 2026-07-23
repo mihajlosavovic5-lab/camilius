@@ -212,7 +212,15 @@
      customers - see support_assistant.py. Excluded on /intro (full-bleed onboarding
      slides, same reasoning as the install banner above). -->
 <div id="support-widget" class="support-widget">
-    <button type="button" id="support-widget-toggle" class="support-widget-fab" aria-label="Camilius support"></button>
+    <button type="button" id="support-widget-toggle" class="support-widget-fab" aria-label="Camilius support">
+        <svg class="support-widget-fab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
+            <rect x="4" y="5" width="16" height="11" rx="3" stroke-width="1.6"></rect>
+            <path d="M8 16 11 16 8 19.5 Z" fill="currentColor" stroke="none"></path>
+            <circle cx="8.5" cy="10.5" r="1.05" fill="currentColor" stroke="none"></circle>
+            <circle cx="12" cy="10.5" r="1.05" fill="currentColor" stroke="none"></circle>
+            <circle cx="15.5" cy="10.5" r="1.05" fill="currentColor" stroke="none"></circle>
+        </svg>
+    </button>
     <div id="support-widget-panel" class="support-widget-panel hidden">
         <div class="support-widget-header">
             <span class="brand-mark support-widget-header-icon"></span>

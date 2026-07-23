@@ -705,15 +705,18 @@ body.auth {
 
 /* --- Floating Support AI widget (Faza 8) --- */
 .support-widget { position: fixed; right: 20px; bottom: 20px; z-index: 55; }
-/* The launcher is the app's own icon (same PNG as the navbar brand mark/favicon/PWA
-   icon) in a circle, not a generic emoji glyph - a floating round avatar of the product
-   itself reads as "belongs to this page" rather than a bolted-on third-party widget. */
+/* Same amber-fill + white-icon pairing every other CTA on the page uses (e.g.
+   .support-widget-send below) - a plain vector chat-bubble glyph reads as "this site's
+   chat button" more clearly than a photo/logo would, while the color still ties it back
+   to the brand. */
 .support-widget-fab {
-    width: 54px; height: 54px; border-radius: 50%; border: 2px solid var(--surface); cursor: pointer; padding: 0;
-    background-image: url('/static/icon-512.png'); background-size: cover; background-position: center;
-    box-shadow: var(--shadow-lg); transition: transform .15s ease, box-shadow .15s ease;
+    width: 54px; height: 54px; border-radius: 50%; border: none; cursor: pointer; padding: 0;
+    background: var(--primary); color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: var(--shadow-lg); transition: transform .15s ease, background .15s ease, box-shadow .15s ease;
 }
-.support-widget-fab:hover { transform: translateY(-2px) scale(1.04); }
+.support-widget-fab:hover { background: var(--primary-dark); transform: translateY(-2px) scale(1.04); }
+.support-widget-fab-icon { width: 26px; height: 26px; }
 .support-widget-panel {
     position: absolute; right: 0; bottom: 66px; width: min(272px, calc(100vw - 32px));
     height: min(370px, calc(100vh - 120px)); background: var(--surface);
