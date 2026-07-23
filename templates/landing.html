@@ -548,9 +548,15 @@
             typingTimers.push(setTimeout(function () {
                 replyEl.innerHTML = '<span class="lp-reply-cursor"></span>';
                 var i = 0;
-                var speed = 12;
+                // One character per tick (not two) at a slower interval - reads as a
+                // real, deliberate typing pace instead of a fast-forward blur, while
+                // still comfortably finishing (even the longest example reply, ~220
+                // chars, in ~4s) within the slider's autoplay interval below (bumped
+                // to 6.5s alongside this so there's still time to actually read the
+                // finished reply before it auto-advances).
+                var speed = 18;
                 (function step() {
-                    i += 2;
+                    i += 1;
                     var slice = fullText.slice(0, i);
                     replyEl.innerHTML = slice.replace(/\n/g, '<br>') + '<span class="lp-reply-cursor"></span>';
                     if (i < fullText.length) {
@@ -576,7 +582,10 @@
 
         function startAutoplay() {
             if (prefersReducedMotion || autoplayTimer) return;
-            autoplayTimer = setInterval(next, 5000);
+            // 6.5s (was 5s) - the typing effect above was slowed down on request, so
+            // this needed to grow too or the longest example replies would get cut
+            // off / auto-advance before they even finish typing.
+            autoplayTimer = setInterval(next, 6500);
         }
         function stopAutoplay() {
             clearInterval(autoplayTimer);

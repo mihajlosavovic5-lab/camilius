@@ -31,15 +31,18 @@
     background: var(--primary); color: #fff;
     padding: 9px 16px; font-size: 13.5px; font-weight: 500;
     position: fixed; top: 0; left: 0; right: 0; z-index: 1010;
-    transform: translateY(-100%); opacity: 0; pointer-events: none;
-    /* Kept short - a slow, leisurely slide (the original .4s/.3s) reads as a
-       stuck/glitchy half-appeared state specifically when the user reaches the
-       top via a fast fling, since their scroll gesture is already long finished
-       by the time the animation catches up. Short enough to feel immediate,
-       still just long enough to read as a deliberate motion, not a hard cut. */
-    transition: transform .2s cubic-bezier(.16,1,.3,1), opacity .15s ease;
+    transform: translateY(-100%) scale(.97); opacity: 0; pointer-events: none;
+    /* A touch slower and richer than a plain slide - adds a subtle scale-in
+       alongside it for a softer "settle" feel instead of a flat snap. Still well
+       short of the original .4s/.3s though, which read as a stuck/glitchy
+       half-appeared state specifically when the user reached the top via a fast
+       fling, since their scroll gesture was already long finished by the time
+       that slower animation caught up - .3s/.24s is the middle ground:
+       noticeably smoother than a bare .2s/.15s snap, without reintroducing that
+       lag on a fast scroll-triggered re-show. */
+    transition: transform .3s cubic-bezier(.22, 1, .36, 1), opacity .24s ease;
 }
-.mobile-install-banner.shown { transform: translateY(0); opacity: 1; pointer-events: auto; }
+.mobile-install-banner.shown { transform: translateY(0) scale(1); opacity: 1; pointer-events: auto; }
 @media (prefers-reduced-motion: reduce) {
     .mobile-install-banner { transition: none; }
 }
