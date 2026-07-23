@@ -113,7 +113,7 @@ def test_home_redirects_to_subscription_once_access_lapses(client, unique_userna
     assert client.get("/schedule").status_code == 200
 
     # Force the subscription inactive (simulates a lapsed/canceled account without
-    # waiting for the real 7-day trial clock) - subscription_required should now kick in.
+    # waiting for the real 14-day trial clock) - subscription_required should now kick in.
     database.link_subscription(business_id, "cust", "sub", "canceled")
 
     schedule_response = client.get("/schedule")
@@ -122,4 +122,4 @@ def test_home_redirects_to_subscription_once_access_lapses(client, unique_userna
 
     home_response = client.get("/", follow_redirects=True)
     assert home_response.status_code == 200
-    assert "Your 7-day free trial has ended" in home_response.get_data(as_text=True)
+    assert "Your 14-day free trial has ended" in home_response.get_data(as_text=True)

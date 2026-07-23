@@ -196,7 +196,7 @@ def create_database():
     cursor.execute("ALTER TABLE businesses ADD COLUMN IF NOT EXISTS subscription_status TEXT NOT NULL DEFAULT 'none'")
 
     # Faza 5 (2026-07-21): the original schema never had a created_at on businesses at
-    # all (only conversations did) - needed now for trial_expired()'s 7-day self-serve
+    # all (only conversations did) - needed now for trial_expired()'s 14-day self-serve
     # trial cutoff below. Existing rows get "now" as their created_at (Postgres fills the
     # DEFAULT in for pre-existing rows on ALTER TABLE), not their real registration date -
     # harmless here, since trial_expired() only ever looks at this for status='trialing'
@@ -343,7 +343,7 @@ def add_business(name, username, password, contact_email, working_hours, price_l
     phone_number is optional - purely an extra way to log in later, not required.
 
     subscription_status starts at 'trialing' (not the column's own 'none' default) -
-    every new account gets our own self-serve 7-day trial immediately, see
+    every new account gets our own self-serve 14-day trial immediately, see
     trial_expired()/effective_subscription_active() above."""
     connection = connect()
     cursor = connection.cursor()
@@ -964,13 +964,13 @@ def get_subscription_status(business_id):
     return row[0] if row else None
 
 
-# New accounts start in our own self-serve 7-day trial (subscription_status='trialing'
+# New accounts start in our own self-serve 14-day trial (subscription_status='trialing'
 # set directly at registration - see add_business() - with no real Paddle subscription
 # attached yet). This is a grace period WE invented, distinct from any real trial Paddle
 # itself later tracks once a subscription actually exists (paddle_subscription_id set) -
 # once that happens, link_subscription()/update_subscription_status() (driven by Paddle's
 # own webhooks) own the status from then on and this expiry no longer applies.
-SELF_SERVE_TRIAL_DAYS = 7
+SELF_SERVE_TRIAL_DAYS = 14
 
 
 def trial_expired(business_id):

@@ -15,7 +15,7 @@
     {% if trial_ended %}
         <div class="alert alert-warning">
             <span class="alert-icon">&#9888;</span>
-            <span data-i18n="subscription.trialEnded">Your 7-day free trial has ended. Choose a plan below to keep the AI processing your Instagram messages.</span>
+            <span data-i18n="subscription.trialEnded">Your 14-day free trial has ended. Choose a plan below to keep the AI processing your Instagram messages.</span>
         </div>
     {% endif %}
     {% if request.args.get('checkout_error') %}
@@ -36,7 +36,7 @@
     {% elif active %}
         <div class="card" style="border-color: var(--success-border);">
             {% if status == 'trialing' %}
-                <span class="badge badge-pending"><span class="badge-dot"></span><span data-i18n="subscription.active.trialBadge">7-day Free Trial Active</span></span>
+                <span class="badge badge-pending"><span class="badge-dot"></span><span data-i18n="subscription.active.trialBadge">14-day Free Trial Active</span></span>
                 <p style="margin: 12px 0 0;" data-i18n="subscription.active.trialBody">Your trial is active with every Pro feature unlocked, and the AI is processing new messages. You won't be charged until the trial ends - choose a plan any time before then to keep going without interruption.</p>
             {% elif pro_access %}
                 <span class="badge badge-sent"><span class="badge-dot"></span><span data-i18n="subscription.active.proBadge">Pro plan active</span></span>
@@ -117,7 +117,7 @@
             </div>
         </div>
 
-        <p class="note" style="text-align: center; margin-top: 16px;" data-i18n="subscription.stripeNote">Payment is securely processed by Stripe. New accounts start with a 7-day free trial with every Pro feature unlocked - you won't be charged until it ends.</p>
+        <p class="note" style="text-align: center; margin-top: 16px;" data-i18n="subscription.stripeNote">Payment is securely processed by Stripe. New accounts start with a 14-day free trial with every Pro feature unlocked - you won't be charged until it ends.</p>
     {% endif %}
 </div>
 {% endblock %}

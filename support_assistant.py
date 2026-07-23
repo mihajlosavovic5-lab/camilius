@@ -47,7 +47,7 @@ reply. Filters: All / Pending (awaiting approval) / Sent / Archived / Trash. Tra
 auto-purged after 30 days. A daily quota bar at the top shows how many messages have
 been processed today out of the daily limit (50/day).
 
-Subscription & pricing: every new account starts with a 7-day free trial automatically -
+Subscription & pricing: every new account starts with a 14-day free trial automatically -
 no card required, and during the trial the account gets full access including Pro
 features. After the trial, continuing requires a paid plan:
 - Starter: EUR 29/month or EUR 290/year (2 months free on yearly) - basic AI replies to

@@ -80,7 +80,7 @@ app.register_blueprint(api_blueprint)
 csrf.exempt(api_blueprint)
 
 # Faza 5 (2026-07-21): flipped off - real trial/pricing is live. New accounts now get
-# our own self-serve 7-day trial at registration (subscription_status='trialing', see
+# our own self-serve 14-day trial at registration (subscription_status='trialing', see
 # add_business()) and, once that runs out without a real Paddle subscription, land on
 # the Starter/Pro pricing page (see effective_subscription_active()/trial_expired() in
 # database.py). NOTE: the four Paddle prices (Starter/Pro x monthly/yearly) don't exist
@@ -185,7 +185,7 @@ def login_required(function):
     return wrapped_function
 
 
-# Faza 10: once a logged-in business's 7-day self-serve trial (or paid plan) has
+# Faza 10: once a logged-in business's 14-day self-serve trial (or paid plan) has
 # actually lapsed - not just "hasn't upgraded to Pro", see the Starter-vs-Pro
 # distinction on /schedule instead - core product pages redirect to /subscription
 # rather than just showing a banner (see dashboard.html's older banner for the softer
@@ -1465,7 +1465,7 @@ def _process_instagram_message(message):
 
     # BETA_FREE_MODE means every registered business is processed regardless of billing
     # status (same reasoning as the dashboard banner elsewhere). With it off, a business
-    # still gets processed through its own 7-day self-serve trial (subscription_status=
+    # still gets processed through its own 14-day self-serve trial (subscription_status=
     # 'trialing', set at registration - see add_business()) before needing a real Paddle
     # subscription - see effective_subscription_active()/trial_expired() in database.py.
     if not BETA_FREE_MODE and not effective_subscription_active(business_id):
