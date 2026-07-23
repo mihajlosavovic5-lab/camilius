@@ -1007,6 +1007,14 @@ body.lp-menu-open { position: fixed; left: 0; right: 0; width: 100%; overflow: h
     position: absolute; top: 20px; left: 50%; transform: translateX(-50%);
     background: none; border: none; padding: 0; font: inherit; cursor: pointer;
 }
+/* Same dim+blur+disable treatment as body.lp-menu-open .site-lang-select-btn above -
+   without this the centered brand mark stayed fully visible/untouched while the drawer
+   opened over everything else, reading as a separate element floating above the
+   banner rather than part of it. Now both fade together and return together. */
+body.lp-menu-open #lp-corner-brand {
+    opacity: .3; filter: blur(1.5px); pointer-events: none;
+    transition: opacity .25s ease, filter .25s ease;
+}
 
 /* --- Header menu: hamburger + dropdown ---
    Same header at every viewport width (mobile or desktop) - a centered
