@@ -1206,14 +1206,9 @@ html { scroll-behavior: smooth; }
 
 @media (max-width: 720px) {
     .lp-slider { max-width: 100%; }
-    /* Smaller, and pulled inside the viewport edge (positive left/right,
-       instead of desktop's hang-off -21px, which on a full-width mobile
-       slider would push half the button off the true screen edge) - sitting
-       over the now-visible dimmed peek card instead of card text, so they no
-       longer need to be hidden here like before. */
-    .lp-slider-arrow { width: 32px; height: 32px; font-size: 15px; }
-    .lp-slider-prev { left: 4px; }
-    .lp-slider-next { right: 4px; }
+    /* Arrows removed here per feedback - swipe + dots + the now-visible peek
+       cards on either side are enough of a "there's more" cue on touch. */
+    .lp-slider-arrow { display: none; }
 }
 
 @media (prefers-reduced-motion: reduce) {
