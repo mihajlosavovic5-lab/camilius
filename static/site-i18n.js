@@ -4001,6 +4001,14 @@ function applyTranslations() {
     document.querySelectorAll(".site-lang-option-btn").forEach((row) => {
         row.classList.toggle("active", row.dataset.code === currentLang);
     });
+
+    // The install banner (templates/base.html #mobile-install-banner) is measured for
+    // --install-banner-h before this function ever runs (see the inline script there) -
+    // refresh it now that its text just changed, since a translated string can wrap to a
+    // different number of lines than the English default it was first measured against.
+    if (typeof window.refreshInstallBannerHeight === "function") {
+        window.refreshInstallBannerHeight();
+    }
 }
 
 function setLanguage(code) {

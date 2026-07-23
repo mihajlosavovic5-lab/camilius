@@ -145,6 +145,26 @@
                     });
                 });
             }
+
+            // This script runs synchronously during initial parse, BEFORE static/
+            // site-i18n.js (a deferred script) swaps the banner's text from its English
+            // default to the visitor's actual language - which can wrap to a different
+            // number of lines (e.g. Serbian's longer string wraps to 3 lines instead of
+            // English's 2 on a narrow phone), silently invalidating the fullHeight
+            // measured above. Exposed globally so applyTranslations() can call this
+            // right after it changes the text, re-measuring against the real rendered
+            // banner and refreshing both the closured fullHeight (so the scroll handler
+            // below stays correct too) and --install-banner-h itself - otherwise the
+            // fixed header/lang button stay reserved for the stale, too-small height
+            // and visibly overlap the now-taller banner.
+            window.refreshInstallBannerHeight = function () {
+                if (!installBannerScrollLinked) return;
+                fullHeight = banner.offsetHeight;
+                if (bannerReserved) {
+                    document.documentElement.style.setProperty("--install-banner-h", fullHeight + "px");
+                }
+            };
+
             var ticking = false;
             window.addEventListener("scroll", function () {
                 if (!installBannerScrollLinked || ticking) return;
