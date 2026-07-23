@@ -39,6 +39,7 @@ const TRANSLATIONS = {
         "login.error": "Wrong username or password.",
         "login.forgot": "Forgot password?",
         "login.signup": "Create account",
+        "login.newHere": "New to Camilius?",
 
         "register.title": "Create account",
         "register.step1.title": "Create your account",
@@ -264,6 +265,7 @@ const TRANSLATIONS = {
         "login.error": "Pogrešno korisničko ime ili lozinka.",
         "login.forgot": "Zaboravili ste lozinku?",
         "login.signup": "Napravi nalog",
+        "login.newHere": "Novi ste na Camilius-u?",
 
         "register.title": "Napravi nalog",
         "register.step1.title": "Napravite nalog",
@@ -482,6 +484,7 @@ const TRANSLATIONS = {
         "login.error": "Usuario o contraseña incorrectos.",
         "login.forgot": "¿Olvidaste tu contraseña?",
         "login.signup": "Crear cuenta",
+        "login.newHere": "¿Nuevo en Camilius?",
 
         "register.title": "Crear cuenta",
         "register.step1.title": "Crea tu cuenta",
@@ -700,6 +703,7 @@ const TRANSLATIONS = {
         "login.error": "Usuário ou senha incorretos.",
         "login.forgot": "Esqueceu a senha?",
         "login.signup": "Criar conta",
+        "login.newHere": "Novo no Camilius?",
 
         "register.title": "Criar conta",
         "register.step1.title": "Crie sua conta",
@@ -918,6 +922,7 @@ const TRANSLATIONS = {
         "login.error": "Nom d'utilisateur ou mot de passe incorrect.",
         "login.forgot": "Mot de passe oublié ?",
         "login.signup": "Créer un compte",
+        "login.newHere": "Nouveau sur Camilius ?",
 
         "register.title": "Créer un compte",
         "register.step1.title": "Créez votre compte",
@@ -1136,6 +1141,7 @@ const TRANSLATIONS = {
         "login.error": "Falscher Benutzername oder falsches Passwort.",
         "login.forgot": "Passwort vergessen?",
         "login.signup": "Konto erstellen",
+        "login.newHere": "Neu bei Camilius?",
 
         "register.title": "Konto erstellen",
         "register.step1.title": "Erstelle dein Konto",
@@ -1354,6 +1360,7 @@ const TRANSLATIONS = {
         "login.error": "Nome utente o password errati.",
         "login.forgot": "Password dimenticata?",
         "login.signup": "Crea account",
+        "login.newHere": "Nuovo su Camilius?",
 
         "register.title": "Crea account",
         "register.step1.title": "Crea il tuo account",
@@ -1572,6 +1579,7 @@ const TRANSLATIONS = {
         "login.error": "Неверное имя пользователя или пароль.",
         "login.forgot": "Забыли пароль?",
         "login.signup": "Создать аккаунт",
+        "login.newHere": "Впервые в Camilius?",
 
         "register.title": "Создать аккаунт",
         "register.step1.title": "Создайте аккаунт",
@@ -1790,6 +1798,7 @@ const TRANSLATIONS = {
         "login.error": "用户名或密码错误。",
         "login.forgot": "忘记密码？",
         "login.signup": "创建账户",
+        "login.newHere": "第一次使用 Camilius？",
 
         "register.title": "创建账户",
         "register.step1.title": "创建您的账户",
@@ -2008,6 +2017,7 @@ const TRANSLATIONS = {
         "login.error": "Kullanıcı adı veya şifre hatalı.",
         "login.forgot": "Şifrenizi mi unuttunuz?",
         "login.signup": "Hesap oluştur",
+        "login.newHere": "Camilius'ta yeni misiniz?",
 
         "register.title": "Hesap oluştur",
         "register.step1.title": "Hesabınızı oluşturun",

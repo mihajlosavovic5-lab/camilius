@@ -95,7 +95,14 @@ button { font-family: inherit; }
 .brand-name { font-family: Georgia, "Times New Roman", serif; font-weight: 700; font-size: 20px; }
 
 /* --- Login screen --- */
-.screen-login { overflow: hidden; }
+/* A warm gradient wash (this brand's own gold, not IG's stark white) plus the badge/
+   accent treatment below are deliberately original touches - this screen started as a
+   close copy of Instagram's login for a layout reference, and these are the changes
+   that keep the same overall flow but make it read as its own design. */
+.screen-login {
+    overflow: hidden;
+    background: linear-gradient(180deg, var(--primary-light) 0%, var(--background) 42%);
+}
 /* Soft decorative glow behind the brand cluster - gives the screen its own identity
    instead of the plain icon-on-blank-background look, and sits behind everything else
    (login-wrap gets z-index so the actual form is always on top of it). */
@@ -123,10 +130,26 @@ button { font-family: inherit; }
    reads as centered rather than deliberately offset. */
 .login-top-spacer { flex: 0.9; min-height: 8px; }
 .login-brand { display: flex; flex-direction: column; align-items: center; gap: 10px; margin: 0 0 30px; }
+/* Icon sits inside its own soft gold badge/ring instead of floating bare on the
+   background - a small "crafted brand mark" touch Instagram's login doesn't have. */
+.login-icon-badge {
+    display: flex; align-items: center; justify-content: center;
+    width: 108px; height: 108px; border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, var(--primary-light), var(--surface) 72%);
+    box-shadow: 0 0 0 1px rgba(214, 148, 16, .18), 0 14px 30px -10px rgba(214, 148, 16, .35);
+}
 .login-icon { width: 76px; height: 76px; border-radius: 22%; box-shadow: 0 10px 26px rgba(43,32,19,.16); }
 .login-wordmark { margin: 0; }
+/* Small brand-colored flourish under the wordmark - another plain-vs-original cue. */
+.login-accent { display: block; width: 34px; height: 3px; border-radius: 99px; background: var(--primary); }
 .login-tagline { margin: 0; font-size: 13.5px; color: var(--text-muted); text-align: center; }
 .login-spacer { flex: 1; min-height: 20px; }
+/* Breaks up the "lone pill button floating at the bottom" look (Instagram's own
+   Sign Up button reads exactly like that) with a short caption above it instead. */
+.login-signup-divider {
+    text-align: center; font-size: 12.5px; font-weight: 600; color: var(--text-muted);
+    margin: 0 0 10px; padding-top: 14px; border-top: 1px solid var(--border);
+}
 .link-btn {
     background: none; border: none; padding: 0; margin: 0; cursor: pointer;
     font-family: inherit; font-size: inherit; font-weight: 700;
