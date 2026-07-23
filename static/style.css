@@ -12,7 +12,7 @@
     display: flex; align-items: center; gap: 5px;
     background: none; border: none; padding: 4px;
     cursor: pointer; font-family: inherit; color: var(--text-muted);
-    transition: top .2s ease, transform .15s ease;
+    transition: top .4s cubic-bezier(.16,1,.3,1), transform .15s ease;
 }
 .site-lang-select-btn:hover { transform: scale(1.08); }
 .site-lang-select-btn.active .site-lang-chevron { transform: rotate(180deg); }
@@ -21,13 +21,22 @@
     box-shadow: 0 0 0 1px rgba(20,15,8,.15), var(--shadow-lg);
 }
 .site-lang-chevron { font-size: 13px; display: inline-block; transition: transform .18s ease; filter: drop-shadow(0 1px 1px rgba(20,15,8,.2)); }
-/* --- Smart mobile-web install banner (Faza 5) - sits in normal document flow at the
-   very top of the page (not fixed), so it simply pushes the sticky nav down when
-   present and scrolls away with the rest of the page once you scroll past it. --- */
+/* --- Smart mobile-web install banner (Faza 5) - a floating notification (like a
+   real phone push notification), fixed to the top of the screen and shown/hidden
+   with a slide+fade via its own .shown class (base.html), not part of normal
+   document flow - body's own padding-top (see body{} above) reserves the space
+   for it instead. --- */
 .mobile-install-banner {
     display: flex; align-items: center; gap: 10px;
     background: var(--primary); color: #fff;
     padding: 9px 16px; font-size: 13.5px; font-weight: 500;
+    position: fixed; top: 0; left: 0; right: 0; z-index: 1010;
+    transform: translateY(-100%); opacity: 0; pointer-events: none;
+    transition: transform .4s cubic-bezier(.16,1,.3,1), opacity .3s ease;
+}
+.mobile-install-banner.shown { transform: translateY(0); opacity: 1; pointer-events: auto; }
+@media (prefers-reduced-motion: reduce) {
+    .mobile-install-banner { transition: none; }
 }
 .mobile-install-banner-icon { width: 24px; height: 24px; flex-shrink: 0; border-radius: 22%; }
 .mobile-install-banner-text { flex: 1; min-width: 0; }
@@ -185,6 +194,17 @@ body {
     color: var(--text);
     line-height: 1.55;
     -webkit-font-smoothing: antialiased;
+    /* The install banner below is a floating notification (position: fixed), not
+       in-flow content, so - unlike before - it no longer pushes page content down
+       on its own. This universally reserves the same space for it on every page
+       (auth pages, the logged-in .navbar, the landing page's #lp-header, which
+       all otherwise know nothing about each other), synced to the same variable
+       the banner's own show/hide toggle updates. */
+    padding-top: var(--install-banner-h);
+    transition: padding-top .4s cubic-bezier(.16,1,.3,1);
+}
+@media (prefers-reduced-motion: reduce) {
+    body { transition: none; }
 }
 
 h1, h2, h3 { line-height: 1.25; margin: 0 0 8px 0; text-wrap: balance; }
@@ -218,7 +238,15 @@ a:focus-visible, button:focus-visible, [tabindex]:focus-visible {
 .navbar {
     background: var(--surface);
     border-bottom: 1px solid var(--border);
-    position: sticky; top: 0; z-index: 10;
+    /* top tracks --install-banner-h like #lp-header/.site-lang-select-btn - a
+       sticky element's "stuck" offset is measured from the viewport itself, not
+       from body's padding-top above, so without this it would stick flush at
+       the true top of the screen, underneath the still-shown floating banner. */
+    position: sticky; top: var(--install-banner-h); z-index: 10;
+    transition: top .4s cubic-bezier(.16,1,.3,1);
+}
+@media (prefers-reduced-motion: reduce) {
+    .navbar { transition: none; }
 }
 /* Full-bleed, not capped/centered like .content - the brand sits flush in the true
    left corner and the nav links flush in the true right corner of the browser window,
@@ -815,13 +843,14 @@ body.intro { margin: 0; height: 100dvh; overflow: hidden; }
 
 /* --- Scroll-aware header --- */
 #lp-header {
-    /* top tracks --install-banner-h (same variable the fixed language button uses) so the
-       mobile-install-banner pushes the header down instead of the two overlapping - the
-       banner sits in normal flow above this, fixed elements otherwise ignore it. */
+    /* top tracks --install-banner-h (same variable the floating language button and
+       install banner itself use) so this stays clear of the banner instead of the
+       two overlapping. */
     position: fixed; top: var(--install-banner-h); left: 0; right: 0; z-index: 999;
     padding: 18px 0; background: rgba(253, 252, 250, 0);
     border-bottom: 1px solid rgba(236, 230, 218, 0);
-    transition: background .25s ease, border-color .25s ease, padding .25s ease, box-shadow .25s ease, top .2s ease;
+    transition: background .25s ease, border-color .25s ease, padding .25s ease, box-shadow .25s ease,
+                top .4s cubic-bezier(.16,1,.3,1);
 }
 #lp-header.lp-scrolled {
     background: rgba(255, 255, 255, .85);

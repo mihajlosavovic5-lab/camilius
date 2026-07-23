@@ -88,9 +88,14 @@
     var installBannerScrollLinked = false;
     function hideInstallBanner() {
         var banner = document.getElementById("mobile-install-banner");
-        if (banner) banner.classList.add("hidden");
         installBannerScrollLinked = false;
         document.documentElement.style.setProperty("--install-banner-h", "0px");
+        if (banner) {
+            banner.classList.remove("shown");
+            // Let the slide-out play before fully removing it from layout/the a11y
+            // tree, instead of an abrupt display:none snap mid-animation.
+            setTimeout(function () { banner.classList.add("hidden"); }, 400);
+        }
     }
     window.addEventListener("beforeinstallprompt", function (event) {
         event.preventDefault();
@@ -118,22 +123,43 @@
             // instead of the two overlapping, without hardcoding the banner's height
             // (it can wrap to two lines on a narrow phone).
             var fullHeight = banner.offsetHeight;
-            document.documentElement.style.setProperty("--install-banner-h", fullHeight + "px");
-            // The banner itself is normal in-flow content (not fixed), so it scrolls
-            // away with the rest of the page like anything else - but --install-banner-h
-            // was only ever set once, at load, so the fixed header/language button kept
-            // reserving its full height forever, leaving a dead gap at the top once the
-            // banner had actually scrolled out of view. Shrink the reserved space as the
-            // banner scrolls away (down to 0 once it's fully passed) so the header ends
-            // up flush with the top of the screen, exactly like an explicit dismiss.
+            // The banner is a floating notification (position: fixed, see style.css),
+            // shown/hidden with its own slide+fade via the .shown class below - it no
+            // longer scrolls away as part of the page, so its appearance is a proper
+            // animated event every time, at load and every time the user scrolls back
+            // to the top, not just a side effect of native scrolling. --install-banner-h
+            // still tracks the same discrete "reserved or not" state (matching #lp-header/
+            // .site-lang-select-btn/.navbar/body's own padding-top) so nothing needs its
+            // own duplicate scroll logic.
             installBannerScrollLinked = true;
+            var bannerReserved = window.scrollY <= 0;
+            document.documentElement.style.setProperty("--install-banner-h", (bannerReserved ? fullHeight : 0) + "px");
+            if (bannerReserved) {
+                // Double rAF: guarantees the browser has painted the starting
+                // (translateY(-100%), opacity: 0) state from a plain class-removal
+                // before flipping to .shown - otherwise the two style changes can
+                // get coalesced into one and the slide-in never plays.
+                requestAnimationFrame(function () {
+                    requestAnimationFrame(function () {
+                        banner.classList.add("shown");
+                    });
+                });
+            }
             var ticking = false;
             window.addEventListener("scroll", function () {
                 if (!installBannerScrollLinked || ticking) return;
                 ticking = true;
                 requestAnimationFrame(function () {
-                    var remaining = Math.max(0, fullHeight - window.scrollY);
-                    document.documentElement.style.setProperty("--install-banner-h", remaining + "px");
+                    var y = window.scrollY;
+                    if (bannerReserved && y >= fullHeight) {
+                        bannerReserved = false;
+                        document.documentElement.style.setProperty("--install-banner-h", "0px");
+                        banner.classList.remove("shown");
+                    } else if (!bannerReserved && y <= 0) {
+                        bannerReserved = true;
+                        document.documentElement.style.setProperty("--install-banner-h", fullHeight + "px");
+                        banner.classList.add("shown");
+                    }
                     ticking = false;
                 });
             }, { passive: true });
