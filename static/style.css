@@ -660,11 +660,15 @@ body.auth {
 .pricing-plans { display: flex; gap: 20px; flex-wrap: wrap; align-items: stretch; }
 .pricing-plan { flex: 1; min-width: 260px; position: relative; display: flex; flex-direction: column; }
 .pricing-plan-recommended { border-color: var(--primary); box-shadow: 0 10px 28px -10px rgba(214,148,16,.4); }
-.pricing-recommended-badge {
+.pricing-plan-badge {
     position: absolute; top: -13px; left: 50%; transform: translateX(-50%);
-    background: var(--primary); color: #fff; font-size: 12px; font-weight: 700;
-    padding: 4px 14px; border-radius: 999px; white-space: nowrap;
+    font-size: 12px; font-weight: 700; padding: 4px 14px; border-radius: 999px; white-space: nowrap;
 }
+.pricing-plan-badge-recommended { background: var(--primary); color: #fff; }
+/* Outline pill, same treatment as the Android app's login-screen "Create
+   account" button (mobile/app.css .button-primary-outline) - reads as a
+   plain label rather than a second "recommended"-style claim. */
+.pricing-plan-badge-basic { background: var(--surface); color: var(--primary); border: 1.5px solid var(--primary); padding: 2.5px 12.5px; }
 .pricing-plan-name { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--text-muted); margin: 4px 0 10px; }
 .pricing-plan-price { display: flex; align-items: baseline; gap: 6px; }
 .pricing-plan-price .pricing-amount { font-size: 34px; font-weight: 800; color: var(--text); letter-spacing: -1px; }
@@ -1271,8 +1275,13 @@ html { scroll-behavior: smooth; }
 .lp-pricing-plan-name { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--text-muted); margin: 0 0 6px; }
 .lp-plan-badge {
     display: inline-block; align-self: center; margin-bottom: 8px; padding: 4px 12px;
-    background: var(--primary); color: #fff; font-size: 12px; font-weight: 700; border-radius: 999px;
+    font-size: 12px; font-weight: 700; border-radius: 999px;
 }
+.lp-plan-badge-recommended { background: var(--primary); color: #fff; }
+/* Outline pill, same treatment as the Android app's login-screen "Create
+   account" button (mobile/app.css .button-primary-outline) - reads as a
+   plain label rather than a second "recommended"-style claim. */
+.lp-plan-badge-basic { background: var(--surface); color: var(--primary); border: 1.5px solid var(--primary); padding: 2.5px 10.5px; }
 
 /* --- Footer restructure --- */
 .lp-footer {
