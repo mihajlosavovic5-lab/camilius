@@ -1503,21 +1503,20 @@ html { scroll-behavior: smooth; }
     .pricing-cards-grid .lp-pricing-card {
         flex: 0 0 86%; min-width: 0;
         scroll-snap-align: center;
-        /* .benefits{flex:1} (above) exists to pin the CTA button to the same
-           bottom row on both cards when they sit side by side on desktop -
-           Starter and Pro don't have the same number of benefit lines, so
-           without it their buttons would land at different heights. On
-           mobile the carousel only ever shows one card at a time, so there's
-           no second card in the same row to align with - the same stretch
-           just left a bare gap between Pro's shorter list and its button.
-           Undoing the stretch and centering the column instead keeps both
-           cards at the same overall height (still matched via the grid's
-           default cross-axis stretch, so nothing jumps when swiping) without
-           that dead gap - the leftover space splits above and below the
-           content as a whole instead of piling up in one spot. */
-        justify-content: center;
+        /* justify-content stays the flex column default (flex-start,
+           top-aligned) rather than centering the block - centering was
+           tried and reverted: it shifts Pro's whole (shorter) content down
+           to stay centered in the same stretched card height, so its
+           badge/price/trial/benefits no longer land at the same height as
+           Starter's when swiping between them. Top-aligned, both cards'
+           content starts from the same top edge and matches row for row.
+           .benefits{flex:1} (above, unchanged from desktop) then pins the
+           button to the bottom of that same stretched height on both cards
+           too, by request - Starter has more lines than Pro, so this does
+           reopen a gap between Pro's shorter list and its own button, but
+           matching button height across both cards mattered more than
+           closing that gap. */
     }
-    .pricing-cards-grid .lp-pricing-card .benefits { flex: none; }
     /* The recommended card's gold border/glow used to move with the sliding
        card; now that the card itself never transforms (native scroll owns
        its position), it could live directly on the card again - but keeping
