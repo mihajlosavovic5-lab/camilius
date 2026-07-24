@@ -1377,11 +1377,11 @@ html { scroll-behavior: smooth; }
     .lp-slide { transition: none !important; }
 }
 
-/* --- Landing "Simple pricing" carousel - reuses .lp-slider/.lp-slider-viewport/
-   .lp-slider-track/.lp-slide/.lp-slider-arrow/.lp-slider-dots as-is (see above);
-   this is just the two plan cards' own layout. Flex column + .benefits{flex:1}
-   pins each card's CTA button to the same bottom edge even though Starter and
-   Pro have a different number of benefit lines. */
+/* --- Landing "Simple pricing" section - Starter/Pro side by side on desktop
+   (a static 2-column grid, both plans visible at once). Flex column +
+   .benefits{flex:1} pins each card's CTA button to the same bottom edge even
+   though Starter and Pro have a different number of benefit lines. */
+.pricing-cards-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; max-width: 620px; margin: 0 auto; }
 .lp-pricing-card { display: flex; flex-direction: column; text-align: center; }
 .lp-pricing-card .benefits { text-align: left; flex: 1; margin-top: 14px; }
 .lp-pricing-card .button { margin-top: 8px; }
@@ -1396,6 +1396,44 @@ html { scroll-behavior: smooth; }
    account" button (mobile/app.css .button-primary-outline) - reads as a
    plain label rather than a second "recommended"-style claim. */
 .lp-plan-badge-basic { background: var(--surface); color: var(--primary); border: 1.5px solid var(--primary); padding: 2.5px 10.5px; }
+
+/* On phones the grid above becomes a swipeable native-scroll snap track,
+   the same peek-a-neighbor mechanic as the "See it in action" .lp-slider
+   above - real overflow-x scroll-snap rather than a JS transform, so
+   dragging tracks the finger 1:1 (like a TikTok/Instagram feed): you can
+   drag partway to peek at the next card and let go without committing.
+   Desktop above is untouched and keeps the plain side-by-side grid. */
+.pricing-cards-wrap { position: relative; }
+@media (max-width: 720px) {
+    .pricing-cards-wrap { max-width: 420px; margin: 0 auto; }
+    .pricing-cards-viewport {
+        overflow-x: auto; overflow-y: hidden;
+        scroll-snap-type: x mandatory;
+        -webkit-overflow-scrolling: touch;
+        border-radius: var(--radius); position: relative;
+        scrollbar-width: none;
+    }
+    .pricing-cards-viewport::-webkit-scrollbar { display: none; }
+    .pricing-cards-grid {
+        grid-template-columns: 1fr; max-width: none;
+        display: flex;
+        gap: 0; /* desktop's grid gap still applies to flex, so reset it here */
+    }
+    /* Empty flex items, not container padding, give the first/last card a
+       peek on its outer edge to match the peek the *inner* neighbor already
+       gets for free by sitting right next to it - trailing-edge padding on
+       a scroll container is unreliably excluded from the scrollable range
+       in Chromium, so the last card could never reach its centered
+       position. A real flex item always counts toward scrollable overflow
+       regardless of which edge it's on. */
+    .pricing-cards-grid::before, .pricing-cards-grid::after {
+        content: ""; flex: 0 0 7%;
+    }
+    .pricing-cards-grid .lp-pricing-card {
+        flex: 0 0 86%; min-width: 0;
+        scroll-snap-align: center;
+    }
+}
 
 /* --- Footer restructure --- */
 .lp-footer {
