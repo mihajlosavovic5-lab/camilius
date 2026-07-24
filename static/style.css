@@ -984,10 +984,10 @@ body.intro { margin: 0; height: 100dvh; overflow: hidden; }
    dropdown from being opened while the drawer is still open/closing (the two
    dropdowns fighting over screen space otherwise). The install banner is left
    untouched by request - it should look and behave exactly as it does with
-   the drawer closed. */
+   the drawer closed. No blur here by request - dim only. */
 body.lp-menu-open .site-lang-select-btn {
-    opacity: .3; filter: blur(1.5px); pointer-events: none;
-    transition: opacity .25s ease, filter .25s ease;
+    opacity: .3; pointer-events: none;
+    transition: opacity .25s ease;
 }
 /* Scroll lock: prevents the page behind the drawer from scrolling (and the
    iOS/Android rubber-band bounce revealing it) while the drawer is open.
@@ -1011,13 +1011,14 @@ body.lp-menu-open { position: fixed; left: 0; right: 0; width: 100%; overflow: h
     position: absolute; top: 20px; left: 50%; transform: translateX(-50%);
     background: none; border: none; padding: 0; font: inherit; cursor: pointer;
 }
-/* Same dim+blur+disable treatment as body.lp-menu-open .site-lang-select-btn above -
+/* Same dim+disable treatment as body.lp-menu-open .site-lang-select-btn above -
    without this the centered brand mark stayed fully visible/untouched while the drawer
    opened over everything else, reading as a separate element floating above the
-   banner rather than part of it. Now both fade together and return together. */
+   banner rather than part of it. Now both fade together and return together.
+   No blur here by request - dim only. */
 body.lp-menu-open #lp-corner-brand {
-    opacity: .3; filter: blur(1.5px); pointer-events: none;
-    transition: opacity .25s ease, filter .25s ease;
+    opacity: .3; pointer-events: none;
+    transition: opacity .25s ease;
 }
 
 /* --- Header menu: hamburger + dropdown ---
