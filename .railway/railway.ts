@@ -27,9 +27,15 @@ export default defineRailway(() => {
       OPENAI_API_KEY: preserve(),
       RESEND_API_KEY: preserve(),
       // Paddle (sandbox for now; switching to production means changing PADDLE_ENV
-      // and all the keys to real production values)
+      // and all the keys to real production values). Four prices now instead of one
+      // PADDLE_PRICE_ID - Starter/Pro x Monthly/Yearly, each with its own 14-day,
+      // card-required trial configured on the Price object itself in Paddle - see
+      // paddle_billing.py.
       PADDLE_ENV: "sandbox",
-      PADDLE_PRICE_ID: "pri_01kxkbxekp5274dy4zgg947ezg",
+      PADDLE_PRICE_STARTER_MONTHLY: "pri_01ky9jqaz42q9rckqmy51n9vzj",
+      PADDLE_PRICE_STARTER_YEARLY: "pri_01ky9jx786m905np8aafjpx7je",
+      PADDLE_PRICE_PRO_MONTHLY: "pri_01ky9jscjhmc2mm073fbjfkpjr",
+      PADDLE_PRICE_PRO_YEARLY: "pri_01ky9jwbhs6gnqx4jt8t4g2esz",
       PADDLE_CLIENT_TOKEN: preserve(),
       PADDLE_WEBHOOK_SECRET: preserve(),
     },
