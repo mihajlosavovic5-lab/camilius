@@ -1053,6 +1053,14 @@ body.lp-menu-open #lp-corner-brand {
     opacity: .3; filter: blur(1.5px); pointer-events: none;
     transition: opacity .25s ease, filter .25s ease;
 }
+/* Same dim+blur+disable treatment again - the support chat bubble (base.html
+   #support-widget) is fixed/bottom-right and, like the two elements above,
+   lives outside the header's stacking context, so it stayed fully sharp and
+   clickable over the dimmed backdrop without this. */
+body.lp-menu-open .support-widget {
+    opacity: .3; filter: blur(1.5px); pointer-events: none;
+    transition: opacity .25s ease, filter .25s ease;
+}
 
 /* --- Header menu: hamburger + dropdown ---
    Same header at every viewport width (mobile or desktop) - a centered
