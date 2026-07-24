@@ -1077,6 +1077,16 @@ body.lp-menu-open .content {
     opacity: .3; filter: blur(1.5px); pointer-events: none;
     transition: opacity .25s ease, filter .25s ease;
 }
+/* The examples slider's own inactive-card dimming (.lp-slide below) is a second,
+   nested filter: blur() sitting inside .content's own filter above - two stacked
+   blur layers plus the slide's native horizontal scroll container. Backgrounding
+   the tab (switching away and back) makes Chrome fully discard and rebuild that
+   compositor layer tree, and rebuilding it with two nested blurred layers is what
+   was leaving a stray seam behind the instant the tab regained focus, even with
+   nothing animating. Since the whole page is already dimmed/blurred as one unit
+   while the drawer is open, the per-slide dimming underneath adds nothing visible
+   anyway - drop it for the duration so there's only one blur layer to rebuild. */
+body.lp-menu-open .lp-slide { filter: none; }
 
 /* --- Header menu: hamburger + dropdown ---
    Same header at every viewport width (mobile or desktop) - a centered
