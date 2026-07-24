@@ -18,6 +18,9 @@ What this loop actually does now:
 - Daily trash purge (30+ day old soft-deleted conversations).
 - Appointment reminders (Faza 9) - checked every tick, not once/day like the jobs above,
   since a 24h/2h-before reminder needs much tighter timing. See reminders.py.
+- Trial-ending warning emails - checked every tick too; cheap (DB-side dedup via
+  trial_warning_sent_at means a business is only ever matched once), and Paddle Billing
+  has no webhook to react to instead of polling. See reminders.py.
 """
 
 import sys
@@ -29,7 +32,7 @@ from datetime import datetime, date
 from database import create_database, all_businesses, link_instagram_account, purge_expired_trash
 from backup import daily_backup_if_needed
 from instagram_api import refresh_long_lived_token
-from reminders import send_appointment_reminders_if_needed
+from reminders import send_appointment_reminders_if_needed, send_trial_ending_warnings_if_needed
 
 # Tightened from 3600s (hourly) to 300s (5 min) for Faza 9's appointment reminders,
 # which need much finer timing than the once-a-day jobs below - those stay correct
@@ -99,6 +102,7 @@ def run_loop():
             refresh_instagram_tokens_if_needed()
             purge_expired_trash_if_needed()
             send_appointment_reminders_if_needed()
+            send_trial_ending_warnings_if_needed()
         except Exception as error:
             # Don't let one error (e.g. a temporary network blip) crash the whole loop
             print(f"[{now}] An error occurred: {error}")

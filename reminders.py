@@ -1,7 +1,10 @@
-"""No-show reminders (Faza 9, Pro plan) - sends an Instagram DM reminder ~24h and ~2h
-before an upcoming appointment. Runs from process_emails.py's background loop, not
-inline with request handling, since it has nothing to do with any single incoming
-webhook call.
+"""Scheduled email/DM jobs run from process_emails.py's background loop rather than
+inline with request handling, since neither has anything to do with any single incoming
+webhook call:
+
+- No-show reminders (Faza 9, Pro plan) - sends an Instagram DM reminder ~24h and ~2h
+  before an upcoming appointment (send_appointment_reminders_if_needed).
+- Trial-ending warning emails - see send_trial_ending_warnings_if_needed below.
 
 Only appointments booked BY THE AI over Instagram DM (source has a real sender_igsid -
 see database.appointments_needing_reminders) can be reminded at all; a manually-entered
@@ -16,6 +19,7 @@ conversation itself), but the 2h-before reminder for an appointment booked more 
 day in advance will frequently fail - Instagram rejects the send, we log it and move on,
 exactly like a manual reply sent outside the window already does elsewhere in this app.
 """
+import os
 from datetime import timedelta
 
 import requests
@@ -23,9 +27,11 @@ import requests
 from database import (
     appointments_needing_reminders, mark_reminder_sent, business_by_id,
     is_reminders_enabled, has_pro_access, log_client_error,
+    businesses_needing_trial_warning, mark_trial_warning_sent,
 )
 from booking import BUSINESS_TZ, now_local
 from instagram_api import send_message as send_instagram_message
+from send_email import send_email
 
 WINDOW_24H = (timedelta(hours=23, minutes=45), timedelta(hours=24, minutes=15))
 WINDOW_2H = (timedelta(hours=1, minutes=45), timedelta(hours=2, minutes=15))
@@ -83,3 +89,40 @@ def send_appointment_reminders_if_needed():
             log_client_error(business_id, f"reminder send failed ({which}): {error_body}", "", f"reminder-debug appointment_id={appointment_id}", "")
 
         mark_reminder_sent(appointment_id, which)
+
+
+def _trial_ending_email_body(business_name, trial_ends_at):
+    when = trial_ends_at.strftime("%B %d")
+    return (
+        f"Hi {business_name},\n\n"
+        f"Your 14-day free trial ends on {when}. After that, we'll charge the card on "
+        f"file to keep the AI processing your Instagram messages without interruption.\n\n"
+        f"Nothing to do if you want to continue - it's automatic. If you'd rather not "
+        f"continue, cancel any time before then from Subscription in your dashboard, "
+        f"and you won't be charged anything.\n\n"
+        f"- Camilius"
+    )
+
+
+def send_trial_ending_warnings_if_needed():
+    """Paddle Billing has no customer.subscription.trial_will_end webhook the way Stripe
+    does (see paddle_billing.py's module docstring) - this is our replacement: checked
+    every tick (cheap, a handful of rows at most - see database.businesses_needing_
+    trial_warning), emailing anyone whose card-backed Paddle trial is about to convert to
+    a real charge. trial_warning_sent_at dedupes it so a business is only ever warned
+    once, marked right after the attempt (success or failure) so a permanently-bad email
+    address can't get retried forever - same trade-off appointment reminders above make."""
+    for business_id, name, contact_email, trial_ends_at in businesses_needing_trial_warning():
+        try:
+            send_email(
+                recipient=contact_email,
+                subject="Your Camilius trial is ending soon",
+                body=_trial_ending_email_body(name, trial_ends_at),
+                business_name="Camilius",
+                reply_to=os.getenv("ALERT_EMAIL") or contact_email,
+            )
+            print(f"[reminders] Sent trial-ending warning to business_id={business_id}", flush=True)
+        except Exception as error:
+            print(f"[reminders] Failed to send trial-ending warning for business_id={business_id}: {error}", flush=True)
+            log_client_error(business_id, f"trial warning email failed: {error}", "", "trial-warning-debug", "")
+        mark_trial_warning_sent(business_id)

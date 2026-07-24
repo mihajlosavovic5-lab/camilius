@@ -47,12 +47,8 @@
                 <p class="pro-locked-note" style="margin-top: 12px;">&#10024; <span data-i18n="subscription.active.upgradePrompt">Want Schedule/AI booking, no-show reminders, and AI upsell too?</span> <a href="mailto:mihajlosavovic75757@gmail.com?subject=Upgrade%20to%20Pro" data-i18n="subscription.active.upgradeLink">Email us to upgrade to Pro</a>.</p>
             {% endif %}
 
-            {% if has_stripe_billing %}
-                <form method="POST" action="{{ url_for('stripe_manage_billing') }}" class="form-actions">
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                    <button type="submit" class="button button-secondary" data-i18n="subscription.manageBilling">Manage billing</button>
-                </form>
-                <p class="note" data-i18n="subscription.manageBillingNote">Update your payment method, view invoices, or cancel - handled securely by Stripe.</p>
+            {% if has_paddle_billing %}
+                <p class="note"><span data-i18n="subscription.manageBillingNote">To update your payment method or cancel, use the "Manage subscription" link in the receipt email Paddle sent you, or</span> <a href="mailto:mihajlosavovic75757@gmail.com?subject=Manage%20subscription" data-i18n="subscription.manageBillingLink">email us</a> <span data-i18n="subscription.manageBillingNote2">and we'll take care of it.</span></p>
             {% endif %}
         </div>
     {% else %}
@@ -78,14 +74,11 @@
                     <li><span class="checkmark">&#10003;</span> <span data-i18n="subscription.starter.benefit2">Up to 300 conversations / month</span></li>
                 </ul>
 
-                <form method="POST" action="{{ url_for('stripe_checkout') }}" class="form-actions">
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                    <input type="hidden" name="plan" value="starter">
-                    <input type="hidden" name="interval" class="pricing-interval-input" value="monthly">
-                    <button type="submit" class="button button-secondary button-full pricing-choose-btn" data-plan="starter" data-i18n="{{ 'subscription.comingSoon' if not stripe_configured or not stripe_prices_configured.starter_monthly else 'subscription.chooseStarter' }}" {% if not stripe_configured or not stripe_prices_configured.starter_monthly %}disabled{% endif %}>
-                        {% if not stripe_configured or not stripe_prices_configured.starter_monthly %}Coming soon{% else %}Choose Starter{% endif %}
+                <div class="form-actions">
+                    <button type="button" class="button button-secondary button-full pricing-choose-btn" data-plan="starter" data-i18n="{{ 'subscription.comingSoon' if not paddle_configured or not paddle_prices.starter_monthly else 'subscription.chooseStarter' }}" {% if not paddle_configured or not paddle_prices.starter_monthly %}disabled{% endif %}>
+                        {% if not paddle_configured or not paddle_prices.starter_monthly %}Coming soon{% else %}Choose Starter{% endif %}
                     </button>
-                </form>
+                </div>
             </div>
 
             <div class="card pricing-plan pricing-plan-recommended">
@@ -106,46 +99,62 @@
                     <li><span class="checkmark">&#10003;</span> <span data-i18n="subscription.pro.benefit6">AI assistant for support questions</span></li>
                 </ul>
 
-                <form method="POST" action="{{ url_for('stripe_checkout') }}" class="form-actions">
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                    <input type="hidden" name="plan" value="pro">
-                    <input type="hidden" name="interval" class="pricing-interval-input" value="monthly">
-                    <button type="submit" class="button button-full pricing-choose-btn" data-plan="pro" data-i18n="{{ 'subscription.comingSoon' if not stripe_configured or not stripe_prices_configured.pro_monthly else 'subscription.choosePro' }}" {% if not stripe_configured or not stripe_prices_configured.pro_monthly %}disabled{% endif %}>
-                        {% if not stripe_configured or not stripe_prices_configured.pro_monthly %}Coming soon{% else %}Choose Pro{% endif %}
+                <div class="form-actions">
+                    <button type="button" class="button button-full pricing-choose-btn" data-plan="pro" data-i18n="{{ 'subscription.comingSoon' if not paddle_configured or not paddle_prices.pro_monthly else 'subscription.choosePro' }}" {% if not paddle_configured or not paddle_prices.pro_monthly %}disabled{% endif %}>
+                        {% if not paddle_configured or not paddle_prices.pro_monthly %}Coming soon{% else %}Choose Pro{% endif %}
                     </button>
-                </form>
+                </div>
             </div>
         </div>
 
-        <p class="note" style="text-align: center; margin-top: 16px;" data-i18n="subscription.stripeNote">Payment is securely processed by Stripe. New accounts start with a 14-day free trial with every Pro feature unlocked - you won't be charged until it ends.</p>
+        <p class="note" style="text-align: center; margin-top: 16px;" data-i18n="subscription.paddleNote">Payment is securely processed by Paddle, our reseller of record. New subscriptions start with a 14-day free trial with every Pro feature unlocked - your card is only charged if you don't cancel before the trial ends, and we'll email you a heads-up a few days before that happens.</p>
     {% endif %}
 </div>
 {% endblock %}
 
 {% block scripts %}
 {% if not beta_free_mode and not active %}
+{% if paddle_configured %}
+<script src="https://cdn.paddle.com/paddle/v2/paddle.js"></script>
 <script>
-    // Monthly / Yearly toggle - swaps displayed price/period text AND each checkout
-    // form's hidden "interval" field, purely client-side. No payment SDK needed here at
-    // all: each button is a plain form POST to /subscription/checkout, which creates the
-    // Stripe Checkout Session server-side and redirects the browser to it.
+    // Paddle Checkout runs entirely client-side (Paddle.js overlay) - no server round
+    // trip to start it, unlike the old Stripe Checkout redirect flow this replaced. The
+    // trial itself (length, and whether a card is required during it) is configured on
+    // each Price object in the Paddle dashboard, not passed here.
+    {% if paddle_environment == 'sandbox' %}Paddle.Environment.set("sandbox");{% endif %}
+    Paddle.Initialize({
+        token: {{ paddle_client_token | tojson }},
+        eventCallback: function (event) {
+            if (event.name === "checkout.completed") {
+                // The webhook (see app.py's paddle_webhook) links the subscription to
+                // this business asynchronously - it usually lands within a second or
+                // two, but there can be a brief gap before the dashboard reflects it.
+                window.location.href = {{ url_for('home') | tojson }};
+            }
+        },
+    });
+</script>
+{% endif %}
+<script>
+    // Monthly / Yearly toggle - swaps displayed price/period text and which Paddle
+    // price ID each "Choose" button opens checkout with.
     let billingInterval = "monthly";
-    const priceButtons = {
-        starter: { monthly: {{ 'true' if stripe_configured and stripe_prices_configured.starter_monthly else 'false' }}, yearly: {{ 'true' if stripe_configured and stripe_prices_configured.starter_yearly else 'false' }} },
-        pro: { monthly: {{ 'true' if stripe_configured and stripe_prices_configured.pro_monthly else 'false' }}, yearly: {{ 'true' if stripe_configured and stripe_prices_configured.pro_yearly else 'false' }} },
+    const paddlePrices = {
+        starter: { monthly: {{ paddle_prices.starter_monthly | tojson }}, yearly: {{ paddle_prices.starter_yearly | tojson }} },
+        pro: { monthly: {{ paddle_prices.pro_monthly | tojson }}, yearly: {{ paddle_prices.pro_yearly | tojson }} },
     };
+    const paddleConfigured = {{ 'true' if paddle_configured else 'false' }};
+    const businessId = {{ business_id | tojson }};
+    const customerEmail = {{ email | tojson }};
 
     function refreshButtons() {
         document.querySelectorAll(".pricing-choose-btn").forEach((btn) => {
             const plan = btn.dataset.plan;
-            const available = priceButtons[plan][billingInterval];
+            const available = paddleConfigured && !!paddlePrices[plan][billingInterval];
             btn.disabled = !available;
             const key = available ? (plan === "pro" ? "subscription.choosePro" : "subscription.chooseStarter") : "subscription.comingSoon";
             btn.setAttribute("data-i18n", key);
             btn.textContent = t(key);
-        });
-        document.querySelectorAll(".pricing-interval-input").forEach((input) => {
-            input.value = billingInterval;
         });
     }
 
@@ -161,6 +170,19 @@
             });
             document.querySelectorAll(".pricing-yearly-total").forEach((el) => { el.classList.toggle("hidden", billingInterval !== "yearly"); });
             refreshButtons();
+        });
+    });
+
+    document.querySelectorAll(".pricing-choose-btn").forEach((btn) => {
+        btn.addEventListener("click", () => {
+            const plan = btn.dataset.plan;
+            const priceId = paddlePrices[plan][billingInterval];
+            if (!priceId) return;
+            Paddle.Checkout.open({
+                items: [{ priceId: priceId, quantity: 1 }],
+                customer: { email: customerEmail },
+                customData: { business_id: String(businessId), plan: plan },
+            });
         });
     });
 

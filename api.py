@@ -20,7 +20,7 @@ from database import (
 )
 from instagram_api import send_message as send_instagram_message, authorize_url as instagram_authorize_url
 from extensions import limiter
-import stripe_billing
+import paddle_billing
 import requests
 
 api = Blueprint("api", __name__, url_prefix="/api")
@@ -232,11 +232,11 @@ def api_register():
             price_list=data.get("price_list", ""),
             faq=data.get("faq", ""),
             phone_number=data.get("phone_number") or None,
-            # Same "no free access without a card once Stripe is really live" rule as
+            # Same "no free access without a card once Paddle is really live" rule as
             # the web /register route (see app.py) - the app's own Subscription screen
             # already has a "needs plan" state (subscription_status == 'none') that opens
-            # the same Stripe Checkout trial bridge as web, see /api/subscription-link.
-            initial_status="none" if stripe_billing.is_configured() else "trialing",
+            # the same Paddle Checkout trial bridge as web, see /api/subscription-link.
+            initial_status="none" if paddle_billing.is_configured() else "trialing",
         )
     except psycopg2.errors.UniqueViolation:
         return jsonify(error="That username, contact email, or phone number is already taken."), 409
