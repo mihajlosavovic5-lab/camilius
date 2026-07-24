@@ -755,11 +755,21 @@
             var dx = touchStartX - e.changedTouches[0].clientX;
             var dy = touchStartY - e.changedTouches[0].clientY;
             if (Math.abs(dx) < 40 || Math.abs(dx) < Math.abs(dy)) return;
-            if (dx > 0 && dragStartIndex === slides.length - 1) {
-                goTo(0);
-            } else if (dx < 0 && dragStartIndex === 0) {
-                goTo(slides.length - 1);
-            }
+            var wrapForward = dx > 0 && dragStartIndex === slides.length - 1;
+            var wrapBackward = dx < 0 && dragStartIndex === 0;
+            if (!wrapForward && !wrapBackward) return;
+            // Delayed instead of calling goTo() straight away: right at this
+            // edge there's often still a brief native correction animating as
+            // the finger lifts (iOS rubber-band overscroll, or scroll-snap's
+            // own settle), and starting our smooth scrollTo while that's still
+            // in flight had the two fight over the resting slide - it landed
+            // one slide short of the wrap instead of going all the way around.
+            // Waiting lets that native motion finish first, and re-checking
+            // `current` guards against a slide switch (e.g. autoplay) landing
+            // in that gap.
+            setTimeout(function () {
+                if (current === dragStartIndex) goTo(wrapForward ? 0 : slides.length - 1);
+            }, 150);
         }, { passive: true });
         sliderViewport.addEventListener('scroll', function () {
             clearTimeout(scrollSettleTimer);
