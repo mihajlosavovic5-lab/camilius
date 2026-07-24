@@ -1368,9 +1368,15 @@ html { scroll-behavior: smooth; }
    "How it works" grid above. Flex column + .benefits{flex:1} pins each card's CTA
    button to the same bottom edge even though Starter and Pro have a different number
    of benefit lines. */
-.pricing-cards-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; max-width: 720px; margin: 0 auto; }
-.lp-pricing-card { display: flex; flex-direction: column; text-align: center; }
-.lp-pricing-card .benefits { text-align: left; flex: 1; margin-top: 14px; }
+.pricing-cards-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; max-width: 620px; margin: 0 auto; }
+.lp-pricing-card { display: flex; flex-direction: column; text-align: center; padding: 20px 22px; }
+.lp-pricing-card .price-row { margin-bottom: 2px; }
+.lp-pricing-card .price-amount { font-size: 30px; }
+.lp-pricing-card .price-period { font-size: 13px; }
+.lp-pricing-card .pricing-yearly-total { font-size: 12px; margin-top: 0; }
+.lp-pricing-card .trial-info { margin: 4px 0 10px; padding: 4px 10px; font-size: 12.5px; }
+.lp-pricing-card .benefits { text-align: left; flex: 1; margin-top: 10px; }
+.lp-pricing-card .benefits li { padding: 5px 0; font-size: 13.5px; }
 .lp-pricing-card .button { margin-top: 8px; }
 .lp-pricing-card-recommended { border-color: var(--primary); box-shadow: 0 10px 28px -10px rgba(214, 148, 16, .4); }
 .lp-pricing-plan-name { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--text-muted); margin: 0 0 6px; }
