@@ -1013,6 +1013,19 @@ body.intro { margin: 0; height: 100dvh; overflow: hidden; }
     padding: 12px 0;
     box-shadow: 0 4px 20px rgba(38, 32, 20, .05);
 }
+/* The header's own frosted-glass backdrop-filter above sits directly behind the
+   menu drawer's backdrop-filter (.lp-menu-modal-backdrop below - both are fixed
+   at the same top offset, and the drawer's covers the header too), so while the
+   drawer is open there are two nested backdrop-filter blurs stacked on the exact
+   same strip at the top of the page. Rebuilding two nested backdrop-filter
+   samples after the tab was backgrounded and regained focus is what left a
+   stray horizontal seam right at the header for the few seconds the compositor
+   needed to settle. The header is already dimmed/blurred by the drawer's own
+   backdrop on top of it, so drop the header's redundant one for the duration -
+   nothing looks different, there's just one blur layer left to rebuild. */
+body.lp-menu-open #lp-header.lp-scrolled {
+    backdrop-filter: none; -webkit-backdrop-filter: none;
+}
 /* While the drawer is open, dim + disable the language flag - it lives
    outside the header's own stacking context (see the drawer's top: var(
    --install-banner-h) below, which now keeps it clear of the install banner
