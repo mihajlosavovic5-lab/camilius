@@ -141,11 +141,13 @@
        The sheet uses the exact same gold-wash-into-background gradient as <body>
        itself (see body's own comment further down) instead of a see-through glass
        tint, so the drawer reads as the site's own background continuing behind the
-       menu, not a separate overlay. Each row gets a soft amber wash so they read as
-       filled buttons rather than bare, near-invisible text. */
+       menu, not a separate overlay. Each row is a fully opaque amber chip - same
+       solid --primary-light/--primary pairing as .badge-pro elsewhere on the site -
+       rather than a translucent wash, so they read as real filled buttons, not
+       see-through text. */
     --menu-sheet-bg: linear-gradient(180deg, var(--primary-light) 0%, var(--background) 42%);
-    --menu-row-bg: rgba(214, 148, 16, .1);
-    --menu-row-border: rgba(214, 148, 16, .28);
+    --menu-row-bg: var(--primary-light);
+    --menu-row-border: var(--primary);
 }
 
 /* --- Dark mode - follows the OS/browser preference (no in-app toggle). Redefining the
@@ -180,8 +182,8 @@
         --shadow: 0 2px 6px rgba(0, 0, 0, .3), 0 1px 2px rgba(0, 0, 0, .25);
         --shadow-lg: 0 16px 44px rgba(0, 0, 0, .45), 0 4px 10px rgba(0, 0, 0, .3);
         --menu-sheet-bg: linear-gradient(180deg, var(--primary-light) 0%, var(--background) 42%);
-        --menu-row-bg: rgba(232, 165, 28, .13);
-        --menu-row-border: rgba(232, 165, 28, .3);
+        --menu-row-bg: var(--primary-light);
+        --menu-row-border: var(--primary);
     }
 
     body {
@@ -1117,13 +1119,14 @@ body.lp-menu-open #lp-corner-brand {
 }
 /* Rows fade/slide in with a slight per-item stagger once the drawer is open -
    only while .open is present, so closing fades everything out together
-   instead of replaying the stagger in reverse. Each row is its own filled amber
-   "chip" (background + border, see --menu-row-bg/--menu-row-border) rather than
-   bare or barely-there text, so they read as solid, clickable buttons against
-   the solid drawer panel behind them. */
+   instead of replaying the stagger in reverse. Each row is its own opaque amber
+   "chip" (background + border, see --menu-row-bg/--menu-row-border - same solid
+   --primary-light/--primary/--primary-ink trio as .badge-pro) rather than bare
+   or see-through text, so they read as solid, clickable buttons against the
+   drawer panel behind them. */
 .lp-menu-modal-sheet a {
     padding: 13px 14px; margin: 3px 0; border-radius: 10px;
-    font-size: 16px; font-weight: 500; color: var(--text);
+    font-size: 16px; font-weight: 500; color: var(--primary-ink);
     background: var(--menu-row-bg); border: 1px solid var(--menu-row-border);
     opacity: 0; transform: translateX(-10px);
     transition: opacity .3s ease, transform .22s cubic-bezier(.16,1,.3,1),
@@ -1157,9 +1160,12 @@ body.lp-menu-open #lp-corner-brand {
    animation but makes hover/press feedback instant regardless of row
    position. */
 @media (hover: hover) and (pointer: fine) {
+    /* Default rows are already the solid --primary-light chip, so hover deepens
+       the fill to the full --primary amber (white text) instead of repeating the
+       same background - otherwise hover would look identical to resting. */
     .lp-menu-modal.open .lp-menu-modal-sheet a:hover {
-        background: var(--primary-light); color: var(--primary-ink); text-decoration: none;
-        border-color: rgba(214, 148, 16, .4);
+        background: var(--primary); color: #fff; text-decoration: none;
+        border-color: var(--primary-dark);
         transform: translateY(-2px) scale(1.015);
         box-shadow: 0 10px 20px -8px rgba(214, 148, 16, .55);
         transition-delay: 0s;
