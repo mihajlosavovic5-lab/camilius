@@ -3,9 +3,10 @@ trial_period_days, app.py's register()/stripe_checkout()/stripe_webhook, and dat
 add_business(initial_status=...)/trial_expired() fix) - the "collect a card at trial
 start, don't charge anything until day 14, warn a few days before the first real charge"
 flow most subscription apps use."""
+import api as api_module
 import app as app_module
 import database
-from conftest import get_csrf_token, register_business_web, web_post
+from conftest import get_csrf_token, register_business, register_business_web, web_post
 
 
 def test_add_business_initial_status_none_grants_no_access(client, unique_username, unique_email):
@@ -110,3 +111,21 @@ def test_trial_will_end_webhook_emails_the_business(client, unique_username, uni
     assert response.status_code == 200
     assert sent["recipient"] == unique_email
     assert "trial" in sent["subject"].lower()
+
+
+def test_mobile_register_gets_card_free_trial_when_stripe_not_configured(client, unique_username, unique_email):
+    # Default test env has no STRIPE_SECRET_KEY - api_register() must behave exactly like
+    # before (unaffected businesses shouldn't need a card at all).
+    reg = register_business(client, unique_username, unique_email)
+    business_id = reg.get_json()["business_id"]
+    assert database.get_subscription_status(business_id) == "trialing"
+
+
+def test_mobile_register_requires_a_card_once_stripe_is_configured(client, unique_username, unique_email, monkeypatch):
+    # Mirrors register()'s web behavior (see app.py) - api_register() must gate on the
+    # same stripe_billing.is_configured() check, not silently keep the old free trial.
+    monkeypatch.setattr(api_module.stripe_billing, "is_configured", lambda: True)
+    reg = register_business(client, unique_username, unique_email)
+    business_id = reg.get_json()["business_id"]
+    assert database.get_subscription_status(business_id) == "none"
+    assert database.effective_subscription_active(business_id) is False

@@ -1976,6 +1976,19 @@ function renderSubscriptionScreen() {
     el("subscription-trialing").classList.toggle("hidden", !trialing);
     el("subscription-active").classList.toggle("hidden", !active);
     el("subscription-needs-plan").classList.toggle("hidden", !needsPlan);
+
+    if (needsPlan) {
+        // subscription_status "none" means this account never started a trial at all
+        // (real Stripe billing is live and it hasn't picked a plan/entered a card yet -
+        // see api.py's api_register()) - "Your free trial has ended" would be a lie, so
+        // swap in "start your trial" copy instead. Same distinction app.py's
+        // subscription_required makes for the website's equivalent redirect.
+        const neverStarted = state.subscriptionStatus === "none";
+        const bodyEl = el("subscription-needs-plan-body");
+        const key = neverStarted ? "subscription.needsPlanBodyNew" : "subscription.needsPlanBody";
+        bodyEl.setAttribute("data-i18n", key);
+        bodyEl.textContent = t(key);
+    }
 }
 
 // "Choose a plan" opens the website's own Starter/Pro pricing page (built for the web,
