@@ -413,6 +413,23 @@
 {% block scripts %}
 <script>
 (function () {
+    // Scrolls only the given horizontal-scroll container so `el` centers within
+    // it - unlike el.scrollIntoView(), which walks *every* scrollable ancestor
+    // needed to reveal the element, including the page itself. That's exactly
+    // what was yanking the whole page back up to the "See it in action" slider
+    // whenever its autoplay fired while a visitor had scrolled past it to read
+    // the pricing section further down - the slider was entirely off-screen
+    // above the viewport, so scrollIntoView scrolled the page to bring it back.
+    // Used by both carousels below; getBoundingClientRect gives viewport-
+    // relative coordinates regardless of any CSS positioning context, so this
+    // works out to the right delta without depending on offsetParent.
+    function scrollCardIntoView(container, el) {
+        var elRect = el.getBoundingClientRect();
+        var containerRect = container.getBoundingClientRect();
+        var delta = (elRect.left + elRect.width / 2) - (containerRect.left + containerRect.width / 2);
+        container.scrollTo({ left: container.scrollLeft + delta, behavior: 'smooth' });
+    }
+
     // Hamburger menu (same at every viewport width, see .lp-menu-btn/.lp-menu-modal in
     // style.css) - same open/close pattern as the site-wide language picker (static/site-i18n.js):
     // toggle an "open"/"active" class, backdrop click closes. Also closes on any link
@@ -596,7 +613,7 @@
         // actually flips the active slide once one settles into view.
         function goTo(index) {
             var target = (index + slides.length) % slides.length;
-            slides[target].scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+            scrollCardIntoView(sliderViewport, slides[target]);
         }
 
         function next() { goTo(current + 1); }
@@ -712,8 +729,10 @@
     // tracks the finger 1:1 while dragging - you can drag partway, see the
     // next card peek in, and let go without committing, same feel as
     // swiping a TikTok/Instagram feed (scroll-snap-type:mandatory in
-    // style.css settles it on release). Arrows call scrollIntoView on the
-    // target card instead of setting a position; current-card detection
+    // style.css settles it on release). Arrows call scrollCardIntoView (top
+    // of this file) on the target card instead of setting a position -
+    // scrolls only this container, never the page, unlike el.scrollIntoView()
+    // (see that function's comment); current-card detection
     // (arrows' disabled state, recommended-card border toggle) is an
     // IntersectionObserver, not a hand-tracked touch delta. Desktop is
     // untouched - the CSS only turns the viewport into a scroll container
@@ -731,10 +750,10 @@
         pricingPrev.disabled = true;
 
         pricingPrev.addEventListener('click', function () {
-            pricingCards[Math.max(0, pricingActiveIndex - 1)].scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+            scrollCardIntoView(pricingViewport, pricingCards[Math.max(0, pricingActiveIndex - 1)]);
         });
         pricingNext.addEventListener('click', function () {
-            pricingCards[Math.min(pricingCards.length - 1, pricingActiveIndex + 1)].scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+            scrollCardIntoView(pricingViewport, pricingCards[Math.min(pricingCards.length - 1, pricingActiveIndex + 1)]);
         });
 
         if ('IntersectionObserver' in window) {
