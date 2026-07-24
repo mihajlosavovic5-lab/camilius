@@ -653,20 +653,35 @@
             setActive(index);
         }
 
-        // Pause autoplay for the duration of any drag/scroll (touch or trackpad)
-        // and resume once it settles - native scroll replaces the old manual
-        // touchstart/touchend swipe-distance check entirely. Same debounced
-        // settle also drives which slide is "active" (dimming, dots, typing),
-        // so both only ever update once scrolling has actually paused, never
-        // mid-drag.
+        // Pause autoplay for the duration of any drag/scroll (touch or
+        // trackpad) and resume once it settles - native scroll replaces the
+        // old manual touchstart/touchend swipe-distance check entirely. A
+        // fixed debounce delay is fine for *this* (worst case autoplay just
+        // waits a moment longer than it strictly had to).
         sliderViewport.addEventListener('touchstart', stopAutoplay, { passive: true });
         sliderViewport.addEventListener('scroll', function () {
             clearTimeout(scrollSettleTimer);
-            scrollSettleTimer = setTimeout(function () {
-                updateSliderActiveFromScroll();
-                restartAutoplay();
-            }, 400);
+            scrollSettleTimer = setTimeout(restartAutoplay, 400);
         }, { passive: true });
+        // Which slide is "active" (dimming, dots, typing) needs the real
+        // scrollend, not a debounce guess - see the fuller writeup on the
+        // pricing carousel's identical fix below, where reading scrollLeft
+        // during a quiet-but-not-actually-finished moment (scroll-snap's own
+        // settle correction can still be in flight after a touch release)
+        // computed the slide being left instead of the one switched to.
+        if ('onscrollend' in window) {
+            sliderViewport.addEventListener('scrollend', updateSliderActiveFromScroll, { passive: true });
+        } else {
+            // Its own timer, not scrollSettleTimer above - both listen on
+            // 'scroll', and sharing one timer would have each clear the
+            // other's pending call on every event, so autoplay would never
+            // actually restart.
+            var sliderActiveSettleTimer = null;
+            sliderViewport.addEventListener('scroll', function () {
+                clearTimeout(sliderActiveSettleTimer);
+                sliderActiveSettleTimer = setTimeout(updateSliderActiveFromScroll, 400);
+            }, { passive: true });
+        }
 
         // Mark slide 0 active up front, same as goTo(0) would, but without its
         // typeSlideReply() call - typing is deliberately deferred until the
@@ -766,14 +781,26 @@
                 pricingWrap.classList.toggle('showing-recommended', pricingCards[index].classList.contains('lp-pricing-card-recommended'));
             }
         }
-        // Debounced, not per-frame - only once scrolling has actually paused,
-        // so the frame still only ever appears on a settled card, never
-        // mid-drag (same intent the old 0.95 IntersectionObserver threshold
-        // was going for, just driven by the real scroll position instead).
-        pricingViewport.addEventListener('scroll', function () {
-            clearTimeout(pricingSettleTimer);
-            pricingSettleTimer = setTimeout(updatePricingActiveFromScroll, 120);
-        }, { passive: true });
+        // scrollend (not a debounced 'scroll') is what actually waits for
+        // scrolling to be done, snap-back correction included - a plain
+        // 'scroll' listener has no way to tell a real pause in events from
+        // scrolling having genuinely finished, so a fixed debounce delay is
+        // just a guess at that. On a real touch release, scroll-snap's own
+        // settle can still be in flight after momentum has visibly died
+        // down enough to go quiet for a moment; a debounce that fires during
+        // that quiet moment reads scrollLeft before it reaches its final
+        // resting spot, computes the *previous* card's index, and the gold
+        // frame ends up back on the card being left instead of the one
+        // being switched to. Falls back to the old debounce only for
+        // browsers without scrollend (Safari < 18.2).
+        if ('onscrollend' in window) {
+            pricingViewport.addEventListener('scrollend', updatePricingActiveFromScroll, { passive: true });
+        } else {
+            pricingViewport.addEventListener('scroll', function () {
+                clearTimeout(pricingSettleTimer);
+                pricingSettleTimer = setTimeout(updatePricingActiveFromScroll, 120);
+            }, { passive: true });
+        }
     }
 
 })();
