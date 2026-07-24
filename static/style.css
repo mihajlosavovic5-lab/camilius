@@ -1086,7 +1086,16 @@ body.lp-menu-open .support-widget {
    Blurring .content directly (a real filter, not backdrop-filter) rasterizes
    the whole subtree - including those layered children - into one bitmap
    before blurring it, so every last bit of it blurs uniformly. */
-body.lp-menu-open .content {
+/* .lp-header-spacer (the empty 74px block that reserves room for the fixed
+   header, right above .content) is included here too, not just .content - it
+   has no filter of its own, so without this it sat at a *different* blur
+   intensity than .content directly below it (spacer: only the drawer's own
+   backdrop-filter; .content: that plus this rule). Two adjacent regions with
+   mismatched blur amounts is exactly what a hard seam is, right where they
+   touch - between the header and the hero heading below it, which is where
+   this kept showing up. Same filter on both sides of that boundary removes
+   the mismatch entirely. */
+body.lp-menu-open .content, body.lp-menu-open .lp-header-spacer {
     opacity: .3; filter: blur(1.5px); pointer-events: none;
     transition: opacity .25s ease, filter .25s ease;
 }
