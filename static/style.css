@@ -858,7 +858,11 @@ body.auth {
 .spacing-top { margin-top: 20px; }
 
 /* --- Landing page --- */
-.hero { position: relative; text-align: center; padding: 64px 0 48px; }
+/* Pulls the hero (and everything below it) up closer to the fixed header bar -
+   .content's shared 40px top padding is meant for pages without their own
+   spacer/hero padding, so it's overridden here rather than changed globally. */
+body.landing .content { padding-top: 8px; }
+.hero { position: relative; text-align: center; padding: 20px 0 48px; }
 .hero h1 {
     font-family: Georgia, "Times New Roman", serif; font-weight: 700;
     font-size: 42px; letter-spacing: -.5px; line-height: 1.15; margin-bottom: 16px;
