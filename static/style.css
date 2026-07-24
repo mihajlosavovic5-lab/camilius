@@ -1328,23 +1328,37 @@ html { scroll-behavior: smooth; }
    realistic example conversations, replacing the old one-example static card.
    Reuses .card/.conversation/.question/.reply as-is per slide; everything
    below is just the carousel mechanics (viewport/track/arrows/dots).
-   Each slide is narrower than the viewport (see --lp-slide-w, also read by
-   landing.html's JS to compute the matching translateX/peek) so the
+   Each slide is narrower than the viewport (--lp-slide-w) so the
    previous/next card peeks in on either side, dimmed - a visible "there's
-   more, swipe/click" cue instead of a single card that looks like the only
-   one. Same on mobile and desktop per request, just narrower overall. --- */
+   more" cue. Real native horizontal scroll-snap drives it (not a JS
+   transform): dragging tracks the finger 1:1, same feel as swiping a
+   TikTok/Instagram feed, and scroll-snap-type below settles it on release -
+   see the goTo()/IntersectionObserver pairing in landing.html's JS. Same on
+   mobile and desktop per request, just narrower overall. --- */
 .lp-slider {
     position: relative; max-width: 640px; margin: 0 auto;
-    --lp-slide-w: 84; /* percent; peek on each side = (100 - slide-w) / 2, computed in JS */
+    --lp-slide-w: 84; /* percent; peek on each side = (100 - slide-w) / 2 */
 }
-.lp-slider-viewport { overflow: hidden; border-radius: var(--radius); }
+.lp-slider-viewport {
+    overflow-x: auto; overflow-y: hidden;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    border-radius: var(--radius);
+    scrollbar-width: none;
+}
+.lp-slider-viewport::-webkit-scrollbar { display: none; }
 .lp-slider-track {
     display: flex;
-    transition: transform .5s cubic-bezier(.16, 1, .3, 1);
+    /* Gives the first/last slide the same peek the *inner* neighbors already
+       get for free by sitting right next to each other in the flex row - see
+       the equivalent .pricing-cards-grid padding above for the fuller
+       writeup. */
+    padding: 0 calc((100% - var(--lp-slide-w) * 1%) / 2);
 }
 .lp-slide {
     flex: 0 0 calc(var(--lp-slide-w) * 1%);
     min-width: 0;
+    scroll-snap-align: center;
     margin-bottom: 0 !important; /* .conversation's own margin-bottom would add uneven gaps between slides in the flex track */
     /* No transform/scale here on purpose - scaling shrinks toward the slide's
        own center, which eats into exactly the edge that's supposed to peek
@@ -1423,18 +1437,20 @@ html { scroll-behavior: smooth; }
    plain label rather than a second "recommended"-style claim. */
 .lp-plan-badge-basic { background: var(--surface); color: var(--primary); border: 1.5px solid var(--primary); padding: 2.5px 10.5px; }
 
-/* On phones the grid above becomes a one-card-at-a-time sliding track (see
+/* On phones the grid above becomes a real native-scroll snap track (see
    lp-pricing-grid JS in landing.html) with classic prev/next arrows -
-   desktop keeps the untouched side-by-side grid. Same viewport/track split
-   as .lp-slider above and for the same reason: overflow:hidden has to sit
-   on a *different*, non-transformed ancestor (.pricing-cards-viewport) than
-   the element being translated (.pricing-cards-grid) - clipping and the
-   transform on the same box would move the clip window and its content
-   together, so the second card would never scroll into view. --pricing-x
-   is written by that JS but the transform only exists inside this
-   breakpoint, so setting it never affects the desktop grid. Arrows hide
-   themselves via :disabled (also set by that JS) once there's nothing
-   further in that direction. */
+   desktop keeps the untouched side-by-side grid. Deliberately native
+   overflow-x scrolling rather than a JS transform+touchend-threshold swipe:
+   a transform only ever jumps straight to the next/prev card on release,
+   with no visual feedback while dragging, where native scroll tracks the
+   finger 1:1 (like a TikTok/Instagram feed) - you can drag partway, see the
+   next card peek in (each card is narrower than the viewport, so its
+   neighbor is already sitting right next to it in the flex row), and let go
+   without committing, and scroll-snap-type:mandatory settles back to
+   whichever card you ended up closer to. Arrows/dots (landing.html JS) call
+   scrollIntoView on the target card instead of setting a transform; current-
+   card detection for the arrows' disabled state and the recommended-card
+   border below is an IntersectionObserver on the cards, also in that JS. */
 .pricing-cards-wrap { position: relative; }
 .pricing-arrow {
     display: none; position: absolute; top: 50%; transform: translateY(-50%);
@@ -1451,32 +1467,37 @@ html { scroll-behavior: smooth; }
 .pricing-arrow:disabled { display: none !important; }
 @media (max-width: 720px) {
     .pricing-cards-wrap { max-width: 420px; margin: 0 auto; }
-    .pricing-cards-viewport { overflow: hidden; border-radius: var(--radius); position: relative; }
+    .pricing-cards-viewport {
+        overflow-x: auto; overflow-y: hidden;
+        scroll-snap-type: x mandatory;
+        -webkit-overflow-scrolling: touch;
+        border-radius: var(--radius); position: relative;
+        scrollbar-width: none;
+    }
+    .pricing-cards-viewport::-webkit-scrollbar { display: none; }
     .pricing-cards-grid {
         grid-template-columns: 1fr; max-width: none;
         display: flex;
-        /* Desktop's gap:20px (line 1404) still applies here since flexbox
-           honors `gap` too and this block never resets it - that 20px was
-           landing between the two full-width slides, so translateX(-100%)
-           (sized to one card's own width, not card+gap) undershot the second
-           card's left edge by 20px and clipped its right border off the
-           edge of the overflow:hidden viewport. */
+        /* Desktop's gap:20px (line 1404) would otherwise still apply here
+           since flexbox honors `gap` too and this block never touched it. */
         gap: 0;
-        transition: transform .4s cubic-bezier(.16, 1, .3, 1);
-        transform: translateX(var(--pricing-x, 0%));
+        /* Padding, not a transform, is what gives the first/last card a
+           peek on their outer edge to match the peek the *inner* neighbor
+           card already gives for free by sitting right next to it - each
+           card is 86% of the viewport, so 7% either side centers it with a
+           7% peek on both sides, first and last card included. */
+        padding: 0 7%;
     }
-    .pricing-cards-grid .lp-pricing-card { flex: 0 0 100%; min-width: 0; }
-    /* The recommended card's gold border/glow moves *with* the sliding card, so
-       whichever edge trails the slide direction only reaches the viewport at the
-       very last instant of the .4s transition - on a left-slide-in that's always
-       the right edge, making it look like a delayed "fade in" effect versus the
-       other three sides, which are already in view earlier in the slide. Rather
-       than fight that (the border is physically part of a box that's still mid-
-       flight), the mobile card itself goes back to a plain border and the gold
-       frame is drawn as a static overlay on the *viewport* - which never moves -
-       toggled by JS (--pricing-x sibling logic in landing.html) with no
-       transition of its own, so it's either fully there or fully not, in sync
-       with which card is currently settled. */
+    .pricing-cards-grid .lp-pricing-card {
+        flex: 0 0 86%; min-width: 0;
+        scroll-snap-align: center;
+    }
+    /* The recommended card's gold border/glow used to move with the sliding
+       card; now that the card itself never transforms (native scroll owns
+       its position), it could live directly on the card again - but keeping
+       it as a static overlay on the (non-scrolling) viewport, toggled
+       instantly by the IntersectionObserver in landing.html, still avoids
+       any per-frame recalculation while the user is mid-drag. */
     .lp-pricing-card-recommended { border-color: var(--border); box-shadow: var(--shadow); }
     .pricing-cards-viewport::after {
         content: ""; position: absolute; inset: 0; border-radius: inherit;

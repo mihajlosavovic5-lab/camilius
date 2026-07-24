@@ -514,13 +514,9 @@
 
     if (slider && slides.length) {
         var current = 0;
-        // Read straight from the CSS (.lp-slider's --lp-slide-w/--lp-slide-peek) so
-        // the translateX math here can never drift out of sync with the actual
-        // slide width the CSS uses to lay them out.
-        var sliderStyle = getComputedStyle(slider);
-        var slideW = parseFloat(sliderStyle.getPropertyValue('--lp-slide-w')) || 100;
-        var peek = (100 - slideW) / 2;
+        var sliderViewport = track.parentElement;
         var autoplayTimer = null;
+        var scrollSettleTimer = null;
         var typingTimers = [];
 
         var dots = slides.map(function (_, i) {
@@ -577,13 +573,30 @@
             }, 500));
         }
 
-        function goTo(index) {
-            current = (index + slides.length) % slides.length;
-            track.style.transform = 'translateX(' + (peek - current * slideW) + '%)';
+        // Sets the given slide active without moving anything - actual motion is
+        // native scroll (goTo below just asks the browser to scroll there; this
+        // is what the resulting IntersectionObserver settle calls to update
+        // dots/dimming/typing once a slide has actually become the centered one).
+        function setActive(index) {
+            if (index === current) return;
+            current = index;
             slides.forEach(function (slide, i) { slide.classList.toggle('lp-slide-active', i === current); });
             dots.forEach(function (dot, i) { dot.classList.toggle('active', i === current); });
             clearTypingTimers();
             typeSlideReply(slides[current]);
+        }
+
+        // Real native horizontal scroll-snap (see .lp-slider-viewport in
+        // style.css) instead of a JS transform: a transform can only jump
+        // straight to the next/prev slide on release, where native scroll
+        // tracks the finger 1:1 while dragging - you can drag partway, see the
+        // next slide peek in, and let go without committing, same feel as
+        // swiping a TikTok/Instagram feed. goTo just asks the browser to scroll
+        // there; setActive (via the IntersectionObserver below) is what
+        // actually flips the active slide once one settles into view.
+        function goTo(index) {
+            var target = (index + slides.length) % slides.length;
+            slides[target].scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
         }
 
         function next() { goTo(current + 1); }
@@ -607,26 +620,38 @@
         slider.addEventListener('mouseenter', stopAutoplay);
         slider.addEventListener('mouseleave', startAutoplay);
 
-        // Touch swipe
-        var touchStartX = null;
-        slider.addEventListener('touchstart', function (e) {
-            touchStartX = e.touches[0].clientX;
-            stopAutoplay();
+        // Pause autoplay for the duration of any drag/scroll (touch or trackpad)
+        // and resume once it settles - native scroll replaces the old manual
+        // touchstart/touchend swipe-distance check entirely.
+        sliderViewport.addEventListener('touchstart', stopAutoplay, { passive: true });
+        sliderViewport.addEventListener('scroll', function () {
+            clearTimeout(scrollSettleTimer);
+            scrollSettleTimer = setTimeout(restartAutoplay, 400);
         }, { passive: true });
-        slider.addEventListener('touchend', function (e) {
-            if (touchStartX === null) return;
-            var deltaX = e.changedTouches[0].clientX - touchStartX;
-            if (Math.abs(deltaX) > 40) { deltaX < 0 ? next() : prev(); }
-            touchStartX = null;
-            startAutoplay();
-        });
 
-        // Position the track and mark slide 0 active up front, same as goTo(0)
-        // would, but without its typeSlideReply() call - typing is deliberately
-        // deferred until the slider actually scrolls into view, below.
-        track.style.transform = 'translateX(' + peek + '%)';
+        // Mark slide 0 active up front, same as goTo(0) would, but without its
+        // typeSlideReply() call - typing is deliberately deferred until the
+        // slider actually scrolls into view, below. Its resting scroll position
+        // (slide 0, centered with a peek on both sides) comes from
+        // .lp-slider-track's own padding in style.css, not JS.
         slides[0].classList.add('lp-slide-active');
         dots[0].classList.add('active');
+
+        // Flips the active slide whenever a new one becomes the (mostly)
+        // centered one - covers arrow/dot clicks, autoplay, and the user just
+        // dragging the track by hand, all in one place, since all three end up
+        // as a scroll position change.
+        if ('IntersectionObserver' in window) {
+            var slideIo = new IntersectionObserver(function (entries) {
+                entries.forEach(function (entry) {
+                    // isIntersecting alone is true the instant even a sliver of the
+                    // slide is visible - checking the ratio is what actually waits
+                    // for it to be the (near-)centered one before flipping active.
+                    if (entry.intersectionRatio >= 0.6) setActive(slides.indexOf(entry.target));
+                });
+            }, { root: sliderViewport, threshold: 0.6 });
+            slides.forEach(function (slide) { slideIo.observe(slide); });
+        }
 
         // Don't type/autoplay until the slider actually scrolls into view.
         if ('IntersectionObserver' in window) {
@@ -681,58 +706,58 @@
     }
 
     // Mobile "Simple pricing" carousel - phones show one plan card at a time
-    // (side by side, sliding) instead of stacking Starter above Pro, with
-    // classic prev/next arrows that simply disappear at each end (no
-    // wraparound - matches the site's other arrow-nav pattern above, just
-    // without the loop since there's nowhere further to go). Desktop is
-    // untouched: the CSS only turns the grid into a sliding track under the
-    // existing 720px breakpoint, so above it this block is a no-op.
+    // with the neighbor peeking in on either side, using real native
+    // horizontal scroll-snap instead of a JS transform: a transform can only
+    // jump straight to the next/prev card on release, where native scroll
+    // tracks the finger 1:1 while dragging - you can drag partway, see the
+    // next card peek in, and let go without committing, same feel as
+    // swiping a TikTok/Instagram feed (scroll-snap-type:mandatory in
+    // style.css settles it on release). Arrows call scrollIntoView on the
+    // target card instead of setting a position; current-card detection
+    // (arrows' disabled state, recommended-card border toggle) is an
+    // IntersectionObserver, not a hand-tracked touch delta. Desktop is
+    // untouched - the CSS only turns the viewport into a scroll container
+    // under the existing 720px breakpoint, so above it this is a no-op
+    // (the observer only ever reports the always-fully-visible desktop
+    // cards as "intersecting", which is harmless).
     var pricingGrid = document.getElementById('lp-pricing-grid');
     var pricingCards = pricingGrid ? Array.prototype.slice.call(pricingGrid.children) : [];
+    var pricingViewport = pricingGrid ? pricingGrid.parentElement : null;
+    var pricingWrap = pricingGrid ? pricingGrid.closest('.pricing-cards-wrap') : null;
     var pricingPrev = document.getElementById('lp-pricing-prev');
     var pricingNext = document.getElementById('lp-pricing-next');
-    var pricingWrap = pricingGrid ? pricingGrid.closest('.pricing-cards-wrap') : null;
-    if (pricingGrid && pricingPrev && pricingNext && pricingCards.length > 1) {
-        var pricingIndex = 0;
-
-        function renderPricingCarousel() {
-            pricingGrid.style.setProperty('--pricing-x', (-pricingIndex * 100) + '%');
-            pricingPrev.disabled = pricingIndex === 0;
-            pricingNext.disabled = pricingIndex === pricingCards.length - 1;
-            // Gold "recommended" frame lives on the (non-sliding) viewport, not
-            // the card - see .pricing-cards-viewport::after in style.css - so it
-            // snaps on/off in step with the settled card instead of dragging
-            // along with whichever edge trails the slide.
-            if (pricingWrap) {
-                pricingWrap.classList.toggle('showing-recommended', pricingCards[pricingIndex].classList.contains('lp-pricing-card-recommended'));
-            }
-        }
+    if (pricingGrid && pricingViewport && pricingPrev && pricingNext && pricingCards.length > 1) {
+        var pricingActiveIndex = 0;
+        pricingPrev.disabled = true;
 
         pricingPrev.addEventListener('click', function () {
-            if (pricingIndex === 0) return;
-            pricingIndex -= 1;
-            renderPricingCarousel();
+            pricingCards[Math.max(0, pricingActiveIndex - 1)].scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
         });
         pricingNext.addEventListener('click', function () {
-            if (pricingIndex === pricingCards.length - 1) return;
-            pricingIndex += 1;
-            renderPricingCarousel();
+            pricingCards[Math.min(pricingCards.length - 1, pricingActiveIndex + 1)].scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
         });
 
-        var pricingTouchStartX = null;
-        pricingGrid.addEventListener('touchstart', function (e) {
-            pricingTouchStartX = e.touches[0].clientX;
-        }, { passive: true });
-        pricingGrid.addEventListener('touchend', function (e) {
-            if (pricingTouchStartX === null) return;
-            var deltaX = e.changedTouches[0].clientX - pricingTouchStartX;
-            if (deltaX < -40 && pricingIndex < pricingCards.length - 1) pricingIndex += 1;
-            else if (deltaX > 40 && pricingIndex > 0) pricingIndex -= 1;
-            pricingTouchStartX = null;
-            renderPricingCarousel();
-        });
-
-        renderPricingCarousel();
+        if ('IntersectionObserver' in window) {
+            var pricingIo = new IntersectionObserver(function (entries) {
+                entries.forEach(function (entry) {
+                    // isIntersecting alone is true the instant even a sliver of the
+                    // card is visible - checking the ratio is what actually waits
+                    // for it to be the (near-)centered one before flipping active.
+                    if (entry.intersectionRatio < 0.6) return;
+                    pricingActiveIndex = pricingCards.indexOf(entry.target);
+                    pricingPrev.disabled = pricingActiveIndex === 0;
+                    pricingNext.disabled = pricingActiveIndex === pricingCards.length - 1;
+                    // Gold "recommended" frame lives on the (non-scrolling)
+                    // viewport, not the card - see .pricing-cards-viewport::after
+                    // in style.css - so it snaps on/off in step with whichever
+                    // card just settled instead of dragging along with the scroll.
+                    if (pricingWrap) {
+                        pricingWrap.classList.toggle('showing-recommended', entry.target.classList.contains('lp-pricing-card-recommended'));
+                    }
+                });
+            }, { root: pricingViewport, threshold: 0.6 });
+            pricingCards.forEach(function (card) { pricingIo.observe(card); });
+        }
     }
 
 })();
