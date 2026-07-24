@@ -146,10 +146,13 @@
     --shadow: 0 2px 6px rgba(38, 32, 20, .05), 0 1px 2px rgba(38, 32, 20, .04);
     --shadow-lg: 0 16px 44px rgba(38, 32, 20, .10), 0 4px 10px rgba(38, 32, 20, .05);
     --radius: 12px;
-    /* Header-menu drawer glass panel + its row "chips" (static/style.css .lp-menu-modal-*) */
-    --menu-sheet-bg: rgba(255, 255, 255, .7);
-    --menu-row-bg: rgba(255, 255, 255, .55);
-    --menu-row-border: rgba(236, 230, 218, .8);
+    /* Header-menu drawer glass panel + its row "chips" (static/style.css .lp-menu-modal-*) -
+       amber-tinted (built from --primary-light/--primary), not a neutral grey/white glass,
+       so the drawer itself reads as part of the site's brand color instead of a washed-out
+       generic overlay. */
+    --menu-sheet-bg: rgba(251, 238, 203, .82);
+    --menu-row-bg: rgba(255, 244, 214, .75);
+    --menu-row-border: rgba(214, 148, 16, .3);
 }
 
 /* --- Dark mode - follows the OS/browser preference (no in-app toggle). Redefining the
@@ -183,9 +186,9 @@
         --danger-border: #5c342a;
         --shadow: 0 2px 6px rgba(0, 0, 0, .3), 0 1px 2px rgba(0, 0, 0, .25);
         --shadow-lg: 0 16px 44px rgba(0, 0, 0, .45), 0 4px 10px rgba(0, 0, 0, .3);
-        --menu-sheet-bg: rgba(36, 30, 23, .78);
-        --menu-row-bg: rgba(255, 255, 255, .05);
-        --menu-row-border: rgba(255, 255, 255, .09);
+        --menu-sheet-bg: rgba(58, 42, 16, .84);
+        --menu-row-bg: rgba(232, 165, 28, .14);
+        --menu-row-border: rgba(232, 165, 28, .32);
     }
 
     body {
@@ -1206,10 +1209,22 @@ body.lp-menu-open .content {
     }
 }
 .lp-menu-modal-sheet a:active { transform: translateY(1px); box-shadow: none; transition-delay: 0s; }
-/* "Try for free" is still the sitewide .button class underneath (inline-flex,
-   filled amber, centered text) - reset it back to a plain row so it looks and
-   behaves exactly like every other menu item, no special-cased styling. */
-.lp-menu-modal-sheet a.button { display: block; text-align: left; margin-top: 0; }
+/* "Try for free" keeps the sitewide .button class' filled-amber treatment
+   (just reflowed to a full-width row instead of inline-flex) so the one
+   action that actually converts still reads as a real, colored button next
+   to the quieter chip rows around it, instead of blending into the list. */
+.lp-menu-modal-sheet a.button {
+    display: block; text-align: left; margin-top: 6px;
+    background: linear-gradient(135deg, var(--primary), var(--gold-dark));
+    color: #fff; border-color: transparent;
+    box-shadow: 0 8px 18px -8px rgba(214, 148, 16, .55);
+}
+@media (hover: hover) and (pointer: fine) {
+    .lp-menu-modal.open .lp-menu-modal-sheet a.button:hover {
+        background: linear-gradient(135deg, var(--primary-dark), var(--gold-dark));
+        color: #fff;
+    }
+}
 .lp-menu-modal-divider { height: 1px; background: var(--menu-row-border); margin: 10px 4px; }
 /* "Download for Android" (and its preceding divider) only makes sense on an
    actual phone - hidden once the viewport is desktop-sized. */
