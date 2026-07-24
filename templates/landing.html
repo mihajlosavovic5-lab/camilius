@@ -425,11 +425,11 @@
     // Used by both carousels below; getBoundingClientRect gives viewport-
     // relative coordinates regardless of any CSS positioning context, so this
     // works out to the right delta without depending on offsetParent.
-    function scrollCardIntoView(container, el) {
+    function scrollCardIntoView(container, el, behavior) {
         var elRect = el.getBoundingClientRect();
         var containerRect = container.getBoundingClientRect();
         var delta = (elRect.left + elRect.width / 2) - (containerRect.left + containerRect.width / 2);
-        container.scrollTo({ left: container.scrollLeft + delta, behavior: 'smooth' });
+        container.scrollTo({ left: container.scrollLeft + delta, behavior: behavior || 'smooth' });
     }
 
     // Hamburger menu (same at every viewport width, see .lp-menu-btn/.lp-menu-modal in
@@ -577,8 +577,28 @@
         // never clamped.
         var isTouchDragging = false;
         var dragStartIndex = 0;
-        var touchStartX = 0;
-        var touchStartY = 0;
+
+        // Clones of the first/last real slide, appended/prepended around the
+        // real ones so wrapping past either end is one ordinary slide-width
+        // scroll - indistinguishable from any other next/prev step - instead
+        // of one long scroll all the way across the real track, which visibly
+        // flashed through every slide in between on the way. Native swipe
+        // drags right onto these exactly like any other adjacent slide (no
+        // special-casing needed there); once a scroll settles on a clone,
+        // updateSliderActiveFromScroll below snaps instantly (no animation)
+        // to the real slide it stands in for - imperceptible since the clone
+        // is pixel-identical - so `current`/goTo() math never has to know
+        // clones exist at all. aria-hidden since they're never the slide that
+        // actually stays active/focusable.
+        var cloneFirst = slides[0].cloneNode(true);
+        var cloneLast = slides[slides.length - 1].cloneNode(true);
+        cloneFirst.classList.add('lp-slide-clone');
+        cloneLast.classList.add('lp-slide-clone');
+        cloneFirst.setAttribute('aria-hidden', 'true');
+        cloneLast.setAttribute('aria-hidden', 'true');
+        track.appendChild(cloneFirst);
+        track.insertBefore(cloneLast, slides[0]);
+        var trackChildren = Array.prototype.slice.call(track.children);
 
         var dots = slides.map(function (_, i) {
             var dot = document.createElement('button');
@@ -661,8 +681,19 @@
             scrollCardIntoView(sliderViewport, slides[target]);
         }
 
-        function next() { goTo(current + 1); }
-        function prev() { goTo(current - 1); }
+        // At either end, step onto the adjacent clone instead of jumping
+        // straight to goTo(0)/goTo(last) - see the clone setup above for why:
+        // this keeps the wrap a single ordinary slide-width scroll, same as
+        // any other next()/prev() call, rather than one long scroll visibly
+        // sweeping across every slide in between.
+        function next() {
+            if (current === slides.length - 1) { scrollCardIntoView(sliderViewport, cloneFirst); return; }
+            goTo(current + 1);
+        }
+        function prev() {
+            if (current === 0) { scrollCardIntoView(sliderViewport, cloneLast); return; }
+            goTo(current - 1);
+        }
 
         function startAutoplay() {
             // document.body.classList check: the drawer's own open/close handlers
@@ -701,6 +732,23 @@
         document.addEventListener('lp:menu-open', stopAutoplay);
         document.addEventListener('lp:menu-close', startAutoplay);
 
+        // Which track child (real slide or clone) is nearest the viewport's
+        // center right now. Center-distance rather than a scrollLeft /
+        // slideWidth division - that would assume slide 0 sits exactly at
+        // scrollLeft 0, which isn't true now that cloneLast sits in front of
+        // it (see clone setup above).
+        function nearestTrackChildIndex() {
+            var viewportRect = sliderViewport.getBoundingClientRect();
+            var viewportCenter = viewportRect.left + viewportRect.width / 2;
+            var closest = 0, closestDist = Infinity;
+            trackChildren.forEach(function (child, i) {
+                var r = child.getBoundingClientRect();
+                var dist = Math.abs((r.left + r.width / 2) - viewportCenter);
+                if (dist < closestDist) { closestDist = dist; closest = i; }
+            });
+            return closest;
+        }
+
         // Flips the active slide whenever a new one becomes the settled,
         // centered one - covers arrow/dot clicks, autoplay, and the user just
         // dragging the track by hand, all in one place, since all three end
@@ -712,9 +760,25 @@
         // card frame around the still-showing first card instead of the one
         // it's meant for.
         function updateSliderActiveFromScroll() {
-            var slideWidth = slides[0].getBoundingClientRect().width;
-            if (!slideWidth) return;
-            var index = Math.max(0, Math.min(slides.length - 1, Math.round(sliderViewport.scrollLeft / slideWidth)));
+            var domIndex = nearestTrackChildIndex();
+            // Settled on a clone - wrapped past the real first or last slide.
+            // Snap instantly to the real slide it stands in for (see the clone
+            // setup above); invisible since the clone is pixel-identical, and
+            // it's what keeps every other index in this file addressing a real
+            // slide, never a clone.
+            if (domIndex === 0) {
+                scrollCardIntoView(sliderViewport, slides[slides.length - 1], 'instant');
+                isTouchDragging = false;
+                setActive(slides.length - 1);
+                return;
+            }
+            if (domIndex === trackChildren.length - 1) {
+                scrollCardIntoView(sliderViewport, slides[0], 'instant');
+                isTouchDragging = false;
+                setActive(0);
+                return;
+            }
+            var index = domIndex - 1;
             if (isTouchDragging) {
                 isTouchDragging = false;
                 // Clamp to at most one slide away from where this touch drag
@@ -734,42 +798,10 @@
         // old manual touchstart/touchend swipe-distance check entirely. A
         // fixed debounce delay is fine for *this* (worst case autoplay just
         // waits a moment longer than it strictly had to).
-        sliderViewport.addEventListener('touchstart', function (e) {
+        sliderViewport.addEventListener('touchstart', function () {
             stopAutoplay();
             isTouchDragging = true;
             dragStartIndex = current;
-            if (e.touches && e.touches.length) {
-                touchStartX = e.touches[0].clientX;
-                touchStartY = e.touches[0].clientY;
-            }
-        }, { passive: true });
-        // Native scroll can't move past the first/last slide, so a swipe past
-        // either edge otherwise just does nothing (no reaction at all). Mirrors
-        // what the prev/next arrow buttons already do via goTo()'s wraparound -
-        // a swipe "forward" past the last slide loops to the first, and vice
-        // versa. Only fires right at the edge (checked via dragStartIndex, set
-        // above on touchstart) so a normal in-range swipe is untouched and still
-        // handled entirely by native scroll-snap.
-        sliderViewport.addEventListener('touchend', function (e) {
-            if (!e.changedTouches || !e.changedTouches.length) return;
-            var dx = touchStartX - e.changedTouches[0].clientX;
-            var dy = touchStartY - e.changedTouches[0].clientY;
-            if (Math.abs(dx) < 40 || Math.abs(dx) < Math.abs(dy)) return;
-            var wrapForward = dx > 0 && dragStartIndex === slides.length - 1;
-            var wrapBackward = dx < 0 && dragStartIndex === 0;
-            if (!wrapForward && !wrapBackward) return;
-            // Delayed instead of calling goTo() straight away: right at this
-            // edge there's often still a brief native correction animating as
-            // the finger lifts (iOS rubber-band overscroll, or scroll-snap's
-            // own settle), and starting our smooth scrollTo while that's still
-            // in flight had the two fight over the resting slide - it landed
-            // one slide short of the wrap instead of going all the way around.
-            // Waiting lets that native motion finish first, and re-checking
-            // `current` guards against a slide switch (e.g. autoplay) landing
-            // in that gap.
-            setTimeout(function () {
-                if (current === dragStartIndex) goTo(wrapForward ? 0 : slides.length - 1);
-            }, 150);
         }, { passive: true });
         sliderViewport.addEventListener('scroll', function () {
             clearTimeout(scrollSettleTimer);
@@ -799,11 +831,13 @@
             }, { passive: true });
         }
 
+        // Explicit instant scroll to slide 0, not just a resting default -
+        // cloneLast now sits in front of it in the DOM (see clone setup
+        // above), so scrollLeft 0 would otherwise show the clone first.
+        scrollCardIntoView(sliderViewport, slides[0], 'instant');
         // Mark slide 0 active up front, same as goTo(0) would, but without its
         // typeSlideReply() call - typing is deliberately deferred until the
-        // slider actually scrolls into view, below. Its resting scroll position
-        // (slide 0, centered with a peek on both sides) comes from
-        // .lp-slider-track's own padding in style.css, not JS.
+        // slider actually scrolls into view, below.
         slides[0].classList.add('lp-slide-active');
         dots[0].classList.add('active');
 
