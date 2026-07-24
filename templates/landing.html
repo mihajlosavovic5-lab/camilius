@@ -578,27 +578,43 @@
         var isTouchDragging = false;
         var dragStartIndex = 0;
 
-        // Clones of the first/last real slide, appended/prepended around the
-        // real ones so wrapping past either end is one ordinary slide-width
-        // scroll - indistinguishable from any other next/prev step - instead
-        // of one long scroll all the way across the real track, which visibly
-        // flashed through every slide in between on the way. Native swipe
-        // drags right onto these exactly like any other adjacent slide (no
-        // special-casing needed there); once a scroll settles on a clone,
-        // updateSliderActiveFromScroll below snaps instantly (no animation)
-        // to the real slide it stands in for - imperceptible since the clone
-        // is pixel-identical - so `current`/goTo() math never has to know
-        // clones exist at all. aria-hidden since they're never the slide that
-        // actually stays active/focusable.
-        var cloneFirst = slides[0].cloneNode(true);
-        var cloneLast = slides[slides.length - 1].cloneNode(true);
-        cloneFirst.classList.add('lp-slide-clone');
-        cloneLast.classList.add('lp-slide-clone');
-        cloneFirst.setAttribute('aria-hidden', 'true');
-        cloneLast.setAttribute('aria-hidden', 'true');
-        track.appendChild(cloneFirst);
+        // Clones of the first/last two real slides, appended/prepended around
+        // the real ones so wrapping past either end is one ordinary
+        // slide-width scroll - indistinguishable from any other next/prev
+        // step - instead of one long scroll all the way across the real
+        // track, which visibly flashed through every slide in between on the
+        // way. Native swipe drags right onto these exactly like any other
+        // adjacent slide (no special-casing needed there); once a scroll
+        // settles on cloneFirst/cloneLast, updateSliderActiveFromScroll below
+        // snaps instantly (no animation) to the real slide it stands in for -
+        // so `current`/goTo() math never has to know clones exist at all.
+        // Two clones per side, not one: cloneFirst is the very last track
+        // child, so with nothing after it there'd be nothing to peek in on
+        // its right while a scroll settles there - then the instant snap to
+        // the real slide 0 (which does have slide 1 peeking to its right)
+        // made slide 1 visibly pop in out of nowhere at that exact instant.
+        // cloneSecond (slide 1) gives cloneFirst something to peek at instead,
+        // so the peek is continuous straight through the snap. Same story in
+        // reverse for cloneSecondLast alongside cloneLast. aria-hidden since
+        // none of the four are ever the slide that stays active/focusable.
+        function makeClone(slide) {
+            var clone = slide.cloneNode(true);
+            clone.classList.add('lp-slide-clone');
+            clone.setAttribute('aria-hidden', 'true');
+            return clone;
+        }
+        var cloneFirst = makeClone(slides[0]);
+        var cloneSecond = makeClone(slides[1]);
+        var cloneLast = makeClone(slides[slides.length - 1]);
+        var cloneSecondLast = makeClone(slides[slides.length - 2]);
         track.insertBefore(cloneLast, slides[0]);
+        track.insertBefore(cloneSecondLast, cloneLast);
+        track.appendChild(cloneFirst);
+        track.appendChild(cloneSecond);
         var trackChildren = Array.prototype.slice.call(track.children);
+        // Real slide i sits at track position i + CLONE_OFFSET (cloneSecondLast,
+        // cloneLast lead the track ahead of it).
+        var CLONE_OFFSET = 2;
 
         var dots = slides.map(function (_, i) {
             var dot = document.createElement('button');
@@ -761,24 +777,31 @@
         // it's meant for.
         function updateSliderActiveFromScroll() {
             var domIndex = nearestTrackChildIndex();
-            // Settled on a clone - wrapped past the real first or last slide.
-            // Snap instantly to the real slide it stands in for (see the clone
-            // setup above); invisible since the clone is pixel-identical, and
-            // it's what keeps every other index in this file addressing a real
-            // slide, never a clone.
-            if (domIndex === 0) {
-                scrollCardIntoView(sliderViewport, slides[slides.length - 1], 'instant');
+            // Settled on one of the four leading/trailing clones - wrapped
+            // past the real first or last slide (or, in principle, landed on
+            // one of the peek-only outer pair - scroll-snap-stop: always
+            // shouldn't let a single gesture reach those, but map them too
+            // just in case). Snap instantly to the real slide each stands in
+            // for (see the clone setup above); invisible since every clone is
+            // pixel-identical to the real slide it doubles for, and it's what
+            // keeps every other index in this file addressing a real slide,
+            // never a clone.
+            var realCount = slides.length;
+            if (domIndex < CLONE_OFFSET) {
+                var leadReal = realCount - (CLONE_OFFSET - domIndex);
+                scrollCardIntoView(sliderViewport, slides[leadReal], 'instant');
                 isTouchDragging = false;
-                setActive(slides.length - 1);
+                setActive(leadReal);
                 return;
             }
-            if (domIndex === trackChildren.length - 1) {
-                scrollCardIntoView(sliderViewport, slides[0], 'instant');
+            if (domIndex >= CLONE_OFFSET + realCount) {
+                var trailReal = domIndex - (CLONE_OFFSET + realCount);
+                scrollCardIntoView(sliderViewport, slides[trailReal], 'instant');
                 isTouchDragging = false;
-                setActive(0);
+                setActive(trailReal);
                 return;
             }
-            var index = domIndex - 1;
+            var index = domIndex - CLONE_OFFSET;
             if (isTouchDragging) {
                 isTouchDragging = false;
                 // Clamp to at most one slide away from where this touch drag
