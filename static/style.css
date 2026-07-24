@@ -1448,6 +1448,16 @@ html { scroll-behavior: smooth; }
         flex: 0 0 86%; min-width: 0;
         scroll-snap-align: center;
     }
+    /* Same content, smaller footprint - the desktop card's full-size price/
+       padding/benefit text felt oversized once it's the one thing filling a
+       narrow phone screen, by request. */
+    .pricing-cards-grid .lp-pricing-card { padding: 18px 20px; }
+    .pricing-cards-grid .lp-pricing-card .price-amount { font-size: 30px; }
+    .pricing-cards-grid .lp-pricing-card .price-was { font-size: 15px; }
+    .pricing-cards-grid .lp-pricing-card .price-period { font-size: 13px; }
+    .pricing-cards-grid .lp-pricing-card .trial-info { margin: 4px 0 10px; padding: 4px 10px; font-size: 12.5px; }
+    .pricing-cards-grid .lp-pricing-card .benefits { margin-top: 10px; }
+    .pricing-cards-grid .lp-pricing-card .benefits li { padding: 5px 0; font-size: 13.5px; }
 }
 
 /* --- Footer restructure --- */
