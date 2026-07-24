@@ -1342,15 +1342,29 @@ html { scroll-behavior: smooth; }
     position: relative; max-width: 640px; margin: 0 auto;
     --lp-slide-w: 84; /* percent; peek on each side = (100 - slide-w) / 2, computed in JS */
 }
-.lp-slider-viewport { overflow: hidden; border-radius: var(--radius); }
+/* overflow-x: auto + scroll-snap-type, not overflow: hidden - same real
+   native-scroll-snap mechanic as .pricing-cards-viewport below, so dragging
+   tracks the finger 1:1 and snaps to one slide per swipe (scroll-snap-stop:
+   always on .lp-slide prevents a fast flick from skipping past more than
+   the next slide). goTo()'s container.scrollTo() in landing.html still
+   drives arrow/dot/autoplay navigation the same way it always did. */
+.lp-slider-viewport {
+    overflow-x: auto; overflow-y: hidden;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    border-radius: var(--radius);
+    scrollbar-width: none;
+}
+.lp-slider-viewport::-webkit-scrollbar { display: none; }
 .lp-slider-track {
     display: flex;
-    transition: transform .5s cubic-bezier(.16, 1, .3, 1);
 }
 .lp-slide {
     flex: 0 0 calc(var(--lp-slide-w) * 1%);
     min-width: 0;
     margin-bottom: 0 !important; /* .conversation's own margin-bottom would add uneven gaps between slides in the flex track */
+    scroll-snap-align: center;
+    scroll-snap-stop: always;
     /* No transform/scale here on purpose - scaling shrinks toward the slide's
        own center, which eats into exactly the edge that's supposed to peek
        into the viewport (worst on the far side, nearly cancelling it out).
@@ -1391,7 +1405,6 @@ html { scroll-behavior: smooth; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .lp-slider-track { transition: none !important; }
     .lp-slide { transition: none !important; }
 }
 
