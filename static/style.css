@@ -1452,12 +1452,16 @@ html { scroll-behavior: smooth; }
    than the viewport, so its neighbor is already sitting right next to it in
    the flex row), and let go without committing, and scroll-snap-
    type:mandatory settles back to whichever card you ended up closer to. No
-   arrows - swipe plus the peek is cue enough (removed by request). No gold
-   "recommended" frame either (removed by request) - several attempts at
-   keeping it accurately positioned around whichever card is settled never
-   held up under a real finger-flung swipe, so mobile just shows the plain
-   "Recommended" badge text with no card-level border/glow; desktop is
-   unaffected and keeps both. */
+   arrows - swipe plus the peek is cue enough (removed by request). The
+   recommended card's gold border/glow (.lp-pricing-card-recommended above)
+   is untouched here too, by request - several earlier attempts at a
+   decoupled overlay meant to track "whichever card is currently settled"
+   (sized via a fixed CSS inset, then via JS reading the card's real
+   position) never held up under a real finger-flung swipe. A border that's
+   just an unconditional, permanent part of the card's own box - the same
+   as desktop already has, and the same as Starter's own (non-gold) border -
+   can't ever desync from the card the way a separately-tracked overlay
+   could, so there's nothing left to get wrong. */
 .pricing-cards-wrap { position: relative; }
 @media (max-width: 720px) {
     .pricing-cards-wrap { max-width: 420px; margin: 0 auto; }
@@ -1506,17 +1510,6 @@ html { scroll-behavior: smooth; }
            matching button height across both cards mattered more than
            closing that gap. */
     }
-    /* No gold border/glow on mobile for the recommended card - see the
-       fuller writeup above. Several approaches (border on the card itself,
-       then a decoupled overlay sized first via a fixed inset and then via
-       JS reading the card's real position) all eventually showed visible
-       misalignment under a real touch swipe, so mobile just resets back to
-       the plain default border/shadow every card already gets; the
-       "Recommended" badge text alone carries the distinction here. Desktop
-       keeps its own border/glow untouched (.lp-pricing-card-recommended
-       above, outside this breakpoint) since it was never part of this bug -
-       cards there are static and side by side, nothing ever slides. */
-    .lp-pricing-card-recommended { border-color: var(--border); box-shadow: var(--shadow); }
     /* Arrows removed here per feedback, same reasoning as .lp-slider-arrow
        above - swipe plus the now-correctly-visible peek of the next card is
        enough of a "there's more" cue on touch. Base rule (display:none)
