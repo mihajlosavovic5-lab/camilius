@@ -806,8 +806,8 @@ body.auth {
 .support-widget-fab:hover { background: var(--primary-dark); transform: translateY(-2px) scale(1.04); box-shadow: 0 10px 26px rgba(214,148,16,.38), var(--shadow-lg); }
 .support-widget-fab-icon { width: 26px; height: 26px; }
 .support-widget-panel {
-    position: absolute; right: 0; bottom: 70px; width: min(392px, calc(100vw - 32px));
-    height: min(568px, calc(100vh - 108px)); background: var(--surface);
+    position: absolute; right: 0; bottom: 70px; width: min(320px, calc(100vw - 32px));
+    height: min(440px, calc(100vh - 108px)); background: var(--surface);
     border: 1px solid var(--border); border-radius: 22px;
     box-shadow: 0 22px 60px rgba(38, 32, 20, .16), 0 6px 16px rgba(38, 32, 20, .08);
     display: flex; flex-direction: column; overflow: hidden;
@@ -868,7 +868,7 @@ body.auth {
        rule above) instead of stretching edge-to-edge with left/right insets - a
        full-width sheet reads as sitting in the middle of the screen rather than as a
        corner widget belonging to the page. */
-    .support-widget-panel { width: min(340px, calc(100vw - 24px)); height: min(72vh, calc(100vh - 96px)); }
+    .support-widget-panel { width: min(300px, calc(100vw - 24px)); height: min(60vh, calc(100vh - 96px)); }
 }
 
 /* --- Legal pages (prose) --- */
