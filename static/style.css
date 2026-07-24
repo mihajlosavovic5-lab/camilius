@@ -1001,30 +1001,39 @@ body.intro { margin: 0; height: 100dvh; overflow: hidden; }
        install banner itself use) so this stays clear of the banner instead of the
        two overlapping. */
     position: fixed; top: var(--install-banner-h); left: 0; right: 0; z-index: 999;
-    padding: 18px 0; background: rgba(253, 252, 250, 0);
-    border-bottom: 1px solid rgba(236, 230, 218, 0);
-    transition: background .25s ease, border-color .25s ease, padding .25s ease, box-shadow .25s ease,
-                top .2s cubic-bezier(.16,1,.3,1);
+    padding: 18px 0;
+    transition: padding .25s ease, top .2s cubic-bezier(.16,1,.3,1);
 }
-#lp-header.lp-scrolled {
+/* The bar's actual background/border/blur lives on ::before, not on #lp-header
+   itself - #lp-header also contains the hamburger button and the drawer it
+   opens (#lp-menu-modal is a child of this header), and both must stay fully
+   sharp/interactive no matter what. opacity/filter can't be "undone" on a
+   descendant once set on an ancestor (a child can't opt back out of its
+   parent's blur or restore the page's real opacity), so those effects can only
+   ever go on this decorative pseudo-element, never on #lp-header itself. */
+#lp-header::before {
+    content: ""; position: absolute; inset: 0; z-index: 0; pointer-events: none;
+    background: rgba(253, 252, 250, 0);
+    border-bottom: 1px solid rgba(236, 230, 218, 0);
+    transition: background .25s ease, border-color .25s ease, box-shadow .25s ease,
+                opacity .25s ease, filter .25s ease;
+}
+#lp-header.lp-scrolled { padding: 12px 0; }
+#lp-header.lp-scrolled::before {
     background: rgba(255, 255, 255, .85);
     backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
     border-bottom-color: var(--border);
-    padding: 12px 0;
     box-shadow: 0 4px 20px rgba(38, 32, 20, .05);
 }
-/* The header's own frosted-glass backdrop-filter above sits directly behind the
-   menu drawer's backdrop-filter (.lp-menu-modal-backdrop below - both are fixed
-   at the same top offset, and the drawer's covers the header too), so while the
-   drawer is open there are two nested backdrop-filter blurs stacked on the exact
-   same strip at the top of the page. Rebuilding two nested backdrop-filter
-   samples after the tab was backgrounded and regained focus is what left a
-   stray horizontal seam right at the header for the few seconds the compositor
-   needed to settle. The header is already dimmed/blurred by the drawer's own
-   backdrop on top of it, so drop the header's redundant one for the duration -
-   nothing looks different, there's just one blur layer left to rebuild. */
-body.lp-menu-open #lp-header.lp-scrolled {
-    backdrop-filter: none; -webkit-backdrop-filter: none;
+/* Same opacity/blur as body.lp-menu-open .content/.lp-header-spacer further
+   down - identical treatment on every side of the header/hero boundary
+   (instead of the header bar staying bright/sharp while the page below it
+   dims and blurs) is what actually closes the contrast seam users kept
+   seeing there, rather than just papering over one side of it. Only
+   ::before dims - the real header (hamburger button, drawer) is untouched
+   and stays fully sharp and clickable. */
+body.lp-menu-open #lp-header.lp-scrolled::before {
+    opacity: .3; filter: blur(1.5px);
 }
 /* While the drawer is open, dim + disable the language flag - it lives
    outside the header's own stacking context (see the drawer's top: var(
@@ -1049,7 +1058,11 @@ body.lp-menu-open { position: fixed; left: 0; right: 0; width: 100%; overflow: h
    below (absolute) for corner-pinning, leaving no in-flow content to size
    this box - without it, the header collapses and its scrolled
    frosted-glass background no longer reaches down behind them. */
-#lp-header .public-header { padding-top: 0; padding-bottom: 0; min-height: 38px; }
+/* position/z-index keep the brand above ::before (the header's own background
+   bar, added above) - a plain static/auto-stacked div would otherwise paint
+   *under* an absolutely-positioned sibling pseudo-element, hiding it behind
+   the bar it's supposed to sit on top of. */
+#lp-header .public-header { padding-top: 0; padding-bottom: 0; min-height: 38px; position: relative; z-index: 1; }
 .lp-header-spacer { height: 74px; }
 
 /* Centered logo, a real <button> (see landing.html's scroll-to-top click
