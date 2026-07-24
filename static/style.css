@@ -1413,8 +1413,45 @@ html { scroll-behavior: smooth; }
    account" button (mobile/app.css .button-primary-outline) - reads as a
    plain label rather than a second "recommended"-style claim. */
 .lp-plan-badge-basic { background: var(--surface); color: var(--primary); border: 1.5px solid var(--primary); padding: 2.5px 10.5px; }
+
+/* On phones the grid above becomes a one-card-at-a-time sliding track (see
+   lp-pricing-grid JS in landing.html) with classic prev/next arrows -
+   desktop keeps the untouched side-by-side grid. Same viewport/track split
+   as .lp-slider above and for the same reason: overflow:hidden has to sit
+   on a *different*, non-transformed ancestor (.pricing-cards-viewport) than
+   the element being translated (.pricing-cards-grid) - clipping and the
+   transform on the same box would move the clip window and its content
+   together, so the second card would never scroll into view. --pricing-x
+   is written by that JS but the transform only exists inside this
+   breakpoint, so setting it never affects the desktop grid. Arrows hide
+   themselves via :disabled (also set by that JS) once there's nothing
+   further in that direction. */
+.pricing-cards-wrap { position: relative; }
+.pricing-arrow {
+    display: none; position: absolute; top: 50%; transform: translateY(-50%);
+    width: 36px; height: 36px; border-radius: 50%; z-index: 2;
+    align-items: center; justify-content: center;
+    background: var(--surface); border: 1px solid var(--border); box-shadow: var(--shadow-lg);
+    color: var(--text); font-size: 18px; cursor: pointer;
+    transition: transform .18s ease, background .18s ease, border-color .18s ease;
+}
+.pricing-arrow:hover { background: var(--primary-light); border-color: rgba(214, 148, 16, .35); }
+.pricing-arrow:active { transform: translateY(-50%) scale(.92); }
+.pricing-arrow-prev { left: 2px; }
+.pricing-arrow-next { right: 2px; }
+.pricing-arrow:disabled { display: none !important; }
 @media (max-width: 720px) {
-    .pricing-cards-grid { grid-template-columns: 1fr; max-width: 420px; }
+    .pricing-cards-wrap { max-width: 420px; margin: 0 auto; }
+    .pricing-cards-viewport { overflow: hidden; border-radius: var(--radius); }
+    .pricing-cards-grid {
+        grid-template-columns: 1fr; max-width: none;
+        display: flex;
+        transition: transform .4s cubic-bezier(.16, 1, .3, 1);
+        transform: translateX(var(--pricing-x, 0%));
+    }
+    .pricing-cards-grid .lp-pricing-card { flex: 0 0 100%; min-width: 0; }
+    .pricing-arrow { display: flex; }
+    .pricing-arrow:disabled { display: none; }
 }
 
 /* --- Footer restructure --- */

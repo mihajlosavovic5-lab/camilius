@@ -290,7 +290,9 @@
                 <button type="button" class="pricing-toggle-option" data-interval="yearly" data-i18n="subscription.yearly">Yearly</button>
             </div>
         </div>
-        <div class="pricing-cards-grid lp-reveal-group">
+        <div class="pricing-cards-wrap">
+        <div class="pricing-cards-viewport">
+        <div class="pricing-cards-grid lp-reveal-group" id="lp-pricing-grid">
             <div class="card lp-pricing-card lp-card-hover lp-reveal">
                 <span class="lp-plan-badge lp-plan-badge-basic" data-i18n="subscription.basic">Basic</span>
                 <p class="lp-pricing-plan-name">Starter</p>
@@ -333,6 +335,10 @@
                 </ul>
                 <a href="{{ url_for('register') }}" class="button button-full lp-shine" data-i18n="landing.pricing.cta">Start your free trial</a>
             </div>
+        </div>
+        </div>
+        <button type="button" class="pricing-arrow pricing-arrow-prev" id="lp-pricing-prev" aria-label="Previous plan">&#8249;</button>
+        <button type="button" class="pricing-arrow pricing-arrow-next" id="lp-pricing-next" aria-label="Next plan">&#8250;</button>
         </div>
     </section>
     {% endif %}
@@ -672,6 +678,53 @@
                 });
             });
         });
+    }
+
+    // Mobile "Simple pricing" carousel - phones show one plan card at a time
+    // (side by side, sliding) instead of stacking Starter above Pro, with
+    // classic prev/next arrows that simply disappear at each end (no
+    // wraparound - matches the site's other arrow-nav pattern above, just
+    // without the loop since there's nowhere further to go). Desktop is
+    // untouched: the CSS only turns the grid into a sliding track under the
+    // existing 720px breakpoint, so above it this block is a no-op.
+    var pricingGrid = document.getElementById('lp-pricing-grid');
+    var pricingCards = pricingGrid ? Array.prototype.slice.call(pricingGrid.children) : [];
+    var pricingPrev = document.getElementById('lp-pricing-prev');
+    var pricingNext = document.getElementById('lp-pricing-next');
+    if (pricingGrid && pricingPrev && pricingNext && pricingCards.length > 1) {
+        var pricingIndex = 0;
+
+        function renderPricingCarousel() {
+            pricingGrid.style.setProperty('--pricing-x', (-pricingIndex * 100) + '%');
+            pricingPrev.disabled = pricingIndex === 0;
+            pricingNext.disabled = pricingIndex === pricingCards.length - 1;
+        }
+
+        pricingPrev.addEventListener('click', function () {
+            if (pricingIndex === 0) return;
+            pricingIndex -= 1;
+            renderPricingCarousel();
+        });
+        pricingNext.addEventListener('click', function () {
+            if (pricingIndex === pricingCards.length - 1) return;
+            pricingIndex += 1;
+            renderPricingCarousel();
+        });
+
+        var pricingTouchStartX = null;
+        pricingGrid.addEventListener('touchstart', function (e) {
+            pricingTouchStartX = e.touches[0].clientX;
+        }, { passive: true });
+        pricingGrid.addEventListener('touchend', function (e) {
+            if (pricingTouchStartX === null) return;
+            var deltaX = e.changedTouches[0].clientX - pricingTouchStartX;
+            if (deltaX < -40 && pricingIndex < pricingCards.length - 1) pricingIndex += 1;
+            else if (deltaX > 40 && pricingIndex > 0) pricingIndex -= 1;
+            pricingTouchStartX = null;
+            renderPricingCarousel();
+        });
+
+        renderPricingCarousel();
     }
 
 })();
