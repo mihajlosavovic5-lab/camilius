@@ -1074,11 +1074,14 @@ body.lp-menu-open #lp-corner-brand {
 .lp-menu-modal.open { visibility: visible; pointer-events: auto; }
 .lp-menu-modal-backdrop {
     position: absolute; inset: 0; background: rgba(20,15,8,.42);
-    /* No backdrop-filter here on purpose - it used to blur(4px), but that (plus the
-       sheet's own blur below) left a stale seam-line artifact across the header/hero
-       boundary after switching browser tabs away and back while the drawer was open
-       (a Chrome compositor repaint bug with backdrop-filter layers, confirmed by
-       removing both blurs and retesting). */
+    /* backdrop-filter blur brings back the whole-page blur behind the drawer.
+       It used to be paired with a second blur on the sheet itself, and that
+       combo left a stale seam-line artifact across the header/hero boundary
+       after switching browser tabs away and back (a Chrome compositor repaint
+       bug). Keeping the blur on just this single layer, plus forcing it onto
+       its own compositor layer via translateZ/will-change, avoids that. */
+    backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+    transform: translateZ(0); will-change: opacity;
     opacity: 0; transition: opacity .3s ease;
 }
 .lp-menu-modal.open .lp-menu-modal-backdrop { opacity: 1; }
