@@ -812,14 +812,12 @@ body.auth {
     width: 58px; height: 58px; border-radius: 50%; border: none; cursor: pointer; padding: 0;
     background: linear-gradient(150deg, var(--primary) 0%, var(--primary-dark) 100%); color: #fff;
     display: flex; align-items: center; justify-content: center;
-    /* Faint white ring (matches the page background, not a hard border) lifts the
-       disc off busy hero art the same way the panel/FAB's own shadow lifts it off
-       a plain background - plus a soft amber glow and a top highlight for depth,
-       instead of one flat drop-shadow. */
-    box-shadow: 0 0 0 4px var(--background), 0 10px 24px rgba(214,148,16,.38), 0 2px 6px rgba(38,32,20,.16), inset 0 1px 0 rgba(255,255,255,.3);
+    /* Soft amber glow plus a top highlight for depth, instead of one flat
+       drop-shadow. */
+    box-shadow: 0 10px 24px rgba(214,148,16,.38), 0 2px 6px rgba(38,32,20,.16), inset 0 1px 0 rgba(255,255,255,.3);
     transition: transform .18s cubic-bezier(.2,.9,.3,1.3), box-shadow .18s ease;
 }
-.support-widget-fab:hover { transform: translateY(-3px) scale(1.06); box-shadow: 0 0 0 4px var(--background), 0 14px 30px rgba(214,148,16,.46), 0 4px 10px rgba(38,32,20,.2), inset 0 1px 0 rgba(255,255,255,.35); }
+.support-widget-fab:hover { transform: translateY(-3px) scale(1.06); box-shadow: 0 14px 30px rgba(214,148,16,.46), 0 4px 10px rgba(38,32,20,.2), inset 0 1px 0 rgba(255,255,255,.35); }
 .support-widget-fab:active { transform: translateY(-1px) scale(.96); }
 .support-widget-fab-icon { width: 27px; height: 27px; filter: drop-shadow(0 1px 1px rgba(0,0,0,.12)); }
 .support-widget-panel {
