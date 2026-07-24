@@ -655,7 +655,20 @@
         function prev() { goTo(current - 1); }
 
         function startAutoplay() {
-            if (prefersReducedMotion || autoplayTimer) return;
+            // document.body.classList check: the drawer's own open/close handlers
+            // (see 'lp:menu-open'/'lp:menu-close' below) already stop/start this
+            // timer directly, but mouseenter/mouseleave on the slider (just below)
+            // call stopAutoplay/startAutoplay completely independently of that,
+            // with no idea the drawer exists. Once the drawer opens, .content gets
+            // pointer-events: none, so the very next mousemove - including just
+            // moving the cursor up toward the browser's own tabs, no click or tab
+            // switch needed - makes the browser re-hit-test and find the slider no
+            // longer hittable, which fires a real mouseleave on it and called this
+            // function anyway, silently undoing the drawer's pause and setting the
+            // autoplay timer running again while the drawer was still open. This
+            // guard makes every path into startAutoplay respect the drawer's state
+            // instead of just the one the drawer itself controls.
+            if (prefersReducedMotion || autoplayTimer || document.body.classList.contains('lp-menu-open')) return;
             // 6.5s (was 5s) - the typing effect above was slowed down on request, so
             // this needed to grow too or the longest example replies would get cut
             // off / auto-advance before they even finish typing.
