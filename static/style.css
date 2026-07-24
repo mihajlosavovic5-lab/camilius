@@ -1205,18 +1205,38 @@ html { scroll-behavior: smooth; }
     to { opacity: 1; transform: none; }
 }
 
-/* --- Button shine sweep --- */
-.lp-shine { position: relative; overflow: hidden; }
+/* --- Hero CTA: premium button treatment ---
+   Was a flat fill with a shine sweep looping forever on a timer, which read as a
+   cheap template trick. Real "strong" sites don't loop a gloss effect - the shine
+   below now fires once, on hover, as an intentional micro-interaction; the button
+   itself carries the polish instead (soft gradient, brand-colored ambient glow,
+   crisp inset highlight for depth, smoother easing on lift). */
+.hero-actions .button.lp-shine {
+    position: relative; overflow: hidden;
+    background: linear-gradient(160deg, var(--gold-dark) 0%, var(--primary) 58%, var(--primary-dark) 100%);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, .38), 0 1px 2px rgba(38, 32, 20, .1), 0 16px 32px -14px rgba(214, 148, 16, .6);
+    letter-spacing: .1px;
+    transition: transform .28s cubic-bezier(.16, 1, .3, 1), box-shadow .28s cubic-bezier(.16, 1, .3, 1), background .22s ease;
+}
+.hero-actions .button.lp-shine:hover {
+    background: linear-gradient(160deg, var(--gold-dark) 0%, var(--primary-dark) 100%);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, .42), 0 2px 4px rgba(38, 32, 20, .12), 0 22px 40px -16px rgba(214, 148, 16, .68);
+    transform: translateY(-2px);
+}
+.hero-actions .button.lp-shine:active {
+    transform: translateY(0);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, .3), 0 8px 16px -10px rgba(214, 148, 16, .55);
+}
 .lp-shine::after {
     content: ""; position: absolute; top: 0; left: -60%; width: 40%; height: 100%;
-    background: linear-gradient(100deg, transparent, rgba(255, 255, 255, .55), transparent);
+    background: linear-gradient(100deg, transparent, rgba(255, 255, 255, .6), transparent);
     transform: skewX(-20deg);
-    animation: lp-shine-sweep 3.2s ease-in-out infinite;
-    animation-delay: 1.4s;
+}
+.lp-shine:hover::after {
+    animation: lp-shine-sweep .85s cubic-bezier(.16, 1, .3, 1);
 }
 @keyframes lp-shine-sweep {
     0% { left: -60%; }
-    18% { left: 130%; }
     100% { left: 130%; }
 }
 
