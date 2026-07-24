@@ -47,12 +47,13 @@ reply. Filters: All / Pending (awaiting approval) / Sent / Archived / Trash. Tra
 auto-purged after 30 days. A daily quota bar at the top shows how many messages have
 been processed today out of the daily limit (50/day).
 
-Subscription & pricing: every new account starts with a 14-day free trial automatically -
-no card required, and during the trial the account gets full access including Pro
-features. After the trial, continuing requires a paid plan:
-- Starter: EUR 29/month or EUR 290/year (2 months free on yearly) - basic AI replies to
+Subscription & pricing: every new account gets a 14-day free trial with full access
+including Pro features. Starting the trial means picking a plan and adding a card via
+Paddle Checkout - nothing is charged during the trial, and we email a heads-up a few
+days before it ends. Cancel any time before then and nothing is charged at all.
+- Starter: $29/month or $290/year (2 months free on yearly) - basic AI replies to
   Instagram DMs, up to 300 conversations per month.
-- Pro: EUR 59/month or EUR 590/year (2 months free on yearly) - everything in Starter,
+- Pro: $59/month or $590/year (2 months free on yearly) - everything in Starter,
   plus: smart appointment scheduling via the Schedule page, automatic reminders,
   appointment cancellation, and this support assistant.
 Billing is handled by Paddle (Camilius's authorized reseller/merchant of record); VAT is
