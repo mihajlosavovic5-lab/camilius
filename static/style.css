@@ -137,10 +137,13 @@
     --shadow: 0 2px 6px rgba(38, 32, 20, .05), 0 1px 2px rgba(38, 32, 20, .04);
     --shadow-lg: 0 16px 44px rgba(38, 32, 20, .10), 0 4px 10px rgba(38, 32, 20, .05);
     --radius: 12px;
-    /* Header-menu drawer glass panel + its row "chips" (static/style.css .lp-menu-modal-*) */
-    --menu-sheet-bg: rgba(255, 255, 255, .7);
-    --menu-row-bg: rgba(255, 255, 255, .55);
-    --menu-row-border: rgba(236, 230, 218, .8);
+    /* Header-menu drawer panel + its row "chips" (static/style.css .lp-menu-modal-*).
+       The sheet matches the page's own --background (solid, not a see-through glass
+       panel), and each row gets a soft amber wash so they read as filled buttons
+       rather than bare, near-invisible text. */
+    --menu-sheet-bg: var(--background);
+    --menu-row-bg: rgba(214, 148, 16, .1);
+    --menu-row-border: rgba(214, 148, 16, .28);
 }
 
 /* --- Dark mode - follows the OS/browser preference (no in-app toggle). Redefining the
@@ -174,9 +177,9 @@
         --danger-border: #5c342a;
         --shadow: 0 2px 6px rgba(0, 0, 0, .3), 0 1px 2px rgba(0, 0, 0, .25);
         --shadow-lg: 0 16px 44px rgba(0, 0, 0, .45), 0 4px 10px rgba(0, 0, 0, .3);
-        --menu-sheet-bg: rgba(36, 30, 23, .78);
-        --menu-row-bg: rgba(255, 255, 255, .05);
-        --menu-row-border: rgba(255, 255, 255, .09);
+        --menu-sheet-bg: var(--background);
+        --menu-row-bg: rgba(232, 165, 28, .13);
+        --menu-row-border: rgba(232, 165, 28, .3);
     }
 
     body {
@@ -1091,8 +1094,10 @@ body.lp-menu-open #lp-corner-brand {
     position: absolute; left: 0; top: 0; bottom: 0;
     width: min(240px, 70vw);
     /* No backdrop-filter here either (used to be blur(20px) saturate(160%)) - see
-       .lp-menu-modal-backdrop above for why. --menu-sheet-bg is still translucent, so
-       the dimmed backdrop shows through, just without the frosted-glass blur on top. */
+       .lp-menu-modal-backdrop above for why. --menu-sheet-bg is a solid color (matches
+       the page's own --background) rather than a see-through glass panel, so the dimmed
+       backdrop behind it no longer shows through - the drawer reads as part of the site
+       itself instead of a floating overlay. */
     background: var(--menu-sheet-bg);
     box-shadow: var(--shadow-lg); overflow-y: auto;
     display: flex; flex-direction: column; padding: 84px 14px 24px;
@@ -1110,9 +1115,10 @@ body.lp-menu-open #lp-corner-brand {
 }
 /* Rows fade/slide in with a slight per-item stagger once the drawer is open -
    only while .open is present, so closing fades everything out together
-   instead of replaying the stagger in reverse. Each row is its own translucent
-   "chip" (background + border) rather than bare text, so they read as
-   distinct tappable fields against the glass panel behind them. */
+   instead of replaying the stagger in reverse. Each row is its own filled amber
+   "chip" (background + border, see --menu-row-bg/--menu-row-border) rather than
+   bare or barely-there text, so they read as solid, clickable buttons against
+   the solid drawer panel behind them. */
 .lp-menu-modal-sheet a {
     padding: 13px 14px; margin: 3px 0; border-radius: 10px;
     font-size: 16px; font-weight: 500; color: var(--text);
