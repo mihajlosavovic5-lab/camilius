@@ -1028,32 +1028,40 @@ body.lp-menu-open #lp-corner-brand {
    earlier desktop-only row (logo left, center nav, Log in/Try for free
    right) whose in-flow nav links sat flush in the same corner as the fixed
    language-picker button and visibly overlapped it below 1080px. */
+/* Filled amber-gradient circle + white bars, not a bare transparent glyph -
+   same fill/shadow/hover language as .support-widget-fab and the brand accent
+   strip (linear-gradient(--primary, --gold-dark)) so this reads as one of the
+   site's own buttons instead of a generic system hamburger. */
 .lp-menu-btn {
     display: inline-flex;
     /* z-index above .lp-menu-modal's 1002 - the drawer now covers this same
        corner (full-height, from left:0), so the button (turned into an "X")
        must stay on top of it to remain visible/clickable as the close control. */
-    position: absolute; top: 20px; left: 20px; z-index: 1003;
-    width: 34px; height: 34px; align-items: center; justify-content: center;
+    position: absolute; top: 16px; left: 16px; z-index: 1003;
+    width: 40px; height: 40px; align-items: center; justify-content: center;
     flex-direction: column; gap: 5px;
-    background: none; border: none; border-radius: 50%; cursor: pointer; padding: 0;
-    transition: transform .15s ease, background-color .2s ease;
+    background: linear-gradient(135deg, var(--primary), var(--gold-dark));
+    border: none; border-radius: 50%; cursor: pointer; padding: 0;
+    box-shadow: var(--shadow-lg), 0 4px 14px -4px rgba(214, 148, 16, .55);
+    transition: transform .15s ease, box-shadow .2s ease, background .2s ease;
 }
 .lp-menu-btn span {
-    display: block; width: 22px; height: 2px; border-radius: 2px;
-    background: var(--text); transition: transform .3s cubic-bezier(.16,1,.3,1), opacity .2s ease, background-color .2s ease;
+    display: block; width: 18px; height: 2px; border-radius: 2px;
+    background: #fff; transition: transform .3s cubic-bezier(.16,1,.3,1), opacity .2s ease;
 }
-.lp-menu-btn.active span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+.lp-menu-btn.active span:nth-child(1) { transform: translateY(6px) rotate(45deg); }
 .lp-menu-btn.active span:nth-child(2) { opacity: 0; }
-.lp-menu-btn.active span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
-/* Hover-only polish (amber wash + tinted bars), gated to real mice/trackpads -
-   on touch, `:hover` sticks after a tap until the next stray touch elsewhere,
-   which read as a stuck-highlighted button on mobile once this got richer
-   than a plain scale. Desktop keeps the richer treatment since a mouse
-   actually leaves on its own. */
+.lp-menu-btn.active span:nth-child(3) { transform: translateY(-6px) rotate(-45deg); }
+/* Hover-only polish, gated to real mice/trackpads - on touch, `:hover` sticks
+   after a tap until the next stray touch elsewhere, which read as a
+   stuck-highlighted button on mobile once this got richer than a plain scale.
+   Desktop keeps the richer treatment since a mouse actually leaves on its own. */
 @media (hover: hover) and (pointer: fine) {
-    .lp-menu-btn:hover { transform: scale(1.08); background-color: var(--primary-light); }
-    .lp-menu-btn:hover span { background: var(--primary-ink); }
+    .lp-menu-btn:hover {
+        transform: scale(1.08);
+        background: linear-gradient(135deg, var(--primary-dark), var(--gold-dark));
+        box-shadow: var(--shadow-lg), 0 6px 18px -4px rgba(214, 148, 16, .7);
+    }
 }
 .lp-menu-btn:active { transform: scale(.92); }
 .lp-menu-btn:focus-visible {
