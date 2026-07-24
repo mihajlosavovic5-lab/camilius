@@ -457,6 +457,17 @@
             // must snap back immediately, not animate, or closing the drawer would
             // visibly scroll the page.
             window.scrollTo({ top: lockedScrollY, left: 0, behavior: 'instant' });
+            // Resume the "See it in action" slider's autoplay (see the listener
+            // below, in that slider's own setup) - it has no idea the drawer ever
+            // opened, so without this it just kept auto-advancing/smooth-scrolling
+            // its own horizontally-scrolling viewport underneath the blurred,
+            // non-interactive backdrop the whole time the drawer was open. That
+            // background scroll animation, replaying every 6.5s inside a live
+            // filter: blur() layer (body.lp-menu-open .content), was rasterizing a
+            // fresh blurred bitmap around a mid-scroll layout - the boundary of the
+            // slider's own scroll layer didn't blend cleanly into that, leaving a
+            // stray hairline seam behind for as long as the drawer stayed open.
+            document.dispatchEvent(new Event('lp:menu-close'));
         };
         var openMenu = function () {
             lockedScrollY = window.scrollY || document.documentElement.scrollTop;
@@ -465,6 +476,7 @@
             menuModal.classList.add('open');
             menuBtn.classList.add('active');
             menuBtn.setAttribute('aria-expanded', 'true');
+            document.dispatchEvent(new Event('lp:menu-open'));
         };
         menuBtn.addEventListener('click', function () {
             if (menuModal.classList.contains('open')) closeMenu(); else openMenu();
@@ -659,6 +671,12 @@
         if (nextBtn) nextBtn.addEventListener('click', function () { next(); restartAutoplay(); });
         slider.addEventListener('mouseenter', stopAutoplay);
         slider.addEventListener('mouseleave', startAutoplay);
+        // Dispatched by the header menu drawer (see openMenu/closeMenu above) -
+        // stop advancing/scrolling this carousel while it's hidden behind the
+        // dimmed, non-interactive backdrop, and pick back up where it left off
+        // once the drawer closes.
+        document.addEventListener('lp:menu-open', stopAutoplay);
+        document.addEventListener('lp:menu-close', startAutoplay);
 
         // Flips the active slide whenever a new one becomes the settled,
         // centered one - covers arrow/dot clicks, autoplay, and the user just
