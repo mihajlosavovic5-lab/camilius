@@ -1491,7 +1491,21 @@ html { scroll-behavior: smooth; }
     .pricing-cards-grid .lp-pricing-card {
         flex: 0 0 86%; min-width: 0;
         scroll-snap-align: center;
+        /* .benefits{flex:1} (above) exists to pin the CTA button to the same
+           bottom row on both cards when they sit side by side on desktop -
+           Starter and Pro don't have the same number of benefit lines, so
+           without it their buttons would land at different heights. On
+           mobile the carousel only ever shows one card at a time, so there's
+           no second card in the same row to align with - the same stretch
+           just left a bare gap between Pro's shorter list and its button.
+           Undoing the stretch and centering the column instead keeps both
+           cards at the same overall height (still matched via the grid's
+           default cross-axis stretch, so nothing jumps when swiping) without
+           that dead gap - the leftover space splits above and below the
+           content as a whole instead of piling up in one spot. */
+        justify-content: center;
     }
+    .pricing-cards-grid .lp-pricing-card .benefits { flex: none; }
     /* The recommended card's gold border/glow used to move with the sliding
        card; now that the card itself never transforms (native scroll owns
        its position), it could live directly on the card again - but keeping
