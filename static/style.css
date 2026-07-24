@@ -1371,7 +1371,7 @@ html { scroll-behavior: smooth; }
        Opacity/blur alone keeps the intended peek width exact. */
     opacity: .5; filter: blur(1.5px) saturate(.8);
     pointer-events: none;
-    transition: opacity .4s ease, filter .4s ease;
+    transition: opacity .2s ease, filter .2s ease;
 }
 .lp-slide.lp-slide-active {
     opacity: 1; filter: none;
