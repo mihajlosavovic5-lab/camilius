@@ -275,26 +275,30 @@
     </section>
 
     {% if not beta_free_mode %}
-    <!-- Pricing - a teaser carousel over the two real plans (Starter/Pro), reusing
-         the exact "See it in action" slider mechanics above (#lp-slider): same
-         .lp-slider/.lp-slider-viewport/.lp-slider-track/.lp-slide/.lp-slider-arrow/
-         .lp-slider-dots markup and CSS, just a different pair of cards and its own
-         JS instance (see the "pricing carousel" script below) - auto-advances, but
-         the visitor can also switch manually via the dots/arrows/swipe. The full
-         breakdown with a Monthly/Yearly toggle lives on /subscription (inside
-         Settings once logged in) - see subscription.html; benefit copy here reuses
-         that page's subscription.starter.*/subscription.pro.* translation keys so
-         the two pages stay in sync. -->
+    <!-- Pricing - a teaser over the two real plans (Starter/Pro) with the same
+         Monthly/Yearly toggle mechanic as /subscription (inside Settings once
+         logged in) - see subscription.html's own toggle JS, which this mirrors
+         (billingInterval, .pricing-toggle-option, .price-amount-value's data-
+         monthly/data-yearly). Benefit copy here reuses that page's own
+         subscription.starter.*/subscription.pro.* translation keys so the two
+         pages stay in sync. -->
     <section class="section lp-scroll-anchor" id="lp-pricing">
         <h2 class="section-title lp-reveal" data-i18n="landing.pricing.title">Simple pricing</h2>
+        <div class="pricing-toggle-wrap lp-reveal">
+            <div class="pricing-toggle" id="lp-pricing-toggle">
+                <button type="button" class="pricing-toggle-option active" data-interval="monthly" data-i18n="subscription.monthly">Monthly</button>
+                <button type="button" class="pricing-toggle-option" data-interval="yearly"><span data-i18n="subscription.yearly">Yearly</span> <span class="pricing-toggle-save" data-i18n="subscription.twoMonthsFree">2 months free</span></button>
+            </div>
+        </div>
         <div class="pricing-cards-grid lp-reveal-group">
             <div class="card lp-pricing-card lp-card-hover lp-reveal">
                 <span class="lp-plan-badge lp-plan-badge-basic" data-i18n="subscription.basic">Basic</span>
                 <p class="lp-pricing-plan-name">Starter</p>
                 <div class="price-row" style="justify-content: center;">
-                    <span class="price-amount">$29</span>
+                    <span class="price-amount">$<span class="price-amount-value" data-monthly="29" data-yearly="290">29</span></span>
                     <span class="price-period" data-i18n="landing.pricing.period">/ month</span>
                 </div>
+                <p class="note pricing-yearly-total hidden" data-i18n="subscription.billedYearlyStarter">Billed $290 / year</p>
                 <span class="trial-info" data-i18n="landing.pricing.trialInfo">14-day free trial</span>
                 <ul class="benefits">
                     <li><span class="checkmark">&#10003;</span> <span data-i18n="subscription.starter.benefit1">Basic AI replies to Instagram DMs</span></li>
@@ -307,44 +311,10 @@
                 <span class="lp-plan-badge lp-plan-badge-recommended" data-i18n="subscription.recommended">Recommended</span>
                 <p class="lp-pricing-plan-name">Pro</p>
                 <div class="price-row" style="justify-content: center;">
-                    <span class="price-amount">$59</span>
+                    <span class="price-amount">$<span class="price-amount-value" data-monthly="59" data-yearly="590">59</span></span>
                     <span class="price-period" data-i18n="landing.pricing.period">/ month</span>
                 </div>
-                <span class="trial-info" data-i18n="landing.pricing.trialInfo">14-day free trial</span>
-                <ul class="benefits">
-                    <li><span class="checkmark">&#10003;</span> <span data-i18n="subscription.pro.benefit1">Everything in Starter</span></li>
-                    <li><span class="checkmark">&#10003;</span> <span data-i18n="subscription.pro.benefit2">Smart appointment scheduling to calendar</span></li>
-                    <li><span class="checkmark">&#10003;</span> <span data-i18n="subscription.pro.benefit3">Automatic no-show reminders</span></li>
-                    <li><span class="checkmark">&#10003;</span> <span data-i18n="subscription.pro.benefit4">AI upsell for related services</span></li>
-                    <li><span class="checkmark">&#10003;</span> <span data-i18n="subscription.pro.benefit5">AI cancellation &amp; rescheduling</span></li>
-                    <li><span class="checkmark">&#10003;</span> <span data-i18n="subscription.pro.benefit6">AI assistant for support questions</span></li>
-                </ul>
-                <a href="{{ url_for('register') }}" class="button button-full lp-shine" data-i18n="landing.pricing.cta">Start your free trial</a>
-            </div>
-            <div class="card lp-pricing-card lp-card-hover lp-reveal">
-                <span class="lp-plan-badge lp-plan-badge-basic" data-i18n="subscription.basic">Basic</span>
-                <p class="lp-pricing-plan-name">Starter</p>
-                <div class="price-row" style="justify-content: center;">
-                    <span class="price-amount">$290</span>
-                    <span class="price-period" data-i18n="subscription.perYear">/ year</span>
-                    <span class="pricing-toggle-save" data-i18n="subscription.twoMonthsFree">2 months free</span>
-                </div>
-                <span class="trial-info" data-i18n="landing.pricing.trialInfo">14-day free trial</span>
-                <ul class="benefits">
-                    <li><span class="checkmark">&#10003;</span> <span data-i18n="subscription.starter.benefit1">Basic AI replies to Instagram DMs</span></li>
-                    <li><span class="checkmark">&#10003;</span> <span data-i18n="subscription.starter.benefit2">Up to 300 conversations / month</span></li>
-                    <li><span class="checkmark">&#10003;</span> <span data-i18n="landing.pricing.benefit3">Cancel anytime</span></li>
-                </ul>
-                <a href="{{ url_for('register') }}" class="button button-full lp-shine" data-i18n="landing.pricing.cta">Start your free trial</a>
-            </div>
-            <div class="card lp-pricing-card lp-pricing-card-recommended lp-card-hover lp-reveal">
-                <span class="lp-plan-badge lp-plan-badge-recommended" data-i18n="subscription.recommended">Recommended</span>
-                <p class="lp-pricing-plan-name">Pro</p>
-                <div class="price-row" style="justify-content: center;">
-                    <span class="price-amount">$590</span>
-                    <span class="price-period" data-i18n="subscription.perYear">/ year</span>
-                    <span class="pricing-toggle-save" data-i18n="subscription.twoMonthsFree">2 months free</span>
-                </div>
+                <p class="note pricing-yearly-total hidden" data-i18n="subscription.billedYearlyPro">Billed $590 / year</p>
                 <span class="trial-info" data-i18n="landing.pricing.trialInfo">14-day free trial</span>
                 <ul class="benefits">
                     <li><span class="checkmark">&#10003;</span> <span data-i18n="subscription.pro.benefit1">Everything in Starter</span></li>
@@ -661,6 +631,33 @@
             typeSlideReply(slides[current]);
             startAutoplay();
         }
+    }
+
+    // "Simple pricing" Monthly/Yearly toggle - mirrors subscription.html's own
+    // toggle exactly (billingInterval, .price-amount-value's data-monthly/data-
+    // yearly, .pricing-yearly-total visibility) so both pages behave identically.
+    var lpPricingToggle = document.getElementById('lp-pricing-toggle');
+    if (lpPricingToggle) {
+        var lpBillingInterval = 'monthly';
+        lpPricingToggle.querySelectorAll('.pricing-toggle-option').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                lpBillingInterval = btn.dataset.interval;
+                lpPricingToggle.querySelectorAll('.pricing-toggle-option').forEach(function (b) {
+                    b.classList.toggle('active', b === btn);
+                });
+                document.querySelectorAll('#lp-pricing .price-amount-value').forEach(function (el) {
+                    el.textContent = el.dataset[lpBillingInterval];
+                });
+                document.querySelectorAll('#lp-pricing .price-period').forEach(function (el) {
+                    var key = lpBillingInterval === 'monthly' ? 'landing.pricing.period' : 'subscription.perYear';
+                    el.setAttribute('data-i18n', key);
+                    el.textContent = t(key);
+                });
+                document.querySelectorAll('#lp-pricing .pricing-yearly-total').forEach(function (el) {
+                    el.classList.toggle('hidden', lpBillingInterval !== 'yearly');
+                });
+            });
+        });
     }
 
 })();
