@@ -49,6 +49,15 @@
        noticeably smoother than a bare .2s/.15s snap, without reintroducing that
        lag on a fast scroll-triggered re-show. */
     transition: transform .3s cubic-bezier(.22, 1, .36, 1), opacity .24s ease;
+    /* Promotes this to its own compositor layer up front, not lazily when the
+       scroll handler first flips .shown. That lazy promotion is itself main-thread
+       work, and it was landing at exactly the worst moment - mid fast scroll-up
+       fling, when the thread is already saturated handling scroll events - which
+       is what still made the re-show start late and hitch on its first frame even
+       after transform/opacity (compositor-only) replaced the old layout-based
+       animation. With the layer already warm, toggling .shown is pure compositor
+       work regardless of how busy the main thread is. */
+    will-change: transform, opacity;
 }
 .mobile-install-banner.shown { transform: translateY(0) scale(1); opacity: 1; pointer-events: auto; }
 @media (prefers-reduced-motion: reduce) {
