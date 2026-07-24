@@ -287,84 +287,76 @@
          the two pages stay in sync. -->
     <section class="section lp-scroll-anchor" id="lp-pricing">
         <h2 class="section-title lp-reveal" data-i18n="landing.pricing.title">Simple pricing</h2>
-        <div class="lp-slider lp-reveal" id="lp-pricing-slider">
-            <div class="lp-slider-viewport">
-                <div class="lp-slider-track" id="lp-pricing-slider-track">
-                    <div class="lp-slide card lp-pricing-card">
-                        <span class="lp-plan-badge lp-plan-badge-basic" data-i18n="subscription.basic">Basic</span>
-                        <p class="lp-pricing-plan-name">Starter</p>
-                        <div class="price-row" style="justify-content: center;">
-                            <span class="price-amount">$29</span>
-                            <span class="price-period" data-i18n="landing.pricing.period">/ month</span>
-                        </div>
-                        <span class="trial-info" data-i18n="landing.pricing.trialInfo">14-day free trial</span>
-                        <ul class="benefits">
-                            <li><span class="checkmark">&#10003;</span> <span data-i18n="subscription.starter.benefit1">Basic AI replies to Instagram DMs</span></li>
-                            <li><span class="checkmark">&#10003;</span> <span data-i18n="subscription.starter.benefit2">Up to 300 conversations / month</span></li>
-                            <li><span class="checkmark">&#10003;</span> <span data-i18n="landing.pricing.benefit3">Cancel anytime</span></li>
-                        </ul>
-                        <a href="{{ url_for('register') }}" class="button button-full lp-shine" data-i18n="landing.pricing.cta">Start your free trial</a>
-                    </div>
-                    <div class="lp-slide card lp-pricing-card">
-                        <span class="lp-plan-badge lp-plan-badge-basic" data-i18n="subscription.basic">Basic</span>
-                        <p class="lp-pricing-plan-name">Starter</p>
-                        <div class="price-row" style="justify-content: center;">
-                            <span class="price-amount">$290</span>
-                            <span class="price-period" data-i18n="subscription.perYear">/ year</span>
-                            <span class="pricing-toggle-save" data-i18n="subscription.twoMonthsFree">2 months free</span>
-                        </div>
-                        <span class="trial-info" data-i18n="landing.pricing.trialInfo">14-day free trial</span>
-                        <ul class="benefits">
-                            <li><span class="checkmark">&#10003;</span> <span data-i18n="subscription.starter.benefit1">Basic AI replies to Instagram DMs</span></li>
-                            <li><span class="checkmark">&#10003;</span> <span data-i18n="subscription.starter.benefit2">Up to 300 conversations / month</span></li>
-                            <li><span class="checkmark">&#10003;</span> <span data-i18n="landing.pricing.benefit3">Cancel anytime</span></li>
-                        </ul>
-                        <a href="{{ url_for('register') }}" class="button button-full lp-shine" data-i18n="landing.pricing.cta">Start your free trial</a>
-                    </div>
-                    <div class="lp-slide card lp-pricing-card lp-pricing-card-recommended">
-                        <span class="lp-plan-badge lp-plan-badge-recommended" data-i18n="subscription.recommended">Recommended</span>
-                        <p class="lp-pricing-plan-name">Pro</p>
-                        <div class="price-row" style="justify-content: center;">
-                            <span class="price-amount">$59</span>
-                            <span class="price-period" data-i18n="landing.pricing.period">/ month</span>
-                        </div>
-                        <span class="trial-info" data-i18n="landing.pricing.trialInfo">14-day free trial</span>
-                        <ul class="benefits">
-                            <li><span class="checkmark">&#10003;</span> <span data-i18n="subscription.pro.benefit1">Everything in Starter</span></li>
-                            <li><span class="checkmark">&#10003;</span> <span data-i18n="subscription.pro.benefit2">Smart appointment scheduling to calendar</span></li>
-                            <li><span class="checkmark">&#10003;</span> <span data-i18n="subscription.pro.benefit3">Automatic no-show reminders</span></li>
-                            <li><span class="checkmark">&#10003;</span> <span data-i18n="subscription.pro.benefit4">AI upsell for related services</span></li>
-                            <li><span class="checkmark">&#10003;</span> <span data-i18n="subscription.pro.benefit5">AI cancellation &amp; rescheduling</span></li>
-                            <li><span class="checkmark">&#10003;</span> <span data-i18n="subscription.pro.benefit6">AI assistant for support questions</span></li>
-                        </ul>
-                        <a href="{{ url_for('register') }}" class="button button-full lp-shine" data-i18n="landing.pricing.cta">Start your free trial</a>
-                    </div>
-                    <div class="lp-slide card lp-pricing-card lp-pricing-card-recommended">
-                        <span class="lp-plan-badge lp-plan-badge-recommended" data-i18n="subscription.recommended">Recommended</span>
-                        <p class="lp-pricing-plan-name">Pro</p>
-                        <div class="price-row" style="justify-content: center;">
-                            <span class="price-amount">$590</span>
-                            <span class="price-period" data-i18n="subscription.perYear">/ year</span>
-                            <span class="pricing-toggle-save" data-i18n="subscription.twoMonthsFree">2 months free</span>
-                        </div>
-                        <span class="trial-info" data-i18n="landing.pricing.trialInfo">14-day free trial</span>
-                        <ul class="benefits">
-                            <li><span class="checkmark">&#10003;</span> <span data-i18n="subscription.pro.benefit1">Everything in Starter</span></li>
-                            <li><span class="checkmark">&#10003;</span> <span data-i18n="subscription.pro.benefit2">Smart appointment scheduling to calendar</span></li>
-                            <li><span class="checkmark">&#10003;</span> <span data-i18n="subscription.pro.benefit3">Automatic no-show reminders</span></li>
-                            <li><span class="checkmark">&#10003;</span> <span data-i18n="subscription.pro.benefit4">AI upsell for related services</span></li>
-                            <li><span class="checkmark">&#10003;</span> <span data-i18n="subscription.pro.benefit5">AI cancellation &amp; rescheduling</span></li>
-                            <li><span class="checkmark">&#10003;</span> <span data-i18n="subscription.pro.benefit6">AI assistant for support questions</span></li>
-                        </ul>
-                        <a href="{{ url_for('register') }}" class="button button-full lp-shine" data-i18n="landing.pricing.cta">Start your free trial</a>
-                    </div>
+        <div class="pricing-cards-grid lp-reveal-group">
+            <div class="card lp-pricing-card lp-card-hover lp-reveal">
+                <span class="lp-plan-badge lp-plan-badge-basic" data-i18n="subscription.basic">Basic</span>
+                <p class="lp-pricing-plan-name">Starter</p>
+                <div class="price-row" style="justify-content: center;">
+                    <span class="price-amount">$29</span>
+                    <span class="price-period" data-i18n="landing.pricing.period">/ month</span>
                 </div>
+                <span class="trial-info" data-i18n="landing.pricing.trialInfo">14-day free trial</span>
+                <ul class="benefits">
+                    <li><span class="checkmark">&#10003;</span> <span data-i18n="subscription.starter.benefit1">Basic AI replies to Instagram DMs</span></li>
+                    <li><span class="checkmark">&#10003;</span> <span data-i18n="subscription.starter.benefit2">Up to 300 conversations / month</span></li>
+                    <li><span class="checkmark">&#10003;</span> <span data-i18n="landing.pricing.benefit3">Cancel anytime</span></li>
+                </ul>
+                <a href="{{ url_for('register') }}" class="button button-full lp-shine" data-i18n="landing.pricing.cta">Start your free trial</a>
             </div>
-            <button type="button" class="lp-slider-arrow lp-slider-prev" id="lp-pricing-slider-prev" aria-label="Previous plan">&#8249;</button>
-            <button type="button" class="lp-slider-arrow lp-slider-next" id="lp-pricing-slider-next" aria-label="Next plan">&#8250;</button>
-            <div class="lp-slider-dots" id="lp-pricing-slider-dots"></div>
+            <div class="card lp-pricing-card lp-pricing-card-recommended lp-card-hover lp-reveal">
+                <span class="lp-plan-badge lp-plan-badge-recommended" data-i18n="subscription.recommended">Recommended</span>
+                <p class="lp-pricing-plan-name">Pro</p>
+                <div class="price-row" style="justify-content: center;">
+                    <span class="price-amount">$59</span>
+                    <span class="price-period" data-i18n="landing.pricing.period">/ month</span>
+                </div>
+                <span class="trial-info" data-i18n="landing.pricing.trialInfo">14-day free trial</span>
+                <ul class="benefits">
+                    <li><span class="checkmark">&#10003;</span> <span data-i18n="subscription.pro.benefit1">Everything in Starter</span></li>
+                    <li><span class="checkmark">&#10003;</span> <span data-i18n="subscription.pro.benefit2">Smart appointment scheduling to calendar</span></li>
+                    <li><span class="checkmark">&#10003;</span> <span data-i18n="subscription.pro.benefit3">Automatic no-show reminders</span></li>
+                    <li><span class="checkmark">&#10003;</span> <span data-i18n="subscription.pro.benefit4">AI upsell for related services</span></li>
+                    <li><span class="checkmark">&#10003;</span> <span data-i18n="subscription.pro.benefit5">AI cancellation &amp; rescheduling</span></li>
+                    <li><span class="checkmark">&#10003;</span> <span data-i18n="subscription.pro.benefit6">AI assistant for support questions</span></li>
+                </ul>
+                <a href="{{ url_for('register') }}" class="button button-full lp-shine" data-i18n="landing.pricing.cta">Start your free trial</a>
+            </div>
+            <div class="card lp-pricing-card lp-card-hover lp-reveal">
+                <span class="lp-plan-badge lp-plan-badge-basic" data-i18n="subscription.basic">Basic</span>
+                <p class="lp-pricing-plan-name">Starter</p>
+                <div class="price-row" style="justify-content: center;">
+                    <span class="price-amount">$290</span>
+                    <span class="price-period" data-i18n="subscription.perYear">/ year</span>
+                    <span class="pricing-toggle-save" data-i18n="subscription.twoMonthsFree">2 months free</span>
+                </div>
+                <span class="trial-info" data-i18n="landing.pricing.trialInfo">14-day free trial</span>
+                <ul class="benefits">
+                    <li><span class="checkmark">&#10003;</span> <span data-i18n="subscription.starter.benefit1">Basic AI replies to Instagram DMs</span></li>
+                    <li><span class="checkmark">&#10003;</span> <span data-i18n="subscription.starter.benefit2">Up to 300 conversations / month</span></li>
+                    <li><span class="checkmark">&#10003;</span> <span data-i18n="landing.pricing.benefit3">Cancel anytime</span></li>
+                </ul>
+                <a href="{{ url_for('register') }}" class="button button-full lp-shine" data-i18n="landing.pricing.cta">Start your free trial</a>
+            </div>
+            <div class="card lp-pricing-card lp-pricing-card-recommended lp-card-hover lp-reveal">
+                <span class="lp-plan-badge lp-plan-badge-recommended" data-i18n="subscription.recommended">Recommended</span>
+                <p class="lp-pricing-plan-name">Pro</p>
+                <div class="price-row" style="justify-content: center;">
+                    <span class="price-amount">$590</span>
+                    <span class="price-period" data-i18n="subscription.perYear">/ year</span>
+                    <span class="pricing-toggle-save" data-i18n="subscription.twoMonthsFree">2 months free</span>
+                </div>
+                <span class="trial-info" data-i18n="landing.pricing.trialInfo">14-day free trial</span>
+                <ul class="benefits">
+                    <li><span class="checkmark">&#10003;</span> <span data-i18n="subscription.pro.benefit1">Everything in Starter</span></li>
+                    <li><span class="checkmark">&#10003;</span> <span data-i18n="subscription.pro.benefit2">Smart appointment scheduling to calendar</span></li>
+                    <li><span class="checkmark">&#10003;</span> <span data-i18n="subscription.pro.benefit3">Automatic no-show reminders</span></li>
+                    <li><span class="checkmark">&#10003;</span> <span data-i18n="subscription.pro.benefit4">AI upsell for related services</span></li>
+                    <li><span class="checkmark">&#10003;</span> <span data-i18n="subscription.pro.benefit5">AI cancellation &amp; rescheduling</span></li>
+                    <li><span class="checkmark">&#10003;</span> <span data-i18n="subscription.pro.benefit6">AI assistant for support questions</span></li>
+                </ul>
+                <a href="{{ url_for('register') }}" class="button button-full lp-shine" data-i18n="landing.pricing.cta">Start your free trial</a>
+            </div>
         </div>
-        <p style="text-align: center; color: var(--text-muted); font-size: 13.5px; margin-top: 14px;" class="lp-reveal" data-i18n="landing.pricing.caption">Switch between Starter and Pro to compare, or let it cycle on its own.</p>
     </section>
     {% endif %}
 
@@ -671,99 +663,6 @@
         }
     }
 
-    // "Simple pricing" carousel: a second instance of the exact same peek-carousel
-    // mechanics as the "See it in action" slider above, swapping automatically
-    // between the Starter/Pro cards, but with dots/arrows/swipe so the visitor can
-    // also switch manually at any time. No typing effect here (that's specific to
-    // simulating the AI reply above) - just the slide/fade + autoplay/touch bits.
-    var pricingSlider = document.getElementById('lp-pricing-slider');
-    var pricingTrack = document.getElementById('lp-pricing-slider-track');
-    var pricingSlides = pricingTrack ? Array.prototype.slice.call(pricingTrack.children) : [];
-    var pricingDotsWrap = document.getElementById('lp-pricing-slider-dots');
-    var pricingPrevBtn = document.getElementById('lp-pricing-slider-prev');
-    var pricingNextBtn = document.getElementById('lp-pricing-slider-next');
-
-    if (pricingSlider && pricingSlides.length) {
-        var pCurrent = 0;
-        var pSliderStyle = getComputedStyle(pricingSlider);
-        var pSlideW = parseFloat(pSliderStyle.getPropertyValue('--lp-slide-w')) || 100;
-        var pPeek = (100 - pSlideW) / 2;
-        var pAutoplayTimer = null;
-
-        var pDots = pricingSlides.map(function (_, i) {
-            var dot = document.createElement('button');
-            dot.type = 'button';
-            dot.className = 'lp-slider-dot';
-            dot.setAttribute('aria-label', 'Go to plan ' + (i + 1));
-            dot.addEventListener('click', function () { pGoTo(i); pRestartAutoplay(); });
-            pricingDotsWrap.appendChild(dot);
-            return dot;
-        });
-
-        function pGoTo(index) {
-            pCurrent = (index + pricingSlides.length) % pricingSlides.length;
-            pricingTrack.style.transform = 'translateX(' + (pPeek - pCurrent * pSlideW) + '%)';
-            pricingSlides.forEach(function (slide, i) { slide.classList.toggle('lp-slide-active', i === pCurrent); });
-            pDots.forEach(function (dot, i) { dot.classList.toggle('active', i === pCurrent); });
-            // No wraparound in the visible prev/next arrows - hide whichever one has
-            // nothing further to actually go to at either end of the slide list.
-            // Autoplay/swipe still use the modulo above underneath so the
-            // auto-rotation itself keeps looping regardless.
-            if (pricingPrevBtn) pricingPrevBtn.classList.toggle('hidden', pCurrent === 0);
-            if (pricingNextBtn) pricingNextBtn.classList.toggle('hidden', pCurrent === pricingSlides.length - 1);
-        }
-
-        function pNext() { pGoTo(pCurrent + 1); }
-        function pPrev() { pGoTo(pCurrent - 1); }
-
-        function pStartAutoplay() {
-            if (prefersReducedMotion || pAutoplayTimer) return;
-            pAutoplayTimer = setInterval(pNext, 6000);
-        }
-        function pStopAutoplay() {
-            clearInterval(pAutoplayTimer);
-            pAutoplayTimer = null;
-        }
-        function pRestartAutoplay() { pStopAutoplay(); pStartAutoplay(); }
-
-        if (pricingPrevBtn) pricingPrevBtn.addEventListener('click', function () { pPrev(); pRestartAutoplay(); });
-        if (pricingNextBtn) pricingNextBtn.addEventListener('click', function () { pNext(); pRestartAutoplay(); });
-        pricingSlider.addEventListener('mouseenter', pStopAutoplay);
-        pricingSlider.addEventListener('mouseleave', pStartAutoplay);
-
-        var pTouchStartX = null;
-        pricingSlider.addEventListener('touchstart', function (e) {
-            pTouchStartX = e.touches[0].clientX;
-            pStopAutoplay();
-        }, { passive: true });
-        pricingSlider.addEventListener('touchend', function (e) {
-            if (pTouchStartX === null) return;
-            var deltaX = e.changedTouches[0].clientX - pTouchStartX;
-            if (Math.abs(deltaX) > 40) { deltaX < 0 ? pNext() : pPrev(); }
-            pTouchStartX = null;
-            pStartAutoplay();
-        });
-
-        // Same as goTo(0) for the examples slider above - sets the initial position/
-        // active state AND the prev-arrow-hidden-on-slide-0 state from the same single
-        // place pGoTo always uses, rather than duplicating that logic here.
-        pGoTo(0);
-
-        // Same "don't run until scrolled into view" deferral as the examples slider.
-        if ('IntersectionObserver' in window) {
-            var pSliderIo = new IntersectionObserver(function (entries) {
-                entries.forEach(function (entry) {
-                    if (entry.isIntersecting) {
-                        pStartAutoplay();
-                        pSliderIo.unobserve(entry.target);
-                    }
-                });
-            }, { threshold: 0.4 });
-            pSliderIo.observe(pricingSlider);
-        } else {
-            pStartAutoplay();
-        }
-    }
 })();
 </script>
 {% endblock %}
