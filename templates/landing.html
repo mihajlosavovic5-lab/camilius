@@ -577,6 +577,8 @@
         // never clamped.
         var isTouchDragging = false;
         var dragStartIndex = 0;
+        var touchStartX = 0;
+        var touchStartY = 0;
 
         var dots = slides.map(function (_, i) {
             var dot = document.createElement('button');
@@ -732,10 +734,32 @@
         // old manual touchstart/touchend swipe-distance check entirely. A
         // fixed debounce delay is fine for *this* (worst case autoplay just
         // waits a moment longer than it strictly had to).
-        sliderViewport.addEventListener('touchstart', function () {
+        sliderViewport.addEventListener('touchstart', function (e) {
             stopAutoplay();
             isTouchDragging = true;
             dragStartIndex = current;
+            if (e.touches && e.touches.length) {
+                touchStartX = e.touches[0].clientX;
+                touchStartY = e.touches[0].clientY;
+            }
+        }, { passive: true });
+        // Native scroll can't move past the first/last slide, so a swipe past
+        // either edge otherwise just does nothing (no reaction at all). Mirrors
+        // what the prev/next arrow buttons already do via goTo()'s wraparound -
+        // a swipe "forward" past the last slide loops to the first, and vice
+        // versa. Only fires right at the edge (checked via dragStartIndex, set
+        // above on touchstart) so a normal in-range swipe is untouched and still
+        // handled entirely by native scroll-snap.
+        sliderViewport.addEventListener('touchend', function (e) {
+            if (!e.changedTouches || !e.changedTouches.length) return;
+            var dx = touchStartX - e.changedTouches[0].clientX;
+            var dy = touchStartY - e.changedTouches[0].clientY;
+            if (Math.abs(dx) < 40 || Math.abs(dx) < Math.abs(dy)) return;
+            if (dx > 0 && dragStartIndex === slides.length - 1) {
+                goTo(0);
+            } else if (dx < 0 && dragStartIndex === 0) {
+                goTo(slides.length - 1);
+            }
         }, { passive: true });
         sliderViewport.addEventListener('scroll', function () {
             clearTimeout(scrollSettleTimer);
