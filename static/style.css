@@ -1506,19 +1506,25 @@ html { scroll-behavior: smooth; }
     /* The recommended card's gold border/glow used to move with the sliding
        card; now that the card itself never transforms (native scroll owns
        its position), it could live directly on the card again - but keeping
-       it as a static overlay on the (non-scrolling) viewport, toggled
-       instantly by the IntersectionObserver in landing.html, still avoids
-       any per-frame recalculation while the user is mid-drag. inset:0 7%
-       (not inset:0) matters: each card is only 86% of the viewport, centered
-       with a 7% peek on either side (see .pricing-cards-grid padding above) -
-       a full inset:0 frame spans the *entire* viewport including whatever's
-       peeking in on the sides, so it never actually matched the card's own
-       edges (visible as the frame not lining up with the card, and the
-       button/text stopping short of it). Inset 7% left/right is exactly the
-       settled, centered card's own bounds. */
+       it as a static overlay on the (non-scrolling) viewport still avoids
+       any per-frame recalculation while the user is mid-drag.
+       left/width come from --pricing-frame-left/--pricing-frame-width,
+       written by updatePricingActiveFromScroll in landing.html from the
+       settled card's own getBoundingClientRect() - NOT a fixed inset
+       percentage assuming the card ends up exactly centered. That was the
+       first attempt (inset: 0 7%, since each card is 86% of the viewport
+       with a 7% peek either side) and it matched perfectly under a
+       programmatic scroll to the theoretical snap position - but a real
+       finger-flung gesture doesn't reliably land there: mobile scroll-snap
+       settling has known real-world slop under fast/flicked gestures, so
+       the actual rest position can end up short of the "ideal" one by
+       enough to visibly separate the frame from the card. Reading the
+       actual rendered position can't drift from reality the way an assumed
+       constant can. */
     .lp-pricing-card-recommended { border-color: var(--border); box-shadow: var(--shadow); }
     .pricing-cards-viewport::after {
-        content: ""; position: absolute; inset: 0 7%; border-radius: inherit;
+        content: ""; position: absolute; top: 0; bottom: 0; border-radius: inherit;
+        left: var(--pricing-frame-left, 7%); width: var(--pricing-frame-width, 86%);
         border: 1px solid var(--primary);
         box-shadow: 0 10px 28px -10px rgba(214, 148, 16, .4);
         opacity: 0; pointer-events: none;
