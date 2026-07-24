@@ -231,6 +231,11 @@
      before signing up too). Talks about USING Camilius itself, not a business's own
      customers - see support_assistant.py. Excluded on /intro (full-bleed onboarding
      slides, same reasoning as the install banner above). -->
+<!-- Same dim-the-page treatment as the hamburger drawer (.lp-menu-modal-backdrop) -
+     opens/closes together with the panel below via the "open" class, and (being a
+     sibling of #support-widget, not a descendant) the existing outside-click
+     listener already closes the widget when this is clicked. -->
+<div id="support-widget-backdrop" class="support-widget-backdrop"></div>
 <div id="support-widget" class="support-widget">
     <button type="button" id="support-widget-toggle" class="support-widget-fab" aria-label="Camilius support">
         <svg class="support-widget-fab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
@@ -263,6 +268,7 @@
     (function () {
         var csrfToken = "{{ csrf_token() }}";
         var widget = document.getElementById("support-widget");
+        var backdrop = document.getElementById("support-widget-backdrop");
         var toggle = document.getElementById("support-widget-toggle");
         var panel = document.getElementById("support-widget-panel");
         var closeBtn = document.getElementById("support-widget-close");
@@ -277,6 +283,7 @@
         function setOpen(value) {
             open = value;
             panel.classList.toggle("hidden", !open);
+            backdrop.classList.toggle("open", open);
             // Deliberately no input.focus() here - auto-focusing the field the instant
             // the panel opens pops the on-screen keyboard immediately on mobile, which
             // shoves the whole panel around before the user asked for it. The keyboard
