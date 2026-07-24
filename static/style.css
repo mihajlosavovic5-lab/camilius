@@ -679,17 +679,33 @@ body.auth {
    real /subscription page, distinct from the older single-plan .price-row/.price-amount/
    .trial-info classes above (still used by the landing page's teaser, untouched here). */
 .pricing-toggle-wrap { display: flex; justify-content: center; margin-bottom: 28px; }
-.pricing-toggle { display: flex; background: var(--background); border: 1px solid var(--border); border-radius: 999px; padding: 4px; gap: 4px; }
+.pricing-toggle {
+    display: flex; background: var(--surface); border: 1px solid var(--border);
+    border-radius: 999px; padding: 5px; gap: 4px; box-shadow: var(--shadow);
+}
 .pricing-toggle-option {
     display: flex; align-items: center; gap: 8px;
-    padding: 9px 18px; border: none; border-radius: 999px; background: none; cursor: pointer;
-    font-family: inherit; font-size: 14px; font-weight: 600; color: var(--text-muted);
-    transition: background .15s ease, color .15s ease;
+    padding: 10px 20px; border: none; border-radius: 999px; background: none; cursor: pointer;
+    font-family: inherit; font-size: 14.5px; font-weight: 600; color: var(--text-muted);
+    transition: background .18s ease, color .18s ease, transform .12s ease, box-shadow .18s ease;
 }
-.pricing-toggle-option.active { background: var(--surface); color: var(--text); box-shadow: 0 1px 3px rgba(43,32,19,.12); }
+.pricing-toggle-option:hover:not(.active) { color: var(--text); background: var(--primary-light); }
+.pricing-toggle-option:active { transform: scale(.96); }
+.pricing-toggle-option.active {
+    background: var(--primary); color: #fff;
+    box-shadow: 0 4px 14px -5px rgba(214, 148, 16, .55);
+}
+.pricing-toggle-option.active:hover { background: var(--primary-dark); }
 .pricing-toggle-save {
     background: var(--success-bg); color: var(--success); border: 1px solid var(--success-border);
     font-size: 11px; font-weight: 700; padding: 2px 7px; border-radius: 99px;
+    transition: background .18s ease, color .18s ease, border-color .18s ease;
+}
+/* The "2 months free" badge sits on a solid amber background once Yearly is
+   active - swap it to a translucent white pill so it still reads clearly
+   against that background instead of clashing with the green success tint. */
+.pricing-toggle-option.active .pricing-toggle-save {
+    background: rgba(255, 255, 255, .25); color: #fff; border-color: rgba(255, 255, 255, .4);
 }
 
 .pricing-plans { display: flex; gap: 16px; flex-wrap: wrap; align-items: stretch; max-width: 600px; margin: 0 auto; }
@@ -1371,6 +1387,11 @@ html { scroll-behavior: smooth; }
    "How it works" grid above. Flex column + .benefits{flex:1} pins each card's CTA
    button to the same bottom edge even though Starter and Pro have a different number
    of benefit lines. */
+#lp-pricing .section-title { position: relative; padding-bottom: 16px; }
+#lp-pricing .section-title::after {
+    content: ""; position: absolute; bottom: 0; left: 50%; transform: translateX(-50%);
+    width: 46px; height: 3px; border-radius: 999px; background: var(--primary);
+}
 .pricing-cards-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; max-width: 620px; margin: 0 auto; }
 .lp-pricing-card { display: flex; flex-direction: column; text-align: center; padding: 20px 22px; }
 .lp-pricing-card .price-row { margin-bottom: 2px; }
