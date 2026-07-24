@@ -1159,10 +1159,22 @@ body.lp-menu-open #lp-corner-brand {
     }
 }
 .lp-menu-modal-sheet a:active { transform: translateY(1px); box-shadow: none; transition-delay: 0s; }
-/* "Try for free" is still the sitewide .button class underneath (inline-flex,
-   filled amber, centered text) - reset it back to a plain row so it looks and
-   behaves exactly like every other menu item, no special-cased styling. */
-.lp-menu-modal-sheet a.button { display: block; text-align: left; margin-top: 0; }
+/* "Try for free" keeps the sitewide filled-amber .button look (centered text,
+   solid fill, its own glow) instead of blending into the plain glass rows
+   around it - it's the drawer's one primary action, so it should read as the
+   same CTA as the hero's "Try free for 14 days" and every other .button on
+   the page. */
+.lp-menu-modal-sheet a.button {
+    justify-content: center; text-align: center; margin-top: 6px;
+    background: var(--primary); color: #fff; border-color: transparent;
+    box-shadow: 0 8px 18px -8px rgba(214, 148, 16, .5);
+}
+@media (hover: hover) and (pointer: fine) {
+    .lp-menu-modal.open .lp-menu-modal-sheet a.button:hover {
+        background: var(--primary-dark); color: #fff; border-color: transparent;
+        box-shadow: 0 10px 22px -8px rgba(214, 148, 16, .65);
+    }
+}
 .lp-menu-modal-divider { height: 1px; background: var(--menu-row-border); margin: 10px 4px; }
 /* "Download for Android" (and its preceding divider) only makes sense on an
    actual phone - hidden once the viewport is desktop-sized. */
