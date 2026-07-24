@@ -794,13 +794,16 @@ body.auth {
 /* --- Floating Support AI widget (Faza 8) --- */
 /* Same dim-the-page backdrop as the hamburger drawer (.lp-menu-modal-backdrop) -
    same color/opacity/timing, just under the widget's own z-index instead of the
-   drawer's. Sits behind the panel, above everything else on the page. */
+   drawer's. Pitched above every other fixed/sticky element on the site (the
+   highest of which, the mobile install banner, sits at 1010) so the header,
+   hamburger button, brand logo, and language picker all dim along with the
+   rest of the page instead of poking out above the backdrop. */
 .support-widget-backdrop {
-    position: fixed; inset: 0; z-index: 54; background: rgba(20,15,8,.42);
+    position: fixed; inset: 0; z-index: 1040; background: rgba(20,15,8,.42);
     opacity: 0; pointer-events: none; transition: opacity .3s ease;
 }
 .support-widget-backdrop.open { opacity: 1; pointer-events: auto; }
-.support-widget { position: fixed; right: 20px; bottom: 20px; z-index: 55; }
+.support-widget { position: fixed; right: 20px; bottom: 20px; z-index: 1041; }
 /* Same amber-fill + white-icon pairing every other CTA on the page uses (e.g.
    .support-widget-send below) - a plain vector chat-bubble glyph reads as "this site's
    chat button" more clearly than a photo/logo would, while the color still ties it back
