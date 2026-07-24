@@ -1452,9 +1452,12 @@ html { scroll-behavior: smooth; }
    than the viewport, so its neighbor is already sitting right next to it in
    the flex row), and let go without committing, and scroll-snap-
    type:mandatory settles back to whichever card you ended up closer to. No
-   arrows - swipe plus the peek is cue enough (removed by request). Current-
-   card detection for the recommended-card border below reads the scroll
-   position directly (landing.html JS). */
+   arrows - swipe plus the peek is cue enough (removed by request). No gold
+   "recommended" frame either (removed by request) - several attempts at
+   keeping it accurately positioned around whichever card is settled never
+   held up under a real finger-flung swipe, so mobile just shows the plain
+   "Recommended" badge text with no card-level border/glow; desktop is
+   unaffected and keeps both. */
 .pricing-cards-wrap { position: relative; }
 @media (max-width: 720px) {
     .pricing-cards-wrap { max-width: 420px; margin: 0 auto; }
@@ -1503,33 +1506,17 @@ html { scroll-behavior: smooth; }
            matching button height across both cards mattered more than
            closing that gap. */
     }
-    /* The recommended card's gold border/glow used to move with the sliding
-       card; now that the card itself never transforms (native scroll owns
-       its position), it could live directly on the card again - but keeping
-       it as a static overlay on the (non-scrolling) viewport still avoids
-       any per-frame recalculation while the user is mid-drag.
-       left/width come from --pricing-frame-left/--pricing-frame-width,
-       written by updatePricingActiveFromScroll in landing.html from the
-       settled card's own getBoundingClientRect() - NOT a fixed inset
-       percentage assuming the card ends up exactly centered. That was the
-       first attempt (inset: 0 7%, since each card is 86% of the viewport
-       with a 7% peek either side) and it matched perfectly under a
-       programmatic scroll to the theoretical snap position - but a real
-       finger-flung gesture doesn't reliably land there: mobile scroll-snap
-       settling has known real-world slop under fast/flicked gestures, so
-       the actual rest position can end up short of the "ideal" one by
-       enough to visibly separate the frame from the card. Reading the
-       actual rendered position can't drift from reality the way an assumed
-       constant can. */
+    /* No gold border/glow on mobile for the recommended card - see the
+       fuller writeup above. Several approaches (border on the card itself,
+       then a decoupled overlay sized first via a fixed inset and then via
+       JS reading the card's real position) all eventually showed visible
+       misalignment under a real touch swipe, so mobile just resets back to
+       the plain default border/shadow every card already gets; the
+       "Recommended" badge text alone carries the distinction here. Desktop
+       keeps its own border/glow untouched (.lp-pricing-card-recommended
+       above, outside this breakpoint) since it was never part of this bug -
+       cards there are static and side by side, nothing ever slides. */
     .lp-pricing-card-recommended { border-color: var(--border); box-shadow: var(--shadow); }
-    .pricing-cards-viewport::after {
-        content: ""; position: absolute; top: 0; bottom: 0; border-radius: inherit;
-        left: var(--pricing-frame-left, 7%); width: var(--pricing-frame-width, 86%);
-        border: 1px solid var(--primary);
-        box-shadow: 0 10px 28px -10px rgba(214, 148, 16, .4);
-        opacity: 0; pointer-events: none;
-    }
-    .pricing-cards-wrap.showing-recommended .pricing-cards-viewport::after { opacity: 1; }
     /* Arrows removed here per feedback, same reasoning as .lp-slider-arrow
        above - swipe plus the now-correctly-visible peek of the next card is
        enough of a "there's more" cue on touch. Base rule (display:none)

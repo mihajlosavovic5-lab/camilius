@@ -750,81 +750,14 @@
     // without committing - same feel as swiping a TikTok/Instagram feed
     // (scroll-snap-type:mandatory in style.css settles it on release). No
     // arrows (removed by request - swipe plus the peek is cue enough, same
-    // as the "See it in action" slider above). Current-card detection (the
-    // recommended-card border toggle) reads the actual scroll position
-    // directly rather than trusting an IntersectionObserver's ratio-crossing
-    // events - those turned out to fire (and stick) on a touch gesture that
-    // didn't even end up scrolling anywhere, which was showing the gold
-    // frame around the still-showing first card instead of the second one
-    // it's meant for. Desktop is untouched - the CSS only turns the viewport
-    // into a scroll container under the existing 720px breakpoint, so above
-    // it every card sits at scrollLeft 0 and this never fires past index 0.
-    var pricingGrid = document.getElementById('lp-pricing-grid');
-    var pricingCards = pricingGrid ? Array.prototype.slice.call(pricingGrid.children) : [];
-    var pricingViewport = pricingGrid ? pricingGrid.parentElement : null;
-    var pricingWrap = pricingGrid ? pricingGrid.closest('.pricing-cards-wrap') : null;
-    if (pricingGrid && pricingViewport && pricingCards.length > 1) {
-        var pricingActiveIndex = 0;
-        var pricingSettleTimer = null;
-
-        function updatePricingActiveFromScroll() {
-            var cardWidth = pricingCards[0].getBoundingClientRect().width;
-            if (!cardWidth) return;
-            var index = Math.max(0, Math.min(pricingCards.length - 1, Math.round(pricingViewport.scrollLeft / cardWidth)));
-            // No early-return on "index unchanged" - a real touch-driven
-            // scroll-snap settle can fire scrollend more than once for a
-            // single gesture (an initial one, then a further snap-correction
-            // once momentum truly stops), landing on the same card index
-            // both times but not necessarily the same exact position. The
-            // frame's left/width below need to reflect wherever the card
-            // *actually* is on each firing, not skip re-reading it just
-            // because the index didn't change.
-            pricingActiveIndex = index;
-            var activeCard = pricingCards[index];
-            var isRecommended = activeCard.classList.contains('lp-pricing-card-recommended');
-            // Gold "recommended" frame lives on the (non-scrolling) viewport,
-            // not the card - see .pricing-cards-viewport::after in style.css -
-            // so it snaps on/off in step with whichever card just settled
-            // instead of dragging along with the scroll. Its left/width are
-            // read from the card's *actual* rendered position here, not
-            // assumed from a fixed CSS percentage - a real finger-flung
-            // scroll-snap settle doesn't always land at the exact
-            // theoretical centered position (confirmed: a programmatic
-            // scroll to that position matched a fixed-percentage frame
-            // perfectly, but real touch gestures visibly didn't), so this
-            // has to track wherever the card actually ends up, not where it
-            // was supposed to.
-            if (pricingWrap) {
-                pricingWrap.classList.toggle('showing-recommended', isRecommended);
-                if (isRecommended) {
-                    var cardRect = activeCard.getBoundingClientRect();
-                    var vpRect = pricingViewport.getBoundingClientRect();
-                    pricingViewport.style.setProperty('--pricing-frame-left', (cardRect.left - vpRect.left) + 'px');
-                    pricingViewport.style.setProperty('--pricing-frame-width', cardRect.width + 'px');
-                }
-            }
-        }
-        // scrollend (not a debounced 'scroll') is what actually waits for
-        // scrolling to be done, snap-back correction included - a plain
-        // 'scroll' listener has no way to tell a real pause in events from
-        // scrolling having genuinely finished, so a fixed debounce delay is
-        // just a guess at that. On a real touch release, scroll-snap's own
-        // settle can still be in flight after momentum has visibly died
-        // down enough to go quiet for a moment; a debounce that fires during
-        // that quiet moment reads scrollLeft before it reaches its final
-        // resting spot, computes the *previous* card's index, and the gold
-        // frame ends up back on the card being left instead of the one
-        // being switched to. Falls back to the old debounce only for
-        // browsers without scrollend (Safari < 18.2).
-        if ('onscrollend' in window) {
-            pricingViewport.addEventListener('scrollend', updatePricingActiveFromScroll, { passive: true });
-        } else {
-            pricingViewport.addEventListener('scroll', function () {
-                clearTimeout(pricingSettleTimer);
-                pricingSettleTimer = setTimeout(updatePricingActiveFromScroll, 120);
-            }, { passive: true });
-        }
-    }
+    // as the "See it in action" slider above) and no gold "recommended"
+    // frame either (also removed by request, after several attempts at
+    // keeping it accurately positioned around whichever card is settled -
+    // border on the card itself, a decoupled overlay sized via a fixed CSS
+    // inset, then the same overlay sized via JS from the card's real
+    // position - none held up under a real finger-flung swipe). That means
+    // there's nothing left for JS to track here: the mobile carousel is
+    // entirely native-scroll, no current-card state needed for anything.
 
 })();
 </script>
