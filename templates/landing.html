@@ -23,7 +23,7 @@
             "offers": {
                 "@type": "Offer",
                 "price": "29",
-                "priceCurrency": "EUR"
+                "priceCurrency": "USD"
             }
         }
     ]
@@ -71,8 +71,8 @@
 <div class="content">
     <!-- Hero -->
     <section class="hero lp-hero">
-        <h1 class="lp-enter lp-enter-1"><span data-i18n="landing.hero.title1">Customers message you on Instagram.</span><br><span class="lp-accent" data-i18n="landing.hero.title2">The AI already has a reply ready.</span></h1>
-        <p class="hero-subtitle lp-enter lp-enter-2" data-i18n="landing.hero.subtitle">Camilius reads your business's Instagram messages and drafts replies based on your working hours, price list, and FAQ. You just review, edit if you like &mdash; and send with one click.</p>
+        <h1 class="lp-enter lp-enter-1"><span data-i18n="landing.hero.title1">A customer messages your business on Instagram.</span><br><span class="lp-accent" data-i18n="landing.hero.title2">Camilius already answered.</span></h1>
+        <p class="hero-subtitle lp-enter lp-enter-2" data-i18n="landing.hero.subtitle">Camilius reads every Instagram message the moment it arrives and drafts a reply based on your working hours, price list, and FAQ. Review and send with one click &mdash; or switch on autopilot and let the AI handle it end to end, day and night, without you lifting a finger.</p>
         <div class="hero-actions lp-enter lp-enter-3">
             {% if beta_free_mode %}
             <a href="{{ url_for('register') }}" class="button lp-shine" style="font-size: 16px; padding: 13px 28px;" data-i18n="landing.hero.ctaFree">Get started for free</a>
@@ -82,8 +82,6 @@
         </div>
         {% if beta_free_mode %}
         <p class="hero-fine-print lp-enter lp-enter-3" data-i18n="landing.hero.finePrintBeta">Free during the beta &middot; you're always in control of what gets sent</p>
-        {% else %}
-        <p class="hero-fine-print lp-enter lp-enter-3" data-i18n="landing.hero.finePrintTrial">No card required for the trial &middot; cancel anytime &middot; you're always in control of what gets sent</p>
         {% endif %}
     </section>
 
@@ -111,7 +109,7 @@
                         </div>
                         <div class="conversation-block">
                             <div class="conversation-label" data-i18n="landing.slider.aiReplyLabel">AI-suggested reply</div>
-                            <p class="reply" data-i18n="landing.slider.example1.reply">We're open Saturdays from 9 to 16. A women's haircut is &euro;35 and includes a wash and blow-dry &mdash; Saturday afternoons book up fast, so worth grabbing a slot soon.</p>
+                            <p class="reply" data-i18n="landing.slider.example1.reply">We're open Saturdays from 9 to 16. A women's haircut is $35 and includes a wash and blow-dry &mdash; Saturday afternoons book up fast, so worth grabbing a slot soon.</p>
                         </div>
                     </div>
                     <div class="lp-slide card conversation">
@@ -128,7 +126,7 @@
                         </div>
                         <div class="conversation-block">
                             <div class="conversation-label" data-i18n="landing.slider.aiReplyLabel">AI-suggested reply</div>
-                            <p class="reply" data-i18n="landing.slider.example2.reply">Teeth whitening is &euro;120 &mdash; we always book it ahead so we can set aside enough chair time, though a quick check-up can be a walk-in. I've got a slot free Thursday at 14:00 if that works?</p>
+                            <p class="reply" data-i18n="landing.slider.example2.reply">Teeth whitening is $120 &mdash; we always book it ahead so we can set aside enough chair time, though a quick check-up can be a walk-in. I've got a slot free Thursday at 14:00 if that works?</p>
                         </div>
                     </div>
                     <div class="lp-slide card conversation">
@@ -145,7 +143,7 @@
                         </div>
                         <div class="conversation-block">
                             <div class="conversation-label" data-i18n="landing.slider.aiReplyLabel">AI-suggested reply</div>
-                            <p class="reply" data-i18n="landing.slider.example3.reply">An iPhone 13 screen replacement is &euro;89 with a 6-month warranty on the part, usually ready same-day if dropped off before 14:00. If the frame's bent too, we'd check that separately first so there's no surprise on the price.</p>
+                            <p class="reply" data-i18n="landing.slider.example3.reply">An iPhone 13 screen replacement is $89 with a 6-month warranty on the part, usually ready same-day if dropped off before 14:00. If the frame's bent too, we'd check that separately first so there's no surprise on the price.</p>
                         </div>
                     </div>
                     <div class="lp-slide card conversation">
@@ -162,7 +160,7 @@
                         </div>
                         <div class="conversation-block">
                             <div class="conversation-label" data-i18n="landing.slider.aiReplyLabel">AI-suggested reply</div>
-                            <p class="reply" data-i18n="landing.slider.example4.reply">Sorry to hear that! We've got openings Wednesday and Thursday afternoon &mdash; a callout plus inspection is &euro;25, and if it needs a new washer or cartridge we'll quote that separately before touching anything.</p>
+                            <p class="reply" data-i18n="landing.slider.example4.reply">Sorry to hear that! We've got openings Wednesday and Thursday afternoon &mdash; a callout plus inspection is $25, and if it needs a new washer or cartridge we'll quote that separately before touching anything.</p>
                         </div>
                     </div>
                     <div class="lp-slide card conversation">
@@ -196,7 +194,7 @@
                         </div>
                         <div class="conversation-block">
                             <div class="conversation-label" data-i18n="landing.slider.aiReplyLabel">AI-suggested reply</div>
-                            <p class="reply" data-i18n="landing.slider.example6.reply">A one-hour strategy call is &euro;90 and includes a short written summary afterward. I've got a Tuesday or Thursday morning slot open this week if either suits you.</p>
+                            <p class="reply" data-i18n="landing.slider.example6.reply">A one-hour strategy call is $90 and includes a short written summary afterward. I've got a Tuesday or Thursday morning slot open this week if either suits you.</p>
                         </div>
                     </div>
                     <div class="lp-slide card conversation">
@@ -230,7 +228,7 @@
                         </div>
                         <div class="conversation-block">
                             <div class="conversation-label" data-i18n="landing.slider.aiReplyLabel">AI-suggested reply</div>
-                            <p class="reply" data-i18n="landing.slider.example8.reply">A gel manicure is &euro;28 and takes about 45 minutes. Weekends book out a couple of days ahead, but weekdays we can usually fit you in same-day.</p>
+                            <p class="reply" data-i18n="landing.slider.example8.reply">A gel manicure is $28 and takes about 45 minutes. Weekends book out a couple of days ahead, but weekdays we can usually fit you in same-day.</p>
                         </div>
                     </div>
                     <div class="lp-slide card conversation">
@@ -247,7 +245,7 @@
                         </div>
                         <div class="conversation-block">
                             <div class="conversation-label" data-i18n="landing.slider.aiReplyLabel">AI-suggested reply</div>
-                            <p class="reply" data-i18n="landing.slider.example9.reply">A monthly plan is &euro;80 for 8 sessions, and yes &mdash; plenty of our members start from zero. Your first session is a light assessment so the coach can build a plan around your actual level.</p>
+                            <p class="reply" data-i18n="landing.slider.example9.reply">A monthly plan is $80 for 8 sessions, and yes &mdash; plenty of our members start from zero. Your first session is a light assessment so the coach can build a plan around your actual level.</p>
                         </div>
                     </div>
                     <div class="lp-slide card conversation">
@@ -296,10 +294,26 @@
                         <span class="lp-plan-badge lp-plan-badge-basic" data-i18n="subscription.basic">Basic</span>
                         <p class="lp-pricing-plan-name">Starter</p>
                         <div class="price-row" style="justify-content: center;">
-                            <span class="price-amount">&euro;29</span>
+                            <span class="price-amount">$29</span>
                             <span class="price-period" data-i18n="landing.pricing.period">/ month</span>
                         </div>
-                        <span class="trial-info" data-i18n="landing.pricing.trialInfo">First 14 days free, no card required</span>
+                        <span class="trial-info" data-i18n="landing.pricing.trialInfo">14-day free trial</span>
+                        <ul class="benefits">
+                            <li><span class="checkmark">&#10003;</span> <span data-i18n="subscription.starter.benefit1">Basic AI replies to Instagram DMs</span></li>
+                            <li><span class="checkmark">&#10003;</span> <span data-i18n="subscription.starter.benefit2">Up to 300 conversations / month</span></li>
+                            <li><span class="checkmark">&#10003;</span> <span data-i18n="landing.pricing.benefit3">Cancel anytime</span></li>
+                        </ul>
+                        <a href="{{ url_for('register') }}" class="button button-full lp-shine" data-i18n="landing.pricing.cta">Start your free trial</a>
+                    </div>
+                    <div class="lp-slide card lp-pricing-card">
+                        <span class="lp-plan-badge lp-plan-badge-basic" data-i18n="subscription.basic">Basic</span>
+                        <p class="lp-pricing-plan-name">Starter</p>
+                        <div class="price-row" style="justify-content: center;">
+                            <span class="price-amount">$290</span>
+                            <span class="price-period" data-i18n="subscription.perYear">/ year</span>
+                            <span class="pricing-toggle-save" data-i18n="subscription.twoMonthsFree">2 months free</span>
+                        </div>
+                        <span class="trial-info" data-i18n="landing.pricing.trialInfo">14-day free trial</span>
                         <ul class="benefits">
                             <li><span class="checkmark">&#10003;</span> <span data-i18n="subscription.starter.benefit1">Basic AI replies to Instagram DMs</span></li>
                             <li><span class="checkmark">&#10003;</span> <span data-i18n="subscription.starter.benefit2">Up to 300 conversations / month</span></li>
@@ -311,10 +325,29 @@
                         <span class="lp-plan-badge lp-plan-badge-recommended" data-i18n="subscription.recommended">Recommended</span>
                         <p class="lp-pricing-plan-name">Pro</p>
                         <div class="price-row" style="justify-content: center;">
-                            <span class="price-amount">&euro;59</span>
+                            <span class="price-amount">$59</span>
                             <span class="price-period" data-i18n="landing.pricing.period">/ month</span>
                         </div>
-                        <span class="trial-info" data-i18n="landing.pricing.trialInfo">First 14 days free, no card required</span>
+                        <span class="trial-info" data-i18n="landing.pricing.trialInfo">14-day free trial</span>
+                        <ul class="benefits">
+                            <li><span class="checkmark">&#10003;</span> <span data-i18n="subscription.pro.benefit1">Everything in Starter</span></li>
+                            <li><span class="checkmark">&#10003;</span> <span data-i18n="subscription.pro.benefit2">Smart appointment scheduling to calendar</span></li>
+                            <li><span class="checkmark">&#10003;</span> <span data-i18n="subscription.pro.benefit3">Automatic no-show reminders</span></li>
+                            <li><span class="checkmark">&#10003;</span> <span data-i18n="subscription.pro.benefit4">AI upsell for related services</span></li>
+                            <li><span class="checkmark">&#10003;</span> <span data-i18n="subscription.pro.benefit5">AI cancellation &amp; rescheduling</span></li>
+                            <li><span class="checkmark">&#10003;</span> <span data-i18n="subscription.pro.benefit6">AI assistant for support questions</span></li>
+                        </ul>
+                        <a href="{{ url_for('register') }}" class="button button-full lp-shine" data-i18n="landing.pricing.cta">Start your free trial</a>
+                    </div>
+                    <div class="lp-slide card lp-pricing-card lp-pricing-card-recommended">
+                        <span class="lp-plan-badge lp-plan-badge-recommended" data-i18n="subscription.recommended">Recommended</span>
+                        <p class="lp-pricing-plan-name">Pro</p>
+                        <div class="price-row" style="justify-content: center;">
+                            <span class="price-amount">$590</span>
+                            <span class="price-period" data-i18n="subscription.perYear">/ year</span>
+                            <span class="pricing-toggle-save" data-i18n="subscription.twoMonthsFree">2 months free</span>
+                        </div>
+                        <span class="trial-info" data-i18n="landing.pricing.trialInfo">14-day free trial</span>
                         <ul class="benefits">
                             <li><span class="checkmark">&#10003;</span> <span data-i18n="subscription.pro.benefit1">Everything in Starter</span></li>
                             <li><span class="checkmark">&#10003;</span> <span data-i18n="subscription.pro.benefit2">Smart appointment scheduling to calendar</span></li>
@@ -672,11 +705,10 @@
             pricingTrack.style.transform = 'translateX(' + (pPeek - pCurrent * pSlideW) + '%)';
             pricingSlides.forEach(function (slide, i) { slide.classList.toggle('lp-slide-active', i === pCurrent); });
             pDots.forEach(function (dot, i) { dot.classList.toggle('active', i === pCurrent); });
-            // Only 2 plans, no wraparound in the visible arrows - showing both a prev
-            // AND a next arrow on each card was misleading (with just 2 slides, both
-            // would ever only lead to the exact same other slide), so hide whichever
-            // one has nothing further to actually go to. Autoplay/swipe still use the
-            // modulo above underneath so the auto-rotation itself keeps looping.
+            // No wraparound in the visible prev/next arrows - hide whichever one has
+            // nothing further to actually go to at either end of the slide list.
+            // Autoplay/swipe still use the modulo above underneath so the
+            // auto-rotation itself keeps looping regardless.
             if (pricingPrevBtn) pricingPrevBtn.classList.toggle('hidden', pCurrent === 0);
             if (pricingNextBtn) pricingNextBtn.classList.toggle('hidden', pCurrent === pricingSlides.length - 1);
         }

@@ -18,7 +18,7 @@ from database import (
     business_by_id, add_business, create_database, delete_business, replies_today_count,
     update_business, business_by_contact_email, save_reset_token, business_by_reset_token, set_new_password,
     link_subscription, update_subscription_status, get_subscription_status,
-    link_stripe_subscription, update_stripe_subscription_status,
+    link_stripe_subscription, update_stripe_subscription_status, business_by_stripe_subscription_id,
     effective_subscription_active, has_pro_access,
     business_stats, log_event, event_funnel, recent_client_errors, log_client_error,
     link_instagram_account, business_by_instagram_account_id, already_processed_messages,
@@ -30,13 +30,14 @@ from database import (
     archive_conversation, unarchive_conversation, soft_delete_conversation, restore_conversation,
     get_slot_duration, set_slot_duration, create_appointment, get_appointment, cancel_appointment,
     is_reminders_enabled, set_reminders_enabled, get_upsell_pairs, set_upsell_pairs,
-    all_appointments_for_business, get_stripe_customer_id,
+    all_appointments_for_business, get_stripe_customer_id, get_paddle_customer_id,
 )
 from send_email import send_email
 from generate_reply import generate_reply, generate_reply_with_booking
 from support_assistant import answer_support_question
 import booking
 import stripe_billing
+import paddle_billing
 from push_notifications import send_push_to_business
 from instagram_api import (
     authorize_url as instagram_authorize_url, exchange_code_for_token, exchange_for_long_lived_token,
@@ -79,13 +80,26 @@ app.register_blueprint(api_blueprint)
 # cookie + CSRF token pair used by browser form submissions, so these routes are exempt.
 csrf.exempt(api_blueprint)
 
-# Faza 5 (2026-07-21): flipped off - real trial/pricing is live. New accounts now get
-# our own self-serve 14-day trial at registration (subscription_status='trialing', see
-# add_business()) and, once that runs out without a real Paddle subscription, land on
-# the Starter/Pro pricing page (see effective_subscription_active()/trial_expired() in
-# database.py). NOTE: the four Paddle prices (Starter/Pro x monthly/yearly) don't exist
-# yet as of this commit - checkout buttons show "Coming soon" until PADDLE_PRICE_
-# STARTER_MONTHLY/STARTER_YEARLY/PRO_MONTHLY/PRO_YEARLY are set on Railway.
+# Faza 5 (2026-07-21): flipped off - real trial/pricing is live. Two possible new-account
+# flows, both landing on the same Starter/Pro pricing page (/subscription) once access
+# runs out (see effective_subscription_active()/trial_expired() in database.py):
+#   - Paddle not configured yet (no PADDLE_CLIENT_TOKEN on Railway): unchanged from before
+#     - every new account gets our own card-free self-serve 14-day trial immediately at
+#     registration (subscription_status='trialing', see add_business()).
+#   - Paddle configured: register() now inserts the account with subscription_status=
+#     'none' instead - no free access until they actually pick a plan and put a card
+#     down through Paddle Checkout on /subscription (Paddle.js overlay, see
+#     templates/subscription.html), which starts a REAL, card-backed 14-day trial - the
+#     trial length and "require a card during trial" setting live on the Price object in
+#     the Paddle dashboard, not in this code. Nothing is charged during the trial,
+#     Paddle auto-charges the card the moment it ends unless they cancel first, and
+#     reminders.py's send_trial_ending_warnings_if_needed emails a heads-up a few days
+#     before that happens (Paddle Billing has no trial-ending webhook to react to
+#     instead, unlike Stripe - see paddle_billing.py's module docstring). Checkout
+#     buttons on the pricing page show "Coming soon" until PADDLE_PRICE_STARTER_MONTHLY/
+#     STARTER_YEARLY/PRO_MONTHLY/PRO_YEARLY are set - so only flip PADDLE_CLIENT_TOKEN on
+#     once at least one of those prices exists, or brand new accounts get no working
+#     way in at all.
 BETA_FREE_MODE = False
 
 
@@ -148,12 +162,23 @@ def cache_static_assets(response):
 # meaningfully blocks framing (clickjacking), object/embed content, and cross-origin
 # fetches, which cost nothing to add now. Stripe Checkout and the old Paddle overlay are
 # both same-origin-initiated redirects/scripts, not iframes, so no extra frame-src is needed.
+# script-src/connect-src/frame-src all get a *.paddle.com allowance for the pricing
+# page's Paddle.js checkout overlay (see templates/subscription.html) - it loads its own
+# script from cdn.paddle.com, opens an iframe from a checkout.paddle.com-style origin,
+# and that iframe makes its own network calls back to Paddle. Used a wildcard subdomain
+# rather than pinning exact hostnames since Paddle's sandbox vs. production checkout
+# domains differ and could change - still scoped to Paddle's own infrastructure, not a
+# general relaxation. (NOTE: not verified against Paddle's own CSP guidance - their docs
+# site blocked automated fetches while building this; if checkout fails to open once real
+# PADDLE_PRICE_*/PADDLE_CLIENT_TOKEN are set, check the browser console for a CSP
+# violation first and tighten/adjust this list from whatever it names.)
 _CSP = (
     "default-src 'self'; "
-    "script-src 'self' 'unsafe-inline'; "
+    "script-src 'self' 'unsafe-inline' https://cdn.paddle.com; "
     "style-src 'self' 'unsafe-inline'; "
     "img-src 'self' data: https:; "
-    "connect-src 'self'; "
+    "connect-src 'self' https://*.paddle.com; "
+    "frame-src https://*.paddle.com; "
     "frame-ancestors 'self'; "
     "base-uri 'self'; "
     "object-src 'none'"
@@ -199,7 +224,13 @@ def subscription_required(function):
     def wrapped_function(*args, **kwargs):
         business_id = session.get("business_id")
         if business_id and not BETA_FREE_MODE and not effective_subscription_active(business_id):
-            return redirect(url_for("subscription", trial_ended=1))
+            # subscription_status='none' means this account never started a trial at all
+            # (real Stripe billing is live and they haven't picked a plan/entered a card
+            # yet - see register()'s initial_status) - a "your trial has ended" banner
+            # would be a lie, so trial_ended is only passed once there was an actual
+            # trial/subscription to lapse from.
+            never_started = get_subscription_status(business_id) == "none"
+            return redirect(url_for("subscription")) if never_started else redirect(url_for("subscription", trial_ended=1))
         return function(*args, **kwargs)
     return wrapped_function
 
@@ -254,6 +285,13 @@ def register():
                 price_list=request.form["price_list"],
                 faq=request.form["faq"],
                 phone_number=request.form.get("phone_number") or None,
+                # Once real Paddle billing is live, a new account no longer gets our own
+                # card-free self-serve trial (subscription_status stays 'none' - see
+                # add_business) - it lands on /subscription's pricing page instead (via
+                # subscription_required, once it reaches a gated page) to pick a plan and
+                # start a real, card-backed Paddle trial. Until Paddle is configured this
+                # is unchanged from before: every account starts 'trialing' immediately.
+                initial_status="none" if paddle_billing.is_configured() else "trialing",
             )
         except psycopg2.errors.UniqueViolation:
             return render_template("register.html", error="That username, contact email, or phone number is already taken.", data=request.form)
@@ -1212,32 +1250,34 @@ def support_chat():
     return jsonify(reply=reply)
 
 
-# --- Subscription (Paddle, kept live in the backend for any existing sandbox
-# subscription - see paddle_webhook below - but no longer linked from the pricing UI,
-# which now checks out through Stripe instead. See stripe_billing.py.) ---
+# --- Subscription (back on Paddle - see paddle_billing.py's module docstring for why.
+# Stripe stays fully wired below (stripe_checkout/stripe_manage_billing/stripe_webhook)
+# but unlinked from the pricing UI, same "kept live in the backend, not in the UI"
+# treatment Paddle itself got when this briefly went the other way.) ---
 
 def _subscription_response(business_id, hide_nav=False, trial_ended=False):
     business = business_by_id(business_id)
     status = get_subscription_status(business_id)
     return render_template(
         "subscription.html",
-        stripe_configured=stripe_billing.is_configured(),
-        # Faza 10: two plans (Starter/Pro) x two billing intervals (monthly/yearly) -
-        # four distinct Stripe prices, each its own env var. A price whose env var isn't
-        # set on Railway yet just shows "Coming soon" on that button - see
-        # stripe_billing.price_id_for.
-        stripe_prices_configured={
-            "starter_monthly": bool(stripe_billing.price_id_for("starter", "monthly")),
-            "starter_yearly": bool(stripe_billing.price_id_for("starter", "yearly")),
-            "pro_monthly": bool(stripe_billing.price_id_for("pro", "monthly")),
-            "pro_yearly": bool(stripe_billing.price_id_for("pro", "yearly")),
+        paddle_configured=paddle_billing.is_configured(),
+        paddle_client_token=paddle_billing.client_token(),
+        paddle_environment=paddle_billing.environment(),
+        # Starter/Pro x Monthly/Yearly - four distinct Paddle prices, each its own env
+        # var. A price whose env var isn't set on Railway yet just shows "Coming soon"
+        # on that button - see paddle_billing.price_id_for.
+        paddle_prices={
+            "starter_monthly": paddle_billing.price_id_for("starter", "monthly"),
+            "starter_yearly": paddle_billing.price_id_for("starter", "yearly"),
+            "pro_monthly": paddle_billing.price_id_for("pro", "monthly"),
+            "pro_yearly": paddle_billing.price_id_for("pro", "yearly"),
         },
         business_id=business_id,
         email=business[4],
         status=status,
         active=effective_subscription_active(business_id),
         pro_access=BETA_FREE_MODE or has_pro_access(business_id),
-        has_stripe_billing=bool(get_stripe_customer_id(business_id)),
+        has_paddle_billing=bool(get_paddle_customer_id(business_id)),
         hide_nav=hide_nav,
         trial_ended=trial_ended,
     )
@@ -1286,10 +1326,18 @@ def stripe_checkout():
     if plan not in ("starter", "pro") or interval not in ("monthly", "yearly"):
         abort(400)
 
+    # A business gets a real, card-backed 14-day Stripe trial the first time it ever
+    # checks out (no stripe_customer_id on file yet) - same "card required, nothing
+    # charged until the trial ends" pattern as most subscription apps, see
+    # stripe_billing.create_checkout_session. Anyone checking out again after that (a
+    # past cancellation, a plan change) goes straight to a normal paid subscription -
+    # otherwise a canceled account could just re-checkout for another free trial.
+    is_first_checkout = not get_stripe_customer_id(business_id)
     checkout_url = stripe_billing.create_checkout_session(
         business_id, business[4], plan, interval,
         success_url=url_for("home", _external=True),
         cancel_url=url_for("subscription", _external=True),
+        trial_period_days=14 if is_first_checkout else None,
     )
     if not checkout_url:
         return redirect(url_for("subscription", checkout_error=1))
@@ -1328,7 +1376,12 @@ def stripe_webhook():
         subscription_id = data.get("subscription")
         customer_id = data.get("customer")
         if business_id and subscription_id:
-            link_stripe_subscription(int(business_id), customer_id, subscription_id, "active", plan=plan)
+            # The Checkout Session payload never carries the new subscription's own
+            # status - a trial_period_days checkout (see stripe_checkout()) starts
+            # 'trialing', not 'active', and effective_subscription_active()/
+            # has_pro_access() both key off exactly that distinction.
+            status = stripe_billing.get_subscription_status(subscription_id)
+            link_stripe_subscription(int(business_id), customer_id, subscription_id, status, plan=plan)
 
     elif event_type in ("customer.subscription.updated", "customer.subscription.deleted"):
         subscription_id = data.get("id")
@@ -1340,6 +1393,38 @@ def stripe_webhook():
         plan = metadata.get("plan")
         if subscription_id:
             update_stripe_subscription_status(subscription_id, status, plan=plan)
+
+    elif event_type == "customer.subscription.trial_will_end":
+        # Stripe fires this 3 days before a trialing subscription's first real charge
+        # (by default - configurable in the Stripe Dashboard) - our cue to send our own
+        # branded heads-up email before their card is charged, same "warn a few days
+        # before renewal" pattern most subscription apps follow instead of just
+        # silently charging the card, see subscription.active.trialBody's copy too.
+        subscription_id = data.get("id")
+        business = business_by_stripe_subscription_id(subscription_id) if subscription_id else None
+        if business:
+            trial_end = data.get("trial_end")
+            trial_end_text = (
+                datetime.fromtimestamp(trial_end, tz=timezone.utc).strftime("%B %d")
+                if trial_end else "in a few days"
+            )
+            send_email(
+                recipient=business[4],
+                subject="Your Camilius trial is ending soon",
+                body=(
+                    f"Hi {business[1]},\n\n"
+                    f"Your 14-day free trial ends on {trial_end_text}. After that, we'll "
+                    f"charge the card on file to keep the AI processing your Instagram "
+                    f"messages without interruption.\n\n"
+                    f"Nothing to do if you want to continue - it's automatic. If you'd "
+                    f"rather not continue, you can cancel any time before then from "
+                    f"Subscription > Manage billing in your dashboard, and you won't be "
+                    f"charged anything.\n\n"
+                    f"- Camilius"
+                ),
+                business_name="Camilius",
+                reply_to=os.getenv("ALERT_EMAIL") or business[4],
+            )
 
     # Stripe expects a 2xx to consider the webhook delivered; otherwise it retries
     return "", 200
@@ -1391,11 +1476,22 @@ def paddle_webhook():
         custom_data = data.get("custom_data") or {}
         business_id = custom_data.get("business_id")
         plan = custom_data.get("plan")
+        # While trialing, next_billed_at IS the trial's end date (the moment Paddle will
+        # actually charge the card) - reminders.py's send_trial_ending_warnings_if_needed
+        # polls on this to know when to send our own "trial ending soon" email, since
+        # Paddle Billing has no webhook event for that the way Stripe does.
+        trial_ends_at = None
+        next_billed_at = data.get("next_billed_at")
+        if next_billed_at:
+            try:
+                trial_ends_at = datetime.fromisoformat(next_billed_at.replace("Z", "+00:00")).astimezone(timezone.utc).replace(tzinfo=None)
+            except ValueError:
+                pass
 
         if business_id:
-            link_subscription(int(business_id), customer_id, sub_id, status, plan=plan)
+            link_subscription(int(business_id), customer_id, sub_id, status, plan=plan, trial_ends_at=trial_ends_at)
         elif sub_id:
-            update_subscription_status(sub_id, status, plan=plan)
+            update_subscription_status(sub_id, status, plan=plan, trial_ends_at=trial_ends_at)
 
     # Paddle expects a 2xx to consider the webhook delivered; otherwise it retries
     return "", 200

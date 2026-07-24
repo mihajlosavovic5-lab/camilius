@@ -210,6 +210,16 @@ def create_database():
     cursor.execute("ALTER TABLE businesses ADD COLUMN IF NOT EXISTS stripe_customer_id TEXT")
     cursor.execute("ALTER TABLE businesses ADD COLUMN IF NOT EXISTS stripe_subscription_id TEXT")
 
+    # Card-backed Paddle trial (back on Paddle since Stripe doesn't support a merchant
+    # account registered in Serbia - see stripe_billing.py's own note). Paddle Billing has
+    # no "trial is about to end" webhook the way Stripe does, so we track the trial's own
+    # end date ourselves (from the subscription payload's next_billed_at - see
+    # paddle_webhook) and send our own warning email off a plain daily check instead (see
+    # reminders.py's send_trial_ending_warnings_if_needed). trial_warning_sent_at dedupes
+    # it so the same business never gets the email twice.
+    cursor.execute("ALTER TABLE businesses ADD COLUMN IF NOT EXISTS paddle_trial_ends_at TIMESTAMP")
+    cursor.execute("ALTER TABLE businesses ADD COLUMN IF NOT EXISTS trial_warning_sent_at TIMESTAMP")
+
     # Tracks which IMAP messages have already been processed, per business. Needed because
     # the worker reads mail via BODY.PEEK (doesn't mark it read, to leave the owner's inbox
     # untouched) - without this the same unread message would be reprocessed every 60s.
@@ -337,21 +347,25 @@ def _decrypt_row_token(row):
     return row[:7] + (token,) + row[8:]
 
 
-def add_business(name, username, password, contact_email, working_hours, price_list, faq, phone_number=None):
+def add_business(name, username, password, contact_email, working_hours, price_list, faq, phone_number=None, initial_status="trialing"):
     """Creates the account itself. Instagram isn't connected yet at this point - that
     happens afterward via link_instagram_account(), once the OAuth redirect completes.
     phone_number is optional - purely an extra way to log in later, not required.
 
-    subscription_status starts at 'trialing' (not the column's own 'none' default) -
-    every new account gets our own self-serve 14-day trial immediately, see
-    trial_expired()/effective_subscription_active() above."""
+    subscription_status starts at 'trialing' (not the column's own 'none' default) by
+    default - every new account gets our own self-serve 14-day trial immediately, see
+    trial_expired()/effective_subscription_active() above. The one exception: once real
+    Stripe billing is configured (see app.py's register()), a new account is inserted
+    with initial_status='none' instead - access only starts once they've actually put a
+    card down via the Stripe Checkout trial (see /subscription's pricing page), which
+    checkout.session.completed then flips to 'trialing' for real."""
     connection = connect()
     cursor = connection.cursor()
 
     cursor.execute(
         """INSERT INTO businesses (name, username, password, contact_email, working_hours, price_list, faq, phone_number, subscription_status)
-           VALUES (%s, %s, %s, %s, %s, %s, %s, %s, 'trialing') RETURNING id""",
-        (name, username, generate_password_hash(password), contact_email, working_hours, price_list, faq, phone_number or None),
+           VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s) RETURNING id""",
+        (name, username, generate_password_hash(password), contact_email, working_hours, price_list, faq, phone_number or None, initial_status),
     )
 
     new_id = cursor.fetchone()[0]
@@ -828,48 +842,47 @@ def subscription_active(status):
     return status in ACTIVE_STATUSES
 
 
-def link_subscription(business_id, paddle_customer_id, paddle_subscription_id, status, plan=None):
+def link_subscription(business_id, paddle_customer_id, paddle_subscription_id, status, plan=None, trial_ends_at=None):
     """Called from the webhook the first time Paddle reports a subscription for this business.
     Links the Paddle customer/subscription ID to our business and records the status.
     plan ('starter'/'pro') comes from the custom_data set at checkout (see
     templates/subscription.html) - only overwritten when Paddle actually echoes one back,
-    so a webhook event that doesn't carry it never wipes out an already-known plan."""
+    so a webhook event that doesn't carry it never wipes out an already-known plan.
+    trial_ends_at (from the subscription payload's next_billed_at while trialing) is what
+    send_trial_ending_warnings_if_needed (reminders.py) uses to know when to email a
+    heads-up before Paddle's own auto-charge - see paddle_trial_ends_at's schema comment."""
     connection = connect()
     cursor = connection.cursor()
+    fields = ["paddle_customer_id = %s", "paddle_subscription_id = %s", "subscription_status = %s"]
+    params = [paddle_customer_id, paddle_subscription_id, status]
     if plan:
-        cursor.execute(
-            """UPDATE businesses
-               SET paddle_customer_id = %s, paddle_subscription_id = %s, subscription_status = %s, subscription_plan = %s
-               WHERE id = %s""",
-            (paddle_customer_id, paddle_subscription_id, status, plan, business_id),
-        )
-    else:
-        cursor.execute(
-            """UPDATE businesses
-               SET paddle_customer_id = %s, paddle_subscription_id = %s, subscription_status = %s
-               WHERE id = %s""",
-            (paddle_customer_id, paddle_subscription_id, status, business_id),
-        )
+        fields.append("subscription_plan = %s")
+        params.append(plan)
+    if trial_ends_at:
+        fields.append("paddle_trial_ends_at = %s")
+        params.append(trial_ends_at)
+    params.append(business_id)
+    cursor.execute(f"UPDATE businesses SET {', '.join(fields)} WHERE id = %s", params)
     connection.commit()
     connection.close()
 
 
-def update_subscription_status(paddle_subscription_id, status, plan=None):
+def update_subscription_status(paddle_subscription_id, status, plan=None, trial_ends_at=None):
     """Called from the webhook on later changes (trial->active, past_due, canceled...).
     Finds the business by its already-saved subscription ID and updates the status (and
-    plan, if this event happens to carry one - see link_subscription)."""
+    plan/trial_ends_at, if this event happens to carry one - see link_subscription)."""
     connection = connect()
     cursor = connection.cursor()
+    fields = ["subscription_status = %s"]
+    params = [status]
     if plan:
-        cursor.execute(
-            "UPDATE businesses SET subscription_status = %s, subscription_plan = %s WHERE paddle_subscription_id = %s",
-            (status, plan, paddle_subscription_id),
-        )
-    else:
-        cursor.execute(
-            "UPDATE businesses SET subscription_status = %s WHERE paddle_subscription_id = %s",
-            (status, paddle_subscription_id),
-        )
+        fields.append("subscription_plan = %s")
+        params.append(plan)
+    if trial_ends_at:
+        fields.append("paddle_trial_ends_at = %s")
+        params.append(trial_ends_at)
+    params.append(paddle_subscription_id)
+    cursor.execute(f"UPDATE businesses SET {', '.join(fields)} WHERE paddle_subscription_id = %s", params)
     connection.commit()
     connection.close()
 
@@ -926,6 +939,21 @@ def update_stripe_subscription_status(stripe_subscription_id, status, plan=None)
     connection.close()
 
 
+def business_by_stripe_subscription_id(stripe_subscription_id):
+    """Looks up a business by its linked Stripe subscription id - used by the
+    customer.subscription.trial_will_end webhook handler to find who to email a
+    heads-up before their card gets charged (see app.py's stripe_webhook)."""
+    connection = connect()
+    cursor = connection.cursor()
+    cursor.execute(
+        f"SELECT {_BUSINESS_COLUMNS} FROM businesses WHERE stripe_subscription_id = %s",
+        (stripe_subscription_id,),
+    )
+    row = cursor.fetchone()
+    connection.close()
+    return _decrypt_row_token(row) if row else None
+
+
 def get_subscription_plan(business_id):
     connection = connect()
     cursor = connection.cursor()
@@ -942,6 +970,18 @@ def get_stripe_customer_id(business_id):
     connection = connect()
     cursor = connection.cursor()
     cursor.execute("SELECT stripe_customer_id FROM businesses WHERE id = %s", (business_id,))
+    row = cursor.fetchone()
+    connection.close()
+    return row[0] if row else None
+
+
+def get_paddle_customer_id(business_id):
+    """Used by the pricing page to show a "you already have a subscription with us"
+    style state and to know whether a Manage/cancel note applies. None for a business
+    that's never checked out through Paddle yet (still trialing or never started)."""
+    connection = connect()
+    cursor = connection.cursor()
+    cursor.execute("SELECT paddle_customer_id FROM businesses WHERE id = %s", (business_id,))
     row = cursor.fetchone()
     connection.close()
     return row[0] if row else None
@@ -977,15 +1017,19 @@ def trial_expired(business_id):
     connection = connect()
     cursor = connection.cursor()
     cursor.execute(
-        "SELECT subscription_status, paddle_subscription_id, created_at FROM businesses WHERE id = %s",
+        "SELECT subscription_status, paddle_subscription_id, stripe_subscription_id, created_at FROM businesses WHERE id = %s",
         (business_id,),
     )
     row = cursor.fetchone()
     connection.close()
     if not row:
         return False
-    status, paddle_subscription_id, created_at = row
-    if status != "trialing" or paddle_subscription_id:
+    status, paddle_subscription_id, stripe_subscription_id, created_at = row
+    # A business with a real processor subscription attached (Paddle or Stripe) is no
+    # longer on our own invented grace period - its card-backed Stripe trial (see
+    # stripe_checkout()/checkout.session.completed) ends and converts on Stripe's own
+    # schedule, tracked via subscription_status itself, not this 14-day cutoff.
+    if status != "trialing" or paddle_subscription_id or stripe_subscription_id:
         return False
     now = datetime.now(timezone.utc).replace(tzinfo=None)
     return now - created_at > timedelta(days=SELF_SERVE_TRIAL_DAYS)
@@ -998,6 +1042,42 @@ def effective_subscription_active(business_id):
     dashboard banner, and the subscription page's own active/inactive branch."""
     status = get_subscription_status(business_id)
     return subscription_active(status) and not trial_expired(business_id)
+
+
+# Warn 3 days before Paddle auto-charges a trialing subscription's card - same interval
+# Stripe fires its own customer.subscription.trial_will_end at by default (see
+# reminders.py's send_trial_ending_warnings_if_needed, which polls on this window since
+# Paddle Billing has no equivalent webhook event to react to instead).
+TRIAL_WARNING_DAYS_BEFORE = 3
+
+
+def businesses_needing_trial_warning():
+    """Every trialing, Paddle-backed business whose trial ends in ~TRIAL_WARNING_DAYS_
+    BEFORE days and hasn't been warned yet. Returns (business_id, name, contact_email,
+    paddle_trial_ends_at) rows - reminders.py's caller sends the actual email and then
+    calls mark_trial_warning_sent so this never fires twice for the same business."""
+    connection = connect()
+    cursor = connection.cursor()
+    cursor.execute(
+        """SELECT id, name, contact_email, paddle_trial_ends_at FROM businesses
+           WHERE subscription_status = 'trialing'
+             AND paddle_subscription_id IS NOT NULL
+             AND paddle_trial_ends_at IS NOT NULL
+             AND trial_warning_sent_at IS NULL
+             AND paddle_trial_ends_at <= CURRENT_TIMESTAMP + (%s * INTERVAL '1 day')""",
+        (TRIAL_WARNING_DAYS_BEFORE,),
+    )
+    rows = cursor.fetchall()
+    connection.close()
+    return rows
+
+
+def mark_trial_warning_sent(business_id):
+    connection = connect()
+    cursor = connection.cursor()
+    cursor.execute("UPDATE businesses SET trial_warning_sent_at = CURRENT_TIMESTAMP WHERE id = %s", (business_id,))
+    connection.commit()
+    connection.close()
 
 
 def has_pro_access(business_id):

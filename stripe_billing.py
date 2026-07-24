@@ -35,9 +35,17 @@ def price_id_for(plan, interval):
     return os.getenv(env_var, "") if env_var else ""
 
 
-def create_checkout_session(business_id, email, plan, interval, success_url, cancel_url):
+def create_checkout_session(business_id, email, plan, interval, success_url, cancel_url, trial_period_days=None):
     """Returns the Stripe-hosted Checkout URL to redirect the browser to, or None if
-    Stripe isn't configured yet or the requested (plan, interval) has no price set."""
+    Stripe isn't configured yet or the requested (plan, interval) has no price set.
+
+    trial_period_days, when set (see app.py's stripe_checkout - only passed for a
+    business's first-ever checkout), puts the new subscription on a real Stripe trial:
+    the card is collected and validated now but not charged, Stripe auto-charges it the
+    moment the trial ends unless the subscription was canceled before then, and Stripe
+    fires customer.subscription.trial_will_end a few days before that happens so we can
+    send our own heads-up email (see stripe_webhook) - the same "card on file, warn
+    before the first real charge" pattern most subscription apps use."""
     if not is_configured():
         return None
     price_id = price_id_for(plan, interval)
@@ -50,12 +58,18 @@ def create_checkout_session(business_id, email, plan, interval, success_url, can
     # customer.subscription.updated/deleted events, which reference the subscription
     # object directly and never see the original Checkout Session again).
     metadata = {"business_id": str(business_id), "plan": plan}
+    subscription_data = {"metadata": metadata}
+    if trial_period_days:
+        subscription_data["trial_period_days"] = trial_period_days
     session = stripe.checkout.Session.create(
         mode="subscription",
         line_items=[{"price": price_id, "quantity": 1}],
         customer_email=email,
         metadata=metadata,
-        subscription_data={"metadata": metadata},
+        subscription_data=subscription_data,
+        # Collect the card even though nothing is due today on a trial - required so
+        # Stripe has something to charge automatically once the trial ends.
+        payment_method_collection="always",
         success_url=success_url,
         cancel_url=cancel_url,
     )
@@ -71,6 +85,15 @@ def create_billing_portal_session(stripe_customer_id, return_url):
     stripe.api_key = os.environ["STRIPE_SECRET_KEY"]
     session = stripe.billing_portal.Session.create(customer=stripe_customer_id, return_url=return_url)
     return session.url
+
+
+def get_subscription_status(stripe_subscription_id):
+    """Fetches a subscription's current status directly from Stripe. Needed by
+    checkout.session.completed: the Checkout Session payload itself never carries the
+    resulting subscription's status, and it matters here specifically because a
+    trial_period_days checkout starts life as 'trialing', not 'active'."""
+    stripe.api_key = os.environ["STRIPE_SECRET_KEY"]
+    return stripe.Subscription.retrieve(stripe_subscription_id).status
 
 
 def verify_and_parse_webhook(payload, signature_header):
