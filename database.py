@@ -337,21 +337,25 @@ def _decrypt_row_token(row):
     return row[:7] + (token,) + row[8:]
 
 
-def add_business(name, username, password, contact_email, working_hours, price_list, faq, phone_number=None):
+def add_business(name, username, password, contact_email, working_hours, price_list, faq, phone_number=None, initial_status="trialing"):
     """Creates the account itself. Instagram isn't connected yet at this point - that
     happens afterward via link_instagram_account(), once the OAuth redirect completes.
     phone_number is optional - purely an extra way to log in later, not required.
 
-    subscription_status starts at 'trialing' (not the column's own 'none' default) -
-    every new account gets our own self-serve 14-day trial immediately, see
-    trial_expired()/effective_subscription_active() above."""
+    subscription_status starts at 'trialing' (not the column's own 'none' default) by
+    default - every new account gets our own self-serve 14-day trial immediately, see
+    trial_expired()/effective_subscription_active() above. The one exception: once real
+    Stripe billing is configured (see app.py's register()), a new account is inserted
+    with initial_status='none' instead - access only starts once they've actually put a
+    card down via the Stripe Checkout trial (see /subscription's pricing page), which
+    checkout.session.completed then flips to 'trialing' for real."""
     connection = connect()
     cursor = connection.cursor()
 
     cursor.execute(
         """INSERT INTO businesses (name, username, password, contact_email, working_hours, price_list, faq, phone_number, subscription_status)
-           VALUES (%s, %s, %s, %s, %s, %s, %s, %s, 'trialing') RETURNING id""",
-        (name, username, generate_password_hash(password), contact_email, working_hours, price_list, faq, phone_number or None),
+           VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s) RETURNING id""",
+        (name, username, generate_password_hash(password), contact_email, working_hours, price_list, faq, phone_number or None, initial_status),
     )
 
     new_id = cursor.fetchone()[0]
@@ -926,6 +930,21 @@ def update_stripe_subscription_status(stripe_subscription_id, status, plan=None)
     connection.close()
 
 
+def business_by_stripe_subscription_id(stripe_subscription_id):
+    """Looks up a business by its linked Stripe subscription id - used by the
+    customer.subscription.trial_will_end webhook handler to find who to email a
+    heads-up before their card gets charged (see app.py's stripe_webhook)."""
+    connection = connect()
+    cursor = connection.cursor()
+    cursor.execute(
+        f"SELECT {_BUSINESS_COLUMNS} FROM businesses WHERE stripe_subscription_id = %s",
+        (stripe_subscription_id,),
+    )
+    row = cursor.fetchone()
+    connection.close()
+    return _decrypt_row_token(row) if row else None
+
+
 def get_subscription_plan(business_id):
     connection = connect()
     cursor = connection.cursor()
@@ -977,15 +996,19 @@ def trial_expired(business_id):
     connection = connect()
     cursor = connection.cursor()
     cursor.execute(
-        "SELECT subscription_status, paddle_subscription_id, created_at FROM businesses WHERE id = %s",
+        "SELECT subscription_status, paddle_subscription_id, stripe_subscription_id, created_at FROM businesses WHERE id = %s",
         (business_id,),
     )
     row = cursor.fetchone()
     connection.close()
     if not row:
         return False
-    status, paddle_subscription_id, created_at = row
-    if status != "trialing" or paddle_subscription_id:
+    status, paddle_subscription_id, stripe_subscription_id, created_at = row
+    # A business with a real processor subscription attached (Paddle or Stripe) is no
+    # longer on our own invented grace period - its card-backed Stripe trial (see
+    # stripe_checkout()/checkout.session.completed) ends and converts on Stripe's own
+    # schedule, tracked via subscription_status itself, not this 14-day cutoff.
+    if status != "trialing" or paddle_subscription_id or stripe_subscription_id:
         return False
     now = datetime.now(timezone.utc).replace(tzinfo=None)
     return now - created_at > timedelta(days=SELF_SERVE_TRIAL_DAYS)

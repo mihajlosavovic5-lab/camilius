@@ -18,7 +18,7 @@ from database import (
     business_by_id, add_business, create_database, delete_business, replies_today_count,
     update_business, business_by_contact_email, save_reset_token, business_by_reset_token, set_new_password,
     link_subscription, update_subscription_status, get_subscription_status,
-    link_stripe_subscription, update_stripe_subscription_status,
+    link_stripe_subscription, update_stripe_subscription_status, business_by_stripe_subscription_id,
     effective_subscription_active, has_pro_access,
     business_stats, log_event, event_funnel, recent_client_errors, log_client_error,
     link_instagram_account, business_by_instagram_account_id, already_processed_messages,
@@ -79,13 +79,22 @@ app.register_blueprint(api_blueprint)
 # cookie + CSRF token pair used by browser form submissions, so these routes are exempt.
 csrf.exempt(api_blueprint)
 
-# Faza 5 (2026-07-21): flipped off - real trial/pricing is live. New accounts now get
-# our own self-serve 14-day trial at registration (subscription_status='trialing', see
-# add_business()) and, once that runs out without a real Paddle subscription, land on
-# the Starter/Pro pricing page (see effective_subscription_active()/trial_expired() in
-# database.py). NOTE: the four Paddle prices (Starter/Pro x monthly/yearly) don't exist
-# yet as of this commit - checkout buttons show "Coming soon" until PADDLE_PRICE_
-# STARTER_MONTHLY/STARTER_YEARLY/PRO_MONTHLY/PRO_YEARLY are set on Railway.
+# Faza 5 (2026-07-21): flipped off - real trial/pricing is live. Two possible new-account
+# flows, both landing on the same Starter/Pro pricing page (/subscription) once access
+# runs out (see effective_subscription_active()/trial_expired() in database.py):
+#   - Stripe not configured yet (no STRIPE_SECRET_KEY on Railway): unchanged from before
+#     - every new account gets our own card-free self-serve 14-day trial immediately at
+#     registration (subscription_status='trialing', see add_business()).
+#   - Stripe configured: register() now inserts the account with subscription_status=
+#     'none' instead - no free access until they actually pick a plan and put a card
+#     down through Stripe Checkout on /subscription, which starts a REAL, card-backed
+#     14-day trial (see stripe_checkout()'s trial_period_days) - nothing is charged
+#     during the trial, Stripe auto-charges the card the moment it ends unless they
+#     cancel first, and stripe_webhook's customer.subscription.trial_will_end handler
+#     emails a heads-up a few days before that happens. Checkout buttons on the pricing
+#     page show "Coming soon" until STRIPE_PRICE_STARTER_MONTHLY/STARTER_YEARLY/
+#     PRO_MONTHLY/PRO_YEARLY are set - so only flip STRIPE_SECRET_KEY on once at least
+#     one of those prices exists, or brand new accounts get no working way in at all.
 BETA_FREE_MODE = False
 
 
@@ -199,7 +208,13 @@ def subscription_required(function):
     def wrapped_function(*args, **kwargs):
         business_id = session.get("business_id")
         if business_id and not BETA_FREE_MODE and not effective_subscription_active(business_id):
-            return redirect(url_for("subscription", trial_ended=1))
+            # subscription_status='none' means this account never started a trial at all
+            # (real Stripe billing is live and they haven't picked a plan/entered a card
+            # yet - see register()'s initial_status) - a "your trial has ended" banner
+            # would be a lie, so trial_ended is only passed once there was an actual
+            # trial/subscription to lapse from.
+            never_started = get_subscription_status(business_id) == "none"
+            return redirect(url_for("subscription")) if never_started else redirect(url_for("subscription", trial_ended=1))
         return function(*args, **kwargs)
     return wrapped_function
 
@@ -254,6 +269,13 @@ def register():
                 price_list=request.form["price_list"],
                 faq=request.form["faq"],
                 phone_number=request.form.get("phone_number") or None,
+                # Once real Stripe billing is live, a new account no longer gets our own
+                # card-free self-serve trial (subscription_status stays 'none' - see
+                # add_business) - it lands on /subscription's pricing page instead (via
+                # subscription_required, once it reaches a gated page) to pick a plan and
+                # start a real, card-backed Stripe trial. Until Stripe is configured this
+                # is unchanged from before: every account starts 'trialing' immediately.
+                initial_status="none" if stripe_billing.is_configured() else "trialing",
             )
         except psycopg2.errors.UniqueViolation:
             return render_template("register.html", error="That username, contact email, or phone number is already taken.", data=request.form)
@@ -1286,10 +1308,18 @@ def stripe_checkout():
     if plan not in ("starter", "pro") or interval not in ("monthly", "yearly"):
         abort(400)
 
+    # A business gets a real, card-backed 14-day Stripe trial the first time it ever
+    # checks out (no stripe_customer_id on file yet) - same "card required, nothing
+    # charged until the trial ends" pattern as most subscription apps, see
+    # stripe_billing.create_checkout_session. Anyone checking out again after that (a
+    # past cancellation, a plan change) goes straight to a normal paid subscription -
+    # otherwise a canceled account could just re-checkout for another free trial.
+    is_first_checkout = not get_stripe_customer_id(business_id)
     checkout_url = stripe_billing.create_checkout_session(
         business_id, business[4], plan, interval,
         success_url=url_for("home", _external=True),
         cancel_url=url_for("subscription", _external=True),
+        trial_period_days=14 if is_first_checkout else None,
     )
     if not checkout_url:
         return redirect(url_for("subscription", checkout_error=1))
@@ -1328,7 +1358,12 @@ def stripe_webhook():
         subscription_id = data.get("subscription")
         customer_id = data.get("customer")
         if business_id and subscription_id:
-            link_stripe_subscription(int(business_id), customer_id, subscription_id, "active", plan=plan)
+            # The Checkout Session payload never carries the new subscription's own
+            # status - a trial_period_days checkout (see stripe_checkout()) starts
+            # 'trialing', not 'active', and effective_subscription_active()/
+            # has_pro_access() both key off exactly that distinction.
+            status = stripe_billing.get_subscription_status(subscription_id)
+            link_stripe_subscription(int(business_id), customer_id, subscription_id, status, plan=plan)
 
     elif event_type in ("customer.subscription.updated", "customer.subscription.deleted"):
         subscription_id = data.get("id")
@@ -1340,6 +1375,38 @@ def stripe_webhook():
         plan = metadata.get("plan")
         if subscription_id:
             update_stripe_subscription_status(subscription_id, status, plan=plan)
+
+    elif event_type == "customer.subscription.trial_will_end":
+        # Stripe fires this 3 days before a trialing subscription's first real charge
+        # (by default - configurable in the Stripe Dashboard) - our cue to send our own
+        # branded heads-up email before their card is charged, same "warn a few days
+        # before renewal" pattern most subscription apps follow instead of just
+        # silently charging the card, see subscription.active.trialBody's copy too.
+        subscription_id = data.get("id")
+        business = business_by_stripe_subscription_id(subscription_id) if subscription_id else None
+        if business:
+            trial_end = data.get("trial_end")
+            trial_end_text = (
+                datetime.fromtimestamp(trial_end, tz=timezone.utc).strftime("%B %d")
+                if trial_end else "in a few days"
+            )
+            send_email(
+                recipient=business[4],
+                subject="Your Camilius trial is ending soon",
+                body=(
+                    f"Hi {business[1]},\n\n"
+                    f"Your 14-day free trial ends on {trial_end_text}. After that, we'll "
+                    f"charge the card on file to keep the AI processing your Instagram "
+                    f"messages without interruption.\n\n"
+                    f"Nothing to do if you want to continue - it's automatic. If you'd "
+                    f"rather not continue, you can cancel any time before then from "
+                    f"Subscription > Manage billing in your dashboard, and you won't be "
+                    f"charged anything.\n\n"
+                    f"- Camilius"
+                ),
+                business_name="Camilius",
+                reply_to=os.getenv("ALERT_EMAIL") or business[4],
+            )
 
     # Stripe expects a 2xx to consider the webhook delivered; otherwise it retries
     return "", 200

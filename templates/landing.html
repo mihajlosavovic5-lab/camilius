@@ -71,8 +71,8 @@
 <div class="content">
     <!-- Hero -->
     <section class="hero lp-hero">
-        <h1 class="lp-enter lp-enter-1"><span data-i18n="landing.hero.title1">Customers message you on Instagram.</span><br><span class="lp-accent" data-i18n="landing.hero.title2">The AI already has a reply ready.</span></h1>
-        <p class="hero-subtitle lp-enter lp-enter-2" data-i18n="landing.hero.subtitle">Camilius reads your business's Instagram messages and drafts replies based on your working hours, price list, and FAQ. You just review, edit if you like &mdash; and send with one click.</p>
+        <h1 class="lp-enter lp-enter-1"><span data-i18n="landing.hero.title1">A customer messages your business on Instagram.</span><br><span class="lp-accent" data-i18n="landing.hero.title2">Camilius already answered.</span></h1>
+        <p class="hero-subtitle lp-enter lp-enter-2" data-i18n="landing.hero.subtitle">Camilius reads every Instagram message the moment it arrives and drafts a reply based on your working hours, price list, and FAQ. Review and send with one click &mdash; or switch on autopilot and let the AI handle it end to end, day and night, without you lifting a finger.</p>
         <div class="hero-actions lp-enter lp-enter-3">
             {% if beta_free_mode %}
             <a href="{{ url_for('register') }}" class="button lp-shine" style="font-size: 16px; padding: 13px 28px;" data-i18n="landing.hero.ctaFree">Get started for free</a>
@@ -82,8 +82,6 @@
         </div>
         {% if beta_free_mode %}
         <p class="hero-fine-print lp-enter lp-enter-3" data-i18n="landing.hero.finePrintBeta">Free during the beta &middot; you're always in control of what gets sent</p>
-        {% else %}
-        <p class="hero-fine-print lp-enter lp-enter-3" data-i18n="landing.hero.finePrintTrial">No card required for the trial &middot; cancel anytime &middot; you're always in control of what gets sent</p>
         {% endif %}
     </section>
 
