@@ -723,7 +723,10 @@ body.auth {
 .pricing-plan-price { display: flex; align-items: baseline; gap: 6px; }
 .pricing-plan-price .pricing-amount { font-size: 34px; font-weight: 800; color: var(--text); letter-spacing: -1px; }
 .pricing-plan-price .pricing-period { color: var(--text-muted); font-size: 14px; }
-.pricing-yearly-total { margin-top: 2px; }
+/* Now a savings claim ("Save $58 / year"), not a neutral billing disclaimer -
+   colored like a real benefit instead of muted .note gray so it reads as a
+   reason to pick Yearly, not fine print. */
+.pricing-yearly-total { margin-top: 2px; color: var(--success); font-weight: 700; }
 .pricing-plan .benefits { margin-top: 18px; flex: 1; }
 .pricing-plan .form-actions { margin-top: 20px; }
 
