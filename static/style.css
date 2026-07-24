@@ -1349,11 +1349,16 @@ html { scroll-behavior: smooth; }
 .lp-slider-viewport::-webkit-scrollbar { display: none; }
 .lp-slider-track {
     display: flex;
-    /* Gives the first/last slide the same peek the *inner* neighbors already
-       get for free by sitting right next to each other in the flex row - see
-       the equivalent .pricing-cards-grid padding above for the fuller
-       writeup. */
-    padding: 0 calc((100% - var(--lp-slide-w) * 1%) / 2);
+}
+/* Empty flex items, not container padding, give the first/last slide the
+   same peek the *inner* neighbors already get for free - see the equivalent,
+   fuller writeup on .pricing-cards-grid above, which had the identical bug:
+   trailing-edge padding on a scroll container is unreliably excluded from
+   the scrollable range in Chromium, so the last slide could never actually
+   reach its intended centered position. A real flex item always counts
+   correctly toward scrollable overflow regardless of which edge it's on. */
+.lp-slider-track::before, .lp-slider-track::after {
+    content: ""; flex: 0 0 calc((100% - var(--lp-slide-w) * 1%) / 2);
 }
 .lp-slide {
     flex: 0 0 calc(var(--lp-slide-w) * 1%);
@@ -1481,12 +1486,19 @@ html { scroll-behavior: smooth; }
         /* Desktop's gap:20px (line 1404) would otherwise still apply here
            since flexbox honors `gap` too and this block never touched it. */
         gap: 0;
-        /* Padding, not a transform, is what gives the first/last card a
-           peek on their outer edge to match the peek the *inner* neighbor
-           card already gives for free by sitting right next to it - each
-           card is 86% of the viewport, so 7% either side centers it with a
-           7% peek on both sides, first and last card included. */
-        padding: 0 7%;
+    }
+    /* Empty flex items, not container padding, are what give the first/last
+       card a peek on their outer edge to match the peek the *inner* neighbor
+       card already gives for free by sitting right next to it. Padding was
+       the first attempt, but trailing-edge padding on a scroll container is
+       unreliably excluded from the scrollable range in Chromium (a real,
+       long-standing engine quirk, not a spec ambiguity we control) - the
+       last card could never actually scroll far enough to reach its
+       intended centered position, landing short and throwing off the gold
+       frame below along with it. A real flex item always counts correctly
+       toward scrollable overflow regardless of which edge it's on. */
+    .pricing-cards-grid::before, .pricing-cards-grid::after {
+        content: ""; flex: 0 0 7%;
     }
     .pricing-cards-grid .lp-pricing-card {
         flex: 0 0 86%; min-width: 0;
@@ -1511,10 +1523,17 @@ html { scroll-behavior: smooth; }
        its position), it could live directly on the card again - but keeping
        it as a static overlay on the (non-scrolling) viewport, toggled
        instantly by the IntersectionObserver in landing.html, still avoids
-       any per-frame recalculation while the user is mid-drag. */
+       any per-frame recalculation while the user is mid-drag. inset:0 7%
+       (not inset:0) matters: each card is only 86% of the viewport, centered
+       with a 7% peek on either side (see .pricing-cards-grid padding above) -
+       a full inset:0 frame spans the *entire* viewport including whatever's
+       peeking in on the sides, so it never actually matched the card's own
+       edges (visible as the frame not lining up with the card, and the
+       button/text stopping short of it). Inset 7% left/right is exactly the
+       settled, centered card's own bounds. */
     .lp-pricing-card-recommended { border-color: var(--border); box-shadow: var(--shadow); }
     .pricing-cards-viewport::after {
-        content: ""; position: absolute; inset: 0; border-radius: inherit;
+        content: ""; position: absolute; inset: 0 7%; border-radius: inherit;
         border: 1px solid var(--primary);
         box-shadow: 0 10px 28px -10px rgba(214, 148, 16, .4);
         opacity: 0; pointer-events: none;

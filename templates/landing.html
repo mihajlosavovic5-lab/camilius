@@ -760,9 +760,14 @@
             var pricingIo = new IntersectionObserver(function (entries) {
                 entries.forEach(function (entry) {
                     // isIntersecting alone is true the instant even a sliver of the
-                    // card is visible - checking the ratio is what actually waits
-                    // for it to be the (near-)centered one before flipping active.
-                    if (entry.intersectionRatio < 0.6) return;
+                    // card is visible. 0.95, not the slider's 0.6, because the gold
+                    // "recommended" frame below is a static overlay sized to exactly
+                    // where a settled, centered card sits (inset:0 7%) - if this
+                    // fired mid-drag (e.g. at 0.6, still well short of centered) the
+                    // frame would pop on around a card that hasn't reached that spot
+                    // yet, i.e. the frame-in-the-wrong-place bug this threshold and
+                    // that inset were both changed together to fix.
+                    if (entry.intersectionRatio < 0.95) return;
                     pricingActiveIndex = pricingCards.indexOf(entry.target);
                     pricingPrev.disabled = pricingActiveIndex === 0;
                     pricingNext.disabled = pricingActiveIndex === pricingCards.length - 1;
@@ -774,7 +779,7 @@
                         pricingWrap.classList.toggle('showing-recommended', entry.target.classList.contains('lp-pricing-card-recommended'));
                     }
                 });
-            }, { root: pricingViewport, threshold: 0.6 });
+            }, { root: pricingViewport, threshold: 0.95 });
             pricingCards.forEach(function (card) { pricingIo.observe(card); });
         }
     }
