@@ -925,7 +925,18 @@ body.landing .content { padding-top: 32px; }
 .hero-fine-print { color: #a89a7d; font-size: 13px; }
 
 .section { padding: 56px 0; }
-.section-title { text-align: center; font-family: Georgia, "Times New Roman", serif; font-weight: 700; font-size: 25px; margin-bottom: 28px; }
+.section-title { position: relative; text-align: center; font-family: Georgia, "Times New Roman", serif; font-weight: 700; font-size: 25px; margin-bottom: 28px; padding-bottom: 16px; }
+.section-title::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    bottom: 0;
+    transform: translateX(-50%);
+    width: 56px;
+    height: 3px;
+    border-radius: 2px;
+    background: linear-gradient(90deg, var(--primary), var(--gold-dark));
+}
 
 /* Faza 6: "top modern SaaS" treatment - a connecting line running behind the
    step numbers on desktop (ties the 3 steps into one visual flow instead of 3
