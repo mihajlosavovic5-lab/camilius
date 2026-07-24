@@ -1052,8 +1052,18 @@ body.lp-menu-open .site-lang-select-btn {
    iOS/Android rubber-band bounce revealing it) while the drawer is open.
    `top` is set inline by JS to the negative of the scroll position being
    locked at, so the page doesn't visually jump when position flips to fixed;
-   closeMenu() restores the real scroll position afterwards. */
-body.lp-menu-open { position: fixed; left: 0; right: 0; width: 100%; overflow: hidden; }
+   closeMenu() restores the real scroll position afterwards.
+   background-attachment: scroll overrides body's own background-attachment:
+   fixed (further up) for the duration - a fixed background painted against a
+   body that's *also* pinned via position: fixed + a JS-set negative `top` is
+   a well-known combination for Chrome to mis-recompute on any forced
+   recomposite (switching tabs and back, or just an idle-timeout repaint),
+   since the engine has to decide whether the background tracks the viewport
+   or the now-offset body box. That mismatch is what was surfacing as a stray
+   seam at the top of the page - the body isn't actually scrolling while
+   locked anyway, so there's nothing lost visually by not fixing the
+   background to the viewport for this one moment. */
+body.lp-menu-open { position: fixed; left: 0; right: 0; width: 100%; overflow: hidden; background-attachment: scroll; }
 /* min-height: brand and the hamburger button are both pulled out of flow
    below (absolute) for corner-pinning, leaving no in-flow content to size
    this box - without it, the header collapses and its scrolled
