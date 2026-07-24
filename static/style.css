@@ -661,6 +661,9 @@ body.auth {
 .price-row { display: flex; align-items: baseline; gap: 6px; margin-bottom: 4px; }
 .price-amount { font-size: 40px; font-weight: 800; letter-spacing: -1px; }
 .price-period { color: var(--text-muted); font-size: 15px; }
+/* The real (not invented) 12x-monthly total, struck through next to the actual
+   yearly price - see landing.html/subscription.html's pricing-toggle JS. */
+.price-was { color: var(--text-muted); text-decoration: line-through; font-size: 16px; }
 .trial-info {
     display: inline-block; align-self: center; margin: 6px 0 14px; padding: 5px 12px;
     background: var(--primary-light); color: var(--primary-ink);
@@ -669,6 +672,8 @@ body.auth {
 .benefits { list-style: none; padding: 0; margin: 0 0 8px; }
 .benefits li { display: flex; gap: 10px; align-items: flex-start; padding: 7px 0; font-size: 14.5px; }
 .benefits .checkmark { color: var(--success); font-weight: 700; flex-shrink: 0; }
+.benefits .crossmark { color: var(--danger); font-weight: 700; flex-shrink: 0; }
+.benefits .benefit-missing { color: var(--text-muted); }
 
 /* --- Two-plan pricing (Faza 5) - Monthly/Yearly toggle + Starter/Pro cards on the
    real /subscription page, distinct from the older single-plan .price-row/.price-amount/
@@ -710,8 +715,6 @@ body.auth {
 .pricing-plan .benefits { margin-top: 12px; flex: 1; }
 .pricing-plan .benefits li { padding: 4px 0; font-size: 13px; gap: 8px; }
 .pricing-plan .form-actions { margin-top: 14px; }
-.pricing-plan .crossmark { color: var(--danger); font-weight: 700; flex-shrink: 0; }
-.pricing-plan .benefit-missing { color: var(--text-muted); }
 
 /* --- Schedule / Smart Booking (Faza 8) --- */
 .schedule-toolbar { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-bottom: 20px; }

@@ -295,6 +295,7 @@
                 <span class="lp-plan-badge lp-plan-badge-basic" data-i18n="subscription.basic">Basic</span>
                 <p class="lp-pricing-plan-name">Starter</p>
                 <div class="price-row" style="justify-content: center;">
+                    <span class="price-was hidden" data-yearly="348"></span>
                     <span class="price-amount">$<span class="price-amount-value" data-monthly="29" data-yearly="290">29</span></span>
                     <span class="price-period" data-i18n="landing.pricing.period">/ month</span>
                 </div>
@@ -304,6 +305,11 @@
                     <li><span class="checkmark">&#10003;</span> <span data-i18n="subscription.starter.benefit1">Basic AI replies to Instagram DMs</span></li>
                     <li><span class="checkmark">&#10003;</span> <span data-i18n="subscription.starter.benefit2">Up to 300 conversations / month</span></li>
                     <li><span class="checkmark">&#10003;</span> <span data-i18n="landing.pricing.benefit3">Cancel anytime</span></li>
+                    <li><span class="crossmark">&#10007;</span> <span class="benefit-missing" data-i18n="subscription.pro.benefit2">Smart appointment scheduling to calendar</span></li>
+                    <li><span class="crossmark">&#10007;</span> <span class="benefit-missing" data-i18n="subscription.pro.benefit3">Automatic no-show reminders</span></li>
+                    <li><span class="crossmark">&#10007;</span> <span class="benefit-missing" data-i18n="subscription.pro.benefit4">AI upsell for related services</span></li>
+                    <li><span class="crossmark">&#10007;</span> <span class="benefit-missing" data-i18n="subscription.pro.benefit5">AI cancellation &amp; rescheduling</span></li>
+                    <li><span class="crossmark">&#10007;</span> <span class="benefit-missing" data-i18n="subscription.pro.benefit6">AI assistant for support questions</span></li>
                 </ul>
                 <a href="{{ url_for('register') }}" class="button button-full lp-shine" data-i18n="landing.pricing.cta">Start your free trial</a>
             </div>
@@ -311,6 +317,7 @@
                 <span class="lp-plan-badge lp-plan-badge-recommended" data-i18n="subscription.recommended">Recommended</span>
                 <p class="lp-pricing-plan-name">Pro</p>
                 <div class="price-row" style="justify-content: center;">
+                    <span class="price-was hidden" data-yearly="708"></span>
                     <span class="price-amount">$<span class="price-amount-value" data-monthly="59" data-yearly="590">59</span></span>
                     <span class="price-period" data-i18n="landing.pricing.period">/ month</span>
                 </div>
@@ -655,6 +662,13 @@
                 });
                 document.querySelectorAll('#lp-pricing .pricing-yearly-total').forEach(function (el) {
                     el.classList.toggle('hidden', lpBillingInterval !== 'yearly');
+                });
+                // "Was" price on Yearly - the real 12x-monthly total (not a made-up
+                // number), struck through next to the actual yearly price, so the
+                // saving is visible without any fabricated discount claim.
+                document.querySelectorAll('#lp-pricing .price-was').forEach(function (el) {
+                    el.classList.toggle('hidden', lpBillingInterval !== 'yearly');
+                    if (lpBillingInterval === 'yearly') el.textContent = '$' + el.dataset.yearly;
                 });
             });
         });
