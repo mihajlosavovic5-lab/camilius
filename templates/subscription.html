@@ -64,6 +64,7 @@
                 <span class="pricing-plan-badge pricing-plan-badge-basic" data-i18n="subscription.basic">Basic</span>
                 <p class="pricing-plan-name">Starter</p>
                 <div class="pricing-plan-price">
+                    <span class="price-was hidden" data-yearly="348"></span>
                     <span class="pricing-amount">$<span class="pricing-amount-value" data-monthly="29" data-yearly="290">29</span></span>
                     <span class="pricing-period" data-i18n="subscription.perMonth">/ month</span>
                 </div>
@@ -90,6 +91,7 @@
                 <span class="pricing-plan-badge pricing-plan-badge-recommended" data-i18n="subscription.recommended">Recommended</span>
                 <p class="pricing-plan-name">Pro</p>
                 <div class="pricing-plan-price">
+                    <span class="price-was hidden" data-yearly="708"></span>
                     <span class="pricing-amount">$<span class="pricing-amount-value" data-monthly="59" data-yearly="590">59</span></span>
                     <span class="pricing-period" data-i18n="subscription.perMonth">/ month</span>
                 </div>
@@ -174,6 +176,12 @@
                 el.textContent = t(key);
             });
             document.querySelectorAll(".pricing-yearly-total").forEach((el) => { el.classList.toggle("hidden", billingInterval !== "yearly"); });
+            // "Was" price on Yearly - the real 12x-monthly total (not a made-up
+            // number), struck through next to the actual yearly price.
+            document.querySelectorAll(".price-was").forEach((el) => {
+                el.classList.toggle("hidden", billingInterval !== "yearly");
+                if (billingInterval === "yearly") el.textContent = "$" + el.dataset.yearly;
+            });
             refreshButtons();
         });
     });
