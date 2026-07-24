@@ -670,6 +670,11 @@ body.auth {
 .price-row { display: flex; align-items: baseline; gap: 6px; margin-bottom: 4px; }
 .price-amount { font-size: 40px; font-weight: 800; letter-spacing: -1px; }
 .price-period { color: var(--text-muted); font-size: 15px; }
+/* Struck-through monthly-equivalent total, shown next to the real yearly
+   price on Yearly (landing.html/subscription.html JS toggle .price-was's
+   .hidden and fill its text) - the strikethrough is what reads as "this is
+   the old/higher number" rather than a second live price. */
+.price-was { color: var(--text-muted); font-size: 17px; font-weight: 600; text-decoration: line-through; text-decoration-thickness: 1.5px; }
 .trial-info {
     display: inline-block; align-self: center; margin: 6px 0 14px; padding: 5px 12px;
     background: var(--primary-light); color: var(--primary-ink);
@@ -683,14 +688,20 @@ body.auth {
    real /subscription page, distinct from the older single-plan .price-row/.price-amount/
    .trial-info classes above (still used by the landing page's teaser, untouched here). */
 .pricing-toggle-wrap { display: flex; justify-content: center; margin-bottom: 28px; }
-.pricing-toggle { display: flex; background: var(--background); border: 1px solid var(--border); border-radius: 999px; padding: 4px; gap: 4px; }
+/* A tinted amber track (not a plain background-colored outline) so the
+   whole control reads as a real segmented switch rather than a faint,
+   near-invisible pill against the page background. */
+.pricing-toggle { display: flex; background: var(--primary-light); border: 1px solid rgba(214, 148, 16, .28); border-radius: 999px; padding: 5px; gap: 4px; }
 .pricing-toggle-option {
     display: flex; align-items: center; gap: 8px;
-    padding: 9px 18px; border: none; border-radius: 999px; background: none; cursor: pointer;
-    font-family: inherit; font-size: 14px; font-weight: 600; color: var(--text-muted);
-    transition: background .15s ease, color .15s ease;
+    padding: 10px 22px; border: none; border-radius: 999px; background: none; cursor: pointer;
+    font-family: inherit; font-size: 14px; font-weight: 600; color: var(--primary-ink);
+    transition: background .15s ease, color .15s ease, box-shadow .15s ease;
 }
-.pricing-toggle-option.active { background: var(--surface); color: var(--text); box-shadow: 0 1px 3px rgba(43,32,19,.12); }
+/* Active option fills solid with the brand amber (same color as the CTA
+   buttons) instead of just a faint surface-tinted swap, so it reads as a
+   clearly selected, filled state rather than a subtle highlight. */
+.pricing-toggle-option.active { background: var(--primary); color: #fff; box-shadow: 0 3px 10px -3px rgba(214, 148, 16, .55); }
 .pricing-toggle-save {
     background: var(--success-bg); color: var(--success); border: 1px solid var(--success-border);
     font-size: 11px; font-weight: 700; padding: 2px 7px; border-radius: 99px;
