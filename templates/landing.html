@@ -337,8 +337,6 @@
             </div>
         </div>
         </div>
-        <button type="button" class="pricing-arrow pricing-arrow-prev" id="lp-pricing-prev" aria-label="Previous plan">&#8249;</button>
-        <button type="button" class="pricing-arrow pricing-arrow-next" id="lp-pricing-next" aria-label="Next plan">&#8250;</button>
         </div>
     </section>
     {% endif %}
@@ -591,9 +589,10 @@
         }
 
         // Sets the given slide active without moving anything - actual motion is
-        // native scroll (goTo below just asks the browser to scroll there; this
-        // is what the resulting IntersectionObserver settle calls to update
-        // dots/dimming/typing once a slide has actually become the centered one).
+        // native scroll (goTo below just asks the browser to scroll there;
+        // updateSliderActiveFromScroll, further down, is what calls this once a
+        // slide has actually settled into the centered position, to update
+        // dots/dimming/typing).
         function setActive(index) {
             if (index === current) return;
             current = index;
@@ -609,7 +608,7 @@
         // tracks the finger 1:1 while dragging - you can drag partway, see the
         // next slide peek in, and let go without committing, same feel as
         // swiping a TikTok/Instagram feed. goTo just asks the browser to scroll
-        // there; setActive (via the IntersectionObserver below) is what
+        // there; setActive (via updateSliderActiveFromScroll below) is what
         // actually flips the active slide once one settles into view.
         function goTo(index) {
             var target = (index + slides.length) % slides.length;
@@ -637,13 +636,36 @@
         slider.addEventListener('mouseenter', stopAutoplay);
         slider.addEventListener('mouseleave', startAutoplay);
 
+        // Flips the active slide whenever a new one becomes the settled,
+        // centered one - covers arrow/dot clicks, autoplay, and the user just
+        // dragging the track by hand, all in one place, since all three end
+        // up as a scroll position change. Reads the actual scroll position
+        // directly rather than an IntersectionObserver's ratio-crossing
+        // events - those turned out to fire (and stick) even on a touch
+        // gesture that didn't end up scrolling anywhere, which on the
+        // pricing carousel below (same pattern) was showing its recommended-
+        // card frame around the still-showing first card instead of the one
+        // it's meant for.
+        function updateSliderActiveFromScroll() {
+            var slideWidth = slides[0].getBoundingClientRect().width;
+            if (!slideWidth) return;
+            var index = Math.max(0, Math.min(slides.length - 1, Math.round(sliderViewport.scrollLeft / slideWidth)));
+            setActive(index);
+        }
+
         // Pause autoplay for the duration of any drag/scroll (touch or trackpad)
         // and resume once it settles - native scroll replaces the old manual
-        // touchstart/touchend swipe-distance check entirely.
+        // touchstart/touchend swipe-distance check entirely. Same debounced
+        // settle also drives which slide is "active" (dimming, dots, typing),
+        // so both only ever update once scrolling has actually paused, never
+        // mid-drag.
         sliderViewport.addEventListener('touchstart', stopAutoplay, { passive: true });
         sliderViewport.addEventListener('scroll', function () {
             clearTimeout(scrollSettleTimer);
-            scrollSettleTimer = setTimeout(restartAutoplay, 400);
+            scrollSettleTimer = setTimeout(function () {
+                updateSliderActiveFromScroll();
+                restartAutoplay();
+            }, 400);
         }, { passive: true });
 
         // Mark slide 0 active up front, same as goTo(0) would, but without its
@@ -653,22 +675,6 @@
         // .lp-slider-track's own padding in style.css, not JS.
         slides[0].classList.add('lp-slide-active');
         dots[0].classList.add('active');
-
-        // Flips the active slide whenever a new one becomes the (mostly)
-        // centered one - covers arrow/dot clicks, autoplay, and the user just
-        // dragging the track by hand, all in one place, since all three end up
-        // as a scroll position change.
-        if ('IntersectionObserver' in window) {
-            var slideIo = new IntersectionObserver(function (entries) {
-                entries.forEach(function (entry) {
-                    // isIntersecting alone is true the instant even a sliver of the
-                    // slide is visible - checking the ratio is what actually waits
-                    // for it to be the (near-)centered one before flipping active.
-                    if (entry.intersectionRatio >= 0.6) setActive(slides.indexOf(entry.target));
-                });
-            }, { root: sliderViewport, threshold: 0.6 });
-            slides.forEach(function (slide) { slideIo.observe(slide); });
-        }
 
         // Don't type/autoplay until the slider actually scrolls into view.
         if ('IntersectionObserver' in window) {
@@ -724,64 +730,50 @@
 
     // Mobile "Simple pricing" carousel - phones show one plan card at a time
     // with the neighbor peeking in on either side, using real native
-    // horizontal scroll-snap instead of a JS transform: a transform can only
-    // jump straight to the next/prev card on release, where native scroll
-    // tracks the finger 1:1 while dragging - you can drag partway, see the
-    // next card peek in, and let go without committing, same feel as
-    // swiping a TikTok/Instagram feed (scroll-snap-type:mandatory in
-    // style.css settles it on release). Arrows call scrollCardIntoView (top
-    // of this file) on the target card instead of setting a position -
-    // scrolls only this container, never the page, unlike el.scrollIntoView()
-    // (see that function's comment); current-card detection
-    // (arrows' disabled state, recommended-card border toggle) is an
-    // IntersectionObserver, not a hand-tracked touch delta. Desktop is
-    // untouched - the CSS only turns the viewport into a scroll container
-    // under the existing 720px breakpoint, so above it this is a no-op
-    // (the observer only ever reports the always-fully-visible desktop
-    // cards as "intersecting", which is harmless).
+    // horizontal scroll-snap instead of a JS transform: dragging tracks the
+    // finger 1:1, you can drag partway to peek at the next card, and let go
+    // without committing - same feel as swiping a TikTok/Instagram feed
+    // (scroll-snap-type:mandatory in style.css settles it on release). No
+    // arrows (removed by request - swipe plus the peek is cue enough, same
+    // as the "See it in action" slider above). Current-card detection (the
+    // recommended-card border toggle) reads the actual scroll position
+    // directly rather than trusting an IntersectionObserver's ratio-crossing
+    // events - those turned out to fire (and stick) on a touch gesture that
+    // didn't even end up scrolling anywhere, which was showing the gold
+    // frame around the still-showing first card instead of the second one
+    // it's meant for. Desktop is untouched - the CSS only turns the viewport
+    // into a scroll container under the existing 720px breakpoint, so above
+    // it every card sits at scrollLeft 0 and this never fires past index 0.
     var pricingGrid = document.getElementById('lp-pricing-grid');
     var pricingCards = pricingGrid ? Array.prototype.slice.call(pricingGrid.children) : [];
     var pricingViewport = pricingGrid ? pricingGrid.parentElement : null;
     var pricingWrap = pricingGrid ? pricingGrid.closest('.pricing-cards-wrap') : null;
-    var pricingPrev = document.getElementById('lp-pricing-prev');
-    var pricingNext = document.getElementById('lp-pricing-next');
-    if (pricingGrid && pricingViewport && pricingPrev && pricingNext && pricingCards.length > 1) {
+    if (pricingGrid && pricingViewport && pricingCards.length > 1) {
         var pricingActiveIndex = 0;
-        pricingPrev.disabled = true;
+        var pricingSettleTimer = null;
 
-        pricingPrev.addEventListener('click', function () {
-            scrollCardIntoView(pricingViewport, pricingCards[Math.max(0, pricingActiveIndex - 1)]);
-        });
-        pricingNext.addEventListener('click', function () {
-            scrollCardIntoView(pricingViewport, pricingCards[Math.min(pricingCards.length - 1, pricingActiveIndex + 1)]);
-        });
-
-        if ('IntersectionObserver' in window) {
-            var pricingIo = new IntersectionObserver(function (entries) {
-                entries.forEach(function (entry) {
-                    // isIntersecting alone is true the instant even a sliver of the
-                    // card is visible. 0.95, not the slider's 0.6, because the gold
-                    // "recommended" frame below is a static overlay sized to exactly
-                    // where a settled, centered card sits (inset:0 7%) - if this
-                    // fired mid-drag (e.g. at 0.6, still well short of centered) the
-                    // frame would pop on around a card that hasn't reached that spot
-                    // yet, i.e. the frame-in-the-wrong-place bug this threshold and
-                    // that inset were both changed together to fix.
-                    if (entry.intersectionRatio < 0.95) return;
-                    pricingActiveIndex = pricingCards.indexOf(entry.target);
-                    pricingPrev.disabled = pricingActiveIndex === 0;
-                    pricingNext.disabled = pricingActiveIndex === pricingCards.length - 1;
-                    // Gold "recommended" frame lives on the (non-scrolling)
-                    // viewport, not the card - see .pricing-cards-viewport::after
-                    // in style.css - so it snaps on/off in step with whichever
-                    // card just settled instead of dragging along with the scroll.
-                    if (pricingWrap) {
-                        pricingWrap.classList.toggle('showing-recommended', entry.target.classList.contains('lp-pricing-card-recommended'));
-                    }
-                });
-            }, { root: pricingViewport, threshold: 0.95 });
-            pricingCards.forEach(function (card) { pricingIo.observe(card); });
+        function updatePricingActiveFromScroll() {
+            var cardWidth = pricingCards[0].getBoundingClientRect().width;
+            if (!cardWidth) return;
+            var index = Math.max(0, Math.min(pricingCards.length - 1, Math.round(pricingViewport.scrollLeft / cardWidth)));
+            if (index === pricingActiveIndex) return;
+            pricingActiveIndex = index;
+            // Gold "recommended" frame lives on the (non-scrolling) viewport,
+            // not the card - see .pricing-cards-viewport::after in style.css -
+            // so it snaps on/off in step with whichever card just settled
+            // instead of dragging along with the scroll.
+            if (pricingWrap) {
+                pricingWrap.classList.toggle('showing-recommended', pricingCards[index].classList.contains('lp-pricing-card-recommended'));
+            }
         }
+        // Debounced, not per-frame - only once scrolling has actually paused,
+        // so the frame still only ever appears on a settled card, never
+        // mid-drag (same intent the old 0.95 IntersectionObserver threshold
+        // was going for, just driven by the real scroll position instead).
+        pricingViewport.addEventListener('scroll', function () {
+            clearTimeout(pricingSettleTimer);
+            pricingSettleTimer = setTimeout(updatePricingActiveFromScroll, 120);
+        }, { passive: true });
     }
 
 })();

@@ -1443,33 +1443,19 @@ html { scroll-behavior: smooth; }
 .lp-plan-badge-basic { background: var(--surface); color: var(--primary); border: 1.5px solid var(--primary); padding: 2.5px 10.5px; }
 
 /* On phones the grid above becomes a real native-scroll snap track (see
-   lp-pricing-grid JS in landing.html) with classic prev/next arrows -
-   desktop keeps the untouched side-by-side grid. Deliberately native
-   overflow-x scrolling rather than a JS transform+touchend-threshold swipe:
-   a transform only ever jumps straight to the next/prev card on release,
-   with no visual feedback while dragging, where native scroll tracks the
-   finger 1:1 (like a TikTok/Instagram feed) - you can drag partway, see the
-   next card peek in (each card is narrower than the viewport, so its
-   neighbor is already sitting right next to it in the flex row), and let go
-   without committing, and scroll-snap-type:mandatory settles back to
-   whichever card you ended up closer to. Arrows/dots (landing.html JS) call
-   scrollIntoView on the target card instead of setting a transform; current-
-   card detection for the arrows' disabled state and the recommended-card
-   border below is an IntersectionObserver on the cards, also in that JS. */
+   lp-pricing-grid JS in landing.html) - desktop keeps the untouched side-by-
+   side grid. Deliberately native overflow-x scrolling rather than a JS
+   transform+touchend-threshold swipe: a transform only ever jumps straight
+   to the next/prev card on release, with no visual feedback while dragging,
+   where native scroll tracks the finger 1:1 (like a TikTok/Instagram feed) -
+   you can drag partway, see the next card peek in (each card is narrower
+   than the viewport, so its neighbor is already sitting right next to it in
+   the flex row), and let go without committing, and scroll-snap-
+   type:mandatory settles back to whichever card you ended up closer to. No
+   arrows - swipe plus the peek is cue enough (removed by request). Current-
+   card detection for the recommended-card border below reads the scroll
+   position directly (landing.html JS). */
 .pricing-cards-wrap { position: relative; }
-.pricing-arrow {
-    display: none; position: absolute; top: 50%; transform: translateY(-50%);
-    width: 36px; height: 36px; border-radius: 50%; z-index: 2;
-    align-items: center; justify-content: center;
-    background: var(--surface); border: 1px solid var(--border); box-shadow: var(--shadow-lg);
-    color: var(--text); font-size: 18px; cursor: pointer;
-    transition: transform .18s ease, background .18s ease, border-color .18s ease;
-}
-.pricing-arrow:hover { background: var(--primary-light); border-color: rgba(214, 148, 16, .35); }
-.pricing-arrow:active { transform: translateY(-50%) scale(.92); }
-.pricing-arrow-prev { left: 2px; }
-.pricing-arrow-next { right: 2px; }
-.pricing-arrow:disabled { display: none !important; }
 @media (max-width: 720px) {
     .pricing-cards-wrap { max-width: 420px; margin: 0 auto; }
     .pricing-cards-viewport {
@@ -1538,8 +1524,12 @@ html { scroll-behavior: smooth; }
         opacity: 0; pointer-events: none;
     }
     .pricing-cards-wrap.showing-recommended .pricing-cards-viewport::after { opacity: 1; }
-    .pricing-arrow { display: flex; }
-    .pricing-arrow:disabled { display: none; }
+    /* Arrows removed here per feedback, same reasoning as .lp-slider-arrow
+       above - swipe plus the now-correctly-visible peek of the next card is
+       enough of a "there's more" cue on touch. Base rule (display:none)
+       already hides them; this block used to re-enable them, so removing
+       that override is enough - no need to fight the base rule's !important
+       on :disabled either, since display:none already wins outright. */
 }
 
 /* --- Footer restructure --- */
