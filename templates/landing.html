@@ -47,7 +47,7 @@
     <div id="lp-menu-modal" class="lp-menu-modal">
         <div class="lp-menu-modal-backdrop" id="lp-menu-modal-backdrop"></div>
         <nav class="lp-menu-modal-sheet" id="lp-menu-modal-sheet">
-            <a href="#lp-hero" data-i18n="common.home">Home</a>
+            <a href="#" id="lp-menu-home-link" data-i18n="common.home">Home</a>
             <a href="#lp-examples" data-i18n="landing.slider.sectionTitle">See it in action</a>
             <a href="#lp-who-for" data-i18n="landing.nav.whoFor">Who it's for</a>
             <a href="#lp-how-it-works" data-i18n="landing.howItWorks.title">How it works</a>
@@ -72,7 +72,7 @@
 
 <div class="content">
     <!-- Hero -->
-    <section class="hero lp-hero lp-scroll-anchor" id="lp-hero">
+    <section class="hero lp-hero">
         <h1 class="lp-enter lp-enter-1"><span data-i18n="landing.hero.title1">A customer messages your business on Instagram.</span><br><span class="lp-accent" data-i18n="landing.hero.title2">Camilius already answered.</span></h1>
         <p class="hero-subtitle lp-enter lp-enter-2"><span data-i18n="landing.hero.subtitle1">Camilius reads every Instagram message the moment it arrives and drafts a reply based on your working hours, price list, and FAQ.</span><br><span data-i18n="landing.hero.subtitle2">Review and send with one click &mdash; or switch on autopilot and let the AI handle it end to end, day and night, without you lifting a finger.</span></p>
         <div class="hero-actions lp-enter lp-enter-3">
@@ -513,6 +513,17 @@
     var cornerBrand = document.getElementById('lp-corner-brand');
     if (cornerBrand) {
         cornerBrand.addEventListener('click', function () {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+    }
+
+    // Home menu item - same "scroll to the true top" behavior as the corner
+    // brand above, not an anchor-with-offset like the other menu items (those
+    // land just below the fixed header via .lp-scroll-anchor's scroll-margin-top).
+    var menuHomeLink = document.getElementById('lp-menu-home-link');
+    if (menuHomeLink) {
+        menuHomeLink.addEventListener('click', function (event) {
+            event.preventDefault();
             window.scrollTo({ top: 0, behavior: 'smooth' });
         });
     }
