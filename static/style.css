@@ -1061,6 +1061,19 @@ body.lp-menu-open .support-widget {
     opacity: .3; filter: blur(1.5px); pointer-events: none;
     transition: opacity .25s ease, filter .25s ease;
 }
+/* The modal backdrop's own backdrop-filter (see .lp-menu-modal-backdrop below)
+   was relied on to blur the actual page content behind the drawer, but several
+   in-page elements get promoted to their own compositor layer (scroll-reveal
+   animations' transform/opacity, the sticky pricing toggle, etc.) and a
+   backdrop-filter can't reliably sample across those layers - so headings and
+   controls inside them stayed crisp while plain text around them blurred.
+   Blurring .content directly (a real filter, not backdrop-filter) rasterizes
+   the whole subtree - including those layered children - into one bitmap
+   before blurring it, so every last bit of it blurs uniformly. */
+body.lp-menu-open .content {
+    opacity: .3; filter: blur(1.5px); pointer-events: none;
+    transition: opacity .25s ease, filter .25s ease;
+}
 
 /* --- Header menu: hamburger + dropdown ---
    Same header at every viewport width (mobile or desktop) - a centered
