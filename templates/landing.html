@@ -691,6 +691,7 @@
     var pricingCards = pricingGrid ? Array.prototype.slice.call(pricingGrid.children) : [];
     var pricingPrev = document.getElementById('lp-pricing-prev');
     var pricingNext = document.getElementById('lp-pricing-next');
+    var pricingWrap = pricingGrid ? pricingGrid.closest('.pricing-cards-wrap') : null;
     if (pricingGrid && pricingPrev && pricingNext && pricingCards.length > 1) {
         var pricingIndex = 0;
 
@@ -698,6 +699,13 @@
             pricingGrid.style.setProperty('--pricing-x', (-pricingIndex * 100) + '%');
             pricingPrev.disabled = pricingIndex === 0;
             pricingNext.disabled = pricingIndex === pricingCards.length - 1;
+            // Gold "recommended" frame lives on the (non-sliding) viewport, not
+            // the card - see .pricing-cards-viewport::after in style.css - so it
+            // snaps on/off in step with the settled card instead of dragging
+            // along with whichever edge trails the slide.
+            if (pricingWrap) {
+                pricingWrap.classList.toggle('showing-recommended', pricingCards[pricingIndex].classList.contains('lp-pricing-card-recommended'));
+            }
         }
 
         pricingPrev.addEventListener('click', function () {

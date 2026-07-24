@@ -1451,7 +1451,7 @@ html { scroll-behavior: smooth; }
 .pricing-arrow:disabled { display: none !important; }
 @media (max-width: 720px) {
     .pricing-cards-wrap { max-width: 420px; margin: 0 auto; }
-    .pricing-cards-viewport { overflow: hidden; border-radius: var(--radius); }
+    .pricing-cards-viewport { overflow: hidden; border-radius: var(--radius); position: relative; }
     .pricing-cards-grid {
         grid-template-columns: 1fr; max-width: none;
         display: flex;
@@ -1466,6 +1466,25 @@ html { scroll-behavior: smooth; }
         transform: translateX(var(--pricing-x, 0%));
     }
     .pricing-cards-grid .lp-pricing-card { flex: 0 0 100%; min-width: 0; }
+    /* The recommended card's gold border/glow moves *with* the sliding card, so
+       whichever edge trails the slide direction only reaches the viewport at the
+       very last instant of the .4s transition - on a left-slide-in that's always
+       the right edge, making it look like a delayed "fade in" effect versus the
+       other three sides, which are already in view earlier in the slide. Rather
+       than fight that (the border is physically part of a box that's still mid-
+       flight), the mobile card itself goes back to a plain border and the gold
+       frame is drawn as a static overlay on the *viewport* - which never moves -
+       toggled by JS (--pricing-x sibling logic in landing.html) with no
+       transition of its own, so it's either fully there or fully not, in sync
+       with which card is currently settled. */
+    .lp-pricing-card-recommended { border-color: var(--border); box-shadow: var(--shadow); }
+    .pricing-cards-viewport::after {
+        content: ""; position: absolute; inset: 0; border-radius: inherit;
+        border: 1px solid var(--primary);
+        box-shadow: 0 10px 28px -10px rgba(214, 148, 16, .4);
+        opacity: 0; pointer-events: none;
+    }
+    .pricing-cards-wrap.showing-recommended .pricing-cards-viewport::after { opacity: 1; }
     .pricing-arrow { display: flex; }
     .pricing-arrow:disabled { display: none; }
 }
