@@ -185,7 +185,7 @@ const TRANSLATIONS = {
 
         "supportWidget.title": "Camilius Assistant",
         "supportWidget.subtitle": "Ask about settings, pricing, Instagram & more",
-        "supportWidget.greeting": "Hi! I can help with:\n- Settings\n- Pricing\n- Connecting Instagram\n- Anything else about Camilius\n\nWhat do you need?",
+        "supportWidget.greeting": "Hi, how can I help you?",
         "supportWidget.inputPlaceholder": "Type a message...",
         "supportWidget.error": "Sorry, something went wrong - try again in a moment.",
 
@@ -579,7 +579,7 @@ const TRANSLATIONS = {
 
         "supportWidget.title": "Asistente de Camilius",
         "supportWidget.subtitle": "Pregunta sobre configuración, precios, Instagram y más",
-        "supportWidget.greeting": "¡Hola! Puedo ayudarte con:\n- La configuración\n- Los precios\n- Conectar Instagram\n- Cualquier otra cosa sobre Camilius\n\n¿Qué necesitas?",
+        "supportWidget.greeting": "¡Hola! ¿En qué puedo ayudarte?",
         "supportWidget.inputPlaceholder": "Escribe un mensaje...",
         "supportWidget.error": "Lo sentimos, algo salió mal - inténtalo de nuevo en un momento.",
 
@@ -973,7 +973,7 @@ const TRANSLATIONS = {
 
         "supportWidget.title": "Assistente Camilius",
         "supportWidget.subtitle": "Pergunte sobre configurações, preços, Instagram e mais",
-        "supportWidget.greeting": "Oi! Posso ajudar com:\n- Configurações\n- Preços\n- Conectar o Instagram\n- Qualquer outra coisa sobre o Camilius\n\nDo que você precisa?",
+        "supportWidget.greeting": "Oi! Como posso ajudar?",
         "supportWidget.inputPlaceholder": "Digite uma mensagem...",
         "supportWidget.error": "Desculpe, algo deu errado - tente novamente em instantes.",
 
@@ -1367,7 +1367,7 @@ const TRANSLATIONS = {
 
         "supportWidget.title": "Assistant Camilius",
         "supportWidget.subtitle": "Posez vos questions sur les paramètres, les tarifs, Instagram et plus",
-        "supportWidget.greeting": "Bonjour ! Je peux vous aider avec :\n- Les paramètres\n- Les tarifs\n- La connexion à Instagram\n- Toute autre question sur Camilius\n\nDe quoi avez-vous besoin ?",
+        "supportWidget.greeting": "Bonjour, comment puis-je vous aider ?",
         "supportWidget.inputPlaceholder": "Écrivez un message...",
         "supportWidget.error": "Désolé, une erreur s'est produite - réessayez dans un instant.",
 
@@ -1761,7 +1761,7 @@ const TRANSLATIONS = {
 
         "supportWidget.title": "Camilius-Assistent",
         "supportWidget.subtitle": "Fragen zu Einstellungen, Preisen, Instagram & mehr",
-        "supportWidget.greeting": "Hallo! Ich kann dir helfen bei:\n- Einstellungen\n- Preisen\n- Der Instagram-Verbindung\n- Allem anderen rund um Camilius\n\nWas brauchst du?",
+        "supportWidget.greeting": "Hallo, wie kann ich dir helfen?",
         "supportWidget.inputPlaceholder": "Nachricht eingeben...",
         "supportWidget.error": "Entschuldigung, etwas ist schiefgelaufen - versuch es gleich noch einmal.",
 
@@ -2155,7 +2155,7 @@ const TRANSLATIONS = {
 
         "supportWidget.title": "Assistente Camilius",
         "supportWidget.subtitle": "Chiedi di impostazioni, prezzi, Instagram e altro",
-        "supportWidget.greeting": "Ciao! Posso aiutarti con:\n- Le impostazioni\n- I prezzi\n- Il collegamento a Instagram\n- Qualsiasi altra cosa su Camilius\n\nDi cosa hai bisogno?",
+        "supportWidget.greeting": "Ciao, come posso aiutarti?",
         "supportWidget.inputPlaceholder": "Scrivi un messaggio...",
         "supportWidget.error": "Siamo spiacenti, qualcosa è andato storto - riprova tra un momento.",
 
@@ -2549,7 +2549,7 @@ const TRANSLATIONS = {
 
         "supportWidget.title": "Ассистент Camilius",
         "supportWidget.subtitle": "Спрашивайте о настройках, ценах, Instagram и не только",
-        "supportWidget.greeting": "Привет! Я могу помочь с:\n- Настройками\n- Ценами\n- Подключением Instagram\n- Чем угодно ещё насчёт Camilius\n\nЧто вам нужно?",
+        "supportWidget.greeting": "Привет! Чем могу помочь?",
         "supportWidget.inputPlaceholder": "Введите сообщение...",
         "supportWidget.error": "Извините, что-то пошло не так - попробуйте снова через мгновение.",
 
@@ -2943,7 +2943,7 @@ const TRANSLATIONS = {
 
         "supportWidget.title": "Camilius asistent",
         "supportWidget.subtitle": "Pitajte o podešavanjima, cenama, Instagramu i još mnogo toga",
-        "supportWidget.greeting": "Ćao! Mogu da pomognem oko:\n- Podešavanja\n- Cena\n- Povezivanja Instagrama\n- Bilo čega drugog u vezi sa Camilius-om\n\nŠta vam treba?",
+        "supportWidget.greeting": "Ćao, kako mogu da pomognem?",
         "supportWidget.inputPlaceholder": "Unesite poruku...",
         "supportWidget.error": "Izvinite, došlo je do greške - pokušajte ponovo za trenutak.",
 
@@ -3337,7 +3337,7 @@ const TRANSLATIONS = {
 
         "supportWidget.title": "Camilius助手",
         "supportWidget.subtitle": "咨询设置、价格、Instagram等相关问题",
-        "supportWidget.greeting": "你好!我可以帮您解答:\n- 设置\n- 价格\n- 连接Instagram\n- 任何关于Camilius的问题\n\n您需要什么帮助?",
+        "supportWidget.greeting": "你好!有什么可以帮您?",
         "supportWidget.inputPlaceholder": "输入消息...",
         "supportWidget.error": "抱歉,出了点问题 - 请稍后再试。",
 
@@ -3731,7 +3731,7 @@ const TRANSLATIONS = {
 
         "supportWidget.title": "Camilius Asistanı",
         "supportWidget.subtitle": "Ayarlar, fiyatlar, Instagram ve daha fazlası hakkında sorun",
-        "supportWidget.greeting": "Merhaba! Şu konularda yardımcı olabilirim:\n- Ayarlar\n- Fiyatlar\n- Instagram bağlantısı\n- Camilius hakkında başka herhangi bir konu\n\nNeye ihtiyacınız var?",
+        "supportWidget.greeting": "Merhaba, nasıl yardımcı olabilirim?",
         "supportWidget.inputPlaceholder": "Bir mesaj yazın...",
         "supportWidget.error": "Üzgünüz, bir şeyler ters gitti - birazdan tekrar deneyin.",
 
