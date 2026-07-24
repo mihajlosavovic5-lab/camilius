@@ -569,6 +569,14 @@
         var autoplayTimer = null;
         var scrollSettleTimer = null;
         var typingTimers = [];
+        // Set on touchstart, read once by updateSliderActiveFromScroll below -
+        // caps a single touch swipe to landing on the immediate next/prev
+        // slide, even if the finger's fling carries the native scroll further.
+        // Only touchstart (not arrow/dot clicks or autoplay, which call goTo
+        // directly) sets this, so an intentional "jump to dot 7" click is
+        // never clamped.
+        var isTouchDragging = false;
+        var dragStartIndex = 0;
 
         var dots = slides.map(function (_, i) {
             var dot = document.createElement('button');
@@ -705,6 +713,17 @@
             var slideWidth = slides[0].getBoundingClientRect().width;
             if (!slideWidth) return;
             var index = Math.max(0, Math.min(slides.length - 1, Math.round(sliderViewport.scrollLeft / slideWidth)));
+            if (isTouchDragging) {
+                isTouchDragging = false;
+                // Clamp to at most one slide away from where this touch drag
+                // started - a fast flick's native momentum can otherwise carry
+                // the scroll position past several slides before it settles.
+                // goTo() below re-triggers scroll/settle, which runs this
+                // function again with isTouchDragging already false, so it
+                // just calls setActive(clampedIndex) the second time through.
+                if (index > dragStartIndex + 1) { goTo(dragStartIndex + 1); return; }
+                if (index < dragStartIndex - 1) { goTo(dragStartIndex - 1); return; }
+            }
             setActive(index);
         }
 
@@ -713,7 +732,11 @@
         // old manual touchstart/touchend swipe-distance check entirely. A
         // fixed debounce delay is fine for *this* (worst case autoplay just
         // waits a moment longer than it strictly had to).
-        sliderViewport.addEventListener('touchstart', stopAutoplay, { passive: true });
+        sliderViewport.addEventListener('touchstart', function () {
+            stopAutoplay();
+            isTouchDragging = true;
+            dragStartIndex = current;
+        }, { passive: true });
         sliderViewport.addEventListener('scroll', function () {
             clearTimeout(scrollSettleTimer);
             scrollSettleTimer = setTimeout(restartAutoplay, 400);
@@ -730,11 +753,15 @@
             // Its own timer, not scrollSettleTimer above - both listen on
             // 'scroll', and sharing one timer would have each clear the
             // other's pending call on every event, so autoplay would never
-            // actually restart.
+            // actually restart. Much shorter than that 400ms: browsers without
+            // scrollend (no artificial delay needed here at all, unlike the
+            // autoplay-restart timer above) were leaving the dim/blur crossfade
+            // looking stuck for almost half a second after the scroll had
+            // already visibly stopped.
             var sliderActiveSettleTimer = null;
             sliderViewport.addEventListener('scroll', function () {
                 clearTimeout(sliderActiveSettleTimer);
-                sliderActiveSettleTimer = setTimeout(updateSliderActiveFromScroll, 400);
+                sliderActiveSettleTimer = setTimeout(updateSliderActiveFromScroll, 100);
             }, { passive: true });
         }
 
