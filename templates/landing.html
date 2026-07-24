@@ -473,6 +473,26 @@
         menuSheet.querySelectorAll('a').forEach(function (link) {
             link.addEventListener('click', closeMenu);
         });
+        // Back/forward-cache restore: clicking a drawer link navigates to another
+        // page (e.g. Log in) with the drawer already closed by the listener above,
+        // but Chrome/Safari can restore that frozen page on browser Back without
+        // reloading it - and a page that was mid-transition out of the
+        // position:fixed/overflow:hidden scroll lock at the moment it got frozen
+        // can come back with a stray seam left over from that old compositor
+        // layer until something forces a real repaint. Belt-and-braces: re-clear
+        // the lock in case it was somehow still on, then nudge the scroll
+        // position by a pixel and back to force Chrome to fully recomposite the
+        // page instead of reusing the stale frame.
+        window.addEventListener('pageshow', function (e) {
+            if (!e.persisted) return;
+            if (!menuModal.classList.contains('open')) {
+                document.body.classList.remove('lp-menu-open');
+                document.body.style.top = '';
+            }
+            var y = window.scrollY;
+            window.scrollTo(0, y + 1);
+            window.scrollTo(0, y);
+        });
     }
 
     // Centered brand logo doubles as a scroll-to-top control (replaces the
