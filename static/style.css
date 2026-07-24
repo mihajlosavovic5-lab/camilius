@@ -141,13 +141,15 @@
        The sheet uses the exact same gold-wash-into-background gradient as <body>
        itself (see body's own comment further down) instead of a see-through glass
        tint, so the drawer reads as the site's own background continuing behind the
-       menu, not a separate overlay. Each row is a fully opaque amber chip - same
-       solid --primary-light/--primary pairing as .badge-pro elsewhere on the site -
-       rather than a translucent wash, so they read as real filled buttons, not
-       see-through text. */
+       menu. Rows sit on top of that amber-tinted panel as plain white/--surface
+       cards (not --primary-light, which is the same tint the panel itself fades
+       through - a row painted in that color kept disappearing into its own
+       background) with a neutral border, so they read as distinct buttons at
+       rest; the gold only shows up as a soft wash on hover, see the hover rule
+       further down. */
     --menu-sheet-bg: linear-gradient(180deg, var(--primary-light) 0%, var(--background) 42%);
-    --menu-row-bg: var(--primary-light);
-    --menu-row-border: var(--primary);
+    --menu-row-bg: var(--surface);
+    --menu-row-border: var(--border);
 }
 
 /* --- Dark mode - follows the OS/browser preference (no in-app toggle). Redefining the
@@ -182,8 +184,8 @@
         --shadow: 0 2px 6px rgba(0, 0, 0, .3), 0 1px 2px rgba(0, 0, 0, .25);
         --shadow-lg: 0 16px 44px rgba(0, 0, 0, .45), 0 4px 10px rgba(0, 0, 0, .3);
         --menu-sheet-bg: linear-gradient(180deg, var(--primary-light) 0%, var(--background) 42%);
-        --menu-row-bg: var(--primary-light);
-        --menu-row-border: var(--primary);
+        --menu-row-bg: var(--surface);
+        --menu-row-border: var(--border);
     }
 
     body {
@@ -1119,11 +1121,11 @@ body.lp-menu-open #lp-corner-brand {
 }
 /* Rows fade/slide in with a slight per-item stagger once the drawer is open -
    only while .open is present, so closing fades everything out together
-   instead of replaying the stagger in reverse. Each row is its own opaque amber
-   "chip" (background + border, see --menu-row-bg/--menu-row-border - same solid
-   --primary-light/--primary/--primary-ink trio as .badge-pro) rather than bare
-   or see-through text, so they read as solid, clickable buttons against the
-   drawer panel behind them. */
+   instead of replaying the stagger in reverse. Each row is its own opaque
+   white/--surface "chip" (background + neutral border, see --menu-row-bg/
+   --menu-row-border) rather than bare or see-through text, so they read as
+   solid, clickable buttons that stand apart from the amber-tinted drawer
+   panel behind them, instead of blending into it. */
 .lp-menu-modal-sheet a {
     padding: 13px 14px; margin: 3px 0; border-radius: 10px;
     font-size: 16px; font-weight: 500; color: var(--primary-ink);
@@ -1140,9 +1142,14 @@ body.lp-menu-open #lp-corner-brand {
 .lp-menu-modal.open .lp-menu-modal-sheet a:nth-of-type(5) { transition-delay: .24s; }
 .lp-menu-modal.open .lp-menu-modal-sheet a:nth-of-type(6) { transition-delay: .28s; }
 .lp-menu-modal.open .lp-menu-modal-sheet a:nth-of-type(7) { transition-delay: .32s; }
-/* Same warm amber hover tint as the site's other dropdown (.site-lang-option-btn)
-   and active nav links, plus the same lift + amber glow the site's real .button
-   uses on hover/press, so these read as proper buttons, not flat list text.
+/* Deliberately understated hover: rows rest as plain white/--surface cards
+   (see --menu-row-bg above), so hover only needs a soft gold wash - the same
+   --primary-light tint the site already uses for hover/active states
+   elsewhere (.site-lang-option-btn, .nav-links a.active) - plus a light lift,
+   not a full solid-color block with inverted white text. That harder treatment
+   read as a jarring flash rather than feedback; this stays legible against the
+   still-visible row border/text colors and reads as "gently highlighted", not
+   "replaced".
    Selector is as specific as `.lp-menu-modal.open .lp-menu-modal-sheet a` above
    (same 3 classes, plus :hover) - without matching that specificity, the open
    state's `transform: translateX(0)` always won and the hover lift never
@@ -1160,14 +1167,11 @@ body.lp-menu-open #lp-corner-brand {
    animation but makes hover/press feedback instant regardless of row
    position. */
 @media (hover: hover) and (pointer: fine) {
-    /* Default rows are already the solid --primary-light chip, so hover deepens
-       the fill to the full --primary amber (white text) instead of repeating the
-       same background - otherwise hover would look identical to resting. */
     .lp-menu-modal.open .lp-menu-modal-sheet a:hover {
-        background: var(--primary); color: #fff; text-decoration: none;
-        border-color: var(--primary-dark);
-        transform: translateY(-2px) scale(1.015);
-        box-shadow: 0 10px 20px -8px rgba(214, 148, 16, .55);
+        background: var(--primary-light); color: var(--primary-ink); text-decoration: none;
+        border-color: var(--primary);
+        transform: translateY(-1px);
+        box-shadow: 0 4px 10px -6px rgba(214, 148, 16, .35);
         transition-delay: 0s;
     }
 }
