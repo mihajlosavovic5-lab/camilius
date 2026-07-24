@@ -1362,11 +1362,13 @@ html { scroll-behavior: smooth; }
     .lp-slide { transition: none !important; }
 }
 
-/* --- Landing "Simple pricing" carousel - reuses .lp-slider/.lp-slider-viewport/
-   .lp-slider-track/.lp-slide/.lp-slider-arrow/.lp-slider-dots as-is (see above);
-   this is just the two plan cards' own layout. Flex column + .benefits{flex:1}
-   pins each card's CTA button to the same bottom edge even though Starter and
-   Pro have a different number of benefit lines. */
+/* --- Landing "Simple pricing" section - a static 2-column grid (Starter/Pro side by
+   side, Monthly row above Yearly row) so a visitor sees all 4 price options at once
+   instead of having to swipe through a carousel, same reasoning as .steps' 3-column
+   "How it works" grid above. Flex column + .benefits{flex:1} pins each card's CTA
+   button to the same bottom edge even though Starter and Pro have a different number
+   of benefit lines. */
+.pricing-cards-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; max-width: 720px; margin: 0 auto; }
 .lp-pricing-card { display: flex; flex-direction: column; text-align: center; }
 .lp-pricing-card .benefits { text-align: left; flex: 1; margin-top: 14px; }
 .lp-pricing-card .button { margin-top: 8px; }
@@ -1381,6 +1383,9 @@ html { scroll-behavior: smooth; }
    account" button (mobile/app.css .button-primary-outline) - reads as a
    plain label rather than a second "recommended"-style claim. */
 .lp-plan-badge-basic { background: var(--surface); color: var(--primary); border: 1.5px solid var(--primary); padding: 2.5px 10.5px; }
+@media (max-width: 720px) {
+    .pricing-cards-grid { grid-template-columns: 1fr; max-width: 420px; }
+}
 
 /* --- Footer restructure --- */
 .lp-footer {
