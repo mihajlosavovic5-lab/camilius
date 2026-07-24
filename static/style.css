@@ -49,15 +49,6 @@
        noticeably smoother than a bare .2s/.15s snap, without reintroducing that
        lag on a fast scroll-triggered re-show. */
     transition: transform .3s cubic-bezier(.22, 1, .36, 1), opacity .24s ease;
-    /* Promotes this to its own compositor layer up front, not lazily when the
-       scroll handler first flips .shown. That lazy promotion is itself main-thread
-       work, and it was landing at exactly the worst moment - mid fast scroll-up
-       fling, when the thread is already saturated handling scroll events - which
-       is what still made the re-show start late and hitch on its first frame even
-       after transform/opacity (compositor-only) replaced the old layout-based
-       animation. With the layer already warm, toggling .shown is pure compositor
-       work regardless of how busy the main thread is. */
-    will-change: transform, opacity;
 }
 .mobile-install-banner.shown { transform: translateY(0) scale(1); opacity: 1; pointer-events: auto; }
 @media (prefers-reduced-motion: reduce) {
@@ -146,13 +137,10 @@
     --shadow: 0 2px 6px rgba(38, 32, 20, .05), 0 1px 2px rgba(38, 32, 20, .04);
     --shadow-lg: 0 16px 44px rgba(38, 32, 20, .10), 0 4px 10px rgba(38, 32, 20, .05);
     --radius: 12px;
-    /* Header-menu drawer glass panel + its row "chips" (static/style.css .lp-menu-modal-*) -
-       amber-tinted (built from --primary-light/--primary), not a neutral grey/white glass,
-       so the drawer itself reads as part of the site's brand color instead of a washed-out
-       generic overlay. */
-    --menu-sheet-bg: rgba(251, 238, 203, .82);
-    --menu-row-bg: rgba(255, 244, 214, .75);
-    --menu-row-border: rgba(214, 148, 16, .3);
+    /* Header-menu drawer glass panel + its row "chips" (static/style.css .lp-menu-modal-*) */
+    --menu-sheet-bg: rgba(255, 255, 255, .7);
+    --menu-row-bg: rgba(255, 255, 255, .55);
+    --menu-row-border: rgba(236, 230, 218, .8);
 }
 
 /* --- Dark mode - follows the OS/browser preference (no in-app toggle). Redefining the
@@ -186,9 +174,9 @@
         --danger-border: #5c342a;
         --shadow: 0 2px 6px rgba(0, 0, 0, .3), 0 1px 2px rgba(0, 0, 0, .25);
         --shadow-lg: 0 16px 44px rgba(0, 0, 0, .45), 0 4px 10px rgba(0, 0, 0, .3);
-        --menu-sheet-bg: rgba(58, 42, 16, .84);
-        --menu-row-bg: rgba(232, 165, 28, .14);
-        --menu-row-border: rgba(232, 165, 28, .32);
+        --menu-sheet-bg: rgba(36, 30, 23, .78);
+        --menu-row-bg: rgba(255, 255, 255, .05);
+        --menu-row-border: rgba(255, 255, 255, .09);
     }
 
     body {
@@ -673,9 +661,6 @@ body.auth {
 .price-row { display: flex; align-items: baseline; gap: 6px; margin-bottom: 4px; }
 .price-amount { font-size: 40px; font-weight: 800; letter-spacing: -1px; }
 .price-period { color: var(--text-muted); font-size: 15px; }
-/* The real (not invented) 12x-monthly total, struck through next to the actual
-   yearly price - see landing.html/subscription.html's pricing-toggle JS. */
-.price-was { color: var(--text-muted); text-decoration: line-through; font-size: 16px; }
 .trial-info {
     display: inline-block; align-self: center; margin: 6px 0 14px; padding: 5px 12px;
     background: var(--primary-light); color: var(--primary-ink);
@@ -684,65 +669,43 @@ body.auth {
 .benefits { list-style: none; padding: 0; margin: 0 0 8px; }
 .benefits li { display: flex; gap: 10px; align-items: flex-start; padding: 7px 0; font-size: 14.5px; }
 .benefits .checkmark { color: var(--success); font-weight: 700; flex-shrink: 0; }
-.benefits .crossmark { color: var(--danger); font-weight: 700; flex-shrink: 0; }
-.benefits .benefit-missing { color: var(--text-muted); }
 
 /* --- Two-plan pricing (Faza 5) - Monthly/Yearly toggle + Starter/Pro cards on the
    real /subscription page, distinct from the older single-plan .price-row/.price-amount/
    .trial-info classes above (still used by the landing page's teaser, untouched here). */
 .pricing-toggle-wrap { display: flex; justify-content: center; margin-bottom: 28px; }
-.pricing-toggle {
-    display: flex; background: var(--surface); border: 1px solid var(--border);
-    border-radius: 999px; padding: 5px; gap: 4px; box-shadow: var(--shadow);
-}
+.pricing-toggle { display: flex; background: var(--background); border: 1px solid var(--border); border-radius: 999px; padding: 4px; gap: 4px; }
 .pricing-toggle-option {
     display: flex; align-items: center; gap: 8px;
-    padding: 10px 20px; border: none; border-radius: 999px; background: none; cursor: pointer;
-    font-family: inherit; font-size: 14.5px; font-weight: 600; color: var(--text-muted);
-    transition: background .18s ease, color .18s ease, transform .12s ease, box-shadow .18s ease;
+    padding: 9px 18px; border: none; border-radius: 999px; background: none; cursor: pointer;
+    font-family: inherit; font-size: 14px; font-weight: 600; color: var(--text-muted);
+    transition: background .15s ease, color .15s ease;
 }
-.pricing-toggle-option:hover:not(.active) { color: var(--text); background: var(--primary-light); }
-.pricing-toggle-option:active { transform: scale(.96); }
-.pricing-toggle-option.active {
-    background: var(--primary); color: #fff;
-    box-shadow: 0 4px 14px -5px rgba(214, 148, 16, .55);
-}
-.pricing-toggle-option.active:hover { background: var(--primary-dark); }
+.pricing-toggle-option.active { background: var(--surface); color: var(--text); box-shadow: 0 1px 3px rgba(43,32,19,.12); }
 .pricing-toggle-save {
     background: var(--success-bg); color: var(--success); border: 1px solid var(--success-border);
     font-size: 11px; font-weight: 700; padding: 2px 7px; border-radius: 99px;
-    transition: background .18s ease, color .18s ease, border-color .18s ease;
-}
-/* The "2 months free" badge sits on a solid amber background once Yearly is
-   active - swap it to a translucent white pill so it still reads clearly
-   against that background instead of clashing with the green success tint. */
-.pricing-toggle-option.active .pricing-toggle-save {
-    background: rgba(255, 255, 255, .25); color: #fff; border-color: rgba(255, 255, 255, .4);
 }
 
-.pricing-plans { display: flex; gap: 16px; flex-wrap: wrap; align-items: stretch; max-width: 600px; margin: 0 auto; }
-.pricing-plan {
-    flex: 1; min-width: 220px; max-width: 260px; position: relative; display: flex; flex-direction: column;
-    padding: 18px 20px;
-}
+.pricing-plans { display: flex; gap: 20px; flex-wrap: wrap; align-items: stretch; }
+.pricing-plan { flex: 1; min-width: 260px; position: relative; display: flex; flex-direction: column; }
 .pricing-plan-recommended { border-color: var(--primary); box-shadow: 0 10px 28px -10px rgba(214,148,16,.4); }
 .pricing-plan-badge {
-    position: absolute; top: -11px; left: 50%; transform: translateX(-50%);
-    font-size: 11px; font-weight: 700; padding: 3px 12px; border-radius: 999px; white-space: nowrap;
+    position: absolute; top: -13px; left: 50%; transform: translateX(-50%);
+    font-size: 12px; font-weight: 700; padding: 4px 14px; border-radius: 999px; white-space: nowrap;
 }
 .pricing-plan-badge-recommended { background: var(--primary); color: #fff; }
 /* Outline pill, same treatment as the Android app's login-screen "Create
    account" button (mobile/app.css .button-primary-outline) - reads as a
    plain label rather than a second "recommended"-style claim. */
-.pricing-plan-badge-basic { background: var(--surface); color: var(--primary); border: 1.5px solid var(--primary); padding: 2px 11px; }
-.pricing-plan-name { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--text-muted); margin: 4px 0 8px; }
-.pricing-plan-price { display: flex; align-items: baseline; gap: 5px; }
-.pricing-plan-price .pricing-amount { font-size: 26px; font-weight: 800; color: var(--text); letter-spacing: -1px; }
-.pricing-plan-price .pricing-period { color: var(--text-muted); font-size: 13px; }
-.pricing-yearly-total { margin-top: 2px; font-size: 12.5px; }
-.pricing-plan .benefits { margin-top: 12px; flex: 1; }
-.pricing-plan .benefits li { padding: 4px 0; font-size: 13px; gap: 8px; }
-.pricing-plan .form-actions { margin-top: 14px; }
+.pricing-plan-badge-basic { background: var(--surface); color: var(--primary); border: 1.5px solid var(--primary); padding: 2.5px 12.5px; }
+.pricing-plan-name { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--text-muted); margin: 4px 0 10px; }
+.pricing-plan-price { display: flex; align-items: baseline; gap: 6px; }
+.pricing-plan-price .pricing-amount { font-size: 34px; font-weight: 800; color: var(--text); letter-spacing: -1px; }
+.pricing-plan-price .pricing-period { color: var(--text-muted); font-size: 14px; }
+.pricing-yearly-total { margin-top: 2px; }
+.pricing-plan .benefits { margin-top: 18px; flex: 1; }
+.pricing-plan .form-actions { margin-top: 20px; }
 
 /* --- Schedule / Smart Booking (Faza 8) --- */
 .schedule-toolbar { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-bottom: 20px; }
@@ -1001,39 +964,17 @@ body.intro { margin: 0; height: 100dvh; overflow: hidden; }
        install banner itself use) so this stays clear of the banner instead of the
        two overlapping. */
     position: fixed; top: var(--install-banner-h); left: 0; right: 0; z-index: 999;
-    padding: 18px 0;
-    transition: padding .25s ease, top .2s cubic-bezier(.16,1,.3,1);
-}
-/* The bar's actual background/border/blur lives on ::before, not on #lp-header
-   itself - #lp-header also contains the hamburger button and the drawer it
-   opens (#lp-menu-modal is a child of this header), and both must stay fully
-   sharp/interactive no matter what. opacity/filter can't be "undone" on a
-   descendant once set on an ancestor (a child can't opt back out of its
-   parent's blur or restore the page's real opacity), so those effects can only
-   ever go on this decorative pseudo-element, never on #lp-header itself. */
-#lp-header::before {
-    content: ""; position: absolute; inset: 0; z-index: 0; pointer-events: none;
-    background: rgba(253, 252, 250, 0);
+    padding: 18px 0; background: rgba(253, 252, 250, 0);
     border-bottom: 1px solid rgba(236, 230, 218, 0);
-    transition: background .25s ease, border-color .25s ease, box-shadow .25s ease,
-                opacity .25s ease, filter .25s ease;
+    transition: background .25s ease, border-color .25s ease, padding .25s ease, box-shadow .25s ease,
+                top .2s cubic-bezier(.16,1,.3,1);
 }
-#lp-header.lp-scrolled { padding: 12px 0; }
-#lp-header.lp-scrolled::before {
+#lp-header.lp-scrolled {
     background: rgba(255, 255, 255, .85);
     backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
     border-bottom-color: var(--border);
+    padding: 12px 0;
     box-shadow: 0 4px 20px rgba(38, 32, 20, .05);
-}
-/* Same opacity/blur as body.lp-menu-open .content/.lp-header-spacer further
-   down - identical treatment on every side of the header/hero boundary
-   (instead of the header bar staying bright/sharp while the page below it
-   dims and blurs) is what actually closes the contrast seam users kept
-   seeing there, rather than just papering over one side of it. Only
-   ::before dims - the real header (hamburger button, drawer) is untouched
-   and stays fully sharp and clickable. */
-body.lp-menu-open #lp-header.lp-scrolled::before {
-    opacity: .3; filter: blur(1.5px);
 }
 /* While the drawer is open, dim + disable the language flag - it lives
    outside the header's own stacking context (see the drawer's top: var(
@@ -1052,27 +993,13 @@ body.lp-menu-open .site-lang-select-btn {
    iOS/Android rubber-band bounce revealing it) while the drawer is open.
    `top` is set inline by JS to the negative of the scroll position being
    locked at, so the page doesn't visually jump when position flips to fixed;
-   closeMenu() restores the real scroll position afterwards.
-   background-attachment: scroll overrides body's own background-attachment:
-   fixed (further up) for the duration - a fixed background painted against a
-   body that's *also* pinned via position: fixed + a JS-set negative `top` is
-   a well-known combination for Chrome to mis-recompute on any forced
-   recomposite (switching tabs and back, or just an idle-timeout repaint),
-   since the engine has to decide whether the background tracks the viewport
-   or the now-offset body box. That mismatch is what was surfacing as a stray
-   seam at the top of the page - the body isn't actually scrolling while
-   locked anyway, so there's nothing lost visually by not fixing the
-   background to the viewport for this one moment. */
-body.lp-menu-open { position: fixed; left: 0; right: 0; width: 100%; overflow: hidden; background-attachment: scroll; }
+   closeMenu() restores the real scroll position afterwards. */
+body.lp-menu-open { position: fixed; left: 0; right: 0; width: 100%; overflow: hidden; }
 /* min-height: brand and the hamburger button are both pulled out of flow
    below (absolute) for corner-pinning, leaving no in-flow content to size
    this box - without it, the header collapses and its scrolled
    frosted-glass background no longer reaches down behind them. */
-/* position/z-index keep the brand above ::before (the header's own background
-   bar, added above) - a plain static/auto-stacked div would otherwise paint
-   *under* an absolutely-positioned sibling pseudo-element, hiding it behind
-   the bar it's supposed to sit on top of. */
-#lp-header .public-header { padding-top: 0; padding-bottom: 0; min-height: 38px; position: relative; z-index: 1; }
+#lp-header .public-header { padding-top: 0; padding-bottom: 0; min-height: 38px; }
 .lp-header-spacer { height: 74px; }
 
 /* Centered logo, a real <button> (see landing.html's scroll-to-top click
@@ -1092,46 +1019,6 @@ body.lp-menu-open #lp-corner-brand {
     opacity: .3; filter: blur(1.5px); pointer-events: none;
     transition: opacity .25s ease, filter .25s ease;
 }
-/* Same dim+blur+disable treatment again - the support chat bubble (base.html
-   #support-widget) is fixed/bottom-right and, like the two elements above,
-   lives outside the header's stacking context, so it stayed fully sharp and
-   clickable over the dimmed backdrop without this. */
-body.lp-menu-open .support-widget {
-    opacity: .3; filter: blur(1.5px); pointer-events: none;
-    transition: opacity .25s ease, filter .25s ease;
-}
-/* The modal backdrop's own backdrop-filter (see .lp-menu-modal-backdrop below)
-   was relied on to blur the actual page content behind the drawer, but several
-   in-page elements get promoted to their own compositor layer (scroll-reveal
-   animations' transform/opacity, the sticky pricing toggle, etc.) and a
-   backdrop-filter can't reliably sample across those layers - so headings and
-   controls inside them stayed crisp while plain text around them blurred.
-   Blurring .content directly (a real filter, not backdrop-filter) rasterizes
-   the whole subtree - including those layered children - into one bitmap
-   before blurring it, so every last bit of it blurs uniformly. */
-/* .lp-header-spacer (the empty 74px block that reserves room for the fixed
-   header, right above .content) is included here too, not just .content - it
-   has no filter of its own, so without this it sat at a *different* blur
-   intensity than .content directly below it (spacer: only the drawer's own
-   backdrop-filter; .content: that plus this rule). Two adjacent regions with
-   mismatched blur amounts is exactly what a hard seam is, right where they
-   touch - between the header and the hero heading below it, which is where
-   this kept showing up. Same filter on both sides of that boundary removes
-   the mismatch entirely. */
-body.lp-menu-open .content, body.lp-menu-open .lp-header-spacer {
-    opacity: .3; filter: blur(1.5px); pointer-events: none;
-    transition: opacity .25s ease, filter .25s ease;
-}
-/* The examples slider's own inactive-card dimming (.lp-slide below) is a second,
-   nested filter: blur() sitting inside .content's own filter above - two stacked
-   blur layers plus the slide's native horizontal scroll container. Backgrounding
-   the tab (switching away and back) makes Chrome fully discard and rebuild that
-   compositor layer tree, and rebuilding it with two nested blurred layers is what
-   was leaving a stray seam behind the instant the tab regained focus, even with
-   nothing animating. Since the whole page is already dimmed/blurred as one unit
-   while the drawer is open, the per-slide dimming underneath adds nothing visible
-   anyway - drop it for the duration so there's only one blur layer to rebuild. */
-body.lp-menu-open .lp-slide { filter: none; }
 
 /* --- Header menu: hamburger + dropdown ---
    Same header at every viewport width (mobile or desktop) - a centered
@@ -1187,19 +1074,21 @@ body.lp-menu-open .lp-slide { filter: none; }
 .lp-menu-modal.open { visibility: visible; pointer-events: auto; }
 .lp-menu-modal-backdrop {
     position: absolute; inset: 0; background: rgba(20,15,8,.42);
-    backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
+    /* No backdrop-filter here on purpose - it used to blur(4px), but that (plus the
+       sheet's own blur below) left a stale seam-line artifact across the header/hero
+       boundary after switching browser tabs away and back while the drawer was open
+       (a Chrome compositor repaint bug with backdrop-filter layers, confirmed by
+       removing both blurs and retesting). */
     opacity: 0; transition: opacity .3s ease;
 }
 .lp-menu-modal.open .lp-menu-modal-backdrop { opacity: 1; }
 .lp-menu-modal-sheet {
     position: absolute; left: 0; top: 0; bottom: 0;
     width: min(240px, 70vw);
-    /* Frosted glass panel, not a flat opaque white card - lets the dimmed/blurred
-       backdrop show through softly, so the drawer reads as a floating pane rather
-       than a solid slab. */
+    /* No backdrop-filter here either (used to be blur(20px) saturate(160%)) - see
+       .lp-menu-modal-backdrop above for why. --menu-sheet-bg is still translucent, so
+       the dimmed backdrop shows through, just without the frosted-glass blur on top. */
     background: var(--menu-sheet-bg);
-    backdrop-filter: blur(20px) saturate(160%);
-    -webkit-backdrop-filter: blur(20px) saturate(160%);
     box-shadow: var(--shadow-lg); overflow-y: auto;
     display: flex; flex-direction: column; padding: 84px 14px 24px;
     transform-origin: left center;
@@ -1264,22 +1153,10 @@ body.lp-menu-open .lp-slide { filter: none; }
     }
 }
 .lp-menu-modal-sheet a:active { transform: translateY(1px); box-shadow: none; transition-delay: 0s; }
-/* "Try for free" keeps the sitewide .button class' filled-amber treatment
-   (just reflowed to a full-width row instead of inline-flex) so the one
-   action that actually converts still reads as a real, colored button next
-   to the quieter chip rows around it, instead of blending into the list. */
-.lp-menu-modal-sheet a.button {
-    display: block; text-align: left; margin-top: 6px;
-    background: linear-gradient(135deg, var(--primary), var(--gold-dark));
-    color: #fff; border-color: transparent;
-    box-shadow: 0 8px 18px -8px rgba(214, 148, 16, .55);
-}
-@media (hover: hover) and (pointer: fine) {
-    .lp-menu-modal.open .lp-menu-modal-sheet a.button:hover {
-        background: linear-gradient(135deg, var(--primary-dark), var(--gold-dark));
-        color: #fff;
-    }
-}
+/* "Try for free" is still the sitewide .button class underneath (inline-flex,
+   filled amber, centered text) - reset it back to a plain row so it looks and
+   behaves exactly like every other menu item, no special-cased styling. */
+.lp-menu-modal-sheet a.button { display: block; text-align: left; margin-top: 0; }
 .lp-menu-modal-divider { height: 1px; background: var(--menu-row-border); margin: 10px 4px; }
 /* "Download for Android" (and its preceding divider) only makes sense on an
    actual phone - hidden once the viewport is desktop-sized. */
@@ -1419,42 +1296,23 @@ html { scroll-behavior: smooth; }
    realistic example conversations, replacing the old one-example static card.
    Reuses .card/.conversation/.question/.reply as-is per slide; everything
    below is just the carousel mechanics (viewport/track/arrows/dots).
-   Each slide is narrower than the viewport (--lp-slide-w) so the
+   Each slide is narrower than the viewport (see --lp-slide-w, also read by
+   landing.html's JS to compute the matching translateX/peek) so the
    previous/next card peeks in on either side, dimmed - a visible "there's
-   more" cue. Real native horizontal scroll-snap drives it (not a JS
-   transform): dragging tracks the finger 1:1, same feel as swiping a
-   TikTok/Instagram feed, and scroll-snap-type below settles it on release -
-   see the goTo()/IntersectionObserver pairing in landing.html's JS. Same on
-   mobile and desktop per request, just narrower overall. --- */
+   more, swipe/click" cue instead of a single card that looks like the only
+   one. Same on mobile and desktop per request, just narrower overall. --- */
 .lp-slider {
     position: relative; max-width: 640px; margin: 0 auto;
-    --lp-slide-w: 84; /* percent; peek on each side = (100 - slide-w) / 2 */
+    --lp-slide-w: 84; /* percent; peek on each side = (100 - slide-w) / 2, computed in JS */
 }
-.lp-slider-viewport {
-    overflow-x: auto; overflow-y: hidden;
-    scroll-snap-type: x mandatory;
-    -webkit-overflow-scrolling: touch;
-    border-radius: var(--radius);
-    scrollbar-width: none;
-}
-.lp-slider-viewport::-webkit-scrollbar { display: none; }
+.lp-slider-viewport { overflow: hidden; border-radius: var(--radius); }
 .lp-slider-track {
     display: flex;
-}
-/* Empty flex items, not container padding, give the first/last slide the
-   same peek the *inner* neighbors already get for free - see the equivalent,
-   fuller writeup on .pricing-cards-grid above, which had the identical bug:
-   trailing-edge padding on a scroll container is unreliably excluded from
-   the scrollable range in Chromium, so the last slide could never actually
-   reach its intended centered position. A real flex item always counts
-   correctly toward scrollable overflow regardless of which edge it's on. */
-.lp-slider-track::before, .lp-slider-track::after {
-    content: ""; flex: 0 0 calc((100% - var(--lp-slide-w) * 1%) / 2);
+    transition: transform .5s cubic-bezier(.16, 1, .3, 1);
 }
 .lp-slide {
     flex: 0 0 calc(var(--lp-slide-w) * 1%);
     min-width: 0;
-    scroll-snap-align: center;
     margin-bottom: 0 !important; /* .conversation's own margin-bottom would add uneven gaps between slides in the flex track */
     /* No transform/scale here on purpose - scaling shrinks toward the slide's
        own center, which eats into exactly the edge that's supposed to peek
@@ -1500,26 +1358,13 @@ html { scroll-behavior: smooth; }
     .lp-slide { transition: none !important; }
 }
 
-/* --- Landing "Simple pricing" section - a static 2-column grid (Starter/Pro side by
-   side, Monthly row above Yearly row) so a visitor sees all 4 price options at once
-   instead of having to swipe through a carousel, same reasoning as .steps' 3-column
-   "How it works" grid above. Flex column + .benefits{flex:1} pins each card's CTA
-   button to the same bottom edge even though Starter and Pro have a different number
-   of benefit lines. */
-#lp-pricing .section-title { position: relative; padding-bottom: 16px; }
-#lp-pricing .section-title::after {
-    content: ""; position: absolute; bottom: 0; left: 50%; transform: translateX(-50%);
-    width: 46px; height: 3px; border-radius: 999px; background: var(--primary);
-}
-.pricing-cards-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; max-width: 620px; margin: 0 auto; }
-.lp-pricing-card { display: flex; flex-direction: column; text-align: center; padding: 20px 22px; }
-.lp-pricing-card .price-row { margin-bottom: 2px; }
-.lp-pricing-card .price-amount { font-size: 30px; }
-.lp-pricing-card .price-period { font-size: 13px; }
-.lp-pricing-card .pricing-yearly-total { font-size: 12px; margin-top: 0; }
-.lp-pricing-card .trial-info { margin: 4px 0 10px; padding: 4px 10px; font-size: 12.5px; }
-.lp-pricing-card .benefits { text-align: left; flex: 1; margin-top: 10px; }
-.lp-pricing-card .benefits li { padding: 5px 0; font-size: 13.5px; }
+/* --- Landing "Simple pricing" carousel - reuses .lp-slider/.lp-slider-viewport/
+   .lp-slider-track/.lp-slide/.lp-slider-arrow/.lp-slider-dots as-is (see above);
+   this is just the two plan cards' own layout. Flex column + .benefits{flex:1}
+   pins each card's CTA button to the same bottom edge even though Starter and
+   Pro have a different number of benefit lines. */
+.lp-pricing-card { display: flex; flex-direction: column; text-align: center; }
+.lp-pricing-card .benefits { text-align: left; flex: 1; margin-top: 14px; }
 .lp-pricing-card .button { margin-top: 8px; }
 .lp-pricing-card-recommended { border-color: var(--primary); box-shadow: 0 10px 28px -10px rgba(214, 148, 16, .4); }
 .lp-pricing-plan-name { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--text-muted); margin: 0 0 6px; }
@@ -1532,82 +1377,6 @@ html { scroll-behavior: smooth; }
    account" button (mobile/app.css .button-primary-outline) - reads as a
    plain label rather than a second "recommended"-style claim. */
 .lp-plan-badge-basic { background: var(--surface); color: var(--primary); border: 1.5px solid var(--primary); padding: 2.5px 10.5px; }
-
-/* On phones the grid above becomes a real native-scroll snap track (see
-   lp-pricing-grid JS in landing.html) - desktop keeps the untouched side-by-
-   side grid. Deliberately native overflow-x scrolling rather than a JS
-   transform+touchend-threshold swipe: a transform only ever jumps straight
-   to the next/prev card on release, with no visual feedback while dragging,
-   where native scroll tracks the finger 1:1 (like a TikTok/Instagram feed) -
-   you can drag partway, see the next card peek in (each card is narrower
-   than the viewport, so its neighbor is already sitting right next to it in
-   the flex row), and let go without committing, and scroll-snap-
-   type:mandatory settles back to whichever card you ended up closer to. No
-   arrows - swipe plus the peek is cue enough (removed by request). The
-   recommended card's gold border/glow (.lp-pricing-card-recommended above)
-   is untouched here too, by request - several earlier attempts at a
-   decoupled overlay meant to track "whichever card is currently settled"
-   (sized via a fixed CSS inset, then via JS reading the card's real
-   position) never held up under a real finger-flung swipe. A border that's
-   just an unconditional, permanent part of the card's own box - the same
-   as desktop already has, and the same as Starter's own (non-gold) border -
-   can't ever desync from the card the way a separately-tracked overlay
-   could, so there's nothing left to get wrong. */
-.pricing-cards-wrap { position: relative; }
-@media (max-width: 720px) {
-    .pricing-cards-wrap { max-width: 420px; margin: 0 auto; }
-    .pricing-cards-viewport {
-        overflow-x: auto; overflow-y: hidden;
-        scroll-snap-type: x mandatory;
-        -webkit-overflow-scrolling: touch;
-        border-radius: var(--radius); position: relative;
-        scrollbar-width: none;
-    }
-    .pricing-cards-viewport::-webkit-scrollbar { display: none; }
-    .pricing-cards-grid {
-        grid-template-columns: 1fr; max-width: none;
-        display: flex;
-        /* Desktop's gap:20px (line 1404) would otherwise still apply here
-           since flexbox honors `gap` too and this block never touched it. */
-        gap: 0;
-    }
-    /* Empty flex items, not container padding, are what give the first/last
-       card a peek on their outer edge to match the peek the *inner* neighbor
-       card already gives for free by sitting right next to it. Padding was
-       the first attempt, but trailing-edge padding on a scroll container is
-       unreliably excluded from the scrollable range in Chromium (a real,
-       long-standing engine quirk, not a spec ambiguity we control) - the
-       last card could never actually scroll far enough to reach its
-       intended centered position, landing short and throwing off the gold
-       frame below along with it. A real flex item always counts correctly
-       toward scrollable overflow regardless of which edge it's on. */
-    .pricing-cards-grid::before, .pricing-cards-grid::after {
-        content: ""; flex: 0 0 7%;
-    }
-    .pricing-cards-grid .lp-pricing-card {
-        flex: 0 0 86%; min-width: 0;
-        scroll-snap-align: center;
-        /* justify-content stays the flex column default (flex-start,
-           top-aligned) rather than centering the block - centering was
-           tried and reverted: it shifts Pro's whole (shorter) content down
-           to stay centered in the same stretched card height, so its
-           badge/price/trial/benefits no longer land at the same height as
-           Starter's when swiping between them. Top-aligned, both cards'
-           content starts from the same top edge and matches row for row.
-           .benefits{flex:1} (above, unchanged from desktop) then pins the
-           button to the bottom of that same stretched height on both cards
-           too, by request - Starter has more lines than Pro, so this does
-           reopen a gap between Pro's shorter list and its own button, but
-           matching button height across both cards mattered more than
-           closing that gap. */
-    }
-    /* Arrows removed here per feedback, same reasoning as .lp-slider-arrow
-       above - swipe plus the now-correctly-visible peek of the next card is
-       enough of a "there's more" cue on touch. Base rule (display:none)
-       already hides them; this block used to re-enable them, so removing
-       that override is enough - no need to fight the base rule's !important
-       on :disabled either, since display:none already wins outright. */
-}
 
 /* --- Footer restructure --- */
 .lp-footer {
