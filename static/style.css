@@ -144,9 +144,8 @@
        menu, not a separate overlay. Each row gets a soft amber wash so they read as
        filled buttons rather than bare, near-invisible text. */
     --menu-sheet-bg: linear-gradient(180deg, var(--primary-light) 0%, var(--background) 42%);
-    --menu-row-bg: linear-gradient(135deg, rgba(214, 148, 16, .18), rgba(214, 148, 16, .05));
-    --menu-row-border: rgba(214, 148, 16, .35);
-    --menu-row-shadow: 0 3px 10px -6px rgba(214, 148, 16, .55), inset 0 1px 0 rgba(255, 255, 255, .4);
+    --menu-row-bg: rgba(214, 148, 16, .1);
+    --menu-row-border: rgba(214, 148, 16, .28);
 }
 
 /* --- Dark mode - follows the OS/browser preference (no in-app toggle). Redefining the
@@ -181,9 +180,8 @@
         --shadow: 0 2px 6px rgba(0, 0, 0, .3), 0 1px 2px rgba(0, 0, 0, .25);
         --shadow-lg: 0 16px 44px rgba(0, 0, 0, .45), 0 4px 10px rgba(0, 0, 0, .3);
         --menu-sheet-bg: linear-gradient(180deg, var(--primary-light) 0%, var(--background) 42%);
-        --menu-row-bg: linear-gradient(135deg, rgba(232, 165, 28, .22), rgba(232, 165, 28, .07));
-        --menu-row-border: rgba(232, 165, 28, .4);
-        --menu-row-shadow: 0 3px 10px -6px rgba(0, 0, 0, .5), inset 0 1px 0 rgba(255, 255, 255, .06);
+        --menu-row-bg: rgba(232, 165, 28, .13);
+        --menu-row-border: rgba(232, 165, 28, .3);
     }
 
     body {
@@ -1120,15 +1118,13 @@ body.lp-menu-open #lp-corner-brand {
 /* Rows fade/slide in with a slight per-item stagger once the drawer is open -
    only while .open is present, so closing fades everything out together
    instead of replaying the stagger in reverse. Each row is its own filled amber
-   "chip" - a diagonal gradient wash, a matching tinted border, and a soft glow/
-   inner-highlight (--menu-row-shadow) that gives it a slight raised, tactile
-   look - rather than bare or barely-there flat text, so they read as solid,
-   clickable buttons against the drawer panel behind them. */
+   "chip" (background + border, see --menu-row-bg/--menu-row-border) rather than
+   bare or barely-there text, so they read as solid, clickable buttons against
+   the solid drawer panel behind them. */
 .lp-menu-modal-sheet a {
-    padding: 14px 16px; margin: 4px 0; border-radius: 12px;
-    font-size: 16px; font-weight: 600; color: var(--text);
+    padding: 13px 14px; margin: 3px 0; border-radius: 10px;
+    font-size: 16px; font-weight: 500; color: var(--text);
     background: var(--menu-row-bg); border: 1px solid var(--menu-row-border);
-    box-shadow: var(--menu-row-shadow);
     opacity: 0; transform: translateX(-10px);
     transition: opacity .3s ease, transform .22s cubic-bezier(.16,1,.3,1),
                 background .18s ease, color .18s ease, border-color .18s ease, box-shadow .18s ease;
