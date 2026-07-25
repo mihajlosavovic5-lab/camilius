@@ -1071,6 +1071,26 @@ body.landing .content { padding-top: 32px; }
     .lp-who-grid { grid-template-columns: repeat(2, 1fr); }
 }
 
+/* Desktop only: the "Who it's for" tiles and "How it works" step cards read as
+   small/cramped on wide viewports, so give both extra breathing room without
+   touching the mobile layout above. */
+@media (min-width: 721px) {
+    .lp-who-grid { max-width: 900px; gap: 20px; }
+    .lp-who-tile { padding: 30px 22px; gap: 9px; }
+    .lp-who-icon { width: 56px; height: 56px; }
+    .lp-who-icon svg { width: 26px; height: 26px; }
+    .lp-who-name { font-size: 15.5px; }
+    .lp-who-example { font-size: 12.5px; }
+
+    .steps { gap: 28px; }
+    .step { padding: 34px 30px; }
+    .step-number { width: 50px; height: 50px; font-size: 19px; }
+    .step h3 { font-size: 18px; }
+    .step p.lp-step-desc-main { font-size: 15px; }
+    .step p.lp-step-desc-sub { font-size: 13.5px; }
+    .lp-step-visual, .lp-step-mode { font-size: 13.5px; padding: 11px 14px; }
+}
+
 .price-card { max-width: 380px; margin: 0 auto; text-align: center; padding: 30px; }
 .price-card .button:hover { text-decoration: none; }
 
