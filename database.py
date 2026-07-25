@@ -1208,11 +1208,28 @@ def trial_expired(business_id):
     return now - created_at > timedelta(days=SELF_SERVE_TRIAL_DAYS)
 
 
+# Comma-separated allowlist of contact emails that get full paid access forever without
+# ever going through Paddle - the owner's own account, so testing/demoing the site never
+# means paying for it. Set/overridden via Railway's COMP_ACCOUNT_EMAILS env var rather
+# than only living here, so the list can be changed without a code deploy; the default
+# below just means it works out of the box for the one account that needs it today.
+def _comp_account_emails():
+    raw = os.getenv("COMP_ACCOUNT_EMAILS", "mihajlosavovic5@gmail.com")
+    return {email.strip().lower() for email in raw.split(",") if email.strip()}
+
+
+def is_comp_account(business_id):
+    business = business_by_id(business_id)
+    return bool(business) and business[4].strip().lower() in _comp_account_emails()
+
+
 def effective_subscription_active(business_id):
     """The single source of truth for "does this business currently have access" -
     subscription_active() (status in trialing/active) plus our own self-serve trial
     expiry on top. Used everywhere access is gated: webhook message processing, the
     dashboard banner, and the subscription page's own active/inactive branch."""
+    if is_comp_account(business_id):
+        return True
     status = get_subscription_status(business_id)
     return subscription_active(status) and not trial_expired(business_id)
 
@@ -1260,6 +1277,8 @@ def has_pro_access(business_id):
     Pro-level access for the length of the trial - standard "show the best of the
     product" trial design, same reasoning ACTIVE_STATUSES already applies to basic
     access. Real gating only starts once a specific paid plan exists."""
+    if is_comp_account(business_id):
+        return True
     status = get_subscription_status(business_id)
     if not subscription_active(status) or trial_expired(business_id):
         return False
