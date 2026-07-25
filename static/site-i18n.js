@@ -136,7 +136,7 @@ const TRANSLATIONS = {
         "landing.hero.title1": "A customer messages your business on Instagram.",
         "landing.hero.title2": "Camilius already answered.",
         "landing.hero.subtitle1": "Camilius reads every Instagram message the moment it arrives and drafts a reply based on your working hours, price list, and FAQ.",
-        "landing.hero.subtitle2": "By default, AI Autopilot sends it in seconds, day and night, so no customer is ever left waiting — prefer to double-check first? Turn on manual review anytime.",
+        "landing.hero.subtitle2": "By default, AI Autopilot sends it in seconds, day and night, so no customer is ever left waiting — but if you prefer to double-check first, you can turn on manual review anytime.",
         "landing.hero.ctaFree": "Get started for free",
         "landing.hero.ctaTrial": "Try free for 14 days",
         "landing.hero.finePrintBeta": "Free during the beta · you're always in control of what gets sent",
