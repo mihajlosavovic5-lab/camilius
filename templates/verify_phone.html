@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}Confirm your phone number - Camilius{% endblock %}
+{% block body_class %}auth{% endblock %}
+
+{% block content %}
+<div class="auth-wrapper">
+    <div class="auth-brand">
+        <span class="brand">
+            <span class="brand-mark">C</span>
+            <span class="brand-name">Camilius</span>
+        </span>
+    </div>
+
+    <div class="auth-card">
+        {% if success %}
+            <h1 data-i18n="verifyPhone.successTitle">Phone number confirmed</h1>
+            <div class="alert alert-success" style="margin-top: 12px;">
+                <span class="alert-icon">&#10003;</span>
+                <span data-i18n="verifyPhone.successBody">You can now use this phone number to log in, in addition to your username and email.</span>
+            </div>
+            <div class="auth-links">
+                <a href="{{ url_for('login') }}" data-i18n="verifyPhone.backToLogin">&larr; Back to login</a>
+            </div>
+        {% else %}
+            <h1 data-i18n="verifyPhone.invalidTitle">This link is no longer valid</h1>
+            <div class="alert alert-error" style="margin-top: 12px;">
+                <span class="alert-icon">&#9888;&#65039;</span>
+                <span data-i18n="verifyPhone.invalidBody">This confirmation link has expired or has already been used (valid for 24 hours after it's sent). Send yourself a new one from the Profile screen in the app.</span>
+            </div>
+            <div class="auth-links">
+                <a href="{{ url_for('login') }}" data-i18n="verifyPhone.backToLogin">&larr; Back to login</a>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

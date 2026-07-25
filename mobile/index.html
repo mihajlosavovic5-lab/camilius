@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
 <title>Camilius</title>
-<link rel="stylesheet" href="app.css?v=98114998dbd8">
+<link rel="stylesheet" href="app.css?v=91868b2b01a9">
 </head>
 <body>
 
@@ -541,6 +541,13 @@
         </div>
       </div>
       <p class="field-error hidden" id="settings-phone-error"></p>
+      <p class="field-hint hidden" id="settings-phone-empty-hint" data-i18n="settings.phoneEmptyHint">Optional - add a phone number so you can also log in with it.</p>
+      <p class="field-hint hidden" id="settings-phone-verified-badge" data-i18n="settings.phoneVerified">&#10003; Verified</p>
+      <div id="settings-phone-unverified-banner" class="alert alert-warning hidden" style="margin: 0 0 14px;">
+        <span data-i18n="settings.phoneNotVerified">Not verified yet - verify it so you can also log in with it.</span>
+        <button type="button" class="link-btn" id="settings-phone-verify-btn" data-i18n="settings.phoneVerifyBtn">Send verification email</button>
+      </div>
+      <div id="settings-phone-verify-sent" class="alert alert-success hidden" data-i18n="verifyPending.resent">Email sent again - check your inbox.</div>
 
       <div class="floating-field">
         <input type="text" id="settings-instagram-account" placeholder=" " readonly>
@@ -833,7 +840,7 @@
   </button>
 </nav>
 
-<script src="i18n.js?v=98114998dbd8"></script>
-<script src="app.js?v=98114998dbd8"></script>
+<script src="i18n.js?v=91868b2b01a9"></script>
+<script src="app.js?v=91868b2b01a9"></script>
 </body>
 </html>

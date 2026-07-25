@@ -1871,6 +1871,13 @@ const profilePhoneAvailability = setupAvailabilityField(
     () => composePhoneNumber(el("settings-phone"), selectedProfilePhoneCountry), updateSettingsSaveValidity,
 );
 
+function updatePhoneVerifyStatus(phoneNumber, phoneVerified) {
+    el("settings-phone-verify-sent").classList.add("hidden");
+    el("settings-phone-empty-hint").classList.toggle("hidden", !!phoneNumber);
+    el("settings-phone-verified-badge").classList.toggle("hidden", !(phoneNumber && phoneVerified));
+    el("settings-phone-unverified-banner").classList.toggle("hidden", !(phoneNumber && !phoneVerified));
+}
+
 async function loadSettingsIntoForm() {
     try {
         const data = await api("/api/settings");
@@ -1880,6 +1887,7 @@ async function loadSettingsIntoForm() {
         const { country, rest } = splitStoredPhoneNumber(data.phone_number);
         setProfilePhoneCountry(country);
         el("settings-phone").value = rest;
+        updatePhoneVerifyStatus(data.phone_number, data.phone_verified);
         el("settings-instagram-account").value = data.instagram_username ? "@" + data.instagram_username : "";
         profileHoursPicker.setValue(data.working_hours);
         profilePricesPicker.setValue(data.price_list);
@@ -1939,7 +1947,7 @@ el("settings-save").addEventListener("click", async () => {
     button.textContent = t("settings.saveLoading");
 
     try {
-        await api("/api/settings", {
+        const data = await api("/api/settings", {
             method: "POST",
             body: {
                 name: el("settings-name").value,
@@ -1958,6 +1966,7 @@ el("settings-save").addEventListener("click", async () => {
         el("inbox-business-name").textContent = el("settings-name").value;
         el("settings-current-password").value = "";
         el("settings-new-password").value = "";
+        updatePhoneVerifyStatus(data.phone_number, data.phone_verified);
     } catch (err) {
         errorBox.textContent = err.message || t("settings.error");
         errorBox.classList.remove("hidden");
@@ -1970,6 +1979,20 @@ el("settings-save").addEventListener("click", async () => {
         // there being exactly one source of truth for this button's disabled state.
         updateSettingsSaveValidity();
         button.textContent = t("settings.save");
+    }
+});
+
+el("settings-phone-verify-btn").addEventListener("click", async () => {
+    const btn = el("settings-phone-verify-btn");
+    btn.disabled = true;
+    try {
+        await api("/api/verify-phone/send", { method: "POST" });
+        el("settings-phone-verify-sent").classList.remove("hidden");
+    } catch (err) {
+        // Best-effort, same as the account-email resend button - a real failure here is
+        // already surfaced by the offline banner.
+    } finally {
+        btn.disabled = false;
     }
 });
 

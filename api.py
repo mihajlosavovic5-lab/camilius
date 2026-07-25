@@ -17,7 +17,7 @@ from database import (
     archived_conversations_for_business, trashed_conversations_for_business,
     archive_conversation, unarchive_conversation, soft_delete_conversation, restore_conversation,
     is_reminders_enabled, set_reminders_enabled, get_upsell_pairs, set_upsell_pairs,
-    email_verify_sent_recently,
+    email_verify_sent_recently, phone_verify_sent_recently,
 )
 from instagram_api import send_message as send_instagram_message, authorize_url as instagram_authorize_url
 from extensions import limiter
@@ -547,6 +547,7 @@ def api_get_settings():
         price_list=business[9],
         faq=business[10],
         phone_number=business[11] or "",
+        phone_verified=business[13],
         upsell_pairs=get_upsell_pairs(request.business_id) or "",
     )
 
@@ -585,6 +586,11 @@ def api_update_settings():
     except psycopg2.errors.UniqueViolation:
         return jsonify(error="That username, contact email, or phone number is already taken."), 409
 
+    # Mirrors update_business()'s own CASE-on-old-value logic (index 11 phone_number, 13
+    # phone_verified from the business row fetched above, before this update) instead of
+    # an extra round-trip to re-fetch it.
+    phone_verified = business[13] and phone_number == (business[11] or "")
+
     if new_password:
         set_new_password(business_id, new_password)
 
@@ -599,9 +605,31 @@ def api_update_settings():
 
     return jsonify(
         message="Saved.", name=name, username=username, contact_email=contact_email,
-        phone_number=phone_number, working_hours=working_hours, price_list=price_list, faq=faq,
+        phone_number=phone_number, phone_verified=phone_verified,
+        working_hours=working_hours, price_list=price_list, faq=faq,
         upsell_pairs=upsell_pairs,
     )
+
+
+# Triggered by the "Verify phone number" button on the Profile screen - unlike email
+# verification this is never sent automatically (phone_number is optional and doesn't
+# gate anything on its own), only on request. Sends to the account's own contact email,
+# same as everywhere else phone verification is confirmed - there's no SMS integration.
+@api.route("/verify-phone/send", methods=["POST"])
+@require_api_auth
+@limiter.limit("5 per hour")
+def api_send_phone_verification():
+    from app import send_phone_verification_email, PHONE_VERIFY_RESEND_COOLDOWN_SECONDS  # deferred: avoid circular import at module load
+
+    business = business_by_id(request.business_id)
+    if not business[11]:
+        return jsonify(error="No phone number on file yet - add one first."), 400
+    if business[13]:
+        return jsonify(error="This phone number is already verified."), 400
+
+    if not phone_verify_sent_recently(business[0], PHONE_VERIFY_RESEND_COOLDOWN_SECONDS):
+        send_phone_verification_email(business[0], business[1], business[11], business[4])
+    return jsonify(sent=True)
 
 
 @api.route("/push-token", methods=["POST"])
