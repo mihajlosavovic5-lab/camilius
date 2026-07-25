@@ -89,7 +89,7 @@
             <div class="form-section">
                 <p class="form-section-title" data-i18n="register.automationSection">Automation</p>
                 <label class="checkbox-row" style="margin-top: 10px;">
-                    <input type="checkbox" name="auto_send" {% if data.get('auto_send') %}checked{% endif %}>
+                    <input type="checkbox" name="auto_send" {% if data.get('auto_send', True) %}checked{% endif %}>
                     <span data-i18n="register.autoSendLabel">Auto-send AI replies</span>
                 </label>
                 <p class="note" data-i18n="register.autoSendHint">When on, the AI sends replies to customers right away instead of waiting for your approval. You can change this later in Settings.</p>

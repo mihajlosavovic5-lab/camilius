@@ -1253,7 +1253,7 @@ el("login-signup-link").addEventListener("click", () => {
         el(id).value = "";
     });
     el("register-terms").checked = false;
-    el("register-autosend-toggle").checked = false;
+    el("register-autosend-toggle").checked = true;
     registerHoursPicker.reset();
     registerPricesPicker.setValue("");
     registerUsernameAvailability.reset();

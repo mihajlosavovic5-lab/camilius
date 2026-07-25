@@ -297,10 +297,11 @@ def register():
             return render_template("register.html", error="That username, contact email, or phone number is already taken.", data=request.form)
 
         # Auto-send is offered as a step on the registration form itself (Faza 5, matches
-        # the mobile app's own registration wizard) - defaults to off (add_business's own
-        # column default) if the checkbox wasn't ticked.
-        if request.form.get("auto_send"):
-            set_auto_send(new_id, True)
+        # the mobile app's own registration wizard), pre-checked to match
+        # add_business's own column default (on) - set explicitly either way so
+        # unchecking it actually turns it off instead of just falling through to
+        # that default.
+        set_auto_send(new_id, bool(request.form.get("auto_send")))
 
         log_event("register_completed", business_id=new_id)
         session["business_id"] = new_id
@@ -1636,10 +1637,11 @@ def _process_instagram_message(message):
     if message_id:
         mark_message_processed(business_id, message_id)
 
-    # Opt-in (default off) - when a business turns this on in Settings, the AI's draft
-    # goes straight out instead of waiting for manual approval. Falls back to a normal
-    # pending draft if the send itself fails (most likely Instagram's 24h reply window),
-    # same as the dashboard's own manual send route.
+    # Opt-out (default on, see database.py's businesses.auto_send migration) - the AI's
+    # draft goes straight out unless a business turns this off in Settings, in which
+    # case it waits for manual approval instead. Falls back to a normal pending draft
+    # if the send itself fails (most likely Instagram's 24h reply window), same as the
+    # dashboard's own manual send route.
     auto_sent = False
     if is_auto_send_enabled(business_id):
         try:

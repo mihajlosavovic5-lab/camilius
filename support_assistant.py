@@ -19,10 +19,10 @@ MAX_HISTORY_MESSAGES = 12  # bounds the size/cost of a long back-and-forth in th
 KNOWLEDGE_BASE = """
 What Camilius is: a SaaS product for small businesses. It reads new Instagram DMs sent
 to a business's Instagram account and drafts an AI reply grounded in that business's own
-working hours, price list, and FAQ. By default every draft waits for the owner to
-review and approve (or edit) it in the dashboard before it's sent - there's an optional
-"Auto-send" setting (off by default, in App Settings) that sends the AI's draft straight
-to the customer with no manual approval step.
+working hours, price list, and FAQ. By default, the AI's draft is sent to the customer
+automatically, with no manual approval step - there's an optional "Auto-send" setting
+(on by default, in App Settings) that, when turned off, makes every draft wait for the
+owner to review and approve (or edit) it in the dashboard before it's sent.
 
 Getting started: register an account, then connect an Instagram professional account
 (Business or Creator - a personal Instagram account can't be connected) via OAuth on the

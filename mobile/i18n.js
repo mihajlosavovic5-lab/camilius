@@ -74,7 +74,7 @@ const TRANSLATIONS = {
 
         "connect.title": "Connect Instagram",
         "connect.subtitle": "One last step — connect the Instagram account customers message.",
-        "connect.body": "Camilius reads new direct messages sent to this account and drafts replies - you approve each one by default, with an optional auto-send in Settings.",
+        "connect.body": "Camilius reads new direct messages sent to this account and drafts replies - they're sent automatically by default, with an optional manual-review step in Settings.",
         "connect.professionalTitle": "Before you connect",
         "connect.professionalBody": "Your account needs to be a Professional account (Business or Creator), not personal — Instagram's own requirement. In the Instagram app: Profile → menu → Settings → Account type and tools → Switch to professional account. Free, under a minute.",
         "connect.button": "Connect Instagram",
@@ -301,7 +301,7 @@ const TRANSLATIONS = {
 
         "connect.title": "Poveži Instagram",
         "connect.subtitle": "Još samo jedan korak — povežite Instagram nalog na koji vam kupci pišu.",
-        "connect.body": "Camilius čita nove direktne poruke poslate na ovaj nalog i piše predloge odgovora - vi ih po difoltu odobravate, uz opcionalno auto-slanje u Podešavanjima.",
+        "connect.body": "Camilius čita nove direktne poruke poslate na ovaj nalog i piše predloge odgovora - podrazumevano se šalju automatski, uz opcioni ručni pregled u Podešavanjima.",
         "connect.professionalTitle": "Pre povezivanja",
         "connect.professionalBody": "Vaš Instagram nalog mora biti Profesionalni nalog (Biznis ili Kreator), ne lični — to je Instagramov zahtev. U Instagram aplikaciji: Profil → meni → Podešavanja → Vrsta naloga i alati → Pređi na profesionalni nalog. Besplatno je i traje manje od minuta.",
         "connect.button": "Poveži Instagram",
@@ -521,7 +521,7 @@ const TRANSLATIONS = {
 
         "connect.title": "Conectar Instagram",
         "connect.subtitle": "Un último paso — conecta la cuenta de Instagram donde te escriben tus clientes.",
-        "connect.body": "Camilius lee los nuevos mensajes directos de esta cuenta y redacta respuestas - por defecto las apruebas tú, con un envío automático opcional en Ajustes.",
+        "connect.body": "Camilius lee los nuevos mensajes directos de esta cuenta y redacta respuestas - por defecto se envían automáticamente, con un paso de revisión manual opcional en Ajustes.",
         "connect.professionalTitle": "Antes de conectar",
         "connect.professionalBody": "Tu cuenta de Instagram debe ser una cuenta Profesional (Empresa o Creador de contenido), no personal — es un requisito de Instagram. En la app de Instagram: Perfil → menú → Configuración → Tipo de cuenta y herramientas → Cambiar a cuenta profesional. Es gratis y tarda menos de un minuto.",
         "connect.button": "Conectar Instagram",
@@ -741,7 +741,7 @@ const TRANSLATIONS = {
 
         "connect.title": "Conectar Instagram",
         "connect.subtitle": "Última etapa — conecte a conta do Instagram onde seus clientes enviam mensagens.",
-        "connect.body": "O Camilius lê as novas mensagens diretas dessa conta e redige respostas - por padrão você aprova cada uma, com envio automático opcional em Configurações.",
+        "connect.body": "O Camilius lê as novas mensagens diretas dessa conta e redige respostas - por padrão elas são enviadas automaticamente, com uma etapa de revisão manual opcional em Configurações.",
         "connect.professionalTitle": "Antes de conectar",
         "connect.professionalBody": "Sua conta do Instagram precisa ser uma conta Profissional (Empresa ou Criador de conteúdo), não pessoal — é uma exigência do próprio Instagram. No app do Instagram: Perfil → menu → Configurações → Tipo de conta e ferramentas → Mudar para conta profissional. É grátis e leva menos de um minuto.",
         "connect.button": "Conectar Instagram",
@@ -961,7 +961,7 @@ const TRANSLATIONS = {
 
         "connect.title": "Connecter Instagram",
         "connect.subtitle": "Dernière étape — connectez le compte Instagram que vos clients contactent.",
-        "connect.body": "Camilius lit les nouveaux messages directs reçus sur ce compte et rédige des réponses - vous les approuvez par défaut, avec un envoi automatique optionnel dans les Paramètres.",
+        "connect.body": "Camilius lit les nouveaux messages directs reçus sur ce compte et rédige des réponses - elles sont envoyées automatiquement par défaut, avec une étape de relecture manuelle optionnelle dans les Paramètres.",
         "connect.professionalTitle": "Avant de vous connecter",
         "connect.professionalBody": "Votre compte Instagram doit être un compte Professionnel (Entreprise ou Créateur de contenu), pas personnel — c'est une exigence propre à Instagram. Dans l'application Instagram : Profil → menu → Paramètres → Type de compte et outils → Passer à un compte professionnel. C'est gratuit et ça prend moins d'une minute.",
         "connect.button": "Connecter Instagram",
@@ -1181,7 +1181,7 @@ const TRANSLATIONS = {
 
         "connect.title": "Instagram verbinden",
         "connect.subtitle": "Nur noch ein Schritt — verbinde das Instagram-Konto, über das dich Kunden anschreiben.",
-        "connect.body": "Camilius liest neue Direktnachrichten an dieses Konto und verfasst Antworten - du gibst sie standardmäßig frei, mit optionalem automatischen Senden in den Einstellungen.",
+        "connect.body": "Camilius liest neue Direktnachrichten an dieses Konto und verfasst Antworten - sie werden standardmäßig automatisch gesendet, mit optionaler manueller Prüfung in den Einstellungen.",
         "connect.professionalTitle": "Bevor du dich verbindest",
         "connect.professionalBody": "Dein Instagram-Konto muss ein professionelles Konto sein (Unternehmen oder Creator), kein privates — das ist eine Vorgabe von Instagram. In der Instagram-App: Profil → Menü → Einstellungen → Kontotyp und Tools → Zu professionellem Konto wechseln. Kostenlos und dauert unter einer Minute.",
         "connect.button": "Instagram verbinden",
@@ -1401,7 +1401,7 @@ const TRANSLATIONS = {
 
         "connect.title": "Collega Instagram",
         "connect.subtitle": "Ultimo passaggio — collega l'account Instagram su cui i clienti ti scrivono.",
-        "connect.body": "Camilius legge i nuovi messaggi diretti ricevuti su questo account e prepara risposte - le approvi tu per impostazione predefinita, con un invio automatico opzionale nelle Impostazioni.",
+        "connect.body": "Camilius legge i nuovi messaggi diretti ricevuti su questo account e prepara risposte - per impostazione predefinita vengono inviate automaticamente, con un passaggio di revisione manuale opzionale nelle Impostazioni.",
         "connect.professionalTitle": "Prima di collegare",
         "connect.professionalBody": "Il tuo account Instagram deve essere un account Professionale (Business o Creator), non personale — è un requisito di Instagram stesso. Nell'app Instagram: Profilo → menu → Impostazioni → Tipo di account e strumenti → Passa a un account professionale. È gratis e richiede meno di un minuto.",
         "connect.button": "Collega Instagram",
@@ -1621,7 +1621,7 @@ const TRANSLATIONS = {
 
         "connect.title": "Подключить Instagram",
         "connect.subtitle": "Последний шаг — подключите аккаунт Instagram, куда пишут ваши клиенты.",
-        "connect.body": "Camilius читает новые сообщения на этот аккаунт и готовит ответы - по умолчанию вы одобряете каждый, с необязательной автоматической отправкой в Настройках.",
+        "connect.body": "Camilius читает новые сообщения на этот аккаунт и готовит ответы - по умолчанию они отправляются автоматически, с возможностью включить ручную проверку в Настройках.",
         "connect.professionalTitle": "Перед подключением",
         "connect.professionalBody": "Ваш аккаунт Instagram должен быть Профессиональным (Бизнес или Автор), а не личным — это требование самого Instagram. В приложении Instagram: Профиль → меню → Настройки → Тип аккаунта и инструменты → Переключиться на профессиональный аккаунт. Бесплатно и займёт меньше минуты.",
         "connect.button": "Подключить Instagram",
@@ -1841,7 +1841,7 @@ const TRANSLATIONS = {
 
         "connect.title": "连接 Instagram",
         "connect.subtitle": "最后一步——连接客户发消息的 Instagram 账户。",
-        "connect.body": "Camilius 会读取发送到该账户的新私信并起草回复——默认情况下由您逐条批准，也可在设置中选择开启自动发送。",
+        "connect.body": "Camilius 会读取发送到该账户的新私信并起草回复——默认情况下会自动发送，也可在设置中选择开启人工审核。",
         "connect.professionalTitle": "连接前须知",
         "connect.professionalBody": "您的 Instagram 账户需要是专业账户（企业或创作者），而非个人账户——这是 Instagram 自身的要求。在 Instagram 应用中：个人主页 → 菜单 → 设置 → 账户类型和工具 → 切换为专业账户。免费，不到一分钟即可完成。",
         "connect.button": "连接 Instagram",
@@ -2061,7 +2061,7 @@ const TRANSLATIONS = {
 
         "connect.title": "Instagram'ı bağla",
         "connect.subtitle": "Son adım — müşterilerinizin mesaj attığı Instagram hesabını bağlayın.",
-        "connect.body": "Camilius bu hesaba gelen yeni doğrudan mesajları okur ve yanıt taslakları hazırlar - varsayılan olarak her birini siz onaylarsınız, Ayarlar'da isteğe bağlı otomatik gönderim de mevcuttur.",
+        "connect.body": "Camilius bu hesaba gelen yeni doğrudan mesajları okur ve yanıt taslakları hazırlar - varsayılan olarak otomatik olarak gönderilirler, Ayarlar'da isteğe bağlı manuel inceleme adımı da mevcuttur.",
         "connect.professionalTitle": "Bağlamadan önce",
         "connect.professionalBody": "Instagram hesabınızın kişisel değil, Profesyonel hesap (İşletme veya İçerik Üreticisi) olması gerekir — bu Instagram'ın kendi gereksinimidir. Instagram uygulamasında: Profil → menü → Ayarlar → Hesap türü ve araçlar → Profesyonel hesaba geç. Ücretsizdir ve bir dakikadan az sürer.",
         "connect.button": "Instagram'ı bağla",

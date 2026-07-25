@@ -129,12 +129,25 @@ def create_database():
 
     # Push notifications default ON (existing behavior for everyone who already has a
     # device token registered - this is purely an opt-OUT preference, not a safety
-    # change). Auto-send defaults OFF - unlike push, this changes what actually happens
-    # to a real customer (a reply goes out with no human review), so every existing and
-    # new business keeps today's safe approve-then-send flow unless they deliberately
-    # turn it on.
+    # change).
     cursor.execute("ALTER TABLE businesses ADD COLUMN IF NOT EXISTS push_enabled BOOLEAN NOT NULL DEFAULT TRUE")
-    cursor.execute("ALTER TABLE businesses ADD COLUMN IF NOT EXISTS auto_send BOOLEAN NOT NULL DEFAULT FALSE")
+
+    # Auto-send originally defaulted OFF (every reply waited for manual approval unless a
+    # business deliberately turned this on). Flipped to default ON 2026-07-25 at the
+    # product's request, including retroactively for every already-registered business -
+    # see the one-time-guarded UPDATE below. That guard matters: unlike the naturally
+    # idempotent ADD COLUMN/UPDATE...WHERE-old-value statements elsewhere in this
+    # function (safe to rerun forever since their "before" state can never recur), an
+    # unconditional "UPDATE businesses SET auto_send = TRUE" run on every deploy would
+    # silently re-flip any business that deliberately turns auto-send back off
+    # afterward. schema_flags makes sure the retroactive flip fires exactly once, ever.
+    cursor.execute("ALTER TABLE businesses ADD COLUMN IF NOT EXISTS auto_send BOOLEAN NOT NULL DEFAULT TRUE")
+    cursor.execute("ALTER TABLE businesses ALTER COLUMN auto_send SET DEFAULT TRUE")
+    cursor.execute("CREATE TABLE IF NOT EXISTS schema_flags (key TEXT PRIMARY KEY)")
+    cursor.execute("SELECT 1 FROM schema_flags WHERE key = 'auto_send_default_on_2026_07_25'")
+    if not cursor.fetchone():
+        cursor.execute("UPDATE businesses SET auto_send = TRUE")
+        cursor.execute("INSERT INTO schema_flags (key) VALUES ('auto_send_default_on_2026_07_25')")
 
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS conversations (
