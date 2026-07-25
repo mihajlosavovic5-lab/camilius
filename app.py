@@ -299,13 +299,6 @@ def register():
         except psycopg2.errors.UniqueViolation:
             return render_template("register.html", error="That username, contact email, or phone number is already taken.", data=request.form)
 
-        # Auto-send is offered as a step on the registration form itself (Faza 5, matches
-        # the mobile app's own registration wizard), pre-checked to match
-        # add_business's own column default (on) - set explicitly either way so
-        # unchecking it actually turns it off instead of just falling through to
-        # that default.
-        set_auto_send(new_id, bool(request.form.get("auto_send")))
-
         log_event("register_completed", business_id=new_id)
         session["business_id"] = new_id
         session["business_name"] = request.form["name"]

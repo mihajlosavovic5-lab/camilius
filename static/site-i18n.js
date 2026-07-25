@@ -178,9 +178,7 @@ const TRANSLATIONS = {
         "landing.footer.androidApp": "Android app",
         "landing.footer.legalHeading": "Legal",
 
-        "register.automationSection": "Automation",
         "register.autoSendLabel": "AI Autopilot — auto-send replies",
-        "register.autoSendHint": "Replies go out the moment the AI drafts them, so customers never wait on you. Prefer to check each one first? Turn this off — you can change it anytime in Settings.",
         "register.autoSendBadge": "Recommended",
 
         "pricePicker.currencyLabel": "Currency",
@@ -572,9 +570,7 @@ const TRANSLATIONS = {
         "landing.footer.androidApp": "App de Android",
         "landing.footer.legalHeading": "Legal",
 
-        "register.automationSection": "Automatización",
         "register.autoSendLabel": "Enviar respuestas de la IA automáticamente",
-        "register.autoSendHint": "Cuando está activado, la IA envía respuestas a los clientes de inmediato en lugar de esperar tu aprobación. Puedes cambiar esto más tarde en Configuración.",
 
         "pricePicker.currencyLabel": "Moneda",
         "pricePicker.addButton": "+ Añadir servicio",
@@ -965,9 +961,7 @@ const TRANSLATIONS = {
         "landing.footer.androidApp": "App para Android",
         "landing.footer.legalHeading": "Legal",
 
-        "register.automationSection": "Automação",
         "register.autoSendLabel": "Enviar respostas da IA automaticamente",
-        "register.autoSendHint": "Quando ativado, a IA envia respostas aos clientes imediatamente em vez de esperar sua aprovação. Você pode mudar isso depois em Configurações.",
 
         "pricePicker.currencyLabel": "Moeda",
         "pricePicker.addButton": "+ Adicionar serviço",
@@ -1358,9 +1352,7 @@ const TRANSLATIONS = {
         "landing.footer.androidApp": "Application Android",
         "landing.footer.legalHeading": "Mentions légales",
 
-        "register.automationSection": "Automatisation",
         "register.autoSendLabel": "Envoyer automatiquement les réponses de l'IA",
-        "register.autoSendHint": "Une fois activé, l'IA envoie les réponses aux clients immédiatement au lieu d'attendre votre validation. Vous pouvez modifier cela plus tard dans les Paramètres.",
 
         "pricePicker.currencyLabel": "Devise",
         "pricePicker.addButton": "+ Ajouter un service",
@@ -1751,9 +1743,7 @@ const TRANSLATIONS = {
         "landing.footer.androidApp": "Android-App",
         "landing.footer.legalHeading": "Rechtliches",
 
-        "register.automationSection": "Automatisierung",
         "register.autoSendLabel": "KI-Antworten automatisch senden",
-        "register.autoSendHint": "Wenn aktiviert, sendet die KI Antworten sofort an Kunden, anstatt auf deine Genehmigung zu warten. Du kannst dies später in den Einstellungen ändern.",
 
         "pricePicker.currencyLabel": "Währung",
         "pricePicker.addButton": "+ Leistung hinzufügen",
@@ -2144,9 +2134,7 @@ const TRANSLATIONS = {
         "landing.footer.androidApp": "App Android",
         "landing.footer.legalHeading": "Legale",
 
-        "register.automationSection": "Automazione",
         "register.autoSendLabel": "Invia automaticamente le risposte dell'IA",
-        "register.autoSendHint": "Quando attivo, l'IA invia le risposte ai clienti subito invece di attendere la tua approvazione. Puoi modificarlo più tardi in Impostazioni.",
 
         "pricePicker.currencyLabel": "Valuta",
         "pricePicker.addButton": "+ Aggiungi servizio",
@@ -2537,9 +2525,7 @@ const TRANSLATIONS = {
         "landing.footer.androidApp": "Приложение для Android",
         "landing.footer.legalHeading": "Правовая информация",
 
-        "register.automationSection": "Автоматизация",
         "register.autoSendLabel": "Автоматически отправлять ответы ИИ",
-        "register.autoSendHint": "Когда включено, ИИ сразу отправляет ответы клиентам, не дожидаясь вашего одобрения. Вы можете изменить это позже в Настройках.",
 
         "pricePicker.currencyLabel": "Валюта",
         "pricePicker.addButton": "+ Добавить услугу",
@@ -2930,9 +2916,7 @@ const TRANSLATIONS = {
         "landing.footer.androidApp": "Android aplikacija",
         "landing.footer.legalHeading": "Pravno",
 
-        "register.automationSection": "Automatizacija",
         "register.autoSendLabel": "Automatski šalji AI odgovore",
-        "register.autoSendHint": "Kada je uključeno, AI odmah šalje odgovore mušterijama umesto da čeka vaše odobrenje. Ovo možete kasnije promeniti u Podešavanjima.",
 
         "pricePicker.currencyLabel": "Valuta",
         "pricePicker.addButton": "+ Dodaj uslugu",
@@ -3323,9 +3307,7 @@ const TRANSLATIONS = {
         "landing.footer.androidApp": "Android应用",
         "landing.footer.legalHeading": "法律信息",
 
-        "register.automationSection": "自动化",
         "register.autoSendLabel": "自动发送AI回复",
-        "register.autoSendHint": "开启后,AI会立即将回复发送给顾客,而不是等待您的批准。您可以稍后在设置中更改此项。",
 
         "pricePicker.currencyLabel": "货币",
         "pricePicker.addButton": "+ 添加服务",
@@ -3716,9 +3698,7 @@ const TRANSLATIONS = {
         "landing.footer.androidApp": "Android uygulaması",
         "landing.footer.legalHeading": "Yasal",
 
-        "register.automationSection": "Otomasyon",
         "register.autoSendLabel": "Yapay zekâ yanıtlarını otomatik gönder",
-        "register.autoSendHint": "Açık olduğunda, yapay zekâ onayınızı beklemek yerine yanıtları müşterilere hemen gönderir. Bunu daha sonra Ayarlar'dan değiştirebilirsiniz.",
 
         "pricePicker.currencyLabel": "Para birimi",
         "pricePicker.addButton": "+ Hizmet ekle",

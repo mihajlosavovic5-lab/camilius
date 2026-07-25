@@ -241,12 +241,6 @@ def api_register():
     except psycopg2.errors.UniqueViolation:
         return jsonify(error="That username, contact email, or phone number is already taken."), 409
 
-    # Auto-send is offered as a step on the registration wizard's last page (Faza 4),
-    # pre-checked to match add_business's own column default (on) - set explicitly
-    # either way (defaulting missing/omitted to on too) so unchecking it actually
-    # turns it off instead of just falling through to that default.
-    set_auto_send(new_id, bool(data.get("auto_send", True)))
-
     log_event("register_completed", business_id=new_id)
     return jsonify(token=make_token(new_id), business_id=new_id, business_name=data.get("name", ""))
 

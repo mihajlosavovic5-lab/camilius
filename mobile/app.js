@@ -1274,7 +1274,6 @@ el("login-signup-link").addEventListener("click", () => {
         el(id).value = "";
     });
     el("register-terms").checked = false;
-    el("register-autosend-toggle").checked = true;
     registerHoursPicker.reset();
     registerPricesPicker.setValue("");
     registerUsernameAvailability.reset();
@@ -1351,7 +1350,6 @@ el("register-form").addEventListener("submit", async (event) => {
                 price_list: registerPricesPicker.getValue(),
                 faq: el("register-faq").value,
                 accept_terms: el("register-terms").checked,
-                auto_send: el("register-autosend-toggle").checked,
             },
         });
         state.token = data.token;
