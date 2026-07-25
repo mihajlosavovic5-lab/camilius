@@ -4106,6 +4106,11 @@ function applyTranslations() {
     if (typeof window.refreshInstallBannerHeight === "function") {
         window.refreshInstallBannerHeight();
     }
+
+    // Lets listeners outside this file (e.g. the support widget in base.html, which
+    // renders its greeting once from t() rather than via a data-i18n node) react to a
+    // language switch without requiring a page refresh.
+    document.dispatchEvent(new CustomEvent("site-language-changed", { detail: { lang: currentLang } }));
 }
 
 function setLanguage(code) {

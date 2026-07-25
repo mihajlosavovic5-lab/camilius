@@ -298,6 +298,18 @@
                 renderBotContent(greetingEl, greetingText);
             }
         }
+        // Re-render the greeting whenever the site language changes, as long as the
+        // conversation hasn't started yet - once the user has sent a message, their
+        // existing history is left alone rather than retranslated. Without this, the
+        // greeting (not a data-i18n node - it comes from t() once, above) stayed stuck
+        // in whatever language was active the first time the panel was opened, and only
+        // a full page refresh picked up a later language switch.
+        document.addEventListener("site-language-changed", function () {
+            if (greetingRendered && history.length === 0 && typeof t === "function") {
+                greetingEl.textContent = "";
+                renderBotContent(greetingEl, t("supportWidget.greeting"));
+            }
+        });
         toggle.addEventListener("click", function () { setOpen(!open); });
         closeBtn.addEventListener("click", function () { setOpen(false); });
         // Clicking anywhere outside the widget (the launcher or the panel) closes it,
