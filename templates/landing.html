@@ -944,6 +944,51 @@
     // there's nothing left for JS to track here: the mobile carousel is
     // entirely native-scroll, no current-card state needed for anything.
 
+    // Mobile "hint swipe" - on phones the Pro/recommended card starts
+    // completely off-screen (only Starter is visible until someone swipes),
+    // so unlike desktop it never gets a chance to catch the eye. The first
+    // time the section scrolls into view, nudge the card row sideways on its
+    // own - no touch needed - to peek the Pro card in, then spring back, as
+    // a one-shot "there's more here, and it's worth a look" cue. Any real
+    // touch/scroll from the visitor cancels it immediately so it never fights
+    // an in-progress swipe.
+    //
+    // This moves the track with a CSS transform rather than scrollLeft/
+    // scrollTo() on purpose: .pricing-cards-viewport has scroll-snap-type: x
+    // mandatory (needed for the real swipe gesture), and a mandatory snap
+    // container re-snaps any programmatic scrollTo() straight back to a snap
+    // point, which killed the peek before it was ever visible. A transform on
+    // the track itself is a paint-only offset that scroll-snap never touches.
+    var pricingHintViewport = document.querySelector('.pricing-cards-viewport');
+    var pricingHintTrack = document.getElementById('lp-pricing-grid');
+    if (pricingHintViewport && pricingHintTrack && !prefersReducedMotion) {
+        var pricingHintDone = false;
+        ['touchstart', 'pointerdown', 'wheel'].forEach(function (evt) {
+            pricingHintViewport.addEventListener(evt, function () { pricingHintDone = true; }, { passive: true });
+        });
+        var runPricingHint = function () {
+            if (pricingHintDone || !window.matchMedia('(max-width: 720px)').matches) return;
+            if (pricingHintViewport.scrollLeft > 4) { pricingHintDone = true; return; }
+            pricingHintDone = true;
+            var peek = Math.round(pricingHintTrack.clientWidth * 0.22);
+            pricingHintTrack.style.transform = 'translateX(-' + peek + 'px)';
+            setTimeout(function () {
+                pricingHintTrack.style.transform = '';
+            }, 700);
+        };
+        if ('IntersectionObserver' in window) {
+            var pricingHintIo = new IntersectionObserver(function (entries) {
+                entries.forEach(function (entry) {
+                    if (entry.isIntersecting) {
+                        setTimeout(runPricingHint, 500);
+                        pricingHintIo.disconnect();
+                    }
+                });
+            }, { threshold: 0.6 });
+            pricingHintIo.observe(pricingHintViewport);
+        }
+    }
+
 })();
 </script>
 {% endblock %}

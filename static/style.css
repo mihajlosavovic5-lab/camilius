@@ -1513,6 +1513,12 @@ html { scroll-behavior: smooth; }
         grid-template-columns: 1fr; max-width: none;
         display: flex;
         gap: 0; /* desktop's grid gap still applies to flex, so reset it here */
+        /* Lets the one-shot "hint swipe" JS (landing.html) nudge the whole
+           track sideways with a transform and spring it back, as a paint-only
+           offset that never touches scrollLeft - scroll-snap-type: mandatory
+           above would otherwise immediately re-snap any programmatic
+           scrollTo() back to a snap point, killing the peek before it's seen. */
+        transition: transform .6s cubic-bezier(.16, 1, .3, 1);
     }
     /* Empty flex items, not container padding, give the first/last card a
        peek on its outer edge to match the peek the *inner* neighbor already
