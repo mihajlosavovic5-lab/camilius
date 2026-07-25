@@ -259,7 +259,7 @@ const TRANSLATIONS = {
 
         "connectInstagram.tagline": "One last step — connect the Instagram account customers message.",
         "connectInstagram.title": "Connect your Instagram account",
-        "connectInstagram.subtitle": "Camilius reads new direct messages sent to this account and drafts replies - they're sent automatically by default, with an optional manual-review step in Settings.",
+        "connectInstagram.subtitle": "Camilius reads incoming DMs and drafts replies — automatic by default, optional review in Settings.",
         "connectInstagram.cta": "Connect Instagram",
 
         "connectMobile.success": "Instagram connected! Returning you to Camilius…",
@@ -677,7 +677,7 @@ const TRANSLATIONS = {
 
         "connectInstagram.tagline": "Un último paso: conecta la cuenta de Instagram donde te escriben los clientes.",
         "connectInstagram.title": "Conecta tu cuenta de Instagram",
-        "connectInstagram.subtitle": "Camilius lee los nuevos mensajes directos enviados a esta cuenta y redacta respuestas - por defecto, se envían automáticamente, con un paso de revisión manual opcional en Configuración.",
+        "connectInstagram.subtitle": "Camilius lee los MD entrantes y redacta respuestas — automáticas por defecto, revisión opcional en Configuración.",
         "connectInstagram.cta": "Conectar Instagram",
 
         "connectMobile.success": "¡Instagram conectado! Volviendo a Camilius…",
@@ -1095,7 +1095,7 @@ const TRANSLATIONS = {
 
         "connectInstagram.tagline": "Um último passo — conecte a conta do Instagram onde os clientes mandam mensagem.",
         "connectInstagram.title": "Conecte sua conta do Instagram",
-        "connectInstagram.subtitle": "O Camilius lê as novas mensagens diretas enviadas a esta conta e redige respostas - por padrão, elas são enviadas automaticamente, com uma etapa de revisão manual opcional em Configurações.",
+        "connectInstagram.subtitle": "O Camilius lê DMs recebidas e redige respostas — automáticas por padrão, revisão opcional em Configurações.",
         "connectInstagram.cta": "Conectar Instagram",
 
         "connectMobile.success": "Instagram conectado! Voltando para o Camilius…",
@@ -1513,7 +1513,7 @@ const TRANSLATIONS = {
 
         "connectInstagram.tagline": "Une dernière étape — connectez le compte Instagram où vos clients vous écrivent.",
         "connectInstagram.title": "Connectez votre compte Instagram",
-        "connectInstagram.subtitle": "Camilius lit les nouveaux messages directs envoyés à ce compte et rédige des réponses - elles sont envoyées automatiquement par défaut, avec une étape de relecture manuelle optionnelle dans les Paramètres.",
+        "connectInstagram.subtitle": "Camilius lit les MD entrants et rédige des réponses — automatiques par défaut, relecture optionnelle dans les Paramètres.",
         "connectInstagram.cta": "Connecter Instagram",
 
         "connectMobile.success": "Instagram connecté ! Retour vers Camilius…",
@@ -1931,7 +1931,7 @@ const TRANSLATIONS = {
 
         "connectInstagram.tagline": "Ein letzter Schritt — verbinde das Instagram-Konto, über das dich Kunden erreichen.",
         "connectInstagram.title": "Verbinde dein Instagram-Konto",
-        "connectInstagram.subtitle": "Camilius liest neue Direktnachrichten an dieses Konto und verfasst Antworten - sie werden standardmäßig automatisch gesendet, mit optionaler manueller Prüfung in den Einstellungen.",
+        "connectInstagram.subtitle": "Camilius liest eingehende DMs und verfasst Antworten — standardmäßig automatisch, optional manuelle Prüfung in den Einstellungen.",
         "connectInstagram.cta": "Instagram verbinden",
 
         "connectMobile.success": "Instagram verbunden! Du wirst zu Camilius zurückgeleitet…",
@@ -2349,7 +2349,7 @@ const TRANSLATIONS = {
 
         "connectInstagram.tagline": "Un ultimo passo — collega l'account Instagram su cui ti scrivono i clienti.",
         "connectInstagram.title": "Collega il tuo account Instagram",
-        "connectInstagram.subtitle": "Camilius legge i nuovi messaggi diretti inviati a questo account e redige risposte - per impostazione predefinita vengono inviate automaticamente, con un passaggio di revisione manuale opzionale in Impostazioni.",
+        "connectInstagram.subtitle": "Camilius legge i DM in arrivo e redige risposte — automatiche di default, revisione opzionale in Impostazioni.",
         "connectInstagram.cta": "Collega Instagram",
 
         "connectMobile.success": "Instagram collegato! Ritorno a Camilius…",
@@ -2767,7 +2767,7 @@ const TRANSLATIONS = {
 
         "connectInstagram.tagline": "Последний шаг — подключите аккаунт Instagram, в который пишут клиенты.",
         "connectInstagram.title": "Подключите свой аккаунт Instagram",
-        "connectInstagram.subtitle": "Camilius читает новые прямые сообщения, отправленные на этот аккаунт, и составляет ответы - по умолчанию они отправляются автоматически, с возможностью включить ручную проверку в Настройках.",
+        "connectInstagram.subtitle": "Camilius читает входящие ЛС и составляет ответы — по умолчанию автоматически, ручная проверка опциональна в Настройках.",
         "connectInstagram.cta": "Подключить Instagram",
 
         "connectMobile.success": "Instagram подключён! Возвращаем вас в Camilius…",
@@ -3185,7 +3185,7 @@ const TRANSLATIONS = {
 
         "connectInstagram.tagline": "Još samo jedan korak — povežite Instagram nalog na koji vam mušterije pišu.",
         "connectInstagram.title": "Povežite svoj Instagram nalog",
-        "connectInstagram.subtitle": "Camilius čita nove direktne poruke poslate na ovaj nalog i sastavlja odgovore - podrazumevano se šalju automatski, uz opcioni ručni pregled u Podešavanjima.",
+        "connectInstagram.subtitle": "Camilius čita dolazne DM poruke i sastavlja odgovore — automatski po podrazumevanom, opcioni pregled u Podešavanjima.",
         "connectInstagram.cta": "Poveži Instagram",
 
         "connectMobile.success": "Instagram povezan! Vraćamo vas u Camilius…",
@@ -3603,7 +3603,7 @@ const TRANSLATIONS = {
 
         "connectInstagram.tagline": "最后一步——连接顾客给您发消息的Instagram账户。",
         "connectInstagram.title": "连接您的Instagram账户",
-        "connectInstagram.subtitle": "Camilius会读取发送到此账户的新私信并草拟回复 - 默认情况下会自动发送,也可在设置中选择开启人工审核。",
+        "connectInstagram.subtitle": "Camilius读取收到的私信并草拟回复——默认自动发送，可在设置中开启人工审核。",
         "connectInstagram.cta": "连接Instagram",
 
         "connectMobile.success": "Instagram已连接!正在返回Camilius…",
@@ -4021,7 +4021,7 @@ const TRANSLATIONS = {
 
         "connectInstagram.tagline": "Son bir adım — müşterilerin mesaj attığı Instagram hesabını bağlayın.",
         "connectInstagram.title": "Instagram hesabınızı bağlayın",
-        "connectInstagram.subtitle": "Camilius, bu hesaba gelen yeni direkt mesajları okur ve yanıtlar hazırlar - varsayılan olarak otomatik olarak gönderilirler, Ayarlar'dan isteğe bağlı manuel inceleme adımı da mevcuttur.",
+        "connectInstagram.subtitle": "Camilius gelen DM'leri okur ve yanıtlar hazırlar — varsayılan olarak otomatik, Ayarlar'dan isteğe bağlı inceleme.",
         "connectInstagram.cta": "Instagram'ı bağla",
 
         "connectMobile.success": "Instagram bağlandı! Camilius'a geri dönülüyor…",
