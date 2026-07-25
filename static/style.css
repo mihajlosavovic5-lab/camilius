@@ -1217,6 +1217,14 @@ body.lp-menu-open #lp-corner-brand {
     opacity: .3; pointer-events: none;
     transition: opacity .25s ease;
 }
+/* Same dim+disable treatment again - the support widget's fab sits at z-index
+   1041 (see "Floating Support AI widget" below), above the drawer's own 1002,
+   so it stayed fully visible/clickable above the backdrop while everything
+   else darkened. No blur here by request - dim only. */
+body.lp-menu-open .support-widget {
+    opacity: .3; pointer-events: none;
+    transition: opacity .25s ease;
+}
 
 /* --- Header menu: hamburger + dropdown ---
    Same header at every viewport width (mobile or desktop) - a centered
