@@ -582,6 +582,7 @@ body.auth {
 /* Connect Instagram - centered descriptive text instead of left-aligned (no longer has
    a "Before you connect" info card competing for attention, per Faza 3). */
 .connect-instagram-center { text-align: center; }
+.connect-instagram-center .alert { justify-content: center; align-items: center; }
 .auth-card h1 { font-size: 19px; margin-bottom: 4px; }
 .auth-subtitle { color: var(--text-muted); font-size: 14px; margin: 0 0 10px; }
 .auth-links { margin-top: 18px; text-align: center; font-size: 14px; }
