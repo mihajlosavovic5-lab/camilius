@@ -1195,6 +1195,20 @@ function registerStep1ValidationError() {
     return null;
 }
 
+// Live red inline warning under "Password" the moment it's shorter than 8 characters,
+// cleared the instant it reaches 8 - same field-error treatment as the confirm-password
+// mismatch warning below.
+function updatePasswordLengthError() {
+    const password = el("register-password").value;
+    const errorEl = el("register-password-error");
+    if (password && password.length < 8) {
+        errorEl.textContent = t("register.errorPasswordLength");
+        errorEl.classList.remove("hidden");
+    } else {
+        errorEl.classList.add("hidden");
+    }
+}
+
 // Live red inline warning under "Confirm password" the moment the two fields disagree -
 // same field-error treatment as the username/email/phone "already taken" checks above,
 // but purely local (no availability request needed to compare two strings). Empty confirm
@@ -1259,6 +1273,7 @@ function updateRegisterNextButtonValidity() {
 ["register-name", "register-username", "register-password", "register-confirm-password", "register-contact-email"].forEach((id) => {
     el(id).addEventListener("input", updateRegisterNextButtonValidity);
 });
+el("register-password").addEventListener("input", updatePasswordLengthError);
 el("register-password").addEventListener("input", updateConfirmPasswordError);
 el("register-confirm-password").addEventListener("input", updateConfirmPasswordError);
 el("register-hours-picker").addEventListener("change", updateRegisterNextButtonValidity);
@@ -1289,6 +1304,7 @@ el("login-signup-link").addEventListener("click", () => {
     registerUsernameAvailability.reset();
     registerEmailAvailability.reset();
     registerPhoneAvailability.reset();
+    el("register-password-error").classList.add("hidden");
     el("register-confirm-password-error").classList.add("hidden");
     el("register-error").classList.add("hidden");
     showRegisterStep(1);

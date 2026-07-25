@@ -46,7 +46,7 @@
                         <input type="password" id="register-password-input" name="password" placeholder=" " autocomplete="new-password" minlength="8" required>
                         <label for="register-password-input" data-i18n="register.password">Password</label>
                     </div>
-                    <p class="note" data-i18n="register.passwordHint">At least 8 characters</p>
+                    <p class="field-error hidden" id="register-password-error"></p>
 
                     <div class="floating-field">
                         <input type="password" id="register-confirm-password-input" name="confirm_password" placeholder=" " autocomplete="new-password" required>
@@ -224,11 +224,24 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     });
 
+    // --- Password length: live red warning the moment it's shorter than 8 characters,
+    // cleared the instant it reaches 8 - minlength="8" on the input already blocks
+    // submit via form.checkValidity() below, this just explains why. ---
+
+    var passwordInput = document.getElementById("register-password-input");
+    var passwordError = document.getElementById("register-password-error");
+
+    function updatePasswordLengthError() {
+        var tooShort = passwordInput.value && passwordInput.value.length < 8;
+        passwordError.textContent = t("register.errorPasswordLength");
+        passwordError.classList.toggle("hidden", !tooShort);
+    }
+    passwordInput.addEventListener("input", updatePasswordLengthError);
+
     // --- Confirm password: live red warning the moment the two fields disagree, plus
     // blocking submit via setCustomValidity() so it folds into form.checkValidity() below
     // the same as every other native constraint (required, minlength, etc). ---
 
-    var passwordInput = document.getElementById("register-password-input");
     var confirmPasswordInput = document.getElementById("register-confirm-password-input");
     var confirmPasswordError = document.getElementById("register-confirm-password-error");
 
