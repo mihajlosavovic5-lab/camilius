@@ -379,6 +379,69 @@ def instagram_oauth_callback():
     return redirect(url_for("home"))
 
 
+def _password_reset_email_html(business_name, username, link):
+    """HTML companion to the plain-text body below - same copy, laid out as a branded
+    card (logo, amber CTA button, muted footer) so the reset email reads like the rest
+    of the product instead of a bare-bones system notice."""
+    logo_url = url_for("static", filename="icon-512.png", _external=True)
+    return f"""\
+<!DOCTYPE html>
+<html>
+<body style="margin:0; padding:0; background:#f6f1e7; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f6f1e7; padding:32px 16px;">
+    <tr>
+      <td align="center">
+        <table role="presentation" width="480" cellpadding="0" cellspacing="0" style="max-width:480px; width:100%; background:#ffffff; border-radius:14px; overflow:hidden; box-shadow:0 4px 24px rgba(43,32,19,.08);">
+          <tr>
+            <td style="padding:32px 40px 8px; text-align:center;">
+              <img src="{logo_url}" width="48" height="48" alt="Camilius" style="border-radius:22%; display:block; margin:0 auto 12px;">
+              <div style="font-size:19px; font-weight:700; color:#2b2013;">Camilius</div>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:8px 40px 0;">
+              <hr style="border:none; border-top:1px solid #eee2cc; margin:16px 0;">
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:0 40px;">
+              <h1 style="font-size:20px; color:#2b2013; margin:0 0 16px;">Reset your password</h1>
+              <p style="font-size:15px; line-height:1.6; color:#463824; margin:0 0 16px;">
+                Someone (hopefully you) requested a password reset for <strong>{business_name}</strong>.
+              </p>
+              <p style="font-size:15px; line-height:1.6; color:#463824; margin:0 0 24px;">
+                Your username is <strong>{username}</strong>.
+              </p>
+              <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 24px;">
+                <tr>
+                  <td style="border-radius:999px; background:#d69410;">
+                    <a href="{link}" style="display:inline-block; padding:13px 32px; font-size:15px; font-weight:600; color:#ffffff; text-decoration:none; border-radius:999px;">Set a new password</a>
+                  </td>
+                </tr>
+              </table>
+              <p style="font-size:13.5px; line-height:1.6; color:#8a7a5f; margin:0 0 24px;">
+                This link expires in 1 hour. If the button above doesn't work, copy and paste this URL into your browser:<br>
+                <a href="{link}" style="color:#9a6a08; word-break:break-all;">{link}</a>
+              </p>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:0 40px 32px;">
+              <hr style="border:none; border-top:1px solid #eee2cc; margin:0 0 20px;">
+              <p style="font-size:13px; line-height:1.6; color:#8a7a5f; margin:0;">
+                If you didn't request this, you can safely ignore this email — your password won't change.
+              </p>
+            </td>
+          </tr>
+        </table>
+        <p style="font-size:12px; color:#a6987d; margin:20px 0 0;">&copy; {datetime.now(timezone.utc).year} Camilius. All rights reserved.</p>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>"""
+
+
 def _email_password_reset_link(business):
     """Shared final step once an account has been found by whichever lookup (email,
     username, or phone number) - issues a fresh single-use token and emails the link to
@@ -401,6 +464,7 @@ def _email_password_reset_link(business):
         ),
         business_name="Camilius",
         reply_to=os.getenv("ALERT_EMAIL") or business[4],
+        html=_password_reset_email_html(business[1], business[2], link),
     )
 
 

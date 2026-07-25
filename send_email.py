@@ -12,14 +12,17 @@ resend.api_key = os.getenv("RESEND_API_KEY")
 SENDER_ADDRESS = "mail@ai-auto-reply-mail.com"
 
 
-def send_email(recipient, subject, body, business_name, reply_to):
-    resend.Emails.send({
+def send_email(recipient, subject, body, business_name, reply_to, html=None):
+    message = {
         "from": f"{business_name} <{SENDER_ADDRESS}>",
         "to": [recipient],
         "reply_to": reply_to,
         "subject": subject,
         "text": body,
-    })
+    }
+    if html is not None:
+        message["html"] = html
+    resend.Emails.send(message)
 
 
 if __name__ == "__main__":
