@@ -2156,36 +2156,51 @@ function setupOnboarding() {
     const dots = document.querySelectorAll("#onboarding-dots .onboarding-dot");
     let activeIndex = -1;
     let ticking = false;
+    let settleTimer = null;
 
-    function updateProgress() {
+    // Live parallax only - runs on every scroll frame while dragging, so the swipe
+    // tracks the finger smoothly.
+    function updateParallax() {
         ticking = false;
         const width = slides.clientWidth || 1;
         const raw = slides.scrollLeft / width;
-        const index = Math.round(raw);
-
         slideEls.forEach((slideEl, i) => {
             slideEl.style.setProperty("--p", String(raw - i));
         });
+    }
 
-        if (index !== activeIndex) {
-            activeIndex = index;
-            dots.forEach((dot, i) => dot.classList.toggle("active", i === index));
-            slideEls.forEach((slideEl, i) => slideEl.classList.toggle("is-active", i === index));
-            const accentVar = ONBOARDING_ACCENTS[slideEls[index] && slideEls[index].dataset.accent];
-            if (accentVar) screen.style.setProperty("--onboarding-accent", accentVar);
-        }
+    // "Active slide" bookkeeping - dots, accent glow, and the "is-active" class that
+    // starts the entrance animation/loops - fires only once scrolling has actually
+    // settled (see the debounce below), not on every scroll frame while mid-drag.
+    // Doing this continuously used to flip "is-active" onto the next slide the moment
+    // it crossed the halfway point, while the finger (and the live parallax transform
+    // above) was still moving it - the entrance animation's own transform then fought
+    // the parallax transform on the same element (.onboarding-art has both), which
+    // looked like the slide rendering a second time mid-swipe.
+    function commitActiveSlide() {
+        const width = slides.clientWidth || 1;
+        const index = Math.round(slides.scrollLeft / width);
+        if (index === activeIndex) return;
+        activeIndex = index;
+        dots.forEach((dot, i) => dot.classList.toggle("active", i === index));
+        slideEls.forEach((slideEl, i) => slideEl.classList.toggle("is-active", i === index));
+        const accentVar = ONBOARDING_ACCENTS[slideEls[index] && slideEls[index].dataset.accent];
+        if (accentVar) screen.style.setProperty("--onboarding-accent", accentVar);
     }
 
     slides.addEventListener("scroll", () => {
         if (!ticking) {
             ticking = true;
-            requestAnimationFrame(updateProgress);
+            requestAnimationFrame(updateParallax);
         }
+        clearTimeout(settleTimer);
+        settleTimer = setTimeout(commitActiveSlide, 120);
     });
     // Run once on setup (scrollLeft is 0 at this point) so the first slide gets its
-    // "is-active" class, entrance animation, and accent glow without waiting for a
-    // scroll event.
-    updateProgress();
+    // parallax, "is-active" class, entrance animation, and accent glow without
+    // waiting for a scroll event.
+    updateParallax();
+    commitActiveSlide();
 
     document.querySelectorAll(".onboarding-continue, .onboarding-skip").forEach((btn) => {
         btn.addEventListener("click", async () => {
