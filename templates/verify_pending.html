@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}Confirm your email - Camilius{% endblock %}
+{% block body_class %}auth{% endblock %}
+
+{% block content %}
+<div class="auth-wrapper">
+    <div class="auth-brand">
+        <span class="brand">
+            <span class="brand-mark">C</span>
+            <span class="brand-name">Camilius</span>
+        </span>
+    </div>
+
+    <div class="auth-card">
+        <h1 data-i18n="verifyPending.title">Check your email</h1>
+        <p class="auth-subtitle">
+            <span data-i18n="verifyPending.body1">We sent a confirmation link to</span>
+            <strong>{{ contact_email }}</strong>.
+            <span data-i18n="verifyPending.body2">Click it to activate your account, then come back here and log in.</span>
+        </p>
+
+        {% if resent %}
+            <div class="alert alert-success" style="margin-top: 12px;"><span class="alert-icon">&#10003;</span><span data-i18n="verifyPending.resent">Email sent again - check your inbox.</span></div>
+        {% endif %}
+
+        <form method="POST" action="{{ url_for('verify_pending_resend') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="form-actions">
+                <button class="button button-secondary button-full button-pill button-primary-outline" type="submit" data-i18n="verifyPending.resend">Resend email</button>
+            </div>
+        </form>
+
+        <div class="auth-links">
+            <a href="{{ url_for('login') }}" data-i18n="verifyPending.backToLogin">&larr; Back to login</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

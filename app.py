@@ -31,6 +31,7 @@ from database import (
     get_slot_duration, set_slot_duration, create_appointment, get_appointment, cancel_appointment,
     is_reminders_enabled, set_reminders_enabled, get_upsell_pairs, set_upsell_pairs,
     all_appointments_for_business, get_stripe_customer_id, get_paddle_customer_id,
+    save_email_verify_token, business_by_email_verify_token, mark_email_verified, email_verify_sent_recently,
 )
 from send_email import send_email
 from generate_reply import generate_reply, generate_reply_with_booking
@@ -256,6 +257,11 @@ def login():
         business = business_by_login_identifier(username)
 
         if business and check_password_hash(business[3], password):
+            if not business[12]:  # email_verified
+                if not email_verify_sent_recently(business[0], EMAIL_VERIFY_RESEND_COOLDOWN_SECONDS):
+                    send_verification_email(business[0], business[1], business[4])
+                session["pending_verify_business_id"] = business[0]
+                return redirect(url_for("verify_pending"))
             session["business_id"] = business[0]
             session["business_name"] = business[1]
             return redirect(url_for("home"))
@@ -300,16 +306,58 @@ def register():
             return render_template("register.html", error="That username, contact email, or phone number is already taken.", data=request.form)
 
         log_event("register_completed", business_id=new_id)
-        session["business_id"] = new_id
-        session["business_name"] = request.form["name"]
-        # Instagram isn't connected yet - that's a separate OAuth round-trip, can't happen
-        # inside this same form POST. connect_instagram() (and home()) enforce it from here.
-        return redirect(url_for("connect_instagram"))
+        send_verification_email(new_id, request.form["name"], request.form["contact_email"])
+        # Not logged in yet - the account must confirm its email first (see verify_pending()
+        # /verify_email() below). connect_instagram() only becomes reachable once that's done.
+        session["pending_verify_business_id"] = new_id
+        return redirect(url_for("verify_pending"))
 
     if not session.get("_seen_register"):
         log_event("register_view")
         session["_seen_register"] = True
     return render_template("register.html", error=None, data={})
+
+
+@app.route("/verify-pending")
+def verify_pending():
+    business_id = session.get("pending_verify_business_id")
+    if not business_id:
+        return redirect(url_for("login"))
+    business = business_by_id(business_id)
+    if business is None or business[12]:  # already verified (or account gone) - nothing pending
+        session.pop("pending_verify_business_id", None)
+        return redirect(url_for("login"))
+    return render_template("verify_pending.html", contact_email=business[4], resent=False)
+
+
+@app.route("/verify-pending/resend", methods=["POST"])
+@limiter.limit("5 per hour")
+def verify_pending_resend():
+    business_id = session.get("pending_verify_business_id")
+    if not business_id:
+        return redirect(url_for("login"))
+    business = business_by_id(business_id)
+    if business is None or business[12]:
+        session.pop("pending_verify_business_id", None)
+        return redirect(url_for("login"))
+    if not email_verify_sent_recently(business_id, EMAIL_VERIFY_RESEND_COOLDOWN_SECONDS):
+        send_verification_email(business[0], business[1], business[4])
+    return render_template("verify_pending.html", contact_email=business[4], resent=True)
+
+
+@app.route("/verify-email/<token>")
+def verify_email(token):
+    row = business_by_email_verify_token(token)
+    if row is None:
+        return render_template("verify_email.html", success=False)
+
+    business_id, name = row[0], row[1]
+    mark_email_verified(business_id)
+    log_event("email_verified", business_id=business_id)
+    session.pop("pending_verify_business_id", None)
+    session["business_id"] = business_id
+    session["business_name"] = name
+    return render_template("verify_email.html", success=True)
 
 
 @app.route("/connect-instagram")
@@ -465,6 +513,96 @@ def _email_password_reset_link(business):
         business_name="Camilius",
         reply_to=os.getenv("ALERT_EMAIL") or business[4],
         html=_password_reset_email_html(business[1], business[2], link),
+    )
+
+
+EMAIL_VERIFY_TOKEN_LIFETIME = timedelta(hours=24)
+# Minimum gap between two verification emails to the same account - stops the login
+# form (which re-triggers a resend on every attempt while unverified, see login() below)
+# from firing a fresh email on every single failed/retried submit.
+EMAIL_VERIFY_RESEND_COOLDOWN_SECONDS = 60
+
+
+def _verification_email_html(business_name, link):
+    """HTML companion to the plain-text body below - same branded-card layout as
+    _password_reset_email_html, just for the signup confirmation link instead."""
+    logo_url = url_for("static", filename="icon-512.png", _external=True)
+    return f"""\
+<!DOCTYPE html>
+<html>
+<body style="margin:0; padding:0; background:#f6f1e7; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f6f1e7; padding:32px 16px;">
+    <tr>
+      <td align="center">
+        <table role="presentation" width="480" cellpadding="0" cellspacing="0" style="max-width:480px; width:100%; background:#ffffff; border-radius:14px; overflow:hidden; box-shadow:0 4px 24px rgba(43,32,19,.08);">
+          <tr>
+            <td style="padding:32px 40px 8px; text-align:center;">
+              <img src="{logo_url}" width="48" height="48" alt="Camilius" style="border-radius:22%; display:block; margin:0 auto 12px;">
+              <div style="font-size:19px; font-weight:700; color:#2b2013;">Camilius</div>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:8px 40px 0;">
+              <hr style="border:none; border-top:1px solid #eee2cc; margin:16px 0;">
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:0 40px;">
+              <h1 style="font-size:20px; color:#2b2013; margin:0 0 16px;">Confirm your email</h1>
+              <p style="font-size:15px; line-height:1.6; color:#463824; margin:0 0 24px;">
+                Welcome to Camilius! Confirm <strong>{business_name}</strong>'s email address to finish setting up your account.
+              </p>
+              <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 24px;">
+                <tr>
+                  <td style="border-radius:999px; background:#d69410;">
+                    <a href="{link}" style="display:inline-block; padding:13px 32px; font-size:15px; font-weight:600; color:#ffffff; text-decoration:none; border-radius:999px;">Confirm email</a>
+                  </td>
+                </tr>
+              </table>
+              <p style="font-size:13.5px; line-height:1.6; color:#8a7a5f; margin:0 0 24px;">
+                This link expires in 24 hours. If the button above doesn't work, copy and paste this URL into your browser:<br>
+                <a href="{link}" style="color:#9a6a08; word-break:break-all;">{link}</a>
+              </p>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:0 40px 32px;">
+              <hr style="border:none; border-top:1px solid #eee2cc; margin:0 0 20px;">
+              <p style="font-size:13px; line-height:1.6; color:#8a7a5f; margin:0;">
+                If you didn't create a Camilius account, you can safely ignore this email.
+              </p>
+            </td>
+          </tr>
+        </table>
+        <p style="font-size:12px; color:#a6987d; margin:20px 0 0;">&copy; {datetime.now(timezone.utc).year} Camilius. All rights reserved.</p>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>"""
+
+
+def send_verification_email(business_id, business_name, recipient):
+    """Issues a fresh 24h single-use token and emails the confirmation link. Shared by the
+    web /register route, the mobile /api/register endpoint, and both places that resend it
+    (login() below and /api/login) once an account already exists but hasn't confirmed yet."""
+    token = secrets.token_urlsafe(32)
+    expires = datetime.now(timezone.utc).replace(tzinfo=None) + EMAIL_VERIFY_TOKEN_LIFETIME
+    save_email_verify_token(business_id, token, expires)
+
+    link = url_for("verify_email", token=token, _external=True)
+    send_email(
+        recipient=recipient,
+        subject="Confirm your email - Camilius",
+        body=(
+            f"Hi,\n\n"
+            f"Welcome to Camilius! Confirm '{business_name}'s email address to finish setting up your account.\n\n"
+            f"Click the link to confirm (valid for 24 hours):\n{link}\n\n"
+            f"If you didn't create a Camilius account, you can safely ignore this email."
+        ),
+        business_name="Camilius",
+        reply_to=os.getenv("ALERT_EMAIL") or recipient,
+        html=_verification_email_html(business_name, link),
     )
 
 
@@ -888,7 +1026,7 @@ def admin_businesses():
     search = (request.args.get("q") or "").strip().lower()
     result = []
     for business in all_businesses_unfiltered():
-        # indices: 0 id, 1 name, 2 username, 4 contact_email, 12 subscription_status, 13 created_at
+        # indices: 0 id, 1 name, 2 username, 4 contact_email, 12 email_verified, 13 subscription_status, 14 created_at
         if search and search not in business[1].lower() and search not in business[2].lower() and search not in business[4].lower():
             continue
         result.append({
@@ -897,8 +1035,9 @@ def admin_businesses():
             "username": business[2],
             "contact_email": business[4],
             "instagram_username": business[6],
-            "subscription_status": business[12],
-            "created_at": business[13].isoformat() if business[13] else None,
+            "email_verified": business[12],
+            "subscription_status": business[13],
+            "created_at": business[14].isoformat() if business[14] else None,
         })
     return jsonify(businesses=result)
 

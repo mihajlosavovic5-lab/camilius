@@ -408,6 +408,14 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
 .connect-instagram-center .alert,
 .connect-instagram-center #connect-waiting { margin-top: 14px; width: 100%; }
 
+/* Verify-pending - reuses .login-wrap's layout (see .screen-login above) but with plain
+   centered text/buttons instead of a form, same idea as .connect-instagram-center. */
+.screen-verify-pending .login-wrap { text-align: center; align-items: center; }
+.screen-verify-pending h1 { margin: 0 0 4px; }
+.screen-verify-pending .screen-subtitle { margin: 2px 0 20px; }
+.screen-verify-pending .alert { margin-bottom: 14px; width: 100%; }
+.screen-verify-pending #verify-pending-resend { margin-bottom: 16px; }
+
 /* --- Settings screen (app preferences - distinct from Profile's business-info form) --- */
 .settings-row {
     display: flex; align-items: center; justify-content: space-between;

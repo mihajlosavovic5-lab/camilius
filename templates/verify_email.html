@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}Confirm your email - Camilius{% endblock %}
+{% block body_class %}auth{% endblock %}
+
+{% block content %}
+<div class="auth-wrapper">
+    <div class="auth-brand">
+        <span class="brand">
+            <span class="brand-mark">C</span>
+            <span class="brand-name">Camilius</span>
+        </span>
+    </div>
+
+    <div class="auth-card">
+        {% if success %}
+            <h1 data-i18n="verifyEmail.successTitle">Email confirmed</h1>
+            <div class="alert alert-success" style="margin-top: 12px;">
+                <span class="alert-icon">&#10003;</span>
+                <span data-i18n="verifyEmail.successBody">Your account is now active. If you're using the Camilius app, you can go back there and log in.</span>
+            </div>
+            <div class="form-actions">
+                <a class="button button-full" href="{{ url_for('connect_instagram') }}" data-i18n="verifyEmail.continue">Continue</a>
+            </div>
+        {% else %}
+            <h1 data-i18n="verifyEmail.invalidTitle">This link is no longer valid</h1>
+            <div class="alert alert-error" style="margin-top: 12px;">
+                <span class="alert-icon">&#9888;&#65039;</span>
+                <span data-i18n="verifyEmail.invalidBody">This confirmation link has expired or has already been used (valid for 24 hours after it's sent). Log in and we'll send you a new one.</span>
+            </div>
+            <div class="auth-links">
+                <a href="{{ url_for('login') }}" data-i18n="verifyEmail.backToLogin">&larr; Back to login</a>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

@@ -17,6 +17,7 @@ from database import (
     archived_conversations_for_business, trashed_conversations_for_business,
     archive_conversation, unarchive_conversation, soft_delete_conversation, restore_conversation,
     is_reminders_enabled, set_reminders_enabled, get_upsell_pairs, set_upsell_pairs,
+    email_verify_sent_recently,
 )
 from instagram_api import send_message as send_instagram_message, authorize_url as instagram_authorize_url
 from extensions import limiter
@@ -195,6 +196,7 @@ def _serialize_conversation(c):
 
 
 @api.route("/login", methods=["POST"])
+@limiter.limit("10 per 15 minutes")
 def api_login():
     data = request.get_json(silent=True) or {}
     username = data.get("username", "")
@@ -204,13 +206,26 @@ def api_login():
     if not business or not check_password_hash(business[3], password):
         return jsonify(error="Wrong username or password."), 401
 
+    if not business[12]:  # email_verified
+        from app import send_verification_email, EMAIL_VERIFY_RESEND_COOLDOWN_SECONDS  # deferred: avoid circular import at module load
+
+        if not email_verify_sent_recently(business[0], EMAIL_VERIFY_RESEND_COOLDOWN_SECONDS):
+            send_verification_email(business[0], business[1], business[4])
+        return jsonify(
+            error="Please confirm your email first - we've sent a confirmation link to your inbox.",
+            pending_verification=True,
+            business_id=business[0],
+        ), 403
+
     return jsonify(token=make_token(business[0]), business_id=business[0], business_name=business[1])
 
 
 # Native registration screen in the mobile app (replaces opening the website's /register
 # in an in-app browser tab). Mirrors app.py's web /register route's validation exactly,
-# but responds with JSON and auto-logs-in on success (same token shape as /api/login)
-# instead of redirecting - the app takes it from here to the Instagram-connect screen.
+# but responds with JSON instead of redirecting. Unlike before, success no longer hands
+# back a token - the account can't log in until its email is confirmed (see api_login
+# above), so the app shows a "check your email" screen instead of the Instagram-connect
+# screen until that happens.
 @api.route("/register", methods=["POST"])
 @limiter.limit("5 per hour")
 def api_register():
@@ -242,7 +257,32 @@ def api_register():
         return jsonify(error="That username, contact email, or phone number is already taken."), 409
 
     log_event("register_completed", business_id=new_id)
-    return jsonify(token=make_token(new_id), business_id=new_id, business_name=data.get("name", ""))
+    from app import send_verification_email  # deferred: avoid circular import at module load
+
+    send_verification_email(new_id, data.get("name", ""), data.get("contact_email", ""))
+    return jsonify(pending_verification=True, business_id=new_id, contact_email=data.get("contact_email", ""))
+
+
+# Lets the app's "check your email" screen (shown after registration, or after a login
+# attempt against an unconfirmed account) trigger a resend without the user re-typing
+# their password - business_id alone is enough since this only ever resends to the email
+# already on file, never exposes or changes anything. Rate-limited (and further
+# throttled by email_verify_sent_recently) since it's intentionally unauthenticated.
+@api.route("/resend-verification", methods=["POST"])
+@limiter.limit("5 per hour")
+def api_resend_verification():
+    from app import send_verification_email, EMAIL_VERIFY_RESEND_COOLDOWN_SECONDS  # deferred: avoid circular import at module load
+
+    data = request.get_json(silent=True) or {}
+    business_id = data.get("business_id")
+    business = business_by_id(business_id) if business_id else None
+
+    if business and not business[12] and not email_verify_sent_recently(business[0], EMAIL_VERIFY_RESEND_COOLDOWN_SECONDS):
+        send_verification_email(business[0], business[1], business[4])
+
+    # Same response whether or not business_id was real/already-verified - nothing here
+    # should let a caller probe for valid account ids.
+    return jsonify(sent=True)
 
 
 # Native forgot-password screen in the mobile app (replaces opening the website's

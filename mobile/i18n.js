@@ -101,6 +101,13 @@ const TRANSLATIONS = {
         "forgot.error": "Something went wrong. Try again.",
         "forgot.backToLogin": "Back to login",
 
+        "verifyPending.title": "Check your email",
+        "verifyPending.body1": "We sent a confirmation link to",
+        "verifyPending.body2": "Click it to activate your account, then come back here and log in.",
+        "verifyPending.resent": "Email sent again - check your inbox.",
+        "verifyPending.resend": "Resend email",
+        "verifyPending.yourEmail": "your email",
+
         "lang.pickerTitle": "Choose language",
 
         "inbox.subtitle": "Customer questions",
@@ -330,6 +337,13 @@ const TRANSLATIONS = {
         "forgot.error": "Nešto nije u redu. Pokušajte ponovo.",
         "forgot.backToLogin": "Nazad na prijavu",
 
+        "verifyPending.title": "Proverite email",
+        "verifyPending.body1": "Poslali smo link za potvrdu na",
+        "verifyPending.body2": "Kliknite na njega da aktivirate nalog, a zatim se vratite ovde i prijavite se.",
+        "verifyPending.resent": "Email je ponovo poslat - proverite inbox.",
+        "verifyPending.resend": "Ponovo pošalji email",
+        "verifyPending.yourEmail": "vaš email",
+
         "lang.pickerTitle": "Izaberite jezik",
 
         "inbox.subtitle": "Pitanja kupaca",
@@ -551,6 +565,13 @@ const TRANSLATIONS = {
         "forgot.success": "Si esa cuenta existe, hemos enviado un enlace para restablecer la contraseña al correo registrado.",
         "forgot.error": "Algo salió mal. Inténtalo de nuevo.",
         "forgot.backToLogin": "Volver a iniciar sesión",
+
+        "verifyPending.title": "Revisa tu correo",
+        "verifyPending.body1": "Enviamos un enlace de confirmación a",
+        "verifyPending.body2": "Haz clic en él para activar tu cuenta y luego vuelve aquí para iniciar sesión.",
+        "verifyPending.resent": "Correo reenviado - revisa tu bandeja de entrada.",
+        "verifyPending.resend": "Reenviar correo",
+        "verifyPending.yourEmail": "tu correo",
 
         "lang.pickerTitle": "Elige un idioma",
 
@@ -774,6 +795,13 @@ const TRANSLATIONS = {
         "forgot.error": "Algo deu errado. Tente novamente.",
         "forgot.backToLogin": "Voltar ao login",
 
+        "verifyPending.title": "Verifique seu email",
+        "verifyPending.body1": "Enviamos um link de confirmação para",
+        "verifyPending.body2": "Clique nele para ativar sua conta e depois volte aqui para entrar.",
+        "verifyPending.resent": "Email reenviado - verifique sua caixa de entrada.",
+        "verifyPending.resend": "Reenviar email",
+        "verifyPending.yourEmail": "seu email",
+
         "lang.pickerTitle": "Escolha o idioma",
 
         "inbox.subtitle": "Perguntas de clientes",
@@ -995,6 +1023,13 @@ const TRANSLATIONS = {
         "forgot.success": "Si ce compte existe, nous avons envoyé un lien de réinitialisation à l'email enregistré.",
         "forgot.error": "Une erreur s'est produite. Réessayez.",
         "forgot.backToLogin": "Retour à la connexion",
+
+        "verifyPending.title": "Vérifiez votre e-mail",
+        "verifyPending.body1": "Nous avons envoyé un lien de confirmation à",
+        "verifyPending.body2": "Cliquez dessus pour activer votre compte, puis revenez ici pour vous connecter.",
+        "verifyPending.resent": "E-mail renvoyé - vérifiez votre boîte de réception.",
+        "verifyPending.resend": "Renvoyer l'e-mail",
+        "verifyPending.yourEmail": "votre e-mail",
 
         "lang.pickerTitle": "Choisissez une langue",
 
@@ -1218,6 +1253,13 @@ const TRANSLATIONS = {
         "forgot.error": "Etwas ist schiefgelaufen. Versuch's noch mal.",
         "forgot.backToLogin": "Zurück zur Anmeldung",
 
+        "verifyPending.title": "Bestätige deine E-Mail",
+        "verifyPending.body1": "Wir haben einen Bestätigungslink gesendet an",
+        "verifyPending.body2": "Klicke darauf, um dein Konto zu aktivieren, und komm dann hierher zurück, um dich anzumelden.",
+        "verifyPending.resent": "E-Mail erneut gesendet - überprüfe deinen Posteingang.",
+        "verifyPending.resend": "E-Mail erneut senden",
+        "verifyPending.yourEmail": "deine E-Mail",
+
         "lang.pickerTitle": "Sprache wählen",
 
         "inbox.subtitle": "Kundenanfragen",
@@ -1439,6 +1481,13 @@ const TRANSLATIONS = {
         "forgot.success": "Se l'account esiste, abbiamo inviato un link per reimpostare la password all'email registrata.",
         "forgot.error": "Qualcosa è andato storto. Riprova.",
         "forgot.backToLogin": "Torna al login",
+
+        "verifyPending.title": "Controlla la tua email",
+        "verifyPending.body1": "Abbiamo inviato un link di conferma a",
+        "verifyPending.body2": "Cliccalo per attivare il tuo account, poi torna qui per accedere.",
+        "verifyPending.resent": "Email inviata di nuovo - controlla la posta in arrivo.",
+        "verifyPending.resend": "Invia di nuovo l'email",
+        "verifyPending.yourEmail": "la tua email",
 
         "lang.pickerTitle": "Scegli la lingua",
 
@@ -1662,6 +1711,13 @@ const TRANSLATIONS = {
         "forgot.error": "Что-то пошло не так. Попробуйте снова.",
         "forgot.backToLogin": "Назад ко входу",
 
+        "verifyPending.title": "Проверьте почту",
+        "verifyPending.body1": "Мы отправили ссылку для подтверждения на",
+        "verifyPending.body2": "Перейдите по ней, чтобы активировать аккаунт, а затем вернитесь сюда и войдите.",
+        "verifyPending.resent": "Письмо отправлено повторно - проверьте почту.",
+        "verifyPending.resend": "Отправить письмо повторно",
+        "verifyPending.yourEmail": "ваш email",
+
         "lang.pickerTitle": "Выберите язык",
 
         "inbox.subtitle": "Вопросы клиентов",
@@ -1884,6 +1940,13 @@ const TRANSLATIONS = {
         "forgot.error": "出了点问题，请重试。",
         "forgot.backToLogin": "返回登录",
 
+        "verifyPending.title": "查看您的邮箱",
+        "verifyPending.body1": "我们已发送确认链接至",
+        "verifyPending.body2": "点击链接激活您的账户,然后返回此处登录。",
+        "verifyPending.resent": "邮件已重新发送 - 请查看您的收件箱。",
+        "verifyPending.resend": "重新发送邮件",
+        "verifyPending.yourEmail": "您的邮箱",
+
         "lang.pickerTitle": "选择语言",
 
         "inbox.subtitle": "客户提问",
@@ -2105,6 +2168,13 @@ const TRANSLATIONS = {
         "forgot.success": "Bu hesap mevcutsa, kayıtlı e-postaya şifre sıfırlama bağlantısı gönderdik.",
         "forgot.error": "Bir şeyler ters gitti. Tekrar deneyin.",
         "forgot.backToLogin": "Girişe dön",
+
+        "verifyPending.title": "E-postanızı kontrol edin",
+        "verifyPending.body1": "Onay bağlantısını şu adrese gönderdik:",
+        "verifyPending.body2": "Hesabınızı etkinleştirmek için tıklayın, ardından buraya dönüp giriş yapın.",
+        "verifyPending.resent": "E-posta yeniden gönderildi - gelen kutunuzu kontrol edin.",
+        "verifyPending.resend": "E-postayı yeniden gönder",
+        "verifyPending.yourEmail": "e-postanız",
 
         "lang.pickerTitle": "Dil seçin",
 

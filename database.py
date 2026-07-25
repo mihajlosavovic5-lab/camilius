@@ -336,6 +336,19 @@ def create_database():
     cursor.execute("ALTER TABLE appointments ADD COLUMN IF NOT EXISTS reminder_24h_sent_at TIMESTAMP")
     cursor.execute("ALTER TABLE appointments ADD COLUMN IF NOT EXISTS reminder_2h_sent_at TIMESTAMP")
 
+    # Email verification at signup. DEFAULT TRUE grandfathers in every account that
+    # already existed before this column was added (they never went through a
+    # verification step, so there's nothing to gate retroactively) - add_business()
+    # below overrides this to FALSE for every new registration going forward, which is
+    # the only place a new row is ever inserted with email_verified unset.
+    cursor.execute("ALTER TABLE businesses ADD COLUMN IF NOT EXISTS email_verified BOOLEAN NOT NULL DEFAULT TRUE")
+    cursor.execute("ALTER TABLE businesses ADD COLUMN IF NOT EXISTS email_verify_token TEXT")
+    cursor.execute("ALTER TABLE businesses ADD COLUMN IF NOT EXISTS email_verify_expires TIMESTAMP")
+    # Tracked separately from email_verify_expires (rather than derived by subtracting the
+    # token's lifetime back off it) so the resend-cooldown check below doesn't have to
+    # hardcode that lifetime a second time.
+    cursor.execute("ALTER TABLE businesses ADD COLUMN IF NOT EXISTS email_verify_sent_at TIMESTAMP")
+
     connection.commit()
     connection.close()
 
@@ -346,11 +359,12 @@ def create_database():
 # business_by_instagram_account_id (and, plus subscription_status, all_businesses):
 #   0 id, 1 name, 2 username, 3 password (hashed), 4 contact_email, 5 instagram_account_id,
 #   6 instagram_username, 7 instagram_access_token (decrypted, None if not connected yet),
-#   8 working_hours, 9 price_list, 10 faq, 11 phone_number (None if never set)
+#   8 working_hours, 9 price_list, 10 faq, 11 phone_number (None if never set),
+#   12 email_verified
 
 _BUSINESS_COLUMNS = """id, name, username, password, contact_email, instagram_account_id,
                        instagram_username, instagram_access_token, working_hours, price_list, faq,
-                       phone_number"""
+                       phone_number, email_verified"""
 
 
 def _decrypt_row_token(row):
@@ -371,13 +385,18 @@ def add_business(name, username, password, contact_email, working_hours, price_l
     Stripe billing is configured (see app.py's register()), a new account is inserted
     with initial_status='none' instead - access only starts once they've actually put a
     card down via the Stripe Checkout trial (see /subscription's pricing page), which
-    checkout.session.completed then flips to 'trialing' for real."""
+    checkout.session.completed then flips to 'trialing' for real.
+
+    email_verified is always FALSE here (overriding the column's own DEFAULT TRUE, which
+    only exists to grandfather in pre-existing rows) - every new account must confirm its
+    contact email via the link save_email_verify_token()/mark_email_verified() below issue
+    before app.py's login()/api.py's api_login() will let it in."""
     connection = connect()
     cursor = connection.cursor()
 
     cursor.execute(
-        """INSERT INTO businesses (name, username, password, contact_email, working_hours, price_list, faq, phone_number, subscription_status)
-           VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s) RETURNING id""",
+        """INSERT INTO businesses (name, username, password, contact_email, working_hours, price_list, faq, phone_number, subscription_status, email_verified)
+           VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, FALSE) RETURNING id""",
         (name, username, generate_password_hash(password), contact_email, working_hours, price_list, faq, phone_number or None, initial_status),
     )
 
@@ -415,7 +434,7 @@ def all_businesses():
     """)
     result = cursor.fetchall()
     connection.close()
-    return [_decrypt_row_token(row[:12]) + (row[12],) for row in result]
+    return [_decrypt_row_token(row[:13]) + (row[13],) for row in result]
 
 
 def all_businesses_unfiltered():
@@ -428,7 +447,7 @@ def all_businesses_unfiltered():
     cursor.execute(f"SELECT {_BUSINESS_COLUMNS}, subscription_status, created_at FROM businesses ORDER BY created_at DESC")
     result = cursor.fetchall()
     connection.close()
-    return [_decrypt_row_token(row[:12]) + (row[12], row[13]) for row in result]
+    return [_decrypt_row_token(row[:13]) + (row[13], row[14]) for row in result]
 
 
 def business_by_id(business_id):
@@ -803,6 +822,55 @@ def set_new_password(business_id, new_password):
     )
     connection.commit()
     connection.close()
+
+
+def save_email_verify_token(business_id, token, expires):
+    connection = connect()
+    cursor = connection.cursor()
+    cursor.execute(
+        "UPDATE businesses SET email_verify_token = %s, email_verify_expires = %s, email_verify_sent_at = NOW() WHERE id = %s",
+        (token, expires, business_id),
+    )
+    connection.commit()
+    connection.close()
+
+
+def business_by_email_verify_token(token):
+    connection = connect()
+    cursor = connection.cursor()
+    cursor.execute(
+        "SELECT id, name, username, contact_email FROM businesses WHERE email_verify_token = %s AND email_verify_expires > NOW()",
+        (token,),
+    )
+    row = cursor.fetchone()
+    connection.close()
+    return row
+
+
+def mark_email_verified(business_id):
+    connection = connect()
+    cursor = connection.cursor()
+    cursor.execute(
+        "UPDATE businesses SET email_verified = TRUE, email_verify_token = NULL, email_verify_expires = NULL WHERE id = %s",
+        (business_id,),
+    )
+    connection.commit()
+    connection.close()
+
+
+def email_verify_sent_recently(business_id, within_seconds):
+    """True if a verification email was issued within the last `within_seconds` - used to
+    throttle resends (e.g. hammering the login form with correct credentials but an
+    unverified account shouldn't fire a new email on every single attempt)."""
+    connection = connect()
+    cursor = connection.cursor()
+    cursor.execute(
+        "SELECT 1 FROM businesses WHERE id = %s AND email_verify_sent_at > NOW() - (%s * INTERVAL '1 second')",
+        (business_id, within_seconds),
+    )
+    row = cursor.fetchone()
+    connection.close()
+    return row is not None
 
 
 def update_business(business_id, name, username, contact_email, phone_number, working_hours, price_list, faq):
