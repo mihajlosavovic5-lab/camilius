@@ -1176,11 +1176,30 @@ function registerStep1ValidationError() {
     const name = el("register-name").value.trim();
     const username = el("register-username").value.trim();
     const password = el("register-password").value;
+    const confirmPassword = el("register-confirm-password").value;
     const emailField = el("register-contact-email");
     if (!name || !username) return t("register.errorFillRequired");
     if (password.length < 8) return t("register.errorPasswordLength");
+    if (password !== confirmPassword) return t("register.errorPasswordMismatch");
     if (!emailField.value.trim() || !emailField.checkValidity()) return t("register.errorFillRequired");
     return null;
+}
+
+// Live red inline warning under "Confirm password" the moment the two fields disagree -
+// same field-error treatment as the username/email/phone "already taken" checks above,
+// but purely local (no availability request needed to compare two strings). Empty confirm
+// field stays quiet - only complain once the user has actually typed something that
+// doesn't match, not while they're still on the way to typing it.
+function updateConfirmPasswordError() {
+    const password = el("register-password").value;
+    const confirmPassword = el("register-confirm-password").value;
+    const errorEl = el("register-confirm-password-error");
+    if (confirmPassword && password !== confirmPassword) {
+        errorEl.textContent = t("register.errorPasswordMismatch");
+        errorEl.classList.remove("hidden");
+    } else {
+        errorEl.classList.add("hidden");
+    }
 }
 
 // Working hours only ever holds valid times (it's all dropdowns/toggles), so the one way
@@ -1227,9 +1246,11 @@ function updateRegisterNextButtonValidity() {
         btn.disabled = false;
     }
 }
-["register-name", "register-username", "register-password", "register-contact-email"].forEach((id) => {
+["register-name", "register-username", "register-password", "register-confirm-password", "register-contact-email"].forEach((id) => {
     el(id).addEventListener("input", updateRegisterNextButtonValidity);
 });
+el("register-password").addEventListener("input", updateConfirmPasswordError);
+el("register-confirm-password").addEventListener("input", updateConfirmPasswordError);
 el("register-hours-picker").addEventListener("change", updateRegisterNextButtonValidity);
 
 el("register-next-btn").addEventListener("click", () => {
@@ -1249,7 +1270,7 @@ el("login-signup-link").addEventListener("click", () => {
     // HTML attribute set, so a native form reset would revert them to the browser's own
     // default (first option / unchecked) instead of our intended defaults. Clear the
     // plain fields by hand and use each picker's own .reset()/.setValue("") instead.
-    ["register-name", "register-username", "register-password", "register-contact-email", "register-phone", "register-faq"].forEach((id) => {
+    ["register-name", "register-username", "register-password", "register-confirm-password", "register-contact-email", "register-phone", "register-faq"].forEach((id) => {
         el(id).value = "";
     });
     el("register-terms").checked = false;
@@ -1259,6 +1280,7 @@ el("login-signup-link").addEventListener("click", () => {
     registerUsernameAvailability.reset();
     registerEmailAvailability.reset();
     registerPhoneAvailability.reset();
+    el("register-confirm-password-error").classList.add("hidden");
     el("register-error").classList.add("hidden");
     showRegisterStep(1);
     showScreen("register");

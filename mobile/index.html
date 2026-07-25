@@ -298,6 +298,12 @@
               <p class="field-hint" data-i18n="register.passwordHint">At least 8 characters</p>
 
               <div class="floating-field">
+                <input type="password" id="register-confirm-password" placeholder=" " autocomplete="new-password" required>
+                <label for="register-confirm-password" data-i18n="register.confirmPassword">Confirm password</label>
+              </div>
+              <p class="field-error hidden" id="register-confirm-password-error"></p>
+
+              <div class="floating-field">
                 <input type="email" id="register-contact-email" placeholder=" " autocomplete="email" autocapitalize="off" required>
                 <label for="register-contact-email" data-i18n="register.contactEmail">Contact email</label>
               </div>

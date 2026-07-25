@@ -42,6 +42,12 @@
             </div>
 
             <div class="floating-field">
+                <input type="password" id="register-confirm-password-input" name="confirm_password" placeholder=" " autocomplete="new-password" required>
+                <label for="register-confirm-password-input" data-i18n="register.confirmPassword">Confirm password</label>
+            </div>
+            <p class="field-error hidden" id="register-confirm-password-error"></p>
+
+            <div class="floating-field">
                 <input type="email" id="register-contact-email-input" name="contact_email" value="{{ data.get('contact_email', '') }}" placeholder=" " required>
                 <label for="register-contact-email-input" data-i18n="register.contactEmail">Contact email</label>
             </div>
@@ -228,6 +234,23 @@ document.addEventListener("DOMContentLoaded", function () {
             phoneHint.classList.add("hidden");
         }
     });
+
+    // --- Confirm password: live red warning the moment the two fields disagree, plus
+    // blocking submit via setCustomValidity() so it folds into form.checkValidity() below
+    // the same as every other native constraint (required, minlength, etc). ---
+
+    var passwordInput = document.getElementById("register-password-input");
+    var confirmPasswordInput = document.getElementById("register-confirm-password-input");
+    var confirmPasswordError = document.getElementById("register-confirm-password-error");
+
+    function updateConfirmPasswordError() {
+        var mismatch = confirmPasswordInput.value && passwordInput.value !== confirmPasswordInput.value;
+        confirmPasswordInput.setCustomValidity(mismatch ? t("register.errorPasswordMismatch") : "");
+        confirmPasswordError.textContent = t("register.errorPasswordMismatch");
+        confirmPasswordError.classList.toggle("hidden", !mismatch);
+    }
+    passwordInput.addEventListener("input", updateConfirmPasswordError);
+    confirmPasswordInput.addEventListener("input", updateConfirmPasswordError);
 
     // --- Live "already taken" checks (username, contact email, phone number) ---
 

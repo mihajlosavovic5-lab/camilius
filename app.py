@@ -275,6 +275,9 @@ def register():
         if len(request.form.get("password", "")) < 8:
             return render_template("register.html", error="Password must be at least 8 characters.", data=request.form)
 
+        if request.form.get("password", "") != request.form.get("confirm_password", ""):
+            return render_template("register.html", error="Passwords don't match.", data=request.form)
+
         try:
             new_id = add_business(
                 name=request.form["name"],

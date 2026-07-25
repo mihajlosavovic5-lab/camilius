@@ -94,6 +94,7 @@ def register_business_web(client, username, email, **overrides):
         "name": "Test Salon",
         "username": username,
         "password": "TestPassword123",
+        "confirm_password": "TestPassword123",
         "contact_email": email,
         "working_hours": "Monday: 09:00-18:00\nTuesday: 09:00-18:00\nWednesday: 09:00-18:00\n"
                           "Thursday: 09:00-18:00\nFriday: 09:00-18:00\nSaturday: closed\nSunday: closed",

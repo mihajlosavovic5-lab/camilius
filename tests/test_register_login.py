@@ -1,9 +1,15 @@
-from conftest import register_business
+from conftest import register_business, register_business_web
 
 
 def test_login_page_loads(client):
     response = client.get("/login")
     assert response.status_code == 200
+
+
+def test_register_web_rejects_password_mismatch(client, unique_username, unique_email):
+    response = register_business_web(client, unique_username, unique_email, confirm_password="SomethingElse123")
+    assert response.status_code == 200  # re-renders the form with an error, doesn't redirect
+    assert "match" in response.get_data(as_text=True)
 
 
 def test_register_creates_account_and_logs_in(client, unique_username, unique_email):
