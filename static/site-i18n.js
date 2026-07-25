@@ -257,7 +257,8 @@ const TRANSLATIONS = {
         "intro.slide4.desc": "On by default, so replies go out the moment they're ready. Prefer to check first? Turn on manual review in Settings.",
         "intro.continue": "Continue",
 
-        "connectInstagram.tagline": "One last step — connect the Instagram account customers message.",
+        "connectInstagram.tagline1": "One last step",
+        "connectInstagram.tagline2": "connect the Instagram account",
         "connectInstagram.title": "Connect your Instagram account",
         "connectInstagram.subtitle": "Camilius reads incoming DMs and drafts replies — automatic by default, optional review in Settings.",
         "connectInstagram.cta": "Connect Instagram",
@@ -675,7 +676,8 @@ const TRANSLATIONS = {
         "intro.slide4.desc": "Revisa, edita si quieres, y luego envía - o activa el envío automático en Configuración para respuestas instantáneas.",
         "intro.continue": "Continuar",
 
-        "connectInstagram.tagline": "Un último paso: conecta la cuenta de Instagram donde te escriben los clientes.",
+        "connectInstagram.tagline1": "Un último paso",
+        "connectInstagram.tagline2": "conecta la cuenta de Instagram",
         "connectInstagram.title": "Conecta tu cuenta de Instagram",
         "connectInstagram.subtitle": "Camilius lee los MD entrantes y redacta respuestas — automáticas por defecto, revisión opcional en Configuración.",
         "connectInstagram.cta": "Conectar Instagram",
@@ -1093,7 +1095,8 @@ const TRANSLATIONS = {
         "intro.slide4.desc": "Revise, edite se quiser, depois envie — ou ative o envio automático em Configurações para respostas instantâneas.",
         "intro.continue": "Continuar",
 
-        "connectInstagram.tagline": "Um último passo — conecte a conta do Instagram onde os clientes mandam mensagem.",
+        "connectInstagram.tagline1": "Um último passo",
+        "connectInstagram.tagline2": "conecte a conta do Instagram",
         "connectInstagram.title": "Conecte sua conta do Instagram",
         "connectInstagram.subtitle": "O Camilius lê DMs recebidas e redige respostas — automáticas por padrão, revisão opcional em Configurações.",
         "connectInstagram.cta": "Conectar Instagram",
@@ -1511,7 +1514,8 @@ const TRANSLATIONS = {
         "intro.slide4.desc": "Relisez, modifiez si besoin, puis envoyez — ou activez l'envoi automatique dans les Paramètres pour des réponses instantanées.",
         "intro.continue": "Continuer",
 
-        "connectInstagram.tagline": "Une dernière étape — connectez le compte Instagram où vos clients vous écrivent.",
+        "connectInstagram.tagline1": "Une dernière étape",
+        "connectInstagram.tagline2": "connectez le compte Instagram",
         "connectInstagram.title": "Connectez votre compte Instagram",
         "connectInstagram.subtitle": "Camilius lit les MD entrants et rédige des réponses — automatiques par défaut, relecture optionnelle dans les Paramètres.",
         "connectInstagram.cta": "Connecter Instagram",
@@ -1929,7 +1933,8 @@ const TRANSLATIONS = {
         "intro.slide4.desc": "Prüfen, bei Bedarf bearbeiten, dann senden — oder aktiviere das Auto-Senden in den Einstellungen für sofortige Antworten.",
         "intro.continue": "Weiter",
 
-        "connectInstagram.tagline": "Ein letzter Schritt — verbinde das Instagram-Konto, über das dich Kunden erreichen.",
+        "connectInstagram.tagline1": "Ein letzter Schritt",
+        "connectInstagram.tagline2": "verbinde das Instagram-Konto",
         "connectInstagram.title": "Verbinde dein Instagram-Konto",
         "connectInstagram.subtitle": "Camilius liest eingehende DMs und verfasst Antworten — standardmäßig automatisch, optional manuelle Prüfung in den Einstellungen.",
         "connectInstagram.cta": "Instagram verbinden",
@@ -2347,7 +2352,8 @@ const TRANSLATIONS = {
         "intro.slide4.desc": "Rivedi, modifica se vuoi, poi invia — oppure attiva l'invio automatico in Impostazioni per risposte istantanee.",
         "intro.continue": "Continua",
 
-        "connectInstagram.tagline": "Un ultimo passo — collega l'account Instagram su cui ti scrivono i clienti.",
+        "connectInstagram.tagline1": "Un ultimo passo",
+        "connectInstagram.tagline2": "collega l'account Instagram",
         "connectInstagram.title": "Collega il tuo account Instagram",
         "connectInstagram.subtitle": "Camilius legge i DM in arrivo e redige risposte — automatiche di default, revisione opzionale in Impostazioni.",
         "connectInstagram.cta": "Collega Instagram",
@@ -2765,7 +2771,8 @@ const TRANSLATIONS = {
         "intro.slide4.desc": "Проверьте, при желании отредактируйте, затем отправьте — или включите автоотправку в Настройках для мгновенных ответов.",
         "intro.continue": "Продолжить",
 
-        "connectInstagram.tagline": "Последний шаг — подключите аккаунт Instagram, в который пишут клиенты.",
+        "connectInstagram.tagline1": "Последний шаг",
+        "connectInstagram.tagline2": "подключите аккаунт Instagram",
         "connectInstagram.title": "Подключите свой аккаунт Instagram",
         "connectInstagram.subtitle": "Camilius читает входящие ЛС и составляет ответы — по умолчанию автоматически, ручная проверка опциональна в Настройках.",
         "connectInstagram.cta": "Подключить Instagram",
@@ -3183,7 +3190,8 @@ const TRANSLATIONS = {
         "intro.slide4.desc": "Pregledajte, po želji izmenite, pa pošaljite — ili uključite automatsko slanje u Podešavanjima za trenutne odgovore.",
         "intro.continue": "Nastavi",
 
-        "connectInstagram.tagline": "Još samo jedan korak — povežite Instagram nalog na koji vam mušterije pišu.",
+        "connectInstagram.tagline1": "Još samo jedan korak",
+        "connectInstagram.tagline2": "povežite Instagram nalog",
         "connectInstagram.title": "Povežite svoj Instagram nalog",
         "connectInstagram.subtitle": "Camilius čita dolazne DM poruke i sastavlja odgovore — automatski po podrazumevanom, opcioni pregled u Podešavanjima.",
         "connectInstagram.cta": "Poveži Instagram",
@@ -3601,7 +3609,8 @@ const TRANSLATIONS = {
         "intro.slide4.desc": "审核、按需编辑,然后发送——或在设置中开启自动发送以获得即时回复。",
         "intro.continue": "继续",
 
-        "connectInstagram.tagline": "最后一步——连接顾客给您发消息的Instagram账户。",
+        "connectInstagram.tagline1": "最后一步",
+        "connectInstagram.tagline2": "连接您的Instagram账户",
         "connectInstagram.title": "连接您的Instagram账户",
         "connectInstagram.subtitle": "Camilius读取收到的私信并草拟回复——默认自动发送，可在设置中开启人工审核。",
         "connectInstagram.cta": "连接Instagram",
@@ -4019,7 +4028,8 @@ const TRANSLATIONS = {
         "intro.slide4.desc": "Gözden geçirin, isterseniz düzenleyin, sonra gönderin — ya da anlık yanıtlar için Ayarlar'dan otomatik göndermeyi açın.",
         "intro.continue": "Devam et",
 
-        "connectInstagram.tagline": "Son bir adım — müşterilerin mesaj attığı Instagram hesabını bağlayın.",
+        "connectInstagram.tagline1": "Son bir adım",
+        "connectInstagram.tagline2": "Instagram hesabını bağlayın",
         "connectInstagram.title": "Instagram hesabınızı bağlayın",
         "connectInstagram.subtitle": "Camilius gelen DM'leri okur ve yanıtlar hazırlar — varsayılan olarak otomatik, Ayarlar'dan isteğe bağlı inceleme.",
         "connectInstagram.cta": "Instagram'ı bağla",
