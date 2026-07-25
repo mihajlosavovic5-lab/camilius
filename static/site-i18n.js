@@ -352,7 +352,8 @@ const TRANSLATIONS = {
         "subscription.comingSoon": "Coming soon",
         "subscription.chooseStarter": "Choose Starter",
         "subscription.choosePro": "Choose Pro",
-        "subscription.paddleNote": "Payment is securely processed by Paddle, our reseller of record. Your 14-day free trial unlocks every Pro feature - cancel before it ends to avoid being charged; we'll email a reminder first.",
+        "subscription.paddleNoteLine1": "Payment is securely processed by Paddle, our reseller of record.",
+        "subscription.paddleNoteLine2": "Your 14-day free trial unlocks every Pro feature — we'll send you a reminder before it ends.",
 
         "schedule.subtitle": "Manage your appointment calendar.",
         "schedule.appointmentLength": "Appointment length",
@@ -769,7 +770,8 @@ const TRANSLATIONS = {
         "subscription.comingSoon": "Próximamente",
         "subscription.chooseStarter": "Elegir Starter",
         "subscription.choosePro": "Elegir Pro",
-        "subscription.paddleNote": "El pago se procesa de forma segura por Paddle, nuestro revendedor autorizado. Tu prueba gratuita de 14 días incluye todas las funciones Pro - cancela antes de que termine para evitar el cobro; te avisaremos por correo antes.",
+        "subscription.paddleNoteLine1": "El pago se procesa de forma segura por Paddle, nuestro revendedor autorizado.",
+        "subscription.paddleNoteLine2": "Tu prueba gratuita de 14 días incluye todas las funciones Pro — te avisaremos por correo antes de que termine.",
 
         "schedule.subtitle": "Gestiona tu calendario de citas.",
         "schedule.appointmentLength": "Duración de la cita",
@@ -1186,7 +1188,8 @@ const TRANSLATIONS = {
         "subscription.comingSoon": "Em breve",
         "subscription.chooseStarter": "Escolher Starter",
         "subscription.choosePro": "Escolher Pro",
-        "subscription.paddleNote": "O pagamento é processado com segurança pela Paddle, nossa revendedora autorizada. Seu teste grátis de 14 dias inclui todos os recursos Pro - cancele antes que termine para evitar a cobrança; avisaremos por e-mail antes.",
+        "subscription.paddleNoteLine1": "O pagamento é processado com segurança pela Paddle, nossa revendedora autorizada.",
+        "subscription.paddleNoteLine2": "Seu teste grátis de 14 dias inclui todos os recursos Pro — avisaremos você por e-mail antes que termine.",
 
         "schedule.subtitle": "Gerencie sua agenda de compromissos.",
         "schedule.appointmentLength": "Duração do compromisso",
@@ -1603,7 +1606,8 @@ const TRANSLATIONS = {
         "subscription.comingSoon": "Bientôt disponible",
         "subscription.chooseStarter": "Choisir Starter",
         "subscription.choosePro": "Choisir Pro",
-        "subscription.paddleNote": "Le paiement est traité en toute sécurité par Paddle, notre revendeur agréé. Votre essai gratuit de 14 jours inclut toutes les fonctionnalités Pro - annulez avant la fin pour éviter d'être facturé ; nous vous enverrons un rappel par e-mail.",
+        "subscription.paddleNoteLine1": "Le paiement est traité en toute sécurité par Paddle, notre revendeur agréé.",
+        "subscription.paddleNoteLine2": "Votre essai gratuit de 14 jours inclut toutes les fonctionnalités Pro — nous vous enverrons un rappel par e-mail avant la fin.",
 
         "schedule.subtitle": "Gérez votre agenda de rendez-vous.",
         "schedule.appointmentLength": "Durée du rendez-vous",
@@ -2020,7 +2024,8 @@ const TRANSLATIONS = {
         "subscription.comingSoon": "Demnächst",
         "subscription.chooseStarter": "Starter wählen",
         "subscription.choosePro": "Pro wählen",
-        "subscription.paddleNote": "Die Zahlung wird sicher über Paddle, unseren autorisierten Reseller, abgewickelt. Deine 14-tägige kostenlose Testphase umfasst alle Pro-Funktionen - kündige vor Ablauf, um eine Belastung zu vermeiden; wir schicken dir vorher eine Erinnerung per E-Mail.",
+        "subscription.paddleNoteLine1": "Die Zahlung wird sicher über Paddle, unseren autorisierten Reseller, abgewickelt.",
+        "subscription.paddleNoteLine2": "Deine 14-tägige kostenlose Testphase umfasst alle Pro-Funktionen — wir schicken dir vorher eine Erinnerung per E-Mail.",
 
         "schedule.subtitle": "Verwalte deinen Terminkalender.",
         "schedule.appointmentLength": "Termindauer",
@@ -2437,7 +2442,8 @@ const TRANSLATIONS = {
         "subscription.comingSoon": "Prossimamente",
         "subscription.chooseStarter": "Scegli Starter",
         "subscription.choosePro": "Scegli Pro",
-        "subscription.paddleNote": "Il pagamento è elaborato in modo sicuro da Paddle, il nostro rivenditore autorizzato. La tua prova gratuita di 14 giorni include tutte le funzioni Pro - annulla prima della fine per evitare l'addebito; ti invieremo un promemoria via email.",
+        "subscription.paddleNoteLine1": "Il pagamento è elaborato in modo sicuro da Paddle, il nostro rivenditore autorizzato.",
+        "subscription.paddleNoteLine2": "La tua prova gratuita di 14 giorni include tutte le funzioni Pro — ti invieremo un promemoria via email prima della fine.",
 
         "schedule.subtitle": "Gestisci il tuo calendario appuntamenti.",
         "schedule.appointmentLength": "Durata dell'appuntamento",
@@ -2854,7 +2860,8 @@ const TRANSLATIONS = {
         "subscription.comingSoon": "Скоро",
         "subscription.chooseStarter": "Выбрать Starter",
         "subscription.choosePro": "Выбрать Pro",
-        "subscription.paddleNote": "Оплата безопасно обрабатывается через Paddle, нашего уполномоченного реселлера. 14-дневный бесплатный пробный период включает все функции Pro - отмените до его окончания, чтобы избежать списания; мы пришлём напоминание по почте.",
+        "subscription.paddleNoteLine1": "Оплата безопасно обрабатывается через Paddle, нашего уполномоченного реселлера.",
+        "subscription.paddleNoteLine2": "14-дневный бесплатный пробный период включает все функции Pro — мы пришлём напоминание по почте перед его окончанием.",
 
         "schedule.subtitle": "Управляйте своим календарём записей.",
         "schedule.appointmentLength": "Длительность записи",
@@ -3271,7 +3278,8 @@ const TRANSLATIONS = {
         "subscription.comingSoon": "Uskoro",
         "subscription.chooseStarter": "Izaberi Starter",
         "subscription.choosePro": "Izaberi Pro",
-        "subscription.paddleNote": "Plaćanje bezbedno obrađuje Paddle, naš ovlašćeni preprodavac. Besplatni probni period od 14 dana uključuje sve Pro funkcije - otkažite pre isteka da izbegnete naplatu; poslaćemo vam podsetnik imejlom.",
+        "subscription.paddleNoteLine1": "Plaćanje bezbedno obrađuje Paddle, naš ovlašćeni preprodavac.",
+        "subscription.paddleNoteLine2": "Besplatni probni period od 14 dana uključuje sve Pro funkcije — poslaćemo vam podsetnik imejlom pre isteka.",
 
         "schedule.subtitle": "Upravljajte svojim kalendarom termina.",
         "schedule.appointmentLength": "Trajanje termina",
@@ -3688,7 +3696,8 @@ const TRANSLATIONS = {
         "subscription.comingSoon": "即将推出",
         "subscription.chooseStarter": "选择Starter",
         "subscription.choosePro": "选择Pro",
-        "subscription.paddleNote": "付款由我们的授权经销商Paddle安全处理。14天免费试用包含所有Pro功能——在试用结束前取消可避免扣费,我们会提前通过邮件提醒您。",
+        "subscription.paddleNoteLine1": "付款由我们的授权经销商Paddle安全处理。",
+        "subscription.paddleNoteLine2": "14天免费试用包含所有Pro功能——试用结束前我们会通过邮件提醒您。",
 
         "schedule.subtitle": "管理您的预约日历。",
         "schedule.appointmentLength": "预约时长",
@@ -4105,7 +4114,8 @@ const TRANSLATIONS = {
         "subscription.comingSoon": "Yakında",
         "subscription.chooseStarter": "Starter'ı seç",
         "subscription.choosePro": "Pro'yu seç",
-        "subscription.paddleNote": "Ödeme, yetkili bayimiz Paddle tarafından güvenle işlenir. 14 günlük ücretsiz deneme tüm Pro özelliklerini içerir - ücretlendirilmemek için deneme bitmeden iptal edin; size önceden e-posta ile hatırlatacağız.",
+        "subscription.paddleNoteLine1": "Ödeme, yetkili bayimiz Paddle tarafından güvenle işlenir.",
+        "subscription.paddleNoteLine2": "14 günlük ücretsiz deneme tüm Pro özelliklerini içerir — deneme bitmeden önce size e-posta ile hatırlatacağız.",
 
         "schedule.subtitle": "Randevu takviminizi yönetin.",
         "schedule.appointmentLength": "Randevu süresi",
