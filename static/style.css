@@ -356,6 +356,11 @@ a:focus-visible, button:focus-visible, [tabindex]:focus-visible {
 .button-danger:hover { background: #b91c1c; }
 .button-secondary { background: var(--surface); color: var(--text); border: 1px solid var(--border); }
 .button-secondary:hover { background: var(--background); }
+/* Outline + pill modifiers - same combo as the APK's "Create account" button on the
+   login screen (mobile/app.css .button-primary-outline / .button-pill). */
+.button-primary-outline { color: var(--primary); border-color: var(--primary); }
+.button-primary-outline:hover { background: var(--primary-light); }
+.button-pill { border-radius: 999px; }
 
 /* --- Forms --- */
 label { display: block; font-weight: 600; font-size: 14px; margin: 16px 0 5px; }
@@ -544,8 +549,11 @@ body.auth {
 }
 .auth-brand { margin-bottom: 22px; text-align: center; }
 .auth-brand .brand { flex-direction: column; gap: 12px; }
-.auth-brand .brand-mark { width: 48px; height: 48px; border-radius: 22%; }
+.auth-brand .brand-mark { width: 64px; height: 64px; border-radius: 22%; box-shadow: 0 10px 26px rgba(43,32,19,.16); }
 .auth-brand .brand-name { font-size: 20px; }
+/* Small brand-colored flourish under the wordmark - same touch as the APK login
+   screen's .login-accent (mobile/app.css), so the two logins read as one design. */
+.auth-accent { display: block; width: 34px; height: 3px; border-radius: 99px; background: var(--primary); margin: 10px auto 0; }
 .auth-tagline { color: var(--text-muted); font-size: 14.5px; margin: 8px auto 0; max-width: 340px; }
 .auth-card {
     width: 100%; max-width: 400px;
@@ -554,6 +562,22 @@ body.auth {
     padding: 28px;
 }
 .auth-card-wide { max-width: 560px; }
+/* Pill-shaped fields on auth pages - same floating-field treatment as the APK login
+   screen (mobile/app.css's .screen-login rules), so the web login isn't just visually
+   similar but uses the identical field shape/proportions. */
+.auth-card .floating-field input[type="text"],
+.auth-card .floating-field input[type="password"],
+.auth-card .floating-field input[type="email"],
+.auth-card .floating-field input[type="tel"] {
+    border-radius: 16px; padding: 20px 16px 6px;
+}
+.auth-card .floating-field label { left: 16px; right: 16px; }
+/* Caption + outline pill button pair ("New to Camilius?" / "Create account" on the
+   APK) replacing a plain text link for the register CTA. */
+.auth-divider {
+    text-align: center; font-size: 12.5px; font-weight: 600; color: var(--text-muted);
+    margin: 22px 0 10px; padding-top: 16px; border-top: 1px solid var(--border);
+}
 
 /* Connect Instagram - centered descriptive text instead of left-aligned (no longer has
    a "Before you connect" info card competing for attention, per Faza 3). */

@@ -9,6 +9,7 @@
             <span class="brand-mark">C</span>
             <span class="brand-name">Camilius</span>
         </span>
+        <span class="auth-accent"></span>
         <p class="auth-tagline" data-i18n="login.tagline">AI reads your customers' Instagram messages and drafts replies &mdash; you just review and send.</p>
     </div>
 
@@ -36,14 +37,14 @@
             </div>
 
             <div class="form-actions">
-                <button class="button button-full" type="submit" data-i18n="common.logIn">Log in</button>
+                <button class="button button-full button-pill" type="submit" data-i18n="common.logIn">Log in</button>
             </div>
         </form>
 
-        <div class="auth-links">
-            <a href="{{ url_for('register') }}"><span data-i18n="login.noAccount">Don't have an account?</span> <strong data-i18n="login.registerLink">Register your business</strong></a>
-            <a href="{{ url_for('forgot_password') }}" data-i18n="login.forgotLink">Forgot your password?</a>
-        </div>
+        <a class="link-btn" href="{{ url_for('forgot_password') }}" data-i18n="login.forgotLink">Forgot your password?</a>
+
+        <div class="auth-divider"><span data-i18n="login.noAccount">Don't have an account?</span></div>
+        <a class="button button-secondary button-full button-pill button-primary-outline" href="{{ url_for('register') }}" data-i18n="login.registerLink">Register your business</a>
     </div>
 
     <p class="auth-footer">
