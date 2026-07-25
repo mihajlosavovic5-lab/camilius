@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% block title %}Connect Instagram - Camilius{% endblock %}
-{% block body_class %}auth{% endblock %}
+{% block body_class %}auth connect-instagram{% endblock %}
 
 {% block content %}
 <div class="auth-wrapper">
@@ -18,7 +18,7 @@
             <p class="auth-subtitle" data-i18n="connectInstagram.subtitle">Camilius reads incoming DMs and drafts replies — automatic by default, optional review in Settings.</p>
 
             {% if error %}
-                <div class="alert alert-error"><span class="alert-icon">&#9888;&#65039;</span><span>{{ error }}</span></div>
+                <div class="alert alert-error">&#9888;&#65039; {{ error }}</div>
             {% endif %}
         </div>
 

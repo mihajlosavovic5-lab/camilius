@@ -557,7 +557,7 @@ body.auth {
 /* Small brand-colored flourish under the wordmark - same touch as the APK login
    screen's .login-accent (mobile/app.css), so the two logins read as one design. */
 .auth-accent { display: block; width: 34px; height: 3px; border-radius: 99px; background: var(--primary); margin: 10px auto 0; }
-.auth-tagline { color: var(--text-muted); font-size: 14.5px; margin: 8px auto 0; max-width: 340px; }
+.auth-tagline { color: var(--text-muted); font-size: 14.5px; margin: 8px auto 0; max-width: 340px; text-align: center; text-wrap: balance; }
 .auth-card {
     width: 100%; max-width: 400px;
     background: var(--surface); border: 1px solid var(--border);
@@ -585,7 +585,11 @@ body.auth {
 /* Connect Instagram - centered descriptive text instead of left-aligned (no longer has
    a "Before you connect" info card competing for attention, per Faza 3). */
 .connect-instagram-center { text-align: center; }
-.connect-instagram-center .alert { justify-content: center; align-items: center; }
+.connect-instagram-center .alert {
+    display: block;
+    width: 100%;
+    text-align: center;
+}
 .auth-card h1 { font-size: 19px; margin-bottom: 4px; }
 .auth-subtitle { color: var(--text-muted); font-size: 14px; margin: 0 0 10px; }
 .auth-links { margin-top: 18px; text-align: center; font-size: 14px; }
