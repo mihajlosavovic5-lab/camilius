@@ -352,7 +352,7 @@ const TRANSLATIONS = {
         "subscription.comingSoon": "Coming soon",
         "subscription.chooseStarter": "Choose Starter",
         "subscription.choosePro": "Choose Pro",
-        "subscription.paddleNote": "Payment is securely processed by Paddle, our reseller of record. New subscriptions start with a 14-day free trial with every Pro feature unlocked - your card is only charged if you don't cancel before the trial ends, and we'll email you a heads-up a few days before that happens.",
+        "subscription.paddleNote": "Payment is securely processed by Paddle, our reseller of record. Your 14-day free trial unlocks every Pro feature - cancel before it ends to avoid being charged; we'll email a reminder first.",
 
         "schedule.subtitle": "Manage your appointment calendar.",
         "schedule.appointmentLength": "Appointment length",
@@ -769,7 +769,7 @@ const TRANSLATIONS = {
         "subscription.comingSoon": "Próximamente",
         "subscription.chooseStarter": "Elegir Starter",
         "subscription.choosePro": "Elegir Pro",
-        "subscription.paddleNote": "El pago se procesa de forma segura por Paddle, nuestro revendedor autorizado. Las suscripciones nuevas comienzan con una prueba gratuita de 14 días con todas las funciones Pro desbloqueadas - solo se te cobra si no cancelas antes de que termine la prueba, y te avisaremos por correo unos días antes de que eso ocurra.",
+        "subscription.paddleNote": "El pago se procesa de forma segura por Paddle, nuestro revendedor autorizado. Tu prueba gratuita de 14 días incluye todas las funciones Pro - cancela antes de que termine para evitar el cobro; te avisaremos por correo antes.",
 
         "schedule.subtitle": "Gestiona tu calendario de citas.",
         "schedule.appointmentLength": "Duración de la cita",
@@ -1186,7 +1186,7 @@ const TRANSLATIONS = {
         "subscription.comingSoon": "Em breve",
         "subscription.chooseStarter": "Escolher Starter",
         "subscription.choosePro": "Escolher Pro",
-        "subscription.paddleNote": "O pagamento é processado com segurança pela Paddle, nossa revendedora autorizada. Novas assinaturas começam com um teste grátis de 14 dias com todos os recursos Pro desbloqueados - você só é cobrado se não cancelar antes do teste terminar, e vamos te avisar por e-mail alguns dias antes disso acontecer.",
+        "subscription.paddleNote": "O pagamento é processado com segurança pela Paddle, nossa revendedora autorizada. Seu teste grátis de 14 dias inclui todos os recursos Pro - cancele antes que termine para evitar a cobrança; avisaremos por e-mail antes.",
 
         "schedule.subtitle": "Gerencie sua agenda de compromissos.",
         "schedule.appointmentLength": "Duração do compromisso",
@@ -1603,7 +1603,7 @@ const TRANSLATIONS = {
         "subscription.comingSoon": "Bientôt disponible",
         "subscription.chooseStarter": "Choisir Starter",
         "subscription.choosePro": "Choisir Pro",
-        "subscription.paddleNote": "Le paiement est traité en toute sécurité par Paddle, notre revendeur agréé. Les nouveaux abonnements démarrent avec un essai gratuit de 14 jours avec toutes les fonctionnalités Pro débloquées - vous n'êtes facturé que si vous n'annulez pas avant la fin de l'essai, et nous vous enverrons un e-mail quelques jours avant que cela arrive.",
+        "subscription.paddleNote": "Le paiement est traité en toute sécurité par Paddle, notre revendeur agréé. Votre essai gratuit de 14 jours inclut toutes les fonctionnalités Pro - annulez avant la fin pour éviter d'être facturé ; nous vous enverrons un rappel par e-mail.",
 
         "schedule.subtitle": "Gérez votre agenda de rendez-vous.",
         "schedule.appointmentLength": "Durée du rendez-vous",
@@ -2020,7 +2020,7 @@ const TRANSLATIONS = {
         "subscription.comingSoon": "Demnächst",
         "subscription.chooseStarter": "Starter wählen",
         "subscription.choosePro": "Pro wählen",
-        "subscription.paddleNote": "Die Zahlung wird sicher über Paddle, unseren autorisierten Reseller, abgewickelt. Neue Abos starten mit einer 14-tägigen kostenlosen Testphase mit allen freigeschalteten Pro-Funktionen - du wirst nur belastet, wenn du nicht vor Ende der Testphase kündigst, und wir schicken dir vorher ein paar Tage im Voraus eine E-Mail.",
+        "subscription.paddleNote": "Die Zahlung wird sicher über Paddle, unseren autorisierten Reseller, abgewickelt. Deine 14-tägige kostenlose Testphase umfasst alle Pro-Funktionen - kündige vor Ablauf, um eine Belastung zu vermeiden; wir schicken dir vorher eine Erinnerung per E-Mail.",
 
         "schedule.subtitle": "Verwalte deinen Terminkalender.",
         "schedule.appointmentLength": "Termindauer",
@@ -2437,7 +2437,7 @@ const TRANSLATIONS = {
         "subscription.comingSoon": "Prossimamente",
         "subscription.chooseStarter": "Scegli Starter",
         "subscription.choosePro": "Scegli Pro",
-        "subscription.paddleNote": "Il pagamento è elaborato in modo sicuro da Paddle, il nostro rivenditore autorizzato. I nuovi abbonamenti iniziano con una prova gratuita di 14 giorni con tutte le funzioni Pro sbloccate - ti viene addebitato solo se non annulli prima della fine della prova, e ti invieremo un'email qualche giorno prima che ciò accada.",
+        "subscription.paddleNote": "Il pagamento è elaborato in modo sicuro da Paddle, il nostro rivenditore autorizzato. La tua prova gratuita di 14 giorni include tutte le funzioni Pro - annulla prima della fine per evitare l'addebito; ti invieremo un promemoria via email.",
 
         "schedule.subtitle": "Gestisci il tuo calendario appuntamenti.",
         "schedule.appointmentLength": "Durata dell'appuntamento",
@@ -2854,7 +2854,7 @@ const TRANSLATIONS = {
         "subscription.comingSoon": "Скоро",
         "subscription.chooseStarter": "Выбрать Starter",
         "subscription.choosePro": "Выбрать Pro",
-        "subscription.paddleNote": "Оплата безопасно обрабатывается через Paddle, нашего уполномоченного реселлера. Новые подписки начинаются с 14-дневного бесплатного пробного периода со всеми функциями Pro - с вас спишут оплату, только если вы не отмените подписку до конца пробного периода, и мы пришлём письмо за несколько дней до этого.",
+        "subscription.paddleNote": "Оплата безопасно обрабатывается через Paddle, нашего уполномоченного реселлера. 14-дневный бесплатный пробный период включает все функции Pro - отмените до его окончания, чтобы избежать списания; мы пришлём напоминание по почте.",
 
         "schedule.subtitle": "Управляйте своим календарём записей.",
         "schedule.appointmentLength": "Длительность записи",
@@ -3271,7 +3271,7 @@ const TRANSLATIONS = {
         "subscription.comingSoon": "Uskoro",
         "subscription.chooseStarter": "Izaberi Starter",
         "subscription.choosePro": "Izaberi Pro",
-        "subscription.paddleNote": "Plaćanje bezbedno obrađuje Paddle, naš ovlašćeni preprodavac. Nove pretplate počinju sa besplatnim probnim periodom od 14 dana sa svim Pro funkcijama otključanim - kartica se naplaćuje samo ako ne otkažete pre isteka probnog perioda, a mi ćemo vam poslati imejl nekoliko dana ranije da vas na to podsetimo.",
+        "subscription.paddleNote": "Plaćanje bezbedno obrađuje Paddle, naš ovlašćeni preprodavac. Besplatni probni period od 14 dana uključuje sve Pro funkcije - otkažite pre isteka da izbegnete naplatu; poslaćemo vam podsetnik imejlom.",
 
         "schedule.subtitle": "Upravljajte svojim kalendarom termina.",
         "schedule.appointmentLength": "Trajanje termina",
@@ -3688,7 +3688,7 @@ const TRANSLATIONS = {
         "subscription.comingSoon": "即将推出",
         "subscription.chooseStarter": "选择Starter",
         "subscription.choosePro": "选择Pro",
-        "subscription.paddleNote": "付款由我们的授权经销商Paddle安全处理。新订阅可享受14天免费试用,所有Pro功能均已解锁——只有在试用结束前未取消时才会收费,我们会在收费前几天通过邮件提醒您。",
+        "subscription.paddleNote": "付款由我们的授权经销商Paddle安全处理。14天免费试用包含所有Pro功能——在试用结束前取消可避免扣费,我们会提前通过邮件提醒您。",
 
         "schedule.subtitle": "管理您的预约日历。",
         "schedule.appointmentLength": "预约时长",
@@ -4105,7 +4105,7 @@ const TRANSLATIONS = {
         "subscription.comingSoon": "Yakında",
         "subscription.chooseStarter": "Starter'ı seç",
         "subscription.choosePro": "Pro'yu seç",
-        "subscription.paddleNote": "Ödeme, yetkili bayimiz Paddle tarafından güvenle işlenir. Yeni abonelikler tüm Pro özellikleri açık 14 günlük ücretsiz deneme ile başlar - yalnızca deneme bitmeden iptal etmezseniz ücretlendirilirsiniz ve bu gerçekleşmeden birkaç gün önce size e-posta ile haber veririz.",
+        "subscription.paddleNote": "Ödeme, yetkili bayimiz Paddle tarafından güvenle işlenir. 14 günlük ücretsiz deneme tüm Pro özelliklerini içerir - ücretlendirilmemek için deneme bitmeden iptal edin; size önceden e-posta ile hatırlatacağız.",
 
         "schedule.subtitle": "Randevu takviminizi yönetin.",
         "schedule.appointmentLength": "Randevu süresi",
