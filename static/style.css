@@ -1468,6 +1468,25 @@ html { scroll-behavior: smooth; }
    plain label rather than a second "recommended"-style claim. */
 .lp-plan-badge-basic { background: var(--surface); color: var(--primary); border: 1.5px solid var(--primary); padding: 2.5px 10.5px; }
 
+/* --- Recommended card auto "nudge" - the pricier Pro plan periodically lifts
+   and pops out slightly on its own (no hover needed) so it visually invites
+   the eye toward the recommended plan instead of just sitting there. Scoped
+   to .lp-visible so it only kicks in once the .lp-reveal scroll-in transition
+   (also driven by `transform`) has finished - otherwise the animation and
+   the reveal transition would fight over the same property. Paused/cleared
+   on hover so it doesn't fight .lp-card-hover's own hover lift. */
+@keyframes lp-pricing-recommended-nudge {
+    0%, 80%, 100% { transform: translateY(0) scale(1); box-shadow: 0 10px 28px -10px rgba(214, 148, 16, .4); }
+    88% { transform: translateY(-10px) scale(1.035); box-shadow: 0 22px 40px -14px rgba(214, 148, 16, .55); }
+    94% { transform: translateY(-6px) scale(1.018); box-shadow: 0 16px 34px -12px rgba(214, 148, 16, .48); }
+}
+.lp-pricing-card-recommended.lp-visible {
+    animation: lp-pricing-recommended-nudge 5.5s ease-in-out infinite;
+}
+.lp-pricing-card-recommended:hover {
+    animation: none;
+}
+
 /* On phones the grid above becomes a swipeable native-scroll snap track,
    the same peek-a-neighbor mechanic as the "See it in action" .lp-slider
    above - real overflow-x scroll-snap rather than a JS transform, so
@@ -1483,6 +1502,11 @@ html { scroll-behavior: smooth; }
         -webkit-overflow-scrolling: touch;
         border-radius: var(--radius); position: relative;
         scrollbar-width: none;
+        /* Vertical breathing room so the recommended card's auto "nudge"
+           pop (translateY + scale, see .lp-pricing-recommended-nudge) isn't
+           cut off by overflow-y: hidden above/below. */
+        padding: 14px 0;
+        margin: -14px 0;
     }
     .pricing-cards-viewport::-webkit-scrollbar { display: none; }
     .pricing-cards-grid {
@@ -1549,4 +1573,5 @@ html { scroll-behavior: smooth; }
     .lp-shine::after, .lp-typing-dots span, .lp-reply-cursor { animation: none !important; }
     .lp-js .lp-enter { animation: none !important; opacity: 1 !important; transform: none !important; }
     .lp-reveal { opacity: 1 !important; transform: none !important; transition: none !important; }
+    .lp-pricing-card-recommended.lp-visible { animation: none !important; }
 }
