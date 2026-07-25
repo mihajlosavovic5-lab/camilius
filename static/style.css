@@ -989,9 +989,11 @@ body.landing .content { padding-top: 32px; }
 }
 
 .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; position: relative; }
-.step { position: relative; text-align: center; padding-top: 34px; display: flex; flex-direction: column; }
+.step { position: relative; text-align: center; padding-top: 34px; display: flex; flex-direction: column; gap: 20px; }
 .step h3 { font-size: 16.5px; margin: 16px 0 7px; }
 .step p { color: var(--text-muted); font-size: 14px; margin: 0; }
+.step p.lp-step-desc-main { color: var(--text); font-weight: 600; margin: 0 0 4px; }
+.step p.lp-step-desc-sub { font-size: 13px; margin: 0; }
 .step-number {
     position: relative; z-index: 3;
     display: inline-flex; align-items: center; justify-content: center;
