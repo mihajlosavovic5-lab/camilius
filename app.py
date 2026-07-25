@@ -1134,9 +1134,11 @@ def admin_businesses():
     search = (request.args.get("q") or "").strip().lower()
     result = []
     for business in all_businesses_unfiltered():
-        # indices: 0 id, 1 name, 2 username, 4 contact_email, 11 phone_number,
-        # 12 email_verified, 13 phone_verified, 14 subscription_status, 15 created_at
-        if search and search not in business[1].lower() and search not in business[2].lower() and search not in business[4].lower():
+        # indices: 0 id, 1 name, 2 username, 4 contact_email, 6 instagram_username,
+        # 11 phone_number, 12 email_verified, 13 phone_verified, 14 subscription_status,
+        # 15 created_at
+        instagram_username = (business[6] or "").lower()
+        if search and search not in business[1].lower() and search not in business[2].lower() and search not in business[4].lower() and search not in instagram_username:
             continue
         result.append({
             "id": business[0],
