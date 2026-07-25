@@ -1038,28 +1038,6 @@ body.landing .content { padding-top: 32px; }
 .lp-who-benefit-icon svg { width: 18px; height: 18px; }
 .lp-who-benefit p { font-size: 13px; color: var(--text); margin: 0; line-height: 1.45; }
 
-/* --- Speed stat banner (Faza 7) - two counted-up numbers making the "AI saves you
-   time" claim concrete right under the hero. --- */
-.lp-stat-strip {
-    display: flex; align-items: center; justify-content: center; gap: 28px;
-    max-width: 620px; margin: 0 auto; padding: 26px 32px; border-radius: 18px;
-    background: linear-gradient(135deg, var(--primary-light) 0%, var(--surface) 65%);
-    border: 1px solid var(--border); box-shadow: var(--shadow-lg);
-}
-.lp-stat { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 4px; flex: 1; }
-.lp-stat-icon { display: inline-flex; color: var(--primary); margin-bottom: 2px; }
-.lp-stat-icon svg { width: 20px; height: 20px; }
-.lp-stat-muted .lp-stat-icon { color: var(--text-muted); }
-.lp-stat-value {
-    font-family: Georgia, "Times New Roman", serif; font-weight: 700; font-size: 32px;
-    background: linear-gradient(100deg, var(--primary) 0%, var(--gold-dark) 60%);
-    -webkit-background-clip: text; background-clip: text; color: transparent;
-}
-.lp-stat-muted .lp-stat-value { background: none; -webkit-text-fill-color: initial; color: var(--text-muted); }
-.lp-stat-label { font-size: 12px; color: var(--text-muted); max-width: 140px; }
-.lp-stat-divider { width: 1px; align-self: stretch; background: var(--border); }
-.lp-speed-caption { text-align: center; color: var(--text-muted); font-size: 13.5px; max-width: 480px; margin: 16px auto 0; }
-
 /* --- Reusable settings toggle row (Faza 7) - pairs a label+description with the
    existing .hours-day-toggle pill switch (originally built for the weekly-hours
    picker, static/pickers.js), reused as-is here for the Auto-send/Autopilot
@@ -1073,11 +1051,6 @@ body.landing .content { padding-top: 32px; }
 @media (max-width: 720px) {
     .lp-who-grid { grid-template-columns: repeat(2, 1fr); }
     .lp-who-benefits { grid-template-columns: repeat(2, 1fr); }
-}
-
-@media (max-width: 560px) {
-    .lp-stat-strip { flex-direction: column; gap: 18px; padding: 22px; }
-    .lp-stat-divider { width: 60%; height: 1px; }
 }
 
 .price-card { max-width: 380px; margin: 0 auto; text-align: center; padding: 30px; }

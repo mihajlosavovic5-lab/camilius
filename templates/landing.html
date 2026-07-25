@@ -87,26 +87,6 @@
         {% endif %}
     </section>
 
-    <!-- Speed stat banner - the core "why" claim (AI saves the owner time by replying in
-         seconds) made concrete with two numbers side by side, right after the hero and
-         before visitors even scroll to the proof-of-quality slider below. -->
-    <section class="section lp-scroll-anchor" id="lp-speed" style="padding: 8px 0 40px;">
-        <div class="lp-stat-strip lp-reveal">
-            <div class="lp-stat">
-                <span class="lp-stat-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></span>
-                <span class="lp-stat-value" data-count-to="10" data-count-prefix="&lt; " data-count-suffix="s">&lt; 0s</span>
-                <span class="lp-stat-label" data-i18n="landing.speed.statAiLabel">Average AI reply time</span>
-            </div>
-            <div class="lp-stat-divider" aria-hidden="true"></div>
-            <div class="lp-stat lp-stat-muted">
-                <span class="lp-stat-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span>
-                <span class="lp-stat-value" data-count-to="3" data-count-prefix="" data-count-suffix="h+">0h+</span>
-                <span class="lp-stat-label" data-i18n="landing.speed.statIndustryLabel">Typical manual reply time</span>
-            </div>
-        </div>
-        <p class="lp-speed-caption lp-reveal" data-i18n="landing.speed.caption">Every second a customer waits is a booking that might go to whoever answers first. Camilius replies while you're still busy with the person in front of you.</p>
-    </section>
-
     <!-- Demo: a slider of realistic examples across different business types, so
          visitors see the reply quality before registering. Each slide's question/
          reply carries data-i18n (see static/site-i18n.js "landing.slider.*") so it
@@ -650,44 +630,6 @@
         revealEls.forEach(function (el) { io.observe(el); });
     } else {
         revealEls.forEach(function (el) { el.classList.add('lp-visible'); });
-    }
-
-    // Speed stat banner: counts each stat up from 0 to its data-count-to value once
-    // scrolled into view, instead of just appearing - reinforces the "seconds, not
-    // hours" claim with motion. Respects prefers-reduced-motion by jumping straight
-    // to the final value (same guard used by the slider's typing effect below).
-    var statEls = document.querySelectorAll('[data-count-to]');
-    if (statEls.length) {
-        var animateCount = function (el) {
-            var target = parseFloat(el.getAttribute('data-count-to'));
-            var prefix = el.getAttribute('data-count-prefix') || '';
-            var suffix = el.getAttribute('data-count-suffix') || '';
-            if (prefersReducedMotion) { el.textContent = prefix + target + suffix; return; }
-            var start = null;
-            var duration = 1100;
-            function step(ts) {
-                if (!start) start = ts;
-                var progress = Math.min((ts - start) / duration, 1);
-                var eased = 1 - Math.pow(1 - progress, 3);
-                var value = Math.round(target * eased);
-                el.textContent = prefix + value + suffix;
-                if (progress < 1) window.requestAnimationFrame(step);
-            }
-            window.requestAnimationFrame(step);
-        };
-        if ('IntersectionObserver' in window) {
-            var statIo = new IntersectionObserver(function (entries) {
-                entries.forEach(function (entry) {
-                    if (entry.isIntersecting) {
-                        animateCount(entry.target);
-                        statIo.unobserve(entry.target);
-                    }
-                });
-            }, { threshold: 0.6 });
-            statEls.forEach(function (el) { statIo.observe(el); });
-        } else {
-            statEls.forEach(animateCount);
-        }
     }
 
     // "See it in action" slider: a single-active-card carousel over the 10 example
