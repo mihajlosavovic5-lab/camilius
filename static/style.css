@@ -134,6 +134,8 @@
     --danger: #b3341f;
     --danger-bg: #f9e8e2;
     --danger-border: #eec6ba;
+    --checkmark: #2f9e44;
+    --crossmark: #e03131;
     --shadow: 0 2px 6px rgba(38, 32, 20, .05), 0 1px 2px rgba(38, 32, 20, .04);
     --shadow-lg: 0 16px 44px rgba(38, 32, 20, .10), 0 4px 10px rgba(38, 32, 20, .05);
     --radius: 12px;
@@ -181,6 +183,8 @@
         --danger: #e2685a;
         --danger-bg: #3a1e18;
         --danger-border: #5c342a;
+        --checkmark: #40c057;
+        --crossmark: #ff6b6b;
         --shadow: 0 2px 6px rgba(0, 0, 0, .3), 0 1px 2px rgba(0, 0, 0, .25);
         --shadow-lg: 0 16px 44px rgba(0, 0, 0, .45), 0 4px 10px rgba(0, 0, 0, .3);
         --menu-sheet-bg: linear-gradient(180deg, var(--primary-light) 0%, var(--background) 42%);
@@ -684,7 +688,8 @@ body.auth {
 }
 .benefits { list-style: none; padding: 0; margin: 0 0 8px; }
 .benefits li { display: flex; gap: 10px; align-items: flex-start; padding: 7px 0; font-size: 14.5px; }
-.benefits .checkmark { color: var(--success); font-weight: 700; flex-shrink: 0; }
+.benefits .checkmark { color: var(--checkmark); font-weight: 700; flex-shrink: 0; }
+.benefits .crossmark { color: var(--crossmark); font-weight: 700; flex-shrink: 0; }
 
 /* --- Two-plan pricing (Faza 5) - Monthly/Yearly toggle + Starter/Pro cards on the
    real /subscription page, distinct from the older single-plan .price-row/.price-amount/
