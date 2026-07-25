@@ -74,7 +74,7 @@
     <!-- Hero -->
     <section class="hero lp-hero">
         <h1 class="lp-enter lp-enter-1"><span data-i18n="landing.hero.title1">A customer messages your business on Instagram.</span><br><span class="lp-accent" data-i18n="landing.hero.title2">Camilius already answered.</span></h1>
-        <p class="hero-subtitle lp-enter lp-enter-2"><span data-i18n="landing.hero.subtitle1">Camilius reads every Instagram message the moment it arrives and drafts a reply based on your working hours, price list, and FAQ.</span><br><span data-i18n="landing.hero.subtitle2">Review and send with one click &mdash; or switch on autopilot and let the AI handle it end to end, day and night, without you lifting a finger.</span></p>
+        <p class="hero-subtitle lp-enter lp-enter-2"><span data-i18n="landing.hero.subtitle1">Camilius reads every Instagram message the moment it arrives and drafts a reply based on your working hours, price list, and FAQ.</span><br><span data-i18n="landing.hero.subtitle2">By default, AI Autopilot sends it in seconds, day and night, so no customer is ever left waiting &mdash; prefer to double-check first? Turn on manual review anytime.</span></p>
         <div class="hero-actions lp-enter lp-enter-3">
             {% if beta_free_mode %}
             <a href="{{ url_for('register') }}" class="button lp-shine" style="font-size: 16px; padding: 13px 28px;" data-i18n="landing.hero.ctaFree">Get started for free</a>
@@ -85,6 +85,26 @@
         {% if beta_free_mode %}
         <p class="hero-fine-print lp-enter lp-enter-3" data-i18n="landing.hero.finePrintBeta">Free during the beta &middot; you're always in control of what gets sent</p>
         {% endif %}
+    </section>
+
+    <!-- Speed stat banner - the core "why" claim (AI saves the owner time by replying in
+         seconds) made concrete with two numbers side by side, right after the hero and
+         before visitors even scroll to the proof-of-quality slider below. -->
+    <section class="section lp-scroll-anchor" id="lp-speed" style="padding: 8px 0 40px;">
+        <div class="lp-stat-strip lp-reveal">
+            <div class="lp-stat">
+                <span class="lp-stat-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></span>
+                <span class="lp-stat-value" data-count-to="10" data-count-prefix="&lt; " data-count-suffix="s">&lt; 0s</span>
+                <span class="lp-stat-label" data-i18n="landing.speed.statAiLabel">Average AI reply time</span>
+            </div>
+            <div class="lp-stat-divider" aria-hidden="true"></div>
+            <div class="lp-stat lp-stat-muted">
+                <span class="lp-stat-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span>
+                <span class="lp-stat-value" data-count-to="3" data-count-prefix="" data-count-suffix="h+">0h+</span>
+                <span class="lp-stat-label" data-i18n="landing.speed.statIndustryLabel">Typical manual reply time</span>
+            </div>
+        </div>
+        <p class="lp-speed-caption lp-reveal" data-i18n="landing.speed.caption">Every second a customer waits is a booking that might go to whoever answers first. Camilius replies while you're still busy with the person in front of you.</p>
     </section>
 
     <!-- Demo: a slider of realistic examples across different business types, so
@@ -279,14 +299,63 @@
     <!-- Who it's for -->
     <section class="section lp-scroll-anchor" id="lp-who-for">
         <h2 class="section-title lp-reveal" data-i18n="landing.whoFor.title">Built for every business that lives in its inbox</h2>
-        <p style="text-align: center; color: var(--text-muted); max-width: 560px; margin: -8px auto 24px;" class="lp-reveal" data-i18n="landing.whoFor.subtitle">Salons, clinics, repair shops, tradespeople, vacation rentals, consultants, boutiques &mdash; if customers reach you on Instagram, Camilius already speaks your business.</p>
-        <div class="card lp-card-hover lp-reveal" style="max-width: 640px; margin: 0 auto;">
-            <ul class="benefits">
-                <li><span class="checkmark">&#10003;</span> <span data-i18n="landing.whoFor.benefit1">Replies go out even when you're busy &mdash; customers don't wait for days</span></li>
-                <li><span class="checkmark">&#10003;</span> <span data-i18n="landing.whoFor.benefit2">AI remembers previous conversations with each customer</span></li>
-                <li><span class="checkmark">&#10003;</span> <span data-i18n="landing.whoFor.benefit3">Never makes up prices or appointment times &mdash; only uses the data you entered</span></li>
-                <li><span class="checkmark">&#10003;</span> <span data-i18n="landing.whoFor.benefit4">Works with your existing Instagram Business account, no need to change anything</span></li>
-            </ul>
+        <p class="lp-who-subtitle lp-reveal" data-i18n="landing.whoFor.subtitle">Salons, clinics, repair shops, tradespeople, vacation rentals, consultants, boutiques &mdash; if customers reach you on Instagram, Camilius already speaks your business.</p>
+
+        <div class="lp-who-grid lp-reveal-group">
+            <div class="card lp-who-tile lp-card-hover lp-reveal">
+                <span class="lp-who-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><line x1="20" y1="4" x2="8.12" y2="15.88"/><line x1="14.47" y1="14.48" x2="20" y2="20"/><line x1="8.12" y1="8.12" x2="12" y2="12"/></svg></span>
+                <span class="lp-who-name" data-i18n="landing.whoFor.type1">Salons</span>
+                <span class="lp-who-example" data-i18n="landing.whoFor.type1Example">"Free Saturday at 3pm?" &mdash; answered before they close the app</span>
+            </div>
+            <div class="card lp-who-tile lp-card-hover lp-reveal">
+                <span class="lp-who-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7.5v9M7.5 12h9"/></svg></span>
+                <span class="lp-who-name" data-i18n="landing.whoFor.type2">Clinics</span>
+                <span class="lp-who-example" data-i18n="landing.whoFor.type2Example">Working hours and prices, answered accurately every time</span>
+            </div>
+            <div class="card lp-who-tile lp-card-hover lp-reveal">
+                <span class="lp-who-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a4 4 0 0 0-5.66 5.66l-6 6a1.5 1.5 0 0 0 2.12 2.12l6-6a4 4 0 0 0 5.66-5.66l-2.5 2.5-2.79-.79-.79-2.79z"/></svg></span>
+                <span class="lp-who-name" data-i18n="landing.whoFor.type3">Repair shops</span>
+                <span class="lp-who-example" data-i18n="landing.whoFor.type3Example">Quotes a fair price instead of losing the lead to silence</span>
+            </div>
+            <div class="card lp-who-tile lp-card-hover lp-reveal">
+                <span class="lp-who-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M15 12l-8.5 8.5a2.12 2.12 0 1 1-3-3L12 9"/><path d="M17.64 15L22 10.64"/><path d="M20.91 11.7l-1.25-1.25a3.18 3.18 0 0 1-.93-2.25v-.86L16.01 4.6a5.56 5.56 0 0 0-3.94-1.64H9l.92.82A6.18 6.18 0 0 1 12 8.4v1.56l2 2h2.47l2.44 2.44"/></svg></span>
+                <span class="lp-who-name" data-i18n="landing.whoFor.type4">Tradespeople</span>
+                <span class="lp-who-example" data-i18n="landing.whoFor.type4Example">Books the callout while you're still up a ladder</span>
+            </div>
+            <div class="card lp-who-tile lp-card-hover lp-reveal">
+                <span class="lp-who-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></span>
+                <span class="lp-who-name" data-i18n="landing.whoFor.type5">Vacation rentals</span>
+                <span class="lp-who-example" data-i18n="landing.whoFor.type5Example">Check-in times answered instantly, any time zone</span>
+            </div>
+            <div class="card lp-who-tile lp-card-hover lp-reveal">
+                <span class="lp-who-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg></span>
+                <span class="lp-who-name" data-i18n="landing.whoFor.type6">Consultants</span>
+                <span class="lp-who-example" data-i18n="landing.whoFor.type6Example">Qualifies a new lead while you're in back-to-back calls</span>
+            </div>
+            <div class="card lp-who-tile lp-card-hover lp-reveal">
+                <span class="lp-who-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg></span>
+                <span class="lp-who-name" data-i18n="landing.whoFor.type7">Boutiques</span>
+                <span class="lp-who-example" data-i18n="landing.whoFor.type7Example">Stock and sizing answered before they scroll to a rival</span>
+            </div>
+        </div>
+
+        <div class="lp-who-benefits lp-reveal-group">
+            <div class="card lp-who-benefit lp-card-hover lp-reveal">
+                <span class="lp-who-benefit-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span>
+                <p data-i18n="landing.whoFor.benefit1">Replies go out even when you're busy &mdash; customers don't wait for days</p>
+            </div>
+            <div class="card lp-who-benefit lp-card-hover lp-reveal">
+                <span class="lp-who-benefit-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg></span>
+                <p data-i18n="landing.whoFor.benefit2">AI remembers previous conversations with each customer</p>
+            </div>
+            <div class="card lp-who-benefit lp-card-hover lp-reveal">
+                <span class="lp-who-benefit-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l7 4v6c0 5-3.5 8.5-7 10-3.5-1.5-7-5-7-10V6z"/><polyline points="9 12 11 14 15 10"/></svg></span>
+                <p data-i18n="landing.whoFor.benefit3">Never makes up prices or appointment times &mdash; only uses the data you entered</p>
+            </div>
+            <div class="card lp-who-benefit lp-card-hover lp-reveal">
+                <span class="lp-who-benefit-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg></span>
+                <p data-i18n="landing.whoFor.benefit4">Works with your existing Instagram Business account, no need to change anything</p>
+            </div>
         </div>
     </section>
 
@@ -298,16 +367,36 @@
                 <div class="step-number lp-step-number">1</div>
                 <h3 data-i18n="landing.howItWorks.step1.title">Connect your Instagram</h3>
                 <p data-i18n="landing.howItWorks.step1.desc">Registration takes a few minutes: enter your business's working hours, price list, and FAQ, then connect your Instagram Business account with one click (secure Instagram login, no passwords shared with us).</p>
+                <div class="lp-step-visual">
+                    <span class="lp-step-visual-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg></span>
+                    <span data-i18n="landing.howItWorks.step1.visual">@yourbusiness connected</span>
+                    <span class="lp-step-visual-check" aria-hidden="true">&#10003;</span>
+                </div>
             </div>
             <div class="card step lp-card-hover lp-reveal">
                 <div class="step-number lp-step-number">2</div>
                 <h3 data-i18n="landing.howItWorks.step2.title">AI drafts replies</h3>
                 <p data-i18n="landing.howItWorks.step2.desc">Every new customer DM is read by the AI, which immediately drafts a reply &mdash; accurate, polite, and in the customer's own language, based on your business's data.</p>
+                <div class="lp-step-visual lp-step-visual-typing">
+                    <span class="lp-step-visual-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></span>
+                    <span class="lp-typing-dots" aria-hidden="true"><span></span><span></span><span></span></span>
+                    <span data-i18n="landing.howItWorks.step2.visual">Drafting reply&hellip;</span>
+                </div>
             </div>
             <div class="card step lp-card-hover lp-reveal">
                 <div class="step-number lp-step-number">3</div>
-                <h3 data-i18n="landing.howItWorks.step3.title">You approve and send</h3>
-                <p data-i18n="landing.howItWorks.step3.desc">Suggestions wait for you in the dashboard. Review, tweak if needed, click &mdash; and the reply reaches the customer. You're in control by default, with an optional auto-send for instant replies.</p>
+                <h3 data-i18n="landing.howItWorks.step3.title">AI Autopilot sends it instantly</h3>
+                <p data-i18n="landing.howItWorks.step3.desc">By default, Autopilot sends the AI's reply the moment it's ready, so customers never wait on you. Prefer to check first? Flip on manual review in Settings and every suggestion will wait in your dashboard for your approval.</p>
+                <div class="lp-step-mode-row">
+                    <span class="lp-step-mode lp-step-mode-active">
+                        <span class="lp-mini-toggle lp-mini-toggle-on" aria-hidden="true"><span class="lp-mini-toggle-thumb"></span></span>
+                        <span data-i18n="landing.howItWorks.step3.autopilotLabel">Autopilot &mdash; default</span>
+                    </span>
+                    <span class="lp-step-mode lp-step-mode-muted">
+                        <span class="lp-mini-toggle" aria-hidden="true"><span class="lp-mini-toggle-thumb"></span></span>
+                        <span data-i18n="landing.howItWorks.step3.manualLabel">Manual review &mdash; optional</span>
+                    </span>
+                </div>
             </div>
         </div>
     </section>
@@ -561,6 +650,44 @@
         revealEls.forEach(function (el) { io.observe(el); });
     } else {
         revealEls.forEach(function (el) { el.classList.add('lp-visible'); });
+    }
+
+    // Speed stat banner: counts each stat up from 0 to its data-count-to value once
+    // scrolled into view, instead of just appearing - reinforces the "seconds, not
+    // hours" claim with motion. Respects prefers-reduced-motion by jumping straight
+    // to the final value (same guard used by the slider's typing effect below).
+    var statEls = document.querySelectorAll('[data-count-to]');
+    if (statEls.length) {
+        var animateCount = function (el) {
+            var target = parseFloat(el.getAttribute('data-count-to'));
+            var prefix = el.getAttribute('data-count-prefix') || '';
+            var suffix = el.getAttribute('data-count-suffix') || '';
+            if (prefersReducedMotion) { el.textContent = prefix + target + suffix; return; }
+            var start = null;
+            var duration = 1100;
+            function step(ts) {
+                if (!start) start = ts;
+                var progress = Math.min((ts - start) / duration, 1);
+                var eased = 1 - Math.pow(1 - progress, 3);
+                var value = Math.round(target * eased);
+                el.textContent = prefix + value + suffix;
+                if (progress < 1) window.requestAnimationFrame(step);
+            }
+            window.requestAnimationFrame(step);
+        };
+        if ('IntersectionObserver' in window) {
+            var statIo = new IntersectionObserver(function (entries) {
+                entries.forEach(function (entry) {
+                    if (entry.isIntersecting) {
+                        animateCount(entry.target);
+                        statIo.unobserve(entry.target);
+                    }
+                });
+            }, { threshold: 0.6 });
+            statEls.forEach(function (el) { statIo.observe(el); });
+        } else {
+            statEls.forEach(animateCount);
+        }
     }
 
     // "See it in action" slider: a single-active-card carousel over the 10 example

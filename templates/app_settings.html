@@ -14,13 +14,21 @@
 
     <div class="card">
         <h2 style="margin-top:0;" data-i18n="appSettings.automation.heading">Automation</h2>
-        <p class="note" data-i18n="appSettings.automation.note">When on, the AI sends replies to customers right away instead of waiting for your approval.</p>
         <form method="POST" action="{{ url_for('update_auto_send') }}">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <label class="checkbox-row" style="margin-top:0;">
-                <input type="checkbox" name="auto_send" {% if auto_send %}checked{% endif %} onchange="this.form.submit()">
-                <span data-i18n="register.autoSendLabel">Auto-send AI replies</span>
-            </label>
+            <div class="switch-row" style="margin-top: 10px;">
+                <div class="switch-row-text">
+                    <span class="switch-row-label">
+                        <span class="badge badge-recommended" data-i18n="register.autoSendBadge">Recommended</span>
+                        <span data-i18n="register.autoSendLabel">AI Autopilot &mdash; auto-send replies</span>
+                    </span>
+                    <span class="note" data-i18n="appSettings.automation.note">Replies go out the moment the AI drafts them, so customers never wait on you. Turn this off if you'd rather review and approve each reply yourself.</span>
+                </div>
+                <label class="hours-day-toggle">
+                    <input type="checkbox" name="auto_send" {% if auto_send %}checked{% endif %} onchange="this.form.submit()">
+                    <span class="hours-day-toggle-track"><span class="hours-day-toggle-thumb"></span></span>
+                </label>
+            </div>
         </form>
     </div>
 

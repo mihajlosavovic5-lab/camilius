@@ -88,11 +88,19 @@
 
             <div class="form-section">
                 <p class="form-section-title" data-i18n="register.automationSection">Automation</p>
-                <label class="checkbox-row" style="margin-top: 10px;">
-                    <input type="checkbox" name="auto_send" {% if data.get('auto_send', True) %}checked{% endif %}>
-                    <span data-i18n="register.autoSendLabel">Auto-send AI replies</span>
-                </label>
-                <p class="note" data-i18n="register.autoSendHint">When on, the AI sends replies to customers right away instead of waiting for your approval. You can change this later in Settings.</p>
+                <div class="switch-row" style="margin-top: 10px;">
+                    <div class="switch-row-text">
+                        <span class="switch-row-label">
+                            <span class="badge badge-recommended" data-i18n="register.autoSendBadge">Recommended</span>
+                            <span data-i18n="register.autoSendLabel">AI Autopilot &mdash; auto-send replies</span>
+                        </span>
+                        <span class="note" data-i18n="register.autoSendHint">Replies go out the moment the AI drafts them, so customers never wait on you. Prefer to check each one first? Turn this off &mdash; you can change it anytime in Settings.</span>
+                    </div>
+                    <label class="hours-day-toggle">
+                        <input type="checkbox" name="auto_send" {% if data.get('auto_send', True) %}checked{% endif %}>
+                        <span class="hours-day-toggle-track"><span class="hours-day-toggle-thumb"></span></span>
+                    </label>
+                </div>
             </div>
 
             <label class="checkbox-row">
