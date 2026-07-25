@@ -17,6 +17,8 @@ const capacitorPlugins = isNative ? window.Capacitor.Plugins : null;
 const state = {
     token: null,
     businessName: "",
+    pendingVerifyBusinessId: null,
+    pendingVerifyEmail: "",
     conversations: [],
     filter: "all",
     search: "",
@@ -33,6 +35,7 @@ const screens = {
     login: el("screen-login"),
     forgotPassword: el("screen-forgot-password"),
     register: el("screen-register"),
+    verifyPending: el("screen-verify-pending"),
     connectInstagram: el("screen-connect-instagram"),
     inbox: el("screen-inbox"),
     detail: el("screen-detail"),
@@ -127,6 +130,8 @@ if (capacitorPlugins) {
             if (registerStep > 1) showRegisterStep(registerStep - 1);
             else showScreen("login");
         } else if (screens.forgotPassword.classList.contains("active")) {
+            showScreen("login");
+        } else if (screens.verifyPending.classList.contains("active")) {
             showScreen("login");
         } else if (screens.connectInstagram.classList.contains("active")) {
             // Deliberately swallowed - the only ways out are finishing the connection or
@@ -959,6 +964,7 @@ async function api(path, { method = "GET", body } = {}) {
     if (!response.ok) {
         const err = new Error(data.error || "Request failed");
         err.status = response.status;
+        err.data = data;
         throw err;
     }
     return data;
@@ -1014,8 +1020,12 @@ el("login-form").addEventListener("submit", async (event) => {
         await storageSet("businessName", data.business_name);
         enterApp();
     } catch (err) {
-        errorBox.textContent = err.message || t("login.error");
-        errorBox.classList.remove("hidden");
+        if (err.data && err.data.pending_verification) {
+            showVerifyPendingScreen(err.data.business_id, "");
+        } else {
+            errorBox.textContent = err.message || t("login.error");
+            errorBox.classList.remove("hidden");
+        }
     } finally {
         submitBtn.disabled = false;
         submitBtn.textContent = t("login.submit");
@@ -1352,13 +1362,7 @@ el("register-form").addEventListener("submit", async (event) => {
                 accept_terms: el("register-terms").checked,
             },
         });
-        state.token = data.token;
-        state.businessName = data.business_name;
-        await storageSet("token", data.token);
-        await storageSet("businessName", data.business_name);
-        el("connect-error").classList.add("hidden");
-        el("connect-waiting").classList.add("hidden");
-        showScreen("connectInstagram");
+        showVerifyPendingScreen(data.business_id, data.contact_email);
     } catch (err) {
         errorBox.textContent = err.message || t("register.error");
         errorBox.classList.remove("hidden");
@@ -1366,6 +1370,42 @@ el("register-form").addEventListener("submit", async (event) => {
         submitBtn.disabled = false;
         submitBtn.textContent = t("register.submit");
     }
+});
+
+// --- Verify pending - shown after registration, or after a login attempt against an
+// account that hasn't confirmed its email yet (see the login-form and register-form
+// handlers above). Doesn't hold a token - the account can't do anything else until the
+// emailed link is opened, so this is a dead end with only "resend" and "back to login". ---
+
+function showVerifyPendingScreen(businessId, email) {
+    state.pendingVerifyBusinessId = businessId;
+    state.pendingVerifyEmail = email;
+    // Falls back to the translated generic "your email" placeholder (its own data-i18n
+    // default, restored here since a previous call may have overwritten it with a real
+    // address) when the caller doesn't know the address - e.g. a login attempt only ever
+    // gets a business_id back, never the contact_email itself.
+    el("verify-pending-email").textContent = email || t("verifyPending.yourEmail");
+    el("verify-pending-resent").classList.add("hidden");
+    showScreen("verifyPending");
+}
+
+el("verify-pending-resend").addEventListener("click", async () => {
+    const btn = el("verify-pending-resend");
+    btn.disabled = true;
+    try {
+        await api("/api/resend-verification", { method: "POST", body: { business_id: state.pendingVerifyBusinessId } });
+        el("verify-pending-resent").classList.remove("hidden");
+    } catch (err) {
+        // Best-effort - the endpoint always responds sent:true when reachable at all, so
+        // this only fires on a real network error, already surfaced by the offline banner.
+    } finally {
+        btn.disabled = false;
+    }
+});
+
+el("verify-pending-back").addEventListener("click", () => {
+    state.pendingVerifyBusinessId = null;
+    showScreen("login");
 });
 
 // --- Connect Instagram - the one unavoidable step that has to leave native UI, since
