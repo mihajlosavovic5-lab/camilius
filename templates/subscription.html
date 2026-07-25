@@ -65,10 +65,10 @@
                 <p class="pricing-plan-name">Starter</p>
                 <div class="pricing-plan-price">
                     <span class="price-was hidden" data-yearly="348"></span>
-                    <span class="pricing-amount">$<span class="pricing-amount-value" data-monthly="29" data-yearly="290">29</span></span>
+                    <span class="pricing-amount"><span class="pricing-amount-value" data-monthly="29" data-yearly="290">29</span>$</span>
                     <span class="pricing-period" data-i18n="subscription.perMonth">/ month</span>
                 </div>
-                <p class="note pricing-yearly-total hidden" data-i18n="subscription.savedYearlyStarter">Save $58</p>
+                <p class="note pricing-yearly-total hidden" data-i18n="subscription.savedYearlyStarter">Save 58$</p>
 
                 <ul class="benefits">
                     <li><span class="checkmark">&#10003;</span> <span data-i18n="subscription.starter.benefit1">Basic AI replies to Instagram DMs</span></li>
@@ -92,10 +92,10 @@
                 <p class="pricing-plan-name">Pro</p>
                 <div class="pricing-plan-price">
                     <span class="price-was hidden" data-yearly="708"></span>
-                    <span class="pricing-amount">$<span class="pricing-amount-value" data-monthly="59" data-yearly="590">59</span></span>
+                    <span class="pricing-amount"><span class="pricing-amount-value" data-monthly="59" data-yearly="590">59</span>$</span>
                     <span class="pricing-period" data-i18n="subscription.perMonth">/ month</span>
                 </div>
-                <p class="note pricing-yearly-total hidden" data-i18n="subscription.savedYearlyPro">Save $118</p>
+                <p class="note pricing-yearly-total hidden" data-i18n="subscription.savedYearlyPro">Save 118$</p>
 
                 <ul class="benefits">
                     <li><span class="checkmark">&#10003;</span> <span data-i18n="subscription.pro.benefit1">Everything in Starter</span></li>
@@ -180,7 +180,7 @@
             // number), struck through next to the actual yearly price.
             document.querySelectorAll(".price-was").forEach((el) => {
                 el.classList.toggle("hidden", billingInterval !== "yearly");
-                if (billingInterval === "yearly") el.textContent = "$" + el.dataset.yearly;
+                if (billingInterval === "yearly") el.textContent = el.dataset.yearly + "$";
             });
             refreshButtons();
         });

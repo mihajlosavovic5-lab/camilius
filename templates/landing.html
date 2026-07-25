@@ -389,10 +389,10 @@
                 <p class="lp-pricing-plan-name">Starter</p>
                 <div class="price-row" style="justify-content: center;">
                     <span class="price-was hidden" data-yearly="348"></span>
-                    <span class="price-amount">$<span class="price-amount-value" data-monthly="29" data-yearly="290">29</span></span>
+                    <span class="price-amount"><span class="price-amount-value" data-monthly="29" data-yearly="290">29</span>$</span>
                     <span class="price-period" data-i18n="landing.pricing.period">/ month</span>
                 </div>
-                <p class="note pricing-yearly-total hidden" data-i18n="subscription.savedYearlyStarter">Save $58</p>
+                <p class="note pricing-yearly-total hidden" data-i18n="subscription.savedYearlyStarter">Save 58$</p>
                 <span class="trial-info" data-i18n="landing.pricing.trialInfo">14-day free trial</span>
                 <ul class="benefits">
                     <li><span class="checkmark">&#10003;</span> <span data-i18n="subscription.starter.benefit1">Basic AI replies to Instagram DMs</span></li>
@@ -411,10 +411,10 @@
                 <p class="lp-pricing-plan-name">Pro</p>
                 <div class="price-row" style="justify-content: center;">
                     <span class="price-was hidden" data-yearly="708"></span>
-                    <span class="price-amount">$<span class="price-amount-value" data-monthly="59" data-yearly="590">59</span></span>
+                    <span class="price-amount"><span class="price-amount-value" data-monthly="59" data-yearly="590">59</span>$</span>
                     <span class="price-period" data-i18n="landing.pricing.period">/ month</span>
                 </div>
-                <p class="note pricing-yearly-total hidden" data-i18n="subscription.savedYearlyPro">Save $118</p>
+                <p class="note pricing-yearly-total hidden" data-i18n="subscription.savedYearlyPro">Save 118$</p>
                 <span class="trial-info" data-i18n="landing.pricing.trialInfo">14-day free trial</span>
                 <ul class="benefits">
                     <li><span class="checkmark">&#10003;</span> <span data-i18n="subscription.pro.benefit1">Everything in Starter</span></li>
@@ -972,7 +972,7 @@
                 // saving is visible without any fabricated discount claim.
                 document.querySelectorAll('#lp-pricing .price-was').forEach(function (el) {
                     el.classList.toggle('hidden', lpBillingInterval !== 'yearly');
-                    if (lpBillingInterval === 'yearly') el.textContent = '$' + el.dataset.yearly;
+                    if (lpBillingInterval === 'yearly') el.textContent = el.dataset.yearly + '$';
                 });
             });
         });
