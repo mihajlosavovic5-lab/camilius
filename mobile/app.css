@@ -814,8 +814,18 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
 .onboarding-slide {
     position: relative;
     flex: 0 0 100%; scroll-snap-align: start; scroll-snap-stop: always;
-    display: flex; flex-direction: column; align-items: center; justify-content: center;
-    text-align: center; padding: 40px 32px;
+    display: flex; flex-direction: column; align-items: center;
+    /* flex-start with a fixed top padding, deliberately NOT justify-content:center -
+       centering treats icon+title+description as one block, so the icon's height
+       depends on how many lines the description wraps to. That varies slide to slide
+       (a longer description pushes the icon higher) and would also vary per language
+       once translated, since translated text runs shorter/longer than English - i.e.
+       even a build where every slide's English copy happened to wrap the same way
+       could still drift out of alignment in another language. Anchoring from a fixed
+       top offset instead keeps the icon (and title right under it) at the exact same
+       height on every slide, in every language, regardless of description length. */
+    justify-content: flex-start;
+    text-align: center; padding: 96px 32px 40px;
     /* --p: -1..1 scroll progress relative to this slide, kept live by app.js. Only the
        copy dims/settles with it - the illustration gets its own (larger) parallax
        below so it reads as sitting a little "above" the text while swiping. */
