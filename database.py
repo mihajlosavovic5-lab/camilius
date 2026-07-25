@@ -349,6 +349,19 @@ def create_database():
     # hardcode that lifetime a second time.
     cursor.execute("ALTER TABLE businesses ADD COLUMN IF NOT EXISTS email_verify_sent_at TIMESTAMP")
 
+    # Phone verification (Profile screen, mobile app only - the web Settings page doesn't
+    # expose phone_number at all). Unlike email, this never blocks login overall - it only
+    # gates whether phone_number itself is usable as a login identifier (see
+    # business_by_login_identifier's WHERE clause below); username/email login is
+    # unaffected. Same DEFAULT TRUE grandfathering as email_verified above - an existing
+    # phone number that was already usable to log in stays usable. add_business() and
+    # update_business() below flip this back to FALSE whenever a phone_number is newly set
+    # or changed.
+    cursor.execute("ALTER TABLE businesses ADD COLUMN IF NOT EXISTS phone_verified BOOLEAN NOT NULL DEFAULT TRUE")
+    cursor.execute("ALTER TABLE businesses ADD COLUMN IF NOT EXISTS phone_verify_token TEXT")
+    cursor.execute("ALTER TABLE businesses ADD COLUMN IF NOT EXISTS phone_verify_expires TIMESTAMP")
+    cursor.execute("ALTER TABLE businesses ADD COLUMN IF NOT EXISTS phone_verify_sent_at TIMESTAMP")
+
     connection.commit()
     connection.close()
 
@@ -360,11 +373,11 @@ def create_database():
 #   0 id, 1 name, 2 username, 3 password (hashed), 4 contact_email, 5 instagram_account_id,
 #   6 instagram_username, 7 instagram_access_token (decrypted, None if not connected yet),
 #   8 working_hours, 9 price_list, 10 faq, 11 phone_number (None if never set),
-#   12 email_verified
+#   12 email_verified, 13 phone_verified
 
 _BUSINESS_COLUMNS = """id, name, username, password, contact_email, instagram_account_id,
                        instagram_username, instagram_access_token, working_hours, price_list, faq,
-                       phone_number, email_verified"""
+                       phone_number, email_verified, phone_verified"""
 
 
 def _decrypt_row_token(row):
@@ -390,13 +403,18 @@ def add_business(name, username, password, contact_email, working_hours, price_l
     email_verified is always FALSE here (overriding the column's own DEFAULT TRUE, which
     only exists to grandfather in pre-existing rows) - every new account must confirm its
     contact email via the link save_email_verify_token()/mark_email_verified() below issue
-    before app.py's login()/api.py's api_login() will let it in."""
+    before app.py's login()/api.py's api_login() will let it in.
+
+    phone_verified is likewise always FALSE - moot when phone_number is None (never usable
+    as a login identifier either way, see business_by_login_identifier), but correct if one
+    was given: it isn't usable to log in until confirmed via save_phone_verify_token()/
+    mark_phone_verified() below, triggered from the Profile screen, not automatically."""
     connection = connect()
     cursor = connection.cursor()
 
     cursor.execute(
-        """INSERT INTO businesses (name, username, password, contact_email, working_hours, price_list, faq, phone_number, subscription_status, email_verified)
-           VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, FALSE) RETURNING id""",
+        """INSERT INTO businesses (name, username, password, contact_email, working_hours, price_list, faq, phone_number, subscription_status, email_verified, phone_verified)
+           VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, FALSE, FALSE) RETURNING id""",
         (name, username, generate_password_hash(password), contact_email, working_hours, price_list, faq, phone_number or None, initial_status),
     )
 
@@ -434,7 +452,7 @@ def all_businesses():
     """)
     result = cursor.fetchall()
     connection.close()
-    return [_decrypt_row_token(row[:13]) + (row[13],) for row in result]
+    return [_decrypt_row_token(row[:14]) + (row[14],) for row in result]
 
 
 def all_businesses_unfiltered():
@@ -447,7 +465,7 @@ def all_businesses_unfiltered():
     cursor.execute(f"SELECT {_BUSINESS_COLUMNS}, subscription_status, created_at FROM businesses ORDER BY created_at DESC")
     result = cursor.fetchall()
     connection.close()
-    return [_decrypt_row_token(row[:13]) + (row[13], row[14]) for row in result]
+    return [_decrypt_row_token(row[:14]) + (row[14], row[15]) for row in result]
 
 
 def business_by_id(business_id):
@@ -496,11 +514,16 @@ def business_by_username(username):
 def business_by_login_identifier(identifier):
     """Login accepts username, contact email, OR phone number - same "any of these
     identifies you" pattern most consumer apps use. One query checking all three rather
-    than three separate round-trips."""
+    than three separate round-trips.
+
+    The phone_number branch additionally requires phone_verified - an unconfirmed phone
+    number can't be used to log in (see phone_verified's own comment in create_database()),
+    but this never affects the username/contact_email branches, so an account with an
+    unverified (or no) phone number can always still log in the normal way."""
     connection = connect()
     cursor = connection.cursor()
     cursor.execute(
-        f"SELECT {_BUSINESS_COLUMNS} FROM businesses WHERE username = %s OR contact_email = %s OR phone_number = %s",
+        f"SELECT {_BUSINESS_COLUMNS} FROM businesses WHERE username = %s OR contact_email = %s OR (phone_number = %s AND phone_verified)",
         (identifier, identifier, identifier),
     )
     row = cursor.fetchone()
@@ -873,19 +896,88 @@ def email_verify_sent_recently(business_id, within_seconds):
     return row is not None
 
 
+def save_phone_verify_token(business_id, token, expires):
+    connection = connect()
+    cursor = connection.cursor()
+    cursor.execute(
+        "UPDATE businesses SET phone_verify_token = %s, phone_verify_expires = %s, phone_verify_sent_at = NOW() WHERE id = %s",
+        (token, expires, business_id),
+    )
+    connection.commit()
+    connection.close()
+
+
+def business_by_phone_verify_token(token):
+    connection = connect()
+    cursor = connection.cursor()
+    cursor.execute(
+        "SELECT id, name, phone_number FROM businesses WHERE phone_verify_token = %s AND phone_verify_expires > NOW()",
+        (token,),
+    )
+    row = cursor.fetchone()
+    connection.close()
+    return row
+
+
+def mark_phone_verified(business_id):
+    connection = connect()
+    cursor = connection.cursor()
+    cursor.execute(
+        "UPDATE businesses SET phone_verified = TRUE, phone_verify_token = NULL, phone_verify_expires = NULL WHERE id = %s",
+        (business_id,),
+    )
+    connection.commit()
+    connection.close()
+
+
+def phone_verify_sent_recently(business_id, within_seconds):
+    """Same throttle as email_verify_sent_recently, for the phone-verification resend
+    button on the Profile screen."""
+    connection = connect()
+    cursor = connection.cursor()
+    cursor.execute(
+        "SELECT 1 FROM businesses WHERE id = %s AND phone_verify_sent_at > NOW() - (%s * INTERVAL '1 second')",
+        (business_id, within_seconds),
+    )
+    row = cursor.fetchone()
+    connection.close()
+    return row is not None
+
+
 def update_business(business_id, name, username, contact_email, phone_number, working_hours, price_list, faq):
     # Reconnecting Instagram is a separate OAuth round-trip (link_instagram_account), not
     # a settings-form field like the old Gmail app password was - nothing to branch on here.
     # username/contact_email/phone_number share the same UNIQUE constraints as at
     # registration - the caller is expected to catch psycopg2.errors.UniqueViolation.
+    #
+    # The phone_verified/token CASE expressions compare against the row's OLD phone_number
+    # (Postgres evaluates every SET expression in an UPDATE against the pre-update row, so
+    # this sees the value before the SET phone_number=%s below overwrites it) - any actual
+    # change resets verification and invalidates whatever confirmation link was already
+    # sent, since it was for a now-superseded number. Leaving it alone when the value is
+    # unchanged (the web Settings page always passes the existing phone_number straight
+    # through - see app.py's settings()) avoids silently un-verifying a phone number nobody
+    # touched. phone_verify_sent_at is reset too, alongside the token - otherwise a resend
+    # requested right after changing the number could get silently swallowed by
+    # phone_verify_sent_recently's cooldown, which would still be looking at when the OLD
+    # number's (now-irrelevant) link was sent.
     connection = connect()
     cursor = connection.cursor()
     cursor.execute(
         """UPDATE businesses
-           SET name=%s, username=%s, contact_email=%s, phone_number=%s,
+           SET name=%s, username=%s, contact_email=%s,
+               phone_verified = CASE WHEN phone_number IS DISTINCT FROM %s THEN FALSE ELSE phone_verified END,
+               phone_verify_token = CASE WHEN phone_number IS DISTINCT FROM %s THEN NULL ELSE phone_verify_token END,
+               phone_verify_expires = CASE WHEN phone_number IS DISTINCT FROM %s THEN NULL ELSE phone_verify_expires END,
+               phone_verify_sent_at = CASE WHEN phone_number IS DISTINCT FROM %s THEN NULL ELSE phone_verify_sent_at END,
+               phone_number=%s,
                working_hours=%s, price_list=%s, faq=%s
            WHERE id=%s""",
-        (name, username, contact_email, phone_number or None, working_hours, price_list, faq, business_id),
+        (
+            name, username, contact_email,
+            phone_number or None, phone_number or None, phone_number or None, phone_number or None, phone_number or None,
+            working_hours, price_list, faq, business_id,
+        ),
     )
     connection.commit()
     connection.close()

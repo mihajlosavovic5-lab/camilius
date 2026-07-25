@@ -32,6 +32,7 @@ from database import (
     is_reminders_enabled, set_reminders_enabled, get_upsell_pairs, set_upsell_pairs,
     all_appointments_for_business, get_stripe_customer_id, get_paddle_customer_id,
     save_email_verify_token, business_by_email_verify_token, mark_email_verified, email_verify_sent_recently,
+    save_phone_verify_token, business_by_phone_verify_token, mark_phone_verified, phone_verify_sent_recently,
 )
 from send_email import send_email
 from generate_reply import generate_reply, generate_reply_with_booking
@@ -360,6 +361,21 @@ def verify_email(token):
     return render_template("verify_email.html", success=True)
 
 
+@app.route("/verify-phone/<token>")
+def verify_phone(token):
+    row = business_by_phone_verify_token(token)
+    if row is None:
+        return render_template("verify_phone.html", success=False)
+
+    business_id = row[0]
+    mark_phone_verified(business_id)
+    log_event("phone_verified", business_id=business_id)
+    # Deliberately no session changes here (unlike verify_email above) - this link only
+    # ever confirms the phone number itself, it isn't a login credential and shouldn't act
+    # like one. Whoever's logged in on this device (if anyone) stays exactly as they were.
+    return render_template("verify_phone.html", success=True)
+
+
 @app.route("/connect-instagram")
 @login_required
 def connect_instagram():
@@ -603,6 +619,98 @@ def send_verification_email(business_id, business_name, recipient):
         business_name="Camilius",
         reply_to=os.getenv("ALERT_EMAIL") or recipient,
         html=_verification_email_html(business_name, link),
+    )
+
+
+PHONE_VERIFY_TOKEN_LIFETIME = timedelta(hours=24)
+PHONE_VERIFY_RESEND_COOLDOWN_SECONDS = 60
+
+
+def _phone_verification_email_html(business_name, phone_number, link):
+    """Same branded-card layout as _verification_email_html - there's no SMS integration
+    (see .env.example's own note on that), so phone verification is confirmed by email
+    too, exactly like the account email itself."""
+    logo_url = url_for("static", filename="icon-512.png", _external=True)
+    return f"""\
+<!DOCTYPE html>
+<html>
+<body style="margin:0; padding:0; background:#f6f1e7; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f6f1e7; padding:32px 16px;">
+    <tr>
+      <td align="center">
+        <table role="presentation" width="480" cellpadding="0" cellspacing="0" style="max-width:480px; width:100%; background:#ffffff; border-radius:14px; overflow:hidden; box-shadow:0 4px 24px rgba(43,32,19,.08);">
+          <tr>
+            <td style="padding:32px 40px 8px; text-align:center;">
+              <img src="{logo_url}" width="48" height="48" alt="Camilius" style="border-radius:22%; display:block; margin:0 auto 12px;">
+              <div style="font-size:19px; font-weight:700; color:#2b2013;">Camilius</div>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:8px 40px 0;">
+              <hr style="border:none; border-top:1px solid #eee2cc; margin:16px 0;">
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:0 40px;">
+              <h1 style="font-size:20px; color:#2b2013; margin:0 0 16px;">Confirm your phone number</h1>
+              <p style="font-size:15px; line-height:1.6; color:#463824; margin:0 0 24px;">
+                Confirm <strong>{business_name}</strong>'s phone number (<strong>{phone_number}</strong>) so you can use it to log in later, in addition to your username and email.
+              </p>
+              <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 24px;">
+                <tr>
+                  <td style="border-radius:999px; background:#d69410;">
+                    <a href="{link}" style="display:inline-block; padding:13px 32px; font-size:15px; font-weight:600; color:#ffffff; text-decoration:none; border-radius:999px;">Confirm phone number</a>
+                  </td>
+                </tr>
+              </table>
+              <p style="font-size:13.5px; line-height:1.6; color:#8a7a5f; margin:0 0 24px;">
+                This link expires in 24 hours. If the button above doesn't work, copy and paste this URL into your browser:<br>
+                <a href="{link}" style="color:#9a6a08; word-break:break-all;">{link}</a>
+              </p>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:0 40px 32px;">
+              <hr style="border:none; border-top:1px solid #eee2cc; margin:0 0 20px;">
+              <p style="font-size:13px; line-height:1.6; color:#8a7a5f; margin:0;">
+                If you didn't request this, you can safely ignore this email - your account is unaffected either way.
+              </p>
+            </td>
+          </tr>
+        </table>
+        <p style="font-size:12px; color:#a6987d; margin:20px 0 0;">&copy; {datetime.now(timezone.utc).year} Camilius. All rights reserved.</p>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>"""
+
+
+def send_phone_verification_email(business_id, business_name, phone_number, recipient):
+    """Issues a fresh 24h single-use token and emails the confirmation link to the
+    account's contact email (there's no SMS channel - see .env.example). Triggered only
+    from the Profile screen's "Verify phone number" button (see api.py's
+    /api/verify-phone/send), never automatically at registration - unlike the account
+    email, an unconfirmed phone just can't be used to log in yet, it doesn't block
+    anything else."""
+    token = secrets.token_urlsafe(32)
+    expires = datetime.now(timezone.utc).replace(tzinfo=None) + PHONE_VERIFY_TOKEN_LIFETIME
+    save_phone_verify_token(business_id, token, expires)
+
+    link = url_for("verify_phone", token=token, _external=True)
+    send_email(
+        recipient=recipient,
+        subject="Confirm your phone number - Camilius",
+        body=(
+            f"Hi,\n\n"
+            f"Confirm '{business_name}'s phone number ({phone_number}) so you can use it to log in later, "
+            f"in addition to your username and email.\n\n"
+            f"Click the link to confirm (valid for 24 hours):\n{link}\n\n"
+            f"If you didn't request this, you can safely ignore this email - your account is unaffected either way."
+        ),
+        business_name="Camilius",
+        reply_to=os.getenv("ALERT_EMAIL") or recipient,
+        html=_phone_verification_email_html(business_name, phone_number, link),
     )
 
 
@@ -1026,7 +1134,8 @@ def admin_businesses():
     search = (request.args.get("q") or "").strip().lower()
     result = []
     for business in all_businesses_unfiltered():
-        # indices: 0 id, 1 name, 2 username, 4 contact_email, 12 email_verified, 13 subscription_status, 14 created_at
+        # indices: 0 id, 1 name, 2 username, 4 contact_email, 11 phone_number,
+        # 12 email_verified, 13 phone_verified, 14 subscription_status, 15 created_at
         if search and search not in business[1].lower() and search not in business[2].lower() and search not in business[4].lower():
             continue
         result.append({
@@ -1035,9 +1144,11 @@ def admin_businesses():
             "username": business[2],
             "contact_email": business[4],
             "instagram_username": business[6],
+            "phone_number": business[11],
             "email_verified": business[12],
-            "subscription_status": business[13],
-            "created_at": business[14].isoformat() if business[14] else None,
+            "phone_verified": business[13],
+            "subscription_status": business[14],
+            "created_at": business[15].isoformat() if business[15] else None,
         })
     return jsonify(businesses=result)
 

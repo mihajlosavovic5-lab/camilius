@@ -110,6 +110,12 @@ const TRANSLATIONS = {
         "verifyEmail.invalidBody": "This confirmation link has expired or has already been used (valid for 24 hours after it's sent). Log in and we'll send you a new one.",
         "verifyEmail.backToLogin": "← Back to login",
 
+        "verifyPhone.successTitle": "Phone number confirmed",
+        "verifyPhone.successBody": "You can now use this phone number to log in, in addition to your username and email.",
+        "verifyPhone.invalidTitle": "This link is no longer valid",
+        "verifyPhone.invalidBody": "This confirmation link has expired or has already been used (valid for 24 hours after it's sent). Send yourself a new one from the Profile screen in the app.",
+        "verifyPhone.backToLogin": "← Back to login",
+
         // Landing page "See it in action" slider (Faza 6) - 10 example Instagram DM
         // conversations across different business types. Sender names are proper
         // nouns and deliberately NOT translated (same as {{ business.name }} elsewhere).
@@ -544,6 +550,12 @@ const TRANSLATIONS = {
         "verifyEmail.invalidBody": "Este enlace de confirmación ha caducado o ya fue usado (válido por 24 horas). Inicia sesión y te enviaremos uno nuevo.",
         "verifyEmail.backToLogin": "← Volver a iniciar sesión",
 
+        "verifyPhone.successTitle": "Número de teléfono confirmado",
+        "verifyPhone.successBody": "Ahora puedes usar este número de teléfono para iniciar sesión, además de tu usuario y correo.",
+        "verifyPhone.invalidTitle": "Este enlace ya no es válido",
+        "verifyPhone.invalidBody": "Este enlace de confirmación ha caducado o ya fue usado (válido por 24 horas). Envíate uno nuevo desde la pantalla de Perfil en la app.",
+        "verifyPhone.backToLogin": "← Volver a iniciar sesión",
+
         "landing.slider.time.now": "Ahora mismo",
         "landing.slider.time.m2": "Hace 2 min",
         "landing.slider.time.m5": "Hace 5 min",
@@ -956,6 +968,12 @@ const TRANSLATIONS = {
         "verifyEmail.invalidTitle": "Este link não é mais válido",
         "verifyEmail.invalidBody": "Este link de confirmação expirou ou já foi usado (válido por 24 horas). Entre novamente e enviaremos um novo.",
         "verifyEmail.backToLogin": "← Voltar ao login",
+
+        "verifyPhone.successTitle": "Número de telefone confirmado",
+        "verifyPhone.successBody": "Agora você pode usar este número de telefone para entrar, além do seu usuário e email.",
+        "verifyPhone.invalidTitle": "Este link não é mais válido",
+        "verifyPhone.invalidBody": "Este link de confirmação expirou ou já foi usado (válido por 24 horas). Envie um novo a partir da tela de Perfil no app.",
+        "verifyPhone.backToLogin": "← Voltar ao login",
 
         "landing.slider.time.now": "Agora mesmo",
         "landing.slider.time.m2": "Há 2 min",
@@ -1370,6 +1388,12 @@ const TRANSLATIONS = {
         "verifyEmail.invalidBody": "Ce lien de confirmation a expiré ou a déjà été utilisé (valable 24 heures). Connectez-vous et nous vous en enverrons un nouveau.",
         "verifyEmail.backToLogin": "← Retour à la connexion",
 
+        "verifyPhone.successTitle": "Numéro de téléphone confirmé",
+        "verifyPhone.successBody": "Vous pouvez désormais utiliser ce numéro de téléphone pour vous connecter, en plus de votre nom d'utilisateur et de votre e-mail.",
+        "verifyPhone.invalidTitle": "Ce lien n'est plus valide",
+        "verifyPhone.invalidBody": "Ce lien de confirmation a expiré ou a déjà été utilisé (valable 24 heures). Envoyez-vous-en un nouveau depuis l'écran Profil de l'application.",
+        "verifyPhone.backToLogin": "← Retour à la connexion",
+
         "landing.slider.time.now": "À l'instant",
         "landing.slider.time.m2": "Il y a 2 min",
         "landing.slider.time.m5": "Il y a 5 min",
@@ -1782,6 +1806,12 @@ const TRANSLATIONS = {
         "verifyEmail.invalidTitle": "Dieser Link ist nicht mehr gültig",
         "verifyEmail.invalidBody": "Dieser Bestätigungslink ist abgelaufen oder wurde bereits verwendet (24 Stunden gültig). Melde dich an, und wir senden dir einen neuen.",
         "verifyEmail.backToLogin": "← Zurück zur Anmeldung",
+
+        "verifyPhone.successTitle": "Telefonnummer bestätigt",
+        "verifyPhone.successBody": "Du kannst diese Telefonnummer jetzt zusätzlich zu deinem Benutzernamen und deiner E-Mail zum Anmelden verwenden.",
+        "verifyPhone.invalidTitle": "Dieser Link ist nicht mehr gültig",
+        "verifyPhone.invalidBody": "Dieser Bestätigungslink ist abgelaufen oder wurde bereits verwendet (24 Stunden gültig). Sende dir einen neuen über den Profil-Bildschirm in der App.",
+        "verifyPhone.backToLogin": "← Zurück zur Anmeldung",
 
         "landing.slider.time.now": "Gerade eben",
         "landing.slider.time.m2": "Vor 2 Min.",
@@ -2196,6 +2226,12 @@ const TRANSLATIONS = {
         "verifyEmail.invalidBody": "Questo link di conferma è scaduto o è già stato usato (valido 24 ore). Accedi e te ne invieremo uno nuovo.",
         "verifyEmail.backToLogin": "← Torna al login",
 
+        "verifyPhone.successTitle": "Numero di telefono confermato",
+        "verifyPhone.successBody": "Ora puoi usare questo numero di telefono per accedere, oltre al tuo nome utente ed email.",
+        "verifyPhone.invalidTitle": "Questo link non è più valido",
+        "verifyPhone.invalidBody": "Questo link di conferma è scaduto o è già stato usato (valido 24 ore). Inviatene uno nuovo dalla schermata Profilo nell'app.",
+        "verifyPhone.backToLogin": "← Torna al login",
+
         "landing.slider.time.now": "Proprio ora",
         "landing.slider.time.m2": "2 min fa",
         "landing.slider.time.m5": "5 min fa",
@@ -2608,6 +2644,12 @@ const TRANSLATIONS = {
         "verifyEmail.invalidTitle": "Эта ссылка больше не действительна",
         "verifyEmail.invalidBody": "Срок действия этой ссылки истёк, или она уже была использована (действительна 24 часа). Войдите, и мы отправим новую.",
         "verifyEmail.backToLogin": "← Назад ко входу",
+
+        "verifyPhone.successTitle": "Номер телефона подтверждён",
+        "verifyPhone.successBody": "Теперь вы можете использовать этот номер телефона для входа, в дополнение к имени пользователя и email.",
+        "verifyPhone.invalidTitle": "Эта ссылка больше не действительна",
+        "verifyPhone.invalidBody": "Срок действия этой ссылки истёк, или она уже была использована (действительна 24 часа). Отправьте новую с экрана Профиль в приложении.",
+        "verifyPhone.backToLogin": "← Назад ко входу",
 
         "landing.slider.time.now": "Только что",
         "landing.slider.time.m2": "2 мин назад",
@@ -3022,6 +3064,12 @@ const TRANSLATIONS = {
         "verifyEmail.invalidBody": "Ovaj link za potvrdu je istekao ili je već iskorišćen (važi 24 sata). Prijavite se i poslaćemo vam novi.",
         "verifyEmail.backToLogin": "← Nazad na prijavu",
 
+        "verifyPhone.successTitle": "Broj telefona potvrđen",
+        "verifyPhone.successBody": "Sada možete koristiti ovaj broj telefona za prijavu, pored korisničkog imena i email-a.",
+        "verifyPhone.invalidTitle": "Ovaj link više nije važeći",
+        "verifyPhone.invalidBody": "Ovaj link za potvrdu je istekao ili je već iskorišćen (važi 24 sata). Pošaljite sebi novi sa ekrana Profil u aplikaciji.",
+        "verifyPhone.backToLogin": "← Nazad na prijavu",
+
         "landing.slider.time.now": "Upravo sada",
         "landing.slider.time.m2": "Pre 2 min",
         "landing.slider.time.m5": "Pre 5 min",
@@ -3435,6 +3483,12 @@ const TRANSLATIONS = {
         "verifyEmail.invalidBody": "此确认链接已过期或已被使用(有效期24小时)。请登录,我们将发送新的链接。",
         "verifyEmail.backToLogin": "← 返回登录",
 
+        "verifyPhone.successTitle": "电话号码已确认",
+        "verifyPhone.successBody": "除了用户名和邮箱,您现在也可以使用此电话号码登录。",
+        "verifyPhone.invalidTitle": "此链接已失效",
+        "verifyPhone.invalidBody": "此确认链接已过期或已被使用(有效期24小时)。请在应用的个人资料页面重新发送。",
+        "verifyPhone.backToLogin": "← 返回登录",
+
         "landing.slider.time.now": "刚刚",
         "landing.slider.time.m2": "2分钟前",
         "landing.slider.time.m5": "5分钟前",
@@ -3847,6 +3901,12 @@ const TRANSLATIONS = {
         "verifyEmail.invalidTitle": "Bu bağlantı artık geçerli değil",
         "verifyEmail.invalidBody": "Bu onay bağlantısının süresi doldu veya zaten kullanıldı (24 saat geçerlidir). Giriş yapın, size yenisini gönderelim.",
         "verifyEmail.backToLogin": "← Girişe dön",
+
+        "verifyPhone.successTitle": "Telefon numarası onaylandı",
+        "verifyPhone.successBody": "Artık bu telefon numarasını, kullanıcı adınız ve e-postanıza ek olarak giriş yapmak için kullanabilirsiniz.",
+        "verifyPhone.invalidTitle": "Bu bağlantı artık geçerli değil",
+        "verifyPhone.invalidBody": "Bu onay bağlantısının süresi doldu veya zaten kullanıldı (24 saat geçerlidir). Uygulamadaki Profil ekranından kendinize yenisini gönderin.",
+        "verifyPhone.backToLogin": "← Girişe dön",
 
         "landing.slider.time.now": "Az önce",
         "landing.slider.time.m2": "2 dk önce",
