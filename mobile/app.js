@@ -2137,11 +2137,17 @@ el("settings-app-save").addEventListener("click", async () => {
 //  - a per-slide accent glow behind the whole screen (--onboarding-accent), read from
 //    each slide's data-accent and swapped as the active slide changes;
 //  - a live scroll-progress custom property (--p, -1..1) written to every slide on
-//    each scroll frame, which app.css uses for a subtle parallax/scale as slides pass.
-// The active slide also gets an "is-active" class, which is what actually starts the
-// entrance animation and the small looping decorations (typing dots, send icon,
-// pulsing badge) defined in app.css - kept off on inactive slides so they don't run
-// (or replay stale) off-screen.
+//    each scroll frame, which app.css uses for the copy/art's own fade-and-settle as
+//    slides pass - deliberately continuous and undebounced, so it's always in sync
+//    with the real scroll position and has no separate "trigger" that could ever fire
+//    late against content that's already visible.
+// The active slide also gets an "is-active" class - once scrolling settles, not on
+// every frame - which gates only the small looping decorations (typing dots, send
+// icon, pulsing badge) defined in app.css, kept off on inactive slides so they don't
+// run (or replay stale) off-screen. It deliberately does NOT gate anything that could
+// hide already-visible core content - see the comment in app.css above the (removed)
+// old entrance animation for why that combination used to look like the slide
+// reloading a couple seconds after arriving.
 const ONBOARDING_ACCENTS = {
     1: "var(--primary)",
     2: "var(--warning)",

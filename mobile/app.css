@@ -787,10 +787,17 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
    Premium-feeling intro: a soft accent glow that shifts color per slide (via the
    --onboarding-accent custom property, set by setupOnboarding() in app.js from each
    slide's data-accent), scroll-driven parallax on the illustration/copy (--p custom
-   property, also set in app.js), and small looping decorations (typing dots, a
-   send-icon flight, badge pulses) that only animate on the active slide - both for
-   performance and so they replay each time a slide comes into view. Everything backs
-   off to a plain fade under prefers-reduced-motion. */
+   property, also set in app.js, updated live on every real scroll frame - this is what
+   makes the copy/art fade and settle in as a slide arrives, with no separate trigger
+   involved), and small looping decorations (typing dots, a send-icon flight, badge
+   pulses) that only play once per visit, gated by the "is-active" class that app.js
+   sets once scrolling settles. Everything backs off to a plain fade under
+   prefers-reduced-motion.
+
+   Deliberately NOT used for anything that's already visible: see the long comment
+   below the .onboarding-art/h1/p/.onboarding-continue rule for why a discrete,
+   is-active-gated entrance animation on those elements used to cause a visible
+   "reloads a couple seconds after arriving" glitch, and was removed. */
 /* No position override here - .screen already sets position:absolute; inset:0 (needed
    to fill the screen), which also serves as ::before's containing block below. */
 .screen-onboarding { overflow: hidden; background: var(--background); }
@@ -819,20 +826,32 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
     display: flex; align-items: center; justify-content: center;
     transform: translateY(calc(min(abs(var(--p, 0)), 1) * 22px)) scale(calc(1 - min(abs(var(--p, 0)), 1) * .12));
 }
-.onboarding-slide.is-active .onboarding-art,
-.onboarding-slide.is-active h1,
-.onboarding-slide.is-active p,
-.onboarding-slide.is-active .onboarding-continue {
-    animation: onboarding-rise .55s cubic-bezier(.22, .9, .32, 1.15) backwards;
-}
-.onboarding-slide.is-active .onboarding-art { animation-delay: .02s; }
-.onboarding-slide.is-active h1 { animation-delay: .1s; }
-.onboarding-slide.is-active p { animation-delay: .17s; }
-.onboarding-slide.is-active .onboarding-continue { animation-delay: .26s; }
-@keyframes onboarding-rise {
-    from { opacity: 0; transform: translateY(14px); }
-    to { opacity: 1; transform: translateY(0); }
-}
+/* There used to be a second, discrete "rise" keyframe animation here (opacity 0 ->1,
+   translateY 14px -> 0) on .onboarding-art/h1/p/.onboarding-continue, gated by the
+   debounced "is-active" class above. That was the actual cause of the reload-looking
+   glitch, and removing it (relying only on .onboarding-slide's own continuous --p fade
+   above) is the fix - explained in full below since it's not obvious from a diff.
+
+   .onboarding-slide's opacity/scale above is a CONTINUOUS function of live scroll
+   position (--p), written on every real scroll frame - by the time a swipe settles
+   it's already smoothly at opacity 1 with no discrete "trigger" involved, so there's
+   no way for it to glitch.
+
+   The (now removed) per-element "rise" animation was different in kind, not degree: a
+   CSS keyframe animation's first frame is ALWAYS the 0% keyframe the instant it starts
+   playing, no matter what was on screen a moment before - that's how the animation
+   model works, "backwards" fill mode or not. It was gated by "is-active", which
+   app.js's commitActiveSlide() only sets after scrolling goes quiet for 120ms - a
+   debounce that assumes the browser's own scroll-snap settle and the JS scroll event
+   stream finish at close to the same time. On some WebViews they don't: the visible
+   swipe can finish (slide fully in place, already readable via the continuous fade
+   above) well before the trailing scroll events stop arriving. Whenever that gap was
+   large enough, "is-active" - and with it the old rise animation - would fire on
+   content that was already fully visible, snapping it back to invisible and fading it
+   in a second time: exactly the "already loaded, then reloads" glitch, on a delay that
+   tracked however long that device's scroll events took to go quiet, not a fixed
+   ~2s - which is why it kept surviving fixes aimed at a fixed timing window instead of
+   this root cause. */
 
 /* Mocked-up UI card - a small "screenshot" of the app (placeholder bars + chat
    bubbles) instead of a bare icon, built entirely from CSS so it needs no new i18n
@@ -954,10 +973,6 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
 @media (prefers-reduced-motion: reduce) {
     .onboarding-slide,
     .onboarding-art,
-    .onboarding-slide.is-active .onboarding-art,
-    .onboarding-slide.is-active h1,
-    .onboarding-slide.is-active p,
-    .onboarding-slide.is-active .onboarding-continue,
     .onboarding-bubble-drop,
     .onboarding-typing span,
     .onboarding-badge-pop,
