@@ -783,8 +783,24 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
 .inbox-list-wrap { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-height: 0; }
 .inbox-list-wrap .inbox-list { flex: 1; }
 
-/* --- Onboarding --- */
-.screen-onboarding { background: var(--background); }
+/* --- Onboarding ---
+   Premium-feeling intro: a soft accent glow that shifts color per slide (via the
+   --onboarding-accent custom property, set by setupOnboarding() in app.js from each
+   slide's data-accent), scroll-driven parallax on the illustration/copy (--p custom
+   property, also set in app.js), and small looping decorations (typing dots, a
+   send-icon flight, badge pulses) that only animate on the active slide - both for
+   performance and so they replay each time a slide comes into view. Everything backs
+   off to a plain fade under prefers-reduced-motion. */
+/* No position override here - .screen already sets position:absolute; inset:0 (needed
+   to fill the screen), which also serves as ::before's containing block below. */
+.screen-onboarding { overflow: hidden; background: var(--background); }
+.screen-onboarding::before {
+    content: ""; position: absolute; inset: -15%; z-index: 0; pointer-events: none;
+    background: radial-gradient(circle at 50% 18%, var(--onboarding-accent, var(--primary)) 0%, transparent 58%);
+    opacity: .16; filter: blur(38px);
+    transition: background .55s ease;
+}
+.onboarding-slides, .onboarding-dots, .onboarding-skip-wrap { position: relative; z-index: 1; }
 .onboarding-slides {
     display: flex; flex: 1; overflow-x: auto; scroll-snap-type: x mandatory; -webkit-overflow-scrolling: touch;
 }
@@ -792,14 +808,163 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
     flex: 0 0 100%; scroll-snap-align: start; scroll-snap-stop: always;
     display: flex; flex-direction: column; align-items: center; justify-content: center;
     text-align: center; padding: 40px 32px;
+    /* --p: -1..1 scroll progress relative to this slide, kept live by app.js. Only the
+       copy dims/settles with it - the illustration gets its own (larger) parallax
+       below so it reads as sitting a little "above" the text while swiping. */
+    transform: scale(calc(1 - min(abs(var(--p, 0)), 1) * .06));
+    opacity: calc(1 - min(abs(var(--p, 0)), 1) * .55);
 }
-.onboarding-mark { width: 72px; height: 72px; border-radius: 22%; margin-bottom: 22px; box-shadow: 0 6px 16px rgba(0,0,0,.15); }
-.onboarding-emoji { font-size: 52px; margin-bottom: 22px; }
+.onboarding-art {
+    position: relative; width: 200px; height: 168px; margin-bottom: 26px;
+    display: flex; align-items: center; justify-content: center;
+    transform: translateY(calc(min(abs(var(--p, 0)), 1) * 22px)) scale(calc(1 - min(abs(var(--p, 0)), 1) * .12));
+}
+.onboarding-slide.is-active .onboarding-art,
+.onboarding-slide.is-active h1,
+.onboarding-slide.is-active p,
+.onboarding-slide.is-active .onboarding-continue {
+    animation: onboarding-rise .55s cubic-bezier(.22, .9, .32, 1.15) backwards;
+}
+.onboarding-slide.is-active .onboarding-art { animation-delay: .02s; }
+.onboarding-slide.is-active h1 { animation-delay: .1s; }
+.onboarding-slide.is-active p { animation-delay: .17s; }
+.onboarding-slide.is-active .onboarding-continue { animation-delay: .26s; }
+@keyframes onboarding-rise {
+    from { opacity: 0; transform: translateY(14px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Mocked-up UI card - a small "screenshot" of the app (placeholder bars + chat
+   bubbles) instead of a bare icon, built entirely from CSS so it needs no new i18n
+   strings or image assets. */
+.onboarding-card {
+    position: relative; width: 176px; background: var(--surface); border-radius: 18px;
+    box-shadow: 0 16px 34px rgba(43, 32, 19, .16); padding: 14px 13px;
+    display: flex; flex-direction: column; gap: 7px;
+}
+.onboarding-card-brand { gap: 10px; }
+.onboarding-mock-row { display: flex; align-items: center; gap: 9px; }
+.onboarding-mock-row-compact { gap: 8px; }
+.onboarding-mock-row-right { justify-content: flex-end; padding-right: 2px; }
+.onboarding-mock-mark { width: 26px; height: 26px; box-shadow: none; }
+.onboarding-mock-lines { flex: 1; display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+.onboarding-mock-line { display: block; height: 6px; border-radius: 99px; background: rgba(43, 32, 19, .1); }
+.onboarding-mock-line-lg { width: 84px; height: 8px; }
+.onboarding-mock-line-sm { width: 56px; }
+.onboarding-mock-line-md { width: 84px; }
+.onboarding-mock-line-xs { width: 34px; }
+.onboarding-mock-line-fade { opacity: .55; }
+.onboarding-mock-divider { height: 1px; background: var(--border); margin: 1px 0; }
+.onboarding-mock-dot { width: 20px; height: 20px; border-radius: 50%; background: var(--primary-light); flex-shrink: 0; }
+.onboarding-mock-dot-faint { background: var(--border); }
+.onboarding-mock-line-on-bubble { background: rgba(43, 32, 19, .16); }
+.onboarding-mock-line-on-bubble-out { background: rgba(255, 255, 255, .55); }
+
+.onboarding-bubble { padding: 8px 11px; border-radius: 13px; display: flex; flex-direction: column; gap: 5px; }
+.onboarding-bubble-in { align-self: flex-start; max-width: 82%; background: var(--background); border: 1px solid var(--border); border-bottom-left-radius: 4px; }
+.onboarding-bubble-out { align-self: flex-end; max-width: 82%; background: var(--primary); border-bottom-right-radius: 4px; }
+/* Slide 2 only - the incoming bubble drops/settles in on a loop while that slide is
+   active, echoing "a message just arrived". Paused elsewhere to save cycles. */
+.onboarding-bubble-drop { animation: onboarding-bubble-drop 2.6s ease-in-out infinite; animation-play-state: paused; }
+.onboarding-slide.is-active .onboarding-bubble-drop { animation-play-state: running; }
+@keyframes onboarding-bubble-drop {
+    0% { transform: translateY(-10px); opacity: 0; }
+    18% { transform: translateY(0); opacity: 1; }
+    82% { transform: translateY(0); opacity: 1; }
+    100% { transform: translateY(-10px); opacity: 0; }
+}
+
+/* Slide 3 - typing dots cross-fade into the finished reply bubble, looping while
+   active (see the is-active gate below). */
+.onboarding-typing-wrap { position: relative; height: 32px; }
+.onboarding-typing-wrap .onboarding-typing,
+.onboarding-typing-wrap .onboarding-bubble-out { position: absolute; top: 0; right: 0; animation-play-state: paused; }
+.onboarding-slide.is-active .onboarding-typing-wrap .onboarding-typing,
+.onboarding-slide.is-active .onboarding-typing-wrap .onboarding-bubble-out { animation-play-state: running; }
+.onboarding-typing {
+    display: flex; align-items: center; gap: 3px; padding: 10px 12px;
+    background: var(--background); border: 1px solid var(--border); border-radius: 13px; border-bottom-right-radius: 4px;
+    animation: onboarding-typing-visibility 3.4s ease-in-out infinite;
+}
+.onboarding-typing span { width: 5px; height: 5px; border-radius: 50%; background: var(--text-muted); animation: onboarding-typing-bounce 1s ease-in-out infinite; }
+.onboarding-typing span:nth-child(2) { animation-delay: .15s; }
+.onboarding-typing span:nth-child(3) { animation-delay: .3s; }
+@keyframes onboarding-typing-bounce { 0%, 60%, 100% { transform: translateY(0); opacity: .5; } 30% { transform: translateY(-3px); opacity: 1; } }
+@keyframes onboarding-typing-visibility { 0%, 55% { opacity: 1; transform: scale(1); } 65%, 95% { opacity: 0; transform: scale(.92); } 100% { opacity: 1; transform: scale(1); } }
+.onboarding-typing-wrap .onboarding-bubble-out { animation: onboarding-reply-visibility 3.4s ease-in-out infinite; }
+@keyframes onboarding-reply-visibility { 0%, 55% { opacity: 0; transform: scale(.92); } 65%, 95% { opacity: 1; transform: scale(1); } 100% { opacity: 0; transform: scale(.92); } }
+
+/* Slide 4 - a small send icon flies from the reply bubble off the card corner, once
+   per loop, while the checkmark badge pops in. */
+.onboarding-send-fly {
+    position: absolute; right: 6px; bottom: 34px; font-size: 15px; opacity: 0;
+    animation: onboarding-send-fly 2.8s ease-in infinite; animation-play-state: paused;
+}
+.onboarding-slide.is-active .onboarding-send-fly { animation-play-state: running; }
+@keyframes onboarding-send-fly {
+    0%, 55% { opacity: 0; transform: translate(0, 0) scale(.8); }
+    62% { opacity: 1; transform: translate(0, 0) scale(1); }
+    85% { opacity: 0; transform: translate(30px, -26px) scale(.7); }
+    100% { opacity: 0; transform: translate(0, 0) scale(.8); }
+}
+
+/* Circular icon badge overlapping the card's corner - the old bare center emoji,
+   now layered on top of the mocked-up card instead of standing alone. */
+.onboarding-badge {
+    position: absolute; right: -6px; bottom: -6px; width: 46px; height: 46px; border-radius: 50%;
+    background: var(--primary); color: #fff; display: flex; align-items: center; justify-content: center;
+    font-size: 20px; box-shadow: 0 8px 18px rgba(214, 148, 16, .38); border: 3px solid var(--background);
+}
+.onboarding-badge-pop { animation: onboarding-badge-pop .6s cubic-bezier(.22, 1.4, .4, 1) .35s backwards; }
+.onboarding-badge-pulse { animation: onboarding-badge-pop .6s cubic-bezier(.22, 1.4, .4, 1) .35s backwards, onboarding-badge-breathe 2.4s ease-in-out 1s infinite; animation-play-state: running, paused; }
+.onboarding-slide.is-active .onboarding-badge-pulse { animation-play-state: running, running; }
+@keyframes onboarding-badge-pop { from { opacity: 0; transform: scale(.4) rotate(-12deg); } to { opacity: 1; transform: scale(1) rotate(0); } }
+@keyframes onboarding-badge-breathe { 0%, 100% { box-shadow: 0 8px 18px rgba(214, 148, 16, .38); } 50% { box-shadow: 0 8px 22px rgba(214, 148, 16, .58), 0 0 0 6px rgba(214, 148, 16, .12); } }
+
+/* Slide 1 - three small dots drifting slowly around the brand card, purely decorative. */
+.onboarding-orbit-dot { position: absolute; width: 7px; height: 7px; border-radius: 50%; background: var(--primary); opacity: .55; animation: onboarding-orbit 7s ease-in-out infinite; }
+.onboarding-orbit-dot-a { top: 4px; left: 6px; animation-duration: 6s; }
+.onboarding-orbit-dot-b { top: 20px; right: 0; background: var(--warning); animation-duration: 8s; animation-delay: -2s; }
+.onboarding-orbit-dot-c { bottom: 26px; left: -4px; background: var(--success); animation-duration: 9s; animation-delay: -4s; }
+@keyframes onboarding-orbit { 0%, 100% { transform: translate(0, 0); } 50% { transform: translate(6px, -10px); } }
+
 .onboarding-slide h1 { font-family: Georgia, "Times New Roman", serif; font-weight: 700; font-size: 22px; margin: 0 0 10px; }
 .onboarding-slide p { color: var(--text-muted); font-size: 15px; max-width: 300px; margin: 0; }
-.onboarding-continue { margin-top: 26px; padding: 12px 32px; }
+.onboarding-continue { margin-top: 26px; padding: 12px 32px; position: relative; overflow: hidden; }
+/* A soft light sweep across the final CTA, loafing on a long interval so it reads as
+   a subtle premium finish rather than a nagging animation. */
+.onboarding-continue::after {
+    content: ""; position: absolute; top: 0; bottom: 0; left: -60%; width: 40%;
+    background: linear-gradient(115deg, transparent, rgba(255, 255, 255, .35), transparent);
+    animation: onboarding-cta-sheen 3.2s ease-in-out 1.2s infinite;
+}
+@keyframes onboarding-cta-sheen { 0%, 30% { left: -60%; } 60%, 100% { left: 130%; } }
 .onboarding-skip-wrap { position: absolute; top: calc(16px + var(--safe-top)); right: 16px; z-index: 5; }
 .onboarding-skip-btn { background: none; border: none; color: var(--text-muted); font-size: 14px; cursor: pointer; padding: 8px; }
 .onboarding-dots { display: flex; justify-content: center; gap: 8px; padding-bottom: calc(30px + var(--safe-bottom)); flex-shrink: 0; }
 .onboarding-dot { width: 8px; height: 8px; border-radius: 99px; background: var(--border); transition: background .2s, width .2s; }
 .onboarding-dot.active { background: var(--primary); width: 22px; }
+
+@media (prefers-reduced-motion: reduce) {
+    .onboarding-slide,
+    .onboarding-art,
+    .onboarding-slide.is-active .onboarding-art,
+    .onboarding-slide.is-active h1,
+    .onboarding-slide.is-active p,
+    .onboarding-slide.is-active .onboarding-continue,
+    .onboarding-bubble-drop,
+    .onboarding-typing span,
+    .onboarding-badge-pop,
+    .onboarding-badge-pulse,
+    .onboarding-orbit-dot,
+    .onboarding-continue::after {
+        animation: none !important;
+        transform: none !important;
+        opacity: 1 !important;
+    }
+    /* Show the finished state (reply sent, no mid-typing/flying-icon loop) rather than
+       a frozen mid-animation frame. */
+    .onboarding-typing { animation: none !important; opacity: 0 !important; }
+    .onboarding-typing-wrap .onboarding-bubble-out { animation: none !important; transform: none !important; opacity: 1 !important; }
+    .onboarding-send-fly { animation: none !important; opacity: 0 !important; }
+}

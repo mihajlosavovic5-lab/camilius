@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
 <title>Camilius</title>
-<link rel="stylesheet" href="app.css?v=704179d6f367">
+<link rel="stylesheet" href="app.css?v=b6155ffc3425">
 </head>
 <body>
 
@@ -77,27 +77,94 @@
 
 <div id="app">
 
-  <!-- ONBOARDING (shown once, only inside the installed app) -->
+  <!-- ONBOARDING (shown once, only inside the installed app). Each slide's illustration
+       is a small mocked-up UI card (placeholder bars + chat bubbles, no real text inside
+       the art itself) so it stays fully i18n-free while still reading as a screenshot of
+       the app rather than a bare emoji. Entrance/parallax/loop animations are driven by
+       setupOnboarding() in app.js - see the comment above that function. -->
   <section id="screen-onboarding" class="screen screen-onboarding">
     <div class="onboarding-skip-wrap"><button class="onboarding-skip-btn onboarding-skip" data-i18n="onboarding.skip">Skip</button></div>
     <div class="onboarding-slides" id="onboarding-slides">
-      <div class="onboarding-slide">
-        <span class="brand-mark onboarding-mark"></span>
+      <div class="onboarding-slide" data-accent="1">
+        <div class="onboarding-art">
+          <span class="onboarding-orbit-dot onboarding-orbit-dot-a"></span>
+          <span class="onboarding-orbit-dot onboarding-orbit-dot-b"></span>
+          <span class="onboarding-orbit-dot onboarding-orbit-dot-c"></span>
+          <div class="onboarding-card onboarding-card-brand">
+            <div class="onboarding-mock-row">
+              <span class="brand-mark onboarding-mock-mark"></span>
+              <div class="onboarding-mock-lines">
+                <span class="onboarding-mock-line onboarding-mock-line-lg"></span>
+                <span class="onboarding-mock-line onboarding-mock-line-sm"></span>
+              </div>
+            </div>
+            <div class="onboarding-mock-divider"></div>
+            <div class="onboarding-mock-row onboarding-mock-row-compact">
+              <span class="onboarding-mock-dot"></span>
+              <span class="onboarding-mock-line onboarding-mock-line-md"></span>
+            </div>
+            <div class="onboarding-mock-row onboarding-mock-row-compact">
+              <span class="onboarding-mock-dot onboarding-mock-dot-faint"></span>
+              <span class="onboarding-mock-line onboarding-mock-line-md onboarding-mock-line-fade"></span>
+            </div>
+          </div>
+          <span class="onboarding-badge onboarding-badge-pop">✨</span>
+        </div>
         <h1 data-i18n="onboarding.slide1.title">Welcome to Camilius</h1>
         <p data-i18n="onboarding.slide1.body">Your AI assistant for customer Instagram messages.</p>
       </div>
-      <div class="onboarding-slide">
-        <div class="onboarding-emoji">💬</div>
+
+      <div class="onboarding-slide" data-accent="2">
+        <div class="onboarding-art">
+          <div class="onboarding-card">
+            <div class="onboarding-bubble onboarding-bubble-in onboarding-bubble-drop">
+              <span class="onboarding-mock-line onboarding-mock-line-on-bubble onboarding-mock-line-sm"></span>
+              <span class="onboarding-mock-line onboarding-mock-line-on-bubble onboarding-mock-line-xs"></span>
+            </div>
+            <div class="onboarding-mock-row onboarding-mock-row-right">
+              <span class="onboarding-mock-line onboarding-mock-line-sm onboarding-mock-line-fade"></span>
+            </div>
+          </div>
+          <span class="onboarding-badge onboarding-badge-pulse">💬</span>
+        </div>
         <h1 data-i18n="onboarding.slide2.title">Reads DMs for you</h1>
         <p data-i18n="onboarding.slide2.body">When a customer messages your business on Instagram, Camilius reads it right away — day or night.</p>
       </div>
-      <div class="onboarding-slide">
-        <div class="onboarding-emoji">✍️</div>
+
+      <div class="onboarding-slide" data-accent="3">
+        <div class="onboarding-art">
+          <div class="onboarding-card">
+            <div class="onboarding-bubble onboarding-bubble-in">
+              <span class="onboarding-mock-line onboarding-mock-line-on-bubble onboarding-mock-line-sm"></span>
+            </div>
+            <div class="onboarding-typing-wrap">
+              <div class="onboarding-typing"><span></span><span></span><span></span></div>
+              <div class="onboarding-bubble onboarding-bubble-out">
+                <span class="onboarding-mock-line onboarding-mock-line-on-bubble-out onboarding-mock-line-sm"></span>
+                <span class="onboarding-mock-line onboarding-mock-line-on-bubble-out onboarding-mock-line-xs"></span>
+              </div>
+            </div>
+          </div>
+          <span class="onboarding-badge onboarding-badge-pulse">✍️</span>
+        </div>
         <h1 data-i18n="onboarding.slide3.title">Writes a reply for you</h1>
         <p data-i18n="onboarding.slide3.body">The AI drafts a reply based on your working hours, price list, and FAQ.</p>
       </div>
-      <div class="onboarding-slide">
-        <div class="onboarding-emoji">✅</div>
+
+      <div class="onboarding-slide" data-accent="4">
+        <div class="onboarding-art">
+          <div class="onboarding-card">
+            <div class="onboarding-bubble onboarding-bubble-in">
+              <span class="onboarding-mock-line onboarding-mock-line-on-bubble onboarding-mock-line-sm"></span>
+            </div>
+            <div class="onboarding-bubble onboarding-bubble-out">
+              <span class="onboarding-mock-line onboarding-mock-line-on-bubble-out onboarding-mock-line-sm"></span>
+              <span class="onboarding-mock-line onboarding-mock-line-on-bubble-out onboarding-mock-line-xs"></span>
+            </div>
+          </div>
+          <span class="onboarding-send-fly">📤</span>
+          <span class="onboarding-badge onboarding-badge-pop">✅</span>
+        </div>
         <h1 data-i18n="onboarding.slide4.title">You approve and send</h1>
         <p data-i18n="onboarding.slide4.body">Review, edit if you like, then send — or turn on auto-send in Settings for instant replies.</p>
         <button class="button onboarding-continue" data-i18n="onboarding.getStarted">Get started</button>
@@ -747,7 +814,7 @@
   </button>
 </nav>
 
-<script src="i18n.js?v=704179d6f367"></script>
-<script src="app.js?v=704179d6f367"></script>
+<script src="i18n.js?v=b6155ffc3425"></script>
+<script src="app.js?v=b6155ffc3425"></script>
 </body>
 </html>

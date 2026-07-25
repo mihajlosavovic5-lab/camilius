@@ -2131,14 +2131,62 @@ el("settings-app-save").addEventListener("click", async () => {
 });
 
 // --- Onboarding (shown once, only inside the installed app) ---
+//
+// Beyond the dot indicator, this drives two visual touches that make the intro feel
+// premium rather than a bare emoji-and-caption swipe:
+//  - a per-slide accent glow behind the whole screen (--onboarding-accent), read from
+//    each slide's data-accent and swapped as the active slide changes;
+//  - a live scroll-progress custom property (--p, -1..1) written to every slide on
+//    each scroll frame, which app.css uses for a subtle parallax/scale as slides pass.
+// The active slide also gets an "is-active" class, which is what actually starts the
+// entrance animation and the small looping decorations (typing dots, send icon,
+// pulsing badge) defined in app.css - kept off on inactive slides so they don't run
+// (or replay stale) off-screen.
+const ONBOARDING_ACCENTS = {
+    1: "var(--primary)",
+    2: "var(--warning)",
+    3: "var(--primary-dark)",
+    4: "var(--success)",
+};
 
 function setupOnboarding() {
+    const screen = el("screen-onboarding");
     const slides = el("onboarding-slides");
+    const slideEls = Array.from(slides.querySelectorAll(".onboarding-slide"));
     const dots = document.querySelectorAll("#onboarding-dots .onboarding-dot");
+    let activeIndex = -1;
+    let ticking = false;
+
+    function updateProgress() {
+        ticking = false;
+        const width = slides.clientWidth || 1;
+        const raw = slides.scrollLeft / width;
+        const index = Math.round(raw);
+
+        slideEls.forEach((slideEl, i) => {
+            slideEl.style.setProperty("--p", String(raw - i));
+        });
+
+        if (index !== activeIndex) {
+            activeIndex = index;
+            dots.forEach((dot, i) => dot.classList.toggle("active", i === index));
+            slideEls.forEach((slideEl, i) => slideEl.classList.toggle("is-active", i === index));
+            const accentVar = ONBOARDING_ACCENTS[slideEls[index] && slideEls[index].dataset.accent];
+            if (accentVar) screen.style.setProperty("--onboarding-accent", accentVar);
+        }
+    }
+
     slides.addEventListener("scroll", () => {
-        const index = Math.round(slides.scrollLeft / slides.clientWidth);
-        dots.forEach((dot, i) => dot.classList.toggle("active", i === index));
+        if (!ticking) {
+            ticking = true;
+            requestAnimationFrame(updateProgress);
+        }
     });
+    // Run once on setup (scrollLeft is 0 at this point) so the first slide gets its
+    // "is-active" class, entrance animation, and accent glow without waiting for a
+    // scroll event.
+    updateProgress();
+
     document.querySelectorAll(".onboarding-continue, .onboarding-skip").forEach((btn) => {
         btn.addEventListener("click", async () => {
             await storageSet("onboardingSeen", "1");
