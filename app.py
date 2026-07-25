@@ -1590,6 +1590,11 @@ def _subscription_response(business_id, hide_nav=False, trial_ended=False):
         pro_access=BETA_FREE_MODE or has_pro_access(business_id),
         has_paddle_billing=bool(get_paddle_customer_id(business_id)),
         hide_nav=hide_nav,
+        # A freshly created account (never started a trial/subscription) can't use
+        # Home/Conversations/Schedule/Profile/Settings yet anyway - subscription_required
+        # just bounces it straight back here - so the top bar is trimmed down to the
+        # brand and the language picker (in base.html) until a plan is chosen.
+        minimal_nav=(status == "none"),
         trial_ended=trial_ended,
     )
 

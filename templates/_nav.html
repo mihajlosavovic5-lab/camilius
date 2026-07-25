@@ -4,6 +4,7 @@
             <span class="brand-mark">C</span>
             <span class="brand-name">Camilius</span>
         </span>
+        {% if not minimal_nav %}
         <!-- hx-boost: these links are fetched via AJAX and swapped into the current
              page's <body> instead of a full browser navigation (htmx handles history/
              back-forward transparently) - only the nav, deliberately, not every link or
@@ -28,5 +29,6 @@
             <a href="{{ url_for('app_settings') }}" class="{{ 'active' if request.endpoint in ('app_settings', 'subscription') }}" data-i18n="common.settings">Settings</a>
             <a href="{{ url_for('logout') }}" class="nav-logout" hx-boost="false" data-i18n="common.logOut">Log out</a>
         </div>
+        {% endif %}
     </div>
 </nav>
