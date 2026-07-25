@@ -2164,8 +2164,12 @@ function setupOnboarding() {
     let ticking = false;
     let settleTimer = null;
 
-    // Live parallax only - runs on every scroll frame while dragging, so the swipe
-    // tracks the finger smoothly.
+    // Live parallax + dots - runs on every scroll frame while dragging, so the swipe
+    // (and the dot indicator tracking it) follows the finger with no lag. Dots are
+    // just a background-color/width CSS transition, not a keyframe animation with a
+    // "snap to an earlier state" risk, so - unlike is-active below - there's no reason
+    // to hold them back for a settle debounce; doing that only made the indicator
+    // visibly trail behind the slide that's already on screen.
     function updateParallax() {
         ticking = false;
         const width = slides.clientWidth || 1;
@@ -2173,22 +2177,25 @@ function setupOnboarding() {
         slideEls.forEach((slideEl, i) => {
             slideEl.style.setProperty("--p", String(raw - i));
         });
+        const liveIndex = Math.round(raw);
+        dots.forEach((dot, i) => dot.classList.toggle("active", i === liveIndex));
     }
 
-    // "Active slide" bookkeeping - dots, accent glow, and the "is-active" class that
-    // starts the entrance animation/loops - fires only once scrolling has actually
-    // settled (see the debounce below), not on every scroll frame while mid-drag.
-    // Doing this continuously used to flip "is-active" onto the next slide the moment
-    // it crossed the halfway point, while the finger (and the live parallax transform
-    // above) was still moving it - the entrance animation's own transform then fought
-    // the parallax transform on the same element (.onboarding-art has both), which
-    // looked like the slide rendering a second time mid-swipe.
+    // "Active slide" bookkeeping - accent glow and the "is-active" class that starts
+    // the entrance/loop decorations - fires only once scrolling has actually settled
+    // (see the debounce below), not on every scroll frame while mid-drag. Doing this
+    // continuously used to flip "is-active" onto the next slide the moment it crossed
+    // the halfway point, while the finger (and the live parallax transform above) was
+    // still moving it - the entrance animation's own transform then fought the
+    // parallax transform on the same element (.onboarding-art has both), which looked
+    // like the slide rendering a second time mid-swipe. Unlike the dots above, these
+    // two DO need the debounce: the (now one-shot) decorative loops and the glow's own
+    // transition would look wrong replaying on every frame of a drag.
     function commitActiveSlide() {
         const width = slides.clientWidth || 1;
         const index = Math.round(slides.scrollLeft / width);
         if (index === activeIndex) return;
         activeIndex = index;
-        dots.forEach((dot, i) => dot.classList.toggle("active", i === index));
         slideEls.forEach((slideEl, i) => slideEl.classList.toggle("is-active", i === index));
         const accentVar = ONBOARDING_ACCENTS[slideEls[index] && slideEls[index].dataset.accent];
         if (accentVar) screen.style.setProperty("--onboarding-accent", accentVar);

@@ -825,7 +825,7 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
        top offset instead keeps the icon (and title right under it) at the exact same
        height on every slide, in every language, regardless of description length. */
     justify-content: flex-start;
-    text-align: center; padding: 96px 32px 40px;
+    text-align: center; padding: 250px 32px 40px;
     /* --p: -1..1 scroll progress relative to this slide, kept live by app.js. Only the
        copy dims/settles with it - the illustration gets its own (larger) parallax
        below so it reads as sitting a little "above" the text while swiping. */
