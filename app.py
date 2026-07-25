@@ -432,7 +432,13 @@ def instagram_oauth_callback():
             account_info.get("username"),
             long_lived_token,
         )
-    except requests.RequestException:
+    except requests.RequestException as error:
+        # The user only ever sees the generic message below (Meta's actual error detail
+        # isn't something a business owner can act on) - logged here instead so it's
+        # visible in /admin/client-errors, since this was previously a total black box
+        # when a business hit it more than once in a row.
+        detail = error.response.text if getattr(error, "response", None) is not None else str(error)
+        log_client_error(business_id, f"instagram connect failed: {detail}", "", "instagram-connect-debug", "")
         if is_mobile_flow:
             return render_template("instagram_connect_mobile.html", success=False)
         return redirect(url_for("connect_instagram", error="Couldn't connect to Instagram - please try again."))
