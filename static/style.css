@@ -603,20 +603,41 @@ body.auth {
 .form-section { border-top: 1px solid var(--border); margin-top: 26px; padding-top: 18px; }
 .form-section-title { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: .6px; color: var(--text-muted); margin: 0; }
 
-/* Collapsible section header (registration's "Business details") - collapsed by
-   default so a first-time visitor sees a short account-only form, not what looks like
-   a full business setup wizard, before they've even decided to try the product. Opening
-   it is optional either way: working hours/price list/FAQ aren't required to register,
-   just nice to have filled in before the AI starts drafting real replies. */
-.form-section-toggle {
-    display: flex; align-items: flex-start; justify-content: space-between; gap: 12px;
-    width: 100%; background: none; border: none; padding: 0; margin: 0; cursor: pointer;
-    text-align: left; font: inherit; color: inherit;
+/* --- Register wizard - mirrors the mobile app's own multi-step Create Account flow
+   (Account -> Working hours -> Price list/FAQ/Terms; see mobile/app.css's .register-*
+   rules) so signing up looks and behaves the same on both, adapted to sit inside the
+   site's existing auth-card instead of a full-bleed screen. Step navigation itself is
+   handled in register.html's own script block (registerStep, showRegisterStep()). --- */
+.register-wizard-top { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 4px; }
+.register-back-btn {
+    width: 34px; height: 34px; border-radius: 99px; border: none; background: var(--background);
+    color: var(--text); font-size: 20px; line-height: 1; cursor: pointer; flex-shrink: 0;
 }
-.form-section-toggle-chevron { color: var(--text-muted); font-size: 15px; flex-shrink: 0; margin-top: 1px; transition: transform .18s ease; }
-.form-section-toggle.open .form-section-toggle-chevron { transform: rotate(180deg); }
-.form-section-body { display: none; margin-top: 16px; }
-.form-section-body.open { display: block; }
+.register-back-btn:hover { background: var(--border); }
+.register-wizard-heading { flex: 1; min-width: 0; }
+.register-wizard-heading h1 { margin-top: 0; }
+
+.register-step { display: none; }
+.register-step.active { display: block; }
+
+.register-wizard-bottom { display: flex; align-items: center; justify-content: space-between; margin-top: 26px; }
+.register-step-dots { display: flex; gap: 6px; }
+.register-step-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--border); transition: background .2s ease, width .2s ease; }
+.register-step-dot.active { width: 18px; border-radius: 99px; background: var(--primary); }
+
+.register-next-btn {
+    width: 50px; height: 50px; border-radius: 50%; border: none; flex-shrink: 0;
+    background: var(--primary); color: #fff; font-size: 22px; line-height: 1; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 6px 16px -4px rgba(214,148,16,.5);
+    transition: background .15s ease, box-shadow .15s ease, transform .1s ease;
+}
+.register-next-btn:hover { background: var(--primary-dark); }
+.register-next-btn:active { transform: scale(.94); }
+/* A class, not just :disabled - steps 2/3 keep the button genuinely clickable even when
+   dimmed, so tapping it while something's wrong can still explain what (a truly disabled
+   button fires no click event at all). Step 1 applies both this class AND :disabled. */
+.register-next-btn-dim, .register-next-btn:disabled { background: var(--border); color: var(--text-muted); box-shadow: none; cursor: default; }
 
 /* --- Working hours + price list pickers (Faza 5) - functional parity with the mobile
    app's own pickers (see static/pickers.js); a real "pick from options" UI instead of a

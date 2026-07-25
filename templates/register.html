@@ -13,70 +13,74 @@
     </div>
 
     <div class="auth-card auth-card-wide">
-        <h1 data-i18n="register.title">Register your business</h1>
-        <p class="auth-subtitle" data-i18n="register.subtitle">You can change all of these fields later in settings. You'll connect your Instagram account in the next step.</p>
+        <div class="register-wizard-top">
+            <button type="button" class="register-back-btn" id="register-back-btn" aria-label="Back">&lsaquo;</button>
+            <div class="register-wizard-heading">
+                <h1 data-i18n="register.title">Register your business</h1>
+                <p class="auth-subtitle" data-i18n="register.subtitle">You can change all of these fields later in settings. You'll connect your Instagram account in the next step.</p>
+            </div>
+        </div>
 
         {% if error %}
             <div class="alert alert-error"><span class="alert-icon">&#9888;&#65039;</span><span>{{ error }}</span></div>
         {% endif %}
+        <div class="alert alert-error hidden" id="register-error"></div>
 
-        <form method="POST">
+        <form method="POST" id="register-form">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <p class="form-section-title" style="margin-top: 6px;" data-i18n="register.accountSection">Account</p>
 
-            <div class="floating-field">
-                <input type="text" id="register-name-input" name="name" value="{{ data.get('name', '') }}" placeholder=" " required>
-                <label for="register-name-input" data-i18n="register.businessName">Business name</label>
-            </div>
+            <div class="register-steps-viewport">
+                <div class="register-step active" id="register-step-1">
+                    <div class="floating-field">
+                        <input type="text" id="register-name-input" name="name" value="{{ data.get('name', '') }}" placeholder=" " required>
+                        <label for="register-name-input" data-i18n="register.businessName">Business name</label>
+                    </div>
 
-            <div class="floating-field">
-                <input type="text" id="register-username-input" name="username" value="{{ data.get('username', '') }}" placeholder=" " autocomplete="username" required>
-                <label for="register-username-input" data-i18n="register.username">Username</label>
-            </div>
-            <p class="note" data-i18n="register.usernameHint">(for dashboard login)</p>
-            <p class="field-error hidden" id="register-username-error"></p>
+                    <div class="floating-field">
+                        <input type="text" id="register-username-input" name="username" value="{{ data.get('username', '') }}" placeholder=" " autocomplete="username" required>
+                        <label for="register-username-input" data-i18n="register.username">Username</label>
+                    </div>
+                    <p class="note" data-i18n="register.usernameHint">(for dashboard login)</p>
+                    <p class="field-error hidden" id="register-username-error"></p>
 
-            <div class="floating-field">
-                <input type="password" id="register-password-input" name="password" placeholder=" " autocomplete="new-password" required>
-                <label for="register-password-input" data-i18n="register.password">Password</label>
-            </div>
+                    <div class="floating-field">
+                        <input type="password" id="register-password-input" name="password" placeholder=" " autocomplete="new-password" minlength="8" required>
+                        <label for="register-password-input" data-i18n="register.password">Password</label>
+                    </div>
+                    <p class="note" data-i18n="register.passwordHint">At least 8 characters</p>
 
-            <div class="floating-field">
-                <input type="password" id="register-confirm-password-input" name="confirm_password" placeholder=" " autocomplete="new-password" required>
-                <label for="register-confirm-password-input" data-i18n="register.confirmPassword">Confirm password</label>
-            </div>
-            <p class="field-error hidden" id="register-confirm-password-error"></p>
+                    <div class="floating-field">
+                        <input type="password" id="register-confirm-password-input" name="confirm_password" placeholder=" " autocomplete="new-password" required>
+                        <label for="register-confirm-password-input" data-i18n="register.confirmPassword">Confirm password</label>
+                    </div>
+                    <p class="field-error hidden" id="register-confirm-password-error"></p>
 
-            <div class="floating-field">
-                <input type="email" id="register-contact-email-input" name="contact_email" value="{{ data.get('contact_email', '') }}" placeholder=" " required>
-                <label for="register-contact-email-input" data-i18n="register.contactEmail">Contact email</label>
-            </div>
-            <p class="note" data-i18n="register.contactEmailHint">(for account recovery only - not read by the AI)</p>
-            <p class="field-error hidden" id="register-contact-email-error"></p>
+                    <div class="floating-field">
+                        <input type="email" id="register-contact-email-input" name="contact_email" value="{{ data.get('contact_email', '') }}" placeholder=" " required>
+                        <label for="register-contact-email-input" data-i18n="register.contactEmail">Contact email</label>
+                    </div>
+                    <p class="note" data-i18n="register.contactEmailHint">(for account recovery only - not read by the AI)</p>
+                    <p class="field-error hidden" id="register-contact-email-error"></p>
 
-            <div class="floating-field">
-                <input type="tel" id="register-phone-input" name="phone_number" value="{{ data.get('phone_number', '') }}" placeholder=" ">
-                <label for="register-phone-input" data-i18n="register.phone">Phone number</label>
-            </div>
-            <p class="note" data-i18n="register.phoneHint">(optional - lets you log in with it too)</p>
-            <p class="phone-country-hint hidden" id="register-phone-country-hint"><span class="flag" id="register-phone-country-flag"></span><span id="register-phone-country-name"></span></p>
-            <p class="field-error hidden" id="register-phone-error"></p>
+                    <div class="floating-field">
+                        <input type="tel" id="register-phone-input" name="phone_number" value="{{ data.get('phone_number', '') }}" placeholder=" ">
+                        <label for="register-phone-input" data-i18n="register.phone">Phone number</label>
+                    </div>
+                    <p class="note" data-i18n="register.phoneHint">(optional - lets you log in with it too)</p>
+                    <p class="phone-country-hint hidden" id="register-phone-country-hint"><span class="flag" id="register-phone-country-flag"></span><span id="register-phone-country-name"></span></p>
+                    <p class="field-error hidden" id="register-phone-error"></p>
+                </div>
 
-            {% set details_prefilled = data.get('working_hours') or data.get('price_list') or data.get('faq') %}
-            <div class="form-section">
-                <button type="button" class="form-section-toggle{{ ' open' if details_prefilled }}" id="register-details-toggle" aria-expanded="{{ 'true' if details_prefilled else 'false' }}" aria-controls="register-details-body">
-                    <span>
-                        <span class="form-section-title" data-i18n="register.businessDetailsSection">Business details &mdash; the AI uses this to write replies</span>
-                        <span class="note" style="display: block;" data-i18n="register.businessDetailsHint">Optional - add now, or register first and fill these in later in Settings</span>
-                    </span>
-                    <span class="form-section-toggle-chevron" aria-hidden="true">&#8964;</span>
-                </button>
+                <div class="register-step" id="register-step-2">
+                    <p class="form-section-title" data-i18n="register.businessDetailsSection">Business details &mdash; the AI uses this to write replies</p>
+                    <p class="note" style="display: block; margin-bottom: 14px;" data-i18n="register.businessDetailsHint">Optional - add now, or register first and fill these in later in Settings</p>
 
-                <div class="form-section-body{{ ' open' if details_prefilled }}" id="register-details-body">
                     <label data-i18n="register.hours">Working hours</label>
                     <input type="hidden" name="working_hours" id="register-working-hours" value="{{ data.get('working_hours', '') }}">
                     <div class="hours-picker" id="register-hours-picker-mount"></div>
+                </div>
 
+                <div class="register-step" id="register-step-3">
                     <label data-i18n="register.prices">Price list</label>
                     <input type="hidden" name="price_list" id="register-price-list" value="{{ data.get('price_list', '') }}">
                     <div class="price-currency-row">
@@ -89,15 +93,30 @@
                     <label data-i18n="register.faq">Tell us more about your business</label>
                     <textarea name="faq" data-i18n-placeholder="register.faqPlaceholder" placeholder="Q: Do I need to book an appointment?&#10;A: Yes, we recommend booking in advance.&#10;&#10;Anything else worth knowing about your business.">{{ data.get('faq', '') }}</textarea>
                     <p class="note" data-i18n="register.faqHint">The more you share, the more questions our AI can answer for your customers.</p>
+
+                    <label class="checkbox-row">
+                        <!-- Deliberately no `required` attribute - a required field outside
+                             step 1 would still count against form.checkValidity() while step
+                             1 is active (browsers keep validating display:none descendants),
+                             which would permanently block step 1's own Next button since this
+                             checkbox can't be reached/checked from there. Enforced in JS
+                             instead, in the step-3 submit handler below. -->
+                        <input type="checkbox" id="register-terms-input" name="accept_terms" {% if data.get('accept_terms') %}checked{% endif %}>
+                        <span><span data-i18n="register.acceptPrefix">I accept the</span> <a href="{{ url_for('terms') }}" target="_blank" data-i18n="common.termsOfService">Terms of Service</a> <span data-i18n="register.acceptAnd">and</span> <a href="{{ url_for('privacy') }}" target="_blank" data-i18n="common.privacyPolicy">Privacy Policy</a></span>
+                    </label>
                 </div>
             </div>
 
-            <label class="checkbox-row">
-                <input type="checkbox" name="accept_terms" required {% if data.get('accept_terms') %}checked{% endif %}>
-                <span><span data-i18n="register.acceptPrefix">I accept the</span> <a href="{{ url_for('terms') }}" target="_blank" data-i18n="common.termsOfService">Terms of Service</a> <span data-i18n="register.acceptAnd">and</span> <a href="{{ url_for('privacy') }}" target="_blank" data-i18n="common.privacyPolicy">Privacy Policy</a></span>
-            </label>
+            <div class="register-wizard-bottom">
+                <div class="register-step-dots">
+                    <span class="register-step-dot active" id="register-step-dot-1"></span>
+                    <span class="register-step-dot" id="register-step-dot-2"></span>
+                    <span class="register-step-dot" id="register-step-dot-3"></span>
+                </div>
+                <button type="button" class="register-next-btn register-next-btn-dim" id="register-next-btn" aria-label="Next">&rsaquo;</button>
+            </div>
 
-            <div class="form-actions">
+            <div class="form-actions hidden" id="register-submit-wrap">
                 <button class="button button-full" type="submit" id="register-submit-btn" data-i18n="register.submit">Register</button>
             </div>
         </form>
@@ -118,19 +137,8 @@
 // reasoning applies to pickers.js (also deferred) - createHoursPicker/createPricePicker
 // must exist before this runs.
 document.addEventListener("DOMContentLoaded", function () {
-    // Collapsed-by-default "Business details" section (see the CSS comment on
-    // .form-section-toggle) - opens the same way as long as the user actually decides
-    // to fill these in now instead of skipping to Settings later.
-    var detailsToggle = document.getElementById("register-details-toggle");
-    var detailsBody = document.getElementById("register-details-body");
-    detailsToggle.addEventListener("click", function () {
-        var open = detailsBody.classList.toggle("open");
-        detailsToggle.classList.toggle("open", open);
-        detailsToggle.setAttribute("aria-expanded", open ? "true" : "false");
-    });
-
-    createHoursPicker("register-hours-picker-mount", "register-working-hours");
-    createPricePicker("register-price-picker-mount", "register-price-add", "register-price-currency", "register-price-list");
+    var registerHoursPicker = createHoursPicker("register-hours-picker-mount", "register-working-hours");
+    var registerPricesPicker = createPricePicker("register-price-picker-mount", "register-price-add", "register-price-currency", "register-price-list");
 
     // Every ITU calling code, longest-prefix-first, so a live "+1876..." doesn't get
     // mis-detected as the shorter "+1" (US/Canada) - same list/approach as the mobile
@@ -235,11 +243,11 @@ document.addEventListener("DOMContentLoaded", function () {
     passwordInput.addEventListener("input", updateConfirmPasswordError);
     confirmPasswordInput.addEventListener("input", updateConfirmPasswordError);
 
-    // --- Live "already taken" checks (username, contact email, phone number) ---
+    // --- Live "already taken" checks (username, contact email, phone number) - step 1
+    // only, same fields the mobile app's own wizard gates its first arrow on. ---
 
     var csrfToken = document.querySelector('input[name="csrf_token"]').value;
-    var form = document.querySelector("form");
-    var submitBtn = document.getElementById("register-submit-btn");
+    var form = document.getElementById("register-form");
 
     var fields = {
         username: { input: document.getElementById("register-username-input"), error: document.getElementById("register-username-error"), required: true, status: "unknown" },
@@ -247,7 +255,12 @@ document.addEventListener("DOMContentLoaded", function () {
         phone_number: { input: document.getElementById("register-phone-input"), error: document.getElementById("register-phone-error"), required: false, status: "unknown" },
     };
 
-    function updateSubmitState() {
+    // True once every step-1 field is filled in (where required), not "taken"/mid-check,
+    // and the browser's own constraints (email format, password length/match) are happy -
+    // form.checkValidity() only ever inspects step 1's inputs here since steps 2/3 are
+    // display:none while inactive, which the HTML validation spec excludes from
+    // constraint validation (an invisible required checkbox on step 3 can't block step 1).
+    function step1Ready() {
         var ready = true;
         Object.keys(fields).forEach(function (name) {
             var f = fields[name];
@@ -255,11 +268,8 @@ document.addEventListener("DOMContentLoaded", function () {
             if (f.required && !value) ready = false;
             else if (value && (f.status === "taken" || f.status === "checking")) ready = false;
         });
-        // Also require the rest of the form's own native validity (password length,
-        // required textareas, terms checkbox) - a cheap way to fold that in without
-        // re-implementing it here.
         if (!form.checkValidity()) ready = false;
-        submitBtn.disabled = !ready;
+        return ready;
     }
 
     function debounce(fn, wait) {
@@ -277,11 +287,11 @@ document.addEventListener("DOMContentLoaded", function () {
         if (!value) {
             f.status = "unknown";
             f.error.classList.add("hidden");
-            updateSubmitState();
+            updateNextButtonState();
             return;
         }
         f.status = "checking";
-        updateSubmitState();
+        updateNextButtonState();
         fetch("{{ url_for('check_availability') }}", {
             method: "POST",
             headers: { "Content-Type": "application/json", "X-CSRFToken": csrfToken },
@@ -299,13 +309,13 @@ document.addEventListener("DOMContentLoaded", function () {
                 } else {
                     f.error.classList.add("hidden");
                 }
-                updateSubmitState();
+                updateNextButtonState();
             })
             .catch(function () {
                 // Network hiccup - don't block the user forever on a check we couldn't
                 // complete; server-side still re-validates on actual submit.
                 f.status = "unknown";
-                updateSubmitState();
+                updateNextButtonState();
             });
     }
 
@@ -317,13 +327,101 @@ document.addEventListener("DOMContentLoaded", function () {
         var debounced = debounce(function () { checkField(name); }, 450);
         fields[name].input.addEventListener("input", function () {
             fields[name].status = "checking";
-            updateSubmitState();
+            updateNextButtonState();
             debounced();
         });
     });
 
-    form.addEventListener("input", updateSubmitState);
-    updateSubmitState();
+    // --- Wizard step navigation (Account -> Working hours -> Price list/FAQ/Terms) -
+    // same 3-step flow, dots + round next-button pattern as the mobile app's own
+    // registration screen (mobile/app.js's showRegisterStep()/updateRegisterNextButton
+    // Validity()), adapted to a single scrolling <form> instead of full-screen slides. ---
+
+    var REGISTER_STEP_COUNT = 3;
+    var registerStep = 1;
+    var nextBtn = document.getElementById("register-next-btn");
+    var submitWrap = document.getElementById("register-submit-wrap");
+    var errorBox = document.getElementById("register-error");
+
+    function showRegisterError(message) {
+        errorBox.textContent = message;
+        errorBox.classList.remove("hidden");
+    }
+
+    // Step 1 has its named condition (all required fields filled, none of username/
+    // contact email/phone number taken) genuinely gate the arrow via .disabled - the
+    // inline field errors above already explain "why" for the taken case. Steps 2/3 stay
+    // dim-only-but-tappable instead, since tapping is what surfaces the specific reason
+    // (hours order, incomplete price row, terms not accepted) via the error box.
+    function updateNextButtonState() {
+        if (registerStep === 1) {
+            var blocked = !step1Ready();
+            nextBtn.classList.toggle("register-next-btn-dim", blocked);
+            nextBtn.disabled = blocked;
+        } else if (registerStep === 2) {
+            nextBtn.classList.toggle("register-next-btn-dim", !registerHoursPicker.validate());
+            nextBtn.disabled = false;
+        }
+    }
+
+    function showRegisterStep(n) {
+        registerStep = n;
+        for (var i = 1; i <= REGISTER_STEP_COUNT; i++) {
+            document.getElementById("register-step-" + i).classList.toggle("active", i === n);
+        }
+        for (var i = 1; i <= REGISTER_STEP_COUNT; i++) {
+            document.getElementById("register-step-dot-" + i).classList.toggle("active", i === n);
+        }
+        nextBtn.classList.toggle("hidden", n === REGISTER_STEP_COUNT);
+        submitWrap.classList.toggle("hidden", n !== REGISTER_STEP_COUNT);
+        errorBox.classList.add("hidden");
+        updateNextButtonState();
+    }
+
+    document.getElementById("register-hours-picker-mount").addEventListener("change", updateNextButtonState);
+    form.addEventListener("input", updateNextButtonState);
+
+    nextBtn.addEventListener("click", function () {
+        if (registerStep === 1) {
+            if (!step1Ready()) return;
+            showRegisterStep(2);
+        } else if (registerStep === 2) {
+            if (!registerHoursPicker.validate()) {
+                showRegisterError(t("hoursPicker.errorOrder"));
+                return;
+            }
+            showRegisterStep(3);
+        }
+    });
+
+    document.getElementById("register-back-btn").addEventListener("click", function () {
+        if (registerStep > 1) {
+            showRegisterStep(registerStep - 1);
+        } else {
+            window.location.href = "{{ url_for('login') }}";
+        }
+    });
+
+    // Enter key in a text field implicitly submits the <form> regardless of which step is
+    // visible (they all live in the same <form>) - treat that the same as tapping the
+    // arrow (advance a step, or explain what's missing) unless we're actually on the last
+    // one, matching the mobile app's own register-form submit handler.
+    form.addEventListener("submit", function (event) {
+        if (registerStep !== REGISTER_STEP_COUNT) {
+            event.preventDefault();
+            nextBtn.click();
+            return;
+        }
+        if (!document.getElementById("register-terms-input").checked) {
+            event.preventDefault();
+            showRegisterError(t("register.errorTermsRequired"));
+        } else if (!registerPricesPicker.validate()) {
+            event.preventDefault();
+            showRegisterError(t("pricePicker.errorIncomplete"));
+        }
+    });
+
+    updateNextButtonState();
 });
 </script>
 {% endblock %}

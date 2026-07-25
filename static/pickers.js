@@ -141,9 +141,18 @@ function createHoursPicker(mountId, hiddenFieldId) {
         });
     }
 
+    // True iff every open day's closing time is after its opening time - same rule the
+    // mobile app's own hours picker enforces (mobile/app.js's registerHoursPicker.validate()).
+    function validate() {
+        return HOURS_DAYS.every((day) => {
+            const r = rows[day];
+            return !r.checkbox.checked || r.closeSelect.value > r.openSelect.value;
+        });
+    }
+
     if (hiddenField.value.trim()) parse(hiddenField.value);
     sync();
-    return { sync };
+    return { sync, validate };
 }
 
 // Major world currencies - same list as the mobile app's price-list currency picker
@@ -238,10 +247,21 @@ function createPricePicker(mountId, addButtonId, currencySelectId, hiddenFieldId
 
     document.getElementById(addButtonId).addEventListener("click", () => { addRow("", ""); sync(); });
 
+    // True unless some row has exactly one of service/price filled in - a fully empty row
+    // is fine (silently dropped by sync() above), but a half-filled one used to just
+    // vanish on submit with no explanation. Same rule as the mobile app's price picker.
+    function validate() {
+        return Array.from(mount.querySelectorAll(".price-row-picker")).every((row) => {
+            const service = row.querySelector(".price-service-input").value.trim();
+            const price = row.querySelector(".price-amount-input").value.trim();
+            return !!service === !!price;
+        });
+    }
+
     if (hiddenField.value.trim()) parse(hiddenField.value);
     else addRow("", "");
     sync();
-    return { sync };
+    return { sync, validate };
 }
 
 // --- AI upsell pairs picker (Faza 11 polish - replaces the plain textarea from Faza 9)
