@@ -863,19 +863,24 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
 .onboarding-bubble { padding: 8px 11px; border-radius: 13px; display: flex; flex-direction: column; gap: 5px; }
 .onboarding-bubble-in { align-self: flex-start; max-width: 82%; background: var(--background); border: 1px solid var(--border); border-bottom-left-radius: 4px; }
 .onboarding-bubble-out { align-self: flex-end; max-width: 82%; background: var(--primary); border-bottom-right-radius: 4px; }
-/* Slide 2 only - the incoming bubble drops/settles in on a loop while that slide is
-   active, echoing "a message just arrived". Paused elsewhere to save cycles. */
-.onboarding-bubble-drop { animation: onboarding-bubble-drop 2.6s ease-in-out infinite; animation-play-state: paused; }
+/* Slide 2 only - the incoming bubble drops/settles in once when that slide becomes
+   active, echoing "a message just arrived", then stays put. Paused elsewhere to save
+   cycles. Deliberately NOT infinite - an infinitely looping version of this used to
+   have the bubble vanish and drop back in every 2.6s, which read as the slide
+   glitching/reloading itself a couple of seconds after arriving, not as a flourish. */
+.onboarding-bubble-drop { animation: onboarding-bubble-drop .5s cubic-bezier(.22, .9, .32, 1.15) both; animation-play-state: paused; }
 .onboarding-slide.is-active .onboarding-bubble-drop { animation-play-state: running; }
 @keyframes onboarding-bubble-drop {
     0% { transform: translateY(-10px); opacity: 0; }
-    18% { transform: translateY(0); opacity: 1; }
-    82% { transform: translateY(0); opacity: 1; }
-    100% { transform: translateY(-10px); opacity: 0; }
+    100% { transform: translateY(0); opacity: 1; }
 }
 
-/* Slide 3 - typing dots cross-fade into the finished reply bubble, looping while
-   active (see the is-active gate below). */
+/* Slide 3 - typing dots cross-fade into the finished reply bubble once when the slide
+   becomes active, then stay on the reply (see the is-active gate below). Also
+   deliberately one-shot, not infinite, for the same reason as the bubble-drop above -
+   looping this made the card blank out and "retype" every 3.4s. The individual dots'
+   bounce (onboarding-typing-bounce) stays infinite since it never hides anything, just
+   a subtle wobble while the typing indicator itself is on screen. */
 .onboarding-typing-wrap { position: relative; height: 32px; }
 .onboarding-typing-wrap .onboarding-typing,
 .onboarding-typing-wrap .onboarding-bubble-out { position: absolute; top: 0; right: 0; animation-play-state: paused; }
@@ -884,28 +889,29 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
 .onboarding-typing {
     display: flex; align-items: center; gap: 3px; padding: 10px 12px;
     background: var(--background); border: 1px solid var(--border); border-radius: 13px; border-bottom-right-radius: 4px;
-    animation: onboarding-typing-visibility 3.4s ease-in-out infinite;
+    animation: onboarding-typing-fade-out 1.6s ease-in-out both;
 }
 .onboarding-typing span { width: 5px; height: 5px; border-radius: 50%; background: var(--text-muted); animation: onboarding-typing-bounce 1s ease-in-out infinite; }
 .onboarding-typing span:nth-child(2) { animation-delay: .15s; }
 .onboarding-typing span:nth-child(3) { animation-delay: .3s; }
 @keyframes onboarding-typing-bounce { 0%, 60%, 100% { transform: translateY(0); opacity: .5; } 30% { transform: translateY(-3px); opacity: 1; } }
-@keyframes onboarding-typing-visibility { 0%, 55% { opacity: 1; transform: scale(1); } 65%, 95% { opacity: 0; transform: scale(.92); } 100% { opacity: 1; transform: scale(1); } }
-.onboarding-typing-wrap .onboarding-bubble-out { animation: onboarding-reply-visibility 3.4s ease-in-out infinite; }
-@keyframes onboarding-reply-visibility { 0%, 55% { opacity: 0; transform: scale(.92); } 65%, 95% { opacity: 1; transform: scale(1); } 100% { opacity: 0; transform: scale(.92); } }
+@keyframes onboarding-typing-fade-out { 0%, 40% { opacity: 1; transform: scale(1); } 100% { opacity: 0; transform: scale(.92); } }
+.onboarding-typing-wrap .onboarding-bubble-out { animation: onboarding-reply-fade-in 1.6s ease-in-out both; }
+@keyframes onboarding-reply-fade-in { 0%, 40% { opacity: 0; transform: scale(.92); } 100% { opacity: 1; transform: scale(1); } }
 
-/* Slide 4 - a small send icon flies from the reply bubble off the card corner, once
-   per loop, while the checkmark badge pops in. */
+/* Slide 4 - a small send icon flies from the reply bubble off the card corner once
+   when the slide becomes active, while the checkmark badge pops in. One-shot (see
+   above) - it's meant to depict a single message going out, not fly back and forth
+   forever. */
 .onboarding-send-fly {
     position: absolute; right: 6px; bottom: 34px; font-size: 15px; opacity: 0;
-    animation: onboarding-send-fly 2.8s ease-in infinite; animation-play-state: paused;
+    animation: onboarding-send-fly 1.3s ease-in both; animation-play-state: paused;
 }
 .onboarding-slide.is-active .onboarding-send-fly { animation-play-state: running; }
 @keyframes onboarding-send-fly {
-    0%, 55% { opacity: 0; transform: translate(0, 0) scale(.8); }
-    62% { opacity: 1; transform: translate(0, 0) scale(1); }
-    85% { opacity: 0; transform: translate(30px, -26px) scale(.7); }
-    100% { opacity: 0; transform: translate(0, 0) scale(.8); }
+    0%, 30% { opacity: 0; transform: translate(0, 0) scale(.8); }
+    38% { opacity: 1; transform: translate(0, 0) scale(1); }
+    75%, 100% { opacity: 0; transform: translate(30px, -26px) scale(.7); }
 }
 
 /* Circular icon badge overlapping the card's corner - the old bare center emoji,
