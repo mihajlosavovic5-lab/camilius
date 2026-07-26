@@ -540,8 +540,12 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
     display: flex; align-items: center; justify-content: space-between;
     gap: 12px; flex-wrap: wrap; margin-bottom: 20px;
 }
-.search-input {
-    flex: 1 1 260px; max-width: 420px; padding: 9px 14px;
+/* "input.search-input" (not just ".search-input") so this beats the generic
+   input[type="text"] rule above on specificity - a plain class selector alone loses
+   that tie-break, which silently dropped this rule's padding/border-radius/font-size
+   in favor of the generic ones. */
+input.search-input {
+    flex: 1 1 260px; max-width: 420px; padding: 17px 14px;
     border: 1px solid var(--border); border-radius: 99px;
     font-family: inherit; font-size: 14px; color: var(--text);
     background: var(--surface);
