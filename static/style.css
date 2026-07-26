@@ -305,6 +305,12 @@ a:focus-visible, button:focus-visible, [tabindex]:focus-visible {
     padding: 14px 28px;
     display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
 }
+/* Reserve room for the fixed top-right language flag (.site-lang-select-btn, base.html)
+   so the nav links end to its left instead of wrapping under it. Only needed above the
+   640px breakpoint where that button is shown outside the landing page. */
+@media (min-width: 641px) {
+    .navbar-inner { padding-right: 88px; }
+}
 .nav-links { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
 .nav-links a {
     padding: 7px 13px; border-radius: 8px; color: var(--text-muted);
