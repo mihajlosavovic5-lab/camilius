@@ -469,7 +469,7 @@ def _password_reset_email_html(business_name, username, link):
             </td>
           </tr>
           <tr>
-            <td style="padding:0 40px;">
+            <td style="padding:0 40px; text-align:center;">
               <h1 style="font-size:20px; color:#2b2013; margin:0 0 16px;">Reset your password</h1>
               <p style="font-size:15px; line-height:1.6; color:#463824; margin:0 0 16px;">
                 Someone (hopefully you) requested a password reset for <strong>{business_name}</strong>.
@@ -477,7 +477,7 @@ def _password_reset_email_html(business_name, username, link):
               <p style="font-size:15px; line-height:1.6; color:#463824; margin:0 0 24px;">
                 Your username is <strong>{username}</strong>.
               </p>
-              <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 24px;">
+              <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 auto 24px;">
                 <tr>
                   <td style="border-radius:999px; background:#d69410;">
                     <a href="{link}" style="display:inline-block; padding:13px 32px; font-size:15px; font-weight:600; color:#ffffff; text-decoration:none; border-radius:999px;">Set a new password</a>
@@ -491,7 +491,7 @@ def _password_reset_email_html(business_name, username, link):
             </td>
           </tr>
           <tr>
-            <td style="padding:0 40px 32px;">
+            <td style="padding:0 40px 32px; text-align:center;">
               <hr style="border:none; border-top:1px solid #eee2cc; margin:0 0 20px;">
               <p style="font-size:13px; line-height:1.6; color:#8a7a5f; margin:0;">
                 If you didn't request this, you can safely ignore this email — your password won't change.
