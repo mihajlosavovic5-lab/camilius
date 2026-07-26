@@ -1070,21 +1070,48 @@ body.auth {
 }
 .duration-pill-custom-input:focus { border-color: var(--primary-ink); box-shadow: 0 0 0 3px rgba(214, 148, 16, .18); outline: none; }
 
-/* Per-booking duration override (one free slot's own form) - a compact select next to
+/* Per-booking duration override (one free slot's own form) - a compact control next to
    the customer-name/service inputs, pill-shaped to match the header's duration pills/
-   Book button instead of a plain rectangular <select>. "Custom" swaps the select for
-   the number input right in the same spot (see the DOMContentLoaded handler below) -
-   never both at once - so there's always exactly one field here, not two. */
-.schedule-slot-duration { display: flex; align-items: center; gap: 6px; }
+   Book button. A custom dropdown (.duration-dd), not a native <select> - a native
+   select's own popup picks its open direction (up/down) based on viewport space and
+   flips upward for rows near the bottom of the screen; building this ourselves means
+   the menu always opens downward, everywhere. "Custom" swaps the trigger for the
+   number input right in the same spot (see the DOMContentLoaded handler below) - never
+   both/all three at once - so there's always exactly one field here. */
+.duration-dd { position: relative; display: flex; align-items: center; }
 .schedule-slot-duration-select,
 .schedule-slot-duration-custom {
     margin: 0; padding: 7px 12px; font-size: 13px; font-weight: 600; width: auto;
     border-radius: 99px; border: 1px solid var(--border); background: var(--surface); color: var(--text);
-    transition: border-color .15s ease, box-shadow .15s ease;
+    font-family: inherit; transition: border-color .15s ease, box-shadow .15s ease;
 }
-.schedule-slot-duration-custom { width: 96px; }
+.schedule-slot-duration-custom { width: 96px; text-align: left; }
 .schedule-slot-duration-select:focus,
 .schedule-slot-duration-custom:focus { border-color: var(--primary-ink); box-shadow: 0 0 0 3px rgba(214, 148, 16, .18); outline: none; }
+.duration-dd-trigger { cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
+.duration-dd-trigger::after { content: ""; width: 6px; height: 6px; border-right: 1.5px solid var(--text-muted); border-bottom: 1.5px solid var(--text-muted); transform: rotate(45deg) translateY(-2px); }
+/* Always top: 100% (opens downward) - the whole point of not using a native <select>. */
+.duration-dd-menu {
+    position: absolute; top: 100%; left: 0; margin-top: 6px; z-index: 20;
+    display: flex; flex-direction: column; gap: 1px; min-width: 100%;
+    padding: 4px; border-radius: 12px; border: 1px solid var(--border);
+    background: var(--surface); box-shadow: 0 10px 24px -8px rgba(38, 32, 20, .22), 0 2px 6px rgba(38, 32, 20, .08);
+    max-height: 240px; overflow-y: auto;
+    animation: duration-dd-menu-in .15s cubic-bezier(.16,1,.3,1) both;
+}
+@keyframes duration-dd-menu-in {
+    from { opacity: 0; transform: translateY(-4px) scale(.98); }
+    to { opacity: 1; transform: none; }
+}
+.duration-dd-option {
+    padding: 7px 10px; border: none; background: none; border-radius: 8px;
+    font-size: 13px; font-family: inherit; font-weight: 500; color: var(--text);
+    text-align: left; white-space: nowrap; cursor: pointer;
+    transition: background .12s ease;
+}
+.duration-dd-option:hover { background: var(--background); }
+.duration-dd-option.active { background: var(--text); color: #fff; }
+.duration-dd-option-custom { border-top: 1px solid var(--border); margin-top: 3px; padding-top: 8px; }
 .schedule-slot-covered { background: var(--background); opacity: .55; }
 .schedule-slot-range { font-variant-numeric: tabular-nums; }
 

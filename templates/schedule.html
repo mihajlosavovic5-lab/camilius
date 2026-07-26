@@ -136,16 +136,18 @@
                                         <input type="hidden" name="time" value="{{ row.time }}">
                                         <input type="text" name="customer_name" data-i18n-placeholder="schedule.customerNamePlaceholder" placeholder="Customer name" required>
                                         <input type="text" name="service" data-i18n-placeholder="schedule.servicePlaceholder" placeholder="Service (optional)">
-                                        <div class="schedule-slot-duration">
-                                            <select name="duration" class="schedule-slot-duration-select" aria-label="Duration">
-                                                {% if slot_minutes not in slot_duration_choices %}
-                                                    <option value="{{ slot_minutes }}" selected>{{ slot_minutes }} min</option>
-                                                {% endif %}
+                                        <div class="duration-dd">
+                                            <input type="hidden" name="duration" class="duration-dd-value" value="{{ slot_minutes }}">
+                                            <button type="button" class="schedule-slot-duration-select duration-dd-trigger" aria-haspopup="listbox" aria-expanded="false">{{ slot_minutes }} min</button>
+                                            <div class="duration-dd-menu hidden" role="listbox">
                                                 {% for choice in slot_duration_choices %}
-                                                    <option value="{{ choice }}" {{ 'selected' if choice == slot_minutes }}>{{ choice }} min</option>
+                                                    <button type="button" class="duration-dd-option {{ 'active' if choice == slot_minutes }}" data-value="{{ choice }}" data-label="{{ choice }} min">{{ choice }} min</button>
                                                 {% endfor %}
-                                                <option value="custom" data-i18n="schedule.custom">Custom</option>
-                                            </select>
+                                                {% if slot_minutes not in slot_duration_choices %}
+                                                    <button type="button" class="duration-dd-option active" data-value="{{ slot_minutes }}" data-label="{{ slot_minutes }} min">{{ slot_minutes }} min</button>
+                                                {% endif %}
+                                                <button type="button" class="duration-dd-option duration-dd-option-custom" data-value="custom" data-label="Custom" data-i18n="schedule.custom">Custom</button>
+                                            </div>
                                             <input type="number" name="duration_custom" class="schedule-slot-duration-custom hidden" min="{{ slot_duration_min }}" max="{{ slot_duration_max }}" step="5" disabled data-i18n-placeholder="schedule.custom" placeholder="Custom">
                                         </div>
                                         <button class="button" type="submit" data-i18n="schedule.book">Book</button>
@@ -205,31 +207,61 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     }
 
-    // Per-booking duration <select> on each free slot's form - "Custom" swaps the select
-    // itself out for a number input (duration_custom) in the same spot, rather than
-    // showing both side by side. The select stays in the DOM (still hidden, still named
-    // "duration", still submits "custom") so create_appointment_route knows to read
-    // duration_custom instead - see app.py.
-    document.querySelectorAll(".schedule-slot-duration-select").forEach(function (select) {
-        var customInput = select.parentElement.querySelector(".schedule-slot-duration-custom");
-        var lastPresetValue = select.value;
-        select.addEventListener("change", function () {
-            if (select.value !== "custom") {
-                lastPresetValue = select.value;
-                return;
-            }
-            select.classList.add("hidden");
-            customInput.classList.remove("hidden");
-            customInput.disabled = false;
-            customInput.value = "";
-            customInput.focus();
+    // Per-booking duration dropdown on each free slot's form (.duration-dd) - a custom
+    // dropdown instead of a native <select> specifically so its menu always opens
+    // downward (a native select's popup flips upward near the bottom of the screen,
+    // which is exactly the "options fly up out of nowhere" complaint this replaces).
+    // "Custom" swaps the trigger button for a number input (duration_custom) in the
+    // same spot rather than showing both - the hidden "duration" input is what actually
+    // gets submitted either way; see create_appointment_route in app.py.
+    function closeAllDurationMenus() {
+        document.querySelectorAll(".duration-dd-menu").forEach(function (m) { m.classList.add("hidden"); });
+    }
+    document.addEventListener("click", closeAllDurationMenus);
+
+    document.querySelectorAll(".duration-dd").forEach(function (dd) {
+        var hiddenValue = dd.querySelector(".duration-dd-value");
+        var trigger = dd.querySelector(".duration-dd-trigger");
+        var menu = dd.querySelector(".duration-dd-menu");
+        var customInput = dd.querySelector(".schedule-slot-duration-custom");
+        var lastPresetValue = hiddenValue.value;
+        var lastPresetLabel = trigger.textContent;
+
+        trigger.addEventListener("click", function (e) {
+            e.stopPropagation();
+            var willOpen = menu.classList.contains("hidden");
+            closeAllDurationMenus();
+            menu.classList.toggle("hidden", !willOpen);
         });
+        menu.addEventListener("click", function (e) { e.stopPropagation(); });
+
+        menu.querySelectorAll(".duration-dd-option").forEach(function (option) {
+            option.addEventListener("click", function () {
+                menu.classList.add("hidden");
+                if (option.dataset.value === "custom") {
+                    hiddenValue.value = "custom";
+                    trigger.classList.add("hidden");
+                    customInput.classList.remove("hidden");
+                    customInput.disabled = false;
+                    customInput.value = "";
+                    customInput.focus();
+                    return;
+                }
+                lastPresetValue = option.dataset.value;
+                lastPresetLabel = option.dataset.label;
+                hiddenValue.value = lastPresetValue;
+                trigger.textContent = lastPresetLabel;
+                menu.querySelectorAll(".duration-dd-option").forEach(function (o) { o.classList.toggle("active", o === option); });
+            });
+        });
+
         // Typing nothing and clicking away reverts to the dropdown (at whatever preset
         // was chosen before "Custom") instead of leaving an empty field with no way back.
         customInput.addEventListener("blur", function () {
             if (customInput.value.trim()) return;
-            select.value = lastPresetValue;
-            select.classList.remove("hidden");
+            hiddenValue.value = lastPresetValue;
+            trigger.textContent = lastPresetLabel;
+            trigger.classList.remove("hidden");
             customInput.classList.add("hidden");
             customInput.disabled = true;
         });
