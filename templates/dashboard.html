@@ -53,6 +53,11 @@
         </div>
     {% endif %}
 
+    <div class="search-row">
+        <input type="text" id="dashboard-search" class="search-input" autocomplete="off"
+               data-i18n-placeholder="dashboard.searchPlaceholder" placeholder="Search conversations">
+    </div>
+
     <div class="filters" style="margin-bottom: 20px;">
         <a href="{{ url_for('home') }}" class="{{ 'active' if filter_status == 'all' }}"><span data-i18n="dashboard.filterAll">All</span> ({{ total_count }})</a>
         <a href="{{ url_for('home', filter='pending') }}" class="{{ 'active' if filter_status == 'pending' }}"><span data-i18n="dashboard.filterPending">Pending</span> ({{ pending_count }})</a>
@@ -78,9 +83,15 @@
         </div>
     {% endif %}
 
+    <div id="dashboard-search-empty" class="empty hidden">
+        <div class="empty-icon">&#128269;</div>
+        <p class="title" data-i18n="dashboard.emptySearch.title">No matching conversations</p>
+        <p data-i18n="dashboard.emptySearch.body">Try a different search term.</p>
+    </div>
+
     {% for c in conversations %}
         {% set id, sender, subject, question, suggested_reply, final_reply, status, created_at = c %}
-        <div class="card conversation">
+        <div class="card conversation" data-search-text="{{ (sender ~ ' ' ~ question)|lower }}">
             <div class="conversation-top">
                 <span class="avatar">{{ sender[0] }}</span>
                 <div class="conversation-meta">
@@ -160,4 +171,30 @@
         </div>
     {% endfor %}
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Client-side search over the conversations already rendered for the current filter -
+// same instant, no-reload behavior as the mobile app's inbox search (mobile/app.js
+// filteredConversations()), just filtering the server-rendered cards instead of a JS
+// state array.
+(function () {
+    const input = document.getElementById("dashboard-search");
+    if (!input) return;
+    const cards = Array.from(document.querySelectorAll(".card.conversation"));
+    const searchEmpty = document.getElementById("dashboard-search-empty");
+
+    input.addEventListener("input", () => {
+        const query = input.value.trim().toLowerCase();
+        let visibleCount = 0;
+        cards.forEach((card) => {
+            const matches = !query || card.dataset.searchText.includes(query);
+            card.classList.toggle("hidden", !matches);
+            if (matches) visibleCount++;
+        });
+        searchEmpty.classList.toggle("hidden", !query || visibleCount > 0);
+    });
+})();
+</script>
 {% endblock %}
