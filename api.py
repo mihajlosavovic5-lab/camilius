@@ -1,5 +1,6 @@
 import hashlib
 import os
+from datetime import date as date_type, datetime, timedelta
 from functools import wraps
 
 import psycopg2
@@ -18,9 +19,11 @@ from database import (
     archive_conversation, unarchive_conversation, soft_delete_conversation, restore_conversation,
     is_reminders_enabled, set_reminders_enabled, get_upsell_pairs, set_upsell_pairs,
     email_verify_sent_recently, phone_verify_sent_recently,
+    get_slot_duration, set_slot_duration, create_appointment, get_appointment, cancel_appointment,
 )
 from instagram_api import send_message as send_instagram_message, authorize_url as instagram_authorize_url
 from extensions import limiter
+import booking
 import paddle_billing
 import requests
 
@@ -389,6 +392,145 @@ def api_subscription_link():
 def api_schedule_link():
     token = make_schedule_link_token(request.business_id)
     return jsonify(url=f"{request.url_root}schedule/{token}")
+
+
+# Native Schedule tab (mobile day/week calendar) - JSON equivalent of app.py's /schedule
+# route, same locking/slot logic via booking.py, just serialized instead of rendered.
+@api.route("/schedule")
+@require_api_auth
+def api_schedule():
+    from app import BETA_FREE_MODE, SLOT_DURATION_CHOICES  # deferred to avoid a circular import at module load
+
+    business_id = request.business_id
+    if not (BETA_FREE_MODE or has_pro_access(business_id)):
+        return jsonify(locked=True)
+
+    business = business_by_id(business_id)
+    working_hours = business[8]
+    slot_minutes = get_slot_duration(business_id)
+    today = booking.now_local().date()
+
+    view = request.args.get("view", "day")
+    if view not in ("day", "week"):
+        view = "day"
+    try:
+        selected_date = date_type.fromisoformat(request.args.get("date", ""))
+    except ValueError:
+        selected_date = today
+
+    result = dict(
+        locked=False,
+        view=view,
+        selected_date=selected_date.isoformat(),
+        today=today.isoformat(),
+        slot_minutes=slot_minutes,
+        slot_duration_choices=list(SLOT_DURATION_CHOICES),
+        has_any_open_day=any(booking.parse_working_hours(working_hours).values()),
+    )
+
+    if view == "week":
+        week_start = selected_date - timedelta(days=selected_date.weekday())
+        days = []
+        for i in range(7):
+            d = week_start + timedelta(days=i)
+            appts = sorted(booking.appointments_for_local_day(business_id, d), key=lambda a: a["start_local"])
+            days.append({
+                "date": d.isoformat(),
+                "is_today": d == today,
+                "closed": not booking.is_open_on(working_hours, d),
+                "appointments": [
+                    {"id": a["id"], "time": a["start_local"].strftime("%H:%M"), "customer_name": a["customer_name"], "source": a["source"]}
+                    for a in appts
+                ],
+            })
+        result["days"] = days
+        result["prev_date"] = (week_start - timedelta(days=7)).isoformat()
+        result["next_date"] = (week_start + timedelta(days=7)).isoformat()
+    else:
+        slots = booking.day_slots(working_hours, slot_minutes, selected_date)
+        appts_by_start = {a["start_local"].strftime("%H:%M"): a for a in booking.appointments_for_local_day(business_id, selected_date)}
+        rows = []
+        for s in slots:
+            key = s.strftime("%H:%M")
+            appt = appts_by_start.get(key)
+            rows.append({
+                "time": key,
+                "appointment": {"id": appt["id"], "customer_name": appt["customer_name"], "service": appt["service"], "source": appt["source"]} if appt else None,
+                "is_past": s < booking.now_local(),
+            })
+        result["slot_rows"] = rows
+        result["prev_date"] = (selected_date - timedelta(days=1)).isoformat()
+        result["next_date"] = (selected_date + timedelta(days=1)).isoformat()
+
+    return jsonify(**result)
+
+
+@api.route("/schedule/appointments", methods=["POST"])
+@require_api_auth
+@limiter.limit("30 per minute")
+def api_create_appointment():
+    from app import BETA_FREE_MODE  # deferred to avoid a circular import at module load
+
+    business_id = request.business_id
+    if not (BETA_FREE_MODE or has_pro_access(business_id)):
+        return jsonify(error="forbidden"), 403
+
+    business = business_by_id(business_id)
+    data = request.get_json(silent=True) or {}
+    customer_name = (data.get("customer_name") or "").strip()
+    service = (data.get("service") or "").strip() or None
+    if not customer_name:
+        return jsonify(error="Customer name is required."), 400
+
+    try:
+        local_dt = datetime.combine(date_type.fromisoformat(data.get("date", "")), datetime.strptime(data.get("time", ""), "%H:%M").time(), tzinfo=booking.BUSINESS_TZ)
+    except ValueError:
+        return jsonify(error="Invalid date or time."), 400
+
+    slot_minutes = get_slot_duration(business_id)
+    end_dt = local_dt + timedelta(minutes=slot_minutes)
+    is_bookable = (
+        local_dt >= booking.now_local()
+        and booking.slot_within_business_hours(business[8], local_dt, end_dt)
+        and booking.is_slot_free(business_id, local_dt, end_dt)
+    )
+    if not is_bookable:
+        return jsonify(error="book_error"), 409
+
+    create_appointment(business_id, customer_name, local_dt, end_dt, service=service, source="manual")
+    return jsonify(success=True)
+
+
+@api.route("/schedule/appointments/<int:appointment_id>/cancel", methods=["POST"])
+@require_api_auth
+def api_cancel_appointment(appointment_id):
+    from app import BETA_FREE_MODE  # deferred to avoid a circular import at module load
+
+    if not (BETA_FREE_MODE or has_pro_access(request.business_id)):
+        return jsonify(error="forbidden"), 403
+    appointment = get_appointment(appointment_id)
+    if appointment is None or appointment[1] != request.business_id:
+        return jsonify(error="not found"), 404
+    cancel_appointment(appointment_id)
+    return jsonify(success=True)
+
+
+@api.route("/schedule/slot-duration", methods=["POST"])
+@require_api_auth
+def api_update_slot_duration():
+    from app import BETA_FREE_MODE, SLOT_DURATION_CHOICES  # deferred to avoid a circular import at module load
+
+    if not (BETA_FREE_MODE or has_pro_access(request.business_id)):
+        return jsonify(error="forbidden"), 403
+    data = request.get_json(silent=True) or {}
+    try:
+        minutes = int(data.get("slot_duration", 30))
+    except (ValueError, TypeError):
+        minutes = 30
+    if minutes not in SLOT_DURATION_CHOICES:
+        minutes = 30
+    set_slot_duration(request.business_id, minutes)
+    return jsonify(success=True, slot_duration=minutes)
 
 
 @api.route("/dashboard")

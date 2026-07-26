@@ -28,6 +28,11 @@ const state = {
     subscriptionActive: false,
     subscriptionStatus: "none",
     proAccess: false,
+    scheduleView: "day",
+    scheduleDate: null,
+    scheduleSlotMinutes: 30,
+    scheduleSlotChoices: [15, 30, 45, 60, 90, 120],
+    scheduleBookSlot: null,
 };
 
 const screens = {
@@ -39,6 +44,7 @@ const screens = {
     connectInstagram: el("screen-connect-instagram"),
     inbox: el("screen-inbox"),
     detail: el("screen-detail"),
+    schedule: el("screen-schedule"),
     profile: el("screen-profile"),
     settings: el("screen-settings"),
     help: el("screen-help"),
@@ -118,6 +124,9 @@ window.addEventListener("unhandledrejection", (event) => {
 // Terms/Privacy are reachable from two places (Register, and Settings) - back should
 // return to whichever one opened them, not always the same place.
 let legalReturnTo = "settings";
+// Same idea for Subscription - reachable from Settings and from the Schedule tab's
+// locked (Starter-plan) upsell state.
+let subscriptionReturnTo = "settings";
 
 if (capacitorPlugins) {
     capacitorPlugins.StatusBar.setBackgroundColor({ color: "#d69410" });
@@ -1566,8 +1575,11 @@ function startAutoRefresh() {
 // navigator.language, so dates/times follow the language the user actually chose in
 // the app instead of the device's (which can disagree, e.g. a phone set to English
 // with the app switched to Serbian).
+// sr-Latn-RS (not the bare "sr-RS" you'd expect) - Serbia's default script in ICU is
+// Cyrillic, but every Serbian string in i18n.js is written in Latin script, so the
+// plain region tag would render dates in a different script than the rest of the UI.
 const LOCALE_TAGS = {
-    en: "en-US", sr: "sr-RS", es: "es-ES", pt: "pt-PT", fr: "fr-FR",
+    en: "en-US", sr: "sr-Latn-RS", es: "es-ES", pt: "pt-PT", fr: "fr-FR",
     de: "de-DE", it: "it-IT", ru: "ru-RU", zh: "zh-CN", tr: "tr-TR",
 };
 
@@ -2061,8 +2073,8 @@ el("settings-terms-row").addEventListener("click", () => showLegalScreen("terms"
 el("settings-privacy-row").addEventListener("click", () => showLegalScreen("privacy", "settings"));
 el("settings-help-row").addEventListener("click", () => showScreen("help"));
 el("help-back").addEventListener("click", () => showScreen("settings"));
-el("settings-subscription-row").addEventListener("click", () => showScreen("subscription"));
-el("subscription-back").addEventListener("click", () => showScreen("settings"));
+el("settings-subscription-row").addEventListener("click", () => { subscriptionReturnTo = "settings"; showScreen("subscription"); });
+el("subscription-back").addEventListener("click", () => showScreen(subscriptionReturnTo));
 
 // --- Subscription screen content (Faza 5) - which of the beta/trialing/active/needs-
 // plan blocks is shown, driven entirely by the same fields /api/dashboard already
@@ -2109,23 +2121,6 @@ async function openChoosePlan() {
 el("subscription-choose-plan-btn").addEventListener("click", openChoosePlan);
 el("subscription-choose-plan-btn-2").addEventListener("click", openChoosePlan);
 
-// Schedule (Faza 11) - same bridge pattern as "Choose a plan" above, opens the
-// website's day/week calendar (not duplicated natively) in the in-app browser. The
-// bridge route itself (app.py's /schedule/<token>) shows the Pro-locked upsell page
-// for a Starter-plan business, same as visiting it on the website directly.
-el("settings-schedule-row").addEventListener("click", async () => {
-    try {
-        const data = await api("/api/schedule-link");
-        if (capacitorPlugins && capacitorPlugins.Browser) {
-            await capacitorPlugins.Browser.open({ url: data.url });
-        } else {
-            window.open(data.url, "_blank");
-        }
-    } catch (err) {
-        reportClientError(err.message, err.stack, "schedule-link");
-    }
-});
-
 const SUPPORT_EMAIL = "support@ai-auto-reply-mail.com";
 
 el("help-email-btn").addEventListener("click", () => {
@@ -2160,11 +2155,302 @@ function setActiveTab(tab) {
     document.querySelectorAll(".tab-btn").forEach((b) => b.classList.toggle("active", b.dataset.tab === tab));
     showScreen(tab);
     if (tab === "settings") loadNotificationPreferences();
+    if (tab === "schedule") loadSchedule();
 }
 
 document.querySelectorAll(".tab-btn").forEach((btn) => {
     btn.addEventListener("click", () => setActiveTab(btn.dataset.tab));
 });
+
+// --- Schedule (Faza 12) - native day/week calendar tab, JSON equivalent of the
+// website's /schedule page (see api.py's api_schedule and friends). Renders its own
+// timeline/week grid from the same booking.py logic the website uses, instead of
+// bridging out to the website in an in-app browser like the old Settings > Schedule
+// row used to (see mobile/index.html git history for that bridge, still available as
+// /api/schedule-link if it's ever needed again).
+function scheduleNoHoursMessage() {
+    return `${t("schedule.noWorkingHours")} ${t("tab.profile")} ${t("schedule.pageSuffix")}`;
+}
+
+// Same LOCALE_TAGS map the Inbox tab's timeAgo() uses (see above) - keeps date
+// formatting on the Schedule tab consistent with the rest of the app.
+function scheduleDateLocale() {
+    return LOCALE_TAGS[currentLang] || "en-US";
+}
+
+async function loadSchedule(date) {
+    el("schedule-locked").classList.add("hidden");
+    el("schedule-body").classList.add("hidden");
+    el("schedule-error").classList.add("hidden");
+
+    const params = new URLSearchParams({ view: state.scheduleView });
+    if (date || state.scheduleDate) params.set("date", date || state.scheduleDate);
+
+    try {
+        const data = await api(`/api/schedule?${params.toString()}`);
+        if (data.locked) {
+            el("schedule-locked").classList.remove("hidden");
+            return;
+        }
+        state.scheduleDate = data.selected_date;
+        state.scheduleSlotMinutes = data.slot_minutes;
+        el("schedule-body").classList.remove("hidden");
+        renderSchedule(data);
+    } catch (err) {
+        if (err.status === 401) { logout(); return; }
+        el("schedule-error").classList.remove("hidden");
+        el("schedule-error-message").textContent = err.message || t("schedule.errorTitle");
+        reportClientError(err.message, err.stack, "schedule-load");
+    }
+}
+
+function renderSchedule(data) {
+    el("schedule-no-hours").classList.toggle("hidden", data.has_any_open_day);
+    el("schedule-no-hours").textContent = scheduleNoHoursMessage();
+
+    el("schedule-duration-label").textContent = `${data.slot_minutes} min`;
+    state.scheduleSlotChoices = data.slot_duration_choices;
+
+    el("schedule-prev-btn").dataset.date = data.prev_date;
+    el("schedule-next-btn").dataset.date = data.next_date;
+
+    const selectedDate = new Date(`${data.selected_date}T00:00:00`);
+    if (data.view === "week") {
+        const days = data.days.map((d) => new Date(`${d.date}T00:00:00`));
+        const fmt = (d) => d.toLocaleDateString(scheduleDateLocale(), { month: "short", day: "numeric" });
+        el("schedule-date-label").textContent = `${t("schedule.weekOf")} ${fmt(days[0])} - ${fmt(days[6])}`;
+    } else {
+        el("schedule-date-label").textContent = selectedDate.toLocaleDateString(scheduleDateLocale(), { weekday: "long", month: "short", day: "numeric", year: "numeric" });
+    }
+
+    el("schedule-day-view").classList.toggle("hidden", data.view !== "day");
+    el("schedule-week-view").classList.toggle("hidden", data.view !== "week");
+    if (data.view === "week") {
+        renderScheduleWeek(data);
+    } else {
+        renderScheduleDay(data);
+    }
+}
+
+function renderScheduleDay(data) {
+    const timeline = el("schedule-timeline");
+    const closedBox = el("schedule-closed-day");
+    timeline.innerHTML = "";
+
+    if (data.slot_rows.length === 0) {
+        closedBox.classList.remove("hidden");
+        return;
+    }
+    closedBox.classList.add("hidden");
+
+    data.slot_rows.forEach((row) => {
+        const rowEl = document.createElement("div");
+        rowEl.className = "schedule-timeline-row" + (row.time.endsWith(":00") ? " schedule-timeline-row-hour" : "");
+
+        const timeEl = document.createElement("div");
+        timeEl.className = "schedule-timeline-time";
+        timeEl.textContent = row.time;
+        rowEl.appendChild(timeEl);
+
+        const contentEl = document.createElement("div");
+        contentEl.className = "schedule-timeline-content";
+
+        if (row.appointment) {
+            const card = document.createElement("div");
+            card.className = "schedule-slot schedule-slot-booked";
+
+            const info = document.createElement("div");
+            info.className = "schedule-slot-booked-info";
+            const badge = document.createElement("span");
+            badge.className = "badge schedule-slot-booked-badge " + (row.appointment.source === "ai" ? "badge-sent" : "badge-pending");
+            badge.textContent = row.appointment.source === "ai" ? t("schedule.aiBooked") : t("schedule.manual");
+            const name = document.createElement("div");
+            name.className = "schedule-slot-booked-name";
+            name.textContent = row.appointment.customer_name;
+            info.appendChild(name);
+            if (row.appointment.service) {
+                const service = document.createElement("div");
+                service.className = "schedule-slot-booked-service";
+                service.textContent = row.appointment.service;
+                info.appendChild(service);
+            }
+            info.appendChild(badge);
+            card.appendChild(info);
+
+            const cancelBtn = document.createElement("button");
+            cancelBtn.type = "button";
+            cancelBtn.className = "schedule-slot-cancel";
+            cancelBtn.textContent = t("schedule.cancel");
+            cancelBtn.addEventListener("click", () => cancelAppointment(row.appointment.id));
+            card.appendChild(cancelBtn);
+
+            contentEl.appendChild(card);
+        } else if (row.is_past) {
+            const past = document.createElement("div");
+            past.className = "schedule-slot schedule-slot-past";
+            past.textContent = t("schedule.past");
+            contentEl.appendChild(past);
+        } else {
+            const freeBtn = document.createElement("button");
+            freeBtn.type = "button";
+            freeBtn.className = "schedule-slot schedule-slot-free";
+            freeBtn.textContent = t("schedule.book");
+            freeBtn.addEventListener("click", () => openBookModal(row.time));
+            contentEl.appendChild(freeBtn);
+        }
+
+        rowEl.appendChild(contentEl);
+        timeline.appendChild(rowEl);
+    });
+}
+
+function renderScheduleWeek(data) {
+    const list = el("schedule-week-list");
+    list.innerHTML = "";
+
+    data.days.forEach((day) => {
+        const dayEl = document.createElement("div");
+        dayEl.className = "schedule-week-day" + (day.is_today ? " today" : "");
+
+        const date = new Date(`${day.date}T00:00:00`);
+        const header = document.createElement("div");
+        header.className = "schedule-week-day-header";
+        const weekday = document.createElement("span");
+        weekday.textContent = date.toLocaleDateString(scheduleDateLocale(), { weekday: "short" });
+        const num = document.createElement("span");
+        num.className = "schedule-week-day-num";
+        num.textContent = date.getDate();
+        header.appendChild(weekday);
+        header.appendChild(num);
+        dayEl.appendChild(header);
+
+        if (day.closed) {
+            const closed = document.createElement("div");
+            closed.className = "schedule-week-closed";
+            closed.textContent = t("schedule.closed");
+            dayEl.appendChild(closed);
+        } else if (day.appointments.length === 0) {
+            const empty = document.createElement("div");
+            empty.className = "schedule-week-closed";
+            empty.textContent = t("schedule.noAppointments");
+            dayEl.appendChild(empty);
+        } else {
+            day.appointments.forEach((appt) => {
+                const apptEl = document.createElement("div");
+                apptEl.className = "schedule-week-appt" + (appt.source === "ai" ? " schedule-week-appt-ai" : "");
+                apptEl.textContent = `${appt.time} · ${appt.customer_name}`;
+                dayEl.appendChild(apptEl);
+            });
+        }
+
+        dayEl.addEventListener("click", () => {
+            state.scheduleView = "day";
+            el("schedule-view-day-btn").classList.add("active");
+            el("schedule-view-week-btn").classList.remove("active");
+            loadSchedule(day.date);
+        });
+        list.appendChild(dayEl);
+    });
+}
+
+el("schedule-view-day-btn").addEventListener("click", () => {
+    if (state.scheduleView === "day") return;
+    state.scheduleView = "day";
+    el("schedule-view-day-btn").classList.add("active");
+    el("schedule-view-week-btn").classList.remove("active");
+    loadSchedule();
+});
+el("schedule-view-week-btn").addEventListener("click", () => {
+    if (state.scheduleView === "week") return;
+    state.scheduleView = "week";
+    el("schedule-view-week-btn").classList.add("active");
+    el("schedule-view-day-btn").classList.remove("active");
+    loadSchedule();
+});
+el("schedule-prev-btn").addEventListener("click", (event) => loadSchedule(event.currentTarget.dataset.date));
+el("schedule-next-btn").addEventListener("click", (event) => loadSchedule(event.currentTarget.dataset.date));
+el("schedule-today-btn").addEventListener("click", () => loadSchedule(new Date().toISOString().slice(0, 10)));
+el("schedule-retry-btn").addEventListener("click", () => loadSchedule());
+
+el("schedule-upgrade-btn").addEventListener("click", () => {
+    subscriptionReturnTo = "schedule";
+    showScreen("subscription");
+});
+
+el("schedule-duration-btn").addEventListener("click", () => {
+    const btn = el("schedule-duration-btn");
+    if (optionPicker.isOpenFor(btn)) { optionPicker.close(); return; }
+    const options = state.scheduleSlotChoices.map((m) => `${m} min`);
+    optionPicker.open(btn, options, `${state.scheduleSlotMinutes} min`, async (chosen) => {
+        const minutes = parseInt(chosen, 10);
+        if (minutes === state.scheduleSlotMinutes) return;
+        try {
+            await api("/api/schedule/slot-duration", { method: "POST", body: { slot_duration: minutes } });
+            loadSchedule();
+        } catch (err) {
+            reportClientError(err.message, err.stack, "schedule-slot-duration");
+        }
+    });
+});
+
+// --- Book-a-slot bottom sheet ---
+
+function openBookModal(time) {
+    state.scheduleBookSlot = time;
+    el("book-modal-time").textContent = `${new Date(`${state.scheduleDate}T00:00:00`).toLocaleDateString(scheduleDateLocale(), { weekday: "long", month: "short", day: "numeric" })} · ${time}`;
+    el("book-customer-name").value = "";
+    el("book-service").value = "";
+    el("book-modal-error").classList.add("hidden");
+    el("book-modal").classList.add("open");
+    setTimeout(() => el("book-customer-name").focus(), 250);
+}
+
+function closeBookModal() {
+    el("book-modal").classList.remove("open");
+    state.scheduleBookSlot = null;
+}
+
+el("book-modal-backdrop").addEventListener("click", closeBookModal);
+el("book-modal-cancel").addEventListener("click", closeBookModal);
+
+el("book-modal-submit").addEventListener("click", async () => {
+    const errorBox = el("book-modal-error");
+    errorBox.classList.add("hidden");
+    const customerName = el("book-customer-name").value.trim();
+    if (!customerName) {
+        errorBox.textContent = t("schedule.customerNamePlaceholder");
+        errorBox.classList.remove("hidden");
+        return;
+    }
+
+    try {
+        await api("/api/schedule/appointments", {
+            method: "POST",
+            body: {
+                date: state.scheduleDate,
+                time: state.scheduleBookSlot,
+                customer_name: customerName,
+                service: el("book-service").value.trim(),
+            },
+        });
+        closeBookModal();
+        if (capacitorPlugins && capacitorPlugins.Haptics) capacitorPlugins.Haptics.impact({ style: "LIGHT" });
+        loadSchedule();
+    } catch (err) {
+        errorBox.textContent = err.status === 409 ? t("schedule.bookError") : (err.message || t("schedule.bookError"));
+        errorBox.classList.remove("hidden");
+    }
+});
+
+async function cancelAppointment(appointmentId) {
+    try {
+        await api(`/api/schedule/appointments/${appointmentId}/cancel`, { method: "POST" });
+        if (capacitorPlugins && capacitorPlugins.Haptics) capacitorPlugins.Haptics.impact({ style: "LIGHT" });
+        loadSchedule();
+    } catch (err) {
+        reportClientError(err.message, err.stack, "schedule-cancel");
+    }
+}
 
 // Loads the current push/auto-send preferences into the toggles - purely local UI
 // state until the user taps "Save changes" below (Faza 4: these used to POST instantly
