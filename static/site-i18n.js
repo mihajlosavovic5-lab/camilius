@@ -385,7 +385,7 @@ const TRANSLATIONS = {
         "schedule.servicePlaceholder": "Service (optional)",
         "schedule.book": "Book",
 
-        "dashboard.subtitle": "Review customer questions and approve AI-suggested replies.",
+        "dashboard.subtitle": "Your customer conversations, with AI replies sent automatically — review and approve each one yourself if you'd rather.",
         "dashboard.processedToday": "Processed today",
         "dashboard.sentSuccess": "The reply has been sent to the customer.",
         "dashboard.sendError": "Couldn't send that reply - Instagram only allows replying within 24 hours of the customer's last message.",
@@ -810,7 +810,7 @@ const TRANSLATIONS = {
         "schedule.servicePlaceholder": "Servicio (opcional)",
         "schedule.book": "Reservar",
 
-        "dashboard.subtitle": "Revisa las preguntas de los clientes y aprueba las respuestas sugeridas por la IA.",
+        "dashboard.subtitle": "Tus conversaciones con clientes, con respuestas de la IA enviadas automáticamente — revisa y aprueba cada una tú mismo si lo prefieres.",
         "dashboard.processedToday": "Procesados hoy",
         "dashboard.sentSuccess": "La respuesta se ha enviado al cliente.",
         "dashboard.sendError": "No se pudo enviar esa respuesta - Instagram solo permite responder dentro de las 24 horas posteriores al último mensaje del cliente.",
@@ -1235,7 +1235,7 @@ const TRANSLATIONS = {
         "schedule.servicePlaceholder": "Serviço (opcional)",
         "schedule.book": "Agendar",
 
-        "dashboard.subtitle": "Revise as perguntas dos clientes e aprove as respostas sugeridas pela IA.",
+        "dashboard.subtitle": "Suas conversas com clientes, com respostas da IA enviadas automaticamente — revise e aprove cada uma você mesmo, se preferir.",
         "dashboard.processedToday": "Processadas hoje",
         "dashboard.sentSuccess": "A resposta foi enviada ao cliente.",
         "dashboard.sendError": "Não foi possível enviar essa resposta - o Instagram só permite responder dentro de 24 horas da última mensagem do cliente.",
@@ -1660,7 +1660,7 @@ const TRANSLATIONS = {
         "schedule.servicePlaceholder": "Service (optionnel)",
         "schedule.book": "Réserver",
 
-        "dashboard.subtitle": "Consultez les questions des clients et validez les réponses suggérées par l'IA.",
+        "dashboard.subtitle": "Vos conversations avec les clients, avec des réponses de l'IA envoyées automatiquement — validez chacune vous-même si vous préférez.",
         "dashboard.processedToday": "Traitées aujourd'hui",
         "dashboard.sentSuccess": "La réponse a été envoyée au client.",
         "dashboard.sendError": "Impossible d'envoyer cette réponse - Instagram n'autorise les réponses que dans les 24 heures suivant le dernier message du client.",
@@ -2085,7 +2085,7 @@ const TRANSLATIONS = {
         "schedule.servicePlaceholder": "Leistung (optional)",
         "schedule.book": "Buchen",
 
-        "dashboard.subtitle": "Prüfe Kundenfragen und genehmige von der KI vorgeschlagene Antworten.",
+        "dashboard.subtitle": "Deine Kundengespräche, mit automatisch gesendeten KI-Antworten — prüfe und genehmige jede einzelne selbst, wenn du möchtest.",
         "dashboard.processedToday": "Heute verarbeitet",
         "dashboard.sentSuccess": "Die Antwort wurde an den Kunden gesendet.",
         "dashboard.sendError": "Diese Antwort konnte nicht gesendet werden - Instagram erlaubt Antworten nur innerhalb von 24 Stunden nach der letzten Nachricht des Kunden.",
@@ -2510,7 +2510,7 @@ const TRANSLATIONS = {
         "schedule.servicePlaceholder": "Servizio (opzionale)",
         "schedule.book": "Prenota",
 
-        "dashboard.subtitle": "Rivedi le domande dei clienti e approva le risposte suggerite dall'IA.",
+        "dashboard.subtitle": "Le tue conversazioni con i clienti, con risposte dell'IA inviate automaticamente — rivedi e approva ciascuna tu stesso, se preferisci.",
         "dashboard.processedToday": "Elaborate oggi",
         "dashboard.sentSuccess": "La risposta è stata inviata al cliente.",
         "dashboard.sendError": "Impossibile inviare quella risposta - Instagram consente di rispondere solo entro 24 ore dall'ultimo messaggio del cliente.",
@@ -2935,7 +2935,7 @@ const TRANSLATIONS = {
         "schedule.servicePlaceholder": "Услуга (необязательно)",
         "schedule.book": "Записать",
 
-        "dashboard.subtitle": "Просматривайте вопросы клиентов и одобряйте ответы, предложенные ИИ.",
+        "dashboard.subtitle": "Ваши разговоры с клиентами: ответы ИИ отправляются автоматически — при желании можно проверять и одобрять каждый вручную.",
         "dashboard.processedToday": "Обработано сегодня",
         "dashboard.sentSuccess": "Ответ отправлен клиенту.",
         "dashboard.sendError": "Не удалось отправить этот ответ - Instagram позволяет отвечать только в течение 24 часов после последнего сообщения клиента.",
@@ -3360,7 +3360,7 @@ const TRANSLATIONS = {
         "schedule.servicePlaceholder": "Usluga (opciono)",
         "schedule.book": "Zakaži",
 
-        "dashboard.subtitle": "Pregledajte pitanja mušterija i odobravajte odgovore koje predlaže AI.",
+        "dashboard.subtitle": "Vaši razgovori sa mušterijama, uz AI odgovore koji se automatski šalju — pregledajte i odobravajte svaki sami ako želite.",
         "dashboard.processedToday": "Obrađeno danas",
         "dashboard.sentSuccess": "Odgovor je poslat mušteriji.",
         "dashboard.sendError": "Odgovor nije mogao da se pošalje - Instagram dozvoljava odgovaranje samo u roku od 24 sata od poslednje poruke mušterije.",
@@ -3785,7 +3785,7 @@ const TRANSLATIONS = {
         "schedule.servicePlaceholder": "服务(可选)",
         "schedule.book": "预约",
 
-        "dashboard.subtitle": "查看顾客问题并批准AI建议的回复。",
+        "dashboard.subtitle": "您与顾客的对话,AI回复会自动发送——如果您愿意,也可以自己审核并批准每一条。",
         "dashboard.processedToday": "今日已处理",
         "dashboard.sentSuccess": "回复已发送给顾客。",
         "dashboard.sendError": "无法发送该回复 - Instagram仅允许在顾客最后一条消息发出后24小时内回复。",
@@ -4210,7 +4210,7 @@ const TRANSLATIONS = {
         "schedule.servicePlaceholder": "Hizmet (isteğe bağlı)",
         "schedule.book": "Randevu al",
 
-        "dashboard.subtitle": "Müşteri sorularını inceleyin ve yapay zekânın önerdiği yanıtları onaylayın.",
+        "dashboard.subtitle": "Müşteri konuşmalarınız, yapay zekâ yanıtları otomatik gönderilir — isterseniz her birini kendiniz inceleyip onaylayabilirsiniz.",
         "dashboard.processedToday": "Bugün işlenen",
         "dashboard.sentSuccess": "Yanıt müşteriye gönderildi.",
         "dashboard.sendError": "Bu yanıt gönderilemedi - Instagram, yalnızca müşterinin son mesajından itibaren 24 saat içinde yanıt vermeye izin verir.",
