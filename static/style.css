@@ -1057,11 +1057,12 @@ body.auth {
 .duration-pill:active { transform: translateY(0); box-shadow: none; }
 .duration-pill.active { background: var(--text); color: #fff; border-color: var(--text); }
 .duration-pill-custom.active { background: var(--primary); border-color: var(--primary); }
-/* Same box as .duration-pill (same padding/radius/border) so swapping the "Custom"
-   button for this doesn't change the pill row's size - just an editable field, sitting
-   in the exact spot the button was. */
+/* Both the "Custom" button and the input that replaces it share one fixed width (in
+   between the button's natural ~78px and the input's own ~100px) so swapping between
+   them doesn't visibly resize that spot in the pill row. */
+.duration-pill-custom, .duration-pill-custom-input { width: 88px; text-align: center; }
 .duration-pill-custom-input {
-    margin: 0; padding: 7px 10px; width: 100px; border-radius: 99px;
+    margin: 0; padding: 7px 10px; border-radius: 99px;
     border: 1px solid var(--border); background: var(--surface); color: var(--text);
     font-size: 13.5px; font-weight: 600; font-family: inherit;
     transition: border-color .15s ease, box-shadow .15s ease;
