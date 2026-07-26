@@ -370,7 +370,7 @@ a:focus-visible, button:focus-visible, [tabindex]:focus-visible {
    other .page-header title uses, since this one text just shows the owner's
    own business name back to them and reads as a real title, not UI chrome. */
 .page-header h1.business-title {
-    font-family: Georgia, "Times New Roman", serif; font-weight: 700;
+    font-family: Georgia, "Times New Roman", serif; font-weight: 400;
     font-size: 28px; color: var(--text); letter-spacing: -.2px;
 }
 .page-header .subtitle { color: var(--text-muted); font-size: 14.5px; margin: 2px 0 0; }
