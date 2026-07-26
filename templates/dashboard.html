@@ -31,7 +31,7 @@
     <div class="stats-row">
         <div class="card stat-tile">
             <div class="stat-value">{{ stats.total_sent }}</div>
-            <div class="stat-label" data-i18n="dashboard.repliesSentAllTime">Replies sent (all time)</div>
+            <div class="stat-label" data-i18n="dashboard.repliesSentAllTime">Replies sent</div>
         </div>
         <div class="card stat-tile">
             <div class="stat-value">{{ stats.sent_this_week }}</div>
@@ -70,8 +70,7 @@
             <div class="empty-icon">&#128235;</div>
             {% if filter_status == 'all' %}
                 <p class="title" data-i18n="dashboard.empty.title">Camilius is watching your inbox</p>
-                <p data-i18n="dashboard.empty.body">New Instagram messages will show up here with an AI-drafted reply, ready to review and send.</p>
-                <p style="margin-top: 14px;" data-i18n="dashboard.empty.tip">Tip: send yourself a test DM to see it in action.</p>
+                <p data-i18n="dashboard.empty.body">New Instagram messages will show up here with an AI-drafted reply, sent automatically &mdash; review and approve it yourself if you'd rather.</p>
             {% else %}
                 <p class="title" data-i18n="dashboard.emptyFilter.title">No conversations in this filter</p>
                 <p data-i18n="dashboard.emptyFilter.body">Try a different filter above.</p>
