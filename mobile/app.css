@@ -631,7 +631,12 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
    within, pushing "You're all set" low enough to clip under the tab bar. Nudge it back up. */
 #inbox-empty, #inbox-error { margin-top: -860px; }
 .empty-title { font-weight: 600; color: var(--text); font-size: 15.5px; margin: 4px 0; }
-.loading { text-align: center; padding: 30px; color: var(--text-muted); font-size: 14px; }
+.loading { text-align: center; padding: 30px; color: var(--text-muted); font-size: 14px; flex: 1; display: flex; align-items: center; justify-content: center; }
+.spinner {
+    width: 26px; height: 26px; border-radius: 50%;
+    border: 3px solid var(--border); border-top-color: var(--primary);
+    animation: ota-spin .8s linear infinite;
+}
 
 /* --- Detail screen --- */
 /* Bottom padding clears the fixed tab bar - every screen reachable after login keeps
