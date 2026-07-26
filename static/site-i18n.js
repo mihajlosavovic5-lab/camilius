@@ -386,7 +386,6 @@ const TRANSLATIONS = {
 
         "dashboard.subtitle": "Your customer conversations, with AI replies sent automatically.",
         "dashboard.subtitleDraft": "Your customer conversations, with AI replies waiting for your approval.",
-        "dashboard.processedToday": "Processed today",
         "dashboard.sentSuccess": "The reply has been sent to the customer.",
         "dashboard.sendError": "Couldn't send that reply - Instagram only allows replying within 24 hours of the customer's last message.",
         "dashboard.repliesSentAllTime": "Replies sent",
@@ -816,7 +815,6 @@ const TRANSLATIONS = {
 
         "dashboard.subtitle": "Tus conversaciones con clientes, con respuestas de la IA enviadas automáticamente.",
         "dashboard.subtitleDraft": "Tus conversaciones con clientes, con respuestas de la IA esperando tu aprobación.",
-        "dashboard.processedToday": "Procesados hoy",
         "dashboard.sentSuccess": "La respuesta se ha enviado al cliente.",
         "dashboard.sendError": "No se pudo enviar esa respuesta - Instagram solo permite responder dentro de las 24 horas posteriores al último mensaje del cliente.",
         "dashboard.repliesSentAllTime": "Respuestas enviadas",
@@ -1246,7 +1244,6 @@ const TRANSLATIONS = {
 
         "dashboard.subtitle": "Suas conversas com clientes, com respostas da IA enviadas automaticamente.",
         "dashboard.subtitleDraft": "Suas conversas com clientes, com respostas da IA aguardando sua aprovação.",
-        "dashboard.processedToday": "Processadas hoje",
         "dashboard.sentSuccess": "A resposta foi enviada ao cliente.",
         "dashboard.sendError": "Não foi possível enviar essa resposta - o Instagram só permite responder dentro de 24 horas da última mensagem do cliente.",
         "dashboard.repliesSentAllTime": "Respostas enviadas",
@@ -1676,7 +1673,6 @@ const TRANSLATIONS = {
 
         "dashboard.subtitle": "Vos conversations avec les clients, avec des réponses de l'IA envoyées automatiquement.",
         "dashboard.subtitleDraft": "Vos conversations avec les clients, avec des réponses de l'IA en attente de votre validation.",
-        "dashboard.processedToday": "Traitées aujourd'hui",
         "dashboard.sentSuccess": "La réponse a été envoyée au client.",
         "dashboard.sendError": "Impossible d'envoyer cette réponse - Instagram n'autorise les réponses que dans les 24 heures suivant le dernier message du client.",
         "dashboard.repliesSentAllTime": "Réponses envoyées",
@@ -2106,7 +2102,6 @@ const TRANSLATIONS = {
 
         "dashboard.subtitle": "Deine Kundengespräche, mit automatisch gesendeten KI-Antworten.",
         "dashboard.subtitleDraft": "Deine Kundengespräche, mit KI-Antworten, die auf deine Freigabe warten.",
-        "dashboard.processedToday": "Heute verarbeitet",
         "dashboard.sentSuccess": "Die Antwort wurde an den Kunden gesendet.",
         "dashboard.sendError": "Diese Antwort konnte nicht gesendet werden - Instagram erlaubt Antworten nur innerhalb von 24 Stunden nach der letzten Nachricht des Kunden.",
         "dashboard.repliesSentAllTime": "Gesendete Antworten",
@@ -2536,7 +2531,6 @@ const TRANSLATIONS = {
 
         "dashboard.subtitle": "Le tue conversazioni con i clienti, con risposte dell'IA inviate automaticamente.",
         "dashboard.subtitleDraft": "Le tue conversazioni con i clienti, con risposte dell'IA in attesa della tua approvazione.",
-        "dashboard.processedToday": "Elaborate oggi",
         "dashboard.sentSuccess": "La risposta è stata inviata al cliente.",
         "dashboard.sendError": "Impossibile inviare quella risposta - Instagram consente di rispondere solo entro 24 ore dall'ultimo messaggio del cliente.",
         "dashboard.repliesSentAllTime": "Risposte inviate",
@@ -2966,7 +2960,6 @@ const TRANSLATIONS = {
 
         "dashboard.subtitle": "Ваши разговоры с клиентами: ответы ИИ отправляются автоматически.",
         "dashboard.subtitleDraft": "Ваши разговоры с клиентами: ответы ИИ ждут вашего одобрения.",
-        "dashboard.processedToday": "Обработано сегодня",
         "dashboard.sentSuccess": "Ответ отправлен клиенту.",
         "dashboard.sendError": "Не удалось отправить этот ответ - Instagram позволяет отвечать только в течение 24 часов после последнего сообщения клиента.",
         "dashboard.repliesSentAllTime": "Отправлено ответов",
@@ -3396,7 +3389,6 @@ const TRANSLATIONS = {
 
         "dashboard.subtitle": "Vaši razgovori sa mušterijama, uz AI odgovore koji se automatski šalju.",
         "dashboard.subtitleDraft": "Vaši razgovori sa mušterijama, uz AI odgovore koji čekaju vaše odobrenje.",
-        "dashboard.processedToday": "Obrađeno danas",
         "dashboard.sentSuccess": "Odgovor je poslat mušteriji.",
         "dashboard.sendError": "Odgovor nije mogao da se pošalje - Instagram dozvoljava odgovaranje samo u roku od 24 sata od poslednje poruke mušterije.",
         "dashboard.repliesSentAllTime": "Poslato odgovora",
@@ -3826,7 +3818,6 @@ const TRANSLATIONS = {
 
         "dashboard.subtitle": "您与顾客的对话,AI回复会自动发送。",
         "dashboard.subtitleDraft": "您与顾客的对话,AI回复正在等待您的批准。",
-        "dashboard.processedToday": "今日已处理",
         "dashboard.sentSuccess": "回复已发送给顾客。",
         "dashboard.sendError": "无法发送该回复 - Instagram仅允许在顾客最后一条消息发出后24小时内回复。",
         "dashboard.repliesSentAllTime": "已发送回复",
@@ -4256,7 +4247,6 @@ const TRANSLATIONS = {
 
         "dashboard.subtitle": "Müşteri konuşmalarınız, yapay zekâ yanıtları otomatik gönderilir.",
         "dashboard.subtitleDraft": "Müşteri konuşmalarınız, onayınızı bekleyen yapay zekâ yanıtlarıyla.",
-        "dashboard.processedToday": "Bugün işlenen",
         "dashboard.sentSuccess": "Yanıt müşteriye gönderildi.",
         "dashboard.sendError": "Bu yanıt gönderilemedi - Instagram, yalnızca müşterinin son mesajından itibaren 24 saat içinde yanıt vermeye izin verir.",
         "dashboard.repliesSentAllTime": "Gönderilen yanıtlar",
