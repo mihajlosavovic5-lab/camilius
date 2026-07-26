@@ -377,6 +377,10 @@ a:focus-visible, button:focus-visible, [tabindex]:focus-visible {
 /* Subscription page only - title + subtitle centered as a block instead of the
    left-aligned title / right-aligned actions layout every other .page-header uses. */
 .page-header-center { justify-content: center; text-align: center; }
+/* Dashboard only - the business title is now a single line (no subtitle), so
+   flex-end left it sitting above the two-line quota widget instead of level
+   with it; center the two against each other vertically instead. */
+.page-header-middle { align-items: center; }
 
 /* --- Cards --- */
 .card {
