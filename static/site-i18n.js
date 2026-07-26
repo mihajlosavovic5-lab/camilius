@@ -205,8 +205,7 @@ const TRANSLATIONS = {
         "landing.footer.supportHeading": "Support",
         "landing.footer.donate": "Buy us a coffee",
 
-        "register.autoSendLabel": "AI Autopilot — auto-send replies",
-        "register.autoSendBadge": "Recommended",
+        "appSettings.automation.draftLabel": "AI Draft Mode — review before sending",
 
         "pricePicker.currencyLabel": "Currency",
         "pricePicker.addButton": "+ Add service",
@@ -272,7 +271,7 @@ const TRANSLATIONS = {
         "appSettings.title": "Settings",
         "appSettings.subtitle": "App-level preferences, legal, and account data.",
         "appSettings.automation.heading": "Automation",
-        "appSettings.automation.note": "Replies go out the moment the AI drafts them, so customers never wait on you. Turn this off if you'd rather review and approve each reply yourself.",
+        "appSettings.automation.note": "Not sure yet about your AI's replies? Turn this on to review and approve each one before it's sent. Off by default — replies go out automatically the moment they're ready.",
         "appSettings.reminders.heading": "No-show reminders",
         "appSettings.reminders.note": "When on, the AI automatically sends the customer a reminder DM 24 hours and 2 hours before their appointment (Instagram-booked appointments only).",
         "appSettings.reminders.checkboxLabel": "Send automatic appointment reminders",
@@ -634,7 +633,7 @@ const TRANSLATIONS = {
         "landing.footer.supportHeading": "Apoyo",
         "landing.footer.donate": "Invítanos un café",
 
-        "register.autoSendLabel": "Enviar respuestas de la IA automáticamente",
+        "appSettings.automation.draftLabel": "Modo de borrador de IA — revisar antes de enviar",
 
         "pricePicker.currencyLabel": "Moneda",
         "pricePicker.addButton": "+ Añadir servicio",
@@ -700,7 +699,7 @@ const TRANSLATIONS = {
         "appSettings.title": "Configuración",
         "appSettings.subtitle": "Preferencias de la app, legal, y datos de la cuenta.",
         "appSettings.automation.heading": "Automatización",
-        "appSettings.automation.note": "Cuando está activado, la IA envía respuestas a los clientes de inmediato en lugar de esperar tu aprobación.",
+        "appSettings.automation.note": "¿No estás seguro de las respuestas de tu IA todavía? Actívalo para revisar y aprobar cada una antes de enviarla. Desactivado por defecto: las respuestas se envían automáticamente en cuanto están listas.",
         "appSettings.reminders.heading": "Recordatorios de inasistencia",
         "appSettings.reminders.note": "Cuando está activado, la IA envía automáticamente al cliente un DM de recordatorio 24 horas y 2 horas antes de su cita (solo citas reservadas por Instagram).",
         "appSettings.reminders.checkboxLabel": "Enviar recordatorios automáticos de citas",
@@ -1062,7 +1061,7 @@ const TRANSLATIONS = {
         "landing.footer.supportHeading": "Apoio",
         "landing.footer.donate": "Pague um café para nós",
 
-        "register.autoSendLabel": "Enviar respostas da IA automaticamente",
+        "appSettings.automation.draftLabel": "Modo de rascunho da IA — revisar antes de enviar",
 
         "pricePicker.currencyLabel": "Moeda",
         "pricePicker.addButton": "+ Adicionar serviço",
@@ -1128,7 +1127,7 @@ const TRANSLATIONS = {
         "appSettings.title": "Configurações",
         "appSettings.subtitle": "Preferências do app, legal, e dados da conta.",
         "appSettings.automation.heading": "Automação",
-        "appSettings.automation.note": "Quando ativado, a IA envia respostas aos clientes imediatamente em vez de esperar sua aprovação.",
+        "appSettings.automation.note": "Ainda não tem certeza sobre as respostas da sua IA? Ative para revisar e aprovar cada uma antes do envio. Desativado por padrão — as respostas são enviadas automaticamente assim que ficam prontas.",
         "appSettings.reminders.heading": "Lembretes de não comparecimento",
         "appSettings.reminders.note": "Quando ativado, a IA envia automaticamente ao cliente um DM de lembrete 24 horas e 2 horas antes do compromisso (somente compromissos agendados pelo Instagram).",
         "appSettings.reminders.checkboxLabel": "Enviar lembretes automáticos de compromisso",
@@ -1490,7 +1489,7 @@ const TRANSLATIONS = {
         "landing.footer.supportHeading": "Soutien",
         "landing.footer.donate": "Offrez-nous un café",
 
-        "register.autoSendLabel": "Envoyer automatiquement les réponses de l'IA",
+        "appSettings.automation.draftLabel": "Mode brouillon IA — vérifier avant l'envoi",
 
         "pricePicker.currencyLabel": "Devise",
         "pricePicker.addButton": "+ Ajouter un service",
@@ -1556,7 +1555,7 @@ const TRANSLATIONS = {
         "appSettings.title": "Paramètres",
         "appSettings.subtitle": "Préférences de l'application, mentions légales et données du compte.",
         "appSettings.automation.heading": "Automatisation",
-        "appSettings.automation.note": "Une fois activé, l'IA envoie les réponses aux clients immédiatement au lieu d'attendre votre validation.",
+        "appSettings.automation.note": "Pas encore sûr des réponses de votre IA ? Activez cette option pour vérifier et approuver chaque réponse avant son envoi. Désactivé par défaut — les réponses partent automatiquement dès qu'elles sont prêtes.",
         "appSettings.reminders.heading": "Rappels de rendez-vous manqués",
         "appSettings.reminders.note": "Une fois activé, l'IA envoie automatiquement au client un DM de rappel 24 heures puis 2 heures avant son rendez-vous (uniquement pour les rendez-vous pris via Instagram).",
         "appSettings.reminders.checkboxLabel": "Envoyer des rappels automatiques de rendez-vous",
@@ -1918,7 +1917,7 @@ const TRANSLATIONS = {
         "landing.footer.supportHeading": "Unterstützung",
         "landing.footer.donate": "Spendier uns einen Kaffee",
 
-        "register.autoSendLabel": "KI-Antworten automatisch senden",
+        "appSettings.automation.draftLabel": "KI-Entwurfsmodus — vor dem Senden prüfen",
 
         "pricePicker.currencyLabel": "Währung",
         "pricePicker.addButton": "+ Leistung hinzufügen",
@@ -1984,7 +1983,7 @@ const TRANSLATIONS = {
         "appSettings.title": "Einstellungen",
         "appSettings.subtitle": "App-Einstellungen, Rechtliches und Kontodaten.",
         "appSettings.automation.heading": "Automatisierung",
-        "appSettings.automation.note": "Wenn aktiviert, sendet die KI Antworten sofort an Kunden, anstatt auf deine Genehmigung zu warten.",
+        "appSettings.automation.note": "Noch unsicher bei den Antworten deiner KI? Aktiviere dies, um jede Antwort vor dem Versand zu prüfen und freizugeben. Standardmäßig deaktiviert — Antworten werden automatisch gesendet, sobald sie fertig sind.",
         "appSettings.reminders.heading": "Erinnerungen bei Nichterscheinen",
         "appSettings.reminders.note": "Wenn aktiviert, sendet die KI dem Kunden automatisch 24 Stunden und 2 Stunden vor seinem Termin eine Erinnerungs-DM (nur über Instagram gebuchte Termine).",
         "appSettings.reminders.checkboxLabel": "Automatische Terminerinnerungen senden",
@@ -2346,7 +2345,7 @@ const TRANSLATIONS = {
         "landing.footer.supportHeading": "Supporto",
         "landing.footer.donate": "Offrici un caffè",
 
-        "register.autoSendLabel": "Invia automaticamente le risposte dell'IA",
+        "appSettings.automation.draftLabel": "Modalità bozza IA — controlla prima di inviare",
 
         "pricePicker.currencyLabel": "Valuta",
         "pricePicker.addButton": "+ Aggiungi servizio",
@@ -2412,7 +2411,7 @@ const TRANSLATIONS = {
         "appSettings.title": "Impostazioni",
         "appSettings.subtitle": "Preferenze dell'app, legale e dati dell'account.",
         "appSettings.automation.heading": "Automazione",
-        "appSettings.automation.note": "Quando attivo, l'IA invia le risposte ai clienti subito invece di attendere la tua approvazione.",
+        "appSettings.automation.note": "Non sei ancora sicuro delle risposte della tua IA? Attiva questa opzione per controllare e approvare ogni risposta prima dell'invio. Disattivato per impostazione predefinita: le risposte vengono inviate automaticamente non appena sono pronte.",
         "appSettings.reminders.heading": "Promemoria di mancata presentazione",
         "appSettings.reminders.note": "Quando attivo, l'IA invia automaticamente al cliente un DM di promemoria 24 ore e 2 ore prima dell'appuntamento (solo appuntamenti prenotati via Instagram).",
         "appSettings.reminders.checkboxLabel": "Invia promemoria automatici degli appuntamenti",
@@ -2774,7 +2773,7 @@ const TRANSLATIONS = {
         "landing.footer.supportHeading": "Поддержка",
         "landing.footer.donate": "Угостите нас кофе",
 
-        "register.autoSendLabel": "Автоматически отправлять ответы ИИ",
+        "appSettings.automation.draftLabel": "Режим черновика ИИ — проверка перед отправкой",
 
         "pricePicker.currencyLabel": "Валюта",
         "pricePicker.addButton": "+ Добавить услугу",
@@ -2840,7 +2839,7 @@ const TRANSLATIONS = {
         "appSettings.title": "Настройки",
         "appSettings.subtitle": "Настройки приложения, правовая информация и данные аккаунта.",
         "appSettings.automation.heading": "Автоматизация",
-        "appSettings.automation.note": "Когда включено, ИИ сразу отправляет ответы клиентам, не дожидаясь вашего одобрения.",
+        "appSettings.automation.note": "Пока не уверены в ответах ИИ? Включите, чтобы проверять и одобрять каждый ответ перед отправкой. По умолчанию выключено — ответы отправляются автоматически, как только готовы.",
         "appSettings.reminders.heading": "Напоминания о неявке",
         "appSettings.reminders.note": "Когда включено, ИИ автоматически отправляет клиенту напоминание в директ за 24 часа и за 2 часа до записи (только для записей через Instagram).",
         "appSettings.reminders.checkboxLabel": "Отправлять автоматические напоминания о записи",
@@ -3202,7 +3201,7 @@ const TRANSLATIONS = {
         "landing.footer.supportHeading": "Podrška",
         "landing.footer.donate": "Časti nas kafom",
 
-        "register.autoSendLabel": "Automatski šalji AI odgovore",
+        "appSettings.automation.draftLabel": "AI režim nacrta — pregled pre slanja",
 
         "pricePicker.currencyLabel": "Valuta",
         "pricePicker.addButton": "+ Dodaj uslugu",
@@ -3268,7 +3267,7 @@ const TRANSLATIONS = {
         "appSettings.title": "Podešavanja",
         "appSettings.subtitle": "Podešavanja aplikacije, pravna dokumenta i podaci naloga.",
         "appSettings.automation.heading": "Automatizacija",
-        "appSettings.automation.note": "Kada je uključeno, AI odmah šalje odgovore mušterijama umesto da čeka vaše odobrenje.",
+        "appSettings.automation.note": "Niste još sigurni u odgovore vašeg AI-ja? Uključite ovo da pregledate i odobrite svaki odgovor pre slanja. Podrazumevano isključeno — odgovori se šalju automatski čim su spremni.",
         "appSettings.reminders.heading": "Podsetnici za neodazivanje",
         "appSettings.reminders.note": "Kada je uključeno, AI automatski šalje mušteriji podsetnik u poruci 24 sata i 2 sata pre termina (samo za termine zakazane preko Instagrama).",
         "appSettings.reminders.checkboxLabel": "Šalji automatske podsetnike za termine",
@@ -3630,7 +3629,7 @@ const TRANSLATIONS = {
         "landing.footer.supportHeading": "支持",
         "landing.footer.donate": "请我们喝杯咖啡",
 
-        "register.autoSendLabel": "自动发送AI回复",
+        "appSettings.automation.draftLabel": "AI 草稿模式 — 发送前先审核",
 
         "pricePicker.currencyLabel": "货币",
         "pricePicker.addButton": "+ 添加服务",
@@ -3696,7 +3695,7 @@ const TRANSLATIONS = {
         "appSettings.title": "设置",
         "appSettings.subtitle": "应用偏好设置、法律信息和账户数据。",
         "appSettings.automation.heading": "自动化",
-        "appSettings.automation.note": "开启后,AI会立即将回复发送给顾客,而不是等待您的批准。",
+        "appSettings.automation.note": "还不确定AI的回复质量?开启此选项后,每条回复在发送前都需要您审核并批准。默认关闭 — 回复准备好后会自动发送。",
         "appSettings.reminders.heading": "爽约提醒",
         "appSettings.reminders.note": "开启后,AI会在预约前24小时和2小时自动向顾客发送提醒私信(仅限通过Instagram预约的项目)。",
         "appSettings.reminders.checkboxLabel": "发送自动预约提醒",
@@ -4058,7 +4057,7 @@ const TRANSLATIONS = {
         "landing.footer.supportHeading": "Destek",
         "landing.footer.donate": "Bize bir kahve ısmarla",
 
-        "register.autoSendLabel": "Yapay zekâ yanıtlarını otomatik gönder",
+        "appSettings.automation.draftLabel": "Yapay Zeka Taslak Modu — göndermeden önce incele",
 
         "pricePicker.currencyLabel": "Para birimi",
         "pricePicker.addButton": "+ Hizmet ekle",
@@ -4124,7 +4123,7 @@ const TRANSLATIONS = {
         "appSettings.title": "Ayarlar",
         "appSettings.subtitle": "Uygulama tercihleri, yasal bilgiler ve hesap verileri.",
         "appSettings.automation.heading": "Otomasyon",
-        "appSettings.automation.note": "Açık olduğunda, yapay zekâ onayınızı beklemek yerine yanıtları müşterilere hemen gönderir.",
+        "appSettings.automation.note": "Yapay zekânızın yanıtlarından henüz emin değil misiniz? Her yanıtı göndermeden önce incelemek ve onaylamak için bunu açın. Varsayılan olarak kapalıdır — yanıtlar hazır olur olmaz otomatik gönderilir.",
         "appSettings.reminders.heading": "Gelmeme hatırlatmaları",
         "appSettings.reminders.note": "Açık olduğunda, yapay zekâ randevudan 24 saat ve 2 saat önce müşteriye otomatik olarak bir hatırlatma mesajı gönderir (yalnızca Instagram üzerinden alınan randevular için).",
         "appSettings.reminders.checkboxLabel": "Otomatik randevu hatırlatmaları gönder",

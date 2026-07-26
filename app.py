@@ -897,11 +897,12 @@ def app_settings():
 # Website equivalent of the mobile app's Auto-send toggle (see api.py's
 # /api/notification-preferences) - same underlying businesses.auto_send column, just
 # session-authenticated instead of Bearer-token, since the website never had a way to
-# change this at all before now.
+# change this at all before now. The checkbox itself is framed as opt-in "AI Draft Mode"
+# (auto-send is already the default), so it posts the inverse of the stored column.
 @app.route("/app-settings/auto-send", methods=["POST"])
 @login_required
 def update_auto_send():
-    set_auto_send(session["business_id"], bool(request.form.get("auto_send")))
+    set_auto_send(session["business_id"], not bool(request.form.get("draft_mode")))
     return redirect(url_for("app_settings"))
 
 
