@@ -329,14 +329,17 @@ a:focus-visible, button:focus-visible, [tabindex]:focus-visible {
     box-shadow: 0 6px 14px -6px rgba(38, 32, 20, .18), 0 1px 3px rgba(38, 32, 20, .06);
 }
 .nav-links a:not(.button):active { transform: translateY(0); box-shadow: 0 1px 3px rgba(38, 32, 20, .1); }
+/* Current page is marked with an underline, not a filled background - the
+   .not(.button):hover card lift above still applies on top of it (same as
+   every other nav link), it just no longer turns orange on hover. */
 .nav-links a.active {
-    background: var(--primary-light); color: var(--primary-ink); font-weight: 600;
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, .5), 0 2px 8px -3px rgba(214, 148, 16, .35);
+    color: var(--primary-ink); font-weight: 600;
+    text-decoration: underline; text-decoration-color: var(--primary);
+    text-underline-offset: 5px; text-decoration-thickness: 2px;
 }
-.nav-links a.active:hover {
-    background: var(--primary-light); color: var(--primary-ink); border-color: transparent;
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, .5), 0 8px 16px -6px rgba(214, 148, 16, .45);
-}
+/* Keeps the underline showing through the shared hover rule above (which
+   otherwise resets text-decoration to none on every nav link's hover). */
+.nav-links a.active:hover { color: var(--primary-ink); text-decoration: underline; text-decoration-color: var(--primary); }
 /* Button inside nav links (e.g. "Try for free" on the landing page)
    must keep white text - otherwise the .nav-links a rule overrides it */
 .nav-links a.button { color: #fff; }
