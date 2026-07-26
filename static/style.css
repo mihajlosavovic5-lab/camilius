@@ -1059,10 +1059,11 @@ body.auth {
 .duration-pill-custom.active { background: var(--primary); border-color: var(--primary); }
 /* Both the "Custom" button and the input that replaces it share one fixed width (in
    between the button's natural ~78px and the input's own ~100px) so swapping between
-   them doesn't visibly resize that spot in the pill row. */
-.duration-pill-custom, .duration-pill-custom-input { width: 88px; text-align: center; }
+   them doesn't visibly resize that spot in the pill row. Left-aligned text (not
+   centered) on the input, matching the per-slot custom input below. */
+.duration-pill-custom, .duration-pill-custom-input { width: 88px; }
 .duration-pill-custom-input {
-    margin: 0; padding: 7px 10px; border-radius: 99px;
+    margin: 0; padding: 7px 10px; border-radius: 99px; text-align: left;
     border: 1px solid var(--border); background: var(--surface); color: var(--text);
     font-size: 13.5px; font-weight: 600; font-family: inherit;
     transition: border-color .15s ease, box-shadow .15s ease;
