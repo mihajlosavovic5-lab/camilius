@@ -373,12 +373,6 @@ a:focus-visible, button:focus-visible, [tabindex]:focus-visible {
 /* Subscription page only - title + subtitle centered as a block instead of the
    left-aligned title / right-aligned actions layout every other .page-header uses. */
 .page-header-center { justify-content: center; text-align: center; }
-/* Dashboard only - the business title is now a single line (no subtitle), so
-   flex-end left it sitting above the two-line quota widget instead of level
-   with it; center the two against each other vertically instead. margin-top
-   gives it a little breathing room below the navbar, now that the navbar
-   itself fades to transparent at the top instead of always being a solid bar. */
-.page-header-middle { align-items: center; margin-bottom: 6px; margin-top: 6px; }
 
 /* --- Cards --- */
 .card {
@@ -603,9 +597,8 @@ input.search-input {
 .stat-tile .stat-value { font-size: 28px; font-weight: 800; font-variant-numeric: tabular-nums; color: var(--text); }
 .stat-tile .stat-label { color: var(--text-muted); font-size: 13px; margin-top: 2px; }
 
-/* --- Quota --- */
-.quota { min-width: 200px; }
-.quota-text { display: flex; justify-content: space-between; font-size: 13px; color: var(--text-muted); margin-bottom: 5px; }
+/* Used by admin_analytics.html's funnel chart bars - was also the dashboard's daily
+   quota widget until that was removed, hence the name. */
 .quota-bar { height: 6px; background: var(--border); border-radius: 99px; overflow: hidden; }
 .quota-fill { height: 100%; background: var(--primary); border-radius: 99px; }
 

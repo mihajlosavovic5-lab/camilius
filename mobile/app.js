@@ -1625,9 +1625,6 @@ async function loadDashboard({ silent = false } = {}) {
         state.conversations = data.conversations;
 
         el("inbox-business-name").textContent = data.business_name;
-        el("quota-today").textContent = data.today_processed;
-        el("quota-limit").textContent = data.daily_limit;
-        el("quota-fill").style.width = Math.min(100, Math.round((data.today_processed * 100) / data.daily_limit)) + "%";
 
         el("count-all").textContent = data.total_count;
         el("count-pending").textContent = data.pending_count;
