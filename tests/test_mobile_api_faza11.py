@@ -2,6 +2,7 @@
 website's Faza 8-10 features: pro_access on the dashboard payload, the reminders toggle
 and upsell pairs field (both Pro-gated server-side, not just hidden in the UI), and the
 Schedule bridge link."""
+import app as app_module
 import database
 from conftest import register_and_login
 
@@ -18,7 +19,8 @@ def test_dashboard_reports_pro_access_during_trial(client, unique_username, uniq
     assert response.get_json()["pro_access"] is True  # fresh account is trialing
 
 
-def test_dashboard_reports_no_pro_access_on_starter_plan(client, unique_username, unique_email):
+def test_dashboard_reports_no_pro_access_on_starter_plan(client, unique_username, unique_email, monkeypatch):
+    monkeypatch.setattr(app_module, "BETA_FREE_MODE", False)
     headers, business_id = _auth_header(client, unique_username, unique_email)
     database.link_subscription(business_id, "cust", "sub", "active", plan="starter")
     response = client.get("/api/dashboard", headers=headers)
@@ -34,7 +36,8 @@ def test_notification_preferences_includes_reminders_enabled(client, unique_user
     assert post_response.get_json()["reminders_enabled"] is True  # trialing -> pro_access -> allowed
 
 
-def test_notification_preferences_reminders_ignored_on_starter_plan(client, unique_username, unique_email):
+def test_notification_preferences_reminders_ignored_on_starter_plan(client, unique_username, unique_email, monkeypatch):
+    monkeypatch.setattr(app_module, "BETA_FREE_MODE", False)
     headers, business_id = _auth_header(client, unique_username, unique_email)
     database.link_subscription(business_id, "cust", "sub", "active", plan="starter")
 
@@ -55,7 +58,8 @@ def test_settings_includes_upsell_pairs(client, unique_username, unique_email):
     assert post_response.get_json()["upsell_pairs"] == "Haircut -> Treatment"
 
 
-def test_settings_upsell_pairs_ignored_on_starter_plan(client, unique_username, unique_email):
+def test_settings_upsell_pairs_ignored_on_starter_plan(client, unique_username, unique_email, monkeypatch):
+    monkeypatch.setattr(app_module, "BETA_FREE_MODE", False)
     headers, business_id = _auth_header(client, unique_username, unique_email)
     database.link_subscription(business_id, "cust", "sub", "active", plan="starter")
 

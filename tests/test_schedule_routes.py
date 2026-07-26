@@ -4,6 +4,7 @@ in conftest.py), not the mobile /api/* Bearer-token routes the rest of the suite
 since Schedule only exists on the website."""
 import re
 
+import app as app_module
 import database
 from conftest import get_csrf_token, register_business_web, web_post
 
@@ -25,7 +26,8 @@ def test_schedule_unlocked_during_trial(client, unique_username, unique_email):
     assert "schedule-timeline" in body or "Closed on this day" in body
 
 
-def test_schedule_locked_for_starter_plan(client, unique_username, unique_email):
+def test_schedule_locked_for_starter_plan(client, unique_username, unique_email, monkeypatch):
+    monkeypatch.setattr(app_module, "BETA_FREE_MODE", False)
     register_business_web(client, unique_username, unique_email)
     business_id = database.business_by_username(unique_username)[0]
     database.link_subscription(business_id, "cust", "sub", "active", plan="starter")
@@ -37,7 +39,8 @@ def test_schedule_locked_for_starter_plan(client, unique_username, unique_email)
     assert "schedule-timeline" not in body
 
 
-def test_schedule_locked_starter_cannot_bypass_via_post(client, unique_username, unique_email):
+def test_schedule_locked_starter_cannot_bypass_via_post(client, unique_username, unique_email, monkeypatch):
+    monkeypatch.setattr(app_module, "BETA_FREE_MODE", False)
     register_business_web(client, unique_username, unique_email)
     # CSRF token pulled from /app-settings, not the now-locked /schedule page - the
     # locked page has no form on it at all (see schedule.html), so no token to extract;
@@ -105,7 +108,8 @@ def test_double_booking_the_same_slot_is_rejected(client, unique_username, uniqu
     assert "First Customer" in body
 
 
-def test_home_redirects_to_subscription_once_access_lapses(client, unique_username, unique_email):
+def test_home_redirects_to_subscription_once_access_lapses(client, unique_username, unique_email, monkeypatch):
+    monkeypatch.setattr(app_module, "BETA_FREE_MODE", False)
     register_business_web(client, unique_username, unique_email)
     business_id = database.business_by_username(unique_username)[0]
 

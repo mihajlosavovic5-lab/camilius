@@ -82,27 +82,13 @@ app.register_blueprint(api_blueprint)
 # cookie + CSRF token pair used by browser form submissions, so these routes are exempt.
 csrf.exempt(api_blueprint)
 
-# Faza 5 (2026-07-21): flipped off - real trial/pricing is live. Two possible new-account
-# flows, both landing on the same Starter/Pro pricing page (/subscription) once access
-# runs out (see effective_subscription_active()/trial_expired() in database.py):
-#   - Paddle not configured yet (no PADDLE_CLIENT_TOKEN on Railway): unchanged from before
-#     - every new account gets our own card-free self-serve 14-day trial immediately at
-#     registration (subscription_status='trialing', see add_business()).
-#   - Paddle configured: register() now inserts the account with subscription_status=
-#     'none' instead - no free access until they actually pick a plan and put a card
-#     down through Paddle Checkout on /subscription (Paddle.js overlay, see
-#     templates/subscription.html), which starts a REAL, card-backed 14-day trial - the
-#     trial length and "require a card during trial" setting live on the Price object in
-#     the Paddle dashboard, not in this code. Nothing is charged during the trial,
-#     Paddle auto-charges the card the moment it ends unless they cancel first, and
-#     reminders.py's send_trial_ending_warnings_if_needed emails a heads-up a few days
-#     before that happens (Paddle Billing has no trial-ending webhook to react to
-#     instead, unlike Stripe - see paddle_billing.py's module docstring). Checkout
-#     buttons on the pricing page show "Coming soon" until PADDLE_PRICE_STARTER_MONTHLY/
-#     STARTER_YEARLY/PRO_MONTHLY/PRO_YEARLY are set - so only flip PADDLE_CLIENT_TOKEN on
-#     once at least one of those prices exists, or brand new accounts get no working
-#     way in at all.
-BETA_FREE_MODE = False
+# Flipped back on (2026-07-26) - no registered business entity yet, so Meta's business
+# verification can't be completed and Paddle/Stripe checkout must stay dormant for now;
+# recruiting beta/test users instead. All billing code below (Paddle, Stripe) is left in
+# place untouched - only this flag changed - so flipping it back to False later (once
+# billing can go live for real) restores the exact pricing/checkout behavior described in
+# the comment this replaced, no further code changes needed.
+BETA_FREE_MODE = True
 
 
 @app.context_processor

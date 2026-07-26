@@ -64,6 +64,7 @@ def test_subscription_required_does_not_claim_a_trial_ended_for_a_never_started_
 
 
 def test_pricing_page_shows_paddle_checkout_once_configured(client, unique_username, unique_email, monkeypatch):
+    monkeypatch.setattr(app_module, "BETA_FREE_MODE", False)
     monkeypatch.setattr(app_module.paddle_billing, "is_configured", lambda: True)
     monkeypatch.setattr(app_module.paddle_billing, "client_token", lambda: "test_client_token")
     monkeypatch.setattr(app_module.paddle_billing, "environment", lambda: "sandbox")
@@ -85,7 +86,8 @@ def test_pricing_page_shows_paddle_checkout_once_configured(client, unique_usern
     assert "Coming soon" not in body
 
 
-def test_pricing_page_shows_coming_soon_when_paddle_not_configured(client, unique_username, unique_email):
+def test_pricing_page_shows_coming_soon_when_paddle_not_configured(client, unique_username, unique_email, monkeypatch):
+    monkeypatch.setattr(app_module, "BETA_FREE_MODE", False)
     business_id = database.add_business(
         name="Test Salon", username=unique_username, password="TestPassword123",
         contact_email=unique_email, working_hours="", price_list="", faq="",
