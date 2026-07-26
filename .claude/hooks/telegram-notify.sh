@@ -7,8 +7,7 @@ if [ -z "${TELEGRAM_BOT_TOKEN:-}" ] || [ -z "${TELEGRAM_CHAT_ID:-}" ]; then
   exit 0
 fi
 
-REPO_NAME="$(basename "$(pwd)")"
-MESSAGE="✅ Claude Code je zavrsio zadatak u ${REPO_NAME}"
+MESSAGE="Claude je zavrsio zadatak"
 
 curl -s -m 10 -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
   -d "chat_id=${TELEGRAM_CHAT_ID}" \
