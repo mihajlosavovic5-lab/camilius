@@ -1876,15 +1876,62 @@ el("detail-send").addEventListener("click", async () => {
 
 // --- Settings ---
 
+// The Save button stays hidden until the form actually differs from what was loaded (a
+// serialized snapshot comparison, not a generic "something fired an event" flag - so
+// re-picking the same phone country or an untouched field never shows it), then goes
+// from disabled/gray to enabled/yellow only once every field satisfies its own
+// validation - the same checks the click handler below re-runs before actually saving.
+let profileFormSnapshot = null;
+
+function serializeProfileForm() {
+    return JSON.stringify({
+        name: el("settings-name").value,
+        username: el("settings-username").value,
+        contactEmail: el("settings-contact-email").value,
+        phone: composePhoneNumber(el("settings-phone"), selectedProfilePhoneCountry),
+        hours: profileHoursPicker.getValue(),
+        prices: profilePricesPicker.getValue(),
+        faq: el("settings-faq").value,
+        upsell: el("settings-upsell-pairs").value,
+        currentPassword: el("settings-current-password").value,
+        newPassword: el("settings-new-password").value,
+    });
+}
+
 // Same live "already taken" mechanism as Create Account step 1 (see
 // setupAvailabilityField above) - here the caller IS logged in, so the Bearer token lets
 // the server exclude this business's own current value automatically (editing a field
 // without changing it never flags itself as taken).
-function updateSettingsSaveValidity() {
-    el("settings-save").disabled = profileUsernameAvailability.isBlocking()
-        || profileEmailAvailability.isBlocking()
-        || profilePhoneAvailability.isBlocking();
+function isProfileFormValid() {
+    const username = el("settings-username").value.trim();
+    const contactEmailField = el("settings-contact-email");
+    const contactEmail = contactEmailField.value.trim();
+    const newPassword = el("settings-new-password").value;
+    const currentPassword = el("settings-current-password").value;
+
+    if (!username || !contactEmail || !contactEmailField.checkValidity()) return false;
+    if (profileUsernameAvailability.isBlocking() || profileEmailAvailability.isBlocking() || profilePhoneAvailability.isBlocking()) return false;
+    if (newPassword && !currentPassword) return false;
+    if (newPassword && newPassword.length < 8) return false;
+    if (!profileHoursPicker.validate()) return false;
+    if (!profilePricesPicker.validate()) return false;
+    return true;
 }
+
+function updateSettingsSaveValidity() {
+    const button = el("settings-save");
+    const dirty = profileFormSnapshot !== null && serializeProfileForm() !== profileFormSnapshot;
+    button.classList.toggle("hidden", !dirty);
+    button.disabled = !isProfileFormValid();
+}
+
+// Delegated instead of one listener per field - also catches the hours/prices pickers'
+// custom controls (checkboxes, the option-button dropdowns, add/remove service rows),
+// which either bubble a "change"/"click" or (for the option buttons) dispatch a synthetic
+// bubbling "change" themselves (see createOptionButton above).
+["input", "change", "click"].forEach((evt) => {
+    el("screen-profile").addEventListener(evt, updateSettingsSaveValidity);
+});
 
 const profileUsernameAvailability = setupAvailabilityField(
     el("settings-username"), el("settings-username-error"), "username", "register.usernameTaken",
@@ -1924,6 +1971,8 @@ async function loadSettingsIntoForm() {
         el("settings-current-password").value = "";
         el("settings-new-password").value = "";
         applyProAccessLocks();
+        profileFormSnapshot = serializeProfileForm();
+        updateSettingsSaveValidity();
     } catch (err) {
         if (err.status === 401) logout();
     }
@@ -1995,6 +2044,7 @@ el("settings-save").addEventListener("click", async () => {
         el("settings-current-password").value = "";
         el("settings-new-password").value = "";
         updatePhoneVerifyStatus(data.phone_number, data.phone_verified);
+        profileFormSnapshot = serializeProfileForm();
     } catch (err) {
         errorBox.textContent = err.message || t("settings.error");
         errorBox.classList.remove("hidden");
@@ -2463,10 +2513,35 @@ async function loadNotificationPreferences() {
         el("settings-autosend-toggle").checked = !!data.auto_send;
         el("settings-reminders-toggle").checked = !!data.reminders_enabled;
         applyProAccessLocks();
+        appSettingsSnapshot = serializeAppSettingsForm();
+        updateAppSettingsSaveState();
     } catch (err) {
         if (err.status === 401) logout();
     }
 }
+
+// Same "hidden until dirty" treatment as the Profile screen's Save button - these three
+// toggles have no "invalid" state of their own (a checkbox flip is always a valid value),
+// so once dirty this one goes straight to enabled rather than passing through a gray
+// step.
+let appSettingsSnapshot = null;
+
+function serializeAppSettingsForm() {
+    return JSON.stringify({
+        push: el("settings-push-toggle").checked,
+        autoSend: el("settings-autosend-toggle").checked,
+        reminders: el("settings-reminders-toggle").checked,
+    });
+}
+
+function updateAppSettingsSaveState() {
+    const dirty = appSettingsSnapshot !== null && serializeAppSettingsForm() !== appSettingsSnapshot;
+    el("settings-app-save").classList.toggle("hidden", !dirty);
+}
+
+["settings-push-toggle", "settings-autosend-toggle", "settings-reminders-toggle"].forEach((id) => {
+    el(id).addEventListener("change", updateAppSettingsSaveState);
+});
 
 // Faza 11: locks the No-show reminders toggle and AI upsell field for a Starter-plan
 // (or lapsed) business - mirrors the website's .pro-locked treatment. state.proAccess
@@ -2489,6 +2564,10 @@ function applyProAccessLocks() {
         if (upsellHint) upsellHint.classList.toggle("hidden", !state.proAccess);
         if (upsellLockedHint) upsellLockedHint.classList.toggle("hidden", state.proAccess);
     }
+    // A plan downgrade arriving mid-edit (loadDashboard's poll, not just the initial
+    // load) can force the reminders toggle off from under the user - re-check dirtiness
+    // so the Save button reacts to that too, not just to the user's own taps.
+    updateAppSettingsSaveState();
 }
 
 el("settings-app-save").addEventListener("click", async () => {
@@ -2507,6 +2586,8 @@ el("settings-app-save").addEventListener("click", async () => {
             },
         });
         showToast(t("settings.saved"));
+        appSettingsSnapshot = serializeAppSettingsForm();
+        updateAppSettingsSaveState();
     } catch (err) {
         errorBox.textContent = err.message || t("settings.error");
         errorBox.classList.remove("hidden");
