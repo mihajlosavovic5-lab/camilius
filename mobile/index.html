@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
 <title>Camilius</title>
-<link rel="stylesheet" href="app.css?v=901605d02bbd">
+<link rel="stylesheet" href="app.css?v=e7b3bb351b62">
 </head>
 <body>
 
@@ -18,12 +18,19 @@
   <button id="update-dismiss-btn" class="update-dismiss-btn" aria-label="Dismiss">&times;</button>
 </div>
 
-<!-- OTA (web-content) update banner - shown when a newer mobile/ bundle is available;
-     tapping Install applies it in-place, no APK download involved. No dismiss button on
-     purpose - these updates are mandatory, not optional. -->
-<div id="ota-banner" class="update-banner hidden">
-  <span data-i18n="update.ready">An app update is ready.</span>
-  <button id="ota-install-btn" class="update-download-btn" data-i18n="update.install">Install</button>
+<!-- OTA (web-content) update overlay - shown full-screen the moment a newer mobile/
+     bundle is found, and applied automatically as soon as it finishes downloading. No
+     buttons and no dismiss - these updates are mandatory and require no user action. -->
+<div id="ota-update-overlay" class="ota-update-overlay hidden">
+  <div class="ota-update-card">
+    <img src="icon-512.png" alt="" class="ota-update-icon">
+    <div class="ota-update-spinner"></div>
+    <p data-i18n="update.installing">Updating the app…</p>
+    <div class="ota-progress-track">
+      <div id="ota-progress-fill" class="ota-progress-fill"></div>
+    </div>
+    <span id="ota-progress-percent" class="ota-progress-percent">0%</span>
+  </div>
 </div>
 
 <!-- Language picker dropdown - lives outside #app so its position:fixed isn't affected by
@@ -918,7 +925,7 @@
   </button>
 </nav>
 
-<script src="i18n.js?v=901605d02bbd"></script>
-<script src="app.js?v=901605d02bbd"></script>
+<script src="i18n.js?v=e7b3bb351b62"></script>
+<script src="app.js?v=e7b3bb351b62"></script>
 </body>
 </html>
