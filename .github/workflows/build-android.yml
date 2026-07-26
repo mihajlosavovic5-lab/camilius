@@ -13,6 +13,9 @@ name: Build signed Android APK
 on:
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -77,3 +80,22 @@ jobs:
         with:
           name: camilius-ai-release-apk
           path: android/app/build/outputs/apk/release/app-release.apk
+
+      # static/camilius-ai.apk (served by app.py's /download/camilius-ai.apk, and what
+      # the in-app "new version available" banner links to) used to just sit there
+      # unchanged after this workflow ran - the artifact above was uploaded for manual
+      # download but nobody was reliably re-fetching it and committing it back, so the
+      # distributed binary drifted further out of date every release. This closes that
+      # gap: same build, published straight to the ref that triggered the workflow.
+      - name: Publish rebuilt APK to static/camilius-ai.apk
+        run: |
+          cp android/app/build/outputs/apk/release/app-release.apk static/camilius-ai.apk
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add static/camilius-ai.apk
+          if git diff --cached --quiet; then
+            echo "APK unchanged - nothing to publish"
+          else
+            git commit -m "Publish freshly built signed APK"
+            git push origin HEAD:${{ github.ref_name }}
+          fi
