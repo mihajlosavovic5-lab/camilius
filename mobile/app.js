@@ -2126,7 +2126,7 @@ el("settings-schedule-row").addEventListener("click", async () => {
     }
 });
 
-const SUPPORT_EMAIL = "mihajlosavovic75757@gmail.com";
+const SUPPORT_EMAIL = "support@ai-auto-reply-mail.com";
 
 el("help-email-btn").addEventListener("click", () => {
     // Plain mailto navigation - works when the device has a mail app configured (most
