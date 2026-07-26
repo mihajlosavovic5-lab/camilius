@@ -47,6 +47,29 @@
             if (typeof htmx !== "undefined") htmx.config.globalViewTransitions = true;
         });
     </script>
+    <!-- Mobile nav hamburger toggle (see _nav.html/.nav-menu-btn in style.css) - bound
+         via delegation on document rather than the button itself, since htmx's boosted
+         nav clicks (hx-boost on .nav-links) replace the whole <body>, including this
+         button, on every navigation; a direct listener would go stale after the first
+         swap, but a delegated one on document keeps working. -->
+    <script>
+        document.addEventListener("click", function (e) {
+            var menuBtn = e.target.closest && e.target.closest("#nav-menu-btn");
+            var navLinks = document.getElementById("nav-links");
+            if (!navLinks) return;
+            if (menuBtn) {
+                var open = navLinks.classList.toggle("open");
+                menuBtn.classList.toggle("open", open);
+                menuBtn.setAttribute("aria-expanded", open ? "true" : "false");
+                return;
+            }
+            if (navLinks.classList.contains("open") && !navLinks.contains(e.target)) {
+                navLinks.classList.remove("open");
+                var btn = document.getElementById("nav-menu-btn");
+                if (btn) { btn.classList.remove("open"); btn.setAttribute("aria-expanded", "false"); }
+            }
+        });
+    </script>
     <!-- Site-wide translation layer (static/site-i18n.js) - vanilla JS, same pattern as
          the mobile app's i18n.js. Lives in base.html so the picker button/modal and the
          translate-on-load call apply on every page automatically, without touching each

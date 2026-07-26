@@ -383,6 +383,42 @@ a:focus-visible, button:focus-visible, [tabindex]:focus-visible {
 .nav-link-with-badge { display: inline-flex !important; align-items: center; gap: 5px; }
 .nav-pro-badge { padding: 1px 7px; font-size: 10px; }
 
+/* Hamburger toggle for the logged-in nav - hidden on desktop, where .nav-links stays
+   inline; only takes over at the same 640px breakpoint the nav-links themselves start
+   wrapping at. Three-bar icon morphs into an X via the .open class (toggled by the
+   delegated click listener in base.html, not a per-page script, so it survives htmx
+   swapping the whole nav back in on every boosted navigation - see _nav.html). */
+.nav-menu-btn {
+    display: none; flex-direction: column; align-items: center; justify-content: center;
+    gap: 4px; width: 36px; height: 36px; flex-shrink: 0;
+    border: 1px solid transparent; border-radius: 8px; background: none; cursor: pointer;
+}
+.nav-menu-btn:hover { background: var(--surface); border-color: var(--border); }
+.nav-menu-btn-bar {
+    width: 18px; height: 2px; border-radius: 1px; background: var(--text);
+    transition: transform .2s ease, opacity .2s ease;
+}
+.nav-menu-btn.open .nav-menu-btn-bar:nth-child(1) { transform: translateY(6px) rotate(45deg); }
+.nav-menu-btn.open .nav-menu-btn-bar:nth-child(2) { opacity: 0; }
+.nav-menu-btn.open .nav-menu-btn-bar:nth-child(3) { transform: translateY(-6px) rotate(-45deg); }
+
+@media (max-width: 640px) {
+    .navbar-inner { flex-wrap: nowrap; position: relative; }
+    .nav-menu-btn { display: flex; }
+    /* Collapsed into a dropdown sheet anchored under the navbar instead of the plain
+       wrap-to-two-lines the shared .nav-links flex-wrap rule gives it above - that read
+       as unfinished/cluttered on a phone-width screen next to the desktop nav's tidy
+       single row. */
+    .nav-links {
+        display: none; flex-direction: column; align-items: stretch; gap: 2px;
+        position: absolute; top: calc(100% + 6px); left: 16px; right: 16px;
+        background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+        padding: 8px; box-shadow: var(--shadow-lg); z-index: 999;
+    }
+    .nav-links.open { display: flex; }
+    .nav-links a { text-align: left; }
+}
+
 /* --- Basic layout --- */
 .content { max-width: 960px; margin: 0 auto; padding: 40px 20px 72px; }
 .content-narrow { max-width: 640px; }

@@ -5,11 +5,20 @@
             <span class="brand-name">Camilius</span>
         </span>
         {% if not minimal_nav %}
+        <!-- Hamburger toggle - only shown at phone widths (see .nav-menu-btn in
+             style.css); on desktop .nav-links stays inline and this button is hidden.
+             Toggling is handled by a delegated document click listener in base.html so
+             it keeps working after htmx swaps the nav back in on every boosted nav. -->
+        <button type="button" class="nav-menu-btn" id="nav-menu-btn" aria-label="Menu" aria-expanded="false" aria-controls="nav-links">
+            <span class="nav-menu-btn-bar"></span>
+            <span class="nav-menu-btn-bar"></span>
+            <span class="nav-menu-btn-bar"></span>
+        </button>
         <!-- hx-boost: these links are fetched via AJAX and swapped into the current
              page's <body> instead of a full browser navigation (htmx handles history/
              back-forward transparently) - only the nav, deliberately, not every link or
              form on the site; see base.html for the vendored htmx script. -->
-        <div class="nav-links" hx-boost="true">
+        <div class="nav-links" id="nav-links" hx-boost="true">
             <a href="{{ url_for('home') }}" class="{{ 'active' if request.endpoint == 'home' }}" data-i18n="common.conversations">Conversations</a>
             <a href="{{ url_for('schedule') }}" class="nav-link-with-badge {{ 'active' if request.endpoint == 'schedule' }}">
                 <span data-i18n="common.schedule">Schedule</span>{% if nav_pro_access is sameas false %}<span class="badge badge-pro nav-pro-badge">Pro</span>{% endif %}
