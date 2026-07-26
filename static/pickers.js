@@ -69,32 +69,76 @@ function createHoursPicker(mountId, hiddenFieldId) {
         }).join("\n");
     }
 
+    // Shows either the open/close selects or a "Closed" label in a row's middle slot,
+    // without changing the row's height either way - avoids the layout "jumping" that
+    // hiding/showing the whole times block used to cause.
+    function updateRowVisibility(day) {
+        const r = rows[day];
+        const open = r.checkbox.checked;
+        r.times.classList.toggle("hidden", !open);
+        r.closedLabel.classList.toggle("hidden", open);
+    }
+
+    // Quick-fill row: lets a user set one open/close pair and apply it to every day at
+    // once, instead of repeating the same two dropdown picks seven times.
+    const quickfill = document.createElement("div");
+    quickfill.className = "hours-quickfill";
+    const quickfillLabel = document.createElement("span");
+    quickfillLabel.className = "hours-quickfill-label";
+    quickfillLabel.setAttribute("data-i18n", "hoursPicker.sameEveryDay");
+    quickfillLabel.textContent = t("hoursPicker.sameEveryDay");
+    const quickOpenSelect = document.createElement("select");
+    const quickCloseSelect = document.createElement("select");
+    HOURS_TIME_OPTIONS.forEach((time) => {
+        const openOption = document.createElement("option");
+        openOption.value = time;
+        openOption.textContent = time;
+        quickOpenSelect.appendChild(openOption);
+        const closeOption = document.createElement("option");
+        closeOption.value = time;
+        closeOption.textContent = time;
+        quickCloseSelect.appendChild(closeOption);
+    });
+    quickOpenSelect.value = "09:00";
+    quickCloseSelect.value = "18:00";
+    const quickSep = document.createElement("span");
+    quickSep.className = "hours-time-sep";
+    quickSep.textContent = "–";
+    const quickfillBtn = document.createElement("button");
+    quickfillBtn.type = "button";
+    quickfillBtn.className = "hours-quickfill-btn";
+    quickfillBtn.setAttribute("data-i18n", "hoursPicker.applyToAll");
+    quickfillBtn.textContent = t("hoursPicker.applyToAll");
+    quickfillBtn.addEventListener("click", () => {
+        HOURS_DAYS.forEach((day) => {
+            const r = rows[day];
+            r.checkbox.checked = true;
+            r.openSelect.value = quickOpenSelect.value;
+            r.closeSelect.value = quickCloseSelect.value;
+            updateRowVisibility(day);
+        });
+        sync();
+    });
+    quickfill.appendChild(quickfillLabel);
+    quickfill.appendChild(quickOpenSelect);
+    quickfill.appendChild(quickSep);
+    quickfill.appendChild(quickCloseSelect);
+    quickfill.appendChild(quickfillBtn);
+    mount.appendChild(quickfill);
+
+    const dayList = document.createElement("div");
+    dayList.className = "hours-day-list";
+    mount.appendChild(dayList);
+
     HOURS_DAYS.forEach((day) => {
         const row = document.createElement("div");
         row.className = "hours-day-row";
+        if (day === "saturday") row.classList.add("hours-day-row-weekend");
 
-        const header = document.createElement("div");
-        header.className = "hours-day-header";
         const label = document.createElement("span");
         label.className = "hours-day-name";
         label.setAttribute("data-i18n", HOURS_DAY_I18N_KEYS[day]);
         label.textContent = t(HOURS_DAY_I18N_KEYS[day]);
-
-        const toggleLabel = document.createElement("label");
-        toggleLabel.className = "hours-day-toggle";
-        const checkbox = document.createElement("input");
-        checkbox.type = "checkbox";
-        checkbox.checked = true;
-        const track = document.createElement("span");
-        track.className = "hours-day-toggle-track";
-        const thumb = document.createElement("span");
-        thumb.className = "hours-day-toggle-thumb";
-        track.appendChild(thumb);
-        toggleLabel.appendChild(checkbox);
-        toggleLabel.appendChild(track);
-
-        header.appendChild(label);
-        header.appendChild(toggleLabel);
 
         const times = document.createElement("div");
         times.className = "hours-day-times";
@@ -119,18 +163,38 @@ function createHoursPicker(mountId, hiddenFieldId) {
         times.appendChild(sep);
         times.appendChild(closeSelect);
 
+        const closedLabel = document.createElement("span");
+        closedLabel.className = "hours-day-closed-label hidden";
+        closedLabel.setAttribute("data-i18n", "hoursPicker.closed");
+        closedLabel.textContent = t("hoursPicker.closed");
+
+        const toggleLabel = document.createElement("label");
+        toggleLabel.className = "hours-day-toggle";
+        const checkbox = document.createElement("input");
+        checkbox.type = "checkbox";
+        checkbox.checked = true;
+        const track = document.createElement("span");
+        track.className = "hours-day-toggle-track";
+        const thumb = document.createElement("span");
+        thumb.className = "hours-day-toggle-thumb";
+        track.appendChild(thumb);
+        toggleLabel.appendChild(checkbox);
+        toggleLabel.appendChild(track);
+
         checkbox.addEventListener("change", () => {
-            times.classList.toggle("hidden", !checkbox.checked);
+            updateRowVisibility(day);
             sync();
         });
         openSelect.addEventListener("change", sync);
         closeSelect.addEventListener("change", sync);
 
-        row.appendChild(header);
+        row.appendChild(label);
         row.appendChild(times);
-        mount.appendChild(row);
+        row.appendChild(closedLabel);
+        row.appendChild(toggleLabel);
+        dayList.appendChild(row);
 
-        rows[day] = { checkbox, openSelect, closeSelect, times };
+        rows[day] = { checkbox, openSelect, closeSelect, times, closedLabel };
     });
 
     // Best-effort parse of our own generated format back into picker state - used when
@@ -145,7 +209,7 @@ function createHoursPicker(mountId, hiddenFieldId) {
             const r = rows[day];
             if (/closed/i.test(line)) {
                 r.checkbox.checked = false;
-                r.times.classList.add("hidden");
+                updateRowVisibility(day);
                 return;
             }
             const match = line.match(/(\d{1,2}):(\d{2})\s*-\s*(\d{1,2}):(\d{2})/);
@@ -155,7 +219,7 @@ function createHoursPicker(mountId, hiddenFieldId) {
             if (HOURS_TIME_OPTIONS.includes(openTime)) r.openSelect.value = openTime;
             if (HOURS_TIME_OPTIONS.includes(closeTime)) r.closeSelect.value = closeTime;
             r.checkbox.checked = true;
-            r.times.classList.remove("hidden");
+            updateRowVisibility(day);
         });
     }
 

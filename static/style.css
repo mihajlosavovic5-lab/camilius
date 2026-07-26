@@ -843,27 +843,43 @@ body.auth {
 /* --- Working hours + price list pickers (Faza 5) - functional parity with the mobile
    app's own pickers (see static/pickers.js); a real "pick from options" UI instead of a
    freeform textarea, on both Register and Profile. --- */
-.hours-picker { display: flex; flex-direction: column; gap: 8px; margin: 6px 0 4px; }
+.hours-picker { display: flex; flex-direction: column; gap: 12px; margin: 6px 0 4px; }
+
+.hours-quickfill {
+    display: flex; align-items: center; flex-wrap: wrap; gap: 10px;
+    padding: 10px 12px; background: var(--background); border: 1px solid var(--border); border-radius: 10px;
+}
+.hours-quickfill-label { font-size: 13px; font-weight: 600; color: var(--text-muted); flex: 1 1 160px; }
+.hours-quickfill select {
+    padding: 7px 8px; border: 1px solid var(--border); border-radius: 8px;
+    font-family: inherit; font-size: 13.5px; color: var(--text); background: var(--surface); cursor: pointer;
+}
+.hours-quickfill-btn {
+    padding: 7px 14px; border: 1.5px solid var(--primary); border-radius: 8px; background: none;
+    color: var(--primary-ink); font-family: inherit; font-size: 13px; font-weight: 600; cursor: pointer;
+    white-space: nowrap; transition: background .15s ease;
+}
+.hours-quickfill-btn:hover { background: var(--primary-light); }
+
+.hours-day-list { display: flex; flex-direction: column; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
 .hours-day-row {
-    background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px;
-    transition: border-color .15s ease, transform .15s cubic-bezier(.2,.9,.3,1.3), box-shadow .18s ease;
+    display: flex; align-items: center; gap: 12px; padding: 10px 14px;
+    border-bottom: 1px solid var(--border); transition: background .15s ease;
 }
-.hours-day-row:hover {
-    border-color: var(--primary-ink);
-    transform: translateY(-1px);
-    box-shadow: 0 6px 14px -6px rgba(38, 32, 20, .18), 0 1px 3px rgba(38, 32, 20, .06);
-}
-.hours-day-header { display: flex; align-items: center; justify-content: space-between; }
-.hours-day-name { font-weight: 600; font-size: 14.5px; }
-.hours-day-times { display: flex; align-items: center; gap: 8px; margin-top: 10px; }
+.hours-day-row:last-child { border-bottom: none; }
+.hours-day-row:hover { background: var(--background); }
+.hours-day-row-weekend { border-top: 2px solid var(--border); }
+.hours-day-name { font-weight: 600; font-size: 14px; width: 84px; flex-shrink: 0; }
+.hours-day-times { display: flex; align-items: center; gap: 6px; flex: 1; min-width: 0; }
 .hours-day-times.hidden { display: none; }
 .hours-day-times select {
-    flex: 1; min-width: 0; padding: 9px 8px; border: 1px solid var(--border); border-radius: 8px;
-    font-family: inherit; font-size: 14px; color: var(--text); background: var(--background);
+    padding: 7px 8px; border: 1px solid var(--border); border-radius: 8px;
+    font-family: inherit; font-size: 13.5px; color: var(--text); background: var(--surface);
 }
 .hours-time-sep { color: var(--text-muted); font-size: 13px; flex-shrink: 0; }
+.hours-day-closed-label { flex: 1; min-width: 0; font-size: 13.5px; color: var(--text-muted); }
 
-.hours-day-toggle { position: relative; display: inline-block; width: 40px; height: 23px; cursor: pointer; flex-shrink: 0; }
+.hours-day-toggle { position: relative; display: inline-block; width: 40px; height: 23px; cursor: pointer; flex-shrink: 0; margin-left: auto; }
 .hours-day-toggle input { position: absolute; inset: 0; opacity: 0; margin: 0; cursor: pointer; }
 .hours-day-toggle-track { position: absolute; inset: 0; background: var(--border); border-radius: 999px; transition: background .2s ease; }
 .hours-day-toggle-thumb {
