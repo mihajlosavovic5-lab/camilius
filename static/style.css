@@ -1083,11 +1083,20 @@ body.auth {
 }
 
 /* Per-booking duration override (one free slot's own form) - a compact select next to
-   the customer-name/service inputs, reusing the same "Custom -> number input" pattern
-   as the header picker above. */
+   the customer-name/service inputs, pill-shaped to match the header's duration pills/
+   Book button instead of a plain rectangular <select>. "Custom" swaps the select for
+   the number input right in the same spot (see the DOMContentLoaded handler below) -
+   never both at once - so there's always exactly one field here, not two. */
 .schedule-slot-duration { display: flex; align-items: center; gap: 6px; }
-.schedule-slot-duration-select { margin: 0; padding: 7px 8px; font-size: 13px; width: auto; }
-.schedule-slot-duration-custom { margin: 0; padding: 7px 8px; font-size: 13px; width: 80px; }
+.schedule-slot-duration-select,
+.schedule-slot-duration-custom {
+    margin: 0; padding: 7px 12px; font-size: 13px; font-weight: 600; width: auto;
+    border-radius: 99px; border: 1px solid var(--border); background: var(--surface); color: var(--text);
+    transition: border-color .15s ease, box-shadow .15s ease;
+}
+.schedule-slot-duration-custom { width: 96px; }
+.schedule-slot-duration-select:focus,
+.schedule-slot-duration-custom:focus { border-color: var(--primary-ink); box-shadow: 0 0 0 3px rgba(214, 148, 16, .18); outline: none; }
 .schedule-slot-covered { background: var(--background); opacity: .55; }
 .schedule-slot-range { font-variant-numeric: tabular-nums; }
 

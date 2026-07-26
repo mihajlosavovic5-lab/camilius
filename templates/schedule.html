@@ -150,7 +150,7 @@
                                                 {% endfor %}
                                                 <option value="custom" data-i18n="schedule.custom">Custom</option>
                                             </select>
-                                            <input type="number" name="duration_custom" class="schedule-slot-duration-custom hidden" min="{{ slot_duration_min }}" max="{{ slot_duration_max }}" step="5" data-i18n-placeholder="schedule.customMinutesPlaceholder" placeholder="Minutes">
+                                            <input type="number" name="duration_custom" class="schedule-slot-duration-custom hidden" min="{{ slot_duration_min }}" max="{{ slot_duration_max }}" step="5" disabled data-i18n-placeholder="schedule.custom" placeholder="Custom">
                                         </div>
                                         <button class="button" type="submit" data-i18n="schedule.book">Book</button>
                                     </form>
@@ -208,17 +208,39 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     }
 
-    // Per-booking duration <select> on each free slot's form - "Custom" reveals a
-    // number input (duration_custom) instead of submitting the sentinel value itself
-    // (see create_appointment_route in app.py, which reads duration_custom when
-    // duration=="custom").
+    // Per-booking duration <select> on each free slot's form - "Custom" swaps the select
+    // itself out for a number input (duration_custom) in the same spot, rather than
+    // showing both side by side. The select stays in the DOM (still hidden, still named
+    // "duration", still submits "custom") so create_appointment_route knows to read
+    // duration_custom instead - see app.py.
     document.querySelectorAll(".schedule-slot-duration-select").forEach(function (select) {
         var customInput = select.parentElement.querySelector(".schedule-slot-duration-custom");
+        var lastPresetValue = select.value;
         select.addEventListener("change", function () {
-            var isCustom = select.value === "custom";
-            customInput.classList.toggle("hidden", !isCustom);
-            customInput.disabled = !isCustom;
-            if (isCustom) customInput.focus();
+            if (select.value !== "custom") {
+                lastPresetValue = select.value;
+                return;
+            }
+            select.classList.add("hidden");
+            customInput.classList.remove("hidden");
+            customInput.disabled = false;
+            customInput.value = "";
+            customInput.focus();
+        });
+        // Typing nothing and clicking away reverts to the dropdown (at whatever preset
+        // was chosen before "Custom") instead of leaving an empty field with no way back.
+        customInput.addEventListener("blur", function () {
+            if (customInput.value.trim()) return;
+            select.value = lastPresetValue;
+            select.classList.remove("hidden");
+            customInput.classList.add("hidden");
+            customInput.disabled = true;
+        });
+        customInput.addEventListener("keydown", function (e) {
+            if (e.key === "Enter") {
+                e.preventDefault();
+                if (customInput.value.trim()) customInput.closest("form").requestSubmit();
+            }
         });
     });
 });
