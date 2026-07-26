@@ -1280,15 +1280,37 @@ def has_pro_access(business_id):
     A business in its own self-serve trial (no Paddle plan chosen yet) gets full
     Pro-level access for the length of the trial - standard "show the best of the
     product" trial design, same reasoning ACTIVE_STATUSES already applies to basic
-    access. Real gating only starts once a specific paid plan exists."""
-    if is_comp_account(business_id):
-        return True
-    status = get_subscription_status(business_id)
-    if not subscription_active(status) or trial_expired(business_id):
+    access. Real gating only starts once a specific paid plan exists.
+
+    One query instead of the four separate round trips this used to make (is_comp_account
+    -> its own business_by_id, plus get_subscription_status, trial_expired,
+    get_subscription_plan) - this is called on nearly every Schedule/API request, so those
+    extra round trips were the main source of the Schedule tab's noticeable load delay."""
+    connection = connect()
+    cursor = connection.cursor()
+    cursor.execute(
+        """SELECT contact_email, subscription_status, subscription_plan,
+                  paddle_subscription_id, stripe_subscription_id, created_at
+           FROM businesses WHERE id = %s""",
+        (business_id,),
+    )
+    row = cursor.fetchone()
+    connection.close()
+    if not row:
         return False
+    contact_email, status, plan, paddle_subscription_id, stripe_subscription_id, created_at = row
+
+    if contact_email.strip().lower() in _comp_account_emails():
+        return True
+    if not subscription_active(status):
+        return False
+    if status == "trialing" and not paddle_subscription_id and not stripe_subscription_id:
+        now = datetime.now(timezone.utc).replace(tzinfo=None)
+        if now - created_at > timedelta(days=SELF_SERVE_TRIAL_DAYS):
+            return False
     if status == "trialing":
         return True
-    return get_subscription_plan(business_id) == "pro"
+    return plan == "pro"
 
 
 # --- Appointments / Schedule (Faza 8) ---

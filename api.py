@@ -176,10 +176,14 @@ def require_api_auth(function):
             return jsonify(error="unauthorized"), 401
 
         business_id = _business_id_from_token(auth_header[len("Bearer "):])
-        if business_id is None or business_by_id(business_id) is None:
+        business = business_by_id(business_id) if business_id is not None else None
+        if business is None:
             return jsonify(error="unauthorized"), 401
 
         request.business_id = business_id
+        # Stashed so handlers that need the row (e.g. api_schedule) don't have to pay for
+        # a second business_by_id round trip right after this one.
+        request.business = business
         return function(*args, **kwargs)
     return wrapped
 
@@ -409,7 +413,7 @@ def api_schedule():
     if not (BETA_FREE_MODE or has_pro_access(business_id)):
         return jsonify(locked=True)
 
-    business = business_by_id(business_id)
+    business = request.business
     working_hours = business[8]
     slot_minutes = get_slot_duration(business_id)
     today = booking.now_local().date()
@@ -434,10 +438,11 @@ def api_schedule():
 
     if view == "week":
         week_start = selected_date - timedelta(days=selected_date.weekday())
+        appts_by_day = booking.appointments_by_local_day(business_id, week_start, week_start + timedelta(days=7))
         days = []
         for i in range(7):
             d = week_start + timedelta(days=i)
-            appts = sorted(booking.appointments_for_local_day(business_id, d), key=lambda a: a["start_local"])
+            appts = sorted(appts_by_day.get(d, []), key=lambda a: a["start_local"])
             days.append({
                 "date": d.isoformat(),
                 "is_today": d == today,
