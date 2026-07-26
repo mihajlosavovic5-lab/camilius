@@ -75,8 +75,10 @@
             <div class="price-picker-rows" id="settings-price-picker-mount"></div>
             <button type="button" class="price-add-btn" id="settings-price-add" data-i18n="pricePicker.addButton">+ Add service</button>
 
-            <label data-i18n="register.faq">Tell us more about your business</label>
-            <textarea name="faq">{{ business.faq }}</textarea>
+            <div class="floating-field floating-field-textarea">
+                <textarea name="faq" id="settings-faq-input" placeholder=" ">{{ business.faq }}</textarea>
+                <label for="settings-faq-input" data-i18n="register.faq">Tell us more about your business</label>
+            </div>
             <p class="note" data-i18n="register.faqHint">The more you share, the more questions our AI can answer for your customers.</p>
         </div>
 
@@ -85,7 +87,7 @@
                 <span class="profile-section-icon">&#10024;</span>
                 <div>
                     <p class="profile-section-title"><span data-i18n="settings.upsell.heading">AI upsell</span> <span class="badge badge-pro">Pro</span></p>
-                    <p class="profile-section-subtitle" data-i18n="settings.upsell.subtitle">Link related services - when the AI books one during a DM conversation, it'll gently suggest the other.</p>
+                    <p class="profile-section-subtitle" data-i18n="settings.upsell.subtitle">When the AI books one service, it can suggest a related one too.</p>
                 </div>
             </div>
             {% if pro_access %}
@@ -93,7 +95,7 @@
                 <input type="hidden" name="upsell_pairs" id="settings-upsell-pairs" value="{{ business.upsell_pairs or '' }}">
                 <div class="upsell-picker-rows" id="settings-upsell-picker-mount"></div>
                 <button type="button" class="price-add-btn" id="settings-upsell-add" data-i18n="settings.upsell.addPair">+ Add pair</button>
-                <p class="note" data-i18n="settings.upsell.note">Pick (or type) a service on the left, and the complementary service to suggest on the right - suggestions from your price list appear as you type.</p>
+                <p class="note" data-i18n="settings.upsell.note">Add a service on the left and what to suggest with it on the right - matches from your price list appear as you type.</p>
             {% else %}
                 <div class="pro-locked">
                     <label style="margin-top: 0;" data-i18n="settings.upsell.relatedServices">Related services</label>
@@ -114,9 +116,9 @@
 <script src="{{ url_for('static', filename='pickers.js') }}?v={{ static_versions['pickers.js'] }}" defer></script>
 <script>
 document.addEventListener("DOMContentLoaded", function () {
-    createHoursPicker("settings-hours-picker-mount", "settings-working-hours");
-    createPricePicker("settings-price-picker-mount", "settings-price-add", "settings-price-currency", "settings-price-list");
-    createUpsellPicker("settings-upsell-picker-mount", "settings-upsell-add", "settings-upsell-pairs", "settings-price-list");
+    safeInit(() => createHoursPicker("settings-hours-picker-mount", "settings-working-hours"));
+    safeInit(() => createPricePicker("settings-price-picker-mount", "settings-price-add", "settings-price-currency", "settings-price-list"));
+    safeInit(() => createUpsellPicker("settings-upsell-picker-mount", "settings-upsell-add", "settings-upsell-pairs", "settings-price-list"));
 });
 </script>
 {% endblock %}

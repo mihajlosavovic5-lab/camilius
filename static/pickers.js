@@ -12,6 +12,24 @@
 // settings() in app.py need no changes at all; they still just read request.form["working_hours"]
 // and request.form["price_list"] as plain strings.
 
+// settings.html inits all three pickers in the same DOMContentLoaded callback - without
+// this wrapper, one picker throwing (e.g. on a business whose saved data doesn't parse
+// the way the initializer expects) would abort that whole callback and silently leave
+// every picker *after* it in the same block un-initialized (empty mount, no rows) even
+// though nothing is wrong with them individually. safeInit() isolates each call so a
+// single bad picker can't take the others down with it. (register.html's own init isn't
+// wrapped the same way - its wizard reads createHoursPicker/createPricePicker's return
+// value directly for step validation, so swallowing a failure there would just move the
+// crash to first use instead of preventing it.)
+function safeInit(fn) {
+    try {
+        return fn();
+    } catch (e) {
+        console.error("Picker init failed:", e);
+        return null;
+    }
+}
+
 const HOURS_DAYS = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
 // English day names - this is the wire format saved to working_hours ("Monday: 09:00-
 // 18:00") that the backend/AI parse, NOT display text, so it must stay fixed regardless

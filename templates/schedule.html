@@ -11,15 +11,24 @@
             <p class="subtitle" data-i18n="schedule.subtitle">Manage your appointment calendar.</p>
         </div>
         {% if not locked %}
-        <form method="POST" action="{{ url_for('update_slot_duration') }}" class="schedule-slot-duration-form">
+        <form method="POST" action="{{ url_for('update_slot_duration') }}" class="duration-picker" id="schedule-duration-form">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <input type="hidden" name="date" value="{{ selected_date.isoformat() }}">
-            <label style="margin: 0; font-weight: 500; font-size: 13.5px; color: var(--text-muted);" data-i18n="schedule.appointmentLength">Appointment length</label>
-            <select name="slot_duration" onchange="this.form.submit()">
+            <label class="duration-picker-label" data-i18n="schedule.appointmentLength">Appointment length</label>
+            <input type="hidden" name="slot_duration" id="schedule-duration-value" value="{{ slot_minutes }}">
+            <div class="duration-pills">
                 {% for choice in slot_duration_choices %}
-                    <option value="{{ choice }}" {{ 'selected' if choice == slot_minutes }}>{{ choice }} min</option>
+                    <button type="button" class="duration-pill {{ 'active' if choice == slot_minutes }}" data-duration-value="{{ choice }}">{{ choice }}</button>
                 {% endfor %}
-            </select>
+                <button type="button" class="duration-pill duration-pill-custom {{ 'active' if slot_minutes not in slot_duration_choices }}" id="schedule-duration-custom-btn" data-i18n="schedule.custom">Custom</button>
+            </div>
+            <div class="duration-custom-row hidden" id="schedule-duration-custom-row">
+                <input type="number" min="{{ slot_duration_min }}" max="{{ slot_duration_max }}" step="5"
+                       id="schedule-duration-custom-input"
+                       value="{{ slot_minutes if slot_minutes not in slot_duration_choices else '' }}"
+                       data-i18n-placeholder="schedule.customMinutesPlaceholder" placeholder="Minutes">
+                <button type="button" class="button button-small" id="schedule-duration-custom-apply" data-i18n="schedule.setDuration">Set</button>
+            </div>
         </form>
         {% endif %}
     </div>
@@ -102,6 +111,7 @@
                                     <div class="schedule-slot-info">
                                         <strong>{{ row.appointment.customer_name }}</strong>
                                         {% if row.appointment.service %}<span class="note">{{ row.appointment.service }}</span>{% endif %}
+                                        <span class="note schedule-slot-range">{{ row.appointment.start_local.strftime('%H:%M') }}&ndash;{{ row.appointment.end_local.strftime('%H:%M') }}</span>
                                         <span class="badge {{ 'badge-sent' if row.appointment.source == 'ai' else 'badge-pending' }}"><span class="badge-dot"></span><span data-i18n="{{ 'schedule.aiBooked' if row.appointment.source == 'ai' else 'schedule.manual' }}">{{ 'AI booked' if row.appointment.source == 'ai' else 'Manual' }}</span></span>
                                     </div>
                                     <form method="POST" action="{{ url_for('cancel_appointment_route', appointment_id=row.appointment.id) }}">
@@ -110,6 +120,10 @@
                                         <input type="hidden" name="view" value="day">
                                         <button class="button button-secondary" type="submit" data-i18n="schedule.cancel">Cancel</button>
                                     </form>
+                                </div>
+                            {% elif row.covered_by %}
+                                <div class="schedule-slot schedule-slot-covered">
+                                    <span class="note"><span data-i18n="schedule.partOfAppointment">Part of</span> {{ row.covered_by.customer_name }}{% if row.covered_by.service %}&rsquo;s {{ row.covered_by.service }}{% endif %}</span>
                                 </div>
                             {% elif row.is_past %}
                                 <div class="schedule-slot schedule-slot-free schedule-slot-past">
@@ -123,6 +137,18 @@
                                         <input type="hidden" name="time" value="{{ row.time }}">
                                         <input type="text" name="customer_name" data-i18n-placeholder="schedule.customerNamePlaceholder" placeholder="Customer name" required>
                                         <input type="text" name="service" data-i18n-placeholder="schedule.servicePlaceholder" placeholder="Service (optional)">
+                                        <div class="schedule-slot-duration">
+                                            <select name="duration" class="schedule-slot-duration-select" aria-label="Duration">
+                                                {% if slot_minutes not in slot_duration_choices %}
+                                                    <option value="{{ slot_minutes }}" selected>{{ slot_minutes }} min</option>
+                                                {% endif %}
+                                                {% for choice in slot_duration_choices %}
+                                                    <option value="{{ choice }}" {{ 'selected' if choice == slot_minutes }}>{{ choice }} min</option>
+                                                {% endfor %}
+                                                <option value="custom" data-i18n="schedule.custom">Custom</option>
+                                            </select>
+                                            <input type="number" name="duration_custom" class="schedule-slot-duration-custom hidden" min="{{ slot_duration_min }}" max="{{ slot_duration_max }}" step="5" data-i18n-placeholder="schedule.customMinutesPlaceholder" placeholder="Minutes">
+                                        </div>
                                         <button class="button" type="submit" data-i18n="schedule.book">Book</button>
                                     </form>
                                 </div>
@@ -136,4 +162,52 @@
 
     {% endif %}
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    // Header "Appointment length" pill picker - clicking a pill submits the form right
+    // away (same UX as the old auto-submitting <select>); "Custom" instead reveals a
+    // plain number input so the owner can set any length, not just the quick-pick list.
+    var durationForm = document.getElementById("schedule-duration-form");
+    if (durationForm) {
+        var durationValue = document.getElementById("schedule-duration-value");
+        var customBtn = document.getElementById("schedule-duration-custom-btn");
+        var customRow = document.getElementById("schedule-duration-custom-row");
+        var customInput = document.getElementById("schedule-duration-custom-input");
+
+        durationForm.querySelectorAll(".duration-pill:not(.duration-pill-custom)").forEach(function (pill) {
+            pill.addEventListener("click", function () {
+                durationValue.value = pill.dataset.durationValue;
+                durationForm.submit();
+            });
+        });
+        customBtn.addEventListener("click", function () {
+            customRow.classList.remove("hidden");
+            customInput.focus();
+        });
+        document.getElementById("schedule-duration-custom-apply").addEventListener("click", function () {
+            var minutes = parseInt(customInput.value, 10);
+            if (!minutes || minutes < customInput.min || minutes > customInput.max) return;
+            durationValue.value = minutes;
+            durationForm.submit();
+        });
+    }
+
+    // Per-booking duration <select> on each free slot's form - "Custom" reveals a
+    // number input (duration_custom) instead of submitting the sentinel value itself
+    // (see create_appointment_route in app.py, which reads duration_custom when
+    // duration=="custom").
+    document.querySelectorAll(".schedule-slot-duration-select").forEach(function (select) {
+        var customInput = select.parentElement.querySelector(".schedule-slot-duration-custom");
+        select.addEventListener("change", function () {
+            var isCustom = select.value === "custom";
+            customInput.classList.toggle("hidden", !isCustom);
+            customInput.disabled = !isCustom;
+            if (isCustom) customInput.focus();
+        });
+    });
+});
+</script>
 {% endblock %}

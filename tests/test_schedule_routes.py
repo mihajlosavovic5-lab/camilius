@@ -108,6 +108,72 @@ def test_double_booking_the_same_slot_is_rejected(client, unique_username, uniqu
     assert "First Customer" in body
 
 
+def test_book_appointment_with_custom_duration_blocks_the_slots_it_covers(client, unique_username, unique_email):
+    register_business_web(client, unique_username, unique_email)
+    csrf_token = get_csrf_token(client, "/schedule")
+
+    # 90-minute booking at 09:00 on a 30-minute grid (the test business's default, see
+    # register_business_web) should end at 10:30 and swallow the 09:30 row too.
+    create = web_post(client, "/schedule/appointments", {
+        "csrf_token": csrf_token, "date": "2026-07-27", "time": "09:00",
+        "customer_name": "Ana", "duration": "90",
+    })
+    assert create.status_code == 302
+
+    body = client.get("/schedule?date=2026-07-27").get_data(as_text=True)
+    assert "09:00" in body and "10:30" in body  # the booked card's own start-end range
+    assert "schedule-slot-covered" in body  # 09:30's row is blocked, not a free "Book" button
+
+    # The 09:30 slot can't be double-booked even via a direct POST, since it overlaps
+    # Ana's 09:00-10:30 appointment.
+    csrf_2 = get_csrf_token(client, "/schedule?date=2026-07-27")
+    second = web_post(client, "/schedule/appointments", {
+        "csrf_token": csrf_2, "date": "2026-07-27", "time": "09:30", "customer_name": "Overlap Attempt",
+    })
+    assert "book_error=1" in second.headers["Location"]
+
+
+def test_book_appointment_with_custom_duration_field(client, unique_username, unique_email):
+    register_business_web(client, unique_username, unique_email)
+    csrf_token = get_csrf_token(client, "/schedule")
+
+    # duration="custom" defers to duration_custom, same as the "Custom" option on the
+    # per-slot picker (see schedule.html/pickers.js).
+    create = web_post(client, "/schedule/appointments", {
+        "csrf_token": csrf_token, "date": "2026-07-27", "time": "09:00",
+        "customer_name": "Ivan", "duration": "custom", "duration_custom": "20",
+    })
+    assert create.status_code == 302
+
+    body = client.get("/schedule?date=2026-07-27").get_data(as_text=True)
+    assert "09:00" in body and "09:20" in body
+
+
+def test_update_slot_duration_accepts_custom_value(client, unique_username, unique_email):
+    register_business_web(client, unique_username, unique_email)
+    csrf_token = get_csrf_token(client, "/schedule")
+
+    response = web_post(client, "/schedule/slot-duration", {
+        "csrf_token": csrf_token, "slot_duration": "50", "date": "2026-07-27",
+    })
+    assert response.status_code == 302
+
+    business_id = database.business_by_username(unique_username)[0]
+    assert database.get_slot_duration(business_id) == 50
+
+
+def test_update_slot_duration_rejects_out_of_range_value(client, unique_username, unique_email):
+    register_business_web(client, unique_username, unique_email)
+    csrf_token = get_csrf_token(client, "/schedule")
+
+    web_post(client, "/schedule/slot-duration", {
+        "csrf_token": csrf_token, "slot_duration": "9999", "date": "2026-07-27",
+    })
+
+    business_id = database.business_by_username(unique_username)[0]
+    assert database.get_slot_duration(business_id) == 30  # falls back to the default
+
+
 def test_home_redirects_to_subscription_once_access_lapses(client, unique_username, unique_email, monkeypatch):
     monkeypatch.setattr(app_module, "BETA_FREE_MODE", False)
     register_business_web(client, unique_username, unique_email)

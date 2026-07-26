@@ -1394,6 +1394,11 @@ def send_reply(conversation_id):
 # message) is Pro-plan-exclusive; see has_pro_access() in database.py.
 
 SLOT_DURATION_CHOICES = (15, 30, 45, 60, 90, 120)
+# Bounds for the "Custom" duration pill (both the business-wide default on the Schedule
+# page header and the per-appointment override on the booking form) - wide enough for
+# a quick 5-minute top-up or a half-day retreat, without allowing garbage input through.
+SLOT_DURATION_MIN = 5
+SLOT_DURATION_MAX = 480
 
 
 @app.route("/schedule")
@@ -1427,6 +1432,8 @@ def schedule():
         today=booking.now_local().date(),
         slot_minutes=slot_minutes,
         slot_duration_choices=SLOT_DURATION_CHOICES,
+        slot_duration_min=SLOT_DURATION_MIN,
+        slot_duration_max=SLOT_DURATION_MAX,
         has_any_open_day=any(booking.parse_working_hours(working_hours).values()),
         book_error=request.args.get("book_error"),
     )
@@ -1448,14 +1455,24 @@ def schedule():
         context["next_date"] = (week_start + timedelta(days=7)).isoformat()
     else:
         slots = booking.day_slots(working_hours, slot_minutes, selected_date)
-        appts_by_start = {a["start_local"].strftime("%H:%M"): a for a in booking.appointments_for_local_day(business_id, selected_date)}
+        day_appointments = booking.appointments_for_local_day(business_id, selected_date)
+        appts_by_start = {a["start_local"].strftime("%H:%M"): a for a in day_appointments}
         rows = []
         for s in slots:
             key = s.strftime("%H:%M")
+            appt = appts_by_start.get(key)
+            # An appointment booked with a custom duration (see create_appointment_route)
+            # can run longer than one grid slot - the slots it swallows besides its own
+            # start need to show as unavailable too, not a free "Book" button, even
+            # though no appointment actually starts at their exact time.
+            covered_by = None
+            if appt is None:
+                covered_by = next((a for a in day_appointments if a["start_local"] <= s < a["end_local"]), None)
             rows.append({
                 "time": key,
                 "end_time": (s + timedelta(minutes=slot_minutes)).strftime("%H:%M"),
-                "appointment": appts_by_start.get(key),
+                "appointment": appt,
+                "covered_by": covered_by,
                 "is_past": s < booking.now_local(),
             })
         context["slot_rows"] = rows
@@ -1504,8 +1521,22 @@ def create_appointment_route():
         return redirect(url_for("schedule", date=date_str))
 
     if customer_name:
-        slot_minutes = get_slot_duration(business_id)
-        end_dt = local_dt + timedelta(minutes=slot_minutes)
+        # The duration field on the booking form defaults to the business-wide slot
+        # length but lets the owner pick a different one for this single appointment
+        # (e.g. a 90-minute color when everything else is booked in 30-minute slots).
+        # "custom" (picked via the form's own Custom option) reads from duration_custom
+        # instead. Any out-of-range/garbage value falls back to the business default
+        # rather than erroring, same "best-effort" spirit as the rest of this route.
+        duration_raw = (request.form.get("duration") or "").strip()
+        if not duration_raw or duration_raw == "custom":
+            duration_raw = (request.form.get("duration_custom") or "").strip()
+        try:
+            duration_minutes = int(duration_raw)
+        except ValueError:
+            duration_minutes = get_slot_duration(business_id)
+        if not (SLOT_DURATION_MIN <= duration_minutes <= SLOT_DURATION_MAX):
+            duration_minutes = get_slot_duration(business_id)
+        end_dt = local_dt + timedelta(minutes=duration_minutes)
         is_bookable = (
             local_dt >= booking.now_local()
             and booking.slot_within_business_hours(business[8], local_dt, end_dt)
@@ -1540,7 +1571,9 @@ def update_slot_duration():
         minutes = int(request.form.get("slot_duration", 30))
     except ValueError:
         minutes = 30
-    if minutes not in SLOT_DURATION_CHOICES:
+    # Anything in the quick-pick list is always allowed; anything else (the "Custom"
+    # pill on the Schedule page) just needs to be a sane number of minutes.
+    if minutes not in SLOT_DURATION_CHOICES and not (SLOT_DURATION_MIN <= minutes <= SLOT_DURATION_MAX):
         minutes = 30
     set_slot_duration(session["business_id"], minutes)
     return redirect(url_for("schedule", date=request.form.get("date", "")))
