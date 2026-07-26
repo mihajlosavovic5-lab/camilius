@@ -1038,7 +1038,7 @@ body.auth {
    matching the Day/Week toggle's (.filters) look/feel instead of a bare native <select>,
    plus a "Custom" pill that reveals a plain number input for any length outside the
    quick-pick list. */
-.duration-picker { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.duration-picker { position: relative; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .duration-picker-label { margin: 0; font-weight: 500; font-size: 13.5px; color: var(--text-muted); }
 .duration-pills { display: flex; gap: 6px; flex-wrap: wrap; }
 .duration-pill {
@@ -1056,7 +1056,19 @@ body.auth {
 .duration-pill:active { transform: translateY(0); box-shadow: none; }
 .duration-pill.active { background: var(--text); color: #fff; border-color: var(--text); }
 .duration-pill-custom.active { background: var(--primary); border-color: var(--primary); }
-.duration-custom-row { display: flex; align-items: center; gap: 8px; animation: duration-custom-in .18s cubic-bezier(.16,1,.3,1) both; }
+/* Positioned absolutely (out of normal flow) rather than sitting inline next to the
+   pills - an in-flow reveal here would widen the picker enough to tip .page-header's
+   own flex-wrap over, bumping the whole form (pills included) onto a new line and
+   re-centering it there (justify-content: space-between having only one item left on
+   that line) - a jarring shift the pills themselves had no part in causing. Floating it
+   below-right of the picker instead means the pills never move, no matter what's typed. */
+.duration-custom-row {
+    position: absolute; top: 100%; right: 0; margin-top: 8px; z-index: 5;
+    display: flex; align-items: center; gap: 8px;
+    padding: 8px; border-radius: 12px; border: 1px solid var(--border);
+    background: var(--surface); box-shadow: 0 10px 24px -8px rgba(38, 32, 20, .22), 0 2px 6px rgba(38, 32, 20, .08);
+    animation: duration-custom-in .18s cubic-bezier(.16,1,.3,1) both;
+}
 .duration-custom-row input[type="number"] {
     margin: 0; padding: 7px 10px; width: 100px; border-radius: 99px;
     border: 1px solid var(--border); background: var(--surface); color: var(--text);
