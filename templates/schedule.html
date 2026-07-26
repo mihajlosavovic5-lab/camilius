@@ -74,20 +74,31 @@
     </div>
 
     {% if view == 'week' %}
+        <div class="schedule-week-legend">
+            <span class="schedule-week-legend-item"><span class="schedule-week-legend-dot schedule-week-legend-dot-ai"></span><span data-i18n="schedule.aiBooked">AI booked</span></span>
+            <span class="schedule-week-legend-item"><span class="schedule-week-legend-dot schedule-week-legend-dot-manual"></span><span data-i18n="schedule.manual">Manual</span></span>
+        </div>
         <div class="schedule-week-grid">
             {% for day in days %}
                 <div class="card schedule-week-day {{ 'today' if day.is_today }}">
                     <a href="{{ url_for('schedule', view='day', date=day.iso) }}" class="schedule-week-day-header">
-                        <span data-i18n-date="{{ day.iso }}" data-i18n-date-format="weekdayShort">{{ day.date.strftime('%a') }}</span><span>{{ day.date.day }}</span>
+                        <span data-i18n-date="{{ day.iso }}" data-i18n-date-format="weekdayShort">{{ day.date.strftime('%a') }}</span>
+                        <span class="schedule-week-day-number">{{ day.date.day }}</span>
                     </a>
                     {% if day.closed %}
                         <p class="note" data-i18n="schedule.closed">Closed</p>
                     {% elif day.appointments|length == 0 %}
                         <p class="note" data-i18n="schedule.noAppointments">No appointments</p>
                     {% else %}
-                        {% for appt in day.appointments %}
-                            <div class="schedule-week-appt {{ 'schedule-week-appt-ai' if appt.source == 'ai' }}">{{ appt.start_local.strftime('%H:%M') }} &middot; {{ appt.customer_name }}</div>
+                        {% for appt in day.appointments[:5] %}
+                            <div class="schedule-week-appt {{ 'schedule-week-appt-ai' if appt.source == 'ai' }}">
+                                <span class="schedule-week-appt-time">{{ appt.start_local.strftime('%H:%M') }}</span>
+                                <span class="schedule-week-appt-name">{{ appt.customer_name }}</span>
+                            </div>
                         {% endfor %}
+                        {% if day.appointments|length > 5 %}
+                            <a href="{{ url_for('schedule', view='day', date=day.iso) }}" class="schedule-week-more">+{{ day.appointments|length - 5 }} <span data-i18n="schedule.more">more</span></a>
+                        {% endif %}
                     {% endif %}
                 </div>
             {% endfor %}
