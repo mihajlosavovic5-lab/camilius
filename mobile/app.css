@@ -629,7 +629,7 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
 .empty-icon { font-size: 40px; margin-bottom: 10px; }
 /* Inbox screen only - the donation strip added above eats into the space this centers
    within, pushing "You're all set" low enough to clip under the tab bar. Nudge it back up. */
-#inbox-empty, #inbox-error { margin-top: -160px; }
+#inbox-empty, #inbox-error { margin-top: -860px; }
 .empty-title { font-weight: 600; color: var(--text); font-size: 15.5px; margin: 4px 0; }
 .loading { text-align: center; padding: 30px; color: var(--text-muted); font-size: 14px; }
 
