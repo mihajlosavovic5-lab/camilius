@@ -97,6 +97,27 @@ def appointments_for_local_day(business_id, local_date):
     return result
 
 
+def appointments_by_local_day(business_id, start_date, end_date):
+    """Confirmed appointments across [start_date, end_date) as {local_date: [dicts]} -
+    the week view's version of appointments_for_local_day. One query covering the whole
+    range instead of one round trip per day (used to be a 7-query loop for a week)."""
+    start, _ = local_day_bounds(start_date)
+    _, end = local_day_bounds(end_date - timedelta(days=1))
+    rows = appointments_in_range(business_id, start, end)
+    result = {}
+    for (appt_id, customer_name, sender_igsid, service, start_time, end_time, status, source, notes) in rows:
+        start_local = start_time.astimezone(BUSINESS_TZ)
+        result.setdefault(start_local.date(), []).append({
+            "id": appt_id,
+            "customer_name": customer_name,
+            "service": service,
+            "source": source,
+            "start_local": start_local,
+            "end_local": end_time.astimezone(BUSINESS_TZ),
+        })
+    return result
+
+
 def is_slot_free(business_id, start_dt, end_dt):
     return len(appointments_in_range(business_id, start_dt, end_dt)) == 0
 
