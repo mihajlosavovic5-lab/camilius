@@ -305,6 +305,33 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
     height: 15px; font-size: 9px;
 }
 
+/* Show/hide password toggle - an eye icon inside the right edge of a password field
+   (login, sign up, and the Profile screen's security fields). Marked with
+   .floating-field-password so the label/input make room for the button instead of
+   running under it; the button itself sits on top via absolute positioning within the
+   (already position:relative) .floating-field wrapper. Each override's specificity
+   deliberately matches the rule it needs to beat (e.g. the .screen-login padding
+   override below), relying on source order (declared after) to win the tie rather than
+   piling on extra classes. */
+.floating-field-password input[type="password"],
+.floating-field-password input[type="text"] { padding-right: 42px; }
+.screen-login .floating-field-password input[type="password"],
+.screen-login .floating-field-password input[type="text"] { padding-right: 46px; }
+.floating-field-password label { right: 40px; }
+.password-toggle {
+    position: absolute; top: 0; right: 4px; height: 100%; width: 34px;
+    display: flex; align-items: center; justify-content: center;
+    background: none; border: none; padding: 0; margin: 0; cursor: pointer;
+    color: var(--text-muted);
+}
+.password-toggle:active { color: var(--primary-ink); }
+.password-toggle-icon { width: 20px; height: 20px; }
+/* The diagonal slash reads as "hidden, tap to reveal" - it fades out once tapped,
+   leaving a plain open eye while the password is showing in plain text. */
+.password-toggle-slash { transition: opacity .1s ease; }
+.password-toggle.is-visible { color: var(--primary-ink); }
+.password-toggle.is-visible .password-toggle-slash { opacity: 0; }
+
 .button {
     display: flex; align-items: center; justify-content: center; gap: 8px;
     padding: 13px 20px; border: none; border-radius: 11px; cursor: pointer;

@@ -1008,6 +1008,20 @@ async function logout() {
     showScreen("login");
 }
 
+// Show/hide password toggle (see .password-toggle in app.css) - wired once for every
+// password field (login, sign up, Profile security fields) instead of per-screen, so
+// any new password field just needs the .floating-field-password wrapper + button.
+document.querySelectorAll(".password-toggle").forEach((btn) => {
+    btn.addEventListener("click", () => {
+        const input = btn.closest(".floating-field").querySelector("input");
+        if (!input) return;
+        const showing = input.type === "text";
+        input.type = showing ? "password" : "text";
+        btn.classList.toggle("is-visible", !showing);
+        btn.setAttribute("aria-label", showing ? "Show password" : "Hide password");
+    });
+});
+
 el("login-form").addEventListener("submit", async (event) => {
     event.preventDefault();
     const username = el("login-username").value.trim();

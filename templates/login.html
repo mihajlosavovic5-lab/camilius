@@ -30,9 +30,10 @@
                 <label for="login-username" data-i18n="login.usernameLabel">Username, email, or phone number</label>
             </div>
 
-            <div class="floating-field">
+            <div class="floating-field floating-field-password">
                 <input type="password" id="login-password" name="password" placeholder=" " autocomplete="current-password">
                 <label for="login-password" data-i18n="login.passwordLabel">Password</label>
+                {% include "_password_toggle.html" %}
             </div>
 
             <div class="form-actions">

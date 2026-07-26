@@ -413,6 +413,22 @@
 {% block content %}{% endblock %}
 {% block scripts %}{% endblock %}
 <script>
+    // Show/hide password toggle (see .password-toggle in style.css) - lives here, not
+    // in each auth template's own script block, so login/register/reset password all
+    // get it from one place and any future password field picks it up automatically by
+    // just using the .floating-field-password wrapper + _password_toggle.html include.
+    document.querySelectorAll(".password-toggle").forEach(function (btn) {
+        btn.addEventListener("click", function () {
+            var input = btn.closest(".floating-field").querySelector("input");
+            if (!input) return;
+            var showing = input.type === "text";
+            input.type = showing ? "password" : "text";
+            btn.classList.toggle("is-visible", !showing);
+            btn.setAttribute("aria-label", showing ? "Show password" : "Hide password");
+        });
+    });
+</script>
+<script>
     if ("serviceWorker" in navigator) {
         window.addEventListener("load", () => {
             navigator.serviceWorker.register("{{ url_for('static', filename='sw.js') }}");

@@ -42,15 +42,17 @@
                     </div>
                     <p class="field-error hidden" id="register-username-error"></p>
 
-                    <div class="floating-field">
+                    <div class="floating-field floating-field-password">
                         <input type="password" id="register-password-input" name="password" placeholder=" " autocomplete="new-password" minlength="8" required>
                         <label for="register-password-input" data-i18n="register.password">Password</label>
+                        {% include "_password_toggle.html" %}
                     </div>
                     <p class="field-error hidden" id="register-password-error"></p>
 
-                    <div class="floating-field">
+                    <div class="floating-field floating-field-password">
                         <input type="password" id="register-confirm-password-input" name="confirm_password" placeholder=" " autocomplete="new-password" required>
                         <label for="register-confirm-password-input" data-i18n="register.confirmPassword">Confirm password</label>
+                        {% include "_password_toggle.html" %}
                     </div>
                     <p class="field-error hidden" id="register-confirm-password-error"></p>
 

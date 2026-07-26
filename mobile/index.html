@@ -233,9 +233,16 @@
           <input type="text" id="login-username" placeholder=" " autocomplete="username" autocapitalize="off" autocorrect="off">
           <label for="login-username" data-i18n="login.username">Username, email, or phone</label>
         </div>
-        <div class="floating-field">
+        <div class="floating-field floating-field-password">
           <input type="password" id="login-password" placeholder=" " autocomplete="current-password">
           <label for="login-password" data-i18n="login.password">Password</label>
+          <button type="button" class="password-toggle" aria-label="Show password">
+            <svg class="password-toggle-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
+              <path d="M1.5 12S5 5 12 5s10.5 7 10.5 7-3.5 7-10.5 7S1.5 12 1.5 12z" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+              <circle cx="12" cy="12" r="3" stroke-width="1.6"/>
+              <line class="password-toggle-slash" x1="2.5" y1="21.5" x2="21.5" y2="2.5" stroke-width="1.6" stroke-linecap="round"/>
+            </svg>
+          </button>
         </div>
         <button class="button button-full button-pill" type="submit" id="login-submit" data-i18n="login.submit">Log in</button>
       </form>
@@ -320,15 +327,29 @@
               </div>
               <p class="field-error hidden" id="register-username-error"></p>
 
-              <div class="floating-field">
+              <div class="floating-field floating-field-password">
                 <input type="password" id="register-password" placeholder=" " autocomplete="new-password" required>
                 <label for="register-password" data-i18n="register.password">Password</label>
+                <button type="button" class="password-toggle" aria-label="Show password">
+                  <svg class="password-toggle-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
+                    <path d="M1.5 12S5 5 12 5s10.5 7 10.5 7-3.5 7-10.5 7S1.5 12 1.5 12z" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+                    <circle cx="12" cy="12" r="3" stroke-width="1.6"/>
+                    <line class="password-toggle-slash" x1="2.5" y1="21.5" x2="21.5" y2="2.5" stroke-width="1.6" stroke-linecap="round"/>
+                  </svg>
+                </button>
               </div>
               <p class="field-error hidden" id="register-password-error"></p>
 
-              <div class="floating-field">
+              <div class="floating-field floating-field-password">
                 <input type="password" id="register-confirm-password" placeholder=" " autocomplete="new-password" required>
                 <label for="register-confirm-password" data-i18n="register.confirmPassword">Confirm password</label>
+                <button type="button" class="password-toggle" aria-label="Show password">
+                  <svg class="password-toggle-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
+                    <path d="M1.5 12S5 5 12 5s10.5 7 10.5 7-3.5 7-10.5 7S1.5 12 1.5 12z" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+                    <circle cx="12" cy="12" r="3" stroke-width="1.6"/>
+                    <line class="password-toggle-slash" x1="2.5" y1="21.5" x2="21.5" y2="2.5" stroke-width="1.6" stroke-linecap="round"/>
+                  </svg>
+                </button>
               </div>
               <p class="field-error hidden" id="register-confirm-password-error"></p>
 
@@ -678,13 +699,27 @@
       <p class="field-hint hidden" id="settings-upsell-locked-hint" data-i18n="settings.upsellLockedHint">Upgrade to Pro to let the AI suggest complementary services.</p>
 
       <div class="block-label" data-i18n="settings.security">Security</div>
-      <div class="floating-field">
+      <div class="floating-field floating-field-password">
         <input type="password" id="settings-current-password" placeholder=" " autocomplete="current-password">
         <label for="settings-current-password" data-i18n="settings.currentPassword">Current password</label>
+        <button type="button" class="password-toggle" aria-label="Show password">
+          <svg class="password-toggle-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
+            <path d="M1.5 12S5 5 12 5s10.5 7 10.5 7-3.5 7-10.5 7S1.5 12 1.5 12z" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+            <circle cx="12" cy="12" r="3" stroke-width="1.6"/>
+            <line class="password-toggle-slash" x1="2.5" y1="21.5" x2="21.5" y2="2.5" stroke-width="1.6" stroke-linecap="round"/>
+          </svg>
+        </button>
       </div>
-      <div class="floating-field">
+      <div class="floating-field floating-field-password">
         <input type="password" id="settings-new-password" placeholder=" " autocomplete="new-password">
         <label for="settings-new-password" data-i18n="settings.newPassword">New password</label>
+        <button type="button" class="password-toggle" aria-label="Show password">
+          <svg class="password-toggle-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
+            <path d="M1.5 12S5 5 12 5s10.5 7 10.5 7-3.5 7-10.5 7S1.5 12 1.5 12z" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+            <circle cx="12" cy="12" r="3" stroke-width="1.6"/>
+            <line class="password-toggle-slash" x1="2.5" y1="21.5" x2="21.5" y2="2.5" stroke-width="1.6" stroke-linecap="round"/>
+          </svg>
+        </button>
       </div>
     </div>
     <button class="fab-save hidden" id="settings-save" data-i18n="settings.save">Save changes</button>

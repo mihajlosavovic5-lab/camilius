@@ -722,6 +722,34 @@ body.auth {
     border-radius: 16px; padding: 20px 16px 6px;
 }
 .auth-card .floating-field label { left: 16px; right: 16px; }
+
+/* Show/hide password toggle - an eye icon inside the right edge of a password field
+   (login, register, reset password). Marked with .floating-field-password so the label
+   and input make room for the button instead of running under it; the button itself
+   sits on top via absolute positioning within the (already position:relative)
+   .floating-field wrapper. The specificity of each override below deliberately matches
+   the rule it needs to beat (e.g. .auth-card .floating-field-password vs .auth-card
+   .floating-field), relying on source order (declared after) to win the tie rather than
+   piling on extra classes. */
+.floating-field-password input[type="password"],
+.floating-field-password input[type="text"] { padding-right: 40px; }
+.auth-card .floating-field-password input[type="password"],
+.auth-card .floating-field-password input[type="text"] { padding-right: 44px; }
+.floating-field-password label { right: 38px; }
+.auth-card .floating-field-password label { right: 42px; }
+.password-toggle {
+    position: absolute; top: 0; right: 2px; height: 100%; width: 36px;
+    display: flex; align-items: center; justify-content: center;
+    background: none; border: none; padding: 0; margin: 0; cursor: pointer;
+    color: var(--text-muted);
+}
+.password-toggle:hover, .password-toggle:focus-visible { color: var(--primary-ink); }
+.password-toggle-icon { width: 20px; height: 20px; }
+/* The diagonal slash reads as "hidden, tap to reveal" - it fades out once tapped,
+   leaving a plain open eye while the password is showing in plain text. */
+.password-toggle-slash { transition: opacity .1s ease; }
+.password-toggle.is-visible { color: var(--primary-ink); }
+.password-toggle.is-visible .password-toggle-slash { opacity: 0; }
 /* Caption + outline pill button pair ("New to Camilius?" / "Create account" on the
    APK) replacing a plain text link for the register CTA. */
 .auth-divider {
