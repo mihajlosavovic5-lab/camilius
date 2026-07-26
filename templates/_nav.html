@@ -23,6 +23,11 @@
         {% endif %}
     </div>
 </nav>
+<!-- .navbar is position: fixed (see style.css) so it never travels with the page's
+     own scroll - this reserves its real height in the normal document flow so
+     content doesn't ride up underneath it. Height comes from JS below since
+     .nav-links can wrap onto a second row on narrow screens. -->
+<div class="navbar-spacer"></div>
 <script>
     // Same scroll-aware header effect as the landing page (#lp-header/.lp-scrolled
     // in landing.html/style.css): transparent over the page's own background at
@@ -43,5 +48,16 @@
             if (!ticking) { window.requestAnimationFrame(onScroll); ticking = true; }
         }, { passive: true });
         onScroll();
+
+        // Keeps the spacer's height in sync with the now-fixed navbar's real
+        // rendered height, which changes when .nav-links wraps onto a second row
+        // on narrow screens, or when a translation swaps in longer/shorter text
+        // (see site-i18n.js's "site-language-changed" event).
+        function refreshNavHeight() {
+            document.documentElement.style.setProperty('--navbar-h', nav.offsetHeight + 'px');
+        }
+        refreshNavHeight();
+        window.addEventListener('resize', refreshNavHeight);
+        document.addEventListener('site-language-changed', refreshNavHeight);
     })();
 </script>
