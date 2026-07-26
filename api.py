@@ -575,6 +575,7 @@ def api_dashboard():
         subscription_status=get_subscription_status(business_id),
         pro_access=BETA_FREE_MODE or has_pro_access(business_id),
         beta_free_mode=BETA_FREE_MODE,
+        donation_link=os.getenv("DONATION_LINK", "").strip() or None,
         stats=business_stats(business_id),
         # The app only ever calls PushNotifications.register() when this is true - avoids
         # touching that native/Firebase code path at all until a Firebase project actually

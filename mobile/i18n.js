@@ -111,6 +111,8 @@ const TRANSLATIONS = {
 
         "inbox.subtitle": "Customer questions",
         "inbox.processedToday": "Processed today",
+        "inbox.donate.text": "Enjoying Camilius? A voluntary donation is always appreciated.",
+        "inbox.donate.button": "Donate",
         "inbox.inactiveBanner": "Subscription not active — new messages aren't being processed.",
         "inbox.searchPlaceholder": "Search conversations",
         "inbox.filterAll": "All",
@@ -376,6 +378,8 @@ const TRANSLATIONS = {
 
         "inbox.subtitle": "Pitanja kupaca",
         "inbox.processedToday": "Obrađeno danas",
+        "inbox.donate.text": "Sviđa ti se Camilius? Dobrovoljna donacija je uvek dobrodošla.",
+        "inbox.donate.button": "Doniraj",
         "inbox.inactiveBanner": "Pretplata nije aktivna — nove poruke se ne obrađuju.",
         "inbox.searchPlaceholder": "Pretraži razgovore",
         "inbox.filterAll": "Sve",
@@ -634,6 +638,8 @@ const TRANSLATIONS = {
 
         "inbox.subtitle": "Preguntas de clientes",
         "inbox.processedToday": "Procesado hoy",
+        "inbox.donate.text": "¿Te gusta Camilius? Una donación voluntaria siempre es bienvenida.",
+        "inbox.donate.button": "Donar",
         "inbox.inactiveBanner": "La suscripción no está activa — los nuevos mensajes no se están procesando.",
         "inbox.searchPlaceholder": "Buscar conversaciones",
         "inbox.filterAll": "Todo",
@@ -890,6 +896,8 @@ const TRANSLATIONS = {
 
         "inbox.subtitle": "Perguntas de clientes",
         "inbox.processedToday": "Processado hoje",
+        "inbox.donate.text": "Gostando do Camilius? Uma doação voluntária é sempre bem-vinda.",
+        "inbox.donate.button": "Doar",
         "inbox.inactiveBanner": "A assinatura não está ativa — novas mensagens não estão sendo processadas.",
         "inbox.searchPlaceholder": "Pesquisar conversas",
         "inbox.filterAll": "Todos",
@@ -1146,6 +1154,8 @@ const TRANSLATIONS = {
 
         "inbox.subtitle": "Questions des clients",
         "inbox.processedToday": "Traités aujourd'hui",
+        "inbox.donate.text": "Vous aimez Camilius ? Un don volontaire est toujours apprécié.",
+        "inbox.donate.button": "Faire un don",
         "inbox.inactiveBanner": "L'abonnement n'est pas actif — les nouveaux messages ne sont pas traités.",
         "inbox.searchPlaceholder": "Rechercher des conversations",
         "inbox.filterAll": "Tout",
@@ -1402,6 +1412,8 @@ const TRANSLATIONS = {
 
         "inbox.subtitle": "Kundenanfragen",
         "inbox.processedToday": "Heute bearbeitet",
+        "inbox.donate.text": "Gefällt dir Camilius? Eine freiwillige Spende ist immer willkommen.",
+        "inbox.donate.button": "Spenden",
         "inbox.inactiveBanner": "Abo nicht aktiv — neue Nachrichten werden nicht verarbeitet.",
         "inbox.searchPlaceholder": "Unterhaltungen durchsuchen",
         "inbox.filterAll": "Alle",
@@ -1658,6 +1670,8 @@ const TRANSLATIONS = {
 
         "inbox.subtitle": "Domande dei clienti",
         "inbox.processedToday": "Elaborate oggi",
+        "inbox.donate.text": "Ti piace Camilius? Una donazione volontaria è sempre gradita.",
+        "inbox.donate.button": "Dona",
         "inbox.inactiveBanner": "Abbonamento non attivo — i nuovi messaggi non vengono elaborati.",
         "inbox.searchPlaceholder": "Cerca conversazioni",
         "inbox.filterAll": "Tutte",
@@ -1914,6 +1928,8 @@ const TRANSLATIONS = {
 
         "inbox.subtitle": "Вопросы клиентов",
         "inbox.processedToday": "Обработано сегодня",
+        "inbox.donate.text": "Нравится Camilius? Добровольное пожертвование всегда приветствуется.",
+        "inbox.donate.button": "Пожертвовать",
         "inbox.inactiveBanner": "Подписка не активна — новые сообщения не обрабатываются.",
         "inbox.searchPlaceholder": "Поиск по переписке",
         "inbox.filterAll": "Все",
@@ -2170,6 +2186,8 @@ const TRANSLATIONS = {
 
         "inbox.subtitle": "客户提问",
         "inbox.processedToday": "今日已处理",
+        "inbox.donate.text": "喜欢 Camilius 吗?欢迎自愿捐赠支持。",
+        "inbox.donate.button": "捐赠",
         "inbox.inactiveBanner": "订阅未激活——新私信将不会被处理。",
         "inbox.searchPlaceholder": "搜索对话",
         "inbox.filterAll": "全部",
@@ -2426,6 +2444,8 @@ const TRANSLATIONS = {
 
         "inbox.subtitle": "Müşteri soruları",
         "inbox.processedToday": "Bugün işlenen",
+        "inbox.donate.text": "Camilius'u beğendin mi? Gönüllü bağış her zaman memnuniyetle karşılanır.",
+        "inbox.donate.button": "Bağış yap",
         "inbox.inactiveBanner": "Abonelik aktif değil — yeni mesajlar işlenmiyor.",
         "inbox.searchPlaceholder": "Konuşmalarda ara",
         "inbox.filterAll": "Tümü",

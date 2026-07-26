@@ -1628,6 +1628,9 @@ async function loadDashboard({ silent = false } = {}) {
 
         el("banner-inactive").classList.toggle("hidden", data.beta_free_mode || data.subscription_active);
 
+        el("donation-strip").classList.toggle("hidden", !data.donation_link);
+        if (data.donation_link) el("donation-strip-link").href = data.donation_link;
+
         state.betaFreeMode = !!data.beta_free_mode;
         state.subscriptionActive = !!data.subscription_active;
         state.subscriptionStatus = data.subscription_status || "none";

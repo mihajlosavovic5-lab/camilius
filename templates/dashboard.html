@@ -46,6 +46,13 @@
         </div>
     {% endif %}
 
+    {% if donation_link %}
+        <div class="donation-strip">
+            <span class="donation-strip-text">&#9749; <span data-i18n="dashboard.donate.text">Enjoying Camilius? A voluntary donation is always appreciated.</span></span>
+            <a href="{{ donation_link }}" target="_blank" rel="noopener" class="button button-secondary button-pill donation-strip-btn" data-i18n="dashboard.donate.button">Donate</a>
+        </div>
+    {% endif %}
+
     <div class="filters" style="margin-bottom: 20px;">
         <a href="{{ url_for('home') }}" class="{{ 'active' if filter_status == 'all' }}"><span data-i18n="dashboard.filterAll">All</span> ({{ total_count }})</a>
         <a href="{{ url_for('home', filter='pending') }}" class="{{ 'active' if filter_status == 'pending' }}"><span data-i18n="dashboard.filterPending">Pending</span> ({{ pending_count }})</a>

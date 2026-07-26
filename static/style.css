@@ -478,6 +478,17 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
 .pro-locked-note { margin: 10px 0 0; font-size: 13.5px; color: var(--text-muted); }
 .pro-locked-note a { font-weight: 600; }
 
+/* --- Donation strip (Inbox) --- */
+/* Slim, low-key row - not an alert/warning color, just a quiet ask that sits in the
+   flow of the page the user actually visits daily, instead of a page nobody revisits. */
+.donation-strip {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    flex-wrap: wrap; padding: 10px 16px; margin-bottom: 20px;
+    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+}
+.donation-strip-text { font-size: 14px; color: var(--text); }
+.donation-strip-btn { padding: 6px 16px; font-size: 13.5px; flex-shrink: 0; }
+
 /* --- Filters (tabs) --- */
 .filters { display: flex; gap: 6px; flex-wrap: wrap; }
 .filters a {
@@ -792,12 +803,6 @@ body.auth {
 .pricing-yearly-total { margin-top: 2px; color: var(--success); font-weight: 700; }
 .pricing-plan .benefits { margin-top: 18px; flex: 1; }
 .pricing-plan .form-actions { margin-top: 20px; }
-
-/* Voluntary donation card (subscription page) - kept low-key: no colored border/badge
-   like the plan cards above, just a quiet ask at the bottom of the page. */
-.donation-card { margin-top: 20px; text-align: center; }
-.donation-card-heading { font-weight: 700; font-size: 15px; margin: 0; }
-.donation-card-btn { margin-top: 14px; display: inline-flex; }
 
 /* --- Schedule / Smart Booking (Faza 8) --- */
 .schedule-toolbar { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-bottom: 20px; }

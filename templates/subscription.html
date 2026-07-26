@@ -119,14 +119,6 @@
             <span data-i18n="subscription.paddleNoteLine2">Your 14-day free trial unlocks every Pro feature — we'll send you a reminder before it ends.</span>
         </p>
     {% endif %}
-
-    {% if donation_link %}
-        <div class="card donation-card">
-            <p class="donation-card-heading">&#9749; <span data-i18n="subscription.donate.title">Enjoying Camilius?</span></p>
-            <p class="note" style="margin: 6px 0 0;" data-i18n="subscription.donate.body">It's free during the beta, no strings attached. If you'd like to support development, a voluntary donation is always appreciated - completely optional.</p>
-            <a href="{{ donation_link }}" target="_blank" rel="noopener" class="button button-secondary donation-card-btn" data-i18n="subscription.donate.button">Donate</a>
-        </div>
-    {% endif %}
 </div>
 {% endblock %}
 
