@@ -96,6 +96,15 @@ def inject_beta_free_mode():
     return {"beta_free_mode": BETA_FREE_MODE}
 
 
+# Voluntary "support the project" donation link (PayPal.me or similar), shown on the
+# subscription page and site footer instead of real billing while BETA_FREE_MODE is on.
+# Unset by default so the button/card stay hidden until DONATION_LINK is configured on
+# Railway - never renders a dead link.
+@app.context_processor
+def inject_donation_link():
+    return {"donation_link": os.getenv("DONATION_LINK", "").strip() or None}
+
+
 # --- Static asset caching (perf) ---
 # Flask/Werkzeug's default static-file serving sends Cache-Control: no-cache, which
 # forces the browser to round-trip to the server on every single page navigation just

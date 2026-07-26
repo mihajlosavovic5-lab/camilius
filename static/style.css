@@ -793,6 +793,12 @@ body.auth {
 .pricing-plan .benefits { margin-top: 18px; flex: 1; }
 .pricing-plan .form-actions { margin-top: 20px; }
 
+/* Voluntary donation card (subscription page) - kept low-key: no colored border/badge
+   like the plan cards above, just a quiet ask at the bottom of the page. */
+.donation-card { margin-top: 20px; text-align: center; }
+.donation-card-heading { font-weight: 700; font-size: 15px; margin: 0; }
+.donation-card-btn { margin-top: 14px; display: inline-flex; }
+
 /* --- Schedule / Smart Booking (Faza 8) --- */
 .schedule-toolbar { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-bottom: 20px; }
 .schedule-view-toggle { margin-bottom: 0; }
