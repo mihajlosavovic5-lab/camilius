@@ -10,13 +10,6 @@
              back-forward transparently) - only the nav, deliberately, not every link or
              form on the site; see base.html for the vendored htmx script. -->
         <div class="nav-links" hx-boost="true">
-            <a href="{{ url_for('home') }}" class="nav-link-home {{ 'active' if request.endpoint == 'home' }}" aria-label="Home">
-                <svg class="nav-home-icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                    <path d="M3 11.5 12 4l9 7.5"></path>
-                    <path d="M5.5 9.5V20h13V9.5"></path>
-                </svg>
-                <span data-i18n="common.home">Home</span>
-            </a>
             <a href="{{ url_for('home') }}" class="{{ 'active' if request.endpoint == 'home' }}" data-i18n="common.conversations">Conversations</a>
             <a href="{{ url_for('schedule') }}" class="nav-link-with-badge {{ 'active' if request.endpoint == 'schedule' }}">
                 <span data-i18n="common.schedule">Schedule</span>{% if nav_pro_access is sameas false %}<span class="badge badge-pro nav-pro-badge">Pro</span>{% endif %}
