@@ -9,7 +9,7 @@ load_dotenv()
 
 resend.api_key = os.getenv("RESEND_API_KEY")
 
-SENDER_ADDRESS = "mail@ai-auto-reply-mail.com"
+SENDER_ADDRESS = "support@ai-auto-reply-mail.com"
 
 
 def send_email(recipient, subject, body, business_name, reply_to, html=None):
