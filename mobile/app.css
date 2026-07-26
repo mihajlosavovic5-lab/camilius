@@ -539,6 +539,17 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
 .alert-success { background: var(--success-bg); border-color: var(--success-border); color: #166534; }
 .alert-warning { background: var(--warning-bg); border-color: var(--warning-border); color: var(--warning); margin: 0 18px 14px; }
 
+/* --- Donation strip --- */
+/* Slim, low-key row - not an alert/warning color, just a quiet ask that sits in the
+   flow of the screen the user actually opens daily. */
+.donation-strip {
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    padding: 10px 14px; margin: 0 18px 14px; flex-shrink: 0;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+}
+.donation-strip-text { font-size: 13.5px; color: var(--text); }
+.donation-strip-btn { padding: 6px 14px; font-size: 13px; flex-shrink: 0; }
+
 /* --- Quota strip --- */
 .quota-strip { padding: 12px 18px 0; flex-shrink: 0; }
 .quota-text { display: flex; justify-content: space-between; font-size: 12.5px; color: var(--text-muted); margin-bottom: 5px; }
