@@ -383,6 +383,7 @@ a:focus-visible, button:focus-visible, [tabindex]:focus-visible {
    down closer to the stat tiles below now that there's no subtitle line
    filling that space. */
 .page-header-middle { align-items: center; margin-bottom: 6px; }
+.page-header-middle .quota { margin-top: -10px; }
 
 /* --- Cards --- */
 .card {
