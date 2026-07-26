@@ -46,16 +46,16 @@
         </div>
     {% endif %}
 
-    {% if donation_link %}
-        <div class="donation-strip">
-            <span class="donation-strip-text">&#9749; <span data-i18n="dashboard.donate.text">Enjoying Camilius? A voluntary donation is always appreciated.</span></span>
-            <a href="{{ donation_link }}" target="_blank" rel="noopener" class="button button-secondary button-pill donation-strip-btn" data-i18n="dashboard.donate.button">Donate</a>
-        </div>
-    {% endif %}
-
     <div class="search-row">
         <input type="text" id="dashboard-search" class="search-input" autocomplete="off"
                data-i18n-placeholder="dashboard.searchPlaceholder" placeholder="Search conversations">
+
+        {% if donation_link %}
+            <div class="donation-strip">
+                <span class="donation-strip-text">&#9749; <span data-i18n="dashboard.donate.text">Enjoying Camilius? A voluntary donation is always appreciated.</span></span>
+                <a href="{{ donation_link }}" target="_blank" rel="noopener" class="button button-secondary button-pill donation-strip-btn" data-i18n="dashboard.donate.button">Donate</a>
+            </div>
+        {% endif %}
     </div>
 
     <div class="filters" style="margin-bottom: 20px;">
