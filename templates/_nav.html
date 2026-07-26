@@ -29,30 +29,17 @@
      .nav-links can wrap onto a second row on narrow screens. -->
 <div class="navbar-spacer"></div>
 <script>
-    // Same scroll-aware header effect as the landing page (#lp-header/.lp-scrolled
-    // in landing.html/style.css): transparent over the page's own background at
-    // the very top, solid/frosted once scrolled. Runs as a plain inline script
-    // (not on DOMContentLoaded) since .navbar is already parsed right above it,
-    // and re-runs after every hx-boost nav swap since htmx re-executes scripts in
-    // swapped-in content, keeping the effect working across page changes.
+    // .navbar is position: fixed and always transparent (see style.css) - this
+    // just keeps the spacer's height in sync with its real rendered height,
+    // which changes when .nav-links wraps onto a second row on narrow screens,
+    // or when a translation swaps in longer/shorter text (see site-i18n.js's
+    // "site-language-changed" event). Runs as a plain inline script (not on
+    // DOMContentLoaded) since .navbar is already parsed right above it, and
+    // re-runs after every hx-boost nav swap since htmx re-executes scripts in
+    // swapped-in content, keeping the spacer correct across page changes.
     (function () {
         var nav = document.querySelector('.navbar');
         if (!nav) return;
-        var ticking = false;
-        function onScroll() {
-            var scrollTop = window.scrollY || document.documentElement.scrollTop;
-            nav.classList.toggle('nav-scrolled', scrollTop > 12);
-            ticking = false;
-        }
-        window.addEventListener('scroll', function () {
-            if (!ticking) { window.requestAnimationFrame(onScroll); ticking = true; }
-        }, { passive: true });
-        onScroll();
-
-        // Keeps the spacer's height in sync with the now-fixed navbar's real
-        // rendered height, which changes when .nav-links wraps onto a second row
-        // on narrow screens, or when a translation swaps in longer/shorter text
-        // (see site-i18n.js's "site-language-changed" event).
         function refreshNavHeight() {
             document.documentElement.style.setProperty('--navbar-h', nav.offsetHeight + 'px');
         }
