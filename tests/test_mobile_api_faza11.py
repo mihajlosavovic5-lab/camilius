@@ -3,12 +3,12 @@ website's Faza 8-10 features: pro_access on the dashboard payload, the reminders
 and upsell pairs field (both Pro-gated server-side, not just hidden in the UI), and the
 Schedule bridge link."""
 import database
-from conftest import register_business
+from conftest import register_and_login
 
 
 def _auth_header(client, username, email, **overrides):
-    reg = register_business(client, username, email, **overrides)
-    return {"Authorization": f"Bearer {reg.get_json()['token']}"}, reg.get_json()["business_id"]
+    token, business_id = register_and_login(client, username, email, **overrides)
+    return {"Authorization": f"Bearer {token}"}, business_id
 
 
 def test_dashboard_reports_pro_access_during_trial(client, unique_username, unique_email):

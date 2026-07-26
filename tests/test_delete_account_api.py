@@ -1,5 +1,5 @@
 import database
-from conftest import register_business
+from conftest import register_and_login
 
 
 def test_delete_account_requires_auth(client):
@@ -8,9 +8,7 @@ def test_delete_account_requires_auth(client):
 
 
 def test_delete_account_removes_the_business(client, unique_username, unique_email):
-    reg = register_business(client, unique_username, unique_email)
-    token = reg.get_json()["token"]
-    business_id = reg.get_json()["business_id"]
+    token, business_id = register_and_login(client, unique_username, unique_email)
 
     response = client.post("/api/delete-account", headers={"Authorization": f"Bearer {token}"})
     assert response.status_code == 200

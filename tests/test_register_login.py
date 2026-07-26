@@ -1,3 +1,4 @@
+import database
 from conftest import register_business, register_business_web
 
 
@@ -13,11 +14,13 @@ def test_register_web_rejects_password_mismatch(client, unique_username, unique_
 
 
 def test_register_creates_account_and_logs_in(client, unique_username, unique_email):
+    # Registration itself no longer returns a token - the account can't log in until its
+    # email is confirmed (register_business() marks it verified here, standing in for
+    # clicking the confirmation link - see conftest.py).
     response = register_business(client, unique_username, unique_email)
     assert response.status_code == 200
     data = response.get_json()
-    assert data["token"]
-    assert data["business_name"] == "Test Salon"
+    assert data["pending_verification"] is True
 
     login = client.post("/api/login", json={"username": unique_username, "password": "TestPassword123"})
     assert login.status_code == 200
@@ -64,7 +67,11 @@ def test_login_with_email_instead_of_username(client, unique_username, unique_em
 
 def test_login_with_phone_number(client, unique_username, unique_email):
     phone = f"+38160{unique_username[-7:]}"
-    register_business(client, unique_username, unique_email, phone_number=phone)
+    reg = register_business(client, unique_username, unique_email, phone_number=phone)
+    # A phone number also needs its own confirmation before it's usable to log in with
+    # (independent of the email one - see business_by_login_identifier's phone_verified
+    # check), normally done from the Profile screen rather than at registration time.
+    database.mark_phone_verified(reg.get_json()["business_id"])
     response = client.post("/api/login", json={"username": phone, "password": "TestPassword123"})
     assert response.status_code == 200
     assert response.get_json()["token"]

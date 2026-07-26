@@ -1,4 +1,4 @@
-from conftest import register_business
+from conftest import register_and_login
 
 
 def test_dashboard_requires_auth(client):
@@ -12,8 +12,7 @@ def test_dashboard_rejects_garbage_token(client):
 
 
 def test_dashboard_works_with_valid_token(client, unique_username, unique_email):
-    reg = register_business(client, unique_username, unique_email)
-    token = reg.get_json()["token"]
+    token, _ = register_and_login(client, unique_username, unique_email)
 
     response = client.get("/api/dashboard", headers={"Authorization": f"Bearer {token}"})
     assert response.status_code == 200
