@@ -385,6 +385,7 @@ const TRANSLATIONS = {
         "schedule.book": "Book",
 
         "dashboard.subtitle": "Your customer conversations, with AI replies sent automatically.",
+        "dashboard.subtitleDraft": "Your customer conversations, with AI replies waiting for your approval.",
         "dashboard.processedToday": "Processed today",
         "dashboard.sentSuccess": "The reply has been sent to the customer.",
         "dashboard.sendError": "Couldn't send that reply - Instagram only allows replying within 24 hours of the customer's last message.",
@@ -401,6 +402,7 @@ const TRANSLATIONS = {
         "dashboard.trashNote": "Items in Trash are permanently deleted after 30 days.",
         "dashboard.empty.title": "Camilius is watching your inbox",
         "dashboard.empty.body": "New Instagram messages will show up here with an AI-drafted reply, sent automatically.",
+        "dashboard.empty.bodyDraft": "New Instagram messages will show up here with an AI-drafted reply, waiting for your approval.",
         "dashboard.emptyFilter.title": "No conversations in this filter",
         "dashboard.emptyFilter.body": "Try a different filter above.",
 
@@ -813,6 +815,7 @@ const TRANSLATIONS = {
         "schedule.book": "Reservar",
 
         "dashboard.subtitle": "Tus conversaciones con clientes, con respuestas de la IA enviadas automáticamente.",
+        "dashboard.subtitleDraft": "Tus conversaciones con clientes, con respuestas de la IA esperando tu aprobación.",
         "dashboard.processedToday": "Procesados hoy",
         "dashboard.sentSuccess": "La respuesta se ha enviado al cliente.",
         "dashboard.sendError": "No se pudo enviar esa respuesta - Instagram solo permite responder dentro de las 24 horas posteriores al último mensaje del cliente.",
@@ -829,6 +832,7 @@ const TRANSLATIONS = {
         "dashboard.trashNote": "Los elementos en la Papelera se eliminan permanentemente después de 30 días.",
         "dashboard.empty.title": "Camilius está vigilando tu bandeja de entrada",
         "dashboard.empty.body": "Los nuevos mensajes de Instagram aparecerán aquí con una respuesta redactada por la IA, enviada automáticamente.",
+        "dashboard.empty.bodyDraft": "Los nuevos mensajes de Instagram aparecerán aquí con una respuesta redactada por la IA, esperando tu aprobación.",
         "dashboard.emptyFilter.title": "No hay conversaciones en este filtro",
         "dashboard.emptyFilter.body": "Prueba con otro filtro arriba.",
 
@@ -1241,6 +1245,7 @@ const TRANSLATIONS = {
         "schedule.book": "Agendar",
 
         "dashboard.subtitle": "Suas conversas com clientes, com respostas da IA enviadas automaticamente.",
+        "dashboard.subtitleDraft": "Suas conversas com clientes, com respostas da IA aguardando sua aprovação.",
         "dashboard.processedToday": "Processadas hoje",
         "dashboard.sentSuccess": "A resposta foi enviada ao cliente.",
         "dashboard.sendError": "Não foi possível enviar essa resposta - o Instagram só permite responder dentro de 24 horas da última mensagem do cliente.",
@@ -1257,6 +1262,7 @@ const TRANSLATIONS = {
         "dashboard.trashNote": "Itens na Lixeira são excluídos permanentemente após 30 dias.",
         "dashboard.empty.title": "O Camilius está de olho na sua caixa de entrada",
         "dashboard.empty.body": "Novas mensagens do Instagram vão aparecer aqui com uma resposta redigida pela IA, enviada automaticamente.",
+        "dashboard.empty.bodyDraft": "Novas mensagens do Instagram vão aparecer aqui com uma resposta redigida pela IA, aguardando sua aprovação.",
         "dashboard.emptyFilter.title": "Nenhuma conversa neste filtro",
         "dashboard.emptyFilter.body": "Tente outro filtro acima.",
 
@@ -1669,6 +1675,7 @@ const TRANSLATIONS = {
         "schedule.book": "Réserver",
 
         "dashboard.subtitle": "Vos conversations avec les clients, avec des réponses de l'IA envoyées automatiquement.",
+        "dashboard.subtitleDraft": "Vos conversations avec les clients, avec des réponses de l'IA en attente de votre validation.",
         "dashboard.processedToday": "Traitées aujourd'hui",
         "dashboard.sentSuccess": "La réponse a été envoyée au client.",
         "dashboard.sendError": "Impossible d'envoyer cette réponse - Instagram n'autorise les réponses que dans les 24 heures suivant le dernier message du client.",
@@ -1685,6 +1692,7 @@ const TRANSLATIONS = {
         "dashboard.trashNote": "Les éléments dans la Corbeille sont définitivement supprimés après 30 jours.",
         "dashboard.empty.title": "Camilius surveille votre boîte de réception",
         "dashboard.empty.body": "Les nouveaux messages Instagram apparaîtront ici avec une réponse rédigée par l'IA, envoyée automatiquement.",
+        "dashboard.empty.bodyDraft": "Les nouveaux messages Instagram apparaîtront ici avec une réponse rédigée par l'IA, en attente de votre validation.",
         "dashboard.emptyFilter.title": "Aucune conversation dans ce filtre",
         "dashboard.emptyFilter.body": "Essayez un autre filtre ci-dessus.",
 
@@ -2097,6 +2105,7 @@ const TRANSLATIONS = {
         "schedule.book": "Buchen",
 
         "dashboard.subtitle": "Deine Kundengespräche, mit automatisch gesendeten KI-Antworten.",
+        "dashboard.subtitleDraft": "Deine Kundengespräche, mit KI-Antworten, die auf deine Freigabe warten.",
         "dashboard.processedToday": "Heute verarbeitet",
         "dashboard.sentSuccess": "Die Antwort wurde an den Kunden gesendet.",
         "dashboard.sendError": "Diese Antwort konnte nicht gesendet werden - Instagram erlaubt Antworten nur innerhalb von 24 Stunden nach der letzten Nachricht des Kunden.",
@@ -2113,6 +2122,7 @@ const TRANSLATIONS = {
         "dashboard.trashNote": "Elemente im Papierkorb werden nach 30 Tagen dauerhaft gelöscht.",
         "dashboard.empty.title": "Camilius überwacht deinen Posteingang",
         "dashboard.empty.body": "Neue Instagram-Nachrichten erscheinen hier mit einer KI-verfassten Antwort, die automatisch gesendet wird.",
+        "dashboard.empty.bodyDraft": "Neue Instagram-Nachrichten erscheinen hier mit einer KI-verfassten Antwort, die auf deine Freigabe wartet.",
         "dashboard.emptyFilter.title": "Keine Konversationen in diesem Filter",
         "dashboard.emptyFilter.body": "Versuche oben einen anderen Filter.",
 
@@ -2525,6 +2535,7 @@ const TRANSLATIONS = {
         "schedule.book": "Prenota",
 
         "dashboard.subtitle": "Le tue conversazioni con i clienti, con risposte dell'IA inviate automaticamente.",
+        "dashboard.subtitleDraft": "Le tue conversazioni con i clienti, con risposte dell'IA in attesa della tua approvazione.",
         "dashboard.processedToday": "Elaborate oggi",
         "dashboard.sentSuccess": "La risposta è stata inviata al cliente.",
         "dashboard.sendError": "Impossibile inviare quella risposta - Instagram consente di rispondere solo entro 24 ore dall'ultimo messaggio del cliente.",
@@ -2541,6 +2552,7 @@ const TRANSLATIONS = {
         "dashboard.trashNote": "Gli elementi nel Cestino vengono eliminati definitivamente dopo 30 giorni.",
         "dashboard.empty.title": "Camilius sta monitorando la tua casella di posta",
         "dashboard.empty.body": "I nuovi messaggi Instagram appariranno qui con una risposta redatta dall'IA, inviata automaticamente.",
+        "dashboard.empty.bodyDraft": "I nuovi messaggi Instagram appariranno qui con una risposta redatta dall'IA, in attesa della tua approvazione.",
         "dashboard.emptyFilter.title": "Nessuna conversazione in questo filtro",
         "dashboard.emptyFilter.body": "Prova un altro filtro sopra.",
 
@@ -2953,6 +2965,7 @@ const TRANSLATIONS = {
         "schedule.book": "Записать",
 
         "dashboard.subtitle": "Ваши разговоры с клиентами: ответы ИИ отправляются автоматически.",
+        "dashboard.subtitleDraft": "Ваши разговоры с клиентами: ответы ИИ ждут вашего одобрения.",
         "dashboard.processedToday": "Обработано сегодня",
         "dashboard.sentSuccess": "Ответ отправлен клиенту.",
         "dashboard.sendError": "Не удалось отправить этот ответ - Instagram позволяет отвечать только в течение 24 часов после последнего сообщения клиента.",
@@ -2969,6 +2982,7 @@ const TRANSLATIONS = {
         "dashboard.trashNote": "Элементы в Корзине окончательно удаляются через 30 дней.",
         "dashboard.empty.title": "Camilius следит за вашими сообщениями",
         "dashboard.empty.body": "Новые сообщения из Instagram будут появляться здесь с готовым ответом от ИИ, который отправляется автоматически.",
+        "dashboard.empty.bodyDraft": "Новые сообщения из Instagram будут появляться здесь с готовым ответом от ИИ, ожидающим вашего одобрения.",
         "dashboard.emptyFilter.title": "Нет разговоров в этом фильтре",
         "dashboard.emptyFilter.body": "Попробуйте другой фильтр выше.",
 
@@ -3381,6 +3395,7 @@ const TRANSLATIONS = {
         "schedule.book": "Zakaži",
 
         "dashboard.subtitle": "Vaši razgovori sa mušterijama, uz AI odgovore koji se automatski šalju.",
+        "dashboard.subtitleDraft": "Vaši razgovori sa mušterijama, uz AI odgovore koji čekaju vaše odobrenje.",
         "dashboard.processedToday": "Obrađeno danas",
         "dashboard.sentSuccess": "Odgovor je poslat mušteriji.",
         "dashboard.sendError": "Odgovor nije mogao da se pošalje - Instagram dozvoljava odgovaranje samo u roku od 24 sata od poslednje poruke mušterije.",
@@ -3397,6 +3412,7 @@ const TRANSLATIONS = {
         "dashboard.trashNote": "Stavke u Korpi se trajno brišu nakon 30 dana.",
         "dashboard.empty.title": "Camilius nadgleda vaš inboks",
         "dashboard.empty.body": "Nove Instagram poruke će se pojaviti ovde sa AI odgovorom koji se automatski šalje.",
+        "dashboard.empty.bodyDraft": "Nove Instagram poruke će se pojaviti ovde sa AI odgovorom koji čeka vaše odobrenje.",
         "dashboard.emptyFilter.title": "Nema razgovora u ovom filteru",
         "dashboard.emptyFilter.body": "Probajte drugi filter iznad.",
 
@@ -3809,6 +3825,7 @@ const TRANSLATIONS = {
         "schedule.book": "预约",
 
         "dashboard.subtitle": "您与顾客的对话,AI回复会自动发送。",
+        "dashboard.subtitleDraft": "您与顾客的对话,AI回复正在等待您的批准。",
         "dashboard.processedToday": "今日已处理",
         "dashboard.sentSuccess": "回复已发送给顾客。",
         "dashboard.sendError": "无法发送该回复 - Instagram仅允许在顾客最后一条消息发出后24小时内回复。",
@@ -3825,6 +3842,7 @@ const TRANSLATIONS = {
         "dashboard.trashNote": "回收站中的项目将在30天后永久删除。",
         "dashboard.empty.title": "Camilius正在关注您的收件箱",
         "dashboard.empty.body": "新的Instagram消息会显示在这里,并附上AI草拟的回复,回复会自动发送。",
+        "dashboard.empty.bodyDraft": "新的Instagram消息会显示在这里,并附上AI草拟的回复,等待您的批准。",
         "dashboard.emptyFilter.title": "此筛选条件下没有对话",
         "dashboard.emptyFilter.body": "请尝试上方的其他筛选条件。",
 
@@ -4237,6 +4255,7 @@ const TRANSLATIONS = {
         "schedule.book": "Randevu al",
 
         "dashboard.subtitle": "Müşteri konuşmalarınız, yapay zekâ yanıtları otomatik gönderilir.",
+        "dashboard.subtitleDraft": "Müşteri konuşmalarınız, onayınızı bekleyen yapay zekâ yanıtlarıyla.",
         "dashboard.processedToday": "Bugün işlenen",
         "dashboard.sentSuccess": "Yanıt müşteriye gönderildi.",
         "dashboard.sendError": "Bu yanıt gönderilemedi - Instagram, yalnızca müşterinin son mesajından itibaren 24 saat içinde yanıt vermeye izin verir.",
@@ -4253,6 +4272,7 @@ const TRANSLATIONS = {
         "dashboard.trashNote": "Çöp kutusundaki öğeler 30 gün sonra kalıcı olarak silinir.",
         "dashboard.empty.title": "Camilius gelen kutunuzu izliyor",
         "dashboard.empty.body": "Yeni Instagram mesajları burada, otomatik olarak gönderilen bir yapay zekâ yanıtıyla görünecek.",
+        "dashboard.empty.bodyDraft": "Yeni Instagram mesajları burada, onayınızı bekleyen bir yapay zekâ yanıtıyla görünecek.",
         "dashboard.emptyFilter.title": "Bu filtrede konuşma yok",
         "dashboard.emptyFilter.body": "Yukarıdan başka bir filtre deneyin.",
 

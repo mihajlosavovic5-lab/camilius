@@ -1301,6 +1301,7 @@ def home():
         send_error=request.args.get("send_error"),
         subscription_active_flag=effective_subscription_active(session["business_id"]),
         stats=stats,
+        auto_send=is_auto_send_enabled(session["business_id"]),
     )
 
 

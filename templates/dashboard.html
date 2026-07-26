@@ -8,7 +8,11 @@
     <div class="page-header">
         <div>
             <h1>{{ business_name }}</h1>
-            <p class="subtitle" data-i18n="dashboard.subtitle">Your customer conversations, with AI replies sent automatically.</p>
+            {% if auto_send %}
+                <p class="subtitle" data-i18n="dashboard.subtitle">Your customer conversations, with AI replies sent automatically.</p>
+            {% else %}
+                <p class="subtitle" data-i18n="dashboard.subtitleDraft">Your customer conversations, with AI replies waiting for your approval.</p>
+            {% endif %}
         </div>
         <div class="quota">
             <div class="quota-text">
@@ -75,7 +79,11 @@
             <div class="empty-icon">&#128235;</div>
             {% if filter_status == 'all' %}
                 <p class="title" data-i18n="dashboard.empty.title">Camilius is watching your inbox</p>
-                <p data-i18n="dashboard.empty.body">New Instagram messages will show up here with an AI-drafted reply, sent automatically.</p>
+                {% if auto_send %}
+                    <p data-i18n="dashboard.empty.body">New Instagram messages will show up here with an AI-drafted reply, sent automatically.</p>
+                {% else %}
+                    <p data-i18n="dashboard.empty.bodyDraft">New Instagram messages will show up here with an AI-drafted reply, waiting for your approval.</p>
+                {% endif %}
             {% else %}
                 <p class="title" data-i18n="dashboard.emptyFilter.title">No conversations in this filter</p>
                 <p data-i18n="dashboard.emptyFilter.body">Try a different filter above.</p>
