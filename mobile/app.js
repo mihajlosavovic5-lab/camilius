@@ -33,6 +33,7 @@ const state = {
     scheduleSlotMinutes: 30,
     scheduleSlotChoices: [15, 30, 45, 60, 90, 120],
     scheduleBookSlot: null,
+    scheduleCache: {},
 };
 
 const screens = {
@@ -2230,28 +2231,55 @@ function scheduleDateLocale() {
     return LOCALE_TAGS[currentLang] || "en-US";
 }
 
-async function loadSchedule(date) {
-    el("schedule-locked").classList.add("hidden");
-    el("schedule-body").classList.add("hidden");
-    el("schedule-error").classList.add("hidden");
+// Unlike Inbox/Settings - already in memory the moment their tab is tapped - Schedule
+// used to hit the network fresh on every single tab switch, going blank until the
+// response came back. It's now cached per view+date: a repeat visit renders the last
+// response instantly (like Inbox does) while a fresh copy loads silently underneath.
+// `force` skips the cached render, used after a mutation (booking/cancelling/changing
+// slot duration) where showing stale data would be misleading.
+async function loadSchedule(date, { force = false } = {}) {
+    const view = state.scheduleView;
+    const targetDate = date || state.scheduleDate;
+    const cacheKey = `${view}:${targetDate || "today"}`;
+    const cached = !force && state.scheduleCache[cacheKey];
 
-    const params = new URLSearchParams({ view: state.scheduleView });
-    if (date || state.scheduleDate) params.set("date", date || state.scheduleDate);
+    if (cached) {
+        el("schedule-error").classList.add("hidden");
+        el("schedule-locked").classList.toggle("hidden", !cached.locked);
+        el("schedule-body").classList.toggle("hidden", !!cached.locked);
+        if (!cached.locked) {
+            state.scheduleDate = cached.selected_date;
+            state.scheduleSlotMinutes = cached.slot_minutes;
+            renderSchedule(cached);
+        }
+    } else {
+        el("schedule-locked").classList.add("hidden");
+        el("schedule-body").classList.add("hidden");
+        el("schedule-error").classList.add("hidden");
+    }
+
+    const params = new URLSearchParams({ view });
+    if (targetDate) params.set("date", targetDate);
 
     try {
         const data = await api(`/api/schedule?${params.toString()}`);
+        state.scheduleCache[cacheKey] = data;
         if (data.locked) {
             el("schedule-locked").classList.remove("hidden");
+            el("schedule-body").classList.add("hidden");
             return;
         }
         state.scheduleDate = data.selected_date;
         state.scheduleSlotMinutes = data.slot_minutes;
+        el("schedule-locked").classList.add("hidden");
         el("schedule-body").classList.remove("hidden");
         renderSchedule(data);
     } catch (err) {
         if (err.status === 401) { logout(); return; }
-        el("schedule-error").classList.remove("hidden");
-        el("schedule-error-message").textContent = err.message || t("schedule.errorTitle");
+        if (!cached) {
+            el("schedule-error").classList.remove("hidden");
+            el("schedule-error-message").textContent = err.message || t("schedule.errorTitle");
+        }
         reportClientError(err.message, err.stack, "schedule-load");
     }
 }
@@ -2422,7 +2450,7 @@ el("schedule-view-week-btn").addEventListener("click", () => {
 el("schedule-prev-btn").addEventListener("click", (event) => loadSchedule(event.currentTarget.dataset.date));
 el("schedule-next-btn").addEventListener("click", (event) => loadSchedule(event.currentTarget.dataset.date));
 el("schedule-today-btn").addEventListener("click", () => loadSchedule(new Date().toISOString().slice(0, 10)));
-el("schedule-retry-btn").addEventListener("click", () => loadSchedule());
+el("schedule-retry-btn").addEventListener("click", () => loadSchedule(null, { force: true }));
 
 el("schedule-upgrade-btn").addEventListener("click", () => {
     subscriptionReturnTo = "schedule";
@@ -2438,7 +2466,7 @@ el("schedule-duration-btn").addEventListener("click", () => {
         if (minutes === state.scheduleSlotMinutes) return;
         try {
             await api("/api/schedule/slot-duration", { method: "POST", body: { slot_duration: minutes } });
-            loadSchedule();
+            loadSchedule(null, { force: true });
         } catch (err) {
             reportClientError(err.message, err.stack, "schedule-slot-duration");
         }
@@ -2487,7 +2515,7 @@ el("book-modal-submit").addEventListener("click", async () => {
         });
         closeBookModal();
         if (capacitorPlugins && capacitorPlugins.Haptics) capacitorPlugins.Haptics.impact({ style: "LIGHT" });
-        loadSchedule();
+        loadSchedule(null, { force: true });
     } catch (err) {
         errorBox.textContent = err.status === 409 ? t("schedule.bookError") : (err.message || t("schedule.bookError"));
         errorBox.classList.remove("hidden");
@@ -2498,7 +2526,7 @@ async function cancelAppointment(appointmentId) {
     try {
         await api(`/api/schedule/appointments/${appointmentId}/cancel`, { method: "POST" });
         if (capacitorPlugins && capacitorPlugins.Haptics) capacitorPlugins.Haptics.impact({ style: "LIGHT" });
-        loadSchedule();
+        loadSchedule(null, { force: true });
     } catch (err) {
         reportClientError(err.message, err.stack, "schedule-cancel");
     }
