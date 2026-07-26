@@ -24,13 +24,9 @@
                     <button type="button" class="duration-pill duration-pill-custom-value active" data-duration-value="{{ slot_minutes }}">{{ slot_minutes }}</button>
                 {% endif %}
                 <button type="button" class="duration-pill duration-pill-custom" id="schedule-duration-custom-btn" data-i18n="schedule.custom">Custom</button>
-            </div>
-            <div class="duration-custom-row hidden" id="schedule-duration-custom-row">
                 <input type="number" min="{{ slot_duration_min }}" max="{{ slot_duration_max }}" step="5"
-                       id="schedule-duration-custom-input"
-                       value="{{ slot_minutes if slot_minutes not in slot_duration_choices else '' }}"
-                       data-i18n-placeholder="schedule.customMinutesPlaceholder" placeholder="Minutes">
-                <button type="button" class="button button-small" id="schedule-duration-custom-apply" data-i18n="schedule.setDuration">Set</button>
+                       id="schedule-duration-custom-input" class="duration-pill-custom-input hidden"
+                       data-i18n-placeholder="schedule.custom" placeholder="Custom">
             </div>
         </form>
         {% endif %}
@@ -171,13 +167,13 @@
 <script>
 document.addEventListener("DOMContentLoaded", function () {
     // Header "Appointment length" pill picker - clicking a pill submits the form right
-    // away (same UX as the old auto-submitting <select>); "Custom" instead reveals a
-    // plain number input so the owner can set any length, not just the quick-pick list.
+    // away (same UX as the old auto-submitting <select>). "Custom" swaps itself out for
+    // a number input in the same spot (same pattern as the per-slot duration control
+    // below) - a field to type into, not a button that opens something else.
     var durationForm = document.getElementById("schedule-duration-form");
     if (durationForm) {
         var durationValue = document.getElementById("schedule-duration-value");
         var customBtn = document.getElementById("schedule-duration-custom-btn");
-        var customRow = document.getElementById("schedule-duration-custom-row");
         var customInput = document.getElementById("schedule-duration-custom-input");
 
         durationForm.querySelectorAll(".duration-pill:not(.duration-pill-custom)").forEach(function (pill) {
@@ -187,24 +183,25 @@ document.addEventListener("DOMContentLoaded", function () {
             });
         });
         customBtn.addEventListener("click", function () {
-            customRow.classList.remove("hidden");
+            customBtn.classList.add("hidden");
+            customInput.classList.remove("hidden");
+            customInput.value = "";
             customInput.focus();
         });
-        function applyCustomDuration() {
+        customInput.addEventListener("keydown", function (e) {
+            if (e.key !== "Enter") return;
+            e.preventDefault();
             var minutes = parseInt(customInput.value, 10);
             if (!minutes || minutes < customInput.min || minutes > customInput.max) return;
             durationValue.value = minutes;
             durationForm.submit();
-        }
-        document.getElementById("schedule-duration-custom-apply").addEventListener("click", applyCustomDuration);
-        // The "Set" button is type="button" (not "submit"), so pressing Enter in the
-        // number field wouldn't otherwise do anything - this makes Enter apply the
-        // custom value exactly like clicking Set, instead of silently doing nothing.
-        customInput.addEventListener("keydown", function (e) {
-            if (e.key === "Enter") {
-                e.preventDefault();
-                applyCustomDuration();
-            }
+        });
+        // Typing nothing and clicking away reverts to the "Custom" pill instead of
+        // leaving an empty field with no way back.
+        customInput.addEventListener("blur", function () {
+            if (customInput.value.trim()) return;
+            customInput.classList.add("hidden");
+            customBtn.classList.remove("hidden");
         });
     }
 

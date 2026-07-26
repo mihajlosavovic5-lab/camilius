@@ -384,8 +384,6 @@ const TRANSLATIONS = {
         "schedule.servicePlaceholder": "Service (optional)",
         "schedule.book": "Book",
         "schedule.custom": "Custom",
-        "schedule.customMinutesPlaceholder": "Minutes",
-        "schedule.setDuration": "Set",
         "schedule.partOfAppointment": "Part of",
 
         "dashboard.subtitle": "Your customer conversations, with AI replies sent automatically.",
@@ -817,8 +815,6 @@ const TRANSLATIONS = {
         "schedule.servicePlaceholder": "Servicio (opcional)",
         "schedule.book": "Reservar",
         "schedule.custom": "Personalizado",
-        "schedule.customMinutesPlaceholder": "Minutos",
-        "schedule.setDuration": "Aplicar",
         "schedule.partOfAppointment": "Parte de",
 
         "dashboard.subtitle": "Tus conversaciones con clientes, con respuestas de la IA enviadas automáticamente.",
@@ -1250,8 +1246,6 @@ const TRANSLATIONS = {
         "schedule.servicePlaceholder": "Serviço (opcional)",
         "schedule.book": "Agendar",
         "schedule.custom": "Personalizado",
-        "schedule.customMinutesPlaceholder": "Minutos",
-        "schedule.setDuration": "Aplicar",
         "schedule.partOfAppointment": "Parte de",
 
         "dashboard.subtitle": "Suas conversas com clientes, com respostas da IA enviadas automaticamente.",
@@ -1683,8 +1677,6 @@ const TRANSLATIONS = {
         "schedule.servicePlaceholder": "Service (optionnel)",
         "schedule.book": "Réserver",
         "schedule.custom": "Personnalisé",
-        "schedule.customMinutesPlaceholder": "Minutes",
-        "schedule.setDuration": "Définir",
         "schedule.partOfAppointment": "Fait partie de",
 
         "dashboard.subtitle": "Vos conversations avec les clients, avec des réponses de l'IA envoyées automatiquement.",
@@ -2116,8 +2108,6 @@ const TRANSLATIONS = {
         "schedule.servicePlaceholder": "Leistung (optional)",
         "schedule.book": "Buchen",
         "schedule.custom": "Benutzerdefiniert",
-        "schedule.customMinutesPlaceholder": "Minuten",
-        "schedule.setDuration": "Übernehmen",
         "schedule.partOfAppointment": "Teil von",
 
         "dashboard.subtitle": "Deine Kundengespräche, mit automatisch gesendeten KI-Antworten.",
@@ -2549,8 +2539,6 @@ const TRANSLATIONS = {
         "schedule.servicePlaceholder": "Servizio (opzionale)",
         "schedule.book": "Prenota",
         "schedule.custom": "Personalizzato",
-        "schedule.customMinutesPlaceholder": "Minuti",
-        "schedule.setDuration": "Imposta",
         "schedule.partOfAppointment": "Parte di",
 
         "dashboard.subtitle": "Le tue conversazioni con i clienti, con risposte dell'IA inviate automaticamente.",
@@ -2982,8 +2970,6 @@ const TRANSLATIONS = {
         "schedule.servicePlaceholder": "Услуга (необязательно)",
         "schedule.book": "Записать",
         "schedule.custom": "Свой вариант",
-        "schedule.customMinutesPlaceholder": "Минуты",
-        "schedule.setDuration": "Задать",
         "schedule.partOfAppointment": "Часть записи:",
 
         "dashboard.subtitle": "Ваши разговоры с клиентами: ответы ИИ отправляются автоматически.",
@@ -3415,8 +3401,6 @@ const TRANSLATIONS = {
         "schedule.servicePlaceholder": "Usluga (opciono)",
         "schedule.book": "Zakaži",
         "schedule.custom": "Prilagođeno",
-        "schedule.customMinutesPlaceholder": "Minuti",
-        "schedule.setDuration": "Podesi",
         "schedule.partOfAppointment": "Deo termina:",
 
         "dashboard.subtitle": "Vaši razgovori sa mušterijama, uz AI odgovore koji se automatski šalju.",
@@ -3848,8 +3832,6 @@ const TRANSLATIONS = {
         "schedule.servicePlaceholder": "服务(可选)",
         "schedule.book": "预约",
         "schedule.custom": "自定义",
-        "schedule.customMinutesPlaceholder": "分钟",
-        "schedule.setDuration": "设置",
         "schedule.partOfAppointment": "属于",
 
         "dashboard.subtitle": "您与顾客的对话,AI回复会自动发送。",
@@ -4281,8 +4263,6 @@ const TRANSLATIONS = {
         "schedule.servicePlaceholder": "Hizmet (isteğe bağlı)",
         "schedule.book": "Randevu al",
         "schedule.custom": "Özel",
-        "schedule.customMinutesPlaceholder": "Dakika",
-        "schedule.setDuration": "Ayarla",
         "schedule.partOfAppointment": "Parçası:",
 
         "dashboard.subtitle": "Müşteri konuşmalarınız, yapay zekâ yanıtları otomatik gönderilir.",
