@@ -202,6 +202,8 @@ const TRANSLATIONS = {
         "landing.footer.getStarted": "Get started",
         "landing.footer.androidApp": "Android app",
         "landing.footer.legalHeading": "Legal",
+        "landing.footer.supportHeading": "Support",
+        "landing.footer.donate": "Buy us a coffee",
 
         "register.autoSendLabel": "AI Autopilot — auto-send replies",
         "register.autoSendBadge": "Recommended",
@@ -324,6 +326,9 @@ const TRANSLATIONS = {
         "subscription.beta.benefit2": "You just approve and send from the dashboard",
         "subscription.beta.benefit3": "Up to 50 replies per day",
         "subscription.beta.benefit4": "Replies learn from your conversation history with each customer",
+        "subscription.donate.title": "Enjoying Camilius?",
+        "subscription.donate.body": "It's free during the beta, no strings attached. If you'd like to support development, a voluntary donation is always appreciated — completely optional.",
+        "subscription.donate.button": "Donate",
         "subscription.active.trialBadge": "14-day Free Trial Active",
         "subscription.active.trialBody": "Your trial is active with every Pro feature unlocked, and the AI is processing new messages. We'll email you a few days before it ends - cancel any time before then and you won't be charged a thing.",
         "subscription.active.proBadge": "Pro plan active",
@@ -624,6 +629,8 @@ const TRANSLATIONS = {
         "landing.footer.getStarted": "Empezar",
         "landing.footer.androidApp": "App de Android",
         "landing.footer.legalHeading": "Legal",
+        "landing.footer.supportHeading": "Apoyo",
+        "landing.footer.donate": "Invítanos un café",
 
         "register.autoSendLabel": "Enviar respuestas de la IA automáticamente",
 
@@ -745,6 +752,9 @@ const TRANSLATIONS = {
         "subscription.beta.benefit2": "Tú solo apruebas y envías desde el panel",
         "subscription.beta.benefit3": "Hasta 50 respuestas por día",
         "subscription.beta.benefit4": "Las respuestas aprenden del historial de conversación con cada cliente",
+        "subscription.donate.title": "¿Te gusta Camilius?",
+        "subscription.donate.body": "Es gratis durante la beta, sin condiciones. Si quieres apoyar el desarrollo, una donación voluntaria siempre se agradece — totalmente opcional.",
+        "subscription.donate.button": "Donar",
         "subscription.active.trialBadge": "Prueba gratuita de 14 días activa",
         "subscription.active.trialBody": "Tu prueba está activa con todas las funciones Pro desbloqueadas, y la IA está procesando nuevos mensajes. Te avisaremos por correo unos días antes de que termine - cancela cuando quieras antes de esa fecha y no se te cobrará nada.",
         "subscription.active.proBadge": "Plan Pro activo",
@@ -1045,6 +1055,8 @@ const TRANSLATIONS = {
         "landing.footer.getStarted": "Começar",
         "landing.footer.androidApp": "App para Android",
         "landing.footer.legalHeading": "Legal",
+        "landing.footer.supportHeading": "Apoio",
+        "landing.footer.donate": "Pague um café para nós",
 
         "register.autoSendLabel": "Enviar respostas da IA automaticamente",
 
@@ -1166,6 +1178,9 @@ const TRANSLATIONS = {
         "subscription.beta.benefit2": "Você só aprova e envia pelo painel",
         "subscription.beta.benefit3": "Até 50 respostas por dia",
         "subscription.beta.benefit4": "As respostas aprendem com o histórico de conversa de cada cliente",
+        "subscription.donate.title": "Gostando do Camilius?",
+        "subscription.donate.body": "É gratuito durante a beta, sem compromisso. Se quiser apoiar o desenvolvimento, uma doação voluntária é sempre bem-vinda — totalmente opcional.",
+        "subscription.donate.button": "Doar",
         "subscription.active.trialBadge": "Teste grátis de 14 dias ativo",
         "subscription.active.trialBody": "Seu teste está ativo com todos os recursos Pro desbloqueados, e a IA está processando novas mensagens. Vamos te avisar por e-mail alguns dias antes de terminar - cancele quando quiser antes disso e você não será cobrado.",
         "subscription.active.proBadge": "Plano Pro ativo",
@@ -1466,6 +1481,8 @@ const TRANSLATIONS = {
         "landing.footer.getStarted": "Commencer",
         "landing.footer.androidApp": "Application Android",
         "landing.footer.legalHeading": "Mentions légales",
+        "landing.footer.supportHeading": "Soutien",
+        "landing.footer.donate": "Offrez-nous un café",
 
         "register.autoSendLabel": "Envoyer automatiquement les réponses de l'IA",
 
@@ -1587,6 +1604,9 @@ const TRANSLATIONS = {
         "subscription.beta.benefit2": "Vous n'avez qu'à approuver et envoyer depuis le tableau de bord",
         "subscription.beta.benefit3": "Jusqu'à 50 réponses par jour",
         "subscription.beta.benefit4": "Les réponses s'appuient sur l'historique de conversation avec chaque client",
+        "subscription.donate.title": "Vous aimez Camilius ?",
+        "subscription.donate.body": "C'est gratuit pendant la bêta, sans engagement. Si vous souhaitez soutenir le développement, un don volontaire est toujours apprécié — entièrement facultatif.",
+        "subscription.donate.button": "Faire un don",
         "subscription.active.trialBadge": "Essai gratuit de 14 jours actif",
         "subscription.active.trialBody": "Votre essai est actif avec toutes les fonctionnalités Pro débloquées, et l'IA traite les nouveaux messages. Nous vous enverrons un e-mail quelques jours avant la fin - annulez à tout moment avant cette date et vous ne serez pas facturé.",
         "subscription.active.proBadge": "Forfait Pro actif",
@@ -1887,6 +1907,8 @@ const TRANSLATIONS = {
         "landing.footer.getStarted": "Loslegen",
         "landing.footer.androidApp": "Android-App",
         "landing.footer.legalHeading": "Rechtliches",
+        "landing.footer.supportHeading": "Unterstützung",
+        "landing.footer.donate": "Spendier uns einen Kaffee",
 
         "register.autoSendLabel": "KI-Antworten automatisch senden",
 
@@ -2008,6 +2030,9 @@ const TRANSLATIONS = {
         "subscription.beta.benefit2": "Du genehmigst und sendest einfach über das Dashboard",
         "subscription.beta.benefit3": "Bis zu 50 Antworten pro Tag",
         "subscription.beta.benefit4": "Antworten lernen aus deinem Gesprächsverlauf mit jedem Kunden",
+        "subscription.donate.title": "Gefällt dir Camilius?",
+        "subscription.donate.body": "Es ist während der Beta kostenlos, ohne Bedingungen. Wenn du die Entwicklung unterstützen möchtest, ist eine freiwillige Spende immer willkommen — völlig optional.",
+        "subscription.donate.button": "Spenden",
         "subscription.active.trialBadge": "14-tägige kostenlose Testphase aktiv",
         "subscription.active.trialBody": "Deine Testphase ist aktiv mit allen Pro-Funktionen freigeschaltet, und die KI verarbeitet neue Nachrichten. Wir schicken dir ein paar Tage vor Ende eine E-Mail - kündige jederzeit vorher, dann wird dir nichts berechnet.",
         "subscription.active.proBadge": "Pro-Plan aktiv",
@@ -2308,6 +2333,8 @@ const TRANSLATIONS = {
         "landing.footer.getStarted": "Inizia",
         "landing.footer.androidApp": "App Android",
         "landing.footer.legalHeading": "Legale",
+        "landing.footer.supportHeading": "Supporto",
+        "landing.footer.donate": "Offrici un caffè",
 
         "register.autoSendLabel": "Invia automaticamente le risposte dell'IA",
 
@@ -2429,6 +2456,9 @@ const TRANSLATIONS = {
         "subscription.beta.benefit2": "Tu approvi e invii semplicemente dalla dashboard",
         "subscription.beta.benefit3": "Fino a 50 risposte al giorno",
         "subscription.beta.benefit4": "Le risposte apprendono dalla cronologia delle conversazioni con ogni cliente",
+        "subscription.donate.title": "Ti piace Camilius?",
+        "subscription.donate.body": "È gratuito durante la beta, senza vincoli. Se vuoi sostenere lo sviluppo, una donazione volontaria è sempre apprezzata — completamente facoltativa.",
+        "subscription.donate.button": "Dona",
         "subscription.active.trialBadge": "Prova gratuita di 14 giorni attiva",
         "subscription.active.trialBody": "La tua prova è attiva con tutte le funzioni Pro sbloccate, e l'IA sta elaborando nuovi messaggi. Ti invieremo un'email qualche giorno prima della fine - annulla in qualsiasi momento prima di allora e non ti verrà addebitato nulla.",
         "subscription.active.proBadge": "Piano Pro attivo",
@@ -2729,6 +2759,8 @@ const TRANSLATIONS = {
         "landing.footer.getStarted": "Начать",
         "landing.footer.androidApp": "Приложение для Android",
         "landing.footer.legalHeading": "Правовая информация",
+        "landing.footer.supportHeading": "Поддержка",
+        "landing.footer.donate": "Угостите нас кофе",
 
         "register.autoSendLabel": "Автоматически отправлять ответы ИИ",
 
@@ -2850,6 +2882,9 @@ const TRANSLATIONS = {
         "subscription.beta.benefit2": "Вы просто одобряете и отправляете из панели управления",
         "subscription.beta.benefit3": "До 50 ответов в день",
         "subscription.beta.benefit4": "Ответы учитывают историю переписки с каждым клиентом",
+        "subscription.donate.title": "Нравится Camilius?",
+        "subscription.donate.body": "Во время бета-версии это бесплатно, без каких-либо условий. Если хотите поддержать разработку, добровольное пожертвование всегда приветствуется — это совершенно необязательно.",
+        "subscription.donate.button": "Пожертвовать",
         "subscription.active.trialBadge": "Активен 14-дневный бесплатный пробный период",
         "subscription.active.trialBody": "Ваш пробный период активен со всеми функциями Pro, и ИИ обрабатывает новые сообщения. Мы пришлём письмо за несколько дней до его окончания - отмените в любой момент до этого, и с вас ничего не спишут.",
         "subscription.active.proBadge": "План Pro активен",
@@ -3150,6 +3185,8 @@ const TRANSLATIONS = {
         "landing.footer.getStarted": "Počni",
         "landing.footer.androidApp": "Android aplikacija",
         "landing.footer.legalHeading": "Pravno",
+        "landing.footer.supportHeading": "Podrška",
+        "landing.footer.donate": "Časti nas kafom",
 
         "register.autoSendLabel": "Automatski šalji AI odgovore",
 
@@ -3271,6 +3308,9 @@ const TRANSLATIONS = {
         "subscription.beta.benefit2": "Vi samo odobravate i šaljete sa kontrolne table",
         "subscription.beta.benefit3": "Do 50 odgovora dnevno",
         "subscription.beta.benefit4": "Odgovori uče iz istorije razgovora sa svakom mušterijom",
+        "subscription.donate.title": "Sviđa ti se Camilius?",
+        "subscription.donate.body": "Besplatan je tokom bete, bez ikakvih obaveza. Ako želiš da podržiš dalji razvoj, dobrovoljna donacija je uvek dobrodošla — potpuno opciono.",
+        "subscription.donate.button": "Doniraj",
         "subscription.active.trialBadge": "Aktivan besplatni probni period od 14 dana",
         "subscription.active.trialBody": "Vaš probni period je aktivan sa svim Pro funkcijama otključanim, a AI obrađuje nove poruke. Poslaćemo vam imejl nekoliko dana pre isteka - otkažite bilo kada pre toga i neće vam biti naplaćeno ništa.",
         "subscription.active.proBadge": "Pro plan je aktivan",
@@ -3571,6 +3611,8 @@ const TRANSLATIONS = {
         "landing.footer.getStarted": "开始使用",
         "landing.footer.androidApp": "Android应用",
         "landing.footer.legalHeading": "法律信息",
+        "landing.footer.supportHeading": "支持",
+        "landing.footer.donate": "请我们喝杯咖啡",
 
         "register.autoSendLabel": "自动发送AI回复",
 
@@ -3692,6 +3734,9 @@ const TRANSLATIONS = {
         "subscription.beta.benefit2": "您只需在仪表盘中审核并发送",
         "subscription.beta.benefit3": "每天最多50条回复",
         "subscription.beta.benefit4": "回复会根据您与每位顾客的对话历史进行学习",
+        "subscription.donate.title": "喜欢 Camilius 吗?",
+        "subscription.donate.body": "测试阶段完全免费,没有任何附加条件。如果您想支持后续开发,欢迎自愿捐赠——完全可选。",
+        "subscription.donate.button": "捐赠",
         "subscription.active.trialBadge": "14天免费试用已激活",
         "subscription.active.trialBody": "您的试用已激活,所有Pro功能均已解锁,AI正在处理新消息。试用结束前几天我们会给您发邮件提醒——在此之前随时取消,不会向您收取任何费用。",
         "subscription.active.proBadge": "Pro套餐已激活",
@@ -3992,6 +4037,8 @@ const TRANSLATIONS = {
         "landing.footer.getStarted": "Başlayın",
         "landing.footer.androidApp": "Android uygulaması",
         "landing.footer.legalHeading": "Yasal",
+        "landing.footer.supportHeading": "Destek",
+        "landing.footer.donate": "Bize bir kahve ısmarla",
 
         "register.autoSendLabel": "Yapay zekâ yanıtlarını otomatik gönder",
 
@@ -4113,6 +4160,9 @@ const TRANSLATIONS = {
         "subscription.beta.benefit2": "Siz sadece kontrol panelinden onaylar ve gönderirsiniz",
         "subscription.beta.benefit3": "Günde 50'ye kadar yanıt",
         "subscription.beta.benefit4": "Yanıtlar her müşteriyle olan konuşma geçmişinizden öğrenir",
+        "subscription.donate.title": "Camilius'u beğendin mi?",
+        "subscription.donate.body": "Beta sürecinde tamamen ücretsiz, hiçbir şart yok. Geliştirmeyi desteklemek istersen gönüllü bağış her zaman memnuniyetle karşılanır — tamamen isteğe bağlı.",
+        "subscription.donate.button": "Bağış yap",
         "subscription.active.trialBadge": "14 günlük ücretsiz deneme aktif",
         "subscription.active.trialBody": "Denemeniz tüm Pro özellikleri açık şekilde aktif ve yapay zekâ yeni mesajları işliyor. Deneme bitmeden birkaç gün önce size e-posta göndereceğiz - bu tarihten önce istediğiniz zaman iptal edebilirsiniz, hiçbir ücret alınmaz.",
         "subscription.active.proBadge": "Pro plan aktif",
