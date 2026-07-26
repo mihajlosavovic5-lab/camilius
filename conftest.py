@@ -26,6 +26,8 @@ import uuid
 import pytest
 
 import app as app_module
+import database
+import reminders as reminders_module
 from extensions import limiter
 
 
@@ -34,6 +36,16 @@ def client():
     app_module.app.config["TESTING"] = True
     with app_module.app.test_client() as test_client:
         yield test_client
+
+
+@pytest.fixture(autouse=True)
+def _stub_send_email(monkeypatch):
+    # Registration (and other flows) sends a real verification/notification email via
+    # Resend on every call - without this, any test that registers a business makes a
+    # live network call and fails outside of a valid RESEND_API_KEY. Individual tests
+    # that care about what was "sent" re-monkeypatch these with their own recording stub.
+    monkeypatch.setattr(app_module, "send_email", lambda **kwargs: None)
+    monkeypatch.setattr(reminders_module, "send_email", lambda **kwargs: None)
 
 
 @pytest.fixture(autouse=True)
@@ -58,7 +70,12 @@ def unique_username():
 def register_business(client, username, email, **overrides):
     """Shared helper for tests that need a real registered business - posts to the same
     /api/register endpoint the mobile app uses, so tests exercise the real code path
-    rather than inserting rows directly."""
+    rather than inserting rows directly.
+
+    Since email confirmation is now required before login (see api_login()'s
+    email_verified check), this also marks the new account verified - exactly what
+    clicking the confirmation link would do - so callers that log in right after
+    registering don't need to know about that step themselves."""
     payload = {
         "name": "Test Salon",
         "username": username,
@@ -70,7 +87,22 @@ def register_business(client, username, email, **overrides):
         "accept_terms": True,
     }
     payload.update(overrides)
-    return client.post("/api/register", json=payload)
+    response = client.post("/api/register", json=payload)
+    if response.status_code == 200:
+        database.mark_email_verified(response.get_json()["business_id"])
+    return response
+
+
+def register_and_login(client, username, email, password="TestPassword123", **overrides):
+    """register_business() no longer hands back a usable bearer token directly - the
+    account must confirm its email first (see register_business's own docstring above).
+    This does both steps and returns (token, business_id), for tests that just need a
+    working bearer token for a fresh business rather than exercising the registration
+    response itself."""
+    reg = register_business(client, username, email, password=password, **overrides)
+    business_id = reg.get_json()["business_id"]
+    login = client.post("/api/login", json={"username": username, "password": password})
+    return login.get_json()["token"], business_id
 
 
 def _csrf_token_from_html(html):
@@ -85,7 +117,13 @@ def register_business_web(client, username, email, **overrides):
     session+CSRF-protected web routes (e.g. Schedule) rather than the Bearer-token API.
     working_hours defaults to the day-by-day picker format (see booking.parse_working_
     hours) rather than register_business()'s free-text placeholder, so a real business
-    day (Monday) is actually open for tests that need bookable slots."""
+    day (Monday) is actually open for tests that need bookable slots.
+
+    Registering alone no longer logs the session in (it redirects to /verify-pending
+    until the confirmation link is clicked - see register()/verify_email() in app.py),
+    so on a successful registration this also marks the account verified and completes
+    the same session["business_id"]/session["business_name"] login that clicking the
+    email link would, for callers that need an already-logged-in web session."""
     get_response = client.get("/register")
     csrf_token = _csrf_token_from_html(get_response.get_data(as_text=True))
 
@@ -103,7 +141,15 @@ def register_business_web(client, username, email, **overrides):
         "accept_terms": "on",
     }
     form.update(overrides)
-    return web_post(client, "/register", form)
+    response = web_post(client, "/register", form)
+    if response.status_code == 302:
+        business = database.business_by_username(username)
+        database.mark_email_verified(business[0])
+        with client.session_transaction() as session:
+            session["business_id"] = business[0]
+            session["business_name"] = business[1]
+            session.pop("pending_verify_business_id", None)
+    return response
 
 
 def get_csrf_token(client, path):

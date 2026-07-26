@@ -74,6 +74,7 @@ def test_pricing_page_shows_paddle_checkout_once_configured(client, unique_usern
         contact_email=unique_email, working_hours="", price_list="", faq="",
         initial_status="none",
     )
+    database.mark_email_verified(business_id)  # login() redirects to /verify-pending otherwise
     login_csrf = get_csrf_token(client, "/login")
     client.post("/login", data={"csrf_token": login_csrf, "username": unique_username, "password": "TestPassword123"})
 
@@ -90,6 +91,7 @@ def test_pricing_page_shows_coming_soon_when_paddle_not_configured(client, uniqu
         contact_email=unique_email, working_hours="", price_list="", faq="",
         initial_status="none",
     )
+    database.mark_email_verified(business_id)  # login() redirects to /verify-pending otherwise
     login_csrf = get_csrf_token(client, "/login")
     client.post("/login", data={"csrf_token": login_csrf, "username": unique_username, "password": "TestPassword123"})
 

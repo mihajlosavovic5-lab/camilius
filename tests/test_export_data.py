@@ -1,4 +1,4 @@
-from conftest import register_business
+from conftest import register_and_login
 
 
 def test_export_data_requires_login_redirects(client):
@@ -13,8 +13,7 @@ def test_export_data_link_requires_auth(client):
 
 
 def test_export_data_mobile_flow_end_to_end(client, unique_username, unique_email):
-    reg = register_business(client, unique_username, unique_email)
-    token = reg.get_json()["token"]
+    token, _ = register_and_login(client, unique_username, unique_email)
 
     link_response = client.get("/api/export-data-link", headers={"Authorization": f"Bearer {token}"})
     assert link_response.status_code == 200
