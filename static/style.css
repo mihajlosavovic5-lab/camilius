@@ -285,15 +285,27 @@ a:focus-visible, button:focus-visible, [tabindex]:focus-visible {
 .brand-name { font-family: Georgia, "Times New Roman", serif; font-weight: 700; font-size: 17px; color: var(--text); letter-spacing: 0; }
 
 /* --- Navigation (logged-in pages) --- */
+/* Scroll-aware, same fade-from-transparent-to-solid effect as the landing
+   page's #lp-header/.lp-scrolled below: blends with the page's own background
+   at the very top (matching body's gradient instead of sitting on a hard white
+   bar), then solidifies into a frosted bar once scrolled, toggled by the
+   .nav-scrolled class (see _nav.html's scroll listener). */
 .navbar {
-    background: var(--surface);
-    border-bottom: 1px solid var(--border);
+    background: rgba(255, 255, 255, 0);
+    border-bottom: 1px solid rgba(236, 230, 218, 0);
     /* top tracks --install-banner-h like #lp-header/.site-lang-select-btn - a
        sticky element's "stuck" offset is measured from the viewport itself, not
        from body's padding-top above, so without this it would stick flush at
        the true top of the screen, underneath the still-shown floating banner. */
     position: sticky; top: var(--install-banner-h); z-index: 10;
-    transition: top .2s cubic-bezier(.16,1,.3,1);
+    transition: top .2s cubic-bezier(.16,1,.3,1), background .25s ease, border-color .25s ease,
+                box-shadow .25s ease;
+}
+.navbar.nav-scrolled {
+    background: rgba(255, 255, 255, .85);
+    backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+    border-bottom-color: var(--border);
+    box-shadow: 0 4px 20px rgba(38, 32, 20, .05);
 }
 @media (prefers-reduced-motion: reduce) {
     .navbar { transition: none; }

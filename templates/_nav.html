@@ -23,3 +23,25 @@
         {% endif %}
     </div>
 </nav>
+<script>
+    // Same scroll-aware header effect as the landing page (#lp-header/.lp-scrolled
+    // in landing.html/style.css): transparent over the page's own background at
+    // the very top, solid/frosted once scrolled. Runs as a plain inline script
+    // (not on DOMContentLoaded) since .navbar is already parsed right above it,
+    // and re-runs after every hx-boost nav swap since htmx re-executes scripts in
+    // swapped-in content, keeping the effect working across page changes.
+    (function () {
+        var nav = document.querySelector('.navbar');
+        if (!nav) return;
+        var ticking = false;
+        function onScroll() {
+            var scrollTop = window.scrollY || document.documentElement.scrollTop;
+            nav.classList.toggle('nav-scrolled', scrollTop > 12);
+            ticking = false;
+        }
+        window.addEventListener('scroll', function () {
+            if (!ticking) { window.requestAnimationFrame(onScroll); ticking = true; }
+        }, { passive: true });
+        onScroll();
+    })();
+</script>
