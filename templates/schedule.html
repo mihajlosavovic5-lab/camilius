@@ -16,11 +16,14 @@
             <input type="hidden" name="date" value="{{ selected_date.isoformat() }}">
             <label class="duration-picker-label" data-i18n="schedule.appointmentLength">Appointment length</label>
             <input type="hidden" name="slot_duration" id="schedule-duration-value" value="{{ slot_minutes }}">
-            <div class="duration-pills">
+            <div class="duration-pills" id="schedule-duration-pills">
                 {% for choice in slot_duration_choices %}
                     <button type="button" class="duration-pill {{ 'active' if choice == slot_minutes }}" data-duration-value="{{ choice }}">{{ choice }}</button>
                 {% endfor %}
-                <button type="button" class="duration-pill duration-pill-custom {{ 'active' if slot_minutes not in slot_duration_choices }}" id="schedule-duration-custom-btn" data-i18n="schedule.custom">Custom</button>
+                {% if slot_minutes not in slot_duration_choices %}
+                    <button type="button" class="duration-pill duration-pill-custom-value active" data-duration-value="{{ slot_minutes }}">{{ slot_minutes }}</button>
+                {% endif %}
+                <button type="button" class="duration-pill duration-pill-custom" id="schedule-duration-custom-btn" data-i18n="schedule.custom">Custom</button>
             </div>
             <div class="duration-custom-row hidden" id="schedule-duration-custom-row">
                 <input type="number" min="{{ slot_duration_min }}" max="{{ slot_duration_max }}" step="5"
@@ -187,11 +190,21 @@ document.addEventListener("DOMContentLoaded", function () {
             customRow.classList.remove("hidden");
             customInput.focus();
         });
-        document.getElementById("schedule-duration-custom-apply").addEventListener("click", function () {
+        function applyCustomDuration() {
             var minutes = parseInt(customInput.value, 10);
             if (!minutes || minutes < customInput.min || minutes > customInput.max) return;
             durationValue.value = minutes;
             durationForm.submit();
+        }
+        document.getElementById("schedule-duration-custom-apply").addEventListener("click", applyCustomDuration);
+        // The "Set" button is type="button" (not "submit"), so pressing Enter in the
+        // number field wouldn't otherwise do anything - this makes Enter apply the
+        // custom value exactly like clicking Set, instead of silently doing nothing.
+        customInput.addEventListener("keydown", function (e) {
+            if (e.key === "Enter") {
+                e.preventDefault();
+                applyCustomDuration();
+            }
         });
     }
 
