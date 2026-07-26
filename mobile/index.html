@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
 <title>Camilius</title>
-<link rel="stylesheet" href="app.css?v=26da6cb019d3">
+<link rel="stylesheet" href="app.css?v=253caa8ba03a">
 </head>
 <body>
 
@@ -561,6 +561,13 @@
       <button type="button" class="button" id="schedule-upgrade-btn" data-i18n="schedule.upgradeCta">Upgrade to Pro</button>
     </div>
 
+    <!-- Only ever visible for the rare case the app-start prefetch (see enterApp() in
+         app.js) hasn't landed yet by the time this tab is tapped - a spinner instead of
+         a blank screen, so a slow network reads as "loading" rather than "broken". -->
+    <div id="schedule-loading" class="loading hidden">
+      <div class="spinner"></div>
+    </div>
+
     <div id="schedule-body" class="detail-body schedule-body hidden">
       <div id="schedule-no-hours" class="alert alert-warning hidden"></div>
 
@@ -939,7 +946,7 @@
   </button>
 </nav>
 
-<script src="i18n.js?v=26da6cb019d3"></script>
-<script src="app.js?v=26da6cb019d3"></script>
+<script src="i18n.js?v=253caa8ba03a"></script>
+<script src="app.js?v=253caa8ba03a"></script>
 </body>
 </html>

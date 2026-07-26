@@ -1500,6 +1500,13 @@ function enterApp() {
     loadDashboard();
     loadSettingsIntoForm();
     startAutoRefresh();
+    // Fire-and-forget: warms state.scheduleCache in the background so the Schedule tab
+    // is usually already populated (same "was loaded before you tapped it" feel as
+    // Inbox/Profile) by the time it's actually opened, instead of only ever fetching on
+    // tap - loadSchedule() is safe to call here even though Schedule isn't the visible
+    // screen yet, since it only ever toggles that screen's own (currently offscreen)
+    // elements.
+    loadSchedule();
 }
 
 // --- Push notifications ---
@@ -2244,6 +2251,7 @@ async function loadSchedule(date, { force = false } = {}) {
     const cached = !force && state.scheduleCache[cacheKey];
 
     if (cached) {
+        el("schedule-loading").classList.add("hidden");
         el("schedule-error").classList.add("hidden");
         el("schedule-locked").classList.toggle("hidden", !cached.locked);
         el("schedule-body").classList.toggle("hidden", !!cached.locked);
@@ -2256,6 +2264,7 @@ async function loadSchedule(date, { force = false } = {}) {
         el("schedule-locked").classList.add("hidden");
         el("schedule-body").classList.add("hidden");
         el("schedule-error").classList.add("hidden");
+        el("schedule-loading").classList.remove("hidden");
     }
 
     const params = new URLSearchParams({ view });
@@ -2264,6 +2273,7 @@ async function loadSchedule(date, { force = false } = {}) {
     try {
         const data = await api(`/api/schedule?${params.toString()}`);
         state.scheduleCache[cacheKey] = data;
+        el("schedule-loading").classList.add("hidden");
         if (data.locked) {
             el("schedule-locked").classList.remove("hidden");
             el("schedule-body").classList.add("hidden");
@@ -2276,6 +2286,7 @@ async function loadSchedule(date, { force = false } = {}) {
         renderSchedule(data);
     } catch (err) {
         if (err.status === 401) { logout(); return; }
+        el("schedule-loading").classList.add("hidden");
         if (!cached) {
             el("schedule-error").classList.remove("hidden");
             el("schedule-error-message").textContent = err.message || t("schedule.errorTitle");
