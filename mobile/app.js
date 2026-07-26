@@ -161,11 +161,10 @@ if (capacitorPlugins) {
     // time, but small changes to it can be pushed live afterward without a new signed
     // APK - see api.py's /api/mobile-manifest and build_mobile_bundle.py.
     //
-    // Updates surface as a visible bottom banner the user taps to install, instead of
-    // applying silently in the background - the user's explicit preference after the
-    // silent flow repeatedly appeared unreliable (no way to tell "no update" apart from
-    // "update silently failed"). Tapping Install calls set(), which applies the new
-    // bundle and reloads immediately - expected and fine, since the user initiated it.
+    // Updates apply fully automatically - no tap required - behind a full-screen overlay
+    // with a progress bar (fed by the plugin's own "download" progress events) so the
+    // user sees why the app is briefly unresponsive instead of it looking frozen. set()
+    // reloads the app immediately once applied - nothing after that call runs.
     if (capacitorPlugins.CapacitorUpdater) {
         capacitorPlugins.CapacitorUpdater.notifyAppReady().catch(() => {});
 
@@ -174,8 +173,19 @@ if (capacitorPlugins) {
         }).catch(() => {});
 
         let otaCheckInProgress = false;
-        let pendingOtaBundle = null;
-        const otaBanner = el("ota-banner");
+        const otaOverlay = el("ota-update-overlay");
+        const otaProgressFill = el("ota-progress-fill");
+        const otaProgressPercent = el("ota-progress-percent");
+
+        const setOtaProgress = (percent) => {
+            const clamped = Math.max(0, Math.min(100, Math.round(percent) || 0));
+            otaProgressFill.style.width = clamped + "%";
+            otaProgressPercent.textContent = clamped + "%";
+        };
+
+        capacitorPlugins.CapacitorUpdater.addListener("download", (info) => {
+            setOtaProgress(info && info.percent);
+        });
 
         const findDownloadedBundle = async (version) => {
             const result = await capacitorPlugins.CapacitorUpdater.list();
@@ -185,13 +195,6 @@ if (capacitorPlugins) {
 
         const checkForOtaUpdate = async () => {
             if (otaCheckInProgress) return;
-            if (pendingOtaBundle) {
-                // Already downloaded earlier this session - just re-show the banner
-                // instead of re-fetching. There's no dismiss button (updates are
-                // mandatory), but re-entering the app re-runs this check regardless.
-                otaBanner.classList.remove("hidden");
-                return;
-            }
             otaCheckInProgress = true;
             let step = "fetch-manifest";
             try {
@@ -207,6 +210,9 @@ if (capacitorPlugins) {
                 const activeVersion = (current && current.bundle) ? current.bundle.version : "unknown";
                 if (activeVersion === manifest.version) return;
 
+                setOtaProgress(0);
+                otaOverlay.classList.remove("hidden");
+
                 step = "download";
                 let bundle;
                 try {
@@ -215,32 +221,23 @@ if (capacitorPlugins) {
                         version: manifest.version,
                     });
                 } catch (downloadError) {
-                    // Most likely "already downloaded" from a previous session where the
-                    // user never tapped Install - reuse the stored copy instead of failing.
+                    // Most likely "already downloaded" from a previous session that got
+                    // interrupted before set() applied it - reuse the stored copy.
                     bundle = await findDownloadedBundle(manifest.version);
                     if (!bundle) throw downloadError;
                 }
 
-                pendingOtaBundle = bundle;
-                otaBanner.classList.remove("hidden");
+                setOtaProgress(100);
+                step = "set";
+                await capacitorPlugins.CapacitorUpdater.set(bundle);
+                // set() reloads the app immediately - nothing below this line runs.
             } catch (e) {
+                otaOverlay.classList.add("hidden");
                 reportClientError(`failed at step=${step}: ${e.message}`, e.stack, "ota-update-check");
             } finally {
                 otaCheckInProgress = false;
             }
         };
-
-        el("ota-install-btn").addEventListener("click", async () => {
-            if (!pendingOtaBundle) return;
-            try {
-                await capacitorPlugins.CapacitorUpdater.set(pendingOtaBundle);
-                // set() reloads the app immediately - nothing below this line runs.
-            } catch (e) {
-                reportClientError("ota install failed: " + e.message, e.stack, "ota-apply");
-                otaBanner.classList.add("hidden");
-                pendingOtaBundle = null;
-            }
-        });
 
         // Check at cold start AND every time the app returns to the foreground - "every
         // time I enter the app", not just full restarts.
