@@ -391,10 +391,10 @@ a:focus-visible, button:focus-visible, [tabindex]:focus-visible {
 .page-header-center { justify-content: center; text-align: center; }
 /* Dashboard only - the business title is now a single line (no subtitle), so
    flex-end left it sitting above the two-line quota widget instead of level
-   with it; center the two against each other vertically instead. Also pull it
-   down closer to the stat tiles below now that there's no subtitle line
-   filling that space. */
-.page-header-middle { align-items: center; margin-bottom: 6px; margin-top: -10px; }
+   with it; center the two against each other vertically instead. margin-top
+   gives it more breathing room below the navbar, now that the navbar itself
+   fades to transparent at the top instead of always being a solid bar. */
+.page-header-middle { align-items: center; margin-bottom: 6px; margin-top: 20px; }
 
 /* --- Cards --- */
 .card {
