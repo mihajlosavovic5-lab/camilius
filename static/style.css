@@ -382,8 +382,7 @@ a:focus-visible, button:focus-visible, [tabindex]:focus-visible {
    with it; center the two against each other vertically instead. Also pull it
    down closer to the stat tiles below now that there's no subtitle line
    filling that space. */
-.page-header-middle { align-items: center; margin-bottom: 6px; }
-.page-header-middle .quota { margin-top: -10px; }
+.page-header-middle { align-items: center; margin-bottom: 6px; margin-top: -4px; }
 
 /* --- Cards --- */
 .card {
