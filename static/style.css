@@ -376,9 +376,9 @@ a:focus-visible, button:focus-visible, [tabindex]:focus-visible {
 /* Dashboard only - the business title is now a single line (no subtitle), so
    flex-end left it sitting above the two-line quota widget instead of level
    with it; center the two against each other vertically instead. margin-top
-   gives it more breathing room below the navbar, now that the navbar itself
-   fades to transparent at the top instead of always being a solid bar. */
-.page-header-middle { align-items: center; margin-bottom: 6px; margin-top: 20px; }
+   gives it a little breathing room below the navbar, now that the navbar
+   itself fades to transparent at the top instead of always being a solid bar. */
+.page-header-middle { align-items: center; margin-bottom: 6px; margin-top: 6px; }
 
 /* --- Cards --- */
 .card {
