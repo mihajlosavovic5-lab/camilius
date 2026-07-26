@@ -1,5 +1,5 @@
 import database
-from conftest import register_business, register_business_web
+from conftest import register_business, register_business_web, register_and_login
 
 
 def test_login_page_loads(client):
@@ -63,6 +63,23 @@ def test_login_with_email_instead_of_username(client, unique_username, unique_em
     response = client.post("/api/login", json={"username": unique_email, "password": "TestPassword123"})
     assert response.status_code == 200
     assert response.get_json()["token"]
+
+
+def test_register_honors_push_enabled_choice(client, unique_username, unique_email):
+    """The mobile registration wizard asks up front whether to enable notifications -
+    whatever the user picks there should be the account's starting push_enabled value,
+    not always-on with the user having to find Settings to opt back out."""
+    token, business_id = register_and_login(client, unique_username, unique_email, push_enabled=False)
+    response = client.get("/api/notification-preferences", headers={"Authorization": f"Bearer {token}"})
+    assert response.status_code == 200
+    assert response.get_json()["push_enabled"] is False
+
+
+def test_register_defaults_push_enabled_to_true(client, unique_username, unique_email):
+    token, business_id = register_and_login(client, unique_username, unique_email)
+    response = client.get("/api/notification-preferences", headers={"Authorization": f"Bearer {token}"})
+    assert response.status_code == 200
+    assert response.get_json()["push_enabled"] is True
 
 
 def test_login_with_phone_number(client, unique_username, unique_email):

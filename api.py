@@ -255,6 +255,10 @@ def api_register():
             # already has a "needs plan" state (subscription_status == 'none') that opens
             # the same Paddle Checkout trial bridge as web, see /api/subscription-link.
             initial_status="none" if paddle_billing.is_configured() else "trialing",
+            # The registration wizard's own "Enable notifications?" toggle - whatever the
+            # user picked there is the account's starting push_enabled value, changeable
+            # later from Settings (see /api/notification-preferences) either way.
+            push_enabled=bool(data.get("push_enabled", True)),
         )
     except psycopg2.errors.UniqueViolation:
         return jsonify(error="That username, contact email, or phone number is already taken."), 409
