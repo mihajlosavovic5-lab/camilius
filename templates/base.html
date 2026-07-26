@@ -36,6 +36,17 @@
          load or an older browser doesn't cooperate - hx-boost only enhances a real <a
          href>, it never replaces it. -->
     <script src="{{ url_for('static', filename='htmx.min.js') }}?v={{ static_versions['htmx.min.js'] }}" defer></script>
+    <script>
+        // Opts htmx's boosted nav swaps (see _nav.html) into the same native View
+        // Transition style.css's `@view-transition { navigation: auto; }` already gives
+        // ordinary cross-document navigations (login/register success, any plain link) -
+        // one consistent transition either way instead of instant for one path and
+        // animated for the other. Mirrors that CSS's own prefers-reduced-motion check.
+        document.addEventListener("DOMContentLoaded", function () {
+            if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+            if (typeof htmx !== "undefined") htmx.config.globalViewTransitions = true;
+        });
+    </script>
     <!-- Site-wide translation layer (static/site-i18n.js) - vanilla JS, same pattern as
          the mobile app's i18n.js. Lives in base.html so the picker button/modal and the
          translate-on-load call apply on every page automatically, without touching each

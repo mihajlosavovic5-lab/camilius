@@ -1,5 +1,33 @@
 /* Camilius — shared styles for all pages */
 
+/* --- Page transitions - a subtle native crossfade+drift between full page navigations
+   (login/register success, any plain link) and htmx-boosted nav clicks (Conversations/
+   Schedule/Profile/Settings - see _nav.html/base.html's globalViewTransitions bit),
+   instead of the instant, flat swap the site had before. Uses the browser's native View
+   Transitions API - `navigation: auto` opts every cross-document navigation in on
+   Chrome/Edge; other browsers just ignore the unsupported at-rule and navigate normally,
+   so this is a pure progressive enhancement, no fallback branch needed. One motion
+   language for the whole site rather than separate per-widget animations, so it reads as
+   deliberate polish instead of clutter. Skipped entirely under prefers-reduced-motion -
+   the browser just does a normal instant swap in that case. --- */
+@media (prefers-reduced-motion: no-preference) {
+    @view-transition {
+        navigation: auto;
+    }
+    ::view-transition-old(root) {
+        animation: clx-page-out .22s cubic-bezier(.4, 0, .2, 1) both;
+    }
+    ::view-transition-new(root) {
+        animation: clx-page-in .32s cubic-bezier(.16, 1, .3, 1) both;
+    }
+    @keyframes clx-page-out {
+        to { opacity: 0; transform: translateY(-6px); }
+    }
+    @keyframes clx-page-in {
+        from { opacity: 0; transform: translateY(8px); }
+    }
+}
+
 /* --- Site-wide language picker (fixed top-right on every page, base.html) - a
    flag+chevron button opening a dropdown of the same 10 languages (each shown with
    its own flag), translations applied client-side via static/site-i18n.js. --- */
