@@ -8,8 +8,7 @@
         <!-- hx-boost: these links are fetched via AJAX and swapped into the current
              page's <body> instead of a full browser navigation (htmx handles history/
              back-forward transparently) - only the nav, deliberately, not every link or
-             form on the site; see base.html for the vendored htmx script. Log out is
-             excluded on purpose further down, same reasoning as the hover-prefetch. -->
+             form on the site; see base.html for the vendored htmx script. -->
         <div class="nav-links" hx-boost="true">
             <a href="{{ url_for('home') }}" class="nav-link-home {{ 'active' if request.endpoint == 'home' }}" aria-label="Home">
                 <svg class="nav-home-icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -27,7 +26,6 @@
                  not its own top-level nav item anymore, but "active" still applies here
                  too so the Settings link stays highlighted while on /subscription. -->
             <a href="{{ url_for('app_settings') }}" class="{{ 'active' if request.endpoint in ('app_settings', 'subscription') }}" data-i18n="common.settings">Settings</a>
-            <a href="{{ url_for('logout') }}" class="nav-logout" hx-boost="false" data-i18n="common.logOut">Log out</a>
         </div>
         {% endif %}
     </div>

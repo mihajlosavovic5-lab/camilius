@@ -313,7 +313,6 @@ a:focus-visible, button:focus-visible, [tabindex]:focus-visible {
 }
 .nav-links a:hover { background: var(--background); color: var(--text); text-decoration: none; }
 .nav-links a.active { background: var(--primary-light); color: var(--primary-ink); }
-.nav-links a.nav-logout { color: var(--text-muted); }
 /* Button inside nav links (e.g. "Try for free" on the landing page)
    must keep white text - otherwise the .nav-links a rule overrides it */
 .nav-links a.button { color: #fff; }
