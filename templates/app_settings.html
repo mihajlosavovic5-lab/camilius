@@ -12,7 +12,7 @@
         </div>
     </div>
 
-    <div class="card">
+    <div class="card settings-card">
         <h2 style="margin-top:0;" data-i18n="appSettings.automation.heading">Automation</h2>
         <form method="POST" action="{{ url_for('update_auto_send') }}">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
@@ -31,7 +31,7 @@
         </form>
     </div>
 
-    <div class="card" style="margin-top:20px;">
+    <div class="card settings-card" style="margin-top:20px;">
         <h2 style="margin-top:0;"><span data-i18n="appSettings.reminders.heading">No-show reminders</span> <span class="badge badge-pro">Pro</span></h2>
         <p class="note" data-i18n="appSettings.reminders.note">When on, the AI automatically sends the customer a reminder DM 24 hours and 2 hours before their appointment (Instagram-booked appointments only).</p>
         {% if pro_access %}
@@ -53,7 +53,7 @@
         {% endif %}
     </div>
 
-    <div class="card" style="margin-top:20px;">
+    <div class="card settings-card" style="margin-top:20px;">
         <h2 style="margin-top:0;" data-i18n="appSettings.billing.heading">Billing</h2>
         <a class="settings-link-row" href="{{ url_for('subscription') }}">
             <span data-i18n="common.subscription">Subscription</span>
@@ -61,7 +61,7 @@
         </a>
     </div>
 
-    <div class="card" style="margin-top:20px;">
+    <div class="card settings-card" style="margin-top:20px;">
         <h2 style="margin-top:0;" data-i18n="appSettings.legal.heading">Legal</h2>
         <p class="note" data-i18n="appSettings.legal.note">Read our policies any time.</p>
         <div class="form-actions" style="gap:12px;">
@@ -70,7 +70,7 @@
         </div>
     </div>
 
-    <div class="card" style="margin-top:20px;">
+    <div class="card settings-card" style="margin-top:20px;">
         <h2 style="margin-top:0;" data-i18n="appSettings.support.heading">Help &amp; support</h2>
         <p class="note" data-i18n="appSettings.support.note">Questions or ran into an issue? We're happy to help.</p>
         <p><strong>support@ai-auto-reply-mail.com</strong></p>
@@ -85,7 +85,7 @@
         <a class="button button-secondary" href="{{ url_for('export_data') }}" data-i18n="appSettings.export.cta">Export my data</a>
     </div>
 
-    <div class="card" style="margin-top:20px;">
+    <div class="card settings-card" style="margin-top:20px;">
         <h2 style="margin-top:0;" data-i18n="appSettings.logout.heading">Log out</h2>
         <p class="note" data-i18n="appSettings.logout.note">All set &mdash; you can log out any time. Your data stays right where you left it, ready for whenever you sign back in.</p>
         <a class="button button-secondary" href="{{ url_for('logout') }}" data-i18n="common.logOut">Log out</a>
