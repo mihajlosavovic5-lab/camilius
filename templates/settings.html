@@ -43,7 +43,7 @@
                 {% else %}
                     <span class="badge badge-pending"><span class="badge-dot"></span><span data-i18n="settings.instagramNotConnected">Not connected</span></span>
                 {% endif %}
-                <a href="{{ url_for('connect_instagram_start') }}"><span data-i18n="{{ 'settings.instagramReconnect' if business.instagram_username else 'connectInstagram.cta' }}">{{ 'Reconnect or switch account' if business.instagram_username else 'Connect Instagram' }}</span> &rarr;</a>
+                <a href="{{ url_for('connect_instagram_start') }}"><span data-i18n="{{ 'settings.instagramReconnect' if business.instagram_username else 'connectInstagram.cta' }}">{{ 'Reconnect or switch account' if business.instagram_username else 'Connect Instagram' }}</span></a>
             </div>
 
             <div class="floating-field">
@@ -58,7 +58,6 @@
                 <span class="profile-section-icon">🤖</span>
                 <div>
                     <p class="profile-section-title" data-i18n="settings.businessDetails.heading">Business details</p>
-                    <p class="profile-section-subtitle" data-i18n="settings.businessDetails.subtitle">What the AI uses to write replies - keep it up to date.</p>
                 </div>
             </div>
 
