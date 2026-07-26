@@ -23,28 +23,3 @@
         {% endif %}
     </div>
 </nav>
-<!-- .navbar is position: fixed (see style.css) so it never travels with the page's
-     own scroll - this reserves its real height in the normal document flow so
-     content doesn't ride up underneath it. Height comes from JS below since
-     .nav-links can wrap onto a second row on narrow screens. -->
-<div class="navbar-spacer"></div>
-<script>
-    // .navbar is position: fixed and always transparent (see style.css) - this
-    // just keeps the spacer's height in sync with its real rendered height,
-    // which changes when .nav-links wraps onto a second row on narrow screens,
-    // or when a translation swaps in longer/shorter text (see site-i18n.js's
-    // "site-language-changed" event). Runs as a plain inline script (not on
-    // DOMContentLoaded) since .navbar is already parsed right above it, and
-    // re-runs after every hx-boost nav swap since htmx re-executes scripts in
-    // swapped-in content, keeping the spacer correct across page changes.
-    (function () {
-        var nav = document.querySelector('.navbar');
-        if (!nav) return;
-        function refreshNavHeight() {
-            document.documentElement.style.setProperty('--navbar-h', nav.offsetHeight + 'px');
-        }
-        refreshNavHeight();
-        window.addEventListener('resize', refreshNavHeight);
-        document.addEventListener('site-language-changed', refreshNavHeight);
-    })();
-</script>
