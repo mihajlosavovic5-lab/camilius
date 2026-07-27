@@ -57,6 +57,13 @@
                 <label for="settings-contact-email-input" data-i18n="settings.contactEmail">Contact email</label>
                 <a href="javascript:void(0)" class="field-action-link" id="settings-contact-email-change"><span data-i18n="settings.changeEmail">Change email</span></a>
             </div>
+            {% if business.pending_contact_email %}
+                <p class="note">
+                    <span data-i18n="settings.pendingEmailChange1">Confirmation link sent to</span>
+                    <strong>{{ business.pending_contact_email }}</strong>
+                    <span data-i18n="settings.pendingEmailChange2">- click it to finish changing your email.</span>
+                </p>
+            {% endif %}
         </div>
 
         <div class="card profile-section">

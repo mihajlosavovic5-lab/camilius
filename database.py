@@ -361,6 +361,13 @@ def create_database():
     # token's lifetime back off it) so the resend-cooldown check below doesn't have to
     # hardcode that lifetime a second time.
     cursor.execute("ALTER TABLE businesses ADD COLUMN IF NOT EXISTS email_verify_sent_at TIMESTAMP")
+    # Changing the contact email from an already-verified account (web Settings page)
+    # doesn't touch contact_email directly - it stages the new address here and reuses
+    # the email_verify_token/expires/sent_at columns above for a confirmation link sent
+    # to the NEW address. The old (still-verified) address keeps working until that link
+    # is clicked, so a mistyped or unchecked new address can never lock the account out.
+    # See save_pending_email_change()/confirm_pending_email_change() below.
+    cursor.execute("ALTER TABLE businesses ADD COLUMN IF NOT EXISTS pending_contact_email TEXT")
 
     # Phone verification (Profile screen, mobile app only - the web Settings page doesn't
     # expose phone_number at all). Unlike email, this never blocks login overall - it only
@@ -386,11 +393,12 @@ def create_database():
 #   0 id, 1 name, 2 username, 3 password (hashed), 4 contact_email, 5 instagram_account_id,
 #   6 instagram_username, 7 instagram_access_token (decrypted, None if not connected yet),
 #   8 working_hours, 9 price_list, 10 faq, 11 phone_number (None if never set),
-#   12 email_verified, 13 phone_verified
+#   12 email_verified, 13 phone_verified, 14 pending_contact_email (None unless an email
+#   change confirmation is awaiting a click - see save_pending_email_change() below)
 
 _BUSINESS_COLUMNS = """id, name, username, password, contact_email, instagram_account_id,
                        instagram_username, instagram_access_token, working_hours, price_list, faq,
-                       phone_number, email_verified, phone_verified"""
+                       phone_number, email_verified, phone_verified, pending_contact_email"""
 
 
 def _decrypt_row_token(row):
@@ -469,7 +477,7 @@ def all_businesses():
     """)
     result = cursor.fetchall()
     connection.close()
-    return [_decrypt_row_token(row[:14]) + (row[14],) for row in result]
+    return [_decrypt_row_token(row[:15]) + (row[15],) for row in result]
 
 
 def all_businesses_unfiltered():
@@ -482,7 +490,7 @@ def all_businesses_unfiltered():
     cursor.execute(f"SELECT {_BUSINESS_COLUMNS}, subscription_status, created_at FROM businesses ORDER BY created_at DESC")
     result = cursor.fetchall()
     connection.close()
-    return [_decrypt_row_token(row[:14]) + (row[14], row[15]) for row in result]
+    return [_decrypt_row_token(row[:15]) + (row[15], row[16]) for row in result]
 
 
 def business_by_id(business_id):
@@ -876,10 +884,14 @@ def save_email_verify_token(business_id, token, expires):
 
 
 def business_by_email_verify_token(token):
+    # pending_contact_email tells the caller (app.py's verify_email()) which flow this
+    # token belongs to: set means an email-change confirmation, NULL means the original
+    # signup verification.
     connection = connect()
     cursor = connection.cursor()
     cursor.execute(
-        "SELECT id, name, username, contact_email FROM businesses WHERE email_verify_token = %s AND email_verify_expires > NOW()",
+        "SELECT id, name, username, contact_email, pending_contact_email FROM businesses "
+        "WHERE email_verify_token = %s AND email_verify_expires > NOW()",
         (token,),
     )
     row = cursor.fetchone()
@@ -892,6 +904,37 @@ def mark_email_verified(business_id):
     cursor = connection.cursor()
     cursor.execute(
         "UPDATE businesses SET email_verified = TRUE, email_verify_token = NULL, email_verify_expires = NULL WHERE id = %s",
+        (business_id,),
+    )
+    connection.commit()
+    connection.close()
+
+
+def save_pending_email_change(business_id, pending_email, token, expires):
+    """Stages a new contact email and a fresh confirmation token without touching the
+    account's real (still-active) contact_email - see confirm_pending_email_change()."""
+    connection = connect()
+    cursor = connection.cursor()
+    cursor.execute(
+        "UPDATE businesses SET pending_contact_email = %s, email_verify_token = %s, "
+        "email_verify_expires = %s, email_verify_sent_at = NOW() WHERE id = %s",
+        (pending_email, token, expires, business_id),
+    )
+    connection.commit()
+    connection.close()
+
+
+def confirm_pending_email_change(business_id):
+    """Redeems a pending email change: swaps contact_email for the staged address. Raises
+    psycopg2.errors.UniqueViolation (same as update_business()) if someone else claimed
+    that address in the meantime - the caller is expected to catch it."""
+    connection = connect()
+    cursor = connection.cursor()
+    cursor.execute(
+        """UPDATE businesses
+           SET contact_email = pending_contact_email, pending_contact_email = NULL,
+               email_verify_token = NULL, email_verify_expires = NULL
+           WHERE id = %s""",
         (business_id,),
     )
     connection.commit()

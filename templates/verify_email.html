@@ -12,7 +12,16 @@
     </div>
 
     <div class="auth-card">
-        {% if success %}
+        {% if success and changed_email %}
+            <h1 data-i18n="verifyEmail.emailChangedTitle">Email updated</h1>
+            <div class="alert alert-success" style="margin-top: 12px;">
+                <span class="alert-icon">&#10003;</span>
+                <span data-i18n="verifyEmail.emailChangedBody">Your contact email has been updated. You can now log in with it.</span>
+            </div>
+            <div class="auth-links">
+                <a href="{{ url_for('login') }}" data-i18n="verifyEmail.backToLogin">Back to login</a>
+            </div>
+        {% elif success %}
             <h1 data-i18n="verifyEmail.successTitle">Email confirmed</h1>
             <div class="alert alert-success" style="margin-top: 12px;">
                 <span class="alert-icon">&#10003;</span>
@@ -20,6 +29,15 @@
             </div>
             <div class="form-actions">
                 <a class="button button-full" href="{{ url_for('connect_instagram') }}" data-i18n="verifyEmail.continue">Continue</a>
+            </div>
+        {% elif email_taken %}
+            <h1 data-i18n="verifyEmail.emailTakenTitle">That email is already in use</h1>
+            <div class="alert alert-error" style="margin-top: 12px;">
+                <span class="alert-icon">&#9888;&#65039;</span>
+                <span data-i18n="verifyEmail.emailTakenBody">Someone else registered this address before you confirmed the change. Go to your Profile settings and try a different one.</span>
+            </div>
+            <div class="auth-links">
+                <a href="{{ url_for('login') }}" data-i18n="verifyEmail.backToLogin">Back to login</a>
             </div>
         {% else %}
             <h1 data-i18n="verifyEmail.invalidTitle">This link is no longer valid</h1>

@@ -33,7 +33,7 @@ from database import (
     is_owner_reminders_enabled, set_owner_reminders_enabled, get_reminder_minutes, set_reminder_minutes,
     all_appointments_for_business, get_stripe_customer_id, get_paddle_customer_id,
     save_email_verify_token, business_by_email_verify_token, mark_email_verified, email_verify_sent_recently,
-    email_verify_resend_wait_seconds,
+    email_verify_resend_wait_seconds, save_pending_email_change, confirm_pending_email_change,
     save_phone_verify_token, business_by_phone_verify_token, mark_phone_verified, phone_verify_sent_recently,
     phone_verify_resend_wait_seconds,
     grant_free_pro_access,
@@ -353,7 +353,20 @@ def verify_email(token):
     if row is None:
         return render_template("verify_email.html", success=False)
 
-    business_id, name = row[0], row[1]
+    business_id, name, _username, _contact_email, pending_contact_email = row
+
+    if pending_contact_email:
+        # An already-verified account requested an email change from Settings (see
+        # settings() below) rather than confirming its original signup - swap in the
+        # staged address instead of the mark_email_verified()/auto-login path below,
+        # which is only for that original, one-time signup confirmation.
+        try:
+            confirm_pending_email_change(business_id)
+        except psycopg2.errors.UniqueViolation:
+            return render_template("verify_email.html", success=False, email_taken=True)
+        log_event("email_changed", business_id=business_id)
+        return render_template("verify_email.html", success=True, changed_email=True)
+
     mark_email_verified(business_id)
     log_event("email_verified", business_id=business_id)
     session.pop("pending_verify_business_id", None)
@@ -552,9 +565,11 @@ EMAIL_VERIFY_RESEND_COOLDOWN_SECONDS = 60
 FORGOT_PASSWORD_RESEND_COOLDOWN_SECONDS = 60
 
 
-def _verification_email_html(business_name, link):
-    """HTML companion to the plain-text body below - same branded-card layout as
-    _password_reset_email_html, just for the signup confirmation link instead."""
+def _verification_email_html(heading, intro_html, link, footer_note):
+    """HTML companion to the plain-text bodies below - same branded-card layout as
+    _password_reset_email_html, shared by both the signup confirmation link
+    (send_verification_email) and the email-change confirmation link
+    (send_email_change_verification), which only differ in copy."""
     logo_url = url_for("static", filename="icon-512.png", _external=True)
     return f"""\
 <!DOCTYPE html>
@@ -577,9 +592,9 @@ def _verification_email_html(business_name, link):
           </tr>
           <tr>
             <td style="padding:0 40px;">
-              <h1 style="font-size:20px; color:#2b2013; margin:0 0 16px;">Confirm your email</h1>
+              <h1 style="font-size:20px; color:#2b2013; margin:0 0 16px;">{heading}</h1>
               <p style="font-size:15px; line-height:1.6; color:#463824; margin:0 0 24px;">
-                Welcome to Camilius! Confirm <strong>{business_name}</strong>'s email address to finish setting up your account.
+                {intro_html}
               </p>
               <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 24px;">
                 <tr>
@@ -598,7 +613,7 @@ def _verification_email_html(business_name, link):
             <td style="padding:0 40px 32px;">
               <hr style="border:none; border-top:1px solid #eee2cc; margin:0 0 20px;">
               <p style="font-size:13px; line-height:1.6; color:#8a7a5f; margin:0;">
-                If you didn't create a Camilius account, you can safely ignore this email.
+                {footer_note}
               </p>
             </td>
           </tr>
@@ -631,7 +646,43 @@ def send_verification_email(business_id, business_name, recipient):
         ),
         business_name="Camilius",
         reply_to=os.getenv("ALERT_EMAIL") or recipient,
-        html=_verification_email_html(business_name, link),
+        html=_verification_email_html(
+            heading="Confirm your email",
+            intro_html=f"Welcome to Camilius! Confirm <strong>{business_name}</strong>'s email address to finish setting up your account.",
+            link=link,
+            footer_note="If you didn't create a Camilius account, you can safely ignore this email.",
+        ),
+    )
+
+
+def send_email_change_verification(business_id, business_name, new_email):
+    """Sent to the NEW address when an already-verified account requests an email change
+    from the web Settings page (settings()) - the account's current, still-verified email
+    keeps working until this link is clicked. Confirming it swaps contact_email for
+    new_email (see verify_email()/confirm_pending_email_change()); the account's
+    email_verified flag is untouched since it was already TRUE before the request."""
+    token = secrets.token_urlsafe(32)
+    expires = datetime.now(timezone.utc).replace(tzinfo=None) + EMAIL_VERIFY_TOKEN_LIFETIME
+    save_pending_email_change(business_id, new_email, token, expires)
+
+    link = url_for("verify_email", token=token, _external=True)
+    send_email(
+        recipient=new_email,
+        subject="Confirm your new email - Camilius",
+        body=(
+            f"Hi,\n\n"
+            f"'{business_name}' on Camilius asked to change its contact email to this address.\n\n"
+            f"Click the link to confirm the change (valid for 24 hours):\n{link}\n\n"
+            f"If you didn't request this, you can safely ignore this email - your current email stays unchanged."
+        ),
+        business_name="Camilius",
+        reply_to=os.getenv("ALERT_EMAIL") or new_email,
+        html=_verification_email_html(
+            heading="Confirm your new email",
+            intro_html=f"<strong>{business_name}</strong> on Camilius asked to change its contact email to this address.",
+            link=link,
+            footer_note="If you didn't request this, you can safely ignore this email - your current email stays unchanged.",
+        ),
     )
 
 
@@ -846,36 +897,56 @@ def settings():
     business_id = session["business_id"]
     business = business_by_id(business_id)
     # indices: 0 id, 1 name, 2 username, 4 contact_email, 5 instagram_account_id,
-    # 6 instagram_username, 8 working_hours, 9 price_list, 10 faq, 11 phone_number
+    # 6 instagram_username, 8 working_hours, 9 price_list, 10 faq, 11 phone_number,
+    # 14 pending_contact_email
     contact_email = business[4]
     instagram_username = business[6]
+    pending_contact_email = business[14]
     pro_access = BETA_FREE_MODE or has_pro_access(business_id)
 
     if request.method == "POST":
         name = request.form["name"]
-        contact_email = request.form["contact_email"].strip()
+        submitted_email = request.form["contact_email"].strip()
         working_hours = request.form["working_hours"]
         price_list = request.form["price_list"]
         faq = request.form["faq"]
 
-        # Username/phone aren't editable from this page (the mobile app's Profile screen
-        # is where that lives) - carry the existing values through unchanged. Contact email
-        # is editable here too now, so it shares the same UNIQUE-constraint handling as the
-        # mobile app's profile update (see api.py's update_profile()).
-        try:
-            update_business(business_id, name, business[2], contact_email, business[11], working_hours, price_list, faq)
-        except psycopg2.errors.UniqueViolation:
+        def _rerender(error):
             return render_template(
                 "settings.html",
-                error="That contact email is already taken.",
+                error=error,
                 message=None,
                 pro_access=pro_access,
                 business={
-                    "name": name, "contact_email": business[4], "instagram_username": instagram_username,
+                    "name": name, "contact_email": contact_email, "pending_contact_email": pending_contact_email,
+                    "instagram_username": instagram_username,
                     "working_hours": working_hours, "price_list": price_list, "faq": faq,
                     "upsell_pairs": get_upsell_pairs(business_id),
                 },
             )
+
+        if not submitted_email:
+            return _rerender("Contact email is required.")
+
+        # A changed email doesn't take effect immediately - it's staged as
+        # pending_contact_email and only swapped onto the real contact_email once a
+        # confirmation link sent to the NEW address is clicked (see verify_email() and
+        # send_email_change_verification()). The account keeps working under its current,
+        # already-verified address in the meantime, so a mistyped or never-checked new
+        # address can't lock anyone out - unlike phone_number's apply-then-verify pattern
+        # in update_business(), which is fine there since an unconfirmed phone only blocks
+        # phone-based login, never the whole account.
+        if submitted_email != contact_email:
+            if contact_email_taken(submitted_email, exclude_business_id=business_id):
+                return _rerender("That contact email is already taken.")
+            if not email_verify_sent_recently(business_id, EMAIL_VERIFY_RESEND_COOLDOWN_SECONDS):
+                send_email_change_verification(business_id, name, submitted_email)
+            pending_contact_email = submitted_email
+
+        # Username/phone aren't editable from this page (the mobile app's Profile screen
+        # is where that lives) - carry the existing values through unchanged. contact_email
+        # is also passed through unchanged here (never submitted_email) - see above.
+        update_business(business_id, name, business[2], contact_email, business[11], working_hours, price_list, faq)
         session["business_name"] = name
 
         # AI upsell pairs (Faza 9, Pro-only) - a separate call/column from the rest of
@@ -892,7 +963,8 @@ def settings():
             message="Your details have been saved.",
             pro_access=pro_access,
             business={
-                "name": name, "contact_email": contact_email, "instagram_username": instagram_username,
+                "name": name, "contact_email": contact_email, "pending_contact_email": pending_contact_email,
+                "instagram_username": instagram_username,
                 "working_hours": working_hours, "price_list": price_list, "faq": faq, "upsell_pairs": upsell_pairs,
             },
         )
@@ -903,7 +975,8 @@ def settings():
         message=None,
         pro_access=pro_access,
         business={
-            "name": business[1], "contact_email": contact_email, "instagram_username": instagram_username,
+            "name": business[1], "contact_email": contact_email, "pending_contact_email": pending_contact_email,
+            "instagram_username": instagram_username,
             "working_hours": business[8], "price_list": business[9], "faq": business[10],
             "upsell_pairs": get_upsell_pairs(business_id),
         },
@@ -1206,8 +1279,8 @@ def admin_businesses():
     result = []
     for business in all_businesses_unfiltered():
         # indices: 0 id, 1 name, 2 username, 4 contact_email, 6 instagram_username,
-        # 11 phone_number, 12 email_verified, 13 phone_verified, 14 subscription_status,
-        # 15 created_at
+        # 11 phone_number, 12 email_verified, 13 phone_verified, 14 pending_contact_email,
+        # 15 subscription_status, 16 created_at
         instagram_username = (business[6] or "").lower()
         if search and search not in business[1].lower() and search not in business[2].lower() and search not in business[4].lower() and search not in instagram_username:
             continue
@@ -1220,8 +1293,8 @@ def admin_businesses():
             "phone_number": business[11],
             "email_verified": business[12],
             "phone_verified": business[13],
-            "subscription_status": business[14],
-            "created_at": business[15].isoformat() if business[15] else None,
+            "subscription_status": business[15],
+            "created_at": business[16].isoformat() if business[16] else None,
         })
     return jsonify(businesses=result)
 
