@@ -320,8 +320,7 @@ a:focus-visible, button:focus-visible, [tabindex]:focus-visible {
    away with the rest of the content instead of staying pinned to the
    viewport, same as the language flag button above. */
 .navbar {
-    background: var(--surface);
-    border-bottom: 1px solid var(--border);
+    background: transparent;
 }
 /* Full-bleed, not capped/centered like .content - the brand sits flush in the true
    left corner and the nav links flush in the true right corner of the browser window,
