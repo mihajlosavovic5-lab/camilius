@@ -36,7 +36,9 @@
    transparent so the button paints visibly through it, but without this it still
    swallows clicks aimed at the button underneath. */
 .site-lang-select-btn {
-    position: fixed; top: calc(16px + var(--install-banner-h)); right: 16px; z-index: 1001;
+    /* position: absolute (not fixed) - scrolls away with the rest of the page
+       instead of staying pinned to the viewport, same as .navbar below. */
+    position: absolute; top: calc(16px + var(--install-banner-h)); right: 16px; z-index: 1001;
     display: flex; align-items: center; gap: 5px;
     background: none; border: none; padding: 4px;
     cursor: pointer; font-family: inherit; color: var(--text-muted);
@@ -314,23 +316,12 @@ a:focus-visible, button:focus-visible, [tabindex]:focus-visible {
 .brand-name { font-family: Georgia, "Times New Roman", serif; font-weight: 700; font-size: 17px; color: var(--text); letter-spacing: 0; }
 
 /* --- Navigation (logged-in pages) --- */
-/* Stays pinned to the top of the viewport while the page scrolls, same as the
-   language flag button - a solid background instead of the page's transparent
-   look is needed here since scrolled content now passes underneath it.
-   position: sticky (not fixed) so it still reserves its own space in normal
-   flow - no compensating padding needed on .content below it.
-   top tracks --install-banner-h like #lp-header/.site-lang-select-btn - a
-   sticky element's "stuck" offset is measured from the viewport itself, not
-   from body's padding-top above, so without this it would stick flush at
-   the true top of the screen, underneath the still-shown floating banner. */
+/* An ordinary in-flow block, same as any other part of the page - scrolls
+   away with the rest of the content instead of staying pinned to the
+   viewport, same as the language flag button above. */
 .navbar {
     background: var(--surface);
     border-bottom: 1px solid var(--border);
-    position: sticky; top: var(--install-banner-h); z-index: 10;
-    transition: top .2s cubic-bezier(.16,1,.3,1);
-}
-@media (prefers-reduced-motion: reduce) {
-    .navbar { transition: none; }
 }
 /* Full-bleed, not capped/centered like .content - the brand sits flush in the true
    left corner and the nav links flush in the true right corner of the browser window,
