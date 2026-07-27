@@ -917,12 +917,19 @@ body.auth {
 }
 .hours-quickfill-btn:hover { background: var(--primary-light); }
 
-.hours-day-list { display: flex; flex-direction: column; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+/* No overflow: hidden here (unlike most bordered list containers in this file) - a time
+   dropdown opened from one of the last rows (Saturday/Sunday) needs to render its menu
+   below the row, and clipping the container cut that menu off instead, which is what
+   made picking a time for a lower row look glitchy. Rounding just the first/last row's
+   own corners keeps the same visual clipping for hover backgrounds without clipping
+   anything that needs to render outside the box. */
+.hours-day-list { display: flex; flex-direction: column; border: 1px solid var(--border); border-radius: 10px; }
 .hours-day-row {
     display: flex; align-items: center; gap: 12px; padding: 10px 14px;
     border-bottom: 1px solid var(--border); transition: background .15s ease;
 }
-.hours-day-row:last-child { border-bottom: none; }
+.hours-day-row:first-child { border-top-left-radius: 10px; border-top-right-radius: 10px; }
+.hours-day-row:last-child { border-bottom: none; border-bottom-left-radius: 10px; border-bottom-right-radius: 10px; }
 .hours-day-row:hover { background: var(--background); }
 .hours-day-row-weekend { border-top: 2px solid var(--border); }
 .hours-day-name { font-weight: 600; font-size: 14px; width: 84px; flex-shrink: 0; }
