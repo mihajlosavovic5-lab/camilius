@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}Delete Account - Camilius{% endblock %}
+
+{% block content %}
+<div class="public-header">
+    <a class="brand" href="{{ url_for('login') }}">
+        <span class="brand-mark">C</span>
+        <span class="brand-name">Camilius</span>
+    </a>
+    {% if not logged_in %}
+    <a href="{{ url_for('login') }}" data-i18n="common.logIn">Log in</a>
+    {% endif %}
+</div>
+
+<div class="content prose">
+    <div class="card" style="padding: 32px;">
+        <h1>Delete Your Account</h1>
+
+        <h2>Option 1: Delete it yourself, in the app</h2>
+        <ol>
+            <li>Log in to your Camilius account.</li>
+            <li>Go to <strong>Settings</strong>.</li>
+            <li>Scroll to the "Danger Zone" section and click <strong>Delete Account</strong>.</li>
+        </ol>
+        <p>This is immediate and permanent - there is no recovery period.</p>
+
+        <h2>Option 2: Request deletion by email</h2>
+        <p>If you can't log in, send a deletion request from your account's contact email to <strong>support@ai-auto-reply-mail.com</strong>, including your business/username. We'll confirm and delete the account manually.</p>
+
+        <h2>What gets deleted</h2>
+        <p>Deleting your account permanently removes, immediately:</p>
+        <ul>
+            <li>Your business profile (name, username, contact email, password, working hours, price list, FAQ)</li>
+            <li>Your connected Instagram account link and access token</li>
+            <li>All conversations and messages (customer questions, suggested and sent replies)</li>
+            <li>Appointments, push notification tokens, and usage/error logs tied to your account</li>
+        </ul>
+        <p>If you'd rather export your data first, see <strong>Settings &rarr; Export Data</strong> (or ask us at the email above) before requesting deletion.</p>
+    </div>
+</div>
+{% endblock %}

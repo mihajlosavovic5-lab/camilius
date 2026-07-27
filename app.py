@@ -1205,6 +1205,15 @@ def privacy():
     return render_template("privacy.html", logged_in=bool(session.get("business_id")))
 
 
+# Public info page for Google Play's Data Safety "account deletion" link requirement -
+# separate from POST /delete-account below (which performs the actual deletion and
+# requires login). Reachable without logging in so it satisfies Play Console even for
+# reviewers/users who can't sign in.
+@app.route("/delete-account", methods=["GET"])
+def delete_account_info():
+    return render_template("delete_account_info.html", logged_in=bool(session.get("business_id")))
+
+
 @app.route("/terms")
 def terms():
     return render_template("terms.html", logged_in=bool(session.get("business_id")))
