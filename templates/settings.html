@@ -48,15 +48,15 @@
                     <span class="profile-instagram-value">
                         {% if business.instagram_username %}@{{ business.instagram_username }}{% else %}<span data-i18n="settings.instagramNotConnected">Not connected</span>{% endif %}
                     </span>
-                    <a href="{{ url_for('connect_instagram_start') }}"><span data-i18n="{{ 'settings.instagramReconnect' if business.instagram_username else 'connectInstagram.cta' }}">{{ 'Reconnect or switch account' if business.instagram_username else 'Connect Instagram' }}</span></a>
+                    <a href="{{ url_for('connect_instagram_start') }}" class="field-action-link"><span data-i18n="{{ 'settings.instagramReconnect' if business.instagram_username else 'connectInstagram.cta' }}">{{ 'Reconnect or switch account' if business.instagram_username else 'Connect Instagram' }}</span></a>
                 </div>
             </div>
 
-            <div class="floating-field">
-                <input type="email" id="settings-contact-email-input" value="{{ business.contact_email }}" placeholder=" " readonly>
+            <div class="floating-field floating-field-action">
+                <input type="email" id="settings-contact-email-input" name="contact_email" value="{{ business.contact_email }}" placeholder=" " required>
                 <label for="settings-contact-email-input" data-i18n="settings.contactEmail">Contact email</label>
+                <a href="javascript:void(0)" class="field-action-link" id="settings-contact-email-change"><span data-i18n="settings.changeEmail">Change email</span></a>
             </div>
-            <p class="note" data-i18n="settings.contactEmailNote">Can't be changed here.</p>
         </div>
 
         <div class="card profile-section">
@@ -133,6 +133,20 @@ function initSettingsPickers() {
     safeInit(() => createUpsellPicker("settings-upsell-picker-mount", "settings-upsell-add", "settings-upsell-pairs", "settings-price-list"));
     safeInit(initSettingsSaveButton);
     safeInit(initSaveSuccessOverlay);
+    safeInit(initContactEmailChangeLink);
+}
+
+// The email field is a real input (not readonly), so it's already editable by a plain
+// click - this link just mirrors the Instagram field's "Reconnect or switch account"
+// affordance and gives a one-click way to clear the current address and start typing.
+function initContactEmailChangeLink() {
+    const link = document.getElementById("settings-contact-email-change");
+    const input = document.getElementById("settings-contact-email-input");
+    if (!link || !input) return;
+    link.addEventListener("click", () => {
+        input.focus();
+        input.select();
+    });
 }
 
 // Only rendered when the POST that reloaded this page actually saved something (see the
