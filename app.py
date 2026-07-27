@@ -32,7 +32,9 @@ from database import (
     is_reminders_enabled, set_reminders_enabled, get_upsell_pairs, set_upsell_pairs,
     all_appointments_for_business, get_stripe_customer_id, get_paddle_customer_id,
     save_email_verify_token, business_by_email_verify_token, mark_email_verified, email_verify_sent_recently,
+    email_verify_resend_wait_seconds,
     save_phone_verify_token, business_by_phone_verify_token, mark_phone_verified, phone_verify_sent_recently,
+    phone_verify_resend_wait_seconds,
 )
 from send_email import send_email
 from generate_reply import generate_reply, generate_reply_with_booking
@@ -323,7 +325,8 @@ def verify_pending():
     if business is None or business[12]:  # already verified (or account gone) - nothing pending
         session.pop("pending_verify_business_id", None)
         return redirect(url_for("login"))
-    return render_template("verify_pending.html", contact_email=business[4], resent=False)
+    wait_seconds = email_verify_resend_wait_seconds(business_id, EMAIL_VERIFY_RESEND_COOLDOWN_SECONDS)
+    return render_template("verify_pending.html", contact_email=business[4], resent=False, resend_wait_seconds=wait_seconds)
 
 
 @app.route("/verify-pending/resend", methods=["POST"])
@@ -338,7 +341,8 @@ def verify_pending_resend():
         return redirect(url_for("login"))
     if not email_verify_sent_recently(business_id, EMAIL_VERIFY_RESEND_COOLDOWN_SECONDS):
         send_verification_email(business[0], business[1], business[4])
-    return render_template("verify_pending.html", contact_email=business[4], resent=True)
+    wait_seconds = email_verify_resend_wait_seconds(business_id, EMAIL_VERIFY_RESEND_COOLDOWN_SECONDS)
+    return render_template("verify_pending.html", contact_email=business[4], resent=True, resend_wait_seconds=wait_seconds)
 
 
 @app.route("/verify-email/<token>")
@@ -538,6 +542,12 @@ EMAIL_VERIFY_TOKEN_LIFETIME = timedelta(hours=24)
 # form (which re-triggers a resend on every attempt while unverified, see login() below)
 # from firing a fresh email on every single failed/retried submit.
 EMAIL_VERIFY_RESEND_COOLDOWN_SECONDS = 60
+
+# Same idea as EMAIL_VERIFY_RESEND_COOLDOWN_SECONDS, for the "Send reset link"/"Find
+# account" buttons on the forgot-password screen - there's no per-account sent-at column
+# for this one (no throttled resend endpoint to hit), so it's purely a client-side cooldown
+# the forgot_password.html/forgot_password_phone() success renders seed the countdown with.
+FORGOT_PASSWORD_RESEND_COOLDOWN_SECONDS = 60
 
 
 def _verification_email_html(business_name, link):
@@ -754,6 +764,7 @@ def forgot_password():
         return render_template(
             "forgot_password.html",
             message="We've sent a password reset link to the email on file.",
+            resend_wait_seconds=FORGOT_PASSWORD_RESEND_COOLDOWN_SECONDS,
         )
 
     return render_template("forgot_password.html", message=None)
@@ -773,6 +784,8 @@ def forgot_password_phone():
     return render_template(
         "forgot_password.html",
         message="We found your account - we've sent a password reset link to the email on file.",
+        phone_mode=True,
+        resend_wait_seconds=FORGOT_PASSWORD_RESEND_COOLDOWN_SECONDS,
     )
 
 

@@ -885,19 +885,29 @@ def mark_email_verified(business_id):
     connection.close()
 
 
+def email_verify_resend_wait_seconds(business_id, cooldown_seconds):
+    """How many seconds are left before another verification email may be sent (0 once
+    the cooldown has elapsed) - lets the resend button's countdown start from the real
+    last-sent timestamp instead of only after the user's own click."""
+    connection = connect()
+    cursor = connection.cursor()
+    cursor.execute(
+        "SELECT GREATEST(0, CEIL(EXTRACT(EPOCH FROM (email_verify_sent_at + (%s * INTERVAL '1 second')) - NOW()))) "
+        "FROM businesses WHERE id = %s",
+        (cooldown_seconds, business_id),
+    )
+    row = cursor.fetchone()
+    connection.close()
+    if row is None or row[0] is None:
+        return 0
+    return int(row[0])
+
+
 def email_verify_sent_recently(business_id, within_seconds):
     """True if a verification email was issued within the last `within_seconds` - used to
     throttle resends (e.g. hammering the login form with correct credentials but an
     unverified account shouldn't fire a new email on every single attempt)."""
-    connection = connect()
-    cursor = connection.cursor()
-    cursor.execute(
-        "SELECT 1 FROM businesses WHERE id = %s AND email_verify_sent_at > NOW() - (%s * INTERVAL '1 second')",
-        (business_id, within_seconds),
-    )
-    row = cursor.fetchone()
-    connection.close()
-    return row is not None
+    return email_verify_resend_wait_seconds(business_id, within_seconds) > 0
 
 
 def save_phone_verify_token(business_id, token, expires):
@@ -934,18 +944,27 @@ def mark_phone_verified(business_id):
     connection.close()
 
 
-def phone_verify_sent_recently(business_id, within_seconds):
-    """Same throttle as email_verify_sent_recently, for the phone-verification resend
+def phone_verify_resend_wait_seconds(business_id, cooldown_seconds):
+    """Same idea as email_verify_resend_wait_seconds, for the phone-verification resend
     button on the Profile screen."""
     connection = connect()
     cursor = connection.cursor()
     cursor.execute(
-        "SELECT 1 FROM businesses WHERE id = %s AND phone_verify_sent_at > NOW() - (%s * INTERVAL '1 second')",
-        (business_id, within_seconds),
+        "SELECT GREATEST(0, CEIL(EXTRACT(EPOCH FROM (phone_verify_sent_at + (%s * INTERVAL '1 second')) - NOW()))) "
+        "FROM businesses WHERE id = %s",
+        (cooldown_seconds, business_id),
     )
     row = cursor.fetchone()
     connection.close()
-    return row is not None
+    if row is None or row[0] is None:
+        return 0
+    return int(row[0])
+
+
+def phone_verify_sent_recently(business_id, within_seconds):
+    """Same throttle as email_verify_sent_recently, for the phone-verification resend
+    button on the Profile screen."""
+    return phone_verify_resend_wait_seconds(business_id, within_seconds) > 0
 
 
 def update_business(business_id, name, username, contact_email, phone_number, working_hours, price_list, faq):

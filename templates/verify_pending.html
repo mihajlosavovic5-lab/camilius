@@ -26,7 +26,7 @@
         <form method="POST" action="{{ url_for('verify_pending_resend') }}">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <div class="form-actions">
-                <button class="button button-secondary button-full button-pill button-primary-outline" type="submit" data-i18n="verifyPending.resend">Resend email</button>
+                <button class="button button-secondary button-full button-pill button-primary-outline" type="submit" id="verify-pending-resend-btn" data-i18n="verifyPending.resend">Resend email</button>
             </div>
         </form>
 
@@ -35,4 +35,41 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    var btn = document.getElementById("verify-pending-resend-btn");
+    if (!btn) return;
+    var defaultLabel = btn.getAttribute("data-i18n");
+    var remaining = {{ resend_wait_seconds | default(0) | int }};
+    var timer = null;
+
+    function render() {
+        if (remaining > 0) {
+            btn.disabled = true;
+            btn.textContent = t("verifyPending.resendWait").replace("{n}", remaining);
+        } else {
+            btn.disabled = false;
+            btn.textContent = t(defaultLabel);
+        }
+    }
+
+    function tick() {
+        remaining -= 1;
+        if (remaining <= 0) {
+            remaining = 0;
+            clearInterval(timer);
+            timer = null;
+        }
+        render();
+    }
+
+    render();
+    if (remaining > 0) timer = setInterval(tick, 1000);
+
+    document.addEventListener("site-language-changed", render);
+});
+</script>
 {% endblock %}
