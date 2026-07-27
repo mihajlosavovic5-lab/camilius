@@ -881,9 +881,11 @@ body.auth {
    freeform textarea, on both Register and Profile. --- */
 .hours-picker { display: flex; flex-direction: column; gap: 12px; margin: 6px 0 4px; }
 
-.hours-simple-view { display: flex; flex-direction: column; gap: 8px; }
+/* Centered as a group (box, note, link) in the middle of the section, not pinned to the
+   left edge with empty space trailing off to the right. */
+.hours-simple-view { display: flex; flex-direction: column; align-items: center; gap: 8px; text-align: center; }
 .hours-simple-row {
-    display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+    display: flex; align-items: center; justify-content: center; gap: 12px; flex-wrap: wrap;
     padding: 10px 14px; border: 1px solid var(--border); border-radius: 10px;
 }
 .hours-simple-label-btn {
@@ -893,7 +895,7 @@ body.auth {
 .hours-simple-label-btn:hover { color: var(--primary-ink); }
 .hours-simple-note { font-size: 12.5px; color: var(--text-muted); margin: 0; padding: 0 2px; }
 .hours-customize-link {
-    align-self: flex-start; background: none; border: none; padding: 0;
+    background: none; border: none; padding: 0;
     font-family: inherit; font-size: 13px; font-weight: 600; color: var(--primary-ink);
     text-decoration: underline; cursor: pointer;
 }
