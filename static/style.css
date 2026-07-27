@@ -645,7 +645,7 @@ input[readonly]:hover { border-color: var(--border); }
 /* --- "Upgrade to Pro" badge / locked-feature notice (Faza 9/10) - shared component for
    any Pro-only feature shown to a Starter (or expired) business: a small pill badge next
    to the feature's heading, plus a dimmed/disabled wrapper around the control itself. --- */
-.badge-pro { background: var(--primary-light); color: var(--primary-ink); border: 1px solid var(--primary); }
+.badge-pro { background: transparent; color: var(--primary-dark); border: 1.5px solid var(--primary); font-weight: 700; }
 .pro-locked { opacity: .55; filter: grayscale(.3); pointer-events: none; user-select: none; }
 /* Plain block flow, not flex - this wraps a mix of an emoji + a link + a full sentence,
    and flex would turn that text into non-wrapping anonymous flex items (each run of
