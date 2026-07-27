@@ -984,10 +984,11 @@ body.auth {
     display: block; width: 100%; padding: 11px; margin-top: 10px;
     border: 1.5px dashed var(--border); border-radius: 10px; background: none;
     color: var(--primary-ink); font-family: inherit; font-size: 14px; font-weight: 600; cursor: pointer;
-    transition: background .15s ease, transform .12s ease, box-shadow .18s ease;
+    transition: transform .12s ease, box-shadow .18s ease;
 }
+/* Lift/shadow only, same as .hours-customize-link/.hours-quickfill-btn - no
+   background/color/border change, stays the same gold on hover as at rest. */
 .price-add-btn:hover {
-    background: var(--primary-light);
     transform: translateY(-1px); box-shadow: 0 6px 14px -6px rgba(38, 32, 20, .18), 0 1px 3px rgba(38, 32, 20, .06);
 }
 
