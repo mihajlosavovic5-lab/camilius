@@ -480,6 +480,9 @@ a:focus-visible, button:focus-visible, [tabindex]:focus-visible {
 .button-primary-outline { color: var(--primary); border-color: var(--primary); }
 .button-primary-outline:hover { background: var(--primary-light); }
 .button-pill { border-radius: 999px; }
+/* "Send us an email" (Help & support) keeps the lift/shadow from .button:hover
+   but shouldn't swap color on hover like other outline buttons. */
+#settings-email-btn:hover { background: var(--surface); }
 
 /* --- Forms --- */
 label { display: block; font-weight: 600; font-size: 14px; margin: 16px 0 5px; }
