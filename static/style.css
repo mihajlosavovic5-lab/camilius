@@ -1024,7 +1024,6 @@ body.auth {
     transition: background .15s ease, transform .12s ease, box-shadow .18s ease;
 }
 .price-remove-btn:hover {
-    background: var(--danger-bg); color: var(--danger);
     transform: translateY(-1px); box-shadow: 0 6px 14px -6px rgba(38, 32, 20, .18);
 }
 .price-add-btn {
