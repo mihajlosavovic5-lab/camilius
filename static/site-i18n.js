@@ -53,6 +53,7 @@ const TRANSLATIONS = {
         "common.settings": "Settings",
         "common.logOut": "Log out",
         "common.logIn": "Log in",
+        "common.upgradeFreeBtn": "Free",
         "common.termsOfService": "Terms of Service",
         "common.privacyPolicy": "Privacy Policy",
 
@@ -523,6 +524,7 @@ const TRANSLATIONS = {
         "common.settings": "Configuración",
         "common.logOut": "Cerrar sesión",
         "common.logIn": "Iniciar sesión",
+        "common.upgradeFreeBtn": "Gratis",
         "common.termsOfService": "Términos de Servicio",
         "common.privacyPolicy": "Política de Privacidad",
 
@@ -964,6 +966,7 @@ const TRANSLATIONS = {
         "common.settings": "Configurações",
         "common.logOut": "Sair",
         "common.logIn": "Entrar",
+        "common.upgradeFreeBtn": "Grátis",
         "common.termsOfService": "Termos de Serviço",
         "common.privacyPolicy": "Política de Privacidade",
 
@@ -1405,6 +1408,7 @@ const TRANSLATIONS = {
         "common.settings": "Paramètres",
         "common.logOut": "Se déconnecter",
         "common.logIn": "Se connecter",
+        "common.upgradeFreeBtn": "Gratuit",
         "common.termsOfService": "Conditions d'utilisation",
         "common.privacyPolicy": "Politique de confidentialité",
 
@@ -1846,6 +1850,7 @@ const TRANSLATIONS = {
         "common.settings": "Einstellungen",
         "common.logOut": "Abmelden",
         "common.logIn": "Anmelden",
+        "common.upgradeFreeBtn": "Kostenlos",
         "common.termsOfService": "Nutzungsbedingungen",
         "common.privacyPolicy": "Datenschutzerklärung",
 
@@ -2287,6 +2292,7 @@ const TRANSLATIONS = {
         "common.settings": "Impostazioni",
         "common.logOut": "Esci",
         "common.logIn": "Accedi",
+        "common.upgradeFreeBtn": "Gratis",
         "common.termsOfService": "Termini di Servizio",
         "common.privacyPolicy": "Informativa sulla Privacy",
 
@@ -2728,6 +2734,7 @@ const TRANSLATIONS = {
         "common.settings": "Настройки",
         "common.logOut": "Выйти",
         "common.logIn": "Войти",
+        "common.upgradeFreeBtn": "Бесплатно",
         "common.termsOfService": "Условия использования",
         "common.privacyPolicy": "Политика конфиденциальности",
 
@@ -3169,6 +3176,7 @@ const TRANSLATIONS = {
         "common.settings": "Podešavanja",
         "common.logOut": "Odjavi se",
         "common.logIn": "Prijavi se",
+        "common.upgradeFreeBtn": "Besplatno",
         "common.termsOfService": "Uslovi korišćenja",
         "common.privacyPolicy": "Politika privatnosti",
 
@@ -3619,6 +3627,7 @@ const TRANSLATIONS = {
         "common.settings": "设置",
         "common.logOut": "退出登录",
         "common.logIn": "登录",
+        "common.upgradeFreeBtn": "免费",
         "common.termsOfService": "服务条款",
         "common.privacyPolicy": "隐私政策",
 
@@ -4060,6 +4069,7 @@ const TRANSLATIONS = {
         "common.settings": "Ayarlar",
         "common.logOut": "Çıkış yap",
         "common.logIn": "Giriş yap",
+        "common.upgradeFreeBtn": "Ücretsiz",
         "common.termsOfService": "Hizmet Şartları",
         "common.privacyPolicy": "Gizlilik Politikası",
 

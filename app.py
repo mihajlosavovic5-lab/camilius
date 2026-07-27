@@ -36,6 +36,7 @@ from database import (
     email_verify_resend_wait_seconds,
     save_phone_verify_token, business_by_phone_verify_token, mark_phone_verified, phone_verify_sent_recently,
     phone_verify_resend_wait_seconds,
+    grant_free_pro_access,
 )
 from send_email import send_email
 from generate_reply import generate_reply, generate_reply_with_booking
@@ -1695,6 +1696,23 @@ def _subscription_response(business_id, hide_nav=False, trial_ended=False):
 @login_required
 def subscription():
     return _subscription_response(session["business_id"], trial_ended=bool(request.args.get("trial_ended")))
+
+
+# The "Free" button next to every Pro-locked feature (Schedule, no-show reminders, AI
+# upsell) - see grant_free_pro_access()'s docstring in database.py for why this is a
+# straight plan flip instead of a checkout flow. `next` is a whitelisted endpoint name,
+# not a raw URL, so this can't be turned into an open redirect.
+UPGRADE_FREE_REDIRECT_ENDPOINTS = ("schedule", "app_settings", "settings", "subscription")
+
+
+@app.route("/subscription/upgrade-free", methods=["POST"])
+@login_required
+def upgrade_to_pro_free():
+    grant_free_pro_access(session["business_id"])
+    next_endpoint = request.form.get("next")
+    if next_endpoint not in UPGRADE_FREE_REDIRECT_ENDPOINTS:
+        next_endpoint = "home"
+    return redirect(url_for(next_endpoint, upgraded=1))
 
 
 # Mobile-app equivalent of /subscription above ("Choose a plan" on the Subscription

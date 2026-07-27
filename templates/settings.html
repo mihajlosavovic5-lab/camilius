@@ -109,7 +109,13 @@
                     <label style="margin-top: 0;" data-i18n="settings.upsell.relatedServices">Related services</label>
                     <div class="upsell-row-picker"><input type="text" data-i18n-placeholder="settings.upsell.examplePlaceholder1" placeholder="Haircut" disabled><span class="upsell-arrow">&rarr;</span><input type="text" data-i18n-placeholder="settings.upsell.examplePlaceholder2" placeholder="Treatment" disabled></div>
                 </div>
-                <p class="pro-locked-note">&#10024; <a href="{{ url_for('subscription') }}" data-i18n="appSettings.reminders.upgradeCta">Upgrade to Pro</a> <span data-i18n="settings.upsell.upgradeSuffix">to let the AI suggest complementary services.</span></p>
+                <p class="pro-locked-note">&#10024; <a href="{{ url_for('subscription') }}" data-i18n="appSettings.reminders.upgradeCta">Upgrade to Pro</a> <span data-i18n="settings.upsell.upgradeSuffix">to let the AI suggest complementary services.</span>
+                    <form method="POST" action="{{ url_for('upgrade_to_pro_free') }}" style="display: inline-block; margin-left: 8px;">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <input type="hidden" name="next" value="settings">
+                        <button type="submit" class="button button-secondary" style="padding: 4px 12px; font-size: 12.5px;" data-i18n="common.upgradeFreeBtn">Free</button>
+                    </form>
+                </p>
             {% endif %}
         </div>
 

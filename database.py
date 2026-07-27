@@ -1204,6 +1204,22 @@ def set_subscription_plan(business_id, plan):
     connection.close()
 
 
+def grant_free_pro_access(business_id):
+    """The self-serve "Upgrade to Pro" button shown next to every Pro-locked feature
+    (Schedule, no-show reminders, AI upsell) while we're not actually charging anyone
+    yet - see BETA_FREE_MODE in app.py. Sets the business straight to an active Pro
+    plan, no Paddle/Stripe checkout involved, so has_pro_access() grants access
+    immediately regardless of trial state."""
+    connection = connect()
+    cursor = connection.cursor()
+    cursor.execute(
+        "UPDATE businesses SET subscription_status = %s, subscription_plan = %s WHERE id = %s",
+        ("active", "pro", business_id),
+    )
+    connection.commit()
+    connection.close()
+
+
 def get_subscription_status(business_id):
     connection = connect()
     cursor = connection.cursor()

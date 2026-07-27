@@ -44,7 +44,12 @@
             {% else %}
                 <span class="badge badge-sent"><span class="badge-dot"></span><span data-i18n="subscription.active.starterBadge">Starter plan active</span></span>
                 <p style="margin: 12px 0 0;" data-i18n="subscription.active.starterBody">Your account is active and the AI is processing new messages. Thank you!</p>
-                <p class="pro-locked-note" style="margin-top: 12px;">&#10024; <span data-i18n="subscription.active.upgradePrompt">Want Schedule/AI booking, no-show reminders, and AI upsell too?</span> <a href="mailto:support@ai-auto-reply-mail.com?subject=Upgrade%20to%20Pro" data-i18n="subscription.active.upgradeLink">Email us to upgrade to Pro</a>.</p>
+                <p class="pro-locked-note" style="margin-top: 12px;">&#10024; <span data-i18n="subscription.active.upgradePrompt">Want Schedule/AI booking, no-show reminders, and AI upsell too?</span></p>
+                <form method="POST" action="{{ url_for('upgrade_to_pro_free') }}" style="margin-top: 8px;">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="hidden" name="next" value="subscription">
+                    <button type="submit" class="button" data-i18n="common.upgradeFreeBtn">Free</button>
+                </form>
             {% endif %}
 
             {% if has_paddle_billing %}
