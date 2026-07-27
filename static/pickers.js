@@ -456,7 +456,7 @@ function createHoursPicker(mountId, hiddenFieldId) {
 
 // Major world currencies - same list as the mobile app's price-list currency picker
 // (mobile/app.js). Codes are used as-is, not translated.
-const CURRENCIES = ["RSD", "EUR", "USD", "GBP", "CHF", "CAD", "AUD", "JPY", "CNY", "TRY", "RUB", "SEK", "NOK", "DKK", "PLN", "AED", "INR", "BRL"];
+const CURRENCIES = ["EUR", "USD", "RSD", "GBP", "CHF", "CAD", "AUD", "JPY", "CNY", "TRY", "RUB", "SEK", "NOK", "DKK", "PLN", "AED", "INR", "BRL"];
 
 function createPricePicker(mountId, addButtonId, currencySelectId, hiddenFieldId) {
     const mount = document.getElementById(mountId);

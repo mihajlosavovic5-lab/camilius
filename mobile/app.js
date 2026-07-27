@@ -618,7 +618,7 @@ function createHoursPicker(containerId) {
 // Major world currencies (the ones the user named explicitly first, then other common
 // ones) - shown next to the price list so a business can say what its prices are in.
 // Codes are used as-is in every language (ISO 4217, not translated).
-const CURRENCIES = ["RSD", "EUR", "USD", "GBP", "CHF", "CAD", "AUD", "JPY", "CNY", "TRY", "RUB", "SEK", "NOK", "DKK", "PLN", "AED", "INR", "BRL"];
+const CURRENCIES = ["EUR", "USD", "RSD", "GBP", "CHF", "CAD", "AUD", "JPY", "CNY", "TRY", "RUB", "SEK", "NOK", "DKK", "PLN", "AED", "INR", "BRL"];
 
 function createPricePicker(rowsContainerId, addButtonId, currencyContainerId) {
     const rowsContainer = el(rowsContainerId);
