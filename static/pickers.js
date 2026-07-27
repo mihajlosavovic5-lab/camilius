@@ -196,8 +196,7 @@ function createHoursPicker(mountId, hiddenFieldId) {
 
     const simpleRow = document.createElement("div");
     simpleRow.className = "hours-simple-row";
-    const simpleLabelBtn = document.createElement("button");
-    simpleLabelBtn.type = "button";
+    const simpleLabelBtn = document.createElement("span");
     simpleLabelBtn.className = "hours-simple-label-btn";
     simpleLabelBtn.setAttribute("data-i18n", "hoursPicker.workingDays");
     simpleLabelBtn.textContent = t("hoursPicker.workingDays");
@@ -275,7 +274,6 @@ function createHoursPicker(mountId, hiddenFieldId) {
         simpleView.classList.add("hidden");
         advancedView.classList.remove("hidden");
     }
-    simpleLabelBtn.addEventListener("click", showAdvanced);
     customizeLink.addEventListener("click", showAdvanced);
 
     // Quick-fill row: lets a user set one open/close pair and apply it to every weekday

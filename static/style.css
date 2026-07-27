@@ -888,11 +888,7 @@ body.auth {
     display: flex; align-items: center; justify-content: center; gap: 12px; flex-wrap: wrap;
     padding: 10px 14px; border: 1px solid var(--border); border-radius: 10px;
 }
-.hours-simple-label-btn {
-    font-family: inherit; font-weight: 600; font-size: 14px; color: var(--text);
-    background: none; border: none; padding: 0; cursor: pointer;
-}
-.hours-simple-label-btn:hover { color: var(--primary-ink); }
+.hours-simple-label-btn { font-weight: 600; font-size: 14px; color: var(--text); }
 .hours-simple-note { font-size: 12.5px; color: var(--text-muted); margin: 0; padding: 0 2px; }
 /* Same dashed-box look as .price-add-btn ("+ Add service"), but sized to its own text
    (not stretched full width like that one) and with no hover color change. */
