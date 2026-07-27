@@ -233,6 +233,8 @@ function createHoursPicker(mountId, hiddenFieldId) {
                 r.closeSelect.value = simpleCloseSelect.value;
                 updateRowVisibility(day);
             });
+            quickOpenSelect.value = simpleOpenSelect.value;
+            quickCloseSelect.value = simpleCloseSelect.value;
         }
         simpleView.classList.add("hidden");
         advancedView.classList.remove("hidden");
@@ -242,7 +244,11 @@ function createHoursPicker(mountId, hiddenFieldId) {
     customizeLink.addEventListener("click", () => showAdvanced(true));
 
     // Quick-fill row: lets a user set one open/close pair and apply it to every weekday
-    // at once, instead of repeating the same two dropdown picks five times.
+    // at once, instead of repeating the same two dropdown picks five times. Applies the
+    // moment either time is changed here (not on the "Apply changes" button below) - that
+    // button used to re-push this pair onto every row on every click, which silently threw
+    // away a day customized individually afterward (e.g. picking a different Tuesday, then
+    // clicking "Apply changes" just to close the view put every day back to this pair).
     const quickfill = document.createElement("div");
     quickfill.className = "hours-quickfill";
     const quickfillLabel = document.createElement("span");
@@ -254,16 +260,7 @@ function createHoursPicker(mountId, hiddenFieldId) {
     const quickSep = document.createElement("span");
     quickSep.className = "hours-time-sep";
     quickSep.textContent = "–";
-    const quickfillBtn = document.createElement("button");
-    quickfillBtn.type = "button";
-    quickfillBtn.className = "hours-quickfill-btn";
-    quickfillBtn.setAttribute("data-i18n", "hoursPicker.applyChanges");
-    quickfillBtn.textContent = t("hoursPicker.applyChanges");
-    // Applying the same hours to every weekday is exactly what the collapsed "Working
-    // days" view already represents, so this also takes the user back there - the same
-    // screen they expanded from - instead of leaving them looking at five now-identical
-    // rows they'd have to notice and collapse manually.
-    quickfillBtn.addEventListener("click", () => {
+    function applyQuickfillToAll() {
         WEEKDAYS.forEach((day) => {
             const r = rows[day];
             r.checkbox.checked = true;
@@ -271,12 +268,31 @@ function createHoursPicker(mountId, hiddenFieldId) {
             r.closeSelect.value = quickCloseSelect.value;
             updateRowVisibility(day);
         });
-        simpleOpenSelect.value = quickOpenSelect.value;
-        simpleCloseSelect.value = quickCloseSelect.value;
+        sync();
+    }
+    quickOpenSelect.addEventListener("change", applyQuickfillToAll);
+    quickCloseSelect.addEventListener("change", applyQuickfillToAll);
+    const quickfillBtn = document.createElement("button");
+    quickfillBtn.type = "button";
+    quickfillBtn.className = "hours-quickfill-btn";
+    quickfillBtn.setAttribute("data-i18n", "hoursPicker.applyChanges");
+    quickfillBtn.textContent = t("hoursPicker.applyChanges");
+    // Just confirms whatever the five rows currently show (never overwrites them) and,
+    // if that happens to be the same hours on every weekday, collapses back to the
+    // "Working days" summary - the same screen the user expanded from. A day left
+    // customized differently keeps the per-day view open instead of vanishing into a
+    // summary that couldn't represent it.
+    quickfillBtn.addEventListener("click", () => {
+        sync();
+        const allSame = WEEKDAYS.every((day) => rows[day].checkbox.checked) &&
+            WEEKDAYS.every((day) => rows[day].openSelect.value === rows.monday.openSelect.value &&
+                rows[day].closeSelect.value === rows.monday.closeSelect.value);
+        if (!allSame) return;
+        simpleOpenSelect.value = rows.monday.openSelect.value;
+        simpleCloseSelect.value = rows.monday.closeSelect.value;
         mode = "simple";
         advancedView.classList.add("hidden");
         simpleView.classList.remove("hidden");
-        sync();
     });
     quickfill.appendChild(quickfillLabel);
     quickfill.appendChild(quickOpenSelect);
