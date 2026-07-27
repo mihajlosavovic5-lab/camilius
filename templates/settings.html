@@ -42,6 +42,12 @@
                 <label for="settings-name-input" data-i18n="settings.businessName">Business name</label>
             </div>
 
+            <div class="floating-field">
+                <input type="text" id="settings-username-input" name="username" value="{{ business.username }}" placeholder=" " autocapitalize="off" autocorrect="off" required>
+                <label for="settings-username-input" data-i18n="settings.username">Username</label>
+            </div>
+            <p class="field-error hidden" id="settings-username-error"></p>
+
             <div class="profile-instagram-field">
                 <label data-i18n="settings.instagramAccount">Instagram account</label>
                 <div class="profile-instagram-row">
@@ -141,6 +147,61 @@ function initSettingsPickers() {
     safeInit(initSettingsSaveButton);
     safeInit(initSaveSuccessOverlay);
     safeInit(initContactEmailChangeLink);
+    safeInit(initSettingsUsernameAvailability);
+}
+
+// Live "is this username taken" check as the user types, same debounced
+// /check-availability pattern as the registration form (see register.html) and already
+// shipped in the mobile app's own Profile screen. Username is the only field here that
+// needs this - it applies immediately on save (no confirmation step, unlike contact
+// email's change-then-verify flow above), so this is the only guard against submitting
+// a name someone else already has.
+function initSettingsUsernameAvailability() {
+    const input = document.getElementById("settings-username-input");
+    const errorEl = document.getElementById("settings-username-error");
+    const form = document.getElementById("settings-form");
+    if (!input || !errorEl || !form) return;
+
+    const csrfToken = form.querySelector('input[name="csrf_token"]').value;
+    let status = "unknown"; // unknown | checking | available | taken
+    let timer = null;
+
+    function check() {
+        clearTimeout(timer);
+        const value = input.value.trim();
+        if (!value) {
+            status = "unknown";
+            errorEl.classList.add("hidden");
+            return;
+        }
+        status = "checking";
+        timer = setTimeout(() => {
+            fetch("{{ url_for('check_availability') }}", {
+                method: "POST",
+                headers: { "Content-Type": "application/json", "X-CSRFToken": csrfToken },
+                body: JSON.stringify({ field: "username", value: value }),
+            })
+                .then((r) => r.json())
+                .then((data) => {
+                    if (input.value.trim() !== value) return; // superseded by a newer edit
+                    status = data.taken ? "taken" : "available";
+                    errorEl.textContent = t("register.usernameTaken");
+                    errorEl.classList.toggle("hidden", !data.taken);
+                })
+                .catch(() => {
+                    if (input.value.trim() !== value) return;
+                    status = "unknown";
+                });
+        }, 450);
+    }
+
+    input.addEventListener("input", check);
+    form.addEventListener("submit", (e) => {
+        if (status === "taken" || status === "checking") {
+            e.preventDefault();
+            input.focus();
+        }
+    });
 }
 
 // The email field is a real input (not readonly), so it's already editable by a plain
