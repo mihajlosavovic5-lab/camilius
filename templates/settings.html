@@ -166,6 +166,25 @@ function initSettingsUsernameAvailability() {
     let status = "unknown"; // unknown | checking | available | taken
     let timer = null;
 
+    function runCheck(value) {
+        return fetch("{{ url_for('check_availability') }}", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "X-CSRFToken": csrfToken },
+            body: JSON.stringify({ field: "username", value: value }),
+        })
+            .then((r) => r.json())
+            .then((data) => {
+                if (input.value.trim() !== value) return; // superseded by a newer edit
+                status = data.taken ? "taken" : "available";
+                errorEl.textContent = t("register.usernameTaken");
+                errorEl.classList.toggle("hidden", !data.taken);
+            })
+            .catch(() => {
+                if (input.value.trim() !== value) return;
+                status = "unknown";
+            });
+    }
+
     function check() {
         clearTimeout(timer);
         const value = input.value.trim();
@@ -175,31 +194,26 @@ function initSettingsUsernameAvailability() {
             return;
         }
         status = "checking";
-        timer = setTimeout(() => {
-            fetch("{{ url_for('check_availability') }}", {
-                method: "POST",
-                headers: { "Content-Type": "application/json", "X-CSRFToken": csrfToken },
-                body: JSON.stringify({ field: "username", value: value }),
-            })
-                .then((r) => r.json())
-                .then((data) => {
-                    if (input.value.trim() !== value) return; // superseded by a newer edit
-                    status = data.taken ? "taken" : "available";
-                    errorEl.textContent = t("register.usernameTaken");
-                    errorEl.classList.toggle("hidden", !data.taken);
-                })
-                .catch(() => {
-                    if (input.value.trim() !== value) return;
-                    status = "unknown";
-                });
-        }, 450);
+        timer = setTimeout(() => runCheck(value), 450);
     }
 
     input.addEventListener("input", check);
     form.addEventListener("submit", (e) => {
-        if (status === "taken" || status === "checking") {
+        if (status === "taken") {
             e.preventDefault();
             input.focus();
+            return;
+        }
+        if (status === "checking") {
+            // Enter (or clicking Save) landed while the debounced check was still
+            // waiting/in flight - rather than silently swallowing this attempt and making
+            // the user press Enter/Save again once it settles, skip the rest of the
+            // debounce, run it now, and resubmit automatically the moment it resolves.
+            e.preventDefault();
+            clearTimeout(timer);
+            runCheck(input.value.trim()).then(() => {
+                if (status !== "taken") form.requestSubmit();
+            });
         }
     });
 }
