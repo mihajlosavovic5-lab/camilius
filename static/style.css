@@ -1068,15 +1068,18 @@ body.auth {
     display: flex; align-items: center; font-size: 11px; color: var(--primary);
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
-/* space-between keeps the value on the left (like an input's text) and pushes
-   the reconnect link to the right edge of the field, instead of sitting right
-   next to the value. */
 .profile-instagram-row {
-    display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+    display: flex; align-items: center; gap: 12px;
     padding: 18px 12px 4px; line-height: normal;
 }
 .profile-instagram-value { font-size: 15px; color: var(--text); }
-.profile-instagram-row a { font-size: 13.5px; }
+/* Sits on the right edge like the value sits on the left, but centered on the
+   field's full height rather than following the value's input-text baseline
+   (which sits low to leave room for the floated label above it). */
+.profile-instagram-row a {
+    position: absolute; top: 50%; right: 12px; transform: translateY(-50%);
+    font-size: 13.5px;
+}
 
 /* --- Danger zone --- */
 .danger-zone, .export-zone {
