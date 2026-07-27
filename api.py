@@ -18,6 +18,7 @@ from database import (
     archived_conversations_for_business, trashed_conversations_for_business,
     archive_conversation, unarchive_conversation, soft_delete_conversation, restore_conversation,
     is_reminders_enabled, set_reminders_enabled, get_upsell_pairs, set_upsell_pairs,
+    is_owner_reminders_enabled, set_owner_reminders_enabled, get_reminder_minutes, set_reminder_minutes,
     email_verify_sent_recently, phone_verify_sent_recently,
     email_verify_resend_wait_seconds, phone_verify_resend_wait_seconds,
     get_slot_duration, set_slot_duration, create_appointment, get_appointment, cancel_appointment,
@@ -845,35 +846,74 @@ def api_save_push_token():
 # Instant-apply preferences shown in the app's Settings tab (as opposed to Profile's
 # bulk "Save changes" form) - each one is its own small GET/POST pair, same pattern as
 # language/theme (except those are local-only, these need the server to actually know).
+#
+# reminders_enabled/owner_reminders_enabled/*_reminder_minutes mirror the website's
+# /app-settings (see app_settings.html + app.py's update_reminders) - customer and owner
+# reminders are independently toggled, each with its own configurable lead time, not a
+# single combined on/off switch. reminders_enabled itself is the pre-existing "customer
+# reminders" column (see database.py's Faza 9/12 comment), kept under its original name
+# here since api_update_settings-adjacent callers already depend on it.
 @api.route("/notification-preferences", methods=["GET"])
 @require_api_auth
 def api_get_notification_preferences():
+    customer_minutes, owner_minutes = get_reminder_minutes(request.business_id)
     return jsonify(
         push_enabled=is_push_enabled(request.business_id),
         auto_send=is_auto_send_enabled(request.business_id),
         reminders_enabled=is_reminders_enabled(request.business_id),
+        owner_reminders_enabled=is_owner_reminders_enabled(request.business_id),
+        customer_reminder_minutes=customer_minutes,
+        owner_reminder_minutes=owner_minutes,
     )
 
 
 @api.route("/notification-preferences", methods=["POST"])
 @require_api_auth
 def api_update_notification_preferences():
-    from app import BETA_FREE_MODE  # deferred to avoid a circular import at module load
+    from app import BETA_FREE_MODE, REMINDER_LEAD_MAX_MINUTES  # deferred to avoid a circular import at module load
 
     data = request.get_json(silent=True) or {}
+    business_id = request.business_id
     if "push_enabled" in data:
-        set_push_enabled(request.business_id, bool(data["push_enabled"]))
+        set_push_enabled(business_id, bool(data["push_enabled"]))
     if "auto_send" in data:
-        set_auto_send(request.business_id, bool(data["auto_send"]))
-    # No-show reminders (Faza 9/11) are Pro-only - same server-side gate as the website's
-    # /app-settings/reminders, so a Starter-plan app user can't flip this on either.
-    if "reminders_enabled" in data and (BETA_FREE_MODE or has_pro_access(request.business_id)):
-        set_reminders_enabled(request.business_id, bool(data["reminders_enabled"]))
+        set_auto_send(business_id, bool(data["auto_send"]))
+    # No-show reminders (Faza 9/11/12) are Pro-only - same server-side gate as the
+    # website's /app-settings/reminders, so a Starter-plan app user can't flip these on
+    # (or change their lead time) either.
+    if (BETA_FREE_MODE or has_pro_access(business_id)) and (
+        "reminders_enabled" in data or "owner_reminders_enabled" in data
+        or "customer_reminder_minutes" in data or "owner_reminder_minutes" in data
+    ):
+        if "reminders_enabled" in data:
+            set_reminders_enabled(business_id, bool(data["reminders_enabled"]))
+        if "owner_reminders_enabled" in data:
+            set_owner_reminders_enabled(business_id, bool(data["owner_reminders_enabled"]))
+        if "customer_reminder_minutes" in data or "owner_reminder_minutes" in data:
+            current_customer_minutes, current_owner_minutes = get_reminder_minutes(business_id)
+
+            def _clean_minutes(value, fallback):
+                try:
+                    minutes = int(value)
+                except (TypeError, ValueError):
+                    return fallback
+                return minutes if 1 <= minutes <= REMINDER_LEAD_MAX_MINUTES else fallback
+
+            set_reminder_minutes(
+                business_id,
+                _clean_minutes(data.get("customer_reminder_minutes"), current_customer_minutes),
+                _clean_minutes(data.get("owner_reminder_minutes"), current_owner_minutes),
+            )
+
+    customer_minutes, owner_minutes = get_reminder_minutes(business_id)
     return jsonify(
         message="saved",
-        push_enabled=is_push_enabled(request.business_id),
-        auto_send=is_auto_send_enabled(request.business_id),
-        reminders_enabled=is_reminders_enabled(request.business_id),
+        push_enabled=is_push_enabled(business_id),
+        auto_send=is_auto_send_enabled(business_id),
+        reminders_enabled=is_reminders_enabled(business_id),
+        owner_reminders_enabled=is_owner_reminders_enabled(business_id),
+        customer_reminder_minutes=customer_minutes,
+        owner_reminder_minutes=owner_minutes,
     )
 
 
