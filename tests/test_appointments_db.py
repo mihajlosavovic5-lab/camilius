@@ -90,6 +90,26 @@ def test_reminders_enabled_defaults_off_and_round_trips(client, unique_username,
     assert database.is_reminders_enabled(business_id) is True
 
 
+def test_owner_reminders_enabled_defaults_off_and_round_trips_independently(client, unique_username, unique_email):
+    reg = register_business(client, unique_username, unique_email)
+    business_id = reg.get_json()["business_id"]
+
+    assert database.is_owner_reminders_enabled(business_id) is False
+    database.set_owner_reminders_enabled(business_id, True)
+    assert database.is_owner_reminders_enabled(business_id) is True
+    # Independent from the customer-facing toggle - flipping one must not affect the other.
+    assert database.is_reminders_enabled(business_id) is False
+
+
+def test_reminder_minutes_default_and_round_trip(client, unique_username, unique_email):
+    reg = register_business(client, unique_username, unique_email)
+    business_id = reg.get_json()["business_id"]
+
+    assert database.get_reminder_minutes(business_id) == (1440, 60)  # column defaults: 24h, 1h
+    database.set_reminder_minutes(business_id, 120, 45)
+    assert database.get_reminder_minutes(business_id) == (120, 45)
+
+
 def test_has_pro_access_during_self_serve_trial(client, unique_username, unique_email):
     # A brand new account is 'trialing' with no plan chosen yet - gets full Pro-level
     # access for the length of the trial (see database.has_pro_access's docstring).

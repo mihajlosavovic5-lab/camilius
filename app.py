@@ -30,6 +30,7 @@ from database import (
     archive_conversation, unarchive_conversation, soft_delete_conversation, restore_conversation,
     get_slot_duration, set_slot_duration, create_appointment, get_appointment, cancel_appointment,
     is_reminders_enabled, set_reminders_enabled, get_upsell_pairs, set_upsell_pairs,
+    is_owner_reminders_enabled, set_owner_reminders_enabled, get_reminder_minutes, set_reminder_minutes,
     all_appointments_for_business, get_stripe_customer_id, get_paddle_customer_id,
     save_email_verify_token, business_by_email_verify_token, mark_email_verified, email_verify_sent_recently,
     email_verify_resend_wait_seconds,
@@ -895,14 +896,30 @@ def settings():
 # Distinct from /settings above (renamed "Profile" in the nav - business info the AI
 # uses) - this is app-level preferences: legal, help, and account-data actions, mirroring
 # the mobile app's own Settings screen split.
+# Preset lead-time choices offered by the pill picker on each reminder toggle (see
+# app_settings.html) - minutes before the appointment. A business can also type any
+# other value via the picker's "Custom" option (see _parse_reminder_minutes below);
+# REMINDER_LEAD_MAX_MINUTES caps that input and matches the lookahead window
+# database.appointments_needing_reminders queries.
+REMINDER_LEAD_CHOICES = [(15, "15 min"), (30, "30 min"), (60, "1h"), (120, "2h"), (1440, "24h")]
+REMINDER_LEAD_MAX_MINUTES = 7 * 24 * 60
+
+
 @app.route("/app-settings")
 @login_required
 def app_settings():
     business_id = session["business_id"]
+    customer_minutes, owner_minutes = get_reminder_minutes(business_id)
     return render_template(
         "app_settings.html",
         auto_send=is_auto_send_enabled(business_id),
         reminders_enabled=is_reminders_enabled(business_id),
+        owner_reminders_enabled=is_owner_reminders_enabled(business_id),
+        customer_reminder_minutes=customer_minutes,
+        owner_reminder_minutes=owner_minutes,
+        reminder_lead_choices=REMINDER_LEAD_CHOICES,
+        reminder_lead_minutes=[value for value, _ in REMINDER_LEAD_CHOICES],
+        reminder_lead_max_minutes=REMINDER_LEAD_MAX_MINUTES,
         pro_access=BETA_FREE_MODE or has_pro_access(business_id),
     )
 
@@ -919,14 +936,36 @@ def update_auto_send():
     return redirect(url_for("app_settings"))
 
 
-# No-show reminders toggle (Faza 9, Pro-only) - Starter-plan businesses can't turn this
-# on even via a raw POST; the checkbox itself is locked/hidden for them in app_settings.html.
+def _parse_reminder_minutes(picker_value, custom_value, default):
+    """picker_value is either one of REMINDER_LEAD_CHOICES' minute values (as a string)
+    or the literal "custom", in which case custom_value (the picker's own number input)
+    is what actually gets used. Falls back to `default` on anything malformed rather than
+    rejecting the whole form - this is a convenience preference, not something worth a
+    validation error page over."""
+    raw = custom_value if picker_value == "custom" else picker_value
+    try:
+        minutes = int(raw)
+    except (TypeError, ValueError):
+        return default
+    return minutes if 1 <= minutes <= REMINDER_LEAD_MAX_MINUTES else default
+
+
+# Appointment reminders toggle (Faza 9/12, Pro-only) - Starter-plan businesses can't turn
+# either one on even via a raw POST; both toggles are locked/hidden for them in
+# app_settings.html. Customer and owner reminders are independent: either, both, or
+# neither can be on, each with its own lead time.
 @app.route("/app-settings/reminders", methods=["POST"])
 @login_required
 def update_reminders():
     business_id = session["business_id"]
     if BETA_FREE_MODE or has_pro_access(business_id):
         set_reminders_enabled(business_id, bool(request.form.get("reminders_enabled")))
+        set_owner_reminders_enabled(business_id, bool(request.form.get("owner_reminders_enabled")))
+        customer_minutes = _parse_reminder_minutes(
+            request.form.get("customer_reminder_minutes"), request.form.get("customer_reminder_minutes_custom"), 1440)
+        owner_minutes = _parse_reminder_minutes(
+            request.form.get("owner_reminder_minutes"), request.form.get("owner_reminder_minutes_custom"), 60)
+        set_reminder_minutes(business_id, customer_minutes, owner_minutes)
     return redirect(url_for("app_settings"))
 
 

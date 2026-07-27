@@ -33,21 +33,138 @@
 
     <div class="card settings-card" style="margin-top:20px;">
         <h2 style="margin-top:0;"><span data-i18n="appSettings.reminders.heading">No-show reminders</span> <span class="badge badge-pro">Pro</span></h2>
-        <p class="note" data-i18n="appSettings.reminders.note">When on, the AI automatically sends the customer a reminder DM 24 hours and 2 hours before their appointment (Instagram-booked appointments only).</p>
+        <p class="note" data-i18n="appSettings.reminders.note">Automatically remind the customer, remind yourself, or both, before an upcoming appointment. The customer reminder is an Instagram DM (Instagram-booked appointments only); the owner reminder is an email to you.</p>
         {% if pro_access %}
-            <form method="POST" action="{{ url_for('update_reminders') }}">
+            <form method="POST" action="{{ url_for('update_reminders') }}" id="reminders-form">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <label class="checkbox-row" style="margin-top:0;">
-                    <input type="checkbox" name="reminders_enabled" {% if reminders_enabled %}checked{% endif %} onchange="this.form.submit()">
-                    <span data-i18n="appSettings.reminders.checkboxLabel">Send automatic appointment reminders</span>
-                </label>
+
+                <div class="switch-row" style="margin-top:16px;">
+                    <div class="switch-row-text">
+                        <span class="switch-row-label" data-i18n="appSettings.reminders.customerHeading">Remind the customer</span>
+                        <span class="note" data-i18n="appSettings.reminders.customerNote">Sends the customer an Instagram DM before their appointment.</span>
+                    </div>
+                    <label class="hours-day-toggle">
+                        <input type="checkbox" name="reminders_enabled" {% if reminders_enabled %}checked{% endif %} onchange="this.form.submit()">
+                        <span class="hours-day-toggle-track"><span class="hours-day-toggle-thumb"></span></span>
+                    </label>
+                </div>
+                <div class="duration-picker" style="margin-top:12px;">
+                    <label class="duration-picker-label" data-i18n="appSettings.reminders.leadTimeLabel">Send</label>
+                    <input type="hidden" name="customer_reminder_minutes" id="customer-reminder-minutes-value"
+                           value="{{ customer_reminder_minutes if customer_reminder_minutes in reminder_lead_minutes else 'custom' }}">
+                    <div class="duration-pills" id="customer-reminder-pills">
+                        {% for value, label in reminder_lead_choices %}
+                            <button type="button" class="duration-pill {{ 'active' if value == customer_reminder_minutes }}" data-duration-value="{{ value }}">{{ label }}</button>
+                        {% endfor %}
+                        {% if customer_reminder_minutes not in reminder_lead_minutes %}
+                            <button type="button" class="duration-pill duration-pill-custom-value active" data-duration-value="{{ customer_reminder_minutes }}">{{ customer_reminder_minutes }} min</button>
+                        {% endif %}
+                        <button type="button" class="duration-pill duration-pill-custom" id="customer-reminder-custom-btn" data-i18n="appSettings.reminders.custom">Custom</button>
+                        <input type="number" min="1" max="{{ reminder_lead_max_minutes }}" step="1"
+                               name="customer_reminder_minutes_custom"
+                               value="{% if customer_reminder_minutes not in reminder_lead_minutes %}{{ customer_reminder_minutes }}{% endif %}"
+                               id="customer-reminder-custom-input" class="duration-pill-custom-input hidden"
+                               data-i18n-placeholder="appSettings.reminders.customPlaceholder" placeholder="Minutes">
+                    </div>
+                    <span class="note" data-i18n="appSettings.reminders.beforeSuffix">before the appointment</span>
+                </div>
+
+                <div class="switch-row" style="margin-top:24px; padding-top:20px; border-top:1px solid var(--border);">
+                    <div class="switch-row-text">
+                        <span class="switch-row-label" data-i18n="appSettings.reminders.ownerHeading">Remind me</span>
+                        <span class="note" data-i18n="appSettings.reminders.ownerNote">Emails you before the customer's appointment.</span>
+                    </div>
+                    <label class="hours-day-toggle">
+                        <input type="checkbox" name="owner_reminders_enabled" {% if owner_reminders_enabled %}checked{% endif %} onchange="this.form.submit()">
+                        <span class="hours-day-toggle-track"><span class="hours-day-toggle-thumb"></span></span>
+                    </label>
+                </div>
+                <div class="duration-picker" style="margin-top:12px;">
+                    <label class="duration-picker-label" data-i18n="appSettings.reminders.leadTimeLabel">Send</label>
+                    <input type="hidden" name="owner_reminder_minutes" id="owner-reminder-minutes-value"
+                           value="{{ owner_reminder_minutes if owner_reminder_minutes in reminder_lead_minutes else 'custom' }}">
+                    <div class="duration-pills" id="owner-reminder-pills">
+                        {% for value, label in reminder_lead_choices %}
+                            <button type="button" class="duration-pill {{ 'active' if value == owner_reminder_minutes }}" data-duration-value="{{ value }}">{{ label }}</button>
+                        {% endfor %}
+                        {% if owner_reminder_minutes not in reminder_lead_minutes %}
+                            <button type="button" class="duration-pill duration-pill-custom-value active" data-duration-value="{{ owner_reminder_minutes }}">{{ owner_reminder_minutes }} min</button>
+                        {% endif %}
+                        <button type="button" class="duration-pill duration-pill-custom" id="owner-reminder-custom-btn" data-i18n="appSettings.reminders.custom">Custom</button>
+                        <input type="number" min="1" max="{{ reminder_lead_max_minutes }}" step="1"
+                               name="owner_reminder_minutes_custom"
+                               value="{% if owner_reminder_minutes not in reminder_lead_minutes %}{{ owner_reminder_minutes }}{% endif %}"
+                               id="owner-reminder-custom-input" class="duration-pill-custom-input hidden"
+                               data-i18n-placeholder="appSettings.reminders.customPlaceholder" placeholder="Minutes">
+                    </div>
+                    <span class="note" data-i18n="appSettings.reminders.beforeSuffix">before the appointment</span>
+                </div>
             </form>
+            <script>
+            (function () {
+                function initReminderPicker(form, prefix) {
+                    var hiddenValue = document.getElementById(prefix + "-reminder-minutes-value");
+                    var pillsContainer = document.getElementById(prefix + "-reminder-pills");
+                    var customBtn = document.getElementById(prefix + "-reminder-custom-btn");
+                    var customInput = document.getElementById(prefix + "-reminder-custom-input");
+                    if (!hiddenValue || !pillsContainer || !customBtn || !customInput) return;
+
+                    pillsContainer.querySelectorAll(".duration-pill:not(.duration-pill-custom)").forEach(function (pill) {
+                        pill.addEventListener("click", function () {
+                            hiddenValue.value = pill.dataset.durationValue;
+                            form.submit();
+                        });
+                    });
+                    customBtn.addEventListener("click", function () {
+                        customBtn.classList.add("hidden");
+                        customInput.classList.remove("hidden");
+                        customInput.value = "";
+                        customInput.focus();
+                    });
+                    customInput.addEventListener("keydown", function (e) {
+                        if (e.key !== "Enter") return;
+                        e.preventDefault();
+                        var minutes = parseInt(customInput.value, 10);
+                        if (!minutes || minutes < customInput.min || minutes > customInput.max) return;
+                        hiddenValue.value = "custom";
+                        form.submit();
+                    });
+                    // Typing nothing and clicking away reverts to the "Custom" pill instead of
+                    // leaving an empty field with no way back.
+                    customInput.addEventListener("blur", function () {
+                        if (customInput.value.trim()) return;
+                        customInput.classList.add("hidden");
+                        customBtn.classList.remove("hidden");
+                    });
+                }
+
+                var remindersForm = document.getElementById("reminders-form");
+                if (remindersForm) {
+                    initReminderPicker(remindersForm, "customer");
+                    initReminderPicker(remindersForm, "owner");
+                }
+            })();
+            </script>
         {% else %}
             <div class="pro-locked">
-                <label class="checkbox-row" style="margin-top:0;">
-                    <input type="checkbox" disabled>
-                    <span data-i18n="appSettings.reminders.checkboxLabel">Send automatic appointment reminders</span>
-                </label>
+                <div class="switch-row" style="margin-top:16px;">
+                    <div class="switch-row-text">
+                        <span class="switch-row-label" data-i18n="appSettings.reminders.customerHeading">Remind the customer</span>
+                    </div>
+                    <label class="hours-day-toggle">
+                        <input type="checkbox" disabled>
+                        <span class="hours-day-toggle-track"><span class="hours-day-toggle-thumb"></span></span>
+                    </label>
+                </div>
+                <div class="switch-row" style="margin-top:16px;">
+                    <div class="switch-row-text">
+                        <span class="switch-row-label" data-i18n="appSettings.reminders.ownerHeading">Remind me</span>
+                    </div>
+                    <label class="hours-day-toggle">
+                        <input type="checkbox" disabled>
+                        <span class="hours-day-toggle-track"><span class="hours-day-toggle-thumb"></span></span>
+                    </label>
+                </div>
             </div>
             <p class="pro-locked-note">&#10024; <a href="{{ url_for('subscription') }}" data-i18n="appSettings.reminders.upgradeCta">Upgrade to Pro</a> <span data-i18n="appSettings.reminders.upgradeSuffix">to turn on automatic reminders.</span></p>
         {% endif %}

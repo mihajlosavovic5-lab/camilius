@@ -2,22 +2,26 @@
 inline with request handling, since neither has anything to do with any single incoming
 webhook call:
 
-- No-show reminders (Faza 9, Pro plan) - sends an Instagram DM reminder ~24h and ~2h
-  before an upcoming appointment (send_appointment_reminders_if_needed).
+- Appointment reminders (Faza 9/12, Pro plan) - two independent, independently-timed
+  reminders per appointment: a customer-facing Instagram DM, and an owner-facing email
+  (send_appointment_reminders_if_needed). Each has its own on/off toggle and its own
+  single configurable lead time (business.customer_reminder_minutes /
+  owner_reminder_minutes) rather than the old fixed 24h-and-2h pair.
 - Trial-ending warning emails - see send_trial_ending_warnings_if_needed below.
 
-Only appointments booked BY THE AI over Instagram DM (source has a real sender_igsid -
-see database.appointments_needing_reminders) can be reminded at all; a manually-entered
-appointment has no Instagram thread to send to.
+The customer DM can only go out for appointments booked BY THE AI over Instagram DM
+(source has a real sender_igsid - see database.appointments_needing_reminders); a
+manually-entered appointment has no Instagram thread to send to. The owner email has no
+such restriction - it's checked independently of sender_igsid.
 
 Known platform limitation, accepted rather than worked around (same as the existing
 manual "Send reply" flow's 24h-window handling): Instagram only allows a business to
 message a customer within 24 hours of that customer's OWN last message, unless using a
-Meta-approved message tag this app doesn't have. In practice this means the 24h-before
-reminder usually goes through fine (often still inside that window from the booking
-conversation itself), but the 2h-before reminder for an appointment booked more than a
-day in advance will frequently fail - Instagram rejects the send, we log it and move on,
-exactly like a manual reply sent outside the window already does elsewhere in this app.
+Meta-approved message tag this app doesn't have. A customer reminder lead time longer
+than that (the 24h default included) will frequently fail to send for an appointment
+booked further in advance than its own lead time - Instagram rejects the send, we log it
+and move on, exactly like a manual reply sent outside the window already does elsewhere
+in this app.
 """
 import os
 from datetime import timedelta
@@ -26,22 +30,44 @@ import requests
 
 from database import (
     appointments_needing_reminders, mark_reminder_sent, business_by_id,
-    is_reminders_enabled, has_pro_access, log_client_error,
+    is_reminders_enabled, is_owner_reminders_enabled, get_reminder_minutes,
+    has_pro_access, log_client_error,
     businesses_needing_trial_warning, mark_trial_warning_sent,
 )
 from booking import BUSINESS_TZ, now_local
 from instagram_api import send_message as send_instagram_message
 from send_email import send_email
 
-WINDOW_24H = (timedelta(hours=23, minutes=45), timedelta(hours=24, minutes=15))
-WINDOW_2H = (timedelta(hours=1, minutes=45), timedelta(hours=2, minutes=15))
+# How close start_time - now needs to be to a business's configured lead time before
+# that reminder fires - the loop that calls send_appointment_reminders_if_needed runs
+# far more often than this, so a +/-15 minute band is plenty to catch it exactly once.
+REMINDER_TOLERANCE = timedelta(minutes=15)
 
 
-def _reminder_text(business_name, start_local, which):
+def _format_lead_time(minutes):
+    if minutes >= 1440 and minutes % 1440 == 0:
+        days = minutes // 1440
+        return f"{days} day" + ("s" if days != 1 else "")
+    if minutes >= 60 and minutes % 60 == 0:
+        hours = minutes // 60
+        return f"{hours} hour" + ("s" if hours != 1 else "")
+    return f"{minutes} minute" + ("s" if minutes != 1 else "")
+
+
+def _customer_reminder_text(business_name, start_local, minutes):
     when = start_local.strftime("%A at %H:%M")
-    if which == "24h":
-        return f"Reminder: you have an appointment with {business_name} tomorrow, {when}. See you then!"
-    return f"Reminder: your appointment with {business_name} is coming up today at {start_local.strftime('%H:%M')}. See you soon!"
+    return f"Reminder: you have an appointment with {business_name} in {_format_lead_time(minutes)} ({when}). See you then!"
+
+
+def _owner_reminder_email_body(business_name, customer_name, service, start_local, minutes):
+    when = start_local.strftime("%A, %B %d at %H:%M")
+    service_part = f" for {service}" if service else ""
+    return (
+        f"Hi {business_name},\n\n"
+        f"Reminder: you have an appointment with {customer_name}{service_part} in "
+        f"{_format_lead_time(minutes)}, at {when}.\n\n"
+        f"- Camilius"
+    )
 
 
 def send_appointment_reminders_if_needed():
@@ -49,46 +75,62 @@ def send_appointment_reminders_if_needed():
     business_cache = {}
 
     for row in appointments_needing_reminders():
-        appointment_id, business_id, customer_name, sender_igsid, service, start_time, sent_24h, sent_2h = row
+        (appointment_id, business_id, customer_name, sender_igsid, service, start_time,
+         reminder_customer_sent_at, reminder_owner_sent_at) = row
 
         if business_id not in business_cache:
             business_cache[business_id] = business_by_id(business_id)
         business = business_cache[business_id]
-        if business is None or not business[5] or not business[7]:
-            continue  # no Instagram connected (shouldn't happen for a booked appointment, but be defensive)
+        if business is None:
+            continue
 
         # Re-checked here (not just at toggle-time) so a business that downgraded off
         # Pro after turning this on stops getting reminders sent immediately, without
         # needing to separately flip the toggle back off.
-        if not (is_reminders_enabled(business_id) and has_pro_access(business_id)):
+        if not has_pro_access(business_id):
             continue
 
         # Aware-datetime subtraction is instant-based regardless of each side's specific
         # tzinfo representation, so start_time (whatever offset psycopg2 returned it in)
         # minus now (BUSINESS_TZ) needs no extra conversion to be correct.
         time_until = start_time - now
-        which = None
-        if sent_24h is None and WINDOW_24H[0] <= time_until <= WINDOW_24H[1]:
-            which = "24h"
-        elif sent_2h is None and WINDOW_2H[0] <= time_until <= WINDOW_2H[1]:
-            which = "2h"
-        if which is None:
-            continue
+        start_local = start_time.astimezone(BUSINESS_TZ)
+        business_name, ig_account_id, access_token, contact_email = business[1], business[5], business[7], business[4]
+        customer_minutes, owner_minutes = get_reminder_minutes(business_id)
 
-        business_name, access_token, ig_account_id = business[1], business[7], business[5]
-        text = _reminder_text(business_name, start_time.astimezone(BUSINESS_TZ), which)
-        try:
-            send_instagram_message(sender_igsid, text, access_token, ig_account_id)
-            print(f"[reminders] Sent {which} reminder for appointment_id={appointment_id} business_id={business_id}", flush=True)
-        except requests.RequestException as error:
-            # Most commonly Instagram's 24h messaging-window policy (see module
-            # docstring) - not a bug, but still marked sent below so we don't retry this
-            # exact window forever for the same appointment.
-            error_body = error.response.text if getattr(error, "response", None) is not None else str(error)
-            print(f"[reminders] Failed to send {which} reminder for appointment_id={appointment_id}: {error_body}", flush=True)
-            log_client_error(business_id, f"reminder send failed ({which}): {error_body}", "", f"reminder-debug appointment_id={appointment_id}", "")
+        if (reminder_customer_sent_at is None and is_reminders_enabled(business_id)
+                and sender_igsid and ig_account_id and access_token
+                and abs(time_until - timedelta(minutes=customer_minutes)) <= REMINDER_TOLERANCE):
+            text = _customer_reminder_text(business_name, start_local, customer_minutes)
+            try:
+                send_instagram_message(sender_igsid, text, access_token, ig_account_id)
+                print(f"[reminders] Sent customer reminder for appointment_id={appointment_id} business_id={business_id}", flush=True)
+            except requests.RequestException as error:
+                # Most commonly Instagram's 24h messaging-window policy (see module
+                # docstring) - not a bug, but still marked sent below so we don't retry
+                # this exact window forever for the same appointment.
+                error_body = error.response.text if getattr(error, "response", None) is not None else str(error)
+                print(f"[reminders] Failed to send customer reminder for appointment_id={appointment_id}: {error_body}", flush=True)
+                log_client_error(business_id, f"reminder send failed (customer): {error_body}", "", f"reminder-debug appointment_id={appointment_id}", "")
+            mark_reminder_sent(appointment_id, "customer")
 
-        mark_reminder_sent(appointment_id, which)
+        if (reminder_owner_sent_at is None and is_owner_reminders_enabled(business_id)
+                and contact_email
+                and abs(time_until - timedelta(minutes=owner_minutes)) <= REMINDER_TOLERANCE):
+            body = _owner_reminder_email_body(business_name, customer_name, service, start_local, owner_minutes)
+            try:
+                send_email(
+                    recipient=contact_email,
+                    subject="Upcoming appointment reminder",
+                    body=body,
+                    business_name="Camilius",
+                    reply_to=os.getenv("ALERT_EMAIL") or contact_email,
+                )
+                print(f"[reminders] Sent owner reminder for appointment_id={appointment_id} business_id={business_id}", flush=True)
+            except Exception as error:
+                print(f"[reminders] Failed to send owner reminder for appointment_id={appointment_id}: {error}", flush=True)
+                log_client_error(business_id, f"reminder send failed (owner): {error}", "", f"reminder-debug appointment_id={appointment_id}", "")
+            mark_reminder_sent(appointment_id, "owner")
 
 
 def _trial_ending_email_body(business_name, trial_ends_at):

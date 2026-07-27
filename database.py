@@ -336,6 +336,19 @@ def create_database():
     cursor.execute("ALTER TABLE appointments ADD COLUMN IF NOT EXISTS reminder_24h_sent_at TIMESTAMP")
     cursor.execute("ALTER TABLE appointments ADD COLUMN IF NOT EXISTS reminder_2h_sent_at TIMESTAMP")
 
+    # Faza 12: reminders_enabled/reminder_24h_sent_at/reminder_2h_sent_at above are kept
+    # (unused going forward) rather than dropped, to avoid a destructive migration -
+    # reminders_enabled itself is repurposed as "customer reminders enabled" and still
+    # actively used. Customer and owner reminders are now independently toggled, each on
+    # its own single configurable lead time (in minutes) instead of the old fixed
+    # 24h-and-2h pair; reminder_{customer,owner}_sent_at are the new per-channel
+    # dedupe markers reminders.py checks instead.
+    cursor.execute("ALTER TABLE businesses ADD COLUMN IF NOT EXISTS owner_reminders_enabled BOOLEAN NOT NULL DEFAULT FALSE")
+    cursor.execute("ALTER TABLE businesses ADD COLUMN IF NOT EXISTS customer_reminder_minutes INTEGER NOT NULL DEFAULT 1440")
+    cursor.execute("ALTER TABLE businesses ADD COLUMN IF NOT EXISTS owner_reminder_minutes INTEGER NOT NULL DEFAULT 60")
+    cursor.execute("ALTER TABLE appointments ADD COLUMN IF NOT EXISTS reminder_customer_sent_at TIMESTAMP")
+    cursor.execute("ALTER TABLE appointments ADD COLUMN IF NOT EXISTS reminder_owner_sent_at TIMESTAMP")
+
     # Email verification at signup. DEFAULT TRUE grandfathers in every account that
     # already existed before this column was added (they never went through a
     # verification step, so there's nothing to gate retroactively) - add_business()
@@ -1461,6 +1474,49 @@ def set_reminders_enabled(business_id, enabled):
     connection.close()
 
 
+def is_owner_reminders_enabled(business_id):
+    connection = connect()
+    cursor = connection.cursor()
+    cursor.execute("SELECT owner_reminders_enabled FROM businesses WHERE id = %s", (business_id,))
+    row = cursor.fetchone()
+    connection.close()
+    return bool(row[0]) if row else False
+
+
+def set_owner_reminders_enabled(business_id, enabled):
+    connection = connect()
+    cursor = connection.cursor()
+    cursor.execute("UPDATE businesses SET owner_reminders_enabled = %s WHERE id = %s", (enabled, business_id))
+    connection.commit()
+    connection.close()
+
+
+def get_reminder_minutes(business_id):
+    """Returns (customer_minutes, owner_minutes) - how long before the appointment each
+    channel's single reminder goes out. Falls back to the column defaults (24h/1h) if the
+    business row is somehow missing, same as the other reminder getters above."""
+    connection = connect()
+    cursor = connection.cursor()
+    cursor.execute(
+        "SELECT customer_reminder_minutes, owner_reminder_minutes FROM businesses WHERE id = %s",
+        (business_id,),
+    )
+    row = cursor.fetchone()
+    connection.close()
+    return (row[0], row[1]) if row else (1440, 60)
+
+
+def set_reminder_minutes(business_id, customer_minutes, owner_minutes):
+    connection = connect()
+    cursor = connection.cursor()
+    cursor.execute(
+        "UPDATE businesses SET customer_reminder_minutes = %s, owner_reminder_minutes = %s WHERE id = %s",
+        (customer_minutes, owner_minutes, business_id),
+    )
+    connection.commit()
+    connection.close()
+
+
 def get_upsell_pairs(business_id):
     connection = connect()
     cursor = connection.cursor()
@@ -1479,28 +1535,29 @@ def set_upsell_pairs(business_id, text):
 
 
 def appointments_needing_reminders():
-    """Confirmed, Instagram-DM-originated appointments (sender_igsid set - a manually
-    entered appointment has no DM thread to remind) starting within the next 25 hours
-    that are still missing at least one of their two reminders - across every business.
-    reminders.py (the only caller) decides, per row, exactly which window (24h/2h, if
-    either) currently applies and whether that business even has reminders turned on."""
+    """Confirmed appointments starting within the next 8 days (the widest a business can
+    configure either lead time to, see app.py's REMINDER_LEAD_MAX_MINUTES) that are still
+    missing at least one of their two reminders - across every business. Unlike the old
+    24h/2h version, sender_igsid is NOT filtered here: the customer DM reminder still
+    needs it (a manually-entered appointment has no DM thread to remind), but the owner
+    email reminder doesn't care - reminders.py (the only caller) checks that per-channel."""
     connection = connect()
     cursor = connection.cursor()
     cursor.execute("""
         SELECT id, business_id, customer_name, sender_igsid, service, start_time,
-               reminder_24h_sent_at, reminder_2h_sent_at
+               reminder_customer_sent_at, reminder_owner_sent_at
         FROM appointments
-        WHERE status = 'confirmed' AND sender_igsid IS NOT NULL
-          AND start_time > NOW() AND start_time <= NOW() + INTERVAL '25 hours'
-          AND (reminder_24h_sent_at IS NULL OR reminder_2h_sent_at IS NULL)
+        WHERE status = 'confirmed'
+          AND start_time > NOW() AND start_time <= NOW() + INTERVAL '8 days'
+          AND (reminder_customer_sent_at IS NULL OR reminder_owner_sent_at IS NULL)
     """)
     result = cursor.fetchall()
     connection.close()
     return result
 
 
-def mark_reminder_sent(appointment_id, which):
-    column = "reminder_24h_sent_at" if which == "24h" else "reminder_2h_sent_at"
+def mark_reminder_sent(appointment_id, channel):
+    column = "reminder_customer_sent_at" if channel == "customer" else "reminder_owner_sent_at"
     connection = connect()
     cursor = connection.cursor()
     cursor.execute(f"UPDATE appointments SET {column} = NOW() WHERE id = %s", (appointment_id,))
