@@ -1159,11 +1159,21 @@ body.auth {
 .schedule-slot-duration-custom {
     margin: 0; padding: 7px 12px; font-size: 13px; font-weight: 600; width: auto;
     border-radius: 99px; border: 1px solid var(--border); background: var(--surface); color: var(--text);
-    font-family: inherit; transition: border-color .15s ease, box-shadow .15s ease;
+    font-family: inherit;
+    transition: background .15s ease, color .15s ease, border-color .15s ease,
+                transform .15s cubic-bezier(.2,.9,.3,1.3), box-shadow .18s ease;
 }
 .schedule-slot-duration-custom { width: 96px; text-align: left; }
 .schedule-slot-duration-select:focus,
 .schedule-slot-duration-custom:focus { border-color: var(--primary-ink); box-shadow: 0 0 0 3px rgba(214, 148, 16, .18); outline: none; }
+/* Same lift/shadow hover as the header's .duration-pill (incl. its "Custom" pill), so the
+   per-slot duration trigger in the schedule timeline matches that button's feel exactly. */
+.schedule-slot-duration-select:hover {
+    color: var(--text); border-color: var(--primary-ink);
+    transform: translateY(-1px);
+    box-shadow: 0 6px 14px -6px rgba(38, 32, 20, .18), 0 1px 3px rgba(38, 32, 20, .06);
+}
+.schedule-slot-duration-select:active { transform: translateY(0); box-shadow: none; }
 .duration-dd-trigger { cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
 .duration-dd-trigger::after { content: ""; width: 6px; height: 6px; border-right: 1.5px solid var(--text-muted); border-bottom: 1.5px solid var(--text-muted); transform: rotate(45deg) translateY(-2px); }
 /* Always top: 100% (opens downward) - the whole point of not using a native <select>. */
