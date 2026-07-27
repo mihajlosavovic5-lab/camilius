@@ -114,10 +114,23 @@
 {% block scripts %}
 <script src="{{ url_for('static', filename='pickers.js') }}?v={{ static_versions['pickers.js'] }}" defer></script>
 <script>
-document.addEventListener("DOMContentLoaded", function () {
+// The nav (_nav.html) is hx-boosted, so getting here by clicking Profile swaps this
+// whole <body> in via AJAX instead of a full page load - DOMContentLoaded (which only
+// fires once, for whichever page happened to load first) never fires again for it, so
+// waiting on it here left the pickers un-initialized until the user hit refresh. htmx
+// re-executes this <script> block on every swap (allowScriptTags), so the only thing
+// DOMContentLoaded was really doing was waiting for pickers.js - a deferred script - to
+// finish running first; document.readyState already tells us that once it's no longer
+// "loading" (true for every swap after the first page load).
+function initSettingsPickers() {
     safeInit(() => createHoursPicker("settings-hours-picker-mount", "settings-working-hours"));
     safeInit(() => createPricePicker("settings-price-picker-mount", "settings-price-add", "settings-price-currency", "settings-price-list"));
     safeInit(() => createUpsellPicker("settings-upsell-picker-mount", "settings-upsell-add", "settings-upsell-pairs", "settings-price-list"));
-});
+}
+if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", initSettingsPickers);
+} else {
+    initSettingsPickers();
+}
 </script>
 {% endblock %}

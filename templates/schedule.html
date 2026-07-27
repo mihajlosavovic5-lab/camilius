@@ -178,7 +178,14 @@
 
 {% block scripts %}
 <script>
-document.addEventListener("DOMContentLoaded", function () {
+// The nav (_nav.html) is hx-boosted, so getting here by clicking Schedule swaps this
+// whole <body> in via AJAX instead of a full page load - DOMContentLoaded (which only
+// fires once, for whichever page happened to load first) never fires again for it, so
+// waiting on it here left this page's controls un-wired until the user hit refresh.
+// htmx re-executes this <script> block on every swap (allowScriptTags), and everything
+// below only touches DOM already present earlier in this same page, so it's safe to run
+// immediately rather than wait for an event that won't come back.
+(function () {
     // Header "Appointment length" pill picker - clicking a pill submits the form right
     // away (same UX as the old auto-submitting <select>). "Custom" swaps itself out for
     // a number input in the same spot (same pattern as the per-slot duration control
@@ -228,7 +235,13 @@ document.addEventListener("DOMContentLoaded", function () {
     function closeAllDurationMenus() {
         document.querySelectorAll(".duration-dd-menu").forEach(function (m) { m.classList.add("hidden"); });
     }
-    document.addEventListener("click", closeAllDurationMenus);
+    // This listener targets `document`, which (unlike the elements below) survives htmx
+    // swaps - guard so re-running this block on every visit to Schedule doesn't pile up
+    // a duplicate handler each time.
+    if (!window.__scheduleDurationMenuHandlerAdded) {
+        document.addEventListener("click", closeAllDurationMenus);
+        window.__scheduleDurationMenuHandlerAdded = true;
+    }
 
     document.querySelectorAll(".duration-dd").forEach(function (dd) {
         var hiddenValue = dd.querySelector(".duration-dd-value");
@@ -283,6 +296,6 @@ document.addEventListener("DOMContentLoaded", function () {
             }
         });
     });
-});
+})();
 </script>
 {% endblock %}
