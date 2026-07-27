@@ -1073,13 +1073,21 @@ body.auth {
     padding: 18px 12px 4px; line-height: normal;
 }
 .profile-instagram-value { font-size: 15px; color: var(--text); }
-/* Sits on the right edge like the value sits on the left, but centered on the
-   field's full height rather than following the value's input-text baseline
-   (which sits low to leave room for the floated label above it). */
-.profile-instagram-row a {
-    position: absolute; top: 50%; right: 12px; transform: translateY(-50%);
-    font-size: 13.5px;
-}
+
+/* A golden action link pinned to a field's right edge, centered on the field's full
+   height rather than following the field's text baseline (which sits low in
+   .floating-field/.profile-instagram-field to leave room for the label above it).
+   Shared by the Instagram field's "Reconnect or switch account" and the contact email
+   field's "Change email" so both actions read as the same pattern. */
+.field-action-link { position: absolute; top: 50%; right: 12px; transform: translateY(-50%); font-size: 13.5px; }
+
+/* Contact email is a real editable input here (unlike Instagram, which is a read-only
+   value + OAuth link) - its own field-action-link needs the input/label to leave room
+   on the right so typed/placeholder text never runs under the link. The input selector
+   matches .floating-field input[type="email"]'s specificity (class + attribute + type)
+   so this padding-right override actually wins instead of losing the specificity tie. */
+.floating-field-action input[type="email"] { padding-right: 150px; }
+.floating-field-action label { right: 150px; }
 
 /* --- Danger zone --- */
 .danger-zone, .export-zone {

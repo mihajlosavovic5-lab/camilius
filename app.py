@@ -853,13 +853,29 @@ def settings():
 
     if request.method == "POST":
         name = request.form["name"]
+        contact_email = request.form["contact_email"].strip()
         working_hours = request.form["working_hours"]
         price_list = request.form["price_list"]
         faq = request.form["faq"]
 
-        # Username/email/phone aren't editable from this page (the mobile app's Profile
-        # screen is where that lives) - carry the existing values through unchanged.
-        update_business(business_id, name, business[2], contact_email, business[11], working_hours, price_list, faq)
+        # Username/phone aren't editable from this page (the mobile app's Profile screen
+        # is where that lives) - carry the existing values through unchanged. Contact email
+        # is editable here too now, so it shares the same UNIQUE-constraint handling as the
+        # mobile app's profile update (see api.py's update_profile()).
+        try:
+            update_business(business_id, name, business[2], contact_email, business[11], working_hours, price_list, faq)
+        except psycopg2.errors.UniqueViolation:
+            return render_template(
+                "settings.html",
+                error="That contact email is already taken.",
+                message=None,
+                pro_access=pro_access,
+                business={
+                    "name": name, "contact_email": business[4], "instagram_username": instagram_username,
+                    "working_hours": working_hours, "price_list": price_list, "faq": faq,
+                    "upsell_pairs": get_upsell_pairs(business_id),
+                },
+            )
         session["business_name"] = name
 
         # AI upsell pairs (Faza 9, Pro-only) - a separate call/column from the rest of
