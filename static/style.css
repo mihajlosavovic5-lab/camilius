@@ -996,7 +996,7 @@ body.auth {
 .hours-day-row:hover { background: var(--background); }
 /* Marks where the weekend starts - a gold rule instead of the same neutral divider
    every other row uses, so the split actually reads at a glance. */
-.hours-day-row-weekend { border-top: 2px solid var(--border-gold); }
+.hours-day-row-weekend { border-top: 1px solid var(--border-gold); }
 .hours-day-name { font-weight: 600; font-size: 14px; width: 84px; flex-shrink: 0; }
 .hours-day-times { display: flex; align-items: center; gap: 6px; flex: 1; min-width: 0; }
 .hours-day-times.hidden { display: none; }
@@ -1284,7 +1284,7 @@ body.auth {
 }
 /* Each hour mark gets a gold rule (not the same flat neutral as every row) so the
    timeline reads in hour-sized chunks instead of one undifferentiated list. */
-.schedule-timeline-row.schedule-timeline-hour { border-top: 2px solid var(--border-gold); margin-top: 3px; padding-top: 10px; }
+.schedule-timeline-row.schedule-timeline-hour { border-top: 1px solid var(--border-gold); margin-top: 3px; padding-top: 10px; }
 .schedule-timeline-row:first-child { margin-top: 0; border-top: none; padding-top: 0; }
 .schedule-timeline-time { font-size: 11.5px; color: var(--text-muted); padding-top: 11px; text-align: right; }
 .schedule-timeline-hour .schedule-timeline-time { font-weight: 700; color: var(--text); font-size: 13px; }
@@ -1318,7 +1318,7 @@ body.auth {
 .schedule-week-day.today { border-color: var(--primary); box-shadow: 0 0 0 1px var(--primary); }
 .schedule-week-day-header {
     display: flex; justify-content: space-between; align-items: baseline; font-size: 12.5px; font-weight: 700;
-    color: var(--text-muted); padding-bottom: 8px; border-bottom: 2px solid var(--border-gold); margin-bottom: 8px;
+    color: var(--text-muted); padding-bottom: 8px; border-bottom: 1px solid var(--border-gold); margin-bottom: 8px;
 }
 .schedule-week-day-header:hover { text-decoration: none; }
 .schedule-week-day.today .schedule-week-day-header { color: var(--primary-ink); }
