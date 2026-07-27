@@ -344,6 +344,7 @@ const TRANSLATIONS = {
         "settings.upsell.examplePlaceholder1": "Haircut",
         "settings.upsell.examplePlaceholder2": "Treatment",
         "settings.saveChanges": "Save changes",
+        "settings.saved": "Your details have been saved.",
 
         "subscription.subtitleBeta": "Free during the beta - no plan to manage yet.",
         "subscription.subtitleChoose": "Choose the plan that fits your business.",
@@ -787,6 +788,7 @@ const TRANSLATIONS = {
         "settings.upsell.examplePlaceholder1": "Corte de pelo",
         "settings.upsell.examplePlaceholder2": "Tratamiento",
         "settings.saveChanges": "Guardar cambios",
+        "settings.saved": "Tus datos se han guardado.",
 
         "subscription.subtitleBeta": "Gratis durante la beta - aún no hay plan que gestionar.",
         "subscription.subtitleChoose": "Elige el plan que se ajuste a tu negocio.",
@@ -1230,6 +1232,7 @@ const TRANSLATIONS = {
         "settings.upsell.examplePlaceholder1": "Corte de cabelo",
         "settings.upsell.examplePlaceholder2": "Tratamento",
         "settings.saveChanges": "Salvar alterações",
+        "settings.saved": "Seus dados foram salvos.",
 
         "subscription.subtitleBeta": "Grátis durante a beta - ainda não há plano para gerenciar.",
         "subscription.subtitleChoose": "Escolha o plano ideal para o seu negócio.",
@@ -1673,6 +1676,7 @@ const TRANSLATIONS = {
         "settings.upsell.examplePlaceholder1": "Coupe de cheveux",
         "settings.upsell.examplePlaceholder2": "Soin",
         "settings.saveChanges": "Enregistrer les modifications",
+        "settings.saved": "Vos informations ont été enregistrées.",
 
         "subscription.subtitleBeta": "Gratuit pendant la bêta - aucun forfait à gérer pour l'instant.",
         "subscription.subtitleChoose": "Choisissez le forfait adapté à votre entreprise.",
@@ -2116,6 +2120,7 @@ const TRANSLATIONS = {
         "settings.upsell.examplePlaceholder1": "Haarschnitt",
         "settings.upsell.examplePlaceholder2": "Behandlung",
         "settings.saveChanges": "Änderungen speichern",
+        "settings.saved": "Deine Angaben wurden gespeichert.",
 
         "subscription.subtitleBeta": "Kostenlos während der Beta - noch kein Plan zu verwalten.",
         "subscription.subtitleChoose": "Wähle den Plan, der zu deinem Unternehmen passt.",
@@ -2559,6 +2564,7 @@ const TRANSLATIONS = {
         "settings.upsell.examplePlaceholder1": "Taglio di capelli",
         "settings.upsell.examplePlaceholder2": "Trattamento",
         "settings.saveChanges": "Salva modifiche",
+        "settings.saved": "I tuoi dati sono stati salvati.",
 
         "subscription.subtitleBeta": "Gratis durante la beta - ancora nessun piano da gestire.",
         "subscription.subtitleChoose": "Scegli il piano adatto alla tua attività.",
@@ -3002,6 +3008,7 @@ const TRANSLATIONS = {
         "settings.upsell.examplePlaceholder1": "Стрижка",
         "settings.upsell.examplePlaceholder2": "Процедура",
         "settings.saveChanges": "Сохранить изменения",
+        "settings.saved": "Ваши данные сохранены.",
 
         "subscription.subtitleBeta": "Бесплатно во время бета-тестирования - управлять пока нечем.",
         "subscription.subtitleChoose": "Выберите план, подходящий вашему бизнесу.",
@@ -3445,6 +3452,7 @@ const TRANSLATIONS = {
         "settings.upsell.examplePlaceholder1": "Šišanje",
         "settings.upsell.examplePlaceholder2": "Tretman",
         "settings.saveChanges": "Sačuvaj izmene",
+        "settings.saved": "Promene su uspešno sačuvane.",
 
         "subscription.subtitleBeta": "Besplatno tokom beta perioda - još nema plan za upravljanje.",
         "subscription.subtitleChoose": "Izaberite plan koji odgovara vašem biznisu.",
@@ -3888,6 +3896,7 @@ const TRANSLATIONS = {
         "settings.upsell.examplePlaceholder1": "理发",
         "settings.upsell.examplePlaceholder2": "护理",
         "settings.saveChanges": "保存更改",
+        "settings.saved": "您的信息已保存。",
 
         "subscription.subtitleBeta": "测试期间免费 - 目前还没有需要管理的套餐。",
         "subscription.subtitleChoose": "选择适合您商家的套餐。",
@@ -4331,6 +4340,7 @@ const TRANSLATIONS = {
         "settings.upsell.examplePlaceholder1": "Saç kesimi",
         "settings.upsell.examplePlaceholder2": "Bakım",
         "settings.saveChanges": "Değişiklikleri kaydet",
+        "settings.saved": "Bilgileriniz kaydedildi.",
 
         "subscription.subtitleBeta": "Beta süresince ücretsiz - henüz yönetilecek bir plan yok.",
         "subscription.subtitleChoose": "İşletmenize uygun planı seçin.",

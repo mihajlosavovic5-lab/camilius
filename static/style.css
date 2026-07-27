@@ -589,6 +589,44 @@ input[readonly]:hover { border-color: var(--border); }
 .alert-warning { background: var(--warning-bg); border-color: var(--warning-border); color: var(--warning); }
 .alert-icon { flex-shrink: 0; font-size: 16px; line-height: 1.4; }
 
+/* --- Save success overlay --- */
+/* Centered full-screen celebration for a successful "Save changes" submit (currently
+   just settings.html's Profile form), replacing a plain green banner. pathLength="1" on
+   both the circle and the checkmark (see the template) normalizes each shape's own length
+   to 1, so the stroke-dasharray/dashoffset values below stay simple regardless of the
+   SVG's viewBox - the circle draws itself first, then the check traces in right after via
+   the second animation's delay. Pitched above the support widget (highest z-index on the
+   site otherwise, 1041) so it sits over everything including that. */
+.save-success-overlay {
+    position: fixed; inset: 0; z-index: 1050;
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(20,15,8,.42);
+    opacity: 0; pointer-events: none;
+    transition: opacity .25s ease;
+}
+.save-success-overlay.visible { opacity: 1; pointer-events: auto; }
+.save-success-card {
+    background: var(--surface); border-radius: var(--radius); box-shadow: var(--shadow-lg);
+    padding: 36px 44px; display: flex; flex-direction: column; align-items: center; gap: 18px;
+    max-width: 320px; text-align: center;
+    transform: scale(.9); transition: transform .25s ease;
+}
+.save-success-overlay.visible .save-success-card { transform: scale(1); }
+.save-success-circle { width: 96px; height: 96px; overflow: visible; flex-shrink: 0; }
+.save-success-circle-track { fill: none; stroke: var(--success-bg); stroke-width: 6; }
+.save-success-circle-progress {
+    fill: none; stroke: var(--checkmark); stroke-width: 6; stroke-linecap: round;
+    stroke-dasharray: 1; stroke-dashoffset: 1; transform: rotate(-90deg); transform-origin: center;
+}
+.save-success-check {
+    fill: none; stroke: var(--checkmark); stroke-width: 7; stroke-linecap: round; stroke-linejoin: round;
+    stroke-dasharray: 1; stroke-dashoffset: 1;
+}
+.save-success-overlay.visible .save-success-circle-progress { animation: save-success-draw .5s ease forwards; }
+.save-success-overlay.visible .save-success-check { animation: save-success-draw .35s ease forwards .45s; }
+@keyframes save-success-draw { to { stroke-dashoffset: 0; } }
+.save-success-text { margin: 0; font-size: 15.5px; font-weight: 600; color: var(--text); }
+
 /* --- Badges (status) --- */
 .badge {
     display: inline-flex; align-items: center; gap: 6px;

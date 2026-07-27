@@ -16,7 +16,16 @@
         <div class="alert alert-error"><span class="alert-icon">&#9888;&#65039;</span><span>{{ error }}</span></div>
     {% endif %}
     {% if message %}
-        <div class="alert alert-success"><span class="alert-icon">&#10003;</span><span>{{ message }}</span></div>
+        <div class="save-success-overlay" id="save-success-overlay" role="status" aria-live="polite">
+            <div class="save-success-card">
+                <svg class="save-success-circle" viewBox="0 0 100 100" aria-hidden="true">
+                    <circle class="save-success-circle-track" cx="50" cy="50" r="45"></circle>
+                    <circle class="save-success-circle-progress" cx="50" cy="50" r="45" pathLength="1"></circle>
+                    <path class="save-success-check" d="M28 52 L44 68 L74 33" pathLength="1"></path>
+                </svg>
+                <p class="save-success-text" data-i18n="settings.saved">{{ message }}</p>
+            </div>
+        </div>
     {% endif %}
 
     <form method="POST" id="settings-form">
@@ -127,6 +136,27 @@ function initSettingsPickers() {
     safeInit(() => createPricePicker("settings-price-picker-mount", "settings-price-add", "settings-price-currency", "settings-price-list"));
     safeInit(() => createUpsellPicker("settings-upsell-picker-mount", "settings-upsell-add", "settings-upsell-pairs", "settings-price-list"));
     safeInit(initSettingsSaveButton);
+    safeInit(initSaveSuccessOverlay);
+}
+
+// Only rendered when the POST that reloaded this page actually saved something (see the
+// "visible" toggle here, not on page load, is what makes the circle/checkmark's CSS
+// animations play rather than snapping straight to their end state), and put on the
+// caller (server-rendered, not JS-triggered) since a full-page POST reload is the only
+// way this page updates. requestAnimationFrame delays adding "visible" by a frame so the
+// opacity/scale transition actually animates in instead of starting already-visible.
+function initSaveSuccessOverlay() {
+    const overlay = document.getElementById("save-success-overlay");
+    if (!overlay) return;
+    requestAnimationFrame(() => overlay.classList.add("visible"));
+    let dismissed = false;
+    function dismiss() {
+        if (dismissed) return;
+        dismissed = true;
+        overlay.classList.remove("visible");
+    }
+    setTimeout(dismiss, 2200);
+    overlay.addEventListener("click", dismiss);
 }
 
 // The Save button starts hidden (see its "hidden" class in the markup) and only appears
