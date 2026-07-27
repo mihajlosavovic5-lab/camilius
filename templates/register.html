@@ -128,13 +128,11 @@
 {% endblock %}
 
 {% block scripts %}
-<script src="{{ url_for('static', filename='pickers.js') }}?v={{ static_versions['pickers.js'] }}" defer></script>
 <script>
-// Runs on DOMContentLoaded (not immediately) - site-i18n.js is loaded with `defer` in
-// <head>, so its t() function isn't defined yet if this ran synchronously during parsing;
-// DOMContentLoaded is guaranteed to fire after every deferred script has executed. Same
-// reasoning applies to pickers.js (also deferred) - createHoursPicker/createPricePicker
-// must exist before this runs.
+// Runs on DOMContentLoaded (not immediately) - site-i18n.js and pickers.js are both
+// loaded with `defer` in <head>, so t()/createHoursPicker/createPricePicker aren't
+// defined yet if this ran synchronously during parsing; DOMContentLoaded is guaranteed
+// to fire after every deferred script has executed.
 document.addEventListener("DOMContentLoaded", function () {
     var registerHoursPicker = createHoursPicker("register-hours-picker-mount", "register-working-hours");
     var registerPricesPicker = createPricePicker("register-price-picker-mount", "register-price-add", "register-price-currency", "register-price-list");
