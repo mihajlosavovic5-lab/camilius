@@ -21,7 +21,7 @@
                     <span class="switch-row-label">
                         <span data-i18n="appSettings.automation.draftLabel">AI Draft Mode &mdash; review before sending</span>
                     </span>
-                    <span class="note" data-i18n="appSettings.automation.note">Not sure yet about your AI's replies? Turn this on to review and approve each one before it's sent. Off by default &mdash; replies go out automatically the moment they're ready.</span>
+                    <span class="note" data-i18n="appSettings.automation.note">Review each AI reply before it's sent. Off by default, so replies go out automatically.</span>
                 </div>
                 <label class="hours-day-toggle">
                     <input type="checkbox" name="draft_mode" {% if not auto_send %}checked{% endif %} onchange="this.form.submit()">
@@ -33,7 +33,7 @@
 
     <div class="card settings-card" style="margin-top:20px;">
         <h2 style="margin-top:0;"><span data-i18n="appSettings.reminders.heading">No-show reminders</span> <span class="badge badge-pro">Pro</span></h2>
-        <p class="note" data-i18n="appSettings.reminders.note">Automatically remind the customer, remind yourself, or both, before an upcoming appointment. The customer reminder is an Instagram DM (Instagram-booked appointments only); the owner reminder is an email to you.</p>
+        <p class="note" data-i18n="appSettings.reminders.note">Get reminded before appointments, or remind the customer too. Customer reminders are sent by Instagram DM (Instagram bookings only); yours come by email.</p>
         {% if pro_access %}
             <form method="POST" action="{{ url_for('update_reminders') }}" id="reminders-form">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
