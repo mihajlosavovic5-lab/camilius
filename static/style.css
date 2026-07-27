@@ -922,6 +922,7 @@ body.auth {
 }
 .hours-day-row:last-child { border-bottom: none; }
 .hours-day-row:hover { background: var(--background); }
+.hours-day-row-weekend { border-top: 2px solid var(--border); }
 .hours-day-name { font-weight: 600; font-size: 14px; width: 84px; flex-shrink: 0; }
 .hours-day-times { display: flex; align-items: center; gap: 6px; flex: 1; min-width: 0; }
 .hours-day-times.hidden { display: none; }

@@ -137,11 +137,12 @@ function createTimeDropdown(defaultValue) {
     return dd;
 }
 
-// Mon-Fri get individual controls; Sat/Sun are always written out as "closed" - most
-// businesses using this picker don't work weekends, so showing 7 rows up front made the
-// section longer than it needed to be for the common case. The picker starts collapsed
-// into a single "Working days" summary (one open/close pair applied to all five weekdays)
-// and only reveals the five per-day rows once the user clicks through to customize one.
+// Most businesses using this picker work the same hours Mon-Fri and are closed
+// weekends, so the picker starts collapsed into a single "Working days" summary (one
+// open/close pair applied to all five weekdays, with a note that Saturday/Sunday are
+// closed) instead of showing all 7 days up front. Clicking through to customize reveals
+// all 7 days, Saturday and Sunday included - each with its own working/not-working
+// toggle - and the collapsed note above adapts to whatever the user sets for the weekend.
 const WEEKEND_DAYS = ["saturday", "sunday"];
 
 function createHoursPicker(mountId, hiddenFieldId) {
@@ -158,7 +159,6 @@ function createHoursPicker(mountId, hiddenFieldId) {
 
     function sync() {
         hiddenField.value = HOURS_DAYS.map((day) => {
-            if (WEEKEND_DAYS.includes(day)) return `${HOURS_DAY_LABELS[day]}: closed`;
             const r = rows[day];
             if (!r.checkbox.checked) return `${HOURS_DAY_LABELS[day]}: closed`;
             return `${HOURS_DAY_LABELS[day]}: ${r.openSelect.value}-${r.closeSelect.value}`;
@@ -215,11 +215,41 @@ function createHoursPicker(mountId, hiddenFieldId) {
     simpleRow.appendChild(simpleTimes);
     simpleView.appendChild(simpleRow);
 
+    // No static data-i18n here - the text depends on what's set for Saturday/Sunday
+    // (updateWeekendNote below), so it's composed in JS instead of a single fixed string.
+    // It still reacts to a language switch via the "site-language-changed" listener
+    // further down, same pattern base.html's support widget uses for its own dynamic text.
     const simpleNote = document.createElement("p");
     simpleNote.className = "hours-simple-note";
-    simpleNote.setAttribute("data-i18n", "hoursPicker.weekendsClosedNote");
-    simpleNote.textContent = t("hoursPicker.weekendsClosedNote");
     simpleView.appendChild(simpleNote);
+
+    // Reflects whichever of Saturday/Sunday are open (with their own hours) and which are
+    // closed, e.g. "Saturday: 10:00–14:00. Closed: Sunday." - rows.saturday/rows.sunday
+    // don't exist until the day-list loop further below runs, so this is a no-op until
+    // then; it's called for real once everything is built (near the bottom of this function).
+    function updateWeekendNote() {
+        const openParts = [];
+        const closedNames = [];
+        WEEKEND_DAYS.forEach((day) => {
+            const r = rows[day];
+            if (!r) return;
+            if (r.checkbox.checked) {
+                openParts.push(t("hoursPicker.dayHours")
+                    .replace("{day}", t(HOURS_DAY_I18N_KEYS[day]))
+                    .replace("{open}", r.openSelect.value)
+                    .replace("{close}", r.closeSelect.value));
+            } else {
+                closedNames.push(t(HOURS_DAY_I18N_KEYS[day]));
+            }
+        });
+        if (closedNames.length === 2) {
+            openParts.push(t("hoursPicker.closedOn").replace("{days}", `${closedNames[0]} ${t("hoursPicker.and")} ${closedNames[1]}`));
+        } else if (closedNames.length === 1) {
+            openParts.push(t("hoursPicker.closedOn").replace("{days}", closedNames[0]));
+        }
+        simpleNote.textContent = openParts.join(" ");
+    }
+    document.addEventListener("site-language-changed", updateWeekendNote);
 
     const customizeLink = document.createElement("button");
     customizeLink.type = "button";
@@ -297,9 +327,13 @@ function createHoursPicker(mountId, hiddenFieldId) {
     dayList.className = "hours-day-list";
     advancedView.appendChild(dayList);
 
-    WEEKDAYS.forEach((day) => {
+    HOURS_DAYS.forEach((day) => {
+        const isWeekend = WEEKEND_DAYS.includes(day);
         const row = document.createElement("div");
         row.className = "hours-day-row";
+        // A visual break before Saturday, separating the working week from the weekend
+        // pair that follows it.
+        if (day === "saturday") row.classList.add("hours-day-row-weekend");
 
         const label = document.createElement("span");
         label.className = "hours-day-name";
@@ -326,7 +360,9 @@ function createHoursPicker(mountId, hiddenFieldId) {
         toggleLabel.className = "hours-day-toggle";
         const checkbox = document.createElement("input");
         checkbox.type = "checkbox";
-        checkbox.checked = true;
+        // Weekdays default to open, weekend days default to closed - matches what the
+        // collapsed "Working days" summary already implies before anyone customizes it.
+        checkbox.checked = !isWeekend;
         const track = document.createElement("span");
         track.className = "hours-day-toggle-track";
         const thumb = document.createElement("span");
@@ -338,9 +374,16 @@ function createHoursPicker(mountId, hiddenFieldId) {
         checkbox.addEventListener("change", () => {
             updateRowVisibility(day);
             sync();
+            if (isWeekend) updateWeekendNote();
         });
-        openSelect.addEventListener("change", sync);
-        closeSelect.addEventListener("change", sync);
+        openSelect.addEventListener("change", () => {
+            sync();
+            if (isWeekend) updateWeekendNote();
+        });
+        closeSelect.addEventListener("change", () => {
+            sync();
+            if (isWeekend) updateWeekendNote();
+        });
 
         row.appendChild(label);
         row.appendChild(times);
@@ -349,16 +392,15 @@ function createHoursPicker(mountId, hiddenFieldId) {
         dayList.appendChild(row);
 
         rows[day] = { checkbox, openSelect, closeSelect, times, closedLabel };
+        updateRowVisibility(day);
     });
 
     // Best-effort parse of our own generated format back into picker state - used when
     // loading a business's existing hours into the Profile form. Leaves a day's defaults
     // alone if its line isn't found or doesn't parse, same as the mobile app's picker.
-    // Weekend lines are ignored - they're always forced closed by sync() regardless of
-    // what a business had saved there before this picker stopped exposing them.
     function parse(text) {
         const lines = (text || "").split("\n");
-        WEEKDAYS.forEach((day) => {
+        HOURS_DAYS.forEach((day) => {
             const dayLabel = HOURS_DAY_LABELS[day].toLowerCase();
             const line = lines.find((l) => l.trim().toLowerCase().startsWith(dayLabel));
             if (!line) return;
@@ -395,7 +437,7 @@ function createHoursPicker(mountId, hiddenFieldId) {
     // True iff every open day's closing time is after its opening time - same rule the
     // mobile app's own hours picker enforces (mobile/app.js's registerHoursPicker.validate()).
     function validate() {
-        return WEEKDAYS.every((day) => {
+        return HOURS_DAYS.every((day) => {
             const r = rows[day];
             return !r.checkbox.checked || r.closeSelect.value > r.openSelect.value;
         });
@@ -403,6 +445,7 @@ function createHoursPicker(mountId, hiddenFieldId) {
 
     if (hiddenField.value.trim()) parse(hiddenField.value);
     sync();
+    updateWeekendNote();
     return { sync, validate };
 }
 
