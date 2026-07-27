@@ -881,6 +881,26 @@ body.auth {
    freeform textarea, on both Register and Profile. --- */
 .hours-picker { display: flex; flex-direction: column; gap: 12px; margin: 6px 0 4px; }
 
+.hours-simple-view { display: flex; flex-direction: column; gap: 8px; }
+.hours-simple-row {
+    display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+    padding: 10px 14px; border: 1px solid var(--border); border-radius: 10px;
+}
+.hours-simple-label-btn {
+    font-family: inherit; font-weight: 600; font-size: 14px; color: var(--text);
+    background: none; border: none; padding: 0; cursor: pointer;
+}
+.hours-simple-label-btn:hover { color: var(--primary-ink); }
+.hours-simple-note { font-size: 12.5px; color: var(--text-muted); margin: 0; padding: 0 2px; }
+.hours-customize-link {
+    align-self: flex-start; background: none; border: none; padding: 0;
+    font-family: inherit; font-size: 13px; font-weight: 600; color: var(--primary-ink);
+    text-decoration: underline; cursor: pointer;
+}
+.hours-customize-link:hover { color: var(--primary); }
+
+.hours-advanced-view { display: flex; flex-direction: column; gap: 12px; }
+
 .hours-quickfill {
     display: flex; align-items: center; flex-wrap: wrap; gap: 10px;
     padding: 10px 12px; background: var(--background); border: 1px solid var(--border); border-radius: 10px;
@@ -904,7 +924,6 @@ body.auth {
 }
 .hours-day-row:last-child { border-bottom: none; }
 .hours-day-row:hover { background: var(--background); }
-.hours-day-row-weekend { border-top: 2px solid var(--border); }
 .hours-day-name { font-weight: 600; font-size: 14px; width: 84px; flex-shrink: 0; }
 .hours-day-times { display: flex; align-items: center; gap: 6px; flex: 1; min-width: 0; }
 .hours-day-times.hidden { display: none; }

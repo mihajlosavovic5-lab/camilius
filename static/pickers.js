@@ -55,14 +55,27 @@ function buildHoursTimeOptions() {
 }
 const HOURS_TIME_OPTIONS = buildHoursTimeOptions();
 
+// Mon-Fri get individual controls; Sat/Sun are always written out as "closed" - most
+// businesses using this picker don't work weekends, so showing 7 rows up front made the
+// section longer than it needed to be for the common case. The picker starts collapsed
+// into a single "Working days" summary (one open/close pair applied to all five weekdays)
+// and only reveals the five per-day rows once the user clicks through to customize one.
+const WEEKEND_DAYS = ["saturday", "sunday"];
+
 function createHoursPicker(mountId, hiddenFieldId) {
     const mount = document.getElementById(mountId);
     const hiddenField = document.getElementById(hiddenFieldId);
     if (!mount || !hiddenField) return null;
     const rows = {};
+    const WEEKDAYS = HOURS_DAYS.filter((day) => !WEEKEND_DAYS.includes(day));
+    let mode = "simple";
 
     function sync() {
         hiddenField.value = HOURS_DAYS.map((day) => {
+            if (WEEKEND_DAYS.includes(day)) return `${HOURS_DAY_LABELS[day]}: closed`;
+            if (mode === "simple") {
+                return `${HOURS_DAY_LABELS[day]}: ${simpleOpenSelect.value}-${simpleCloseSelect.value}`;
+            }
             const r = rows[day];
             if (!r.checkbox.checked) return `${HOURS_DAY_LABELS[day]}: closed`;
             return `${HOURS_DAY_LABELS[day]}: ${r.openSelect.value}-${r.closeSelect.value}`;
@@ -79,28 +92,95 @@ function createHoursPicker(mountId, hiddenFieldId) {
         r.closedLabel.classList.toggle("hidden", open);
     }
 
-    // Quick-fill row: lets a user set one open/close pair and apply it to every day at
-    // once, instead of repeating the same two dropdown picks seven times.
+    function createTimeSelect(defaultValue) {
+        const select = document.createElement("select");
+        HOURS_TIME_OPTIONS.forEach((time) => {
+            const option = document.createElement("option");
+            option.value = time;
+            option.textContent = time;
+            select.appendChild(option);
+        });
+        select.value = defaultValue;
+        return select;
+    }
+
+    // Collapsed default view: one open/close pair covering all five weekdays, plus a
+    // note that weekends are closed and a link to switch to per-day editing below.
+    const simpleView = document.createElement("div");
+    simpleView.className = "hours-simple-view";
+
+    const simpleRow = document.createElement("div");
+    simpleRow.className = "hours-simple-row";
+    const simpleLabelBtn = document.createElement("button");
+    simpleLabelBtn.type = "button";
+    simpleLabelBtn.className = "hours-simple-label-btn";
+    simpleLabelBtn.setAttribute("data-i18n", "hoursPicker.workingDays");
+    simpleLabelBtn.textContent = t("hoursPicker.workingDays");
+    const simpleTimes = document.createElement("div");
+    simpleTimes.className = "hours-day-times";
+    const simpleOpenSelect = createTimeSelect("09:00");
+    const simpleCloseSelect = createTimeSelect("18:00");
+    const simpleSep = document.createElement("span");
+    simpleSep.className = "hours-time-sep";
+    simpleSep.textContent = "–";
+    simpleTimes.appendChild(simpleOpenSelect);
+    simpleTimes.appendChild(simpleSep);
+    simpleTimes.appendChild(simpleCloseSelect);
+    simpleRow.appendChild(simpleLabelBtn);
+    simpleRow.appendChild(simpleTimes);
+    simpleView.appendChild(simpleRow);
+
+    const simpleNote = document.createElement("p");
+    simpleNote.className = "hours-simple-note";
+    simpleNote.setAttribute("data-i18n", "hoursPicker.weekendsClosedNote");
+    simpleNote.textContent = t("hoursPicker.weekendsClosedNote");
+    simpleView.appendChild(simpleNote);
+
+    const customizeLink = document.createElement("button");
+    customizeLink.type = "button";
+    customizeLink.className = "hours-customize-link";
+    customizeLink.setAttribute("data-i18n", "hoursPicker.customizeLink");
+    customizeLink.textContent = t("hoursPicker.customizeLink");
+    simpleView.appendChild(customizeLink);
+    mount.appendChild(simpleView);
+
+    simpleOpenSelect.addEventListener("change", sync);
+    simpleCloseSelect.addEventListener("change", sync);
+
+    const advancedView = document.createElement("div");
+    advancedView.className = "hours-advanced-view hidden";
+    mount.appendChild(advancedView);
+
+    // Reveals the five weekday rows, seeded from whatever hours were set in the
+    // collapsed view above, so switching to customize a single day doesn't reset the rest.
+    function showAdvanced(seedFromSimple) {
+        mode = "advanced";
+        if (seedFromSimple) {
+            WEEKDAYS.forEach((day) => {
+                const r = rows[day];
+                r.checkbox.checked = true;
+                r.openSelect.value = simpleOpenSelect.value;
+                r.closeSelect.value = simpleCloseSelect.value;
+                updateRowVisibility(day);
+            });
+        }
+        simpleView.classList.add("hidden");
+        advancedView.classList.remove("hidden");
+        sync();
+    }
+    simpleLabelBtn.addEventListener("click", () => showAdvanced(true));
+    customizeLink.addEventListener("click", () => showAdvanced(true));
+
+    // Quick-fill row: lets a user set one open/close pair and apply it to every weekday
+    // at once, instead of repeating the same two dropdown picks five times.
     const quickfill = document.createElement("div");
     quickfill.className = "hours-quickfill";
     const quickfillLabel = document.createElement("span");
     quickfillLabel.className = "hours-quickfill-label";
     quickfillLabel.setAttribute("data-i18n", "hoursPicker.sameEveryDay");
     quickfillLabel.textContent = t("hoursPicker.sameEveryDay");
-    const quickOpenSelect = document.createElement("select");
-    const quickCloseSelect = document.createElement("select");
-    HOURS_TIME_OPTIONS.forEach((time) => {
-        const openOption = document.createElement("option");
-        openOption.value = time;
-        openOption.textContent = time;
-        quickOpenSelect.appendChild(openOption);
-        const closeOption = document.createElement("option");
-        closeOption.value = time;
-        closeOption.textContent = time;
-        quickCloseSelect.appendChild(closeOption);
-    });
-    quickOpenSelect.value = "09:00";
-    quickCloseSelect.value = "18:00";
+    const quickOpenSelect = createTimeSelect("09:00");
+    const quickCloseSelect = createTimeSelect("18:00");
     const quickSep = document.createElement("span");
     quickSep.className = "hours-time-sep";
     quickSep.textContent = "–";
@@ -110,7 +190,7 @@ function createHoursPicker(mountId, hiddenFieldId) {
     quickfillBtn.setAttribute("data-i18n", "hoursPicker.applyToAll");
     quickfillBtn.textContent = t("hoursPicker.applyToAll");
     quickfillBtn.addEventListener("click", () => {
-        HOURS_DAYS.forEach((day) => {
+        WEEKDAYS.forEach((day) => {
             const r = rows[day];
             r.checkbox.checked = true;
             r.openSelect.value = quickOpenSelect.value;
@@ -124,16 +204,15 @@ function createHoursPicker(mountId, hiddenFieldId) {
     quickfill.appendChild(quickSep);
     quickfill.appendChild(quickCloseSelect);
     quickfill.appendChild(quickfillBtn);
-    mount.appendChild(quickfill);
+    advancedView.appendChild(quickfill);
 
     const dayList = document.createElement("div");
     dayList.className = "hours-day-list";
-    mount.appendChild(dayList);
+    advancedView.appendChild(dayList);
 
-    HOURS_DAYS.forEach((day) => {
+    WEEKDAYS.forEach((day) => {
         const row = document.createElement("div");
         row.className = "hours-day-row";
-        if (day === "saturday") row.classList.add("hours-day-row-weekend");
 
         const label = document.createElement("span");
         label.className = "hours-day-name";
@@ -142,20 +221,8 @@ function createHoursPicker(mountId, hiddenFieldId) {
 
         const times = document.createElement("div");
         times.className = "hours-day-times";
-        const openSelect = document.createElement("select");
-        const closeSelect = document.createElement("select");
-        HOURS_TIME_OPTIONS.forEach((time) => {
-            const openOption = document.createElement("option");
-            openOption.value = time;
-            openOption.textContent = time;
-            openSelect.appendChild(openOption);
-            const closeOption = document.createElement("option");
-            closeOption.value = time;
-            closeOption.textContent = time;
-            closeSelect.appendChild(closeOption);
-        });
-        openSelect.value = "09:00";
-        closeSelect.value = "18:00";
+        const openSelect = createTimeSelect("09:00");
+        const closeSelect = createTimeSelect("18:00");
         const sep = document.createElement("span");
         sep.className = "hours-time-sep";
         sep.textContent = "–";
@@ -200,9 +267,11 @@ function createHoursPicker(mountId, hiddenFieldId) {
     // Best-effort parse of our own generated format back into picker state - used when
     // loading a business's existing hours into the Profile form. Leaves a day's defaults
     // alone if its line isn't found or doesn't parse, same as the mobile app's picker.
+    // Weekend lines are ignored - they're always forced closed by sync() regardless of
+    // what a business had saved there before this picker stopped exposing them.
     function parse(text) {
         const lines = (text || "").split("\n");
-        HOURS_DAYS.forEach((day) => {
+        WEEKDAYS.forEach((day) => {
             const dayLabel = HOURS_DAY_LABELS[day].toLowerCase();
             const line = lines.find((l) => l.trim().toLowerCase().startsWith(dayLabel));
             if (!line) return;
@@ -221,12 +290,27 @@ function createHoursPicker(mountId, hiddenFieldId) {
             r.checkbox.checked = true;
             updateRowVisibility(day);
         });
+
+        // If every weekday came out open with identical hours, the collapsed "Working
+        // days" summary already represents this schedule exactly, so keep it collapsed.
+        // A closed weekday or differing hours needs the per-day view to show correctly.
+        const allSame = WEEKDAYS.every((day) => rows[day].checkbox.checked) &&
+            WEEKDAYS.every((day) => rows[day].openSelect.value === rows.monday.openSelect.value &&
+                rows[day].closeSelect.value === rows.monday.closeSelect.value);
+        if (allSame) {
+            simpleOpenSelect.value = rows.monday.openSelect.value;
+            simpleCloseSelect.value = rows.monday.closeSelect.value;
+            mode = "simple";
+        } else {
+            showAdvanced(false);
+        }
     }
 
     // True iff every open day's closing time is after its opening time - same rule the
     // mobile app's own hours picker enforces (mobile/app.js's registerHoursPicker.validate()).
     function validate() {
-        return HOURS_DAYS.every((day) => {
+        if (mode === "simple") return simpleCloseSelect.value > simpleOpenSelect.value;
+        return WEEKDAYS.every((day) => {
             const r = rows[day];
             return !r.checkbox.checked || r.closeSelect.value > r.openSelect.value;
         });
