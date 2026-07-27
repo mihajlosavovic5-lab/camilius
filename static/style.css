@@ -1277,7 +1277,7 @@ body.auth {
 /* --- Day view: a real timeline (Faza 11) - a persistent time axis on the left with a
    vertical line running through it, and a stronger rule + bold label at each hour
    boundary, instead of a flat list where every row looked the same regardless of time. --- */
-.schedule-timeline { position: relative; margin-left: 4px; border-left: 3px solid var(--border-strong); }
+.schedule-timeline { position: relative; margin-left: 4px; border-left: 1px solid var(--border-strong); }
 .schedule-timeline-row {
     display: grid; grid-template-columns: 52px 1fr; gap: 12px;
     padding: 3px 0 3px 14px; position: relative;
