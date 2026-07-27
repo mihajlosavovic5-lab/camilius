@@ -59,7 +59,7 @@
                 <input type="email" id="settings-contact-email-input" value="{{ business.contact_email }}" placeholder=" " readonly>
                 <label for="settings-contact-email-input" data-i18n="settings.contactEmail">Contact email</label>
             </div>
-            <p class="note" data-i18n="settings.contactEmailNote">Used only for password resets - can't be changed here.</p>
+            <p class="note" data-i18n="settings.contactEmailNote">Can't be changed here.</p>
         </div>
 
         <div class="card profile-section">
@@ -103,7 +103,7 @@
                 <input type="hidden" name="upsell_pairs" id="settings-upsell-pairs" value="{{ business.upsell_pairs or '' }}">
                 <div class="upsell-picker-rows" id="settings-upsell-picker-mount"></div>
                 <button type="button" class="price-add-btn" id="settings-upsell-add" data-i18n="settings.upsell.addPair">+ Add pair</button>
-                <p class="note" data-i18n="settings.upsell.note">Add a service on the left and what to suggest with it on the right - matches from your price list appear as you type.</p>
+                <p class="note" data-i18n="settings.upsell.note">Add a service on the left and what to suggest with it on the right.</p>
             {% else %}
                 <div class="pro-locked">
                     <label style="margin-top: 0;" data-i18n="settings.upsell.relatedServices">Related services</label>
