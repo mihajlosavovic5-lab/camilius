@@ -899,6 +899,7 @@ def settings():
     # indices: 0 id, 1 name, 2 username, 4 contact_email, 5 instagram_account_id,
     # 6 instagram_username, 8 working_hours, 9 price_list, 10 faq, 11 phone_number,
     # 14 pending_contact_email
+    username = business[2]
     contact_email = business[4]
     instagram_username = business[6]
     pending_contact_email = business[14]
@@ -906,6 +907,7 @@ def settings():
 
     if request.method == "POST":
         name = request.form["name"]
+        submitted_username = request.form["username"].strip()
         submitted_email = request.form["contact_email"].strip()
         working_hours = request.form["working_hours"]
         price_list = request.form["price_list"]
@@ -918,15 +920,26 @@ def settings():
                 message=None,
                 pro_access=pro_access,
                 business={
-                    "name": name, "contact_email": contact_email, "pending_contact_email": pending_contact_email,
-                    "instagram_username": instagram_username,
+                    "name": name, "username": username, "contact_email": contact_email,
+                    "pending_contact_email": pending_contact_email, "instagram_username": instagram_username,
                     "working_hours": working_hours, "price_list": price_list, "faq": faq,
                     "upsell_pairs": get_upsell_pairs(business_id),
                 },
             )
 
+        if not submitted_username:
+            return _rerender("Username is required.")
         if not submitted_email:
             return _rerender("Contact email is required.")
+
+        # Username applies immediately, unlike contact email below - it isn't a
+        # communication channel that could strand the account if mistyped, so there's
+        # nothing to confirm. settings.html's own JS already warns about a taken username
+        # as the user types; this is the authoritative check the client-side one mirrors.
+        if submitted_username != username:
+            if username_taken(submitted_username, exclude_business_id=business_id):
+                return _rerender("That username is already taken.")
+            username = submitted_username
 
         # A changed email doesn't take effect immediately - it's staged as
         # pending_contact_email and only swapped onto the real contact_email once a
@@ -943,10 +956,9 @@ def settings():
                 send_email_change_verification(business_id, name, submitted_email)
             pending_contact_email = submitted_email
 
-        # Username/phone aren't editable from this page (the mobile app's Profile screen
-        # is where that lives) - carry the existing values through unchanged. contact_email
-        # is also passed through unchanged here (never submitted_email) - see above.
-        update_business(business_id, name, business[2], contact_email, business[11], working_hours, price_list, faq)
+        # Phone isn't editable from this page (the mobile app's Profile screen is where
+        # that lives) - carry the existing value through unchanged.
+        update_business(business_id, name, username, contact_email, business[11], working_hours, price_list, faq)
         session["business_name"] = name
 
         # AI upsell pairs (Faza 9, Pro-only) - a separate call/column from the rest of
@@ -963,8 +975,8 @@ def settings():
             message="Your details have been saved.",
             pro_access=pro_access,
             business={
-                "name": name, "contact_email": contact_email, "pending_contact_email": pending_contact_email,
-                "instagram_username": instagram_username,
+                "name": name, "username": username, "contact_email": contact_email,
+                "pending_contact_email": pending_contact_email, "instagram_username": instagram_username,
                 "working_hours": working_hours, "price_list": price_list, "faq": faq, "upsell_pairs": upsell_pairs,
             },
         )
@@ -975,8 +987,8 @@ def settings():
         message=None,
         pro_access=pro_access,
         business={
-            "name": business[1], "contact_email": contact_email, "pending_contact_email": pending_contact_email,
-            "instagram_username": instagram_username,
+            "name": business[1], "username": username, "contact_email": contact_email,
+            "pending_contact_email": pending_contact_email, "instagram_username": instagram_username,
             "working_hours": business[8], "price_list": business[9], "faq": business[10],
             "upsell_pairs": get_upsell_pairs(business_id),
         },
