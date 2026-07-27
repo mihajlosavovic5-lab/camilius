@@ -1,10 +1,10 @@
 // Camilius — website Working Hours + Price List pickers (Faza 5).
 //
-// Functional parity with the mobile app's own pickers (mobile/app.js), but web-
-// appropriate: plain native <select> elements for the time/currency fields, since the
-// large-OS-modal problem that made mobile/app.js build a custom anchored dropdown is
-// specific to Android's native <select> rendering - a desktop/mobile browser's own
-// <select> has no such issue.
+// Functional parity with the mobile app's own pickers (mobile/app.js). Currency (and
+// service, in the price list) still use a plain native <select>/<input> - no room-to-
+// grow-upward issue there. Time fields (createTimeDropdown below) are a custom dropdown
+// instead, since a native <select>'s own popup flips upward for a field placed low on the
+// page, same reasoning as schedule.html's own per-slot duration dropdown.
 //
 // Each picker renders into a mount <div> and keeps a same-named hidden <input> in sync
 // on every change, serializing to/from the exact same plain-text format the backend/AI
@@ -55,6 +55,88 @@ function buildHoursTimeOptions() {
 }
 const HOURS_TIME_OPTIONS = buildHoursTimeOptions();
 
+// Closes every open time-dropdown menu - called both when a click lands outside any of
+// them and right before opening one (so opening a second dropdown auto-closes the first).
+function closeAllHoursTimeDropdowns() {
+    document.querySelectorAll(".hours-time-dd-menu").forEach((m) => m.classList.add("hidden"));
+}
+if (!window.__hoursTimeDropdownHandlerAdded) {
+    document.addEventListener("click", closeAllHoursTimeDropdowns);
+    window.__hoursTimeDropdownHandlerAdded = true;
+}
+
+// A time field built the same way schedule.html builds its per-slot duration dropdown
+// (.duration-dd/.schedule-slot-duration-select/.duration-dd-menu/.duration-dd-option) -
+// reusing those classes gives it the exact same look (pill shape, shadow/glow, depth) and,
+// more importantly, the same fix: a native <select>'s own popup picks its open direction
+// based on viewport space and flips upward for a field placed low on the page, which is
+// exactly what made the Working hours time fields fly open toward the top of the screen.
+// Built as a real DOM node with a `value` property and native change events, so every call
+// site can keep treating it exactly like the <select> it replaces (r.openSelect.value,
+// r.openSelect.addEventListener("change", ...), etc.) without any other code changing.
+function createTimeDropdown(defaultValue) {
+    const dd = document.createElement("div");
+    dd.className = "duration-dd hours-time-dd";
+
+    const trigger = document.createElement("button");
+    trigger.type = "button";
+    trigger.className = "schedule-slot-duration-select duration-dd-trigger";
+    trigger.setAttribute("aria-haspopup", "listbox");
+    trigger.setAttribute("aria-expanded", "false");
+    trigger.textContent = defaultValue;
+
+    const menu = document.createElement("div");
+    menu.className = "duration-dd-menu hours-time-dd-menu hidden";
+    menu.setAttribute("role", "listbox");
+
+    let currentValue = defaultValue;
+    function setValue(time, silent) {
+        currentValue = time;
+        trigger.textContent = time;
+        menu.querySelectorAll(".duration-dd-option").forEach((o) => o.classList.toggle("active", o.dataset.value === time));
+        if (!silent) dd.dispatchEvent(new Event("change"));
+    }
+
+    HOURS_TIME_OPTIONS.forEach((time) => {
+        const option = document.createElement("button");
+        option.type = "button";
+        option.className = "duration-dd-option" + (time === defaultValue ? " active" : "");
+        option.dataset.value = time;
+        option.textContent = time;
+        option.addEventListener("click", (e) => {
+            e.stopPropagation();
+            menu.classList.add("hidden");
+            trigger.setAttribute("aria-expanded", "false");
+            setValue(time);
+        });
+        menu.appendChild(option);
+    });
+
+    trigger.addEventListener("click", (e) => {
+        e.stopPropagation();
+        const willOpen = menu.classList.contains("hidden");
+        closeAllHoursTimeDropdowns();
+        menu.classList.toggle("hidden", !willOpen);
+        trigger.setAttribute("aria-expanded", String(willOpen));
+        // The menu scrolls (48 half-hour slots don't all fit at once) - jump straight to
+        // the current value instead of always opening scrolled to 00:00.
+        if (willOpen) {
+            const active = menu.querySelector(".duration-dd-option.active");
+            if (active) active.scrollIntoView({ block: "nearest" });
+        }
+    });
+    menu.addEventListener("click", (e) => e.stopPropagation());
+
+    Object.defineProperty(dd, "value", {
+        get() { return currentValue; },
+        set(time) { setValue(time, true); },
+    });
+
+    dd.appendChild(trigger);
+    dd.appendChild(menu);
+    return dd;
+}
+
 // Mon-Fri get individual controls; Sat/Sun are always written out as "closed" - most
 // businesses using this picker don't work weekends, so showing 7 rows up front made the
 // section longer than it needed to be for the common case. The picker starts collapsed
@@ -92,18 +174,6 @@ function createHoursPicker(mountId, hiddenFieldId) {
         r.closedLabel.classList.toggle("hidden", open);
     }
 
-    function createTimeSelect(defaultValue) {
-        const select = document.createElement("select");
-        HOURS_TIME_OPTIONS.forEach((time) => {
-            const option = document.createElement("option");
-            option.value = time;
-            option.textContent = time;
-            select.appendChild(option);
-        });
-        select.value = defaultValue;
-        return select;
-    }
-
     // Collapsed default view: one open/close pair covering all five weekdays, plus a
     // note that weekends are closed and a link to switch to per-day editing below.
     const simpleView = document.createElement("div");
@@ -118,8 +188,8 @@ function createHoursPicker(mountId, hiddenFieldId) {
     simpleLabelBtn.textContent = t("hoursPicker.workingDays");
     const simpleTimes = document.createElement("div");
     simpleTimes.className = "hours-day-times";
-    const simpleOpenSelect = createTimeSelect("09:00");
-    const simpleCloseSelect = createTimeSelect("18:00");
+    const simpleOpenSelect = createTimeDropdown("09:00");
+    const simpleCloseSelect = createTimeDropdown("18:00");
     const simpleSep = document.createElement("span");
     simpleSep.className = "hours-time-sep";
     simpleSep.textContent = "–";
@@ -179,8 +249,8 @@ function createHoursPicker(mountId, hiddenFieldId) {
     quickfillLabel.className = "hours-quickfill-label";
     quickfillLabel.setAttribute("data-i18n", "hoursPicker.sameEveryDay");
     quickfillLabel.textContent = t("hoursPicker.sameEveryDay");
-    const quickOpenSelect = createTimeSelect("09:00");
-    const quickCloseSelect = createTimeSelect("18:00");
+    const quickOpenSelect = createTimeDropdown("09:00");
+    const quickCloseSelect = createTimeDropdown("18:00");
     const quickSep = document.createElement("span");
     quickSep.className = "hours-time-sep";
     quickSep.textContent = "–";
@@ -221,8 +291,8 @@ function createHoursPicker(mountId, hiddenFieldId) {
 
         const times = document.createElement("div");
         times.className = "hours-day-times";
-        const openSelect = createTimeSelect("09:00");
-        const closeSelect = createTimeSelect("18:00");
+        const openSelect = createTimeDropdown("09:00");
+        const closeSelect = createTimeDropdown("18:00");
         const sep = document.createElement("span");
         sep.className = "hours-time-sep";
         sep.textContent = "–";

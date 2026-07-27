@@ -906,10 +906,6 @@ body.auth {
     padding: 10px 12px; background: var(--background); border: 1px solid var(--border); border-radius: 10px;
 }
 .hours-quickfill-label { font-size: 13px; font-weight: 600; color: var(--text-muted); flex: 1 1 160px; }
-.hours-quickfill select {
-    padding: 7px 8px; border: 1px solid var(--border); border-radius: 8px;
-    font-family: inherit; font-size: 13.5px; color: var(--text); background: var(--surface); cursor: pointer;
-}
 .hours-quickfill-btn {
     padding: 7px 14px; border: 1.5px solid var(--primary); border-radius: 8px; background: none;
     color: var(--primary-ink); font-family: inherit; font-size: 13px; font-weight: 600; cursor: pointer;
@@ -927,11 +923,12 @@ body.auth {
 .hours-day-name { font-weight: 600; font-size: 14px; width: 84px; flex-shrink: 0; }
 .hours-day-times { display: flex; align-items: center; gap: 6px; flex: 1; min-width: 0; }
 .hours-day-times.hidden { display: none; }
-.hours-day-times select {
-    padding: 7px 8px; border: 1px solid var(--border); border-radius: 8px;
-    font-family: inherit; font-size: 13.5px; color: var(--text); background: var(--surface);
-}
 .hours-time-sep { color: var(--text-muted); font-size: 13px; flex-shrink: 0; }
+/* .hours-time-dd is a createTimeDropdown() root (static/pickers.js) - it borrows the
+   .schedule-slot-duration-select/.duration-dd* classes wholesale for the same pill shape/
+   shadow as schedule.html's per-slot duration dropdown, this just fixes its trigger width
+   so two side by side (open-close) don't stretch to fill the row. */
+.hours-time-dd .schedule-slot-duration-select { width: 76px; text-align: center; justify-content: center; }
 .hours-day-closed-label { flex: 1; min-width: 0; font-size: 13.5px; color: var(--text-muted); }
 
 .hours-day-toggle { position: relative; display: inline-block; width: 40px; height: 23px; cursor: pointer; flex-shrink: 0; margin-left: auto; }
