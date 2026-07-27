@@ -894,12 +894,14 @@ body.auth {
 }
 .hours-simple-label-btn:hover { color: var(--primary-ink); }
 .hours-simple-note { font-size: 12.5px; color: var(--text-muted); margin: 0; padding: 0 2px; }
+/* Same dashed-box look as .price-add-btn ("+ Add service"), but sized to its own text
+   (not stretched full width like that one) and with no hover color change. */
 .hours-customize-link {
-    background: none; border: none; padding: 0;
+    display: inline-block; padding: 9px 14px;
+    border: 1.5px dashed var(--border); border-radius: 10px; background: none;
     font-family: inherit; font-size: 13px; font-weight: 600; color: var(--primary-ink);
-    text-decoration: underline; cursor: pointer;
+    text-decoration: none; cursor: pointer;
 }
-.hours-customize-link:hover { color: var(--primary); }
 
 .hours-advanced-view { display: flex; flex-direction: column; gap: 12px; }
 
