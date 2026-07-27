@@ -407,7 +407,7 @@ def api_schedule_link():
 @api.route("/schedule")
 @require_api_auth
 def api_schedule():
-    from app import BETA_FREE_MODE, SLOT_DURATION_CHOICES  # deferred to avoid a circular import at module load
+    from app import BETA_FREE_MODE, SLOT_DURATION_CHOICES, SLOT_DURATION_MIN, SLOT_DURATION_MAX  # deferred to avoid a circular import at module load
 
     business_id = request.business_id
     if not (BETA_FREE_MODE or has_pro_access(business_id)):
@@ -433,6 +433,8 @@ def api_schedule():
         today=today.isoformat(),
         slot_minutes=slot_minutes,
         slot_duration_choices=list(SLOT_DURATION_CHOICES),
+        slot_duration_min=SLOT_DURATION_MIN,
+        slot_duration_max=SLOT_DURATION_MAX,
         has_any_open_day=any(booking.parse_working_hours(working_hours).values()),
     )
 
@@ -457,14 +459,34 @@ def api_schedule():
         result["next_date"] = (week_start + timedelta(days=7)).isoformat()
     else:
         slots = booking.day_slots(working_hours, slot_minutes, selected_date)
-        appts_by_start = {a["start_local"].strftime("%H:%M"): a for a in booking.appointments_for_local_day(business_id, selected_date)}
+        day_appointments = booking.appointments_for_local_day(business_id, selected_date)
+        appts_by_start = {a["start_local"].strftime("%H:%M"): a for a in day_appointments}
         rows = []
         for s in slots:
             key = s.strftime("%H:%M")
             appt = appts_by_start.get(key)
+            # An appointment booked with a custom duration can run longer than one grid
+            # slot - the slots it swallows besides its own start need to show as
+            # unavailable too, not a free "Book" button, even though no appointment
+            # actually starts at their exact time. Mirrors app.py's /schedule route.
+            covered_by = None
+            if appt is None:
+                covered_by = next((a for a in day_appointments if a["start_local"] <= s < a["end_local"]), None)
             rows.append({
                 "time": key,
-                "appointment": {"id": appt["id"], "customer_name": appt["customer_name"], "service": appt["service"], "source": appt["source"]} if appt else None,
+                "end_time": (s + timedelta(minutes=slot_minutes)).strftime("%H:%M"),
+                "appointment": {
+                    "id": appt["id"],
+                    "customer_name": appt["customer_name"],
+                    "service": appt["service"],
+                    "source": appt["source"],
+                    "start_time": appt["start_local"].strftime("%H:%M"),
+                    "end_time": appt["end_local"].strftime("%H:%M"),
+                } if appt else None,
+                "covered_by": {
+                    "customer_name": covered_by["customer_name"],
+                    "service": covered_by["service"],
+                } if covered_by else None,
                 "is_past": s < booking.now_local(),
             })
         result["slot_rows"] = rows
@@ -478,7 +500,7 @@ def api_schedule():
 @require_api_auth
 @limiter.limit("30 per minute")
 def api_create_appointment():
-    from app import BETA_FREE_MODE  # deferred to avoid a circular import at module load
+    from app import BETA_FREE_MODE, SLOT_DURATION_MIN, SLOT_DURATION_MAX  # deferred to avoid a circular import at module load
 
     business_id = request.business_id
     if not (BETA_FREE_MODE or has_pro_access(business_id)):
@@ -496,8 +518,16 @@ def api_create_appointment():
     except ValueError:
         return jsonify(error="Invalid date or time."), 400
 
-    slot_minutes = get_slot_duration(business_id)
-    end_dt = local_dt + timedelta(minutes=slot_minutes)
+    # The app's booking sheet defaults to the business-wide slot length but lets the
+    # owner pick a different duration for this single appointment - same "best-effort"
+    # fallback to the business default on garbage input as app.py's create_appointment_route.
+    try:
+        duration_minutes = int(data.get("duration"))
+    except (TypeError, ValueError):
+        duration_minutes = get_slot_duration(business_id)
+    if not (SLOT_DURATION_MIN <= duration_minutes <= SLOT_DURATION_MAX):
+        duration_minutes = get_slot_duration(business_id)
+    end_dt = local_dt + timedelta(minutes=duration_minutes)
     is_bookable = (
         local_dt >= booking.now_local()
         and booking.slot_within_business_hours(business[8], local_dt, end_dt)
@@ -527,7 +557,7 @@ def api_cancel_appointment(appointment_id):
 @api.route("/schedule/slot-duration", methods=["POST"])
 @require_api_auth
 def api_update_slot_duration():
-    from app import BETA_FREE_MODE, SLOT_DURATION_CHOICES  # deferred to avoid a circular import at module load
+    from app import BETA_FREE_MODE, SLOT_DURATION_CHOICES, SLOT_DURATION_MIN, SLOT_DURATION_MAX  # deferred to avoid a circular import at module load
 
     if not (BETA_FREE_MODE or has_pro_access(request.business_id)):
         return jsonify(error="forbidden"), 403
@@ -536,7 +566,9 @@ def api_update_slot_duration():
         minutes = int(data.get("slot_duration", 30))
     except (ValueError, TypeError):
         minutes = 30
-    if minutes not in SLOT_DURATION_CHOICES:
+    # Anything in the quick-pick list is always allowed; anything else (the "Custom"
+    # option in the app's duration picker) just needs to be a sane number of minutes.
+    if minutes not in SLOT_DURATION_CHOICES and not (SLOT_DURATION_MIN <= minutes <= SLOT_DURATION_MAX):
         minutes = 30
     set_slot_duration(request.business_id, minutes)
     return jsonify(success=True, slot_duration=minutes)

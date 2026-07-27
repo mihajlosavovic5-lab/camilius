@@ -119,3 +119,59 @@ def test_update_slot_duration(client, unique_username, unique_email):
 
     schedule = client.get("/api/schedule?view=day&date=2026-07-27", headers=headers).get_json()
     assert schedule["slot_minutes"] == 60
+
+
+def test_update_slot_duration_accepts_custom_value(client, unique_username, unique_email):
+    headers, business_id = _auth_header(client, unique_username, unique_email)
+
+    response = client.post("/api/schedule/slot-duration", headers=headers, json={"slot_duration": 50})
+    assert response.status_code == 200
+    assert response.get_json()["slot_duration"] == 50
+    assert database.get_slot_duration(business_id) == 50
+
+
+def test_update_slot_duration_rejects_out_of_range_value(client, unique_username, unique_email):
+    headers, business_id = _auth_header(client, unique_username, unique_email)
+
+    client.post("/api/schedule/slot-duration", headers=headers, json={"slot_duration": 9999})
+    assert database.get_slot_duration(business_id) == 30  # falls back to the default
+
+
+def test_book_appointment_with_custom_duration_blocks_the_slots_it_covers(client, unique_username, unique_email):
+    headers, _ = _auth_header(client, unique_username, unique_email)
+
+    # 90-minute booking at 09:00 on the 30-minute default grid should end at 10:30 and
+    # swallow the 09:30 row too.
+    create = client.post("/api/schedule/appointments", headers=headers, json={
+        "date": "2026-07-27", "time": "09:00", "customer_name": "Ana", "duration": 90,
+    })
+    assert create.status_code == 200
+
+    day_view = client.get("/api/schedule?view=day&date=2026-07-27", headers=headers).get_json()
+    booked_row = next(row for row in day_view["slot_rows"] if row["time"] == "09:00")
+    assert booked_row["appointment"]["start_time"] == "09:00"
+    assert booked_row["appointment"]["end_time"] == "10:30"
+
+    covered_row = next(row for row in day_view["slot_rows"] if row["time"] == "09:30")
+    assert covered_row["appointment"] is None
+    assert covered_row["covered_by"]["customer_name"] == "Ana"
+
+    # The covered slot can't be double-booked even via a direct POST, since it overlaps
+    # Ana's 09:00-10:30 appointment.
+    overlap = client.post("/api/schedule/appointments", headers=headers, json={
+        "date": "2026-07-27", "time": "09:30", "customer_name": "Overlap Attempt",
+    })
+    assert overlap.status_code == 409
+
+
+def test_book_appointment_with_out_of_range_duration_falls_back_to_business_default(client, unique_username, unique_email):
+    headers, _ = _auth_header(client, unique_username, unique_email)
+
+    create = client.post("/api/schedule/appointments", headers=headers, json={
+        "date": "2026-07-27", "time": "09:00", "customer_name": "Ivan", "duration": 9999,
+    })
+    assert create.status_code == 200
+
+    day_view = client.get("/api/schedule?view=day&date=2026-07-27", headers=headers).get_json()
+    booked_row = next(row for row in day_view["slot_rows"] if row["time"] == "09:00")
+    assert booked_row["appointment"]["end_time"] == "09:30"  # 30-minute business default

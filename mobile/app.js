@@ -32,7 +32,10 @@ const state = {
     scheduleDate: null,
     scheduleSlotMinutes: 30,
     scheduleSlotChoices: [15, 30, 45, 60, 90, 120],
+    scheduleSlotMin: 5,
+    scheduleSlotMax: 480,
     scheduleBookSlot: null,
+    scheduleBookDuration: 30,
     scheduleCache: {},
 };
 
@@ -400,17 +403,79 @@ function createHoursPicker(containerId) {
     const container = el(containerId);
     const rows = {};
 
+    // Shows either the open/close pickers or a "Closed" label in a row's middle slot,
+    // without changing the row's own height either way - avoids the layout "jumping"
+    // that hiding/showing the whole times block used to cause.
+    function updateRowVisibility(day) {
+        const r = rows[day];
+        const open = r.checkbox.checked;
+        r.times.classList.toggle("hidden", !open);
+        r.closedLabel.classList.toggle("hidden", open);
+    }
+
+    // Quick-fill row: lets a business set one open/close pair and apply it to every day
+    // at once, instead of repeating the same two picks seven times.
+    const quickfill = document.createElement("div");
+    quickfill.className = "hours-quickfill";
+    const quickfillLabel = document.createElement("span");
+    quickfillLabel.className = "hours-quickfill-label";
+    quickfillLabel.dataset.i18n = "hoursPicker.sameEveryDay";
+    quickfillLabel.textContent = t("hoursPicker.sameEveryDay");
+    const quickOpenBtn = createOptionButton("09:00", HOURS_TIME_OPTIONS, "time-picker-btn");
+    const quickCloseBtn = createOptionButton("18:00", HOURS_TIME_OPTIONS, "time-picker-btn");
+    const quickSep = document.createElement("span");
+    quickSep.className = "hours-time-sep";
+    quickSep.textContent = "–";
+    const quickfillBtn = document.createElement("button");
+    quickfillBtn.type = "button";
+    quickfillBtn.className = "hours-quickfill-btn";
+    quickfillBtn.dataset.i18n = "hoursPicker.applyToAll";
+    quickfillBtn.textContent = t("hoursPicker.applyToAll");
+    quickfillBtn.addEventListener("click", () => {
+        HOURS_DAYS.forEach((day) => {
+            const r = rows[day];
+            r.checkbox.checked = true;
+            r.openTimeBtn.value = quickOpenBtn.value;
+            r.closeTimeBtn.value = quickCloseBtn.value;
+            updateRowVisibility(day);
+        });
+    });
+    quickfill.appendChild(quickfillLabel);
+    quickfill.appendChild(quickOpenBtn.el);
+    quickfill.appendChild(quickSep);
+    quickfill.appendChild(quickCloseBtn.el);
+    quickfill.appendChild(quickfillBtn);
+    container.appendChild(quickfill);
+
+    const dayList = document.createElement("div");
+    dayList.className = "hours-day-list";
+    container.appendChild(dayList);
+
     HOURS_DAYS.forEach((day) => {
         const row = document.createElement("div");
         row.className = "hours-day-row";
-
-        const header = document.createElement("div");
-        header.className = "hours-day-header";
+        if (day === "saturday") row.classList.add("hours-day-row-weekend");
 
         const label = document.createElement("span");
         label.className = "hours-day-name";
         label.dataset.i18n = `days.${day}`;
         label.textContent = HOURS_DAY_LABELS_EN[day];
+
+        const times = document.createElement("div");
+        times.className = "hours-day-times";
+        const openTimeBtn = createOptionButton("09:00", HOURS_TIME_OPTIONS, "time-picker-btn");
+        const closeTimeBtn = createOptionButton("18:00", HOURS_TIME_OPTIONS, "time-picker-btn");
+        const sep = document.createElement("span");
+        sep.className = "hours-time-sep";
+        sep.textContent = "–";
+        times.appendChild(openTimeBtn.el);
+        times.appendChild(sep);
+        times.appendChild(closeTimeBtn.el);
+
+        const closedLabel = document.createElement("span");
+        closedLabel.className = "hours-day-closed-label hidden";
+        closedLabel.dataset.i18n = "hoursPicker.closed";
+        closedLabel.textContent = t("hoursPicker.closed");
 
         const toggleLabel = document.createElement("label");
         toggleLabel.className = "hours-day-toggle";
@@ -425,29 +490,15 @@ function createHoursPicker(containerId) {
         toggleLabel.appendChild(checkbox);
         toggleLabel.appendChild(track);
 
-        header.appendChild(label);
-        header.appendChild(toggleLabel);
+        checkbox.addEventListener("change", () => updateRowVisibility(day));
 
-        const times = document.createElement("div");
-        times.className = "hours-day-times";
-        const openTimeBtn = createOptionButton("09:00", HOURS_TIME_OPTIONS, "time-picker-btn");
-        const closeTimeBtn = createOptionButton("18:00", HOURS_TIME_OPTIONS, "time-picker-btn");
-        const sep = document.createElement("span");
-        sep.className = "hours-time-sep";
-        sep.textContent = "–";
-        times.appendChild(openTimeBtn.el);
-        times.appendChild(sep);
-        times.appendChild(closeTimeBtn.el);
-
-        checkbox.addEventListener("change", () => {
-            times.classList.toggle("hidden", !checkbox.checked);
-        });
-
-        row.appendChild(header);
+        row.appendChild(label);
         row.appendChild(times);
-        container.appendChild(row);
+        row.appendChild(closedLabel);
+        row.appendChild(toggleLabel);
+        dayList.appendChild(row);
 
-        rows[day] = { checkbox, openTimeBtn, closeTimeBtn, times };
+        rows[day] = { checkbox, openTimeBtn, closeTimeBtn, times, closedLabel };
     });
 
     return {
@@ -471,7 +522,7 @@ function createHoursPicker(containerId) {
                 const r = rows[day];
                 if (/closed/i.test(line)) {
                     r.checkbox.checked = false;
-                    r.times.classList.add("hidden");
+                    updateRowVisibility(day);
                     return;
                 }
                 const match = line.match(/(\d{1,2}):(\d{2})\s*-\s*(\d{1,2}):(\d{2})/);
@@ -481,7 +532,7 @@ function createHoursPicker(containerId) {
                 if (HOURS_TIME_OPTIONS.includes(openTime)) r.openTimeBtn.value = openTime;
                 if (HOURS_TIME_OPTIONS.includes(closeTime)) r.closeTimeBtn.value = closeTime;
                 r.checkbox.checked = true;
-                r.times.classList.remove("hidden");
+                updateRowVisibility(day);
             });
         },
         // Restores every day to the default open 09:00-18:00 - NOT the same as
@@ -496,7 +547,7 @@ function createHoursPicker(containerId) {
                 r.checkbox.checked = true;
                 r.openTimeBtn.value = "09:00";
                 r.closeTimeBtn.value = "18:00";
-                r.times.classList.remove("hidden");
+                updateRowVisibility(day);
             });
         },
         // False if any open day's closing time isn't after its opening time (the
@@ -2312,6 +2363,8 @@ function renderSchedule(data) {
 
     el("schedule-duration-label").textContent = `${data.slot_minutes} min`;
     state.scheduleSlotChoices = data.slot_duration_choices;
+    state.scheduleSlotMin = data.slot_duration_min;
+    state.scheduleSlotMax = data.slot_duration_max;
 
     el("schedule-prev-btn").dataset.date = data.prev_date;
     el("schedule-next-btn").dataset.date = data.next_date;
@@ -2376,6 +2429,14 @@ function renderScheduleDay(data) {
                 service.textContent = row.appointment.service;
                 info.appendChild(service);
             }
+            // The actual start-end range, not just the grid slot it starts in - a custom-
+            // duration booking can run longer than one row (see row.covered_by below).
+            if (row.appointment.start_time && row.appointment.end_time) {
+                const range = document.createElement("div");
+                range.className = "schedule-slot-booked-range";
+                range.textContent = `${row.appointment.start_time}–${row.appointment.end_time}`;
+                info.appendChild(range);
+            }
             info.appendChild(badge);
             card.appendChild(info);
 
@@ -2387,6 +2448,13 @@ function renderScheduleDay(data) {
             card.appendChild(cancelBtn);
 
             contentEl.appendChild(card);
+        } else if (row.covered_by) {
+            // Swallowed by a longer appointment that started earlier - blocked, not a
+            // free "Book" button, even though nothing starts at this exact time.
+            const covered = document.createElement("div");
+            covered.className = "schedule-slot schedule-slot-covered";
+            covered.textContent = `${t("schedule.partOfAppointment")} ${row.covered_by.customer_name}`;
+            contentEl.appendChild(covered);
         } else if (row.is_past) {
             const past = document.createElement("div");
             past.className = "schedule-slot schedule-slot-past";
@@ -2404,6 +2472,13 @@ function renderScheduleDay(data) {
         rowEl.appendChild(contentEl);
         timeline.appendChild(rowEl);
     });
+}
+
+function goToScheduleDay(date) {
+    state.scheduleView = "day";
+    el("schedule-view-day-btn").classList.add("active");
+    el("schedule-view-week-btn").classList.remove("active");
+    loadSchedule(date);
 }
 
 function renderScheduleWeek(data) {
@@ -2437,20 +2512,35 @@ function renderScheduleWeek(data) {
             empty.textContent = t("schedule.noAppointments");
             dayEl.appendChild(empty);
         } else {
-            day.appointments.forEach((appt) => {
+            // Cap each day at 5 visible entries with a "+N more" link to the day view,
+            // instead of letting a busy day grow the card unevenly against its neighbors.
+            day.appointments.slice(0, 5).forEach((appt) => {
                 const apptEl = document.createElement("div");
                 apptEl.className = "schedule-week-appt" + (appt.source === "ai" ? " schedule-week-appt-ai" : "");
-                apptEl.textContent = `${appt.time} · ${appt.customer_name}`;
+                const timeEl = document.createElement("span");
+                timeEl.className = "schedule-week-appt-time";
+                timeEl.textContent = appt.time;
+                const nameEl = document.createElement("span");
+                nameEl.className = "schedule-week-appt-name";
+                nameEl.textContent = appt.customer_name;
+                apptEl.appendChild(timeEl);
+                apptEl.appendChild(nameEl);
                 dayEl.appendChild(apptEl);
             });
+            if (day.appointments.length > 5) {
+                const more = document.createElement("button");
+                more.type = "button";
+                more.className = "schedule-week-more";
+                more.textContent = `+${day.appointments.length - 5} ${t("schedule.more")}`;
+                more.addEventListener("click", (event) => {
+                    event.stopPropagation();
+                    goToScheduleDay(day.date);
+                });
+                dayEl.appendChild(more);
+            }
         }
 
-        dayEl.addEventListener("click", () => {
-            state.scheduleView = "day";
-            el("schedule-view-day-btn").classList.add("active");
-            el("schedule-view-week-btn").classList.remove("active");
-            loadSchedule(day.date);
-        });
+        dayEl.addEventListener("click", () => goToScheduleDay(day.date));
         list.appendChild(dayEl);
     });
 }
@@ -2479,12 +2569,68 @@ el("schedule-upgrade-btn").addEventListener("click", () => {
     showScreen("subscription");
 });
 
+// Shared "Custom" duration prompt (business-default picker in the header, and the
+// per-booking picker in the Book sheet below) - opened when "Custom" is chosen from
+// either option list. Resolves to the chosen number of minutes, or null if cancelled,
+// so both call sites can just `await` it instead of juggling their own modal state.
+function promptForCustomDuration(currentMinutes, min, max) {
+    return new Promise((resolve) => {
+        const modal = el("duration-modal");
+        const input = el("duration-modal-input");
+        const errorBox = el("duration-modal-error");
+        const confirmBtn = el("duration-modal-confirm");
+        const cancelBtn = el("duration-modal-cancel");
+        const backdrop = el("duration-modal-backdrop");
+
+        input.min = min;
+        input.max = max;
+        input.value = Number.isInteger(currentMinutes) && (currentMinutes < min || currentMinutes > max || state.scheduleSlotChoices.includes(currentMinutes)) ? "" : currentMinutes;
+        errorBox.classList.add("hidden");
+        modal.classList.add("open");
+        setTimeout(() => input.focus(), 250);
+
+        function settle(value) {
+            modal.classList.remove("open");
+            confirmBtn.removeEventListener("click", onConfirm);
+            cancelBtn.removeEventListener("click", onCancel);
+            backdrop.removeEventListener("click", onCancel);
+            input.removeEventListener("keydown", onKeydown);
+            resolve(value);
+        }
+        function onConfirm() {
+            const minutes = parseInt(input.value, 10);
+            if (!minutes || minutes < min || minutes > max) {
+                errorBox.textContent = `${min}–${max}`;
+                errorBox.classList.remove("hidden");
+                return;
+            }
+            settle(minutes);
+        }
+        function onCancel() { settle(null); }
+        function onKeydown(e) {
+            if (e.key === "Enter") { e.preventDefault(); onConfirm(); }
+        }
+        confirmBtn.addEventListener("click", onConfirm);
+        cancelBtn.addEventListener("click", onCancel);
+        backdrop.addEventListener("click", onCancel);
+        input.addEventListener("keydown", onKeydown);
+    });
+}
+
 el("schedule-duration-btn").addEventListener("click", () => {
     const btn = el("schedule-duration-btn");
     if (optionPicker.isOpenFor(btn)) { optionPicker.close(); return; }
-    const options = state.scheduleSlotChoices.map((m) => `${m} min`);
-    optionPicker.open(btn, options, `${state.scheduleSlotMinutes} min`, async (chosen) => {
-        const minutes = parseInt(chosen, 10);
+    const customLabel = t("schedule.custom");
+    const options = state.scheduleSlotChoices.map((m) => `${m} min`).concat(customLabel);
+    const currentLabel = state.scheduleSlotChoices.includes(state.scheduleSlotMinutes) ? `${state.scheduleSlotMinutes} min` : customLabel;
+    optionPicker.open(btn, options, currentLabel, async (chosen) => {
+        let minutes;
+        if (chosen === customLabel) {
+            minutes = await promptForCustomDuration(state.scheduleSlotMinutes, state.scheduleSlotMin, state.scheduleSlotMax);
+            if (minutes == null) return;
+        } else {
+            minutes = parseInt(chosen, 10);
+        }
         if (minutes === state.scheduleSlotMinutes) return;
         try {
             await api("/api/schedule/slot-duration", { method: "POST", body: { slot_duration: minutes } });
@@ -2499,9 +2645,11 @@ el("schedule-duration-btn").addEventListener("click", () => {
 
 function openBookModal(time) {
     state.scheduleBookSlot = time;
+    state.scheduleBookDuration = state.scheduleSlotMinutes;
     el("book-modal-time").textContent = `${new Date(`${state.scheduleDate}T00:00:00`).toLocaleDateString(scheduleDateLocale(), { weekday: "long", month: "short", day: "numeric" })} · ${time}`;
     el("book-customer-name").value = "";
     el("book-service").value = "";
+    el("book-duration-label").textContent = `${state.scheduleBookDuration} min`;
     el("book-modal-error").classList.add("hidden");
     el("book-modal").classList.add("open");
     setTimeout(() => el("book-customer-name").focus(), 250);
@@ -2511,6 +2659,25 @@ function closeBookModal() {
     el("book-modal").classList.remove("open");
     state.scheduleBookSlot = null;
 }
+
+el("book-duration-btn").addEventListener("click", () => {
+    const btn = el("book-duration-btn");
+    if (optionPicker.isOpenFor(btn)) { optionPicker.close(); return; }
+    const customLabel = t("schedule.custom");
+    const options = state.scheduleSlotChoices.map((m) => `${m} min`).concat(customLabel);
+    const currentLabel = state.scheduleSlotChoices.includes(state.scheduleBookDuration) ? `${state.scheduleBookDuration} min` : customLabel;
+    optionPicker.open(btn, options, currentLabel, async (chosen) => {
+        let minutes;
+        if (chosen === customLabel) {
+            minutes = await promptForCustomDuration(state.scheduleBookDuration, state.scheduleSlotMin, state.scheduleSlotMax);
+            if (minutes == null) return;
+        } else {
+            minutes = parseInt(chosen, 10);
+        }
+        state.scheduleBookDuration = minutes;
+        el("book-duration-label").textContent = `${minutes} min`;
+    });
+});
 
 el("book-modal-backdrop").addEventListener("click", closeBookModal);
 el("book-modal-cancel").addEventListener("click", closeBookModal);
@@ -2533,6 +2700,7 @@ el("book-modal-submit").addEventListener("click", async () => {
                 time: state.scheduleBookSlot,
                 customer_name: customerName,
                 service: el("book-service").value.trim(),
+                duration: state.scheduleBookDuration,
             },
         });
         closeBookModal();
