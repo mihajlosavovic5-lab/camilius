@@ -143,6 +143,12 @@
     --background: #fdfcfa;        /* warm white */
     --surface: #ffffff;
     --border: #ece6da;
+    /* Table-style layouts (schedule grid, working-hours list) get their own border
+       tier instead of reusing --border for the outer frame, row dividers, and inner
+       fields alike, which read as flat/noisy - see .schedule-week-day, .hours-day-list. */
+    --border-strong: #d9c49b;    /* deeper warm tan - outer frame of a table/list */
+    --border-soft: #f5f1e8;      /* barely-there hairline - internal row dividers */
+    --border-gold: rgba(181, 125, 12, .5); /* amber accent - section breaks (weekend, hour marks) */
     --text: #2b2013;             /* warm near-black */
     --text-muted: #7a6c52;
     --success: #4d7c3f;
@@ -192,6 +198,9 @@
         --background: #1c1712;
         --surface: #241e17;
         --border: #3a332a;
+        --border-strong: #5e5140;
+        --border-soft: #2a251d;
+        --border-gold: rgba(232, 165, 28, .55);
         --text: #f2ece0;
         --text-muted: #ab9c86;
         --success: #7cbf68;
@@ -977,15 +986,17 @@ body.auth {
    made picking a time for a lower row look glitchy. Rounding just the first/last row's
    own corners keeps the same visual clipping for hover backgrounds without clipping
    anything that needs to render outside the box. */
-.hours-day-list { display: flex; flex-direction: column; border: 1px solid var(--border); border-radius: 10px; }
+.hours-day-list { display: flex; flex-direction: column; border: 1.5px solid var(--border-strong); border-radius: 10px; }
 .hours-day-row {
     display: flex; align-items: center; gap: 12px; padding: 10px 14px;
-    border-bottom: 1px solid var(--border); transition: background .15s ease;
+    border-bottom: 1px solid var(--border-soft); transition: background .15s ease;
 }
 .hours-day-row:first-child { border-top-left-radius: 10px; border-top-right-radius: 10px; }
 .hours-day-row:last-child { border-bottom: none; border-bottom-left-radius: 10px; border-bottom-right-radius: 10px; }
 .hours-day-row:hover { background: var(--background); }
-.hours-day-row-weekend { border-top: 2px solid var(--border); }
+/* Marks where the weekend starts - a gold rule instead of the same neutral divider
+   every other row uses, so the split actually reads at a glance. */
+.hours-day-row-weekend { border-top: 2px solid var(--border-gold); }
 .hours-day-name { font-weight: 600; font-size: 14px; width: 84px; flex-shrink: 0; }
 .hours-day-times { display: flex; align-items: center; gap: 6px; flex: 1; min-width: 0; }
 .hours-day-times.hidden { display: none; }
@@ -1232,6 +1243,10 @@ body.auth {
     box-shadow: 0 6px 14px -6px rgba(38, 32, 20, .18), 0 1px 3px rgba(38, 32, 20, .06);
 }
 .schedule-slot-duration-select:active { transform: translateY(0); box-shadow: none; }
+/* Inside the working-hours table this pill is a narrow field nested in a row, not a
+   standalone control - drop its own border so it recedes into the row and only
+   reappears (in gold) on hover/focus, same as every other pill on the page. */
+.hours-day-row .schedule-slot-duration-select { border-color: transparent; background: var(--background); }
 .duration-dd-trigger { cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
 .duration-dd-trigger::after { content: ""; width: 6px; height: 6px; border-right: 1.5px solid var(--text-muted); border-bottom: 1.5px solid var(--text-muted); transform: rotate(45deg) translateY(-2px); }
 /* Always top: 100% (opens downward) - the whole point of not using a native <select>. */
@@ -1262,19 +1277,24 @@ body.auth {
 /* --- Day view: a real timeline (Faza 11) - a persistent time axis on the left with a
    vertical line running through it, and a stronger rule + bold label at each hour
    boundary, instead of a flat list where every row looked the same regardless of time. --- */
-.schedule-timeline { position: relative; margin-left: 4px; border-left: 2px solid var(--border); }
+.schedule-timeline { position: relative; margin-left: 4px; border-left: 3px solid var(--border-strong); }
 .schedule-timeline-row {
     display: grid; grid-template-columns: 52px 1fr; gap: 12px;
     padding: 3px 0 3px 14px; position: relative;
 }
-.schedule-timeline-row.schedule-timeline-hour { border-top: 1px solid var(--border); margin-top: 3px; padding-top: 10px; }
+/* Each hour mark gets a gold rule (not the same flat neutral as every row) so the
+   timeline reads in hour-sized chunks instead of one undifferentiated list. */
+.schedule-timeline-row.schedule-timeline-hour { border-top: 2px solid var(--border-gold); margin-top: 3px; padding-top: 10px; }
 .schedule-timeline-row:first-child { margin-top: 0; border-top: none; padding-top: 0; }
 .schedule-timeline-time { font-size: 11.5px; color: var(--text-muted); padding-top: 11px; text-align: right; }
 .schedule-timeline-hour .schedule-timeline-time { font-weight: 700; color: var(--text); font-size: 13px; }
 .schedule-timeline-content { min-width: 0; padding: 2px 0; }
 
-.schedule-slot { display: flex; align-items: center; gap: 12px; padding: 10px 14px; border-radius: 10px; border: 1px solid var(--border); background: var(--surface); }
+.schedule-slot { display: flex; align-items: center; gap: 12px; padding: 10px 14px; border-radius: 10px; border: 1px solid var(--border-soft); background: var(--surface); }
 .schedule-slot-free { background: var(--background); }
+/* A booked slot is the important cell in this "table" - a slightly stronger frame
+   than the free/soft-bordered slots around it draws the eye straight to it. */
+.schedule-slot-booked { border: 1.5px solid var(--border-strong); }
 .schedule-slot-past { opacity: .5; }
 .schedule-slot-form { display: flex; gap: 8px; flex: 1; flex-wrap: wrap; align-items: center; margin: 0; }
 .schedule-slot-form input[type="text"] { margin: 0; padding: 7px 10px; font-size: 13.5px; flex: 1; min-width: 130px; }
@@ -1292,11 +1312,13 @@ body.auth {
 .schedule-week-legend-dot-manual { background: var(--text-muted); }
 
 .schedule-week-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 10px; }
-.schedule-week-day { padding: 12px; min-height: 130px; max-height: 280px; overflow-y: auto; }
+/* Each day is a column/cell of the week "table" - a stronger, darker frame than a
+   plain .card so the seven columns read as one deliberate grid, not seven loose cards. */
+.schedule-week-day { padding: 12px; min-height: 130px; max-height: 280px; overflow-y: auto; border: 1.5px solid var(--border-strong); }
 .schedule-week-day.today { border-color: var(--primary); box-shadow: 0 0 0 1px var(--primary); }
 .schedule-week-day-header {
     display: flex; justify-content: space-between; align-items: baseline; font-size: 12.5px; font-weight: 700;
-    color: var(--text-muted); padding-bottom: 8px; border-bottom: 1px solid var(--border); margin-bottom: 8px;
+    color: var(--text-muted); padding-bottom: 8px; border-bottom: 2px solid var(--border-gold); margin-bottom: 8px;
 }
 .schedule-week-day-header:hover { text-decoration: none; }
 .schedule-week-day.today .schedule-week-day-header { color: var(--primary-ink); }
@@ -1307,7 +1329,7 @@ body.auth {
    at a glance instead of turning into a colored block. */
 .schedule-week-appt {
     display: flex; align-items: baseline; gap: 6px; font-size: 12px; padding: 4px 6px 4px 8px;
-    border-radius: 4px; border-left: 2px solid var(--border); background: var(--background); margin-bottom: 4px;
+    border-radius: 4px; border-left: 2px solid var(--border-soft); background: var(--background); margin-bottom: 4px;
 }
 .schedule-week-appt-ai { border-left-color: var(--primary); }
 .schedule-week-appt-time { font-weight: 700; font-variant-numeric: tabular-nums; color: var(--text); flex-shrink: 0; }
