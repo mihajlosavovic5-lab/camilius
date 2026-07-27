@@ -22,7 +22,8 @@
     <meta name="twitter:title" content="{{ self.title() }}">
     <meta name="twitter:description" content="{{ self.description() }}">
     {% block structured_data %}{% endblock %}
-    <link rel="icon" type="image/png" href="{{ url_for('static', filename='icon-192.png') }}">
+    <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}" sizes="any">
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon-192.png') }}">
     <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
     <meta name="theme-color" content="#d69410">
     <link rel="apple-touch-icon" href="{{ url_for('static', filename='icon-512.png') }}">

@@ -136,7 +136,13 @@ STATIC_VERSIONS = {
     "pickers.js": _static_file_version("pickers.js"),
 }
 _FOREVER_CACHE_STATIC_PATHS = {"/static/style.css", "/static/htmx.min.js", "/static/site-i18n.js", "/static/pickers.js"}
-_MODERATE_CACHE_STATIC_PATHS = {"/static/manifest.json", "/static/icon-192.png", "/static/icon-512.png"} | {
+_MODERATE_CACHE_STATIC_PATHS = {
+    "/static/manifest.json",
+    "/static/icon-192.png",
+    "/static/icon-512.png",
+    "/static/favicon.ico",
+    "/static/favicon-192.png",
+} | {
     f"/static/flags/{name}"
     for name in ("gb.svg", "es.png", "pt.svg", "fr.svg", "de.svg", "it.svg", "ru.svg", "rs.png", "cn.svg", "tr.svg")
 }
