@@ -22,6 +22,7 @@ os.environ.setdefault("FLASK_DEBUG", "true")  # test client uses plain http - av
 
 import re
 import uuid
+from datetime import date, timedelta
 
 import pytest
 
@@ -65,6 +66,21 @@ def unique_email():
 @pytest.fixture()
 def unique_username():
     return f"test_{uuid.uuid4().hex[:10]}"
+
+
+@pytest.fixture()
+def future_date():
+    """ISO date string (YYYY-MM-DD) for a weekday safely in the future, no matter when
+    the suite runs. Schedule tests used to hardcode a specific calendar date instead -
+    fine while it was still in the future, but once that date became "today" its fixed
+    booking times (09:00, 10:00, ...) started falling in the past for whatever time of
+    day CI happened to run at, and every booking was rejected as unbookable. Picking a
+    date 7+ days out sidesteps that permanently. The test businesses' working hours are
+    open Monday-Friday, so any weekday works."""
+    d = date.today() + timedelta(days=7)
+    while d.weekday() >= 5:  # Saturday=5, Sunday=6
+        d += timedelta(days=1)
+    return d.isoformat()
 
 
 def register_business(client, username, email, **overrides):

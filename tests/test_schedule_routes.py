@@ -39,7 +39,7 @@ def test_schedule_locked_for_starter_plan(client, unique_username, unique_email,
     assert "schedule-timeline" not in body
 
 
-def test_schedule_locked_starter_cannot_bypass_via_post(client, unique_username, unique_email, monkeypatch):
+def test_schedule_locked_starter_cannot_bypass_via_post(client, unique_username, unique_email, monkeypatch, future_date):
     monkeypatch.setattr(app_module, "BETA_FREE_MODE", False)
     register_business_web(client, unique_username, unique_email)
     # CSRF token pulled from /app-settings, not the now-locked /schedule page - the
@@ -50,24 +50,24 @@ def test_schedule_locked_starter_cannot_bypass_via_post(client, unique_username,
     database.link_subscription(business_id, "cust", "sub", "active", plan="starter")
 
     response = web_post(client, "/schedule/appointments", {
-        "csrf_token": csrf_token, "date": "2026-07-27", "time": "10:00", "customer_name": "Bypass Attempt",
+        "csrf_token": csrf_token, "date": future_date, "time": "10:00", "customer_name": "Bypass Attempt",
     })
     assert response.status_code == 403
 
 
-def test_book_and_cancel_appointment_via_web(client, unique_username, unique_email):
+def test_book_and_cancel_appointment_via_web(client, unique_username, unique_email, future_date):
     register_business_web(client, unique_username, unique_email)
     csrf_token = get_csrf_token(client, "/schedule")
 
-    # 2026-07-27 is a Monday - the test business's working_hours (see
-    # register_business_web) is open 09:00-18:00 that day.
+    # future_date is a weekday - the test business's working_hours (see
+    # register_business_web) is open 09:00-18:00 on every weekday.
     create = web_post(client, "/schedule/appointments", {
-        "csrf_token": csrf_token, "date": "2026-07-27", "time": "10:00",
+        "csrf_token": csrf_token, "date": future_date, "time": "10:00",
         "customer_name": "Test Customer", "service": "Haircut",
     })
     assert create.status_code == 302
 
-    day_view = client.get("/schedule?date=2026-07-27")
+    day_view = client.get(f"/schedule?date={future_date}")
     body = day_view.get_data(as_text=True)
     assert "Test Customer" in body
     assert "Haircut" in body
@@ -77,84 +77,84 @@ def test_book_and_cancel_appointment_via_web(client, unique_username, unique_ema
     assert match is not None
     appointment_id = match.group(1)
 
-    cancel_csrf = get_csrf_token(client, "/schedule?date=2026-07-27")
+    cancel_csrf = get_csrf_token(client, f"/schedule?date={future_date}")
     cancel = web_post(client, f"/schedule/appointments/{appointment_id}/cancel", {
-        "csrf_token": cancel_csrf, "date": "2026-07-27", "view": "day",
+        "csrf_token": cancel_csrf, "date": future_date, "view": "day",
     })
     assert cancel.status_code == 302
 
-    after_cancel = client.get("/schedule?date=2026-07-27").get_data(as_text=True)
+    after_cancel = client.get(f"/schedule?date={future_date}").get_data(as_text=True)
     assert "Test Customer" not in after_cancel
 
 
-def test_double_booking_the_same_slot_is_rejected(client, unique_username, unique_email):
+def test_double_booking_the_same_slot_is_rejected(client, unique_username, unique_email, future_date):
     register_business_web(client, unique_username, unique_email)
 
     csrf_1 = get_csrf_token(client, "/schedule")
     first = web_post(client, "/schedule/appointments", {
-        "csrf_token": csrf_1, "date": "2026-07-27", "time": "11:00", "customer_name": "First Customer",
+        "csrf_token": csrf_1, "date": future_date, "time": "11:00", "customer_name": "First Customer",
     })
     assert first.status_code == 302
 
     csrf_2 = get_csrf_token(client, "/schedule")
     second = web_post(client, "/schedule/appointments", {
-        "csrf_token": csrf_2, "date": "2026-07-27", "time": "11:00", "customer_name": "Second Customer",
+        "csrf_token": csrf_2, "date": future_date, "time": "11:00", "customer_name": "Second Customer",
     })
     assert second.status_code == 302
     assert "book_error=1" in second.headers["Location"]
 
-    body = client.get("/schedule?date=2026-07-27").get_data(as_text=True)
+    body = client.get(f"/schedule?date={future_date}").get_data(as_text=True)
     assert "Second Customer" not in body
     assert "First Customer" in body
 
 
-def test_book_appointment_with_custom_duration_blocks_the_slots_it_covers(client, unique_username, unique_email):
+def test_book_appointment_with_custom_duration_blocks_the_slots_it_covers(client, unique_username, unique_email, future_date):
     register_business_web(client, unique_username, unique_email)
     csrf_token = get_csrf_token(client, "/schedule")
 
     # 90-minute booking at 09:00 on a 30-minute grid (the test business's default, see
     # register_business_web) should end at 10:30 and swallow the 09:30 row too.
     create = web_post(client, "/schedule/appointments", {
-        "csrf_token": csrf_token, "date": "2026-07-27", "time": "09:00",
+        "csrf_token": csrf_token, "date": future_date, "time": "09:00",
         "customer_name": "Ana", "duration": "90",
     })
     assert create.status_code == 302
 
-    body = client.get("/schedule?date=2026-07-27").get_data(as_text=True)
+    body = client.get(f"/schedule?date={future_date}").get_data(as_text=True)
     assert "09:00" in body and "10:30" in body  # the booked card's own start-end range
     assert "schedule-slot-covered" in body  # 09:30's row is blocked, not a free "Book" button
 
     # The 09:30 slot can't be double-booked even via a direct POST, since it overlaps
     # Ana's 09:00-10:30 appointment.
-    csrf_2 = get_csrf_token(client, "/schedule?date=2026-07-27")
+    csrf_2 = get_csrf_token(client, f"/schedule?date={future_date}")
     second = web_post(client, "/schedule/appointments", {
-        "csrf_token": csrf_2, "date": "2026-07-27", "time": "09:30", "customer_name": "Overlap Attempt",
+        "csrf_token": csrf_2, "date": future_date, "time": "09:30", "customer_name": "Overlap Attempt",
     })
     assert "book_error=1" in second.headers["Location"]
 
 
-def test_book_appointment_with_custom_duration_field(client, unique_username, unique_email):
+def test_book_appointment_with_custom_duration_field(client, unique_username, unique_email, future_date):
     register_business_web(client, unique_username, unique_email)
     csrf_token = get_csrf_token(client, "/schedule")
 
     # duration="custom" defers to duration_custom, same as the "Custom" option on the
     # per-slot picker (see schedule.html/pickers.js).
     create = web_post(client, "/schedule/appointments", {
-        "csrf_token": csrf_token, "date": "2026-07-27", "time": "09:00",
+        "csrf_token": csrf_token, "date": future_date, "time": "09:00",
         "customer_name": "Ivan", "duration": "custom", "duration_custom": "20",
     })
     assert create.status_code == 302
 
-    body = client.get("/schedule?date=2026-07-27").get_data(as_text=True)
+    body = client.get(f"/schedule?date={future_date}").get_data(as_text=True)
     assert "09:00" in body and "09:20" in body
 
 
-def test_update_slot_duration_accepts_custom_value(client, unique_username, unique_email):
+def test_update_slot_duration_accepts_custom_value(client, unique_username, unique_email, future_date):
     register_business_web(client, unique_username, unique_email)
     csrf_token = get_csrf_token(client, "/schedule")
 
     response = web_post(client, "/schedule/slot-duration", {
-        "csrf_token": csrf_token, "slot_duration": "50", "date": "2026-07-27",
+        "csrf_token": csrf_token, "slot_duration": "50", "date": future_date,
     })
     assert response.status_code == 302
 
@@ -162,12 +162,12 @@ def test_update_slot_duration_accepts_custom_value(client, unique_username, uniq
     assert database.get_slot_duration(business_id) == 50
 
 
-def test_update_slot_duration_rejects_out_of_range_value(client, unique_username, unique_email):
+def test_update_slot_duration_rejects_out_of_range_value(client, unique_username, unique_email, future_date):
     register_business_web(client, unique_username, unique_email)
     csrf_token = get_csrf_token(client, "/schedule")
 
     web_post(client, "/schedule/slot-duration", {
-        "csrf_token": csrf_token, "slot_duration": "9999", "date": "2026-07-27",
+        "csrf_token": csrf_token, "slot_duration": "9999", "date": future_date,
     })
 
     business_id = database.business_by_username(unique_username)[0]
