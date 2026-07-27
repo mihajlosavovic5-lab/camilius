@@ -19,7 +19,7 @@
         <div class="alert alert-success"><span class="alert-icon">&#10003;</span><span>{{ message }}</span></div>
     {% endif %}
 
-    <form method="POST">
+    <form method="POST" id="settings-form">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
         <div class="card profile-section">
@@ -105,7 +105,7 @@
         </div>
 
         <div class="form-actions" style="text-align: right;">
-            <button class="button" type="submit" data-i18n="settings.saveChanges">Save changes</button>
+            <button class="button hidden" type="submit" id="settings-save-btn" data-i18n="settings.saveChanges">Save changes</button>
         </div>
     </form>
 </div>
@@ -126,6 +126,34 @@ function initSettingsPickers() {
     safeInit(() => createHoursPicker("settings-hours-picker-mount", "settings-working-hours"));
     safeInit(() => createPricePicker("settings-price-picker-mount", "settings-price-add", "settings-price-currency", "settings-price-list"));
     safeInit(() => createUpsellPicker("settings-upsell-picker-mount", "settings-upsell-add", "settings-upsell-pairs", "settings-price-list"));
+    safeInit(initSettingsSaveButton);
+}
+
+// The Save button starts hidden (see its "hidden" class in the markup) and only appears
+// once the form differs from a snapshot taken right after the pickers above finish
+// parsing the saved values - snapshotting the raw server-rendered values instead would
+// show the button as dirty on a page nobody touched, since the pickers reformat things
+// (e.g. price list whitespace) as soon as they parse them.
+function initSettingsSaveButton() {
+    const form = document.getElementById("settings-form");
+    const saveButton = document.getElementById("settings-save-btn");
+    if (!form || !saveButton) return;
+
+    function serialize() {
+        const data = new FormData(form);
+        data.delete("csrf_token");
+        return new URLSearchParams(data).toString();
+    }
+
+    const snapshot = serialize();
+    function updateVisibility() {
+        saveButton.classList.toggle("hidden", serialize() === snapshot);
+    }
+    // Delegated (not one listener per field) so it also catches the hours/price/upsell
+    // pickers' custom controls (add/remove rows, pill dropdown options) - a dropdown
+    // option's click bubbles to the form even though the picker's own internal "change"
+    // event on the dropdown element doesn't.
+    ["input", "change", "click"].forEach((evt) => form.addEventListener(evt, updateVisibility));
 }
 if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", initSettingsPickers);
