@@ -24,6 +24,25 @@ const LANGUAGES = [
     { code: "tr", name: "Türkçe", flag: "tr.svg" },
 ];
 
+// ISO 3166-1 alpha-2 country -> our language code, used for IP-based auto-detection
+// below. Only countries whose dominant language doesn't already fall out of the
+// browser-language guess (e.g. Brazil is Portuguese despite a "pt-BR"-agnostic OS
+// locale, Latin America is Spanish, etc.) need to be listed; anything not in this map
+// simply keeps whatever the browser-language guess (or English) already picked.
+const COUNTRY_LANG_MAP = {
+    RS: "sr", ME: "sr", BA: "sr",
+    DE: "de", AT: "de", CH: "de", LI: "de",
+    FR: "fr", BE: "fr", LU: "fr", MC: "fr",
+    IT: "it", SM: "it", VA: "it",
+    RU: "ru", BY: "ru", KZ: "ru",
+    TR: "tr",
+    CN: "zh", TW: "zh", HK: "zh", MO: "zh", SG: "zh",
+    PT: "pt", BR: "pt", AO: "pt", MZ: "pt",
+    ES: "es", MX: "es", AR: "es", CO: "es", CL: "es", PE: "es", VE: "es",
+    EC: "es", GT: "es", CU: "es", BO: "es", DO: "es", HN: "es", PY: "es",
+    SV: "es", NI: "es", CR: "es", PA: "es", UY: "es", GQ: "es",
+};
+
 const TRANSLATIONS = {
     en: {
         "common.home": "Home",
@@ -4490,6 +4509,30 @@ function setLanguage(code) {
     applyTranslations();
 }
 
+// Best-effort IP geolocation so a visitor physically in, say, Serbia or Germany gets
+// that language even when their OS/browser is set to English (common on shared or
+// work machines). Only ever called when the visitor has no saved preference yet -
+// this never overrides a language the flag picker was used to choose, on this visit
+// or a past one. A short timeout keeps a slow/blocked request from ever being
+// noticeable; failures (offline, ad-blocker, API down) are silently ignored and the
+// synchronous browser-language guess already applied by initLanguage() stands.
+function detectLanguageFromLocation() {
+    if (!("fetch" in window)) return;
+    const controller = ("AbortController" in window) ? new AbortController() : null;
+    const timer = controller ? setTimeout(() => controller.abort(), 3000) : null;
+    fetch("https://ipapi.co/json/", controller ? { signal: controller.signal } : {})
+        .then((res) => res.json())
+        .then((data) => {
+            let saved = null;
+            try { saved = localStorage.getItem("siteLanguage"); } catch (e) {}
+            if (saved && TRANSLATIONS[saved]) return; // user picked one in the meantime
+            const lang = COUNTRY_LANG_MAP[(data && data.country_code || "").toUpperCase()];
+            if (lang && TRANSLATIONS[lang] && lang !== currentLang) setLanguage(lang);
+        })
+        .catch(() => {})
+        .finally(() => { if (timer) clearTimeout(timer); });
+}
+
 function initLanguage() {
     let saved = null;
     try { saved = localStorage.getItem("siteLanguage"); } catch (e) {}
@@ -4501,6 +4544,7 @@ function initLanguage() {
         // number-country guess) since the website has no equivalent "home market" signal.
         const guess = (navigator.language || "").slice(0, 2).toLowerCase();
         if (TRANSLATIONS[guess]) currentLang = guess;
+        detectLanguageFromLocation();
     }
     applyTranslations();
 }
