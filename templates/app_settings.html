@@ -13,6 +13,45 @@
     </div>
 
     <div class="card settings-card">
+        <h2 style="margin-top:0;" data-i18n="appSettings.preferences.heading">Preferences</h2>
+        <span class="switch-row-label" data-i18n="appSettings.theme">Theme</span>
+        <div class="theme-toggle" id="theme-toggle" style="margin-top:10px;">
+            <button type="button" class="theme-option" data-theme-choice="system" data-i18n="appSettings.themeSystem">System</button>
+            <button type="button" class="theme-option" data-theme-choice="light" data-i18n="appSettings.themeLight">Light</button>
+            <button type="button" class="theme-option" data-theme-choice="dark" data-i18n="appSettings.themeDark">Dark</button>
+        </div>
+    </div>
+    <script>
+    (function () {
+        var toggle = document.getElementById("theme-toggle");
+        if (!toggle) return;
+
+        function applyTheme(theme) {
+            if (theme === "light" || theme === "dark") {
+                document.documentElement.setAttribute("data-theme", theme);
+            } else {
+                document.documentElement.removeAttribute("data-theme");
+            }
+            toggle.querySelectorAll(".theme-option").forEach(function (btn) {
+                btn.classList.toggle("active", btn.dataset.themeChoice === theme);
+            });
+        }
+
+        var current = "system";
+        try { current = localStorage.getItem("theme") || "system"; } catch (e) {}
+        applyTheme(current);
+
+        toggle.querySelectorAll(".theme-option").forEach(function (btn) {
+            btn.addEventListener("click", function () {
+                var theme = btn.dataset.themeChoice;
+                try { localStorage.setItem("theme", theme); } catch (e) {}
+                applyTheme(theme);
+            });
+        });
+    })();
+    </script>
+
+    <div class="card settings-card" style="margin-top:20px;">
         <h2 style="margin-top:0;" data-i18n="appSettings.automation.heading">Automation</h2>
         <form method="POST" action="{{ url_for('update_auto_send') }}">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
