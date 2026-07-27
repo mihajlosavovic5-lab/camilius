@@ -982,7 +982,7 @@ body.auth {
 }
 .price-add-btn {
     display: block; width: 100%; padding: 11px; margin-top: 10px;
-    border: 1.5px dashed var(--border); border-radius: 10px; background: none;
+    border: 1.5px solid var(--primary); border-radius: 10px; background: none;
     color: var(--primary-ink); font-family: inherit; font-size: 14px; font-weight: 600; cursor: pointer;
     transition: transform .12s ease, box-shadow .18s ease;
 }
