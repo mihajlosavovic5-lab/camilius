@@ -1058,11 +1058,15 @@ body.auth {
    connected"), so the label just sits in the small caption spot permanently
    instead of animating between placeholder and floated states. */
 .profile-instagram-field {
-    border: 1px solid var(--border); border-radius: 9px;
+    width: 100%; border: 1px solid var(--border); border-radius: 9px;
     background: var(--surface); padding: 14px 12px 12px; margin-top: 16px;
 }
 .profile-instagram-field label { margin: 0 0 6px; font-weight: 400; font-size: 11px; color: var(--primary); }
-.profile-instagram-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 0; }
+/* space-between keeps the value on the left (like an input's text) and pushes
+   the reconnect link to the right edge of the field, instead of sitting right
+   next to the value. */
+.profile-instagram-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-top: 0; }
+.profile-instagram-value { font-size: 15px; color: var(--text); }
 .profile-instagram-row a { font-size: 13.5px; }
 
 /* --- Danger zone --- */
