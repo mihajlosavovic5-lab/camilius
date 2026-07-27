@@ -180,7 +180,6 @@
     --menu-sheet-bg: linear-gradient(180deg, var(--primary-light) 0%, var(--background) 42%);
     --menu-row-bg: var(--surface);
     --menu-row-border: var(--border);
-    --primary-glow: rgba(214, 148, 16, .38); /* profile-section-icon breathing halo, see .profile-section-icon */
 }
 
 /* --- Dark mode - follows the OS/browser preference (no in-app toggle). Redefining the
@@ -222,7 +221,6 @@
         --menu-sheet-bg: linear-gradient(180deg, var(--primary-light) 0%, var(--background) 42%);
         --menu-row-bg: var(--surface);
         --menu-row-border: var(--border);
-        --primary-glow: rgba(232, 165, 28, .42);
     }
 
     body {
@@ -1052,44 +1050,11 @@ body.auth {
 }
 .profile-section + .profile-section { margin-top: 20px; }
 .profile-section-header { display: flex; align-items: flex-start; gap: 14px; margin-bottom: 18px; }
-/* Each section icon breathes with a soft halo pulse (shared) plus its own small
-   signature motion, so Account/Business details/AI upsell read as distinct and
-   alive rather than the flat static emoji chips this replaced. Kept to one
-   subtle loop per icon - no combined shake-rotate-scale pile-up - so it stays
-   calm and professional instead of busy. */
 .profile-section-icon {
     flex-shrink: 0; width: 40px; height: 40px; border-radius: 11px;
     display: flex; align-items: center; justify-content: center;
     background: radial-gradient(circle at 32% 28%, var(--primary-light) 0%, var(--primary-light) 68%, transparent 100%);
     font-size: 19px;
-    animation: icon-halo 3.6s ease-in-out infinite;
-    transform-origin: 50% 60%;
-}
-.profile-section:hover .profile-section-icon { animation-duration: 1.4s; }
-.icon-account { animation-name: icon-halo, icon-sway; animation-duration: 3.6s, 4.4s; }
-.icon-business { animation-name: icon-halo, icon-nod; animation-duration: 3.6s, 3.2s; }
-.icon-upsell { animation-name: icon-halo, icon-twinkle; animation-duration: 3.6s, 2.8s; }
-
-@keyframes icon-halo {
-    0%, 100% { box-shadow: 0 0 0 0 var(--primary-glow); }
-    55% { box-shadow: 0 0 0 6px transparent; }
-}
-@keyframes icon-sway {
-    0%, 100% { transform: rotate(0deg); }
-    25% { transform: rotate(-9deg); }
-    75% { transform: rotate(9deg); }
-}
-@keyframes icon-nod {
-    0%, 100% { transform: translateY(0) scale(1); }
-    50% { transform: translateY(-3px) scale(1.05); }
-}
-@keyframes icon-twinkle {
-    0%, 100% { transform: scale(1) rotate(0deg); filter: brightness(1); }
-    35% { transform: scale(1.14) rotate(-8deg); filter: brightness(1.2); }
-    65% { transform: scale(.94) rotate(6deg); filter: brightness(1); }
-}
-@media (prefers-reduced-motion: reduce) {
-    .profile-section-icon, .icon-account, .icon-business, .icon-upsell { animation: none; }
 }
 .profile-section-title { font-size: 16px; font-weight: 700; margin: 0; }
 .profile-section-subtitle { color: var(--text-muted); font-size: 13.5px; margin: 2px 0 0; }
