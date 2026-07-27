@@ -257,8 +257,12 @@ function createHoursPicker(mountId, hiddenFieldId) {
     const quickfillBtn = document.createElement("button");
     quickfillBtn.type = "button";
     quickfillBtn.className = "hours-quickfill-btn";
-    quickfillBtn.setAttribute("data-i18n", "hoursPicker.applyToAll");
-    quickfillBtn.textContent = t("hoursPicker.applyToAll");
+    quickfillBtn.setAttribute("data-i18n", "hoursPicker.applyChanges");
+    quickfillBtn.textContent = t("hoursPicker.applyChanges");
+    // Applying the same hours to every weekday is exactly what the collapsed "Working
+    // days" view already represents, so this also takes the user back there - the same
+    // screen they expanded from - instead of leaving them looking at five now-identical
+    // rows they'd have to notice and collapse manually.
     quickfillBtn.addEventListener("click", () => {
         WEEKDAYS.forEach((day) => {
             const r = rows[day];
@@ -267,6 +271,11 @@ function createHoursPicker(mountId, hiddenFieldId) {
             r.closeSelect.value = quickCloseSelect.value;
             updateRowVisibility(day);
         });
+        simpleOpenSelect.value = quickOpenSelect.value;
+        simpleCloseSelect.value = quickCloseSelect.value;
+        mode = "simple";
+        advancedView.classList.add("hidden");
+        simpleView.classList.remove("hidden");
         sync();
     });
     quickfill.appendChild(quickfillLabel);
