@@ -58,10 +58,9 @@
                 </div>
             </div>
 
-            <div class="floating-field floating-field-action">
+            <div class="floating-field">
                 <input type="email" id="settings-contact-email-input" name="contact_email" value="{{ business.contact_email }}" placeholder=" " required>
                 <label for="settings-contact-email-input" data-i18n="settings.contactEmail">Contact email</label>
-                <a href="javascript:void(0)" class="field-action-link" id="settings-contact-email-change"><span data-i18n="settings.changeEmail">Change email</span></a>
             </div>
             {% if business.pending_contact_email %}
                 <p class="note">
@@ -146,7 +145,6 @@ function initSettingsPickers() {
     safeInit(() => createUpsellPicker("settings-upsell-picker-mount", "settings-upsell-add", "settings-upsell-pairs", "settings-price-list"));
     safeInit(initSettingsSaveButton);
     safeInit(initSaveSuccessOverlay);
-    safeInit(initContactEmailChangeLink);
     safeInit(initSettingsUsernameAvailability);
 }
 
@@ -215,19 +213,6 @@ function initSettingsUsernameAvailability() {
                 if (status !== "taken") form.requestSubmit();
             });
         }
-    });
-}
-
-// The email field is a real input (not readonly), so it's already editable by a plain
-// click - this link just mirrors the Instagram field's "Reconnect or switch account"
-// affordance and gives a one-click way to clear the current address and start typing.
-function initContactEmailChangeLink() {
-    const link = document.getElementById("settings-contact-email-change");
-    const input = document.getElementById("settings-contact-email-input");
-    if (!link || !input) return;
-    link.addEventListener("click", () => {
-        input.focus();
-        input.select();
     });
 }
 
