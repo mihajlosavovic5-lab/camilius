@@ -7,7 +7,9 @@
         <span class="brand-mark">C</span>
         <span class="brand-name">Camilius</span>
     </a>
+    {% if not logged_in %}
     <a href="{{ url_for('login') }}" data-i18n="common.logIn">Log in</a>
+    {% endif %}
 </div>
 
 <div class="content prose">

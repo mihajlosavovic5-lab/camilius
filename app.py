@@ -1094,12 +1094,12 @@ def google_site_verification():
 
 @app.route("/privacy")
 def privacy():
-    return render_template("privacy.html")
+    return render_template("privacy.html", logged_in=bool(session.get("business_id")))
 
 
 @app.route("/terms")
 def terms():
-    return render_template("terms.html")
+    return render_template("terms.html", logged_in=bool(session.get("business_id")))
 
 
 # Swipeable onboarding slides shown once, only inside the installed Android app
