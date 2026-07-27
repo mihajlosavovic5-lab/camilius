@@ -5,7 +5,60 @@
 const API_BASE = "https://app.ai-auto-reply-mail.com";
 const APP_VERSION = "1.9.7"; // bumped alongside the native versionName, sent with crash reports
 
+// No per-account sent-at tracking on the backend for password-reset emails (unlike email/
+// phone verification below), so the forgot-password buttons' cooldown is purely client-side -
+// matches EMAIL_VERIFY_RESEND_COOLDOWN_SECONDS/PHONE_VERIFY_RESEND_COOLDOWN_SECONDS in app.py.
+const FORGOT_PASSWORD_RESEND_COOLDOWN_SECONDS = 60;
+
 const el = (id) => document.getElementById(id);
+
+// Disables `btn` and counts down "Try again in Ns" for `seconds` seconds, then restores
+// its original data-i18n label - shared by every button that sends a code/link to email
+// (forgot password, resend verification, phone verification). Any countdown already
+// running on this button is replaced rather than stacked with the new one.
+function startResendCountdown(btn, seconds) {
+    if (btn._resendTimer) {
+        clearInterval(btn._resendTimer);
+        btn._resendTimer = null;
+    }
+    const defaultLabel = btn.getAttribute("data-i18n");
+    let remaining = seconds;
+
+    function render() {
+        if (remaining > 0) {
+            btn.disabled = true;
+            btn.textContent = t("verifyPending.resendWait").replace("{n}", remaining);
+        } else {
+            btn.disabled = false;
+            btn.textContent = t(defaultLabel);
+            btn._resendTimer = null;
+        }
+    }
+
+    render();
+    if (remaining > 0) {
+        btn._resendTimer = setInterval(() => {
+            remaining -= 1;
+            if (remaining <= 0) {
+                remaining = 0;
+                clearInterval(btn._resendTimer);
+            }
+            render();
+        }, 1000);
+    }
+}
+
+// Cancels any running countdown and restores `btn` to its normal clickable state - used
+// when a screen holding a resend button is freshly (re)entered.
+function resetResendButton(btn) {
+    if (btn._resendTimer) {
+        clearInterval(btn._resendTimer);
+        btn._resendTimer = null;
+    }
+    btn.disabled = false;
+    const defaultLabel = btn.getAttribute("data-i18n");
+    if (defaultLabel) btn.textContent = t(defaultLabel);
+}
 
 // Native plugins (StatusBar, App, Haptics, Preferences, PushNotifications, Badge,
 // CapacitorUpdater) are injected by Capacitor at runtime as window.Capacitor.Plugins.* -
@@ -1093,7 +1146,7 @@ el("login-form").addEventListener("submit", async (event) => {
         enterApp();
     } catch (err) {
         if (err.data && err.data.pending_verification) {
-            showVerifyPendingScreen(err.data.business_id, "");
+            showVerifyPendingScreen(err.data.business_id, "", err.data.wait_seconds);
         } else {
             errorBox.textContent = err.message || t("login.error");
             errorBox.classList.remove("hidden");
@@ -1124,6 +1177,8 @@ el("login-forgot-link").addEventListener("click", () => {
     showForgotIdentifierMode();
     el("forgot-error").classList.add("hidden");
     el("forgot-success").classList.add("hidden");
+    resetResendButton(el("forgot-submit"));
+    resetResendButton(el("forgot-phone-submit"));
     showScreen("forgotPassword");
 });
 
@@ -1151,7 +1206,7 @@ el("forgot-form").addEventListener("submit", async (event) => {
     try {
         await api("/api/forgot-password", { method: "POST", body: { identifier } });
         successBox.classList.remove("hidden");
-        el("forgot-identifier-mode").classList.add("hidden");
+        startResendCountdown(submitBtn, FORGOT_PASSWORD_RESEND_COOLDOWN_SECONDS);
     } catch (err) {
         errorBox.textContent = err.message || t("forgot.error");
         errorBox.classList.remove("hidden");
@@ -1177,7 +1232,7 @@ el("forgot-phone-form").addEventListener("submit", async (event) => {
     try {
         await api("/api/forgot-password/phone", { method: "POST", body: { phone_number: phoneNumber } });
         successBox.classList.remove("hidden");
-        el("forgot-phone-mode").classList.add("hidden");
+        startResendCountdown(submitBtn, FORGOT_PASSWORD_RESEND_COOLDOWN_SECONDS);
     } catch (err) {
         errorBox.textContent = err.message || t("forgot.phoneError");
         errorBox.classList.remove("hidden");
@@ -1452,7 +1507,7 @@ el("register-form").addEventListener("submit", async (event) => {
                 push_enabled: el("register-push-toggle").checked,
             },
         });
-        showVerifyPendingScreen(data.business_id, data.contact_email);
+        showVerifyPendingScreen(data.business_id, data.contact_email, data.wait_seconds);
     } catch (err) {
         errorBox.textContent = err.message || t("register.error");
         errorBox.classList.remove("hidden");
@@ -1467,7 +1522,7 @@ el("register-form").addEventListener("submit", async (event) => {
 // handlers above). Doesn't hold a token - the account can't do anything else until the
 // emailed link is opened, so this is a dead end with only "resend" and "back to login". ---
 
-function showVerifyPendingScreen(businessId, email) {
+function showVerifyPendingScreen(businessId, email, waitSeconds) {
     state.pendingVerifyBusinessId = businessId;
     state.pendingVerifyEmail = email;
     // Falls back to the translated generic "your email" placeholder (its own data-i18n
@@ -1476,19 +1531,24 @@ function showVerifyPendingScreen(businessId, email) {
     // gets a business_id back, never the contact_email itself.
     el("verify-pending-email").textContent = email || t("verifyPending.yourEmail");
     el("verify-pending-resent").classList.add("hidden");
+    // A verification email was just sent (by register/login) to get here at all, so the
+    // resend button starts disabled with the real server-side cooldown already counting
+    // down, instead of looking freely clickable until the first tap.
+    startResendCountdown(el("verify-pending-resend"), waitSeconds || 0);
     showScreen("verifyPending");
 }
 
 el("verify-pending-resend").addEventListener("click", async () => {
     const btn = el("verify-pending-resend");
+    if (btn.disabled) return;
     btn.disabled = true;
     try {
-        await api("/api/resend-verification", { method: "POST", body: { business_id: state.pendingVerifyBusinessId } });
+        const data = await api("/api/resend-verification", { method: "POST", body: { business_id: state.pendingVerifyBusinessId } });
         el("verify-pending-resent").classList.remove("hidden");
+        startResendCountdown(btn, data.wait_seconds || 0);
     } catch (err) {
         // Best-effort - the endpoint always responds sent:true when reachable at all, so
         // this only fires on a real network error, already surfaced by the offline banner.
-    } finally {
         btn.disabled = false;
     }
 });
@@ -2134,14 +2194,15 @@ el("settings-save").addEventListener("click", async () => {
 
 el("settings-phone-verify-btn").addEventListener("click", async () => {
     const btn = el("settings-phone-verify-btn");
+    if (btn.disabled) return;
     btn.disabled = true;
     try {
-        await api("/api/verify-phone/send", { method: "POST" });
+        const data = await api("/api/verify-phone/send", { method: "POST" });
         el("settings-phone-verify-sent").classList.remove("hidden");
+        startResendCountdown(btn, data.wait_seconds || 0);
     } catch (err) {
         // Best-effort, same as the account-email resend button - a real failure here is
         // already surfaced by the offline banner.
-    } finally {
         btn.disabled = false;
     }
 });

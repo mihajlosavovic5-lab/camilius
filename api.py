@@ -19,6 +19,7 @@ from database import (
     archive_conversation, unarchive_conversation, soft_delete_conversation, restore_conversation,
     is_reminders_enabled, set_reminders_enabled, get_upsell_pairs, set_upsell_pairs,
     email_verify_sent_recently, phone_verify_sent_recently,
+    email_verify_resend_wait_seconds, phone_verify_resend_wait_seconds,
     get_slot_duration, set_slot_duration, create_appointment, get_appointment, cancel_appointment,
 )
 from instagram_api import send_message as send_instagram_message, authorize_url as instagram_authorize_url
@@ -222,6 +223,7 @@ def api_login():
             error="Please confirm your email first - we've sent a confirmation link to your inbox.",
             pending_verification=True,
             business_id=business[0],
+            wait_seconds=email_verify_resend_wait_seconds(business[0], EMAIL_VERIFY_RESEND_COOLDOWN_SECONDS),
         ), 403
 
     return jsonify(token=make_token(business[0]), business_id=business[0], business_name=business[1])
@@ -268,10 +270,15 @@ def api_register():
         return jsonify(error="That username, contact email, or phone number is already taken."), 409
 
     log_event("register_completed", business_id=new_id)
-    from app import send_verification_email  # deferred: avoid circular import at module load
+    from app import send_verification_email, EMAIL_VERIFY_RESEND_COOLDOWN_SECONDS  # deferred: avoid circular import at module load
 
     send_verification_email(new_id, data.get("name", ""), data.get("contact_email", ""))
-    return jsonify(pending_verification=True, business_id=new_id, contact_email=data.get("contact_email", ""))
+    return jsonify(
+        pending_verification=True,
+        business_id=new_id,
+        contact_email=data.get("contact_email", ""),
+        wait_seconds=EMAIL_VERIFY_RESEND_COOLDOWN_SECONDS,
+    )
 
 
 # Lets the app's "check your email" screen (shown after registration, or after a login
@@ -292,8 +299,16 @@ def api_resend_verification():
         send_verification_email(business[0], business[1], business[4])
 
     # Same response whether or not business_id was real/already-verified - nothing here
-    # should let a caller probe for valid account ids.
-    return jsonify(sent=True)
+    # should let a caller probe for valid account ids. A real business always reports the
+    # actual remaining cooldown (freshly 60s after the send above, or whatever's left of an
+    # earlier one if it was throttled); an invalid/verified id just gets the full cooldown
+    # back, indistinguishable from a real send just having happened.
+    wait_seconds = (
+        email_verify_resend_wait_seconds(business[0], EMAIL_VERIFY_RESEND_COOLDOWN_SECONDS)
+        if business and not business[12]
+        else EMAIL_VERIFY_RESEND_COOLDOWN_SECONDS
+    )
+    return jsonify(sent=True, wait_seconds=wait_seconds)
 
 
 # Native forgot-password screen in the mobile app (replaces opening the website's
@@ -813,7 +828,7 @@ def api_send_phone_verification():
 
     if not phone_verify_sent_recently(business[0], PHONE_VERIFY_RESEND_COOLDOWN_SECONDS):
         send_phone_verification_email(business[0], business[1], business[11], business[4])
-    return jsonify(sent=True)
+    return jsonify(sent=True, wait_seconds=phone_verify_resend_wait_seconds(business[0], PHONE_VERIFY_RESEND_COOLDOWN_SECONDS))
 
 
 @api.route("/push-token", methods=["POST"])
