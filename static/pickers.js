@@ -148,16 +148,17 @@ function createHoursPicker(mountId, hiddenFieldId) {
     const mount = document.getElementById(mountId);
     const hiddenField = document.getElementById(hiddenFieldId);
     if (!mount || !hiddenField) return null;
+    // The five weekday rows (built further below) are the single source of truth for
+    // what gets saved, whichever view is currently on screen - collapsing back to the
+    // "Working days" summary is purely a display choice and never touches this data, so
+    // a day customized individually is never at risk of being silently overwritten by
+    // something unrelated to that day's own controls.
     const rows = {};
     const WEEKDAYS = HOURS_DAYS.filter((day) => !WEEKEND_DAYS.includes(day));
-    let mode = "simple";
 
     function sync() {
         hiddenField.value = HOURS_DAYS.map((day) => {
             if (WEEKEND_DAYS.includes(day)) return `${HOURS_DAY_LABELS[day]}: closed`;
-            if (mode === "simple") {
-                return `${HOURS_DAY_LABELS[day]}: ${simpleOpenSelect.value}-${simpleCloseSelect.value}`;
-            }
             const r = rows[day];
             if (!r.checkbox.checked) return `${HOURS_DAY_LABELS[day]}: closed`;
             return `${HOURS_DAY_LABELS[day]}: ${r.openSelect.value}-${r.closeSelect.value}`;
@@ -172,6 +173,20 @@ function createHoursPicker(mountId, hiddenFieldId) {
         const open = r.checkbox.checked;
         r.times.classList.toggle("hidden", !open);
         r.closedLabel.classList.toggle("hidden", open);
+    }
+
+    // Shared by the collapsed view's own pair and the advanced view's quickfill pair -
+    // both are deliberate "set every weekday to this" actions, unlike a single row's own
+    // dropdowns which only ever touch that one day.
+    function applyPairToWeekdays(openTime, closeTime) {
+        WEEKDAYS.forEach((day) => {
+            const r = rows[day];
+            r.checkbox.checked = true;
+            r.openSelect.value = openTime;
+            r.closeSelect.value = closeTime;
+            updateRowVisibility(day);
+        });
+        sync();
     }
 
     // Collapsed default view: one open/close pair covering all five weekdays, plus a
@@ -214,41 +229,28 @@ function createHoursPicker(mountId, hiddenFieldId) {
     simpleView.appendChild(customizeLink);
     mount.appendChild(simpleView);
 
-    simpleOpenSelect.addEventListener("change", sync);
-    simpleCloseSelect.addEventListener("change", sync);
+    simpleOpenSelect.addEventListener("change", () => applyPairToWeekdays(simpleOpenSelect.value, simpleCloseSelect.value));
+    simpleCloseSelect.addEventListener("change", () => applyPairToWeekdays(simpleOpenSelect.value, simpleCloseSelect.value));
 
     const advancedView = document.createElement("div");
     advancedView.className = "hours-advanced-view hidden";
     mount.appendChild(advancedView);
 
-    // Reveals the five weekday rows, seeded from whatever hours were set in the
-    // collapsed view above, so switching to customize a single day doesn't reset the rest.
-    function showAdvanced(seedFromSimple) {
-        mode = "advanced";
-        if (seedFromSimple) {
-            WEEKDAYS.forEach((day) => {
-                const r = rows[day];
-                r.checkbox.checked = true;
-                r.openSelect.value = simpleOpenSelect.value;
-                r.closeSelect.value = simpleCloseSelect.value;
-                updateRowVisibility(day);
-            });
-            quickOpenSelect.value = simpleOpenSelect.value;
-            quickCloseSelect.value = simpleCloseSelect.value;
-        }
+    // Just switches which view is on screen - the five rows already hold whatever the
+    // real current state is (kept up to date by applyPairToWeekdays and each row's own
+    // controls), so there's nothing to seed here.
+    function showAdvanced() {
+        quickOpenSelect.value = rows.monday.openSelect.value;
+        quickCloseSelect.value = rows.monday.closeSelect.value;
         simpleView.classList.add("hidden");
         advancedView.classList.remove("hidden");
-        sync();
     }
-    simpleLabelBtn.addEventListener("click", () => showAdvanced(true));
-    customizeLink.addEventListener("click", () => showAdvanced(true));
+    simpleLabelBtn.addEventListener("click", showAdvanced);
+    customizeLink.addEventListener("click", showAdvanced);
 
     // Quick-fill row: lets a user set one open/close pair and apply it to every weekday
     // at once, instead of repeating the same two dropdown picks five times. Applies the
-    // moment either time is changed here (not on the "Apply changes" button below) - that
-    // button used to re-push this pair onto every row on every click, which silently threw
-    // away a day customized individually afterward (e.g. picking a different Tuesday, then
-    // clicking "Apply changes" just to close the view put every day back to this pair).
+    // moment either time is changed here, same as the collapsed view's own pair above.
     const quickfill = document.createElement("div");
     quickfill.className = "hours-quickfill";
     const quickfillLabel = document.createElement("span");
@@ -260,37 +262,27 @@ function createHoursPicker(mountId, hiddenFieldId) {
     const quickSep = document.createElement("span");
     quickSep.className = "hours-time-sep";
     quickSep.textContent = "–";
-    function applyQuickfillToAll() {
-        WEEKDAYS.forEach((day) => {
-            const r = rows[day];
-            r.checkbox.checked = true;
-            r.openSelect.value = quickOpenSelect.value;
-            r.closeSelect.value = quickCloseSelect.value;
-            updateRowVisibility(day);
-        });
-        sync();
-    }
-    quickOpenSelect.addEventListener("change", applyQuickfillToAll);
-    quickCloseSelect.addEventListener("change", applyQuickfillToAll);
+    quickOpenSelect.addEventListener("change", () => applyPairToWeekdays(quickOpenSelect.value, quickCloseSelect.value));
+    quickCloseSelect.addEventListener("change", () => applyPairToWeekdays(quickOpenSelect.value, quickCloseSelect.value));
     const quickfillBtn = document.createElement("button");
     quickfillBtn.type = "button";
     quickfillBtn.className = "hours-quickfill-btn";
     quickfillBtn.setAttribute("data-i18n", "hoursPicker.applyChanges");
     quickfillBtn.textContent = t("hoursPicker.applyChanges");
-    // Just confirms whatever the five rows currently show (never overwrites them) and,
-    // if that happens to be the same hours on every weekday, collapses back to the
-    // "Working days" summary - the same screen the user expanded from. A day left
-    // customized differently keeps the per-day view open instead of vanishing into a
-    // summary that couldn't represent it.
+    // Purely navigation - the five rows are already the saved state (each one syncs
+    // itself on its own change), so this never touches row values. It always takes the
+    // user back to the collapsed view; when every weekday happens to share the same
+    // hours that view's own pair is updated to show it, otherwise it's left as-is (a day
+    // customized differently stays saved even though the collapsed summary can't display
+    // it - expanding again shows the real per-day state, not this stale display).
     quickfillBtn.addEventListener("click", () => {
-        sync();
         const allSame = WEEKDAYS.every((day) => rows[day].checkbox.checked) &&
             WEEKDAYS.every((day) => rows[day].openSelect.value === rows.monday.openSelect.value &&
                 rows[day].closeSelect.value === rows.monday.closeSelect.value);
-        if (!allSame) return;
-        simpleOpenSelect.value = rows.monday.openSelect.value;
-        simpleCloseSelect.value = rows.monday.closeSelect.value;
-        mode = "simple";
+        if (allSame) {
+            simpleOpenSelect.value = rows.monday.openSelect.value;
+            simpleCloseSelect.value = rows.monday.closeSelect.value;
+        }
         advancedView.classList.add("hidden");
         simpleView.classList.remove("hidden");
     });
@@ -395,16 +387,14 @@ function createHoursPicker(mountId, hiddenFieldId) {
         if (allSame) {
             simpleOpenSelect.value = rows.monday.openSelect.value;
             simpleCloseSelect.value = rows.monday.closeSelect.value;
-            mode = "simple";
         } else {
-            showAdvanced(false);
+            showAdvanced();
         }
     }
 
     // True iff every open day's closing time is after its opening time - same rule the
     // mobile app's own hours picker enforces (mobile/app.js's registerHoursPicker.validate()).
     function validate() {
-        if (mode === "simple") return simpleCloseSelect.value > simpleOpenSelect.value;
         return WEEKDAYS.every((day) => {
             const r = rows[day];
             return !r.checkbox.checked || r.closeSelect.value > r.openSelect.value;
