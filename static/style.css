@@ -964,10 +964,9 @@ body.auth {
 
 .price-currency-row { display: flex; align-items: center; justify-content: space-between; margin: 6px 0 10px; }
 .price-currency-row span { font-size: 13.5px; color: var(--text-muted); font-weight: 600; }
-.price-currency-row select {
-    padding: 7px 10px; border: 1px solid var(--border); border-radius: 8px;
-    font-family: inherit; font-size: 13.5px; font-weight: 600; color: var(--text); background: var(--surface); cursor: pointer;
-}
+/* .price-currency-dd is a createPillDropdown() root (static/pickers.js), same component
+   as .hours-time-dd above - just its own trigger width for a 3-letter currency code. */
+.price-currency-dd .schedule-slot-duration-select { width: 64px; text-align: center; justify-content: center; }
 .price-picker-rows { display: flex; flex-direction: column; gap: 8px; }
 .price-row-picker { display: flex; gap: 8px; align-items: center; }
 .price-row-picker input { flex: 1; min-width: 0; }

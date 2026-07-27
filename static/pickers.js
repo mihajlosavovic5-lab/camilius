@@ -55,28 +55,31 @@ function buildHoursTimeOptions() {
 }
 const HOURS_TIME_OPTIONS = buildHoursTimeOptions();
 
-// Closes every open time-dropdown menu - called both when a click lands outside any of
-// them and right before opening one (so opening a second dropdown auto-closes the first).
-function closeAllHoursTimeDropdowns() {
-    document.querySelectorAll(".hours-time-dd-menu").forEach((m) => m.classList.add("hidden"));
+// Closes every open pill-dropdown menu (time fields and the currency field alike) -
+// called both when a click lands outside any of them and right before opening one (so
+// opening a second dropdown auto-closes the first).
+function closeAllPillDropdowns() {
+    document.querySelectorAll(".pill-dd-menu").forEach((m) => m.classList.add("hidden"));
 }
-if (!window.__hoursTimeDropdownHandlerAdded) {
-    document.addEventListener("click", closeAllHoursTimeDropdowns);
-    window.__hoursTimeDropdownHandlerAdded = true;
+if (!window.__pillDropdownHandlerAdded) {
+    document.addEventListener("click", closeAllPillDropdowns);
+    window.__pillDropdownHandlerAdded = true;
 }
 
-// A time field built the same way schedule.html builds its per-slot duration dropdown
+// A field built the same way schedule.html builds its per-slot duration dropdown
 // (.duration-dd/.schedule-slot-duration-select/.duration-dd-menu/.duration-dd-option) -
 // reusing those classes gives it the exact same look (pill shape, shadow/glow, depth) and,
 // more importantly, the same fix: a native <select>'s own popup picks its open direction
 // based on viewport space and flips upward for a field placed low on the page, which is
 // exactly what made the Working hours time fields fly open toward the top of the screen.
 // Built as a real DOM node with a `value` property and native change events, so every call
-// site can keep treating it exactly like the <select> it replaces (r.openSelect.value,
-// r.openSelect.addEventListener("change", ...), etc.) without any other code changing.
-function createTimeDropdown(defaultValue) {
+// site can keep treating it exactly like the <select> it replaces (x.value,
+// x.addEventListener("change", ...), etc.) without any other code changing. extraClass
+// hangs off the root for field-specific tweaks (e.g. trigger width) - see .hours-time-dd/
+// .price-currency-dd in style.css.
+function createPillDropdown(options, defaultValue, extraClass) {
     const dd = document.createElement("div");
-    dd.className = "duration-dd hours-time-dd";
+    dd.className = "duration-dd pill-dd" + (extraClass ? ` ${extraClass}` : "");
 
     const trigger = document.createElement("button");
     trigger.type = "button";
@@ -86,28 +89,28 @@ function createTimeDropdown(defaultValue) {
     trigger.textContent = defaultValue;
 
     const menu = document.createElement("div");
-    menu.className = "duration-dd-menu hours-time-dd-menu hidden";
+    menu.className = "duration-dd-menu pill-dd-menu hidden";
     menu.setAttribute("role", "listbox");
 
     let currentValue = defaultValue;
-    function setValue(time, silent) {
-        currentValue = time;
-        trigger.textContent = time;
-        menu.querySelectorAll(".duration-dd-option").forEach((o) => o.classList.toggle("active", o.dataset.value === time));
+    function setValue(value, silent) {
+        currentValue = value;
+        trigger.textContent = value;
+        menu.querySelectorAll(".duration-dd-option").forEach((o) => o.classList.toggle("active", o.dataset.value === value));
         if (!silent) dd.dispatchEvent(new Event("change"));
     }
 
-    HOURS_TIME_OPTIONS.forEach((time) => {
+    options.forEach((value) => {
         const option = document.createElement("button");
         option.type = "button";
-        option.className = "duration-dd-option" + (time === defaultValue ? " active" : "");
-        option.dataset.value = time;
-        option.textContent = time;
+        option.className = "duration-dd-option" + (value === defaultValue ? " active" : "");
+        option.dataset.value = value;
+        option.textContent = value;
         option.addEventListener("click", (e) => {
             e.stopPropagation();
             menu.classList.add("hidden");
             trigger.setAttribute("aria-expanded", "false");
-            setValue(time);
+            setValue(value);
         });
         menu.appendChild(option);
     });
@@ -115,11 +118,11 @@ function createTimeDropdown(defaultValue) {
     trigger.addEventListener("click", (e) => {
         e.stopPropagation();
         const willOpen = menu.classList.contains("hidden");
-        closeAllHoursTimeDropdowns();
+        closeAllPillDropdowns();
         menu.classList.toggle("hidden", !willOpen);
         trigger.setAttribute("aria-expanded", String(willOpen));
-        // The menu scrolls (48 half-hour slots don't all fit at once) - jump straight to
-        // the current value instead of always opening scrolled to 00:00.
+        // Long option lists scroll (e.g. 48 half-hour time slots) - jump straight to the
+        // current value instead of always opening scrolled to the top.
         if (willOpen) {
             const active = menu.querySelector(".duration-dd-option.active");
             if (active) active.scrollIntoView({ block: "nearest" });
@@ -129,12 +132,16 @@ function createTimeDropdown(defaultValue) {
 
     Object.defineProperty(dd, "value", {
         get() { return currentValue; },
-        set(time) { setValue(time, true); },
+        set(value) { setValue(value, true); },
     });
 
     dd.appendChild(trigger);
     dd.appendChild(menu);
     return dd;
+}
+
+function createTimeDropdown(defaultValue) {
+    return createPillDropdown(HOURS_TIME_OPTIONS, defaultValue, "hours-time-dd");
 }
 
 // Most businesses using this picker work the same hours Mon-Fri and are closed
@@ -453,17 +460,15 @@ const CURRENCIES = ["RSD", "EUR", "USD", "GBP", "CHF", "CAD", "AUD", "JPY", "CNY
 
 function createPricePicker(mountId, addButtonId, currencySelectId, hiddenFieldId) {
     const mount = document.getElementById(mountId);
-    const currencySelect = document.getElementById(currencySelectId);
+    const currencySelectPlaceholder = document.getElementById(currencySelectId);
     const hiddenField = document.getElementById(hiddenFieldId);
-    if (!mount || !currencySelect || !hiddenField) return null;
+    if (!mount || !currencySelectPlaceholder || !hiddenField) return null;
 
-    CURRENCIES.forEach((code) => {
-        const option = document.createElement("option");
-        option.value = code;
-        option.textContent = code;
-        currencySelect.appendChild(option);
-    });
-    currencySelect.value = "RSD";
+    // Swaps out the template's plain <select id="...-price-currency"> for the same pill
+    // dropdown the Working hours time fields use - same "opens downward" fix, same look.
+    // Kept in the exact same spot in the DOM so surrounding layout is untouched.
+    const currencySelect = createPillDropdown(CURRENCIES, "RSD", "price-currency-dd");
+    currencySelectPlaceholder.replaceWith(currencySelect);
     currencySelect.addEventListener("change", sync);
 
     function sync() {
