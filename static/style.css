@@ -241,6 +241,11 @@
        read as near-illegible dark-on-dark once those backgrounds flip above. */
     .alert-error { color: #f2a89e; }
     .alert-success { color: #a8d194; }
+
+    .profile-section-icon {
+        background: linear-gradient(155deg, var(--primary-light) 0%, var(--surface) 100%);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, .08), 0 3px 8px -3px rgba(0, 0, 0, .4);
+    }
 }
 
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -1051,10 +1056,12 @@ body.auth {
 .profile-section + .profile-section { margin-top: 20px; }
 .profile-section-header { display: flex; align-items: flex-start; gap: 14px; margin-bottom: 18px; }
 .profile-section-icon {
-    flex-shrink: 0; width: 40px; height: 40px; border-radius: 11px;
+    flex-shrink: 0; width: 44px; height: 44px; border-radius: 13px;
     display: flex; align-items: center; justify-content: center;
-    background: radial-gradient(circle at 32% 28%, var(--primary-light) 0%, var(--primary-light) 68%, transparent 100%);
-    font-size: 19px;
+    background: linear-gradient(155deg, var(--gold-bright) 0%, var(--primary-light) 55%, var(--primary-light) 100%);
+    border: 1px solid var(--border-gold);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, .5), 0 3px 8px -3px rgba(38, 32, 20, .22);
+    font-size: 20px;
 }
 .profile-section-title { font-size: 16px; font-weight: 700; margin: 0; }
 .profile-section-subtitle { color: var(--text-muted); font-size: 13.5px; margin: 2px 0 0; }
