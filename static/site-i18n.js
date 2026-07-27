@@ -490,7 +490,6 @@ const TRANSLATIONS = {
         "privacy.rights.body": "You have the right to request access to the data we hold about you, its correction, or its complete deletion. For any of these requests, write to the contact email above - we'll respond within a reasonable time.",
         "privacy.changes.heading": "Changes to this policy",
         "privacy.changes.body": "This policy may be updated from time to time. We'll try to notify users of significant changes via email.",
-        "privacy.backToRegistration": "← Back to registration",
 
         "terms.title": "Terms of Service",
         "terms.updated": "Last updated: July 25, 2026.",
@@ -932,7 +931,6 @@ const TRANSLATIONS = {
         "privacy.rights.body": "Tienes derecho a solicitar acceso a los datos que tenemos sobre ti, su corrección, o su eliminación completa. Para cualquiera de estas solicitudes, escribe al correo de contacto indicado arriba - responderemos en un plazo razonable.",
         "privacy.changes.heading": "Cambios a esta política",
         "privacy.changes.body": "Esta política puede actualizarse de vez en cuando. Intentaremos notificar a los usuarios sobre cambios significativos por correo electrónico.",
-        "privacy.backToRegistration": "← Volver al registro",
 
         "terms.title": "Términos de Servicio",
         "terms.updated": "Última actualización: 25 de julio de 2026.",
@@ -1374,7 +1372,6 @@ const TRANSLATIONS = {
         "privacy.rights.body": "Você tem o direito de solicitar acesso aos dados que temos sobre você, sua correção, ou sua exclusão completa. Para qualquer uma dessas solicitações, escreva para o e-mail de contato acima - responderemos em um prazo razoável.",
         "privacy.changes.heading": "Alterações nesta política",
         "privacy.changes.body": "Esta política pode ser atualizada de tempos em tempos. Tentaremos notificar os usuários sobre mudanças significativas por e-mail.",
-        "privacy.backToRegistration": "← Voltar ao cadastro",
 
         "terms.title": "Termos de Serviço",
         "terms.updated": "Última atualização: 25 de julho de 2026.",
@@ -1816,7 +1813,6 @@ const TRANSLATIONS = {
         "privacy.rights.body": "Vous avez le droit de demander l'accès aux données que nous détenons sur vous, leur correction, ou leur suppression complète. Pour toute demande de ce type, écrivez à l'adresse e-mail de contact ci-dessus - nous répondrons dans un délai raisonnable.",
         "privacy.changes.heading": "Modifications de cette politique",
         "privacy.changes.body": "Cette politique peut être mise à jour de temps à autre. Nous essaierons de notifier les utilisateurs des changements importants par e-mail.",
-        "privacy.backToRegistration": "← Retour à l'inscription",
 
         "terms.title": "Conditions d'utilisation",
         "terms.updated": "Dernière mise à jour : 25 juillet 2026.",
@@ -2258,7 +2254,6 @@ const TRANSLATIONS = {
         "privacy.rights.body": "Du hast das Recht, Zugang zu den über dich gespeicherten Daten, deren Berichtigung oder vollständige Löschung zu verlangen. Für solche Anfragen schreib an die oben genannte Kontakt-E-Mail - wir antworten innerhalb einer angemessenen Frist.",
         "privacy.changes.heading": "Änderungen dieser Richtlinie",
         "privacy.changes.body": "Diese Richtlinie kann von Zeit zu Zeit aktualisiert werden. Wir werden versuchen, Nutzer über wesentliche Änderungen per E-Mail zu informieren.",
-        "privacy.backToRegistration": "← Zurück zur Registrierung",
 
         "terms.title": "Nutzungsbedingungen",
         "terms.updated": "Zuletzt aktualisiert: 25. Juli 2026.",
@@ -2700,7 +2695,6 @@ const TRANSLATIONS = {
         "privacy.rights.body": "Hai il diritto di richiedere l'accesso ai dati che deteniamo su di te, la loro correzione, o la loro completa eliminazione. Per qualsiasi di queste richieste, scrivi all'email di contatto sopra indicata - risponderemo entro un tempo ragionevole.",
         "privacy.changes.heading": "Modifiche a questa informativa",
         "privacy.changes.body": "Questa informativa può essere aggiornata di tanto in tanto. Cercheremo di notificare agli utenti cambiamenti significativi via email.",
-        "privacy.backToRegistration": "← Torna alla registrazione",
 
         "terms.title": "Termini di Servizio",
         "terms.updated": "Ultimo aggiornamento: 25 luglio 2026.",
@@ -3142,7 +3136,6 @@ const TRANSLATIONS = {
         "privacy.rights.body": "Вы имеете право запросить доступ к данным, которые мы храним о вас, их исправление, или полное удаление. По любому из этих запросов пишите на контактный email, указанный выше - мы ответим в разумные сроки.",
         "privacy.changes.heading": "Изменения в этой политике",
         "privacy.changes.body": "Эта политика может периодически обновляться. Мы постараемся уведомлять пользователей о значительных изменениях по email.",
-        "privacy.backToRegistration": "← Назад к регистрации",
 
         "terms.title": "Условия использования",
         "terms.updated": "Последнее обновление: 25 июля 2026 г.",
@@ -3593,7 +3586,6 @@ const TRANSLATIONS = {
         "privacy.rights.body": "Imate pravo da zatražite pristup podacima koje čuvamo o vama, njihovu ispravku, ili potpuno brisanje. Za bilo koji od ovih zahteva, pišite na gore navedeni kontakt imejl - odgovorićemo u razumnom roku.",
         "privacy.changes.heading": "Izmene ove politike",
         "privacy.changes.body": "Ova politika se može povremeno ažurirati. Trudićemo se da obavestimo korisnike o značajnim izmenama putem imejla.",
-        "privacy.backToRegistration": "← Nazad na registraciju",
 
         "terms.title": "Uslovi korišćenja",
         "terms.updated": "Poslednje ažuriranje: 25. jul 2026.",
@@ -4035,7 +4027,6 @@ const TRANSLATIONS = {
         "privacy.rights.body": "您有权要求访问我们持有的关于您的数据、更正数据,或完全删除数据。对于任何此类请求,请写信至上述联系邮箱 - 我们将在合理时间内回复。",
         "privacy.changes.heading": "本政策的变更",
         "privacy.changes.body": "本政策可能会不时更新。我们会尽力通过邮件通知用户重大变更。",
-        "privacy.backToRegistration": "← 返回注册页面",
 
         "terms.title": "服务条款",
         "terms.updated": "最后更新:2026年7月25日。",
@@ -4477,7 +4468,6 @@ const TRANSLATIONS = {
         "privacy.rights.body": "Hakkınızda sakladığımız verilere erişim, bunların düzeltilmesi veya tamamen silinmesini talep etme hakkınız vardır. Bu tür talepler için yukarıdaki iletişim e-postasına yazın - makul bir süre içinde yanıt vereceğiz.",
         "privacy.changes.heading": "Bu politikadaki değişiklikler",
         "privacy.changes.body": "Bu politika zaman zaman güncellenebilir. Önemli değişiklikleri kullanıcılara e-posta yoluyla bildirmeye çalışacağız.",
-        "privacy.backToRegistration": "← Kayıt sayfasına dön",
 
         "terms.title": "Hizmet Şartları",
         "terms.updated": "Son güncelleme: 25 Temmuz 2026.",

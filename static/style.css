@@ -1441,7 +1441,6 @@ body.auth {
 }
 
 /* --- Misc --- */
-.back-link { display: inline-block; margin-top: 26px; color: var(--text-muted); font-size: 14px; }
 .spacing-top { margin-top: 20px; }
 
 /* --- Landing page --- */
