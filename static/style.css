@@ -182,14 +182,25 @@
     --menu-row-border: var(--border);
 }
 
-/* --- Dark mode - follows the OS/browser preference (no in-app toggle). Redefining the
-   same custom properties here cascades automatically through every rule that already
-   uses var(--x), which is nearly everything on this site; only the handful of genuinely
-   hardcoded colors below (the body gradient, a couple of near-black shadow rgba()s) need
-   their own explicit override alongside it. Keeps the warm amber brand identity, just
-   inverted to a warm dark charcoal instead of pure black. --- */
+/* --- Dark mode - follows the OS/browser preference by default ("System" in the
+   Theme setting, Settings > Preferences - templates/app_settings.html), or an
+   explicit Light/Dark override stored client-side and applied as a data-theme
+   attribute on <html> (see the inline head script in templates/base.html and the
+   toggle's own script in app_settings.html) - same pattern as the mobile app's
+   applyTheme()/theme-toggle. Redefining the same custom properties cascades
+   automatically through every rule that already uses var(--x), which is nearly
+   everything on this site; only the handful of genuinely hardcoded colors below
+   (the body gradient, a couple of near-black shadow rgba()s) need their own
+   explicit override alongside it. Keeps the warm amber brand identity, just
+   inverted to a warm dark charcoal instead of pure black.
+
+   The palette itself is defined twice - once inside the @media query (fires for
+   "System" whenever the OS/browser prefers dark, unless the user picked "Light"
+   explicitly) and once for :root[data-theme="dark"] (fires for an explicit "Dark"
+   choice regardless of OS preference) - CSS has no way to OR a media-feature
+   condition with an attribute-selector condition without repeating the block. --- */
 @media (prefers-color-scheme: dark) {
-    :root {
+    :root:not([data-theme="light"]) {
         --primary: #e8a51c;
         --primary-dark: #f2b342;
         --primary-light: #3a2a10;
@@ -223,25 +234,84 @@
         --menu-row-border: var(--border);
     }
 
-    body {
+    :root:not([data-theme="light"]) body {
         background: linear-gradient(180deg, var(--primary-light) 0%, var(--background) 42%);
     }
 
     /* Hardcoded (not var-driven) muted tones used for footer/fine-print text - the
        light-mode values are #a89a7d-ish "warm taupe on white", too dark to read against
        the new dark background, so they get a lighter dark-mode-specific value here. */
-    .hero-fine-print, .footer, .footer a, .auth-footer, .auth-footer a, .lp-footer-bottom { color: #8c7d64; }
+    :root:not([data-theme="light"]) .hero-fine-print,
+    :root:not([data-theme="light"]) .footer,
+    :root:not([data-theme="light"]) .footer a,
+    :root:not([data-theme="light"]) .auth-footer,
+    :root:not([data-theme="light"]) .auth-footer a,
+    :root:not([data-theme="light"]) .lp-footer-bottom { color: #8c7d64; }
 
     /* .prose (Terms/Privacy) paragraph text is a separate hardcoded near-black, not
        var(--text) - same reasoning as above. */
-    .prose p, .prose li { color: #d8cdb8; }
+    :root:not([data-theme="light"]) .prose p,
+    :root:not([data-theme="light"]) .prose li { color: #d8cdb8; }
 
     /* .alert-error/.alert-success text colors are hardcoded dark red/green, chosen for
        contrast against the LIGHT --danger-bg/--success-bg - without an override they'd
        read as near-illegible dark-on-dark once those backgrounds flip above. */
-    .alert-error { color: #f2a89e; }
-    .alert-success { color: #a8d194; }
+    :root:not([data-theme="light"]) .alert-error { color: #f2a89e; }
+    :root:not([data-theme="light"]) .alert-success { color: #a8d194; }
 }
+
+/* Explicit "Dark" choice - identical overrides to the block above, applied
+   regardless of the OS/browser's own prefers-color-scheme. */
+:root[data-theme="dark"] {
+    --primary: #e8a51c;
+    --primary-dark: #f2b342;
+    --primary-light: #3a2a10;
+    --primary-ink: #f2b342;
+    --gold: #ffd83d;
+    --gold-bright: #ffe27a;
+    --gold-dark: #d99e14;
+    --background: #1c1712;
+    --surface: #241e17;
+    --border: #3a332a;
+    --border-strong: #5e5140;
+    --border-soft: #2a251d;
+    --border-gold: rgba(232, 165, 28, .55);
+    --text: #f2ece0;
+    --text-muted: #ab9c86;
+    --success: #7cbf68;
+    --success-bg: #1f2e18;
+    --success-border: #3a5230;
+    --warning: #e0a355;
+    --warning-bg: #362512;
+    --warning-border: #5c4020;
+    --danger: #e2685a;
+    --danger-bg: #3a1e18;
+    --danger-border: #5c342a;
+    --checkmark: #40c057;
+    --crossmark: #ff6b6b;
+    --shadow: 0 2px 6px rgba(0, 0, 0, .3), 0 1px 2px rgba(0, 0, 0, .25);
+    --shadow-lg: 0 16px 44px rgba(0, 0, 0, .45), 0 4px 10px rgba(0, 0, 0, .3);
+    --menu-sheet-bg: linear-gradient(180deg, var(--primary-light) 0%, var(--background) 42%);
+    --menu-row-bg: var(--surface);
+    --menu-row-border: var(--border);
+}
+
+:root[data-theme="dark"] body {
+    background: linear-gradient(180deg, var(--primary-light) 0%, var(--background) 42%);
+}
+
+:root[data-theme="dark"] .hero-fine-print,
+:root[data-theme="dark"] .footer,
+:root[data-theme="dark"] .footer a,
+:root[data-theme="dark"] .auth-footer,
+:root[data-theme="dark"] .auth-footer a,
+:root[data-theme="dark"] .lp-footer-bottom { color: #8c7d64; }
+
+:root[data-theme="dark"] .prose p,
+:root[data-theme="dark"] .prose li { color: #d8cdb8; }
+
+:root[data-theme="dark"] .alert-error { color: #f2a89e; }
+:root[data-theme="dark"] .alert-success { color: #a8d194; }
 
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
@@ -1584,6 +1654,16 @@ body.landing .content { padding-top: 32px; }
 .switch-row-label { font-weight: 600; font-size: 14.5px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .switch-row .hours-day-toggle { margin-top: 2px; flex-shrink: 0; }
 .badge-recommended { background: var(--primary-light); color: var(--primary-ink); border: 1px solid var(--primary); }
+
+/* --- Theme setting (Settings > Preferences) - a 3-way System/Light/Dark segmented
+   control, same markup/classes as the mobile app's own theme-toggle
+   (mobile/app.css) so both surfaces look and behave the same way. --- */
+.theme-toggle { display: flex; background: var(--background); border-radius: 10px; padding: 3px; gap: 3px; max-width: 360px; }
+.theme-option {
+    flex: 1; background: none; border: none; padding: 9px 6px; border-radius: 8px;
+    font-family: inherit; font-size: 13.5px; font-weight: 600; color: var(--text-muted); cursor: pointer;
+}
+.theme-option.active { background: var(--surface); color: var(--text); box-shadow: 0 1px 3px rgba(43,32,19,.12); }
 
 @media (max-width: 720px) {
     .lp-who-grid { grid-template-columns: repeat(2, 1fr); }

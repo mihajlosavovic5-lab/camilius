@@ -1,6 +1,21 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <!-- Applied as early as possible, before style.css paints anything, so an explicit
+         Light/Dark theme choice (Settings > Preferences - templates/app_settings.html)
+         takes effect immediately on every page load instead of flashing the OS/browser
+         default first. "System" (the default) stores nothing here, so this is a no-op
+         and style.css's own @media (prefers-color-scheme) keeps deciding. -->
+    <script>
+        (function () {
+            try {
+                var theme = localStorage.getItem("theme");
+                if (theme === "light" || theme === "dark") {
+                    document.documentElement.setAttribute("data-theme", theme);
+                }
+            } catch (e) {}
+        })();
+    </script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{% block title %}Camilius{% endblock %}</title>
