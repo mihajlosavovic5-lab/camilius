@@ -1028,29 +1028,27 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
 .ota-update-overlay.hidden { opacity: 0; pointer-events: none; }
 .ota-update-card {
     width: min(280px, 82vw);
-    background: var(--surface); color: var(--text);
-    border-radius: 20px; padding: 28px 24px 24px;
+    color: #fff;
     display: flex; flex-direction: column; align-items: center; gap: 14px;
-    box-shadow: 0 20px 48px rgba(0,0,0,.35);
     text-align: center;
 }
 .ota-update-icon { width: 56px; height: 56px; border-radius: 16px; }
 .ota-update-spinner {
     width: 22px; height: 22px; border-radius: 50%;
-    border: 3px solid var(--border); border-top-color: var(--primary);
+    border: 3px solid rgba(255,255,255,.3); border-top-color: var(--primary);
     animation: ota-spin .8s linear infinite;
 }
 @keyframes ota-spin { to { transform: rotate(360deg); } }
 .ota-update-card p { margin: 0; font-size: 14px; font-weight: 600; }
 .ota-progress-track {
-    width: 100%; height: 8px; border-radius: 999px; background: var(--border); overflow: hidden;
+    width: 100%; height: 8px; border-radius: 999px; background: rgba(255,255,255,.2); overflow: hidden;
 }
 .ota-progress-fill {
     height: 100%; width: 0%; border-radius: 999px;
     background: linear-gradient(90deg, var(--primary), var(--primary-dark));
     transition: width .25s ease;
 }
-.ota-progress-percent { font-size: 12px; font-weight: 700; color: var(--text-muted); }
+.ota-progress-percent { font-size: 12px; font-weight: 700; color: rgba(255,255,255,.75); }
 
 /* --- Search --- */
 .search-row { padding: 12px 18px 0; flex-shrink: 0; }
