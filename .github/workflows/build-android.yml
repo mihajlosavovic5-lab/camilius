@@ -68,6 +68,13 @@ jobs:
         working-directory: android
         run: ./gradlew assembleRelease --no-daemon
 
+      # Play Store submissions need an Android App Bundle, not an APK - same signing
+      # config (android/app/build.gradle's release buildType) is reused automatically,
+      # so this produces a .aab signed with the same key as the APK above.
+      - name: Build signed release AAB
+        working-directory: android
+        run: ./gradlew bundleRelease --no-daemon
+
       # Confirms this build is signed with the same key as every prior release (fingerprint
       # must match /.well-known/assetlinks.json in app.py) - printed in the logs so it can be
       # checked without needing the Android SDK locally.
@@ -80,6 +87,11 @@ jobs:
         with:
           name: camilius-ai-release-apk
           path: android/app/build/outputs/apk/release/app-release.apk
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: camilius-ai-release-aab
+          path: android/app/build/outputs/bundle/release/app-release.aab
 
       # static/camilius-ai.apk (served by app.py's /download/camilius-ai.apk, and what
       # the in-app "new version available" banner links to) used to just sit there
