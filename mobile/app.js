@@ -2036,9 +2036,84 @@ el("inbox-search").addEventListener("input", (event) => {
 
 el("inbox-retry").addEventListener("click", () => loadDashboard());
 
-// Pull-to-refresh removed (Faza 3) - the inbox now updates on its own (instant
-// push-triggered refresh + a 15s poll fallback, see startAutoRefresh above), so there's
-// no longer a manual "Refresh" gesture to offer.
+// Pull-to-refresh - on top of the automatic push-triggered + 15s poll refresh
+// (startAutoRefresh above), since it's still the gesture users instinctively reach for
+// on any inbox screen. Only tracked while #inbox-list is scrolled to the very top -
+// once the list has scrolled down, a downward drag is just normal scrolling.
+(function setupPullToRefresh() {
+    const list = el("inbox-list");
+    const indicator = el("inbox-pull-indicator");
+    const spinner = indicator.querySelector(".inbox-pull-spinner");
+    const PULL_THRESHOLD = 60;
+    const MAX_PULL = 90;
+
+    let startY = null;
+    let pulling = false;
+    let refreshing = false;
+
+    list.addEventListener("touchstart", (event) => {
+        if (refreshing || list.scrollTop > 0) {
+            startY = null;
+            return;
+        }
+        startY = event.touches[0].clientY;
+        pulling = false;
+    }, { passive: true });
+
+    list.addEventListener("touchmove", (event) => {
+        if (startY === null || refreshing) return;
+        const dy = event.touches[0].clientY - startY;
+        if (dy <= 0) return;
+        // Bails out of the gesture (falls back to normal scroll) if the list has
+        // scrolled away from the top mid-drag, e.g. new content shifted it.
+        if (list.scrollTop > 0) {
+            startY = null;
+            pulling = false;
+            indicator.classList.remove("dragging");
+            indicator.style.height = "0px";
+            spinner.style.transform = "";
+            return;
+        }
+        pulling = true;
+        event.preventDefault();
+        const pull = Math.min(dy * 0.5, MAX_PULL);
+        indicator.classList.add("dragging");
+        indicator.style.height = pull + "px";
+        spinner.style.transform = `rotate(${pull * 3}deg)`;
+    }, { passive: false });
+
+    async function endPull() {
+        if (!pulling) {
+            startY = null;
+            return;
+        }
+        pulling = false;
+        startY = null;
+        indicator.classList.remove("dragging");
+
+        const pulledEnough = parseFloat(indicator.style.height || "0") >= PULL_THRESHOLD;
+        if (!pulledEnough) {
+            indicator.style.height = "0px";
+            spinner.style.transform = "";
+            return;
+        }
+
+        refreshing = true;
+        indicator.classList.add("refreshing");
+        indicator.style.height = PULL_THRESHOLD + "px";
+        spinner.style.transform = "";
+        try {
+            await loadDashboard({ silent: true });
+        } finally {
+            indicator.classList.remove("refreshing");
+            indicator.style.height = "0px";
+            refreshing = false;
+        }
+    }
+
+    list.addEventListener("touchend", endPull);
+    list.addEventListener("touchcancel", endPull);
+})();
 
 // --- Conversation detail (its own screen, not inline in the list) ---
 
