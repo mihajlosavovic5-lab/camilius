@@ -1994,16 +1994,31 @@ el("row-action-delete").addEventListener("click", () => runRowAction("delete"));
 el("row-action-restore").addEventListener("click", () => runRowAction("restore"));
 
 // Real Instagram profile picture when the platform gave us one, falling back to the
-// colored-letter avatar otherwise (also used if the image URL fails to load, e.g. an
-// expired CDN link) - set via the .src property rather than string-interpolated markup
-// so an unusual URL can never be parsed as HTML.
+// colored-letter avatar otherwise - set via the .src property rather than
+// string-interpolated markup so an unusual URL can never be parsed as HTML.
+//
+// c.profile_pic_url is a signed Meta CDN link captured once when the message arrived
+// (see save_draft_reply/profile_pic_url) - it expires after a while, so it can easily
+// 403 by the time someone actually opens the inbox even though the sender still has a
+// picture. On the first failure, ask the server to re-resolve a fresh URL live
+// (GET /api/conversations/<id>/avatar can't be an <img src> directly since it needs the
+// Bearer auth header a plain <img> tag can't send); only if that also comes up empty
+// does it fall back to the letter avatar.
 function buildAvatar(c) {
     if (!c.profile_pic_url) return buildLetterAvatar(c.sender);
     const img = document.createElement("img");
     img.className = "inbox-avatar inbox-avatar-img";
     img.alt = "";
     img.src = c.profile_pic_url;
-    img.onerror = () => img.replaceWith(buildLetterAvatar(c.sender));
+    img.onerror = async () => {
+        img.onerror = () => img.replaceWith(buildLetterAvatar(c.sender));
+        try {
+            const data = await api(`/api/conversations/${c.id}/avatar`);
+            img.src = data.profile_pic_url;
+        } catch (err) {
+            img.replaceWith(buildLetterAvatar(c.sender));
+        }
+    };
     return img;
 }
 

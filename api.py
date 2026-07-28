@@ -23,7 +23,7 @@ from database import (
     email_verify_resend_wait_seconds, phone_verify_resend_wait_seconds,
     get_slot_duration, set_slot_duration, create_appointment, get_appointment, cancel_appointment,
 )
-from instagram_api import send_message as send_instagram_message, authorize_url as instagram_authorize_url
+from instagram_api import send_message as send_instagram_message, authorize_url as instagram_authorize_url, get_sender_info
 from extensions import limiter
 import booking
 import paddle_billing
@@ -705,6 +705,28 @@ def api_restore_conversation(conversation_id):
         return error
     restore_conversation(conversation_id)
     return jsonify(message="restored")
+
+
+@api.route("/conversations/<int:conversation_id>/avatar")
+@require_api_auth
+def api_conversation_avatar(conversation_id):
+    """Live re-resolve of the sender's Instagram profile picture, called by the app's
+    avatar <img onerror> handler. The URL stored on the conversation at message-receipt
+    time (see save_draft_reply/profile_pic_url) is a signed Meta CDN link that expires
+    after a while, so by the time someone actually opens the inbox it can easily 403 even
+    though the sender still has a picture - re-fetching it here on demand keeps the real
+    avatar showing instead of permanently regressing to the letter fallback."""
+    conversation, error = _owned_conversation(conversation_id)
+    if error:
+        return error
+    sender_igsid = conversation[6]
+    if not sender_igsid:
+        return jsonify(error="not found"), 404
+    business = business_by_id(conversation[1])
+    profile_pic_url = get_sender_info(sender_igsid, business[7])["profile_pic_url"]
+    if not profile_pic_url:
+        return jsonify(error="not found"), 404
+    return jsonify(profile_pic_url=profile_pic_url)
 
 
 @api.route("/conversations/<int:conversation_id>/send", methods=["POST"])

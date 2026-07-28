@@ -1547,6 +1547,29 @@ def restore_conversation_route(conversation_id):
     return redirect(url_for("home", filter=request.form.get("from_filter", "trash")))
 
 
+@app.route("/avatar/<int:conversation_id>")
+@login_required
+def conversation_avatar(conversation_id):
+    """Live re-resolve of the sender's Instagram profile picture, used as the retry step
+    in dashboard.html's avatar <img onerror> chain. The URL stored on the conversation at
+    message-receipt time (see save_draft_reply/profile_pic_url) is a signed Meta CDN link
+    that expires after a while, so by the time the dashboard is actually opened it can
+    easily 403 even though the sender still has a picture - re-fetching it here on demand
+    and redirecting to the fresh link keeps the real avatar showing instead of permanently
+    regressing to the letter fallback."""
+    conversation = get_conversation(conversation_id)
+    if conversation is None or conversation[1] != session["business_id"]:
+        abort(404)
+    sender_igsid = conversation[6]
+    if not sender_igsid:
+        abort(404)
+    business = business_by_id(session["business_id"])
+    profile_pic_url = get_sender_info(sender_igsid, business[7])["profile_pic_url"]
+    if not profile_pic_url:
+        abort(404)
+    return redirect(profile_pic_url)
+
+
 @app.route("/send/<int:conversation_id>", methods=["POST"])
 @login_required
 def send_reply(conversation_id):
