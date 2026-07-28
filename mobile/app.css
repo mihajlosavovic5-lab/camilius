@@ -848,15 +848,20 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
 }
 .schedule-slot-cancel:active { opacity: .6; }
 
-/* Week view */
+/* Week view - a full-width stacked column of day cards, one per row, matching the
+   website's own phone layout (see static/style.css's .schedule-week-grid, which
+   collapses from a 7-column grid to a single full-width column under 560px). This used
+   to be a horizontally-scrolling row of fixed 132px cards - on a phone screen that
+   showed barely more than two days at a time with the rest hidden off to the side,
+   nothing like the "every day visible, just scroll down" table the website shows. */
 .schedule-week-legend { display: flex; gap: 16px; padding: 0 18px 10px; flex-shrink: 0; }
 .schedule-week-legend-item { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-muted); }
 .schedule-week-legend-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
 .schedule-week-legend-dot-ai { background: var(--primary); }
 .schedule-week-legend-dot-manual { background: var(--text-muted); }
-.schedule-week-list { display: flex; gap: 10px; padding: 0 18px 4px; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.schedule-week-list { display: flex; flex-direction: column; gap: 10px; padding: 0 18px 4px; }
 .schedule-week-day {
-    flex: 0 0 132px; max-height: 280px; overflow-y: auto;
+    width: 100%; max-height: 280px; overflow-y: auto;
     background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 10px;
 }
 .schedule-week-day.today { border-color: var(--primary); }
