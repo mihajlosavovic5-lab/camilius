@@ -713,8 +713,10 @@
         <input type="text" id="settings-instagram-account" placeholder=" " readonly>
         <label for="settings-instagram-account" data-i18n="settings.instagramAccount">Instagram account (read-only)</label>
       </div>
-      <button type="button" class="link-btn" id="settings-instagram-reconnect-btn" data-i18n="settings.instagramReconnect">Reconnect or switch account</button>
-      <button type="button" class="link-btn row-action-danger hidden" id="settings-instagram-disconnect-btn" data-i18n="settings.instagramDisconnect">Disconnect</button>
+      <div class="instagram-actions-row">
+        <button type="button" class="link-btn" id="settings-instagram-reconnect-btn" data-i18n="settings.instagramReconnect">Reconnect or switch account</button>
+        <button type="button" class="link-btn row-action-danger hidden" id="settings-instagram-disconnect-btn" data-i18n="settings.instagramDisconnect">Disconnect</button>
+      </div>
 
       <label data-i18n="settings.hours">Working hours</label>
       <div class="hours-picker" id="settings-hours-picker"></div>
