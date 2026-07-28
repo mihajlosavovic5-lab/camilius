@@ -139,6 +139,12 @@ button { font-family: inherit; }
     color: var(--text-muted); text-decoration: none;
 }
 .link-btn:active { opacity: .7; }
+/* Terms/Privacy links inlined into the register checkbox row's own sentence - same
+   "I accept the [Terms of Service] and [Privacy Policy]" phrasing as the web register
+   page (templates/register.html), instead of two separate buttons below the checkbox.
+   Colored/weighted like a real link (not the plain .link-btn default) since it now
+   reads as inline text rather than a standalone action button. */
+.link-btn-inline { color: var(--primary-ink); font-weight: 600; }
 /* Must come after .link-btn - same specificity, and .link-btn's margin:0 reset was
    silently winning the cascade by source order, so no margin-top set here ever
    actually rendered no matter the value. */
@@ -382,14 +388,12 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
    the TALLEST of the three, leaving dead scrollable space below shorter steps (step 2's
    working-hours list is noticeably shorter than steps 1/3) even though there's nothing
    actually down there. */
-/* Step 1's own intro - the other two steps already open with a .block-label
-   ("Business details...") plus a picker/textarea that fills the screen, but step 1
-   used to jump straight into fields with nothing above them; now that floating
-   labels made step 1 shorter, that made it look like an empty accident once
-   centered rather than a designed screen. This gives it the same kind of "screen
-   intro" weight Connect Instagram already has (plain h1 + .screen-subtitle,
-   centered, no icon - matches that screen's tone rather than the onboarding
-   slides' more playful emoji treatment). */
+/* Persistent wizard heading, shown above every step (not just step 1) - same wording
+   and role as the web register page's .register-wizard-heading (templates/
+   register.html), which stays fixed across all three steps instead of being swapped
+   for step-specific copy. Same kind of "screen intro" weight Connect Instagram already
+   has (plain h1 + .screen-subtitle, centered, no icon - matches that screen's tone
+   rather than the onboarding slides' more playful emoji treatment). */
 .register-step-intro { text-align: center; margin-bottom: 22px; }
 .register-step-intro h1 { font-family: Georgia, "Times New Roman", serif; font-weight: 700; font-size: 22px; margin: 0 0 6px; color: var(--primary); }
 .register-step-intro .screen-subtitle { margin: 0; }
@@ -437,7 +441,6 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
 /* --- Auth sub-screens (Register / Forgot password / Connect Instagram) - pushed on
    top of Login with the same slide-in transition as the conversation detail screen --- */
 .screen-subtitle { color: var(--text-muted); font-size: 14px; margin: 2px 0 18px; line-height: 1.5; }
-.auth-links-row { display: flex; gap: 16px; margin-top: 4px; }
 .info-card {
     background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
     padding: 14px 16px; margin: 4px 0 6px; font-size: 13.5px; color: var(--text-muted); line-height: 1.5;
