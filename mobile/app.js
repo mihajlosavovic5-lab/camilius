@@ -90,6 +90,8 @@ const state = {
     scheduleBookSlot: null,
     scheduleBookDuration: 30,
     scheduleCache: {},
+    reminderCustomerMinutes: 1440,
+    reminderOwnerMinutes: 60,
 };
 
 const screens = {
@@ -1143,7 +1145,7 @@ el("login-form").addEventListener("submit", async (event) => {
         state.businessName = data.business_name;
         await storageSet("token", data.token);
         await storageSet("businessName", data.business_name);
-        enterApp();
+        enterOrGateOnInstagram();
     } catch (err) {
         if (err.data && err.data.pending_verification) {
             showVerifyPendingScreen(err.data.business_id, "", err.data.wait_seconds);
@@ -1565,14 +1567,25 @@ el("verify-pending-back").addEventListener("click", () => {
 // detected via the Browser plugin's own "browserFinished" event (fires when the user
 // closes the tab, whether by finishing the OAuth flow or bailing out) rather than
 // requiring the user to tell us - we just check /api/settings for the now-connected
-// Instagram username right after. ---
+// Instagram username right after.
+//
+// Two entry points share this same OAuth round-trip: the mandatory gate screen below
+// (a business with no Instagram account connected yet has nowhere else to go) and the
+// "Reconnect or switch account" link on the Profile screen (see settings-instagram-
+// reconnect-btn below), for a business that's already connected but wants to switch
+// accounts or fix a broken connection - same as the website's own Settings page.
+// instagramConnectContext records which one is in flight so the shared browserFinished
+// listener knows whether to route into the app or just refresh Profile's read-only field. ---
 
 let awaitingInstagramConnect = false;
+let instagramConnectContext = null; // "gate" | "profile"
 
-el("connect-instagram-btn").addEventListener("click", async () => {
-    el("connect-error").classList.add("hidden");
+async function openInstagramConnectBrowser(context, errorBoxId) {
+    const errorBox = el(errorBoxId);
+    if (errorBox) errorBox.classList.add("hidden");
     try {
         const data = await api("/api/instagram-connect-url");
+        instagramConnectContext = context;
         if (capacitorPlugins && capacitorPlugins.Browser) {
             awaitingInstagramConnect = true;
             await capacitorPlugins.Browser.open({ url: data.url });
@@ -1581,17 +1594,40 @@ el("connect-instagram-btn").addEventListener("click", async () => {
         }
     } catch (err) {
         reportClientError(err.message, err.stack, "instagram-connect-url");
-        el("connect-error").textContent = err.message || t("connect.notYetBody");
-        el("connect-error").classList.remove("hidden");
+        if (errorBox) {
+            errorBox.textContent = err.message || t("connect.notYetBody");
+            errorBox.classList.remove("hidden");
+        } else {
+            showToast(err.message || t("connect.notYetBody"));
+        }
     }
-});
+}
+
+el("connect-instagram-btn").addEventListener("click", () => openInstagramConnectBrowser("gate", "connect-error"));
+el("settings-instagram-reconnect-btn").addEventListener("click", () => openInstagramConnectBrowser("profile", null));
 
 if (capacitorPlugins && capacitorPlugins.Browser) {
     capacitorPlugins.Browser.addListener("browserFinished", async () => {
         if (!awaitingInstagramConnect) return;
         awaitingInstagramConnect = false;
-        if (!screens.connectInstagram.classList.contains("active")) return;
+        const context = instagramConnectContext;
+        instagramConnectContext = null;
 
+        if (context === "profile") {
+            try {
+                const data = await api("/api/settings");
+                el("settings-instagram-account").value = data.instagram_username ? "@" + data.instagram_username : "";
+                if (data.instagram_username) {
+                    if (capacitorPlugins.Haptics) capacitorPlugins.Haptics.impact({ style: "LIGHT" });
+                    showToast(t("settings.saved"));
+                }
+            } catch (err) {
+                if (err.status === 401) logout();
+            }
+            return;
+        }
+
+        if (context !== "gate") return;
         el("connect-waiting").classList.remove("hidden");
         try {
             const data = await api("/api/settings");
@@ -1614,10 +1650,36 @@ if (capacitorPlugins && capacitorPlugins.Browser) {
 
 // Connect Instagram is a mandatory gate with nowhere else to "go back" to (it replaces
 // the register screen rather than being pushed on top of it, and a logged-in-but-not-
-// yet-connected business lands here straight from login too) - the back arrow's only
-// sensible action is the same one the old "Log out" link performed, just presented as
-// standard back-navigation chrome instead of an explicit logout affordance.
+// yet-connected business lands here straight from login too - see
+// enterOrGateOnInstagram() below) - the back arrow's only sensible action is the same
+// one the old "Log out" link performed, just presented as standard back-navigation
+// chrome instead of an explicit logout affordance.
 el("connect-instagram-back").addEventListener("click", logout);
+
+// Gates entry into the app on Instagram actually being connected - mirrors the
+// website's own home route, which redirects to /connect-instagram whenever
+// instagram_account_id isn't set yet (see app.py). Called after login and on a
+// cold start with an already-stored token, so a business that verified its email and
+// logged back in without ever finishing Instagram OAuth lands on the gate screen
+// instead of an empty Inbox with no way back to it.
+async function enterOrGateOnInstagram() {
+    try {
+        const data = await api("/api/settings");
+        if (data.instagram_username) {
+            enterApp();
+        } else {
+            showTabbar(false);
+            el("connect-error").classList.add("hidden");
+            showScreen("connectInstagram");
+        }
+    } catch (err) {
+        if (err.status === 401) { logout(); return; }
+        // Network hiccup checking connection status shouldn't strand the user on a blank
+        // screen - fall back to entering the app; loadSettingsIntoForm/loadDashboard will
+        // surface any real, ongoing error of their own right after.
+        enterApp();
+    }
+}
 
 function enterApp() {
     showTabbar(true);
@@ -1757,6 +1819,11 @@ async function loadDashboard({ silent = false } = {}) {
         el("count-archived").textContent = data.archived_count;
         el("count-trash").textContent = data.trash_count;
         el("trash-note").classList.toggle("hidden", state.filter !== "trash");
+
+        if (data.stats) {
+            el("inbox-stat-sent").textContent = data.stats.total_sent;
+            el("inbox-stat-sent-week").textContent = data.stats.sent_this_week;
+        }
 
         el("banner-inactive").classList.toggle("hidden", data.beta_free_mode || data.subscription_active);
 
@@ -2630,11 +2697,16 @@ el("schedule-upgrade-btn").addEventListener("click", () => {
     showScreen("subscription");
 });
 
-// Shared "Custom" duration prompt (business-default picker in the header, and the
-// per-booking picker in the Book sheet below) - opened when "Custom" is chosen from
-// either option list. Resolves to the chosen number of minutes, or null if cancelled,
-// so both call sites can just `await` it instead of juggling their own modal state.
-function promptForCustomDuration(currentMinutes, min, max) {
+// Shared "Custom" duration prompt (business-default picker in the header, the
+// per-booking picker in the Book sheet below, and the reminder lead-time pickers in
+// Settings) - opened when "Custom" is chosen from any of those option lists. Resolves to
+// the chosen number of minutes, or null if cancelled, so every call site can just
+// `await` it instead of juggling its own modal state. knownChoices defaults to the
+// schedule duration pills (the modal's original, and still most common, caller) - pass
+// a different list for a picker with its own separate preset values (e.g. the reminder
+// lead-time pickers' 15/30/60/120/1440), so "already one of the presets" is judged
+// against the right set rather than always the schedule one.
+function promptForCustomDuration(currentMinutes, min, max, knownChoices = state.scheduleSlotChoices) {
     return new Promise((resolve) => {
         const modal = el("duration-modal");
         const input = el("duration-modal-input");
@@ -2645,7 +2717,7 @@ function promptForCustomDuration(currentMinutes, min, max) {
 
         input.min = min;
         input.max = max;
-        input.value = Number.isInteger(currentMinutes) && (currentMinutes < min || currentMinutes > max || state.scheduleSlotChoices.includes(currentMinutes)) ? "" : currentMinutes;
+        input.value = Number.isInteger(currentMinutes) && (currentMinutes < min || currentMinutes > max || knownChoices.includes(currentMinutes)) ? "" : currentMinutes;
         errorBox.classList.add("hidden");
         modal.classList.add("open");
         setTimeout(() => input.focus(), 250);
@@ -2783,16 +2855,38 @@ async function cancelAppointment(appointmentId) {
     }
 }
 
-// Loads the current push/auto-send preferences into the toggles - purely local UI
-// state until the user taps "Save changes" below (Faza 4: these used to POST instantly
+// Reminder lead-time presets (Faza 13) - mirrors the website's REMINDER_LEAD_CHOICES
+// (see app.py) - minutes before the appointment, shown as a compact hour/minute label.
+// A business can also pick "Custom" from the option list below and type any other value
+// via the shared duration-modal (same widget the Schedule tab's own duration pickers
+// use) - REMINDER_LEAD_MAX_MINUTES caps that input, matching the server-side cap.
+const REMINDER_LEAD_CHOICES = [15, 30, 60, 120, 1440];
+const REMINDER_LEAD_MIN_MINUTES = 1;
+const REMINDER_LEAD_MAX_MINUTES = 7 * 24 * 60;
+
+function reminderLeadLabel(minutes) {
+    if (minutes === 60) return "1h";
+    if (minutes === 120) return "2h";
+    if (minutes === 1440) return "24h";
+    return `${minutes} min`;
+}
+
+// Loads the current push/auto-send/reminder preferences into the toggles - purely local
+// UI state until the user taps "Save changes" below (Faza 4: these used to POST instantly
 // on every toggle flip; now nothing is sent to the server until Save is tapped, same as
-// the Profile screen's own Save button).
+// the Profile screen's own Save button). Customer and owner reminders (Faza 9/12/13) are
+// independent, each with its own lead time - see api.py's /api/notification-preferences.
 async function loadNotificationPreferences() {
     try {
         const data = await api("/api/notification-preferences");
         el("settings-push-toggle").checked = !!data.push_enabled;
         el("settings-autosend-toggle").checked = !!data.auto_send;
-        el("settings-reminders-toggle").checked = !!data.reminders_enabled;
+        el("settings-reminders-customer-toggle").checked = !!data.reminders_enabled;
+        el("settings-reminders-owner-toggle").checked = !!data.owner_reminders_enabled;
+        state.reminderCustomerMinutes = data.customer_reminder_minutes || 1440;
+        state.reminderOwnerMinutes = data.owner_reminder_minutes || 60;
+        el("settings-reminders-customer-lead-label").textContent = reminderLeadLabel(state.reminderCustomerMinutes);
+        el("settings-reminders-owner-lead-label").textContent = reminderLeadLabel(state.reminderOwnerMinutes);
         applyProAccessLocks();
         appSettingsSnapshot = serializeAppSettingsForm();
         updateAppSettingsSaveState();
@@ -2801,17 +2895,19 @@ async function loadNotificationPreferences() {
     }
 }
 
-// Same "hidden until dirty" treatment as the Profile screen's Save button - these three
-// toggles have no "invalid" state of their own (a checkbox flip is always a valid value),
-// so once dirty this one goes straight to enabled rather than passing through a gray
-// step.
+// Same "hidden until dirty" treatment as the Profile screen's Save button - the toggles
+// have no "invalid" state of their own (a checkbox flip is always a valid value), so once
+// dirty this one goes straight to enabled rather than passing through a gray step.
 let appSettingsSnapshot = null;
 
 function serializeAppSettingsForm() {
     return JSON.stringify({
         push: el("settings-push-toggle").checked,
         autoSend: el("settings-autosend-toggle").checked,
-        reminders: el("settings-reminders-toggle").checked,
+        remindersCustomer: el("settings-reminders-customer-toggle").checked,
+        remindersOwner: el("settings-reminders-owner-toggle").checked,
+        customerMinutes: state.reminderCustomerMinutes,
+        ownerMinutes: state.reminderOwnerMinutes,
     });
 }
 
@@ -2820,22 +2916,70 @@ function updateAppSettingsSaveState() {
     el("settings-app-save").classList.toggle("hidden", !dirty);
 }
 
-["settings-push-toggle", "settings-autosend-toggle", "settings-reminders-toggle"].forEach((id) => {
+["settings-push-toggle", "settings-autosend-toggle", "settings-reminders-customer-toggle", "settings-reminders-owner-toggle"].forEach((id) => {
     el(id).addEventListener("change", updateAppSettingsSaveState);
 });
 
-// Faza 11: locks the No-show reminders toggle and AI upsell field for a Starter-plan
-// (or lapsed) business - mirrors the website's .pro-locked treatment. state.proAccess
-// comes from /api/dashboard's response (see loadInbox), so this is called both there
-// and after loadNotificationPreferences/loadSettingsIntoForm in case Settings/Profile
-// is opened before the Inbox tab has ever loaded once.
+// Reminder lead-time pickers - same anchored optionPicker + "Custom" -> duration-modal
+// pattern as the Schedule tab's own duration buttons above, just with the reminder
+// presets instead of slot-duration ones.
+function wireReminderLeadPicker(buttonId, labelId, getMinutes, setMinutes) {
+    el(buttonId).addEventListener("click", () => {
+        const btn = el(buttonId);
+        if (optionPicker.isOpenFor(btn)) { optionPicker.close(); return; }
+        const customLabel = t("schedule.custom");
+        const options = REMINDER_LEAD_CHOICES.map(reminderLeadLabel).concat(customLabel);
+        const currentLabel = REMINDER_LEAD_CHOICES.includes(getMinutes()) ? reminderLeadLabel(getMinutes()) : customLabel;
+        optionPicker.open(btn, options, currentLabel, async (chosen) => {
+            let minutes;
+            if (chosen === customLabel) {
+                minutes = await promptForCustomDuration(getMinutes(), REMINDER_LEAD_MIN_MINUTES, REMINDER_LEAD_MAX_MINUTES, REMINDER_LEAD_CHOICES);
+                if (minutes == null) return;
+            } else {
+                minutes = REMINDER_LEAD_CHOICES[options.indexOf(chosen)];
+            }
+            setMinutes(minutes);
+            el(labelId).textContent = reminderLeadLabel(minutes);
+            updateAppSettingsSaveState();
+        });
+    });
+}
+wireReminderLeadPicker(
+    "settings-reminders-customer-lead-btn", "settings-reminders-customer-lead-label",
+    () => state.reminderCustomerMinutes, (m) => { state.reminderCustomerMinutes = m; },
+);
+wireReminderLeadPicker(
+    "settings-reminders-owner-lead-btn", "settings-reminders-owner-lead-label",
+    () => state.reminderOwnerMinutes, (m) => { state.reminderOwnerMinutes = m; },
+);
+
+// Faza 11/13: locks the No-show reminders toggles/lead-time pickers and AI upsell field
+// for a Starter-plan (or lapsed) business - mirrors the website's .pro-locked treatment.
+// state.proAccess comes from /api/dashboard's response (see loadInbox), so this is
+// called both there and after loadNotificationPreferences/loadSettingsIntoForm in case
+// Settings/Profile is opened before the Inbox tab has ever loaded once.
 function applyProAccessLocks() {
-    const remindersToggle = el("settings-reminders-toggle");
-    const remindersRow = el("settings-reminders-row");
-    if (remindersToggle && remindersRow) {
-        remindersToggle.disabled = !state.proAccess;
-        remindersRow.classList.toggle("pro-locked", !state.proAccess);
-        if (!state.proAccess) remindersToggle.checked = false;
+    const customerToggle = el("settings-reminders-customer-toggle");
+    const customerRow = el("settings-reminders-customer-row");
+    const customerLeadRow = el("settings-reminders-customer-lead-row");
+    const customerLeadBtn = el("settings-reminders-customer-lead-btn");
+    if (customerToggle && customerRow) {
+        customerToggle.disabled = !state.proAccess;
+        customerRow.classList.toggle("pro-locked", !state.proAccess);
+        if (customerLeadRow) customerLeadRow.classList.toggle("pro-locked", !state.proAccess);
+        if (customerLeadBtn) customerLeadBtn.disabled = !state.proAccess;
+        if (!state.proAccess) customerToggle.checked = false;
+    }
+    const ownerToggle = el("settings-reminders-owner-toggle");
+    const ownerRow = el("settings-reminders-owner-row");
+    const ownerLeadRow = el("settings-reminders-owner-lead-row");
+    const ownerLeadBtn = el("settings-reminders-owner-lead-btn");
+    if (ownerToggle && ownerRow) {
+        ownerToggle.disabled = !state.proAccess;
+        ownerRow.classList.toggle("pro-locked", !state.proAccess);
+        if (ownerLeadRow) ownerLeadRow.classList.toggle("pro-locked", !state.proAccess);
+        if (ownerLeadBtn) ownerLeadBtn.disabled = !state.proAccess;
+        if (!state.proAccess) ownerToggle.checked = false;
     }
     const upsellField = el("settings-upsell-pairs");
     const upsellHint = el("settings-upsell-hint");
@@ -2846,7 +2990,7 @@ function applyProAccessLocks() {
         if (upsellLockedHint) upsellLockedHint.classList.toggle("hidden", state.proAccess);
     }
     // A plan downgrade arriving mid-edit (loadDashboard's poll, not just the initial
-    // load) can force the reminders toggle off from under the user - re-check dirtiness
+    // load) can force the reminders toggles off from under the user - re-check dirtiness
     // so the Save button reacts to that too, not just to the user's own taps.
     updateAppSettingsSaveState();
 }
@@ -2863,7 +3007,10 @@ el("settings-app-save").addEventListener("click", async () => {
             body: {
                 push_enabled: el("settings-push-toggle").checked,
                 auto_send: el("settings-autosend-toggle").checked,
-                reminders_enabled: state.proAccess ? el("settings-reminders-toggle").checked : undefined,
+                reminders_enabled: state.proAccess ? el("settings-reminders-customer-toggle").checked : undefined,
+                owner_reminders_enabled: state.proAccess ? el("settings-reminders-owner-toggle").checked : undefined,
+                customer_reminder_minutes: state.proAccess ? state.reminderCustomerMinutes : undefined,
+                owner_reminder_minutes: state.proAccess ? state.reminderOwnerMinutes : undefined,
             },
         });
         showToast(t("settings.saved"));
@@ -3017,7 +3164,7 @@ updateOfflineBanner();
     state.businessName = businessName || "";
 
     if (state.token) {
-        enterApp();
+        enterOrGateOnInstagram();
     } else if (isNative && !onboardingSeen) {
         showScreen("onboarding");
     } else {
