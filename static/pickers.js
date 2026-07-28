@@ -97,7 +97,12 @@ function createPillDropdown(options, defaultValue, extraClass) {
         currentValue = value;
         trigger.textContent = value;
         menu.querySelectorAll(".duration-dd-option").forEach((o) => o.classList.toggle("active", o.dataset.value === value));
-        if (!silent) dd.dispatchEvent(new Event("change"));
+        // Must bubble: settings.html's Save button listens for "change" on the whole
+        // #settings-form (one delegated listener catching every field, including this
+        // dropdown), not on this element directly - a non-bubbling event never reaches
+        // it, so picking a time (or a currency, which reuses this same picker) silently
+        // updated the hidden field but left the Save button hidden, as if nothing changed.
+        if (!silent) dd.dispatchEvent(new Event("change", { bubbles: true }));
     }
 
     options.forEach((value) => {
