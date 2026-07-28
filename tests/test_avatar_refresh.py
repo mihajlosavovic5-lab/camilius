@@ -97,3 +97,23 @@ def test_web_avatar_404s_without_sender_igsid(client, unique_username, unique_em
 
     response = client.get(f"/avatar/{conversation_id}")
     assert response.status_code == 404
+
+
+def test_dashboard_points_straight_at_live_avatar_when_none_was_ever_stored(client, unique_username, unique_email):
+    """A conversation can have no stored profile_pic_url at all - the initial Graph API
+    lookup can fail, or the sender simply had no picture yet at message-receipt time and
+    has since added or changed one. Regression: the old template only ever retried a
+    stored-but-broken URL, so a conversation that never had one showed the letter avatar
+    forever - even after the sender got a real picture - since nothing ever attempted to
+    load an image at all."""
+    reg = register_business_web(client, unique_username, unique_email)
+    assert reg.status_code == 302
+    business = database.business_by_username(unique_username)
+    business_id = business[0]
+    _connect_instagram(business_id)
+
+    conversation_id = database.save_draft_reply(business_id, "real_ig_user", "Is this available?", "Yes!")
+
+    response = client.get("/")
+    html = response.get_data(as_text=True)
+    assert f"/avatar/{conversation_id}" in html
