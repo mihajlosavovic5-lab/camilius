@@ -99,6 +99,10 @@ jobs:
       # download but nobody was reliably re-fetching it and committing it back, so the
       # distributed binary drifted further out of date every release. This closes that
       # gap: same build, published straight to the ref that triggered the workflow.
+      # The build above takes several minutes, so the ref can move upstream in the
+      # meantime - a plain push here races that and gets rejected as non-fast-forward.
+      # Rebase onto the latest ref just before pushing, and retry a few times in case
+      # something lands again in that window.
       - name: Publish rebuilt APK to static/camilius-ai.apk
         run: |
           cp android/app/build/outputs/apk/release/app-release.apk static/camilius-ai.apk
@@ -107,7 +111,16 @@ jobs:
           git add static/camilius-ai.apk
           if git diff --cached --quiet; then
             echo "APK unchanged - nothing to publish"
-          else
-            git commit -m "Publish freshly built signed APK"
-            git push origin HEAD:${{ github.ref_name }}
+            exit 0
           fi
+          git commit -m "Publish freshly built signed APK"
+          for attempt in 1 2 3 4 5; do
+            if git push origin HEAD:${{ github.ref_name }}; then
+              exit 0
+            fi
+            echo "Push rejected (attempt $attempt) - rebasing onto latest ${{ github.ref_name }} and retrying"
+            git fetch origin ${{ github.ref_name }}
+            git rebase origin/${{ github.ref_name }}
+          done
+          echo "::error::Failed to push rebuilt APK after multiple attempts"
+          exit 1
