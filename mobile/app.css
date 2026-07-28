@@ -21,6 +21,7 @@
     --danger: #b3341f;
     --danger-bg: #f9e8e2;
     --danger-border: #eec6ba;
+    --shadow: 0 2px 6px rgba(38, 32, 20, .05), 0 1px 2px rgba(38, 32, 20, .04);
     --radius: 14px;
     --tabbar-h: 58px;
     --safe-top: env(safe-area-inset-top, 0px);
@@ -770,9 +771,23 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
 .question { white-space: pre-wrap; margin: 0; padding: 13px 14px; background: var(--surface); border-radius: 10px; border-left: 3px solid var(--border); font-size: 14.5px; }
 .reply { white-space: pre-wrap; margin: 0; padding: 13px 14px; background: var(--success-bg); border-radius: 10px; border-left: 3px solid var(--success); font-size: 14.5px; }
 
+/* Profile screen - fields grouped into cards (Account / Business details / AI upsell /
+   Security), the same grouped-card layout as the website's /settings page (see
+   templates/settings.html's .profile-section and .card), scaled down for the phone. */
+.profile-section {
+    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+    box-shadow: var(--shadow); padding: 16px; margin-top: 16px;
+}
+.profile-section:first-child { margin-top: 0; }
+.profile-section-header { margin-bottom: 14px; }
+.profile-section-title { font-size: 15px; font-weight: 700; margin: 0; display: flex; align-items: center; gap: 8px; }
+.profile-section-subtitle { color: var(--text-muted); font-size: 12.5px; margin: 3px 0 0; }
+.profile-section-header + .floating-field, .profile-section-header + label { margin-top: 0; }
+
 .badge { padding: 4px 11px; border-radius: 99px; font-size: 12px; font-weight: 600; flex-shrink: 0; }
 .badge-pending { background: var(--warning-bg); color: var(--warning); border: 1px solid var(--warning-border); }
 .badge-sent { background: var(--success-bg); color: var(--success); border: 1px solid var(--success-border); }
+.badge-pro { background: transparent; color: var(--primary-dark); border: 1.5px solid var(--primary); font-weight: 700; }
 
 /* --- Schedule tab (Faza 12) - day/week calendar, native equivalent of the website's
    /schedule page (see templates/schedule.html for the layout this mirrors). --- */
@@ -926,6 +941,7 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
         --danger: #e0796a;
         --danger-bg: #2e1a16;
         --danger-border: #4a2b24;
+        --shadow: 0 2px 6px rgba(0, 0, 0, .3), 0 1px 2px rgba(0, 0, 0, .25);
     }
     .avatar, .inbox-avatar { background: rgba(232, 164, 22, .18); }
     input[type="text"], input[type="password"], input[type="email"], input[type="tel"], input[type="number"], textarea { color-scheme: dark; }
@@ -952,6 +968,7 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
     --danger: #e0796a;
     --danger-bg: #2e1a16;
     --danger-border: #4a2b24;
+    --shadow: 0 2px 6px rgba(0, 0, 0, .3), 0 1px 2px rgba(0, 0, 0, .25);
     color-scheme: dark;
 }
 :root[data-theme="dark"] .avatar, :root[data-theme="dark"] .inbox-avatar { background: rgba(232, 164, 22, .18); }
@@ -975,6 +992,7 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
     --danger: #b3341f;
     --danger-bg: #f9e8e2;
     --danger-border: #eec6ba;
+    --shadow: 0 2px 6px rgba(38, 32, 20, .05), 0 1px 2px rgba(38, 32, 20, .04);
     color-scheme: light;
 }
 

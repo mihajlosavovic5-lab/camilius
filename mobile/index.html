@@ -661,11 +661,16 @@
     </div>
   </section>
 
-  <!-- PROFILE (business info the AI uses - was called "Settings") -->
+  <!-- PROFILE (business info the AI uses - was called "Settings") - fields grouped into
+       cards (Account / Business details / AI upsell / Security), same grouped-card layout
+       as the website's /settings page (see templates/settings.html), scaled for the phone. -->
   <section id="screen-profile" class="screen screen-profile">
     <header class="topbar">
       <div class="topbar-title">
-        <div><h1 data-i18n="profile.title">Profile</h1></div>
+        <div>
+          <h1 data-i18n="profile.title">Profile</h1>
+          <p class="topbar-subtitle" data-i18n="settings.subtitle">The AI uses this information to write replies - keep it up to date.</p>
+        </div>
       </div>
     </header>
 
@@ -673,98 +678,120 @@
       <div id="settings-message" class="alert alert-success hidden"></div>
       <div id="settings-error" class="alert alert-error hidden"></div>
 
-      <div class="floating-field">
-        <input type="text" id="settings-name" placeholder=" ">
-        <label for="settings-name" data-i18n="settings.name">Business name</label>
-      </div>
+      <div class="profile-section">
+        <div class="profile-section-header">
+          <p class="profile-section-title" data-i18n="settings.account.heading">Account</p>
+          <p class="profile-section-subtitle" data-i18n="settings.account.subtitle">Who you are and how customers reach you.</p>
+        </div>
 
-      <div class="floating-field">
-        <input type="text" id="settings-username" placeholder=" " autocapitalize="off" autocorrect="off">
-        <label for="settings-username" data-i18n="settings.username">Username</label>
-      </div>
-      <p class="field-error hidden" id="settings-username-error"></p>
-
-      <div class="floating-field">
-        <input type="email" id="settings-contact-email" placeholder=" " autocapitalize="off" autocorrect="off">
-        <label for="settings-contact-email" data-i18n="settings.contactEmail">Contact email</label>
-      </div>
-      <p class="field-error hidden" id="settings-contact-email-error"></p>
-
-      <div class="phone-input-row" id="settings-phone-row">
-        <button type="button" class="phone-country-btn" id="settings-phone-country-btn">
-          <span class="phone-country-flag" id="settings-phone-country-flag">🇷🇸</span>
-          <span id="settings-phone-country-dial">+381</span>
-          <span class="phone-country-chevron">⌄</span>
-        </button>
         <div class="floating-field">
-          <input type="tel" id="settings-phone" placeholder=" " autocomplete="tel">
-          <label for="settings-phone" data-i18n="settings.phone">Phone number</label>
+          <input type="text" id="settings-name" placeholder=" ">
+          <label for="settings-name" data-i18n="settings.name">Business name</label>
         </div>
-      </div>
-      <p class="field-error hidden" id="settings-phone-error"></p>
-      <p class="field-hint hidden" id="settings-phone-empty-hint" data-i18n="settings.phoneEmptyHint">Add a phone number so you can also log in with it.</p>
-      <p class="field-hint hidden" id="settings-phone-verified-badge" data-i18n="settings.phoneVerified">&#10003; Verified</p>
-      <div id="settings-phone-unverified-banner" class="alert alert-warning hidden" style="margin: 0 0 14px;">
-        <span data-i18n="settings.phoneNotVerified">Not verified yet - verify it so you can also log in with it.</span>
-        <button type="button" class="link-btn" id="settings-phone-verify-btn" data-i18n="settings.phoneVerifyBtn">Send verification email</button>
-      </div>
-      <div id="settings-phone-verify-sent" class="alert alert-success hidden" data-i18n="verifyPending.resent">Email sent again - check your inbox.</div>
 
-      <div class="floating-field">
-        <input type="text" id="settings-instagram-account" placeholder=" " readonly>
-        <label for="settings-instagram-account" data-i18n="settings.instagramAccount">Instagram account (read-only)</label>
-      </div>
-      <div class="instagram-actions-row">
-        <button type="button" class="link-btn" id="settings-instagram-reconnect-btn" data-i18n="settings.instagramReconnect">Reconnect or switch account</button>
-        <button type="button" class="link-btn row-action-danger hidden" id="settings-instagram-disconnect-btn" data-i18n="settings.instagramDisconnect">Disconnect</button>
-      </div>
-
-      <label data-i18n="settings.hours">Working hours</label>
-      <div class="hours-picker" id="settings-hours-picker"></div>
-
-      <label data-i18n="settings.prices">Price list</label>
-      <div class="price-picker">
-        <div class="price-currency-row">
-          <span data-i18n="pricePicker.currencyLabel">Currency</span>
-          <div id="settings-price-currency"></div>
+        <div class="floating-field">
+          <input type="text" id="settings-username" placeholder=" " autocapitalize="off" autocorrect="off">
+          <label for="settings-username" data-i18n="settings.username">Username</label>
         </div>
-        <div class="price-rows" id="settings-prices-rows"></div>
-        <button type="button" class="price-add-btn" id="settings-prices-add" data-i18n="pricePicker.addButton">+ Add service</button>
+        <p class="field-error hidden" id="settings-username-error"></p>
+
+        <div class="floating-field">
+          <input type="text" id="settings-instagram-account" placeholder=" " readonly>
+          <label for="settings-instagram-account" data-i18n="settings.instagramAccount">Instagram account (read-only)</label>
+        </div>
+        <div class="instagram-actions-row">
+          <button type="button" class="link-btn" id="settings-instagram-reconnect-btn" data-i18n="settings.instagramReconnect">Reconnect or switch account</button>
+          <button type="button" class="link-btn row-action-danger hidden" id="settings-instagram-disconnect-btn" data-i18n="settings.instagramDisconnect">Disconnect</button>
+        </div>
+
+        <div class="floating-field">
+          <input type="email" id="settings-contact-email" placeholder=" " autocapitalize="off" autocorrect="off">
+          <label for="settings-contact-email" data-i18n="settings.contactEmail">Contact email</label>
+        </div>
+        <p class="field-error hidden" id="settings-contact-email-error"></p>
+
+        <div class="phone-input-row" id="settings-phone-row">
+          <button type="button" class="phone-country-btn" id="settings-phone-country-btn">
+            <span class="phone-country-flag" id="settings-phone-country-flag">🇷🇸</span>
+            <span id="settings-phone-country-dial">+381</span>
+            <span class="phone-country-chevron">⌄</span>
+          </button>
+          <div class="floating-field">
+            <input type="tel" id="settings-phone" placeholder=" " autocomplete="tel">
+            <label for="settings-phone" data-i18n="settings.phone">Phone number</label>
+          </div>
+        </div>
+        <p class="field-error hidden" id="settings-phone-error"></p>
+        <p class="field-hint hidden" id="settings-phone-empty-hint" data-i18n="settings.phoneEmptyHint">Add a phone number so you can also log in with it.</p>
+        <p class="field-hint hidden" id="settings-phone-verified-badge" data-i18n="settings.phoneVerified">&#10003; Verified</p>
+        <div id="settings-phone-unverified-banner" class="alert alert-warning hidden" style="margin: 0 0 14px;">
+          <span data-i18n="settings.phoneNotVerified">Not verified yet - verify it so you can also log in with it.</span>
+          <button type="button" class="link-btn" id="settings-phone-verify-btn" data-i18n="settings.phoneVerifyBtn">Send verification email</button>
+        </div>
+        <div id="settings-phone-verify-sent" class="alert alert-success hidden" data-i18n="verifyPending.resent">Email sent again - check your inbox.</div>
       </div>
 
-      <div class="floating-field floating-field-textarea">
-        <textarea id="settings-faq" rows="4" placeholder=" "></textarea>
-        <label for="settings-faq" data-i18n="settings.faq">Tell us more about your business</label>
-      </div>
-      <p class="field-hint" data-i18n="settings.faqHint">The more you share, the more questions Camilius can answer for your customers.</p>
+      <div class="profile-section">
+        <div class="profile-section-header">
+          <p class="profile-section-title" data-i18n="settings.businessDetails.heading">Business details</p>
+        </div>
 
-      <label id="settings-upsell-label" data-i18n="settings.upsell">AI upsell (Pro)</label>
-      <textarea id="settings-upsell-pairs" rows="3" placeholder="Haircut -> Treatment"></textarea>
-      <p class="field-hint" id="settings-upsell-hint" data-i18n="settings.upsellHint">Related services, one pair per line ("Service A -> Service B") - the AI gently suggests the other when it books one during a DM conversation.</p>
-      <p class="field-hint hidden" id="settings-upsell-locked-hint" data-i18n="settings.upsellLockedHint">Upgrade to Pro to let the AI suggest complementary services.</p>
+        <label data-i18n="settings.hours">Working hours</label>
+        <div class="hours-picker" id="settings-hours-picker"></div>
 
-      <div class="block-label" data-i18n="settings.security">Security</div>
-      <div class="floating-field floating-field-password">
-        <input type="password" id="settings-current-password" placeholder=" " autocomplete="current-password">
-        <label for="settings-current-password" data-i18n="settings.currentPassword">Current password</label>
-        <button type="button" class="password-toggle" aria-label="Show password">
-          <svg class="password-toggle-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
-            <path d="M1.5 12S5 5 12 5s10.5 7 10.5 7-3.5 7-10.5 7S1.5 12 1.5 12z" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
-            <circle cx="12" cy="12" r="3" stroke-width="1.6"/>
-            <line class="password-toggle-slash" x1="2.5" y1="21.5" x2="21.5" y2="2.5" stroke-width="1.6" stroke-linecap="round"/>
-          </svg>
-        </button>
+        <label data-i18n="settings.prices">Price list</label>
+        <div class="price-picker">
+          <div class="price-currency-row">
+            <span data-i18n="pricePicker.currencyLabel">Currency</span>
+            <div id="settings-price-currency"></div>
+          </div>
+          <div class="price-rows" id="settings-prices-rows"></div>
+          <button type="button" class="price-add-btn" id="settings-prices-add" data-i18n="pricePicker.addButton">+ Add service</button>
+        </div>
+
+        <div class="floating-field floating-field-textarea">
+          <textarea id="settings-faq" rows="4" placeholder=" "></textarea>
+          <label for="settings-faq" data-i18n="settings.faq">Tell us more about your business</label>
+        </div>
+        <p class="field-hint" data-i18n="settings.faqHint">The more you share, the more questions Camilius can answer for your customers.</p>
       </div>
-      <div class="floating-field floating-field-password">
-        <input type="password" id="settings-new-password" placeholder=" " autocomplete="new-password">
-        <label for="settings-new-password" data-i18n="settings.newPassword">New password</label>
-        <button type="button" class="password-toggle" aria-label="Show password">
-          <svg class="password-toggle-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
-            <path d="M1.5 12S5 5 12 5s10.5 7 10.5 7-3.5 7-10.5 7S1.5 12 1.5 12z" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
-            <circle cx="12" cy="12" r="3" stroke-width="1.6"/>
-            <line class="password-toggle-slash" x1="2.5" y1="21.5" x2="21.5" y2="2.5" stroke-width="1.6" stroke-linecap="round"/>
-          </svg>
-        </button>
+
+      <div class="profile-section">
+        <div class="profile-section-header">
+          <p class="profile-section-title"><span data-i18n="settings.upsell.heading">AI upsell</span> <span class="badge badge-pro">Pro</span></p>
+          <p class="profile-section-subtitle" data-i18n="settings.upsell.subtitle">When the AI books one service, it can suggest a related one too.</p>
+        </div>
+        <textarea id="settings-upsell-pairs" rows="3" placeholder="Haircut -> Treatment"></textarea>
+        <p class="field-hint" id="settings-upsell-hint" data-i18n="settings.upsellHint">Related services, one pair per line ("Service A -> Service B") - the AI gently suggests the other when it books one during a DM conversation.</p>
+        <p class="field-hint hidden" id="settings-upsell-locked-hint" data-i18n="settings.upsellLockedHint">Upgrade to Pro to let the AI suggest complementary services.</p>
+      </div>
+
+      <div class="profile-section">
+        <div class="profile-section-header">
+          <p class="profile-section-title" data-i18n="settings.security">Security</p>
+        </div>
+        <div class="floating-field floating-field-password">
+          <input type="password" id="settings-current-password" placeholder=" " autocomplete="current-password">
+          <label for="settings-current-password" data-i18n="settings.currentPassword">Current password</label>
+          <button type="button" class="password-toggle" aria-label="Show password">
+            <svg class="password-toggle-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
+              <path d="M1.5 12S5 5 12 5s10.5 7 10.5 7-3.5 7-10.5 7S1.5 12 1.5 12z" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+              <circle cx="12" cy="12" r="3" stroke-width="1.6"/>
+              <line class="password-toggle-slash" x1="2.5" y1="21.5" x2="21.5" y2="2.5" stroke-width="1.6" stroke-linecap="round"/>
+            </svg>
+          </button>
+        </div>
+        <div class="floating-field floating-field-password">
+          <input type="password" id="settings-new-password" placeholder=" " autocomplete="new-password">
+          <label for="settings-new-password" data-i18n="settings.newPassword">New password</label>
+          <button type="button" class="password-toggle" aria-label="Show password">
+            <svg class="password-toggle-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
+              <path d="M1.5 12S5 5 12 5s10.5 7 10.5 7-3.5 7-10.5 7S1.5 12 1.5 12z" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+              <circle cx="12" cy="12" r="3" stroke-width="1.6"/>
+              <line class="password-toggle-slash" x1="2.5" y1="21.5" x2="21.5" y2="2.5" stroke-width="1.6" stroke-linecap="round"/>
+            </svg>
+          </button>
+        </div>
       </div>
     </div>
     <button class="fab-save hidden" id="settings-save" data-i18n="settings.save">Save changes</button>
