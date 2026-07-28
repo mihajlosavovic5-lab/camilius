@@ -576,6 +576,23 @@ input[readonly]:hover { border-color: var(--border); }
 .form-actions { margin-top: 24px; }
 .hidden { display: none !important; }
 
+/* Profile page's Save button (#settings-save-btn) floats fixed at the bottom-left of
+   the viewport instead of sitting inline at the end of the form - same idea as the
+   mobile app's own .fab-save. The Profile form is long (Account, Business details,
+   AI upsell, Security), so a change made near the top (e.g. Working hours, right after
+   Account) un-hid the button, but it stayed off-screen at the very bottom until the
+   whole page was scrolled through - easy to miss entirely and read as "the button
+   never appeared". Fixed position keeps it in view the moment it's no longer hidden,
+   regardless of scroll position, wherever on the page the edit happened. Left, not
+   right, so it doesn't collide with the support chat bubble (.support-widget-fab,
+   also fixed, bottom-right - see further down in this file). Scoped to this one button
+   by ID, not .form-actions/.button generally, since those classes are shared by
+   ordinary inline submit buttons elsewhere that must stay in their normal flow. */
+#settings-save-btn.button {
+    position: fixed; left: 24px; bottom: 24px; z-index: 45;
+    box-shadow: 0 8px 22px -4px rgba(214, 148, 16, .5);
+}
+
 /* Floating labels - the label sits centered inside the empty field like a
    placeholder, then rises to a small caption at the top of the same box on focus
    or once something's typed (same pattern already shipped on the mobile app's
