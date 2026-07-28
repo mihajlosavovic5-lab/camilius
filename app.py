@@ -462,6 +462,19 @@ def instagram_oauth_callback():
         if is_mobile_flow:
             return render_template("instagram_connect_mobile.html", success=False)
         return redirect(url_for("connect_instagram", error="Couldn't connect to Instagram - please try again."))
+    except psycopg2.errors.UniqueViolation:
+        # businesses.instagram_account_id has a UNIQUE index (see database.py) - this
+        # Instagram account is already linked to a different Camilius business (e.g. an
+        # older test/registration of the same person's account), so the UPDATE inside
+        # link_instagram_account() was rejected at the DB level rather than raising a
+        # requests.RequestException like every other failure above. Previously uncaught,
+        # this fell straight through to the generic Flask 500 page instead of telling the
+        # business owner what actually went wrong.
+        log_client_error(business_id, "instagram connect failed: instagram_account_id already linked to another business", "", "instagram-connect-debug", "")
+        if is_mobile_flow:
+            return render_template("instagram_connect_mobile.html", success=False)
+        message = "This Instagram account is already connected to another Camilius account. Disconnect it there first, or use a different Instagram account."
+        return redirect(url_for("connect_instagram", error=message))
 
     log_event("instagram_connected", business_id=business_id)
     if is_mobile_flow:
