@@ -21,13 +21,27 @@ def now_local():
     return datetime.now(BUSINESS_TZ)
 
 
+# Any dash-like character someone might type (or a phone keyboard's "smart punctuation"
+# might substitute for a plain hyphen) between an open and close time - en dash, em dash,
+# figure dash, minus sign. Normalized to "-" before the time-range regex runs below.
+_DASH_VARIANTS = re.compile("[‐-―−]")  # hyphen..horizontal bar, minus sign
+
+
 def parse_working_hours(text):
     """Parses the "Monday: 09:00-18:00" / "Sunday: closed" format produced by the
     Profile page's hours picker (static/pickers.js's createHoursPicker) into
     {weekday_int(0=Mon..6=Sun): (open_time, close_time) or None if closed/unparseable}.
     Best-effort, same spirit as the JS picker's own parse() - a business whose working
     hours predate the picker (free-typed text in an unexpected format) just ends up with
-    no slots that day rather than erroring, surfaced to the owner on the Schedule page."""
+    no slots that day rather than erroring, surfaced to the owner on the Schedule page.
+
+    The picker itself only ever emits "HH:MM-HH:MM" with a plain hyphen, but hand-edited
+    or pre-picker text is more forgiving in practice - a phone keyboard's autocorrect
+    readily swaps "-" for an en dash, and it's common to write hours without minutes
+    ("9-18") or with a trailing "h" ("9h-18h"). One day silently parsing to "closed"
+    while the neighboring days (typed the same way, same session) parse fine reads as a
+    baffling bug to the business owner, not a formatting slip - so all of these are
+    accepted rather than just the picker's own exact output."""
     hours = {i: None for i in range(7)}
     for line in (text or "").split("\n"):
         line = line.strip()
@@ -38,13 +52,14 @@ def parse_working_hours(text):
         if day_part not in _WEEKDAY_NAMES:
             continue
         weekday = _WEEKDAY_NAMES.index(day_part)
-        rest = rest.strip()
+        rest = _DASH_VARIANTS.sub("-", rest.strip())
         if "closed" in rest.lower():
             continue
-        match = re.match(r"(\d{1,2}):(\d{2})\s*-\s*(\d{1,2}):(\d{2})", rest)
+        match = re.match(r"(\d{1,2})(?::(\d{2}))?\s*h?\s*-\s*(\d{1,2})(?::(\d{2}))?\s*h?", rest, re.IGNORECASE)
         if not match:
             continue
-        oh, om, ch, cm = (int(x) for x in match.groups())
+        oh, ch = int(match.group(1)), int(match.group(3))
+        om, cm = int(match.group(2) or 0), int(match.group(4) or 0)
         if 0 <= oh <= 23 and 0 <= om <= 59 and 0 <= ch <= 23 and 0 <= cm <= 59:
             open_t, close_t = dtime(oh, om), dtime(ch, cm)
             if open_t < close_t:

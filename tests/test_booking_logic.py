@@ -37,6 +37,22 @@ def test_parse_working_hours_rejects_inverted_range():
     assert hours[0] is None
 
 
+def test_parse_working_hours_tolerates_common_hand_typed_variants():
+    # Hand-edited (or pre-picker) text is far messier than the picker's own exact
+    # "HH:MM-HH:MM" output - a phone keyboard's autocorrect swaps "-" for an en dash,
+    # and it's common to drop the minutes or add a trailing "h". A day silently going
+    # "closed" just because it was typed slightly differently than its neighbors is
+    # exactly the confusing bug this guards against.
+    hours = booking.parse_working_hours(
+        "Monday: 09:00–18:00\n"  # en dash instead of a hyphen
+        "Tuesday: 9-18\n"  # no minutes
+        "Wednesday: 9h-18h\n"  # trailing "h"
+    )
+    assert hours[0] == (booking.dtime(9, 0), booking.dtime(18, 0))
+    assert hours[1] == (booking.dtime(9, 0), booking.dtime(18, 0))
+    assert hours[2] == (booking.dtime(9, 0), booking.dtime(18, 0))
+
+
 def test_day_slots_covers_the_full_open_window():
     monday = date(2026, 7, 27)  # a real Monday
     slots = booking.day_slots(WORKING_HOURS, 30, monday)
