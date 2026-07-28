@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
 <title>Camilius</title>
-<link rel="stylesheet" href="app.css?v=d0cdf1eecfe4">
+<link rel="stylesheet" href="app.css?v=46735e96a11f">
 </head>
 <body>
 
@@ -506,6 +506,17 @@
       </div>
     </header>
 
+    <div class="inbox-stats-row" id="inbox-stats-row">
+      <div class="inbox-stat-tile">
+        <div class="inbox-stat-value" id="inbox-stat-sent">0</div>
+        <div class="inbox-stat-label" data-i18n="inbox.statsSent">Replies sent</div>
+      </div>
+      <div class="inbox-stat-tile">
+        <div class="inbox-stat-value" id="inbox-stat-sent-week">0</div>
+        <div class="inbox-stat-label" data-i18n="inbox.statsSentWeek">Sent this week</div>
+      </div>
+    </div>
+
     <div id="banner-inactive" class="alert alert-warning hidden" data-i18n="inbox.inactiveBanner">
       Subscription not active — new messages aren't being processed.
     </div>
@@ -702,6 +713,7 @@
         <input type="text" id="settings-instagram-account" placeholder=" " readonly>
         <label for="settings-instagram-account" data-i18n="settings.instagramAccount">Instagram account (read-only)</label>
       </div>
+      <button type="button" class="link-btn" id="settings-instagram-reconnect-btn" data-i18n="settings.instagramReconnect">Reconnect or switch account</button>
 
       <label data-i18n="settings.hours">Working hours</label>
       <div class="hours-picker" id="settings-hours-picker"></div>
@@ -796,14 +808,43 @@
         </label>
       </div>
       <p class="field-hint" data-i18n="appSettings.autoSendHint">When on, the AI sends replies to customers right away instead of waiting for your approval.</p>
-      <div class="settings-row" id="settings-reminders-row">
-        <span data-i18n="appSettings.reminders">No-show reminders (Pro)</span>
+
+      <div class="block-label" data-i18n="appSettings.reminders">No-show reminders (Pro)</div>
+      <div class="settings-row" id="settings-reminders-customer-row">
+        <span data-i18n="appSettings.remindersCustomerHeading">Remind the customer</span>
         <label class="hours-day-toggle">
-          <input type="checkbox" id="settings-reminders-toggle">
+          <input type="checkbox" id="settings-reminders-customer-toggle">
           <span class="hours-day-toggle-track"><span class="hours-day-toggle-thumb"></span></span>
         </label>
       </div>
-      <p class="field-hint" data-i18n="appSettings.remindersHint">When on, the AI automatically DMs the customer a reminder 24h and 2h before their appointment.</p>
+      <p class="field-hint" data-i18n="appSettings.remindersCustomerNote">Sends the customer an Instagram DM before their appointment.</p>
+      <div class="settings-row settings-row-stack reminder-lead-row" id="settings-reminders-customer-lead-row">
+        <div class="reminder-lead-inline">
+          <span data-i18n="appSettings.remindersLeadLabel">Send</span>
+          <button type="button" class="picker-btn" id="settings-reminders-customer-lead-btn">
+            <span id="settings-reminders-customer-lead-label">24h</span><span class="picker-chevron">⌄</span>
+          </button>
+        </div>
+        <span class="field-hint" data-i18n="appSettings.remindersBeforeSuffix">before the appointment</span>
+      </div>
+
+      <div class="settings-row" id="settings-reminders-owner-row">
+        <span data-i18n="appSettings.remindersOwnerHeading">Remind me</span>
+        <label class="hours-day-toggle">
+          <input type="checkbox" id="settings-reminders-owner-toggle">
+          <span class="hours-day-toggle-track"><span class="hours-day-toggle-thumb"></span></span>
+        </label>
+      </div>
+      <p class="field-hint" data-i18n="appSettings.remindersOwnerNote">Emails you before the customer's appointment.</p>
+      <div class="settings-row settings-row-stack reminder-lead-row" id="settings-reminders-owner-lead-row">
+        <div class="reminder-lead-inline">
+          <span data-i18n="appSettings.remindersLeadLabel">Send</span>
+          <button type="button" class="picker-btn" id="settings-reminders-owner-lead-btn">
+            <span id="settings-reminders-owner-lead-label">1h</span><span class="picker-chevron">⌄</span>
+          </button>
+        </div>
+        <span class="field-hint" data-i18n="appSettings.remindersBeforeSuffix">before the appointment</span>
+      </div>
 
       <div class="block-label" data-i18n="appSettings.billing">Billing</div>
       <div class="settings-row" id="settings-subscription-row">
@@ -1002,7 +1043,7 @@
   </button>
 </nav>
 
-<script src="i18n.js?v=d0cdf1eecfe4"></script>
-<script src="app.js?v=d0cdf1eecfe4"></script>
+<script src="i18n.js?v=46735e96a11f"></script>
+<script src="app.js?v=46735e96a11f"></script>
 </body>
 </html>
