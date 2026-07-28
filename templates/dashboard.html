@@ -89,8 +89,13 @@
         <div class="card conversation" data-search-text="{{ (sender ~ ' ' ~ question)|lower }}">
             <div class="conversation-top">
                 {% if profile_pic_url %}
+                    {#  The stored profile_pic_url is a signed Meta CDN link that expires
+                        after a while, so it can easily 403 by the time the dashboard is
+                        actually opened even though the sender still has a picture - the
+                        first failure retries via /avatar/<id>, which re-resolves a fresh
+                        URL live; only a second failure falls back to the letter avatar. #}
                     <img class="avatar avatar-img" src="{{ profile_pic_url }}" alt=""
-                         onerror="this.style.display='none'; this.nextElementSibling.style.display='inline-flex';">
+                         onerror="if (!this.dataset.retried) { this.dataset.retried = '1'; this.src = '{{ url_for('conversation_avatar', conversation_id=id) }}'; } else { this.style.display='none'; this.nextElementSibling.style.display='inline-flex'; }">
                     <span class="avatar" style="display:none;">{{ sender[0] }}</span>
                 {% else %}
                     <span class="avatar">{{ sender[0] }}</span>
