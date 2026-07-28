@@ -1917,8 +1917,8 @@ function renderInboxList(conversations) {
         const tapArea = document.createElement("button");
         tapArea.type = "button";
         tapArea.className = "inbox-row-tap";
-        tapArea.innerHTML = `
-            <span class="inbox-avatar">${(c.sender[0] || "?").toUpperCase()}</span>
+        tapArea.appendChild(buildAvatar(c));
+        tapArea.insertAdjacentHTML("beforeend", `
             <span class="inbox-row-main">
                 <span class="inbox-row-top">
                     <span class="inbox-sender">${escapeHtml(c.sender)}</span>
@@ -1927,7 +1927,7 @@ function renderInboxList(conversations) {
                 <span class="inbox-preview">${escapeHtml(c.question)}</span>
             </span>
             <span class="inbox-dot ${c.status === "sent" ? "sent" : ""}"></span>
-        `;
+        `);
         tapArea.addEventListener("click", () => openDetail(c));
 
         const moreBtn = document.createElement("button");
@@ -1992,6 +1992,27 @@ el("row-action-archive").addEventListener("click", () => runRowAction("archive")
 el("row-action-unarchive").addEventListener("click", () => runRowAction("unarchive"));
 el("row-action-delete").addEventListener("click", () => runRowAction("delete"));
 el("row-action-restore").addEventListener("click", () => runRowAction("restore"));
+
+// Real Instagram profile picture when the platform gave us one, falling back to the
+// colored-letter avatar otherwise (also used if the image URL fails to load, e.g. an
+// expired CDN link) - set via the .src property rather than string-interpolated markup
+// so an unusual URL can never be parsed as HTML.
+function buildAvatar(c) {
+    if (!c.profile_pic_url) return buildLetterAvatar(c.sender);
+    const img = document.createElement("img");
+    img.className = "inbox-avatar inbox-avatar-img";
+    img.alt = "";
+    img.src = c.profile_pic_url;
+    img.onerror = () => img.replaceWith(buildLetterAvatar(c.sender));
+    return img;
+}
+
+function buildLetterAvatar(sender) {
+    const span = document.createElement("span");
+    span.className = "inbox-avatar";
+    span.textContent = (sender[0] || "?").toUpperCase();
+    return span;
+}
 
 function escapeHtml(text) {
     const div = document.createElement("div");

@@ -815,6 +815,7 @@ input.search-input {
     background: var(--primary-light); color: var(--primary-ink);
     font-weight: 700; font-size: 16px; text-transform: uppercase;
 }
+.avatar-img { object-fit: cover; background: none; }
 .conversation-meta { flex: 1; min-width: 0; }
 .conversation-sender { font-weight: 600; font-size: 15px; word-break: break-all; }
 .conversation-time { color: var(--text-muted); font-size: 13px; }

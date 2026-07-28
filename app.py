@@ -48,7 +48,7 @@ from push_notifications import send_push_to_business
 from instagram_api import (
     authorize_url as instagram_authorize_url, exchange_code_for_token, exchange_for_long_lived_token,
     get_account_info, subscribe_account_to_webhook, send_message as send_instagram_message,
-    verify_webhook_challenge, verify_webhook_signature, parse_webhook_messages, get_sender_username,
+    verify_webhook_challenge, verify_webhook_signature, parse_webhook_messages, get_sender_info,
     get_webhook_subscription_status,
 )
 from database import all_businesses, all_businesses_unfiltered
@@ -2161,7 +2161,9 @@ def _process_instagram_message(message):
     }
     # Resolved before generating the reply (rather than after, as before) - the AI
     # booking tool below needs a customer name to attach to an appointment it books.
-    sender_display = get_sender_username(sender_igsid, access_token) or sender_igsid
+    sender_info = get_sender_info(sender_igsid, access_token)
+    sender_display = sender_info["display_name"] or sender_igsid
+    profile_pic_url = sender_info["profile_pic_url"]
 
     print(f"[instagram-webhook] Generating AI reply for text={message['text']!r} from sender_igsid={sender_igsid}", flush=True)
     history = previous_conversations_with(business_id, sender_igsid)
@@ -2206,6 +2208,7 @@ def _process_instagram_message(message):
 
     new_conversation_id = save_draft_reply(
         business_id, sender_display, message["text"], suggested_reply, sender_igsid=sender_igsid,
+        profile_pic_url=profile_pic_url,
     )
     print(f"[instagram-webhook] Draft saved as conversation_id={new_conversation_id}", flush=True)
     if message_id:

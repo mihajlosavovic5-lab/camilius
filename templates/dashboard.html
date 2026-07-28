@@ -85,10 +85,16 @@
     </div>
 
     {% for c in conversations %}
-        {% set id, sender, subject, question, suggested_reply, final_reply, status, created_at = c %}
+        {% set id, sender, subject, question, suggested_reply, final_reply, status, created_at, profile_pic_url = c %}
         <div class="card conversation" data-search-text="{{ (sender ~ ' ' ~ question)|lower }}">
             <div class="conversation-top">
-                <span class="avatar">{{ sender[0] }}</span>
+                {% if profile_pic_url %}
+                    <img class="avatar avatar-img" src="{{ profile_pic_url }}" alt=""
+                         onerror="this.style.display='none'; this.nextElementSibling.style.display='inline-flex';">
+                    <span class="avatar" style="display:none;">{{ sender[0] }}</span>
+                {% else %}
+                    <span class="avatar">{{ sender[0] }}</span>
+                {% endif %}
                 <div class="conversation-meta">
                     <div class="conversation-sender">{{ sender }}</div>
                     <div class="conversation-time">{{ created_at.strftime('%m/%d/%Y at %H:%M') if created_at else '' }}{% if subject %} &middot; {{ subject }}{% endif %}</div>

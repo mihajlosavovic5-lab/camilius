@@ -191,6 +191,11 @@ def create_database():
     # username isn't necessarily resolvable (or stable) and isn't valid as a send target.
     cursor.execute("ALTER TABLE conversations ADD COLUMN IF NOT EXISTS sender_igsid TEXT")
 
+    # Sender's Instagram profile picture URL, resolved alongside `sender` at the same time
+    # (see instagram_api.get_sender_info) - NULL when the platform has none on file, or the
+    # lookup failed, in which case the UI falls back to a letter avatar.
+    cursor.execute("ALTER TABLE conversations ADD COLUMN IF NOT EXISTS sender_profile_pic TEXT")
+
     # Archive/Trash (Faza 3) - deliberately separate from `status` (pending/sent), which
     # tracks the reply-approval workflow, not which "folder" a conversation sits in. Both
     # are nullable timestamps rather than booleans so "when" is available for free (e.g.
@@ -609,7 +614,8 @@ def replies_today_count(business_id):
     return count
 
 
-def save_draft_reply(business_id, sender, question, suggested_reply, subject=None, sender_igsid=None):
+def save_draft_reply(business_id, sender, question, suggested_reply, subject=None, sender_igsid=None,
+                      profile_pic_url=None):
     # subject only ever came from email (there's no such thing on an Instagram DM) - kept
     # as an optional column rather than dropped, since dashboard.html already guards its
     # display with {% if subject %} and removing the column outright isn't worth the churn.
@@ -617,9 +623,9 @@ def save_draft_reply(business_id, sender, question, suggested_reply, subject=Non
     cursor = connection.cursor()
 
     cursor.execute(
-        """INSERT INTO conversations (business_id, sender, subject, question, suggested_reply, sender_igsid)
-           VALUES (%s, %s, %s, %s, %s, %s) RETURNING id""",
-        (business_id, sender, subject, question, suggested_reply, sender_igsid),
+        """INSERT INTO conversations (business_id, sender, subject, question, suggested_reply, sender_igsid, sender_profile_pic)
+           VALUES (%s, %s, %s, %s, %s, %s, %s) RETURNING id""",
+        (business_id, sender, subject, question, suggested_reply, sender_igsid, profile_pic_url),
     )
 
     new_id = cursor.fetchone()[0]
@@ -705,7 +711,7 @@ def conversations_for_business(business_id):
     cursor = connection.cursor()
 
     cursor.execute("""
-        SELECT id, sender, subject, question, suggested_reply, final_reply, status, created_at
+        SELECT id, sender, subject, question, suggested_reply, final_reply, status, created_at, sender_profile_pic
         FROM conversations
         WHERE business_id = %s AND archived_at IS NULL AND deleted_at IS NULL
         ORDER BY created_at DESC
@@ -721,7 +727,7 @@ def archived_conversations_for_business(business_id):
     cursor = connection.cursor()
 
     cursor.execute("""
-        SELECT id, sender, subject, question, suggested_reply, final_reply, status, created_at
+        SELECT id, sender, subject, question, suggested_reply, final_reply, status, created_at, sender_profile_pic
         FROM conversations
         WHERE business_id = %s AND archived_at IS NOT NULL AND deleted_at IS NULL
         ORDER BY archived_at DESC
@@ -742,7 +748,7 @@ def trashed_conversations_for_business(business_id):
     cursor = connection.cursor()
 
     cursor.execute("""
-        SELECT id, sender, subject, question, suggested_reply, final_reply, status, created_at
+        SELECT id, sender, subject, question, suggested_reply, final_reply, status, created_at, sender_profile_pic
         FROM conversations
         WHERE business_id = %s AND deleted_at IS NOT NULL
         ORDER BY deleted_at DESC

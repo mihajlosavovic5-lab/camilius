@@ -131,20 +131,24 @@ def get_account_info(access_token):
     return response.json()
 
 
-def get_sender_username(sender_igsid, access_token):
-    """Best-effort display name for a customer who messaged in - falls back to None (the
-    caller then just displays the raw IGSID) if this fails; never worth blocking a draft
-    reply over a missing display name."""
+def get_sender_info(sender_igsid, access_token):
+    """Best-effort display name + profile picture for a customer who messaged in - falls
+    back to {"display_name": None, "profile_pic_url": None} (the caller then just displays
+    the raw IGSID and the letter-avatar fallback) if this fails; never worth blocking a
+    draft reply over missing profile metadata."""
     try:
         response = requests.get(f"{GRAPH_BASE}/{API_VERSION}/{sender_igsid}", params={
-            "fields": "name,username",
+            "fields": "name,username,profile_pic",
             "access_token": access_token,
         }, timeout=10)
         response.raise_for_status()
         data = response.json()
-        return data.get("username") or data.get("name")
+        return {
+            "display_name": data.get("username") or data.get("name"),
+            "profile_pic_url": data.get("profile_pic"),
+        }
     except requests.RequestException:
-        return None
+        return {"display_name": None, "profile_pic_url": None}
 
 
 def send_message(recipient_igsid, text, access_token, ig_account_id):
