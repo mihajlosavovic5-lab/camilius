@@ -697,8 +697,14 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
    dots right next to the row's real "more options" ⋯ button) - the fade-to-transparent
    truncation look used by Telegram/WhatsApp/iOS Mail list rows. Only visible when the
    text actually overflows: on shorter text the masked region just falls past the text
-   end, over empty space, so nothing appears faded. */
+   end, over empty space, so nothing appears faded.
+   display:block is required here, not cosmetic - both are <span>s, and .inbox-preview's
+   parent (.inbox-row-main) isn't a flex/grid container, so it never gets blockified the
+   way .inbox-sender does as a flex item of .inbox-row-top. Left as inline, overflow/
+   mask-image on .inbox-preview render inconsistently row to row instead of applying
+   uniformly to every row's text. */
 .inbox-sender, .inbox-preview {
+    display: block;
     -webkit-mask-image: linear-gradient(to right, #000 85%, transparent 100%);
     mask-image: linear-gradient(to right, #000 85%, transparent 100%);
 }
