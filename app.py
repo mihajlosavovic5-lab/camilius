@@ -290,6 +290,16 @@ def register():
         if request.form.get("password", "") != request.form.get("confirm_password", ""):
             return render_template("register.html", error="Passwords don't match.", data=request.form)
 
+        # Explicit pre-check rather than relying solely on the UniqueViolation catch below -
+        # contact_email has no actual UNIQUE index at the DB level (unlike username/
+        # phone_number, which do - see database.py's create_database), a gap that let two
+        # businesses register with the identical contact_email and silently broke login
+        # (business_by_login_identifier's OR-across-three-columns query started matching
+        # both rows, returning whichever one Postgres felt like). This is the real fix
+        # until that index exists; see also contact_email_taken's own docstring.
+        if contact_email_taken(request.form["contact_email"]):
+            return render_template("register.html", error="That username, contact email, or phone number is already taken.", data=request.form)
+
         try:
             new_id = add_business(
                 name=request.form["name"],

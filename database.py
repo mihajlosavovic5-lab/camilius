@@ -111,6 +111,23 @@ def create_database():
     if cursor.fetchone():
         cursor.execute("UPDATE businesses SET contact_email = email WHERE contact_email IS NULL")
         cursor.execute("ALTER TABLE businesses DROP COLUMN email")
+    # contact_email should be unique the same way username/phone_number are (see the two
+    # unique indexes below) but never actually got one - the app only ever caught
+    # duplicates reactively via psycopg2.errors.UniqueViolation (see app.py's register()),
+    # which never fired for this column since no DB constraint backed it. That let two
+    # businesses register with the identical contact_email, which broke login for both
+    # (business_by_login_identifier's OR-across-three-columns query started matching two
+    # rows and returned whichever one Postgres felt like - see app.py's register(), which
+    # now also pre-checks contact_email_taken()). Guarded rather than unconditional:
+    # creating a unique index over data that already has duplicates from before that
+    # check existed would fail and crash startup - skip it until any remaining duplicates
+    # are cleaned up (find them via /admin/businesses).
+    cursor.execute("""
+        SELECT 1 FROM businesses WHERE contact_email IS NOT NULL
+        GROUP BY contact_email HAVING COUNT(*) > 1 LIMIT 1
+    """)
+    if cursor.fetchone() is None:
+        cursor.execute("CREATE UNIQUE INDEX IF NOT EXISTS businesses_contact_email_idx ON businesses (contact_email)")
     cursor.execute("ALTER TABLE businesses DROP COLUMN IF EXISTS email_app_password")
     cursor.execute("ALTER TABLE businesses ADD COLUMN IF NOT EXISTS instagram_account_id TEXT")
     cursor.execute("ALTER TABLE businesses ADD COLUMN IF NOT EXISTS instagram_username TEXT")
