@@ -689,9 +689,19 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
 /* min-width:0 - as a flex child, .inbox-sender otherwise refuses to shrink below its
    text's full intrinsic width (flex items default to min-width:auto), which pushes the
    whole row wider than the screen instead of letting text-overflow:ellipsis kick in. */
-.inbox-sender { font-weight: 600; font-size: 14.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.inbox-sender { font-weight: 600; font-size: 14.5px; white-space: nowrap; overflow: hidden; min-width: 0; }
 .inbox-time { color: var(--text-muted); font-size: 11.5px; flex-shrink: 0; }
-.inbox-preview { color: var(--text-muted); font-size: 13.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px; min-width: 0; }
+.inbox-preview { color: var(--text-muted); font-size: 13.5px; white-space: nowrap; overflow: hidden; margin-top: 2px; min-width: 0; }
+/* Long sender names/previews dissolve into the background at the clipped edge instead
+   of an abrupt cut or a literal "..." glyph (which reads as a second, confusing set of
+   dots right next to the row's real "more options" ⋯ button) - the fade-to-transparent
+   truncation look used by Telegram/WhatsApp/iOS Mail list rows. Only visible when the
+   text actually overflows: on shorter text the masked region just falls past the text
+   end, over empty space, so nothing appears faded. */
+.inbox-sender, .inbox-preview {
+    -webkit-mask-image: linear-gradient(to right, #000 85%, transparent 100%);
+    mask-image: linear-gradient(to right, #000 85%, transparent 100%);
+}
 
 /* --- Row actions bottom sheet (Archive/Unarchive/Delete/Restore) --- */
 .row-actions-sheet {
