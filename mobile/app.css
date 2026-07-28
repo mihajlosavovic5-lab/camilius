@@ -1067,10 +1067,28 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
 .skeleton-line { height: 11px; border-radius: 6px; }
 @keyframes skeleton-shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
 
-/* Wraps the inbox list + empty/error states (used to also host the pull-to-refresh
-   indicator, removed in Faza 3 in favor of automatic push-triggered + polled refresh). */
+/* Wraps the inbox list + empty/error states + the pull-to-refresh indicator below. */
 .inbox-list-wrap { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-height: 0; }
 .inbox-list-wrap .inbox-list { flex: 1; }
+
+/* Pull-to-refresh (re-added on top of the automatic push-triggered + 15s poll refresh -
+   users expect the gesture on an inbox screen even when the list already updates itself).
+   Height is driven from JS as the user drags (0 while idle); .dragging disables the
+   height transition so it tracks the finger 1:1, .refreshing re-enables it for the
+   snap-to-fixed-height + collapse-away animations and spins the spinner. */
+.inbox-pull-indicator {
+    flex-shrink: 0; height: 0; overflow: hidden;
+    display: flex; align-items: center; justify-content: center;
+    transition: height .2s ease;
+}
+.inbox-pull-indicator.dragging { transition: none; }
+.inbox-pull-spinner {
+    width: 22px; height: 22px; border-radius: 99px; flex-shrink: 0;
+    border: 2.5px solid var(--border); border-top-color: var(--primary);
+    box-sizing: border-box;
+}
+.inbox-pull-indicator.refreshing .inbox-pull-spinner { animation: inbox-pull-spin .7s linear infinite; }
+@keyframes inbox-pull-spin { to { transform: rotate(360deg); } }
 
 /* --- Onboarding ---
    Premium-feeling intro: a soft accent glow that shifts color per slide (via the
