@@ -883,7 +883,7 @@ def api_save_push_token():
 # language/theme (except those are local-only, these need the server to actually know).
 #
 # reminders_enabled/owner_reminders_enabled/*_reminder_minutes mirror the website's
-# /app-settings (see app_settings.html + app.py's update_reminders) - customer and owner
+# /settings (see app_settings.html + app.py's update_reminders) - customer and owner
 # reminders are independently toggled, each with its own configurable lead time, not a
 # single combined on/off switch. reminders_enabled itself is the pre-existing "customer
 # reminders" column (see database.py's Faza 9/12 comment), kept under its original name
@@ -914,7 +914,7 @@ def api_update_notification_preferences():
     if "auto_send" in data:
         set_auto_send(business_id, bool(data["auto_send"]))
     # No-show reminders (Faza 9/11/12) are Pro-only - same server-side gate as the
-    # website's /app-settings/reminders, so a Starter-plan app user can't flip these on
+    # website's /settings/reminders, so a Starter-plan app user can't flip these on
     # (or change their lead time) either.
     if (BETA_FREE_MODE or has_pro_access(business_id)) and (
         "reminders_enabled" in data or "owner_reminders_enabled" in data

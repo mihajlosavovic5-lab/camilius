@@ -42,10 +42,10 @@ def test_schedule_locked_for_starter_plan(client, unique_username, unique_email,
 def test_schedule_locked_starter_cannot_bypass_via_post(client, unique_username, unique_email, monkeypatch, future_date):
     monkeypatch.setattr(app_module, "BETA_FREE_MODE", False)
     register_business_web(client, unique_username, unique_email)
-    # CSRF token pulled from /app-settings, not the now-locked /schedule page - the
+    # CSRF token pulled from /settings, not the now-locked /schedule page - the
     # locked page has no form on it at all (see schedule.html), so no token to extract;
     # CSRF tokens are session-scoped, so any other page's token works here regardless.
-    csrf_token = get_csrf_token(client, "/app-settings")
+    csrf_token = get_csrf_token(client, "/settings")
     business_id = database.business_by_username(unique_username)[0]
     database.link_subscription(business_id, "cust", "sub", "active", plan="starter")
 

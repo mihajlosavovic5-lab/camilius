@@ -920,7 +920,7 @@ def logout():
     return redirect(url_for("login"))
 
 
-@app.route("/settings", methods=["GET", "POST"])
+@app.route("/profile", methods=["GET", "POST"])
 @login_required
 def settings():
     business_id = session["business_id"]
@@ -1046,7 +1046,7 @@ REMINDER_LEAD_CHOICES = [(15, "15 min"), (30, "30 min"), (60, "1h"), (120, "2h")
 REMINDER_LEAD_MAX_MINUTES = 7 * 24 * 60
 
 
-@app.route("/app-settings")
+@app.route("/settings")
 @login_required
 def app_settings():
     business_id = session["business_id"]
@@ -1070,7 +1070,7 @@ def app_settings():
 # session-authenticated instead of Bearer-token, since the website never had a way to
 # change this at all before now. The checkbox itself is framed as opt-in "AI Draft Mode"
 # (auto-send is already the default), so it posts the inverse of the stored column.
-@app.route("/app-settings/auto-send", methods=["POST"])
+@app.route("/settings/auto-send", methods=["POST"])
 @login_required
 def update_auto_send():
     set_auto_send(session["business_id"], not bool(request.form.get("draft_mode")))
@@ -1095,7 +1095,7 @@ def _parse_reminder_minutes(picker_value, custom_value, default):
 # either one on even via a raw POST; both toggles are locked/hidden for them in
 # app_settings.html. Customer and owner reminders are independent: either, both, or
 # neither can be on, each with its own lead time.
-@app.route("/app-settings/reminders", methods=["POST"])
+@app.route("/settings/reminders", methods=["POST"])
 @login_required
 def update_reminders():
     business_id = session["business_id"]
