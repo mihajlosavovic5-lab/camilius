@@ -88,18 +88,18 @@
         {% set id, sender, subject, question, suggested_reply, final_reply, status, created_at, profile_pic_url = c %}
         <div class="card conversation" data-search-text="{{ (sender ~ ' ' ~ question)|lower }}">
             <div class="conversation-top">
-                {% if profile_pic_url %}
-                    {#  The stored profile_pic_url is a signed Meta CDN link that expires
-                        after a while, so it can easily 403 by the time the dashboard is
-                        actually opened even though the sender still has a picture - the
-                        first failure retries via /avatar/<id>, which re-resolves a fresh
-                        URL live; only a second failure falls back to the letter avatar. #}
-                    <img class="avatar avatar-img" src="{{ profile_pic_url }}" alt=""
-                         onerror="if (!this.dataset.retried) { this.dataset.retried = '1'; this.src = '{{ url_for('conversation_avatar', conversation_id=id) }}'; } else { this.style.display='none'; this.nextElementSibling.style.display='inline-flex'; }">
-                    <span class="avatar" style="display:none;">{{ sender[0] }}</span>
-                {% else %}
-                    <span class="avatar">{{ sender[0] }}</span>
-                {% endif %}
+                {#  The stored profile_pic_url is a signed Meta CDN link that expires after a
+                    while, so it can easily 403 by the time the dashboard is actually opened
+                    even though the sender still has a picture - and a conversation can have
+                    no stored URL at all if the initial Graph API lookup failed, or the
+                    sender simply had no picture yet at message-receipt time and has since
+                    added/changed one. Either way, a failure to load retries once via
+                    /avatar/<id>, which re-resolves a fresh URL live; only a second failure
+                    (or no picture there either) falls back to the letter avatar. #}
+                <img class="avatar avatar-img"
+                     src="{{ profile_pic_url or url_for('conversation_avatar', conversation_id=id) }}" alt=""
+                     onerror="if ({{ 'true' if profile_pic_url else 'false' }} && !this.dataset.retried) { this.dataset.retried = '1'; this.src = '{{ url_for('conversation_avatar', conversation_id=id) }}'; } else { this.style.display='none'; this.nextElementSibling.style.display='inline-flex'; }">
+                <span class="avatar" style="display:none;">{{ sender[0] }}</span>
                 <div class="conversation-meta">
                     <div class="conversation-sender">{{ sender }}</div>
                     <div class="conversation-time">{{ created_at.strftime('%m/%d/%Y at %H:%M') if created_at else '' }}{% if subject %} &middot; {{ subject }}{% endif %}</div>
