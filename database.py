@@ -464,6 +464,23 @@ def link_instagram_account(business_id, instagram_account_id, instagram_username
     connection.close()
 
 
+def unlink_instagram_account(business_id):
+    """Frees up this business's Instagram connection (instagram_account_id has a UNIQUE
+    index - see create_database - so a previously-connected account has to be unlinked
+    here before it can be linked to a different business). Called from the web Settings
+    page and the mobile app's Profile screen."""
+    connection = connect()
+    cursor = connection.cursor()
+    cursor.execute(
+        """UPDATE businesses
+           SET instagram_account_id = NULL, instagram_username = NULL, instagram_access_token = NULL
+           WHERE id = %s""",
+        (business_id,),
+    )
+    connection.commit()
+    connection.close()
+
+
 def all_businesses():
     """Only businesses that have actually connected an Instagram account - used by the
     periodic worker (token-refresh checks, backups), not message ingestion, which is the

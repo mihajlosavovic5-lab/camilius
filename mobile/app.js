@@ -1603,8 +1603,29 @@ async function openInstagramConnectBrowser(context, errorBoxId) {
     }
 }
 
+// Shows the "Disconnect" button only once an account is actually connected - there's
+// nothing to disconnect right after a failed/cancelled reconnect attempt, and Profile is
+// unreachable before the very first connection (see enterOrGateOnInstagram) so this
+// only ever needs to react to a successful reconnect or a disconnect happening here.
+function updateInstagramDisconnectVisibility(instagramUsername) {
+    el("settings-instagram-disconnect-btn").classList.toggle("hidden", !instagramUsername);
+}
+
 el("connect-instagram-btn").addEventListener("click", () => openInstagramConnectBrowser("gate", "connect-error"));
 el("settings-instagram-reconnect-btn").addEventListener("click", () => openInstagramConnectBrowser("profile", null));
+
+el("settings-instagram-disconnect-btn").addEventListener("click", async () => {
+    if (!confirm(t("settings.instagramDisconnectConfirm"))) return;
+    try {
+        await api("/api/instagram-disconnect", { method: "POST" });
+        el("settings-instagram-account").value = "";
+        updateInstagramDisconnectVisibility(null);
+        showToast(t("settings.saved"));
+    } catch (err) {
+        if (err.status === 401) { logout(); return; }
+        showToast(err.message || t("connect.notYetBody"));
+    }
+});
 
 if (capacitorPlugins && capacitorPlugins.Browser) {
     capacitorPlugins.Browser.addListener("browserFinished", async () => {
@@ -1617,6 +1638,7 @@ if (capacitorPlugins && capacitorPlugins.Browser) {
             try {
                 const data = await api("/api/settings");
                 el("settings-instagram-account").value = data.instagram_username ? "@" + data.instagram_username : "";
+                updateInstagramDisconnectVisibility(data.instagram_username);
                 if (data.instagram_username) {
                     if (capacitorPlugins.Haptics) capacitorPlugins.Haptics.impact({ style: "LIGHT" });
                     showToast(t("settings.saved"));
@@ -2163,6 +2185,7 @@ async function loadSettingsIntoForm() {
         el("settings-phone").value = rest;
         updatePhoneVerifyStatus(data.phone_number, data.phone_verified);
         el("settings-instagram-account").value = data.instagram_username ? "@" + data.instagram_username : "";
+        updateInstagramDisconnectVisibility(data.instagram_username);
         profileHoursPicker.setValue(data.working_hours);
         profilePricesPicker.setValue(data.price_list);
         el("settings-faq").value = data.faq;

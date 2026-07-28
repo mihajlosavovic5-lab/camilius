@@ -54,7 +54,16 @@
                     <span class="profile-instagram-value">
                         {% if business.instagram_username %}@{{ business.instagram_username }}{% else %}<span data-i18n="settings.instagramNotConnected">Not connected</span>{% endif %}
                     </span>
-                    <a href="{{ url_for('connect_instagram_start') }}" class="field-action-link"><span data-i18n="{{ 'settings.instagramReconnect' if business.instagram_username else 'connectInstagram.cta' }}">{{ 'Reconnect or switch account' if business.instagram_username else 'Connect Instagram' }}</span></a>
+                    <div class="profile-instagram-actions">
+                        <a href="{{ url_for('connect_instagram_start') }}" class="field-action-link"><span data-i18n="{{ 'settings.instagramReconnect' if business.instagram_username else 'connectInstagram.cta' }}">{{ 'Reconnect or switch account' if business.instagram_username else 'Connect Instagram' }}</span></a>
+                        {% if business.instagram_username %}
+                            <form method="POST" action="{{ url_for('disconnect_instagram') }}"
+                                  onsubmit="return confirm(t('settings.instagramDisconnectConfirm'));">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button type="submit" class="field-action-link field-action-link-danger" data-i18n="settings.instagramDisconnect">Disconnect</button>
+                            </form>
+                        {% endif %}
+                    </div>
                 </div>
             </div>
 

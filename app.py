@@ -21,7 +21,7 @@ from database import (
     link_stripe_subscription, update_stripe_subscription_status, business_by_stripe_subscription_id,
     effective_subscription_active, has_pro_access,
     business_stats, log_event, event_funnel, recent_client_errors, log_client_error,
-    link_instagram_account, business_by_instagram_account_id, already_processed_messages,
+    link_instagram_account, unlink_instagram_account, business_by_instagram_account_id, already_processed_messages,
     mark_message_processed, save_draft_reply, previous_conversations_with,
     log_webhook_hit, recent_webhook_hits, raw_conversation_rows, is_auto_send_enabled,
     set_auto_send, business_by_username, business_by_phone_number,
@@ -1003,7 +1003,7 @@ def settings():
     return render_template(
         "settings.html",
         error=None,
-        message=None,
+        message=request.args.get("message"),
         pro_access=pro_access,
         business={
             "name": business[1], "username": username, "contact_email": contact_email,
@@ -1012,6 +1012,16 @@ def settings():
             "upsell_pairs": get_upsell_pairs(business_id),
         },
     )
+
+
+@app.route("/disconnect-instagram", methods=["POST"])
+@login_required
+def disconnect_instagram():
+    # Frees up instagram_account_id's UNIQUE index (see database.py) so the account can
+    # be reconnected here or linked to a different business - see instagram_oauth_callback's
+    # psycopg2.errors.UniqueViolation handling above for the failure this exists to avoid.
+    unlink_instagram_account(session["business_id"])
+    return redirect(url_for("settings", message="Instagram disconnected."))
 
 
 # Distinct from /settings above (renamed "Profile" in the nav - business info the AI

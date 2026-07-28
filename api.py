@@ -13,7 +13,7 @@ from database import (
     business_by_id, replies_today_count, update_business, get_subscription_status,
     effective_subscription_active, has_pro_access, business_stats, log_event, save_push_token, log_client_error,
     add_business, delete_business, set_new_password, is_push_enabled, set_push_enabled,
-    is_auto_send_enabled, set_auto_send,
+    is_auto_send_enabled, set_auto_send, unlink_instagram_account,
     username_taken, contact_email_taken, phone_number_taken,
     archived_conversations_for_business, trashed_conversations_for_business,
     archive_conversation, unarchive_conversation, soft_delete_conversation, restore_conversation,
@@ -386,6 +386,18 @@ def api_instagram_connect_url():
     redirect_uri = url_for("instagram_oauth_callback", _external=True)
     state = make_instagram_connect_state(request.business_id)
     return jsonify(url=instagram_authorize_url(redirect_uri, state=state))
+
+
+# Frees up instagram_account_id's UNIQUE index (see database.py's create_database) so
+# this account can be reconnected here or linked to a different business - same action
+# as the website Settings page's "Disconnect" button. Mirrors app.py's
+# instagram_oauth_callback UniqueViolation handling, which is the failure this exists to
+# let a business route around without needing direct DB access.
+@api.route("/instagram-disconnect", methods=["POST"])
+@require_api_auth
+def api_instagram_disconnect():
+    unlink_instagram_account(request.business_id)
+    return jsonify(message="disconnected")
 
 
 # Returns a short-lived link the mobile app opens via its in-app browser (same mechanism

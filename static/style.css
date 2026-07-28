@@ -1144,11 +1144,14 @@ body.auth {
 }
 .profile-instagram-value { font-size: 15px; color: var(--text); }
 
-/* A golden action link pinned to a field's right edge, centered on the field's full
-   height rather than following the field's text baseline (which sits low in
+/* A pair of golden action links pinned to a field's right edge, centered on the field's
+   full height rather than following the field's text baseline (which sits low in
    .floating-field/.profile-instagram-field to leave room for the label above it).
-   Currently only the Instagram field's "Reconnect or switch account" uses this. */
-.field-action-link { position: absolute; top: 50%; right: 12px; transform: translateY(-50%); font-size: 13.5px; }
+   Currently only the Instagram field's "Reconnect or switch account" + "Disconnect"
+   pair uses this. */
+.profile-instagram-actions { position: absolute; top: 50%; right: 12px; transform: translateY(-50%); display: flex; align-items: center; gap: 12px; }
+.field-action-link { font-size: 13.5px; }
+.field-action-link-danger { background: none; border: none; padding: 0; margin: 0; font: inherit; color: var(--danger); cursor: pointer; }
 
 /* --- Danger zone --- */
 .danger-zone, .export-zone {
