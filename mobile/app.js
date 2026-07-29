@@ -397,7 +397,13 @@ function createAnchoredListPicker(modalId) {
         const rect = triggerBtn.getBoundingClientRect();
         const margin = 12;
         const top = rect.bottom + 6;
-        const available = window.innerHeight - top - margin;
+        // Stop above the bottom tab bar instead of running the sheet's max-height out to
+        // the raw viewport edge - the tab bar sits on top of it (own z-index 20 vs. this
+        // modal's 61), so the sheet used to render its last option(s) behind the tab bar
+        // rather than stopping short of it. Falls back to the viewport edge when the tab
+        // bar itself is hidden (e.g. Login/Register screens don't have one).
+        const bottomLimit = tabbar.classList.contains("hidden") ? window.innerHeight : tabbar.getBoundingClientRect().top;
+        const available = bottomLimit - top - margin;
         sheet.style.top = `${top}px`;
         sheet.style.left = `${rect.left}px`;
         // Matches the trigger's own width, edge to edge, same as before - EXCEPT an
