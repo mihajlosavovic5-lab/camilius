@@ -2,6 +2,45 @@
    restructured for a native-feeling touch UI: fixed bottom tab bar, full-screen views
    with slide transitions instead of a scrolling page. */
 
+/* Inter - self-hosted (bundled in mobile/fonts, shipped inside the OTA bundle/APK
+   the same way app.css/app.js/i18n.js already are - no CDN dependency for a WebView
+   that may load before the phone has a network connection) variable font, one file
+   per Unicode subset covering weights 400-700 in a single download per subset.
+   Gives body text a more refined, editorial feel to match the Georgia serif
+   headings, instead of the plain Android system default (Roboto). */
+@font-face {
+    font-family: 'Inter';
+    font-style: normal;
+    font-weight: 400 700;
+    font-display: swap;
+    src: url('fonts/inter-latin.woff2') format('woff2');
+    unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+    font-family: 'Inter';
+    font-style: normal;
+    font-weight: 400 700;
+    font-display: swap;
+    src: url('fonts/inter-latin-ext.woff2') format('woff2');
+    unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+    font-family: 'Inter';
+    font-style: normal;
+    font-weight: 400 700;
+    font-display: swap;
+    src: url('fonts/inter-cyrillic.woff2') format('woff2');
+    unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+@font-face {
+    font-family: 'Inter';
+    font-style: normal;
+    font-weight: 400 700;
+    font-display: swap;
+    src: url('fonts/inter-cyrillic-ext.woff2') format('woff2');
+    unicode-range: U+0460-052F, U+1C80-1C8A, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+
 :root {
     --primary: #d69410;
     --primary-dark: #b57d0c;
@@ -26,6 +65,9 @@
     --tabbar-h: 58px;
     --safe-top: env(safe-area-inset-top, 0px);
     --safe-bottom: env(safe-area-inset-bottom, 0px);
+    /* Falls back to the OS system font for any character Inter's self-hosted
+       subsets above don't cover (CJK, Greek, Vietnamese, ...). */
+    --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 }
 
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -51,13 +93,13 @@ html, body {
 
 body {
     margin: 0;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    font-family: var(--font-sans);
     /* Same warm gold-wash-into-background gradient as the website's own <body> (see
        static/style.css) and this file's .screen-login below, instead of a flat white -
        so the app reads as the same product as the site rather than a plain default. */
     background: linear-gradient(180deg, var(--primary-light) 0%, var(--background) 42%);
     color: var(--text);
-    line-height: 1.5;
+    line-height: 1.55;
     -webkit-font-smoothing: antialiased;
 }
 
@@ -117,15 +159,15 @@ button { font-family: inherit; }
    of the plain system sans every other label uses - now that the title is centered and
    the bar itself is transparent, it's the one piece of text meant to read as a proper
    page heading rather than another UI label. */
-.topbar-title h1 { font-family: Georgia, "Times New Roman", serif; font-size: 19px; font-weight: 700; margin: 0; }
+.topbar-title h1 { font-family: Georgia, "Times New Roman", serif; font-size: 20px; font-weight: 700; margin: 0; }
 .topbar-detail { gap: 10px; }
 .topbar-detail-meta { flex: 1; min-width: 0; }
-.detail-sender { font-weight: 700; font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.detail-time { color: var(--text-muted); font-size: 12px; }
+.detail-sender { font-weight: 700; font-size: 16px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.detail-time { color: var(--text-muted); font-size: 13px; }
 
 .back-btn {
     width: 34px; height: 34px; border-radius: 99px; border: none; background: var(--background);
-    color: var(--text); font-size: 22px; line-height: 1; cursor: pointer; flex-shrink: 0;
+    color: var(--text); font-size: 23px; line-height: 1; cursor: pointer; flex-shrink: 0;
 }
 .back-btn:active { background: var(--border); }
 
@@ -135,7 +177,7 @@ button { font-family: inherit; }
     background-image: url('icon-512.png'); background-size: cover; background-position: center;
 }
 .brand-mark-sm { width: 28px; height: 28px; }
-.brand-name { font-family: Georgia, "Times New Roman", serif; font-weight: 700; font-size: 20px; }
+.brand-name { font-family: Georgia, "Times New Roman", serif; font-weight: 700; font-size: 21px; }
 
 /* --- Login screen --- */
 /* The gradient wash is now just .screen's own default background (every screen has it) -
@@ -153,12 +195,12 @@ button { font-family: inherit; }
 .login-lang-row { display: flex; justify-content: center; flex-shrink: 0; }
 .lang-select-btn {
     display: flex; align-items: center; gap: 5px; background: none; border: none; cursor: pointer;
-    font-family: inherit; font-size: 14px; font-weight: 600; color: var(--text-muted); padding: 10px 8px;
+    font-family: inherit; font-size: 15px; font-weight: 600; color: var(--text-muted); padding: 10px 8px;
     border-radius: 8px; transition: background .15s ease;
 }
 .lang-select-btn.active { background: var(--background); }
-.lang-select-flag { font-size: 15px; }
-.lang-chevron { font-size: 12px; transform: translateY(1px); transition: transform .18s ease; }
+.lang-select-flag { font-size: 16px; }
+.lang-chevron { font-size: 13px; transform: translateY(1px); transition: transform .18s ease; }
 .lang-select-btn.active .lang-chevron { transform: translateY(1px) rotate(180deg); }
 /* Flexible spacers above/below the form cluster, close to an even split so the cluster
    reads as centered rather than deliberately offset. */
@@ -168,12 +210,12 @@ button { font-family: inherit; }
 .login-wordmark { margin: 0; }
 /* Small brand-colored flourish under the wordmark - another plain-vs-original cue. */
 .login-accent { display: block; width: 34px; height: 3px; border-radius: 99px; background: var(--primary); }
-.login-tagline { margin: 0; font-size: 13.5px; color: var(--text-muted); text-align: center; }
+.login-tagline { margin: 0; font-size: 14.5px; color: var(--text-muted); text-align: center; }
 .login-spacer { flex: 1; min-height: 20px; }
 /* Breaks up the "lone pill button floating at the bottom" look (Instagram's own
    Sign Up button reads exactly like that) with a short caption above it instead. */
 .login-signup-divider {
-    text-align: center; font-size: 12.5px; font-weight: 600; color: var(--text-muted);
+    text-align: center; font-size: 13.5px; font-weight: 600; color: var(--text-muted);
     margin: 0 0 10px; padding-top: 14px; border-top: 1px solid var(--border);
 }
 .link-btn {
@@ -242,33 +284,33 @@ button { font-family: inherit; }
 .country-option-btn {
     display: flex; align-items: center; gap: 10px; width: 100%;
     background: none; border: none; text-align: left; padding: 11px 14px; border-radius: 10px;
-    font-family: inherit; font-size: 15px; color: var(--text); cursor: pointer;
+    font-family: inherit; font-size: 16px; color: var(--text); cursor: pointer;
     white-space: nowrap;
 }
 .country-option-btn:active { background: var(--background); }
-.country-option-flag { font-size: 18px; flex-shrink: 0; }
+.country-option-flag { font-size: 19px; flex-shrink: 0; }
 .country-option-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.country-option-dial { color: var(--text-muted); font-size: 13.5px; flex-shrink: 0; }
+.country-option-dial { color: var(--text-muted); font-size: 14.5px; flex-shrink: 0; }
 
 .phone-input-row { display: flex; gap: 8px; margin-top: 14px; }
 .phone-country-btn {
     display: flex; align-items: center; gap: 6px; flex-shrink: 0;
     padding: 12px 10px; border: 1px solid var(--border); border-radius: 10px;
-    background: var(--surface); font-family: inherit; font-size: 15px; color: var(--text); cursor: pointer;
+    background: var(--surface); font-family: inherit; font-size: 16px; color: var(--text); cursor: pointer;
 }
-.phone-country-flag { font-size: 17px; }
-.phone-country-chevron { font-size: 11px; color: var(--text-muted); }
+.phone-country-flag { font-size: 18px; }
+.phone-country-chevron { font-size: 12px; color: var(--text-muted); }
 .phone-input-row .floating-field { flex: 1; min-width: 0; }
 
 /* --- Forms --- */
-label { display: block; font-weight: 600; font-size: 13.5px; margin: 14px 0 5px; }
-.field-hint { color: var(--text-muted); font-size: 12px; margin: 5px 2px 0; }
+label { display: block; font-weight: 600; font-size: 14.5px; margin: 14px 0 5px; }
+.field-hint { color: var(--text-muted); font-size: 13px; margin: 5px 2px 0; }
 /* Inline "already taken" errors shown live under a field as the user types (Create
    Account step 1 + Profile) - see setupAvailabilityField() in app.js. */
-.field-error { color: var(--danger); font-size: 12px; margin: 5px 2px 0; }
+.field-error { color: var(--danger); font-size: 13px; margin: 5px 2px 0; }
 input[type="text"], input[type="password"], input[type="email"], input[type="tel"], input[type="number"], textarea {
     width: 100%; padding: 12px 13px; border: 1px solid var(--border); border-radius: 10px;
-    font-family: inherit; font-size: 16px; color: var(--text); background: var(--surface);
+    font-family: inherit; font-size: 17px; color: var(--text); background: var(--surface);
 }
 input:focus, textarea:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(214,148,16,.18); }
 textarea { resize: vertical; line-height: 1.5; }
@@ -308,7 +350,7 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
     margin: 0; font-weight: 400;
     position: absolute; left: 16px; right: 16px; top: 0; height: 100%;
     display: flex; align-items: center;
-    font-size: 16px; color: var(--text-muted); pointer-events: none;
+    font-size: 17px; color: var(--text-muted); pointer-events: none;
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
     transition: height .15s ease, font-size .15s ease, color .15s ease;
 }
@@ -319,7 +361,7 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
 }
 .floating-field input:focus + label,
 .floating-field input:not(:placeholder-shown) + label {
-    height: 26px; font-size: 11.5px; color: var(--primary);
+    height: 26px; font-size: 12.5px; color: var(--primary);
 }
 
 /* Default floating-field sizing - Create Account, Profile, and any phone-number row
@@ -337,12 +379,12 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
 /* Search conversations (inbox) - same floating mechanism, compact sizing to match the
    search bar's original height instead of the taller login/forgot-password fields. */
 .search-row .floating-field input[type="text"] {
-    padding: 17px 14px 5px; font-size: 15px; border-radius: 10px;
+    padding: 17px 14px 5px; font-size: 16px; border-radius: 10px;
 }
-.search-row .floating-field label { font-size: 15px; }
+.search-row .floating-field label { font-size: 16px; }
 .search-row .floating-field input:focus + label,
 .search-row .floating-field input:not(:placeholder-shown) + label {
-    height: 20px; font-size: 10px;
+    height: 20px; font-size: 11px;
 }
 
 /* Price list rows (Service / Price) - two floating fields side by side, compact to fit
@@ -351,12 +393,12 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
 .price-row .floating-field-service { flex: 2; }
 .price-row .floating-field-price { flex: 1; }
 .price-row .floating-field input[type="text"] {
-    padding: 15px 10px 3px; font-size: 14px; border-radius: 8px;
+    padding: 15px 10px 3px; font-size: 15px; border-radius: 8px;
 }
-.price-row .floating-field label { left: 10px; right: 10px; font-size: 14px; }
+.price-row .floating-field label { left: 10px; right: 10px; font-size: 15px; }
 .price-row .floating-field input:focus + label,
 .price-row .floating-field input:not(:placeholder-shown) + label {
-    height: 15px; font-size: 9px;
+    height: 15px; font-size: 10px;
 }
 
 /* Show/hide password toggle - an eye icon inside the right edge of a password field
@@ -395,13 +437,13 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
 }
 .floating-field-textarea textarea:focus + label,
 .floating-field-textarea textarea:not(:placeholder-shown) + label {
-    height: auto; top: 6px; font-size: 11.5px; color: var(--primary);
+    height: auto; top: 6px; font-size: 12.5px; color: var(--primary);
 }
 
 .button {
     display: flex; align-items: center; justify-content: center; gap: 8px;
     padding: 13px 20px; border: none; border-radius: 11px; cursor: pointer;
-    font-size: 15.5px; font-weight: 600; background: var(--primary); color: #fff; margin-top: 18px;
+    font-size: 16.5px; font-weight: 600; background: var(--primary); color: #fff; margin-top: 18px;
 }
 .button:active { background: var(--primary-dark); }
 .button:disabled { background: #cabfa4; }
@@ -410,7 +452,7 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
 .button-primary-outline { color: var(--primary); border-color: var(--primary); }
 .button-pill { border-radius: 999px; }
 
-.checkbox-row { display: flex; align-items: flex-start; gap: 9px; font-weight: 400; font-size: 14px; margin: 16px 0 4px; cursor: pointer; }
+.checkbox-row { display: flex; align-items: flex-start; gap: 9px; font-weight: 400; font-size: 15px; margin: 16px 0 4px; cursor: pointer; }
 /* accent-color intentionally uses --text (not --primary/gold) - a plain, clean
    checkmark instead of a bright yellow-filled box when checked. */
 .checkbox-row input[type="checkbox"] { width: 18px; height: 18px; margin-top: 1px; accent-color: var(--text); flex-shrink: 0; }
@@ -434,7 +476,7 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
    has (plain h1 + .screen-subtitle, centered, no icon - matches that screen's tone
    rather than the onboarding slides' more playful emoji treatment). */
 .register-step-intro { text-align: center; margin-bottom: 22px; }
-.register-step-intro h1 { font-family: Georgia, "Times New Roman", serif; font-weight: 700; font-size: 22px; margin: 0 0 6px; color: var(--primary); }
+.register-step-intro h1 { font-family: Georgia, "Times New Roman", serif; font-weight: 700; font-size: 23px; margin: 0 0 6px; color: var(--primary); }
 .register-step-intro .screen-subtitle { margin: 0; }
 
 .register-steps-viewport {
@@ -466,7 +508,7 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
 .register-step-dot.active { width: 18px; border-radius: 99px; background: var(--primary); }
 .register-next-btn {
     width: 52px; height: 52px; border-radius: 50%; border: none; flex-shrink: 0;
-    background: var(--primary); color: #fff; font-size: 24px; line-height: 1; cursor: pointer;
+    background: var(--primary); color: #fff; font-size: 25px; line-height: 1; cursor: pointer;
     display: flex; align-items: center; justify-content: center;
     box-shadow: 0 6px 16px -4px rgba(214,148,16,.5);
     transition: background .15s ease, box-shadow .15s ease, transform .1s ease;
@@ -479,10 +521,10 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
 
 /* --- Auth sub-screens (Register / Forgot password / Connect Instagram) - pushed on
    top of Login with the same slide-in transition as the conversation detail screen --- */
-.screen-subtitle { color: var(--text-muted); font-size: 14px; margin: 2px 0 18px; line-height: 1.5; }
+.screen-subtitle { color: var(--text-muted); font-size: 15px; margin: 2px 0 18px; line-height: 1.5; }
 .info-card {
     background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
-    padding: 14px 16px; margin: 4px 0 6px; font-size: 13.5px; color: var(--text-muted); line-height: 1.5;
+    padding: 14px 16px; margin: 4px 0 6px; font-size: 14.5px; color: var(--text-muted); line-height: 1.5;
 }
 .info-card strong { color: var(--text); }
 
@@ -510,11 +552,11 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
 .settings-row {
     display: flex; align-items: center; justify-content: space-between;
     padding: 14px 2px; border-bottom: 1px solid var(--border);
-    font-size: 15px; cursor: pointer;
+    font-size: 16px; cursor: pointer;
 }
 .settings-row:active { background: var(--background); }
-.settings-row-value { display: inline-flex; align-items: center; gap: 4px; color: var(--text-muted); font-size: 14px; }
-.settings-row-chevron { color: var(--text-muted); font-size: 18px; }
+.settings-row-value { display: inline-flex; align-items: center; gap: 4px; color: var(--text-muted); font-size: 15px; }
+.settings-row-chevron { color: var(--text-muted); font-size: 19px; }
 .settings-row-stack { flex-direction: column; align-items: stretch; gap: 10px; cursor: default; }
 .settings-row-stack:active { background: none; }
 
@@ -539,14 +581,14 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
    just below it in the markup. Disconnect sits to its right on the same row instead of
    wrapping below, so the two account actions read as one line. */
 .instagram-actions-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 8px 2px 0; }
-.instagram-actions-row .link-btn { font-size: 13px; }
+.instagram-actions-row .link-btn { font-size: 14px; }
 #settings-instagram-reconnect-btn { color: var(--primary-ink); }
 .instagram-actions-row #settings-instagram-disconnect-btn { flex-shrink: 0; }
 
 .theme-toggle { display: flex; background: var(--background); border-radius: 10px; padding: 3px; gap: 3px; }
 .theme-option {
     flex: 1; background: none; border: none; padding: 9px 6px; border-radius: 8px;
-    font-family: inherit; font-size: 13.5px; font-weight: 600; color: var(--text-muted); cursor: pointer;
+    font-family: inherit; font-size: 14.5px; font-weight: 600; color: var(--text-muted); cursor: pointer;
 }
 .theme-option.active { background: var(--surface); color: var(--text); box-shadow: 0 1px 3px rgba(43,32,19,.12); }
 
@@ -560,10 +602,10 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
 .picker-btn {
     display: flex; align-items: center; justify-content: space-between; gap: 6px;
     padding: 9px 10px; border: 1px solid var(--border); border-radius: 8px;
-    font-family: inherit; font-size: 14px; color: var(--text); background: var(--background); cursor: pointer;
+    font-family: inherit; font-size: 15px; color: var(--text); background: var(--background); cursor: pointer;
 }
 .picker-btn:active { border-color: var(--primary); }
-.picker-chevron { font-size: 11px; color: var(--text-muted); flex-shrink: 0; }
+.picker-chevron { font-size: 12px; color: var(--text-muted); flex-shrink: 0; }
 /* Options list inside the shared #option-modal - reuses the country picker's sheet/list
    classes (same anchored-below-field mechanism), plus its own selected-state look. */
 .country-option-btn.selected { color: var(--primary-ink); font-weight: 700; background: var(--primary-light); }
@@ -578,11 +620,11 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
     display: flex; align-items: center; flex-wrap: wrap; gap: 8px;
     padding: 10px 12px; background: var(--background); border: 1px solid var(--border); border-radius: 10px;
 }
-.hours-quickfill-label { flex: 1 1 100%; font-size: 12.5px; font-weight: 600; color: var(--text-muted); }
+.hours-quickfill-label { flex: 1 1 100%; font-size: 13.5px; font-weight: 600; color: var(--text-muted); }
 .hours-quickfill .time-picker-btn { flex: 1; min-width: 0; }
 .hours-quickfill-btn {
     flex: 1 1 100%; padding: 9px 12px; border: 1.5px solid var(--primary); border-radius: 8px; background: none;
-    color: var(--primary-ink); font-family: inherit; font-size: 13px; font-weight: 600; cursor: pointer;
+    color: var(--primary-ink); font-family: inherit; font-size: 14px; font-weight: 600; cursor: pointer;
 }
 .hours-quickfill-btn:active { background: var(--primary-light); }
 
@@ -593,12 +635,12 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
 }
 .hours-day-row:last-child { border-bottom: none; }
 .hours-day-row-weekend { border-top: 2px solid var(--border); }
-.hours-day-name { font-weight: 600; font-size: 13.5px; width: 72px; flex-shrink: 0; }
+.hours-day-name { font-weight: 600; font-size: 14.5px; width: 72px; flex-shrink: 0; }
 .hours-day-times { display: flex; align-items: center; gap: 6px; flex: 1; min-width: 0; }
 .hours-day-times.hidden { display: none; }
-.hours-day-closed-label { flex: 1; min-width: 0; font-size: 13px; color: var(--text-muted); }
+.hours-day-closed-label { flex: 1; min-width: 0; font-size: 14px; color: var(--text-muted); }
 .time-picker-btn { flex: 1; min-width: 0; width: 100%; }
-.hours-time-sep { color: var(--text-muted); font-size: 13px; flex-shrink: 0; }
+.hours-time-sep { color: var(--text-muted); font-size: 14px; flex-shrink: 0; }
 
 .hours-day-toggle { position: relative; display: inline-block; width: 42px; height: 24px; cursor: pointer; flex-shrink: 0; margin-left: auto; }
 .hours-day-toggle input { position: absolute; inset: 0; opacity: 0; margin: 0; cursor: pointer; }
@@ -615,13 +657,13 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
 .price-row { display: flex; gap: 8px; margin-bottom: 8px; align-items: center; }
 .price-remove-btn {
     width: 32px; height: 32px; border-radius: 50%; border: none; background: var(--background);
-    color: var(--text-muted); font-size: 18px; line-height: 1; cursor: pointer; flex-shrink: 0;
+    color: var(--text-muted); font-size: 19px; line-height: 1; cursor: pointer; flex-shrink: 0;
 }
 .price-remove-btn:active { background: var(--danger-bg); color: var(--danger); }
 .price-add-btn {
     display: block; width: 100%; padding: 11px; margin-top: 4px;
     border: 1.5px dashed var(--border); border-radius: 10px; background: none;
-    color: var(--primary-ink); font-family: inherit; font-size: 14px; font-weight: 600; cursor: pointer;
+    color: var(--primary-ink); font-family: inherit; font-size: 15px; font-weight: 600; cursor: pointer;
     transition: background .12s ease, transform .1s ease;
 }
 .price-add-btn:active { background: var(--primary-light); transform: scale(.97); }
@@ -630,10 +672,10 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
    just above the rows themselves. .currency-picker-btn is a .picker-btn variant (see
    above), sized to its content instead of stretched full-width like the time fields. */
 .price-currency-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
-.price-currency-row span { font-size: 13.5px; color: var(--text-muted); font-weight: 600; }
-.currency-picker-btn { padding: 7px 10px; font-size: 13.5px; font-weight: 600; background: var(--surface); }
+.price-currency-row span { font-size: 14.5px; color: var(--text-muted); font-weight: 600; }
+.currency-picker-btn { padding: 7px 10px; font-size: 14.5px; font-weight: 600; background: var(--surface); }
 
-.settings-version { text-align: center; color: var(--text-muted); font-size: 12.5px; margin: 30px 0 6px; }
+.settings-version { text-align: center; color: var(--text-muted); font-size: 13.5px; margin: 30px 0 6px; }
 
 /* --- Floating "Save changes" button (Profile + Settings) - pinned to the screen's own
    bottom-right corner, above the tab bar, instead of an inline full-width button at the
@@ -644,7 +686,7 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
 .fab-save {
     position: absolute; right: 18px; bottom: calc(18px + var(--tabbar-h) + var(--safe-bottom)); z-index: 15;
     padding: 14px 22px; border: none; border-radius: 999px; background: var(--primary); color: #fff;
-    font-family: inherit; font-size: 14.5px; font-weight: 700; cursor: pointer;
+    font-family: inherit; font-size: 15.5px; font-weight: 700; cursor: pointer;
     box-shadow: 0 8px 20px -4px rgba(214,148,16,.55);
     transition: background .15s ease, transform .1s ease;
 }
@@ -653,14 +695,14 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
 
 /* --- Help + legal (Terms/Privacy) screens --- */
 .legal-body { padding-bottom: 32px; }
-.legal-body h2 { font-size: 15.5px; margin: 22px 0 8px; }
-.legal-body p { font-size: 14px; line-height: 1.6; color: var(--text); margin: 0 0 10px; }
+.legal-body h2 { font-size: 16.5px; margin: 22px 0 8px; }
+.legal-body p { font-size: 15px; line-height: 1.6; color: var(--text); margin: 0 0 10px; }
 .legal-body ul { margin: 0 0 12px; padding-left: 20px; }
-.legal-body li { font-size: 14px; line-height: 1.6; margin-bottom: 6px; }
-.legal-updated { color: var(--text-muted); font-size: 12.5px; margin-bottom: 16px; }
+.legal-body li { font-size: 15px; line-height: 1.6; margin-bottom: 6px; }
+.legal-updated { color: var(--text-muted); font-size: 13.5px; margin-bottom: 16px; }
 
 /* --- Alerts --- */
-.alert { padding: 12px 14px; border-radius: 10px; font-size: 14px; margin: 0 0 14px; border: 1px solid; }
+.alert { padding: 12px 14px; border-radius: 10px; font-size: 15px; margin: 0 0 14px; border: 1px solid; }
 .alert-error { background: var(--danger-bg); border-color: var(--danger-border); color: #991b1b; }
 .alert-success { background: var(--success-bg); border-color: var(--success-border); color: #166534; }
 .alert-warning { background: var(--warning-bg); border-color: var(--warning-border); color: var(--warning); margin: 0 18px 14px; }
@@ -673,8 +715,8 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
     padding: 10px 14px; margin: 18px 18px 6px; flex-shrink: 0;
     background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
 }
-.donation-strip-text { font-size: 13.5px; color: var(--text); }
-.donation-strip-btn { padding: 6px 14px; font-size: 13px; flex-shrink: 0; text-decoration: none; }
+.donation-strip-text { font-size: 14.5px; color: var(--text); }
+.donation-strip-btn { padding: 6px 14px; font-size: 14px; flex-shrink: 0; text-decoration: none; }
 
 /* --- Inbox stats row (Faza 13) - "Replies sent" / "Sent this week" tiles, same data
    (business_stats()) the website's dashboard shows in its own .stats-row, just laid out
@@ -687,8 +729,8 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
     flex: 1; text-align: center; padding: 12px 8px;
     background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
 }
-.inbox-stat-value { font-size: 20px; font-weight: 700; color: var(--text); line-height: 1.2; }
-.inbox-stat-label { font-size: 11.5px; color: var(--text-muted); margin-top: 2px; }
+.inbox-stat-value { font-size: 21px; font-weight: 700; color: var(--text); line-height: 1.2; }
+.inbox-stat-label { font-size: 12.5px; color: var(--text-muted); margin-top: 2px; }
 
 /* --- Filters --- */
 /* Horizontally scrollable rather than wrapping - 5 pills (All/Pending/Sent/Archived/
@@ -696,7 +738,7 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
    width, and wrapping to a second line would eat into the list's vertical space. */
 .filters { display: flex; gap: 8px; padding: 14px 18px 4px; flex-shrink: 0; overflow-x: auto; -webkit-overflow-scrolling: touch; }
 .filter-pill {
-    padding: 7px 14px; border-radius: 99px; font-size: 13.5px; font-weight: 500;
+    padding: 7px 14px; border-radius: 99px; font-size: 14.5px; font-weight: 500;
     color: var(--text-muted); background: var(--surface); border: 1px solid var(--border); cursor: pointer;
     white-space: nowrap; flex-shrink: 0;
 }
@@ -722,13 +764,13 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
 .inbox-row-more {
     flex-shrink: 0; width: 34px; height: 44px;
     display: flex; align-items: center; justify-content: center;
-    background: none; border: none; color: var(--text-muted); font-size: 20px; cursor: pointer;
+    background: none; border: none; color: var(--text-muted); font-size: 21px; cursor: pointer;
 }
 .inbox-row-more:active { color: var(--text); }
 .inbox-avatar {
     width: 40px; height: 40px; border-radius: 99px; flex-shrink: 0;
     display: flex; align-items: center; justify-content: center;
-    background: var(--primary-light); color: var(--primary-ink); font-weight: 700; font-size: 16px; text-transform: uppercase;
+    background: var(--primary-light); color: var(--primary-ink); font-weight: 700; font-size: 17px; text-transform: uppercase;
 }
 /* Starts invisible (over the same --primary-light placeholder circle the letter avatar
    uses) and fades in once the real photo has actually loaded, instead of sitting empty/
@@ -745,9 +787,9 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
 /* min-width:0 - as a flex child, .inbox-sender otherwise refuses to shrink below its
    text's full intrinsic width (flex items default to min-width:auto), which pushes the
    whole row wider than the screen instead of letting text-overflow:ellipsis kick in. */
-.inbox-sender { font-weight: 600; font-size: 14.5px; white-space: nowrap; overflow: hidden; min-width: 0; }
-.inbox-time { color: var(--text-muted); font-size: 11.5px; flex-shrink: 0; }
-.inbox-preview { color: var(--text-muted); font-size: 13.5px; white-space: nowrap; overflow: hidden; margin-top: 2px; min-width: 0; }
+.inbox-sender { font-weight: 600; font-size: 15.5px; white-space: nowrap; overflow: hidden; min-width: 0; }
+.inbox-time { color: var(--text-muted); font-size: 12.5px; flex-shrink: 0; }
+.inbox-preview { color: var(--text-muted); font-size: 14.5px; white-space: nowrap; overflow: hidden; margin-top: 2px; min-width: 0; }
 /* Long sender names/previews dissolve into the background at the clipped edge instead
    of an abrupt cut or a literal "..." glyph (which reads as a second, confusing set of
    dots right next to the row's real "more options" ⋯ button) - the fade-to-transparent
@@ -776,7 +818,7 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
 .lang-modal.open .row-actions-sheet { transform: translateY(0) scale(1); }
 .row-action-btn {
     background: none; border: none; text-align: center; padding: 14px; border-radius: 10px;
-    font-family: inherit; font-size: 15.5px; font-weight: 600; color: var(--text); cursor: pointer;
+    font-family: inherit; font-size: 16.5px; font-weight: 600; color: var(--text); cursor: pointer;
 }
 .row-action-btn:active { background: var(--background); }
 .row-action-danger { color: var(--danger); }
@@ -792,12 +834,12 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
     text-align: center; padding: 24px; color: var(--text-muted); flex: 1;
     display: flex; flex-direction: column; align-items: center; justify-content: center;
 }
-.empty-icon { font-size: 40px; margin-bottom: 10px; }
+.empty-icon { font-size: 41px; margin-bottom: 10px; }
 /* Inbox screen only - the donation strip added above eats into the space this centers
    within, pushing "You're all set" low enough to clip under the tab bar. Nudge it back up. */
 #inbox-empty, #inbox-error { margin-top: -860px; }
-.empty-title { font-weight: 600; color: var(--text); font-size: 15.5px; margin: 4px 0; }
-.loading { text-align: center; padding: 30px; color: var(--text-muted); font-size: 14px; flex: 1; display: flex; align-items: center; justify-content: center; }
+.empty-title { font-weight: 600; color: var(--text); font-size: 16.5px; margin: 4px 0; }
+.loading { text-align: center; padding: 30px; color: var(--text-muted); font-size: 15px; flex: 1; display: flex; align-items: center; justify-content: center; }
 .spinner {
     width: 26px; height: 26px; border-radius: 50%;
     border: 3px solid var(--border); border-top-color: var(--primary);
@@ -819,7 +861,7 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
 .screen-profile .detail-body, .screen-settings .detail-body {
     padding-bottom: calc(92px + var(--tabbar-h) + var(--safe-bottom));
 }
-.block-label { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--text-muted); margin: 18px 0 6px; }
+.block-label { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--text-muted); margin: 18px 0 6px; }
 .block-label:first-child { margin-top: 0; }
 /* Settings' first block-label ("Preferences") is never actually :first-child - two
    always-present alert divs (#settings-app-message/-error, hidden via .hidden rather
@@ -828,8 +870,8 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
    gap under the page title than Inbox/Schedule get. Catches it via the sibling that's
    actually there instead of assuming no such siblings exist. */
 .alert + .block-label { margin-top: 0; }
-.question { white-space: pre-wrap; margin: 0; padding: 13px 14px; background: var(--surface); border-radius: 10px; border-left: 3px solid var(--border); font-size: 14.5px; }
-.reply { white-space: pre-wrap; margin: 0; padding: 13px 14px; background: var(--success-bg); border-radius: 10px; border-left: 3px solid var(--success); font-size: 14.5px; }
+.question { white-space: pre-wrap; margin: 0; padding: 13px 14px; background: var(--surface); border-radius: 10px; border-left: 3px solid var(--border); font-size: 15.5px; }
+.reply { white-space: pre-wrap; margin: 0; padding: 13px 14px; background: var(--success-bg); border-radius: 10px; border-left: 3px solid var(--success); font-size: 15.5px; }
 
 /* Profile screen - fields grouped into cards (Account / Business details / AI upsell /
    Security), the same grouped-card layout as the website's /settings page (see
@@ -843,11 +885,11 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
    either, since #settings-message/-error (hidden alerts) sit before it in the DOM. */
 .alert + .profile-section { margin-top: 0; }
 .profile-section-header { margin-bottom: 14px; }
-.profile-section-title { font-size: 15px; font-weight: 700; margin: 0; display: flex; align-items: center; gap: 8px; }
-.profile-section-subtitle { color: var(--text-muted); font-size: 12.5px; margin: 3px 0 0; }
+.profile-section-title { font-size: 16px; font-weight: 700; margin: 0; display: flex; align-items: center; gap: 8px; }
+.profile-section-subtitle { color: var(--text-muted); font-size: 13.5px; margin: 3px 0 0; }
 .profile-section-header + .floating-field, .profile-section-header + label { margin-top: 0; }
 
-.badge { padding: 4px 11px; border-radius: 99px; font-size: 12px; font-weight: 600; flex-shrink: 0; }
+.badge { padding: 4px 11px; border-radius: 99px; font-size: 13px; font-weight: 600; flex-shrink: 0; }
 .badge-pending { background: var(--warning-bg); color: var(--warning); border: 1px solid var(--warning-border); }
 .badge-sent { background: var(--success-bg); color: var(--success); border: 1px solid var(--success-border); }
 .badge-pro { background: transparent; color: var(--primary-dark); border: 1.5px solid var(--primary); font-weight: 700; }
@@ -863,13 +905,13 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
 .schedule-nav-btn {
     width: 30px; height: 30px; border-radius: 50%; flex-shrink: 0;
     border: 1px solid var(--border); background: var(--surface); color: var(--text);
-    font-size: 16px; line-height: 1; display: flex; align-items: center; justify-content: center; cursor: pointer;
+    font-size: 17px; line-height: 1; display: flex; align-items: center; justify-content: center; cursor: pointer;
 }
 .schedule-nav-btn:active { background: var(--border); }
-.schedule-date-label { flex: 1; min-width: 0; text-align: center; font-weight: 600; font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.schedule-date-label { flex: 1; min-width: 0; text-align: center; font-weight: 600; font-size: 15px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .schedule-today-btn {
     flex-shrink: 0; padding: 6px 12px; border-radius: 99px; border: 1px solid var(--border);
-    background: var(--surface); color: var(--text-muted); font-family: inherit; font-size: 12px; font-weight: 600; cursor: pointer;
+    background: var(--surface); color: var(--text-muted); font-family: inherit; font-size: 13px; font-weight: 600; cursor: pointer;
 }
 .schedule-today-btn:active { background: var(--border); }
 
@@ -877,11 +919,11 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
 .schedule-day-view .empty { padding-top: 56px; }
 .schedule-timeline { padding: 0 18px 4px; }
 .schedule-timeline-row { display: flex; gap: 12px; padding: 6px 0; }
-.schedule-timeline-time { width: 46px; flex-shrink: 0; padding-top: 11px; color: var(--text-muted); font-size: 12px; }
+.schedule-timeline-time { width: 46px; flex-shrink: 0; padding-top: 11px; color: var(--text-muted); font-size: 13px; }
 .schedule-timeline-row-hour .schedule-timeline-time { color: var(--text); font-weight: 700; }
 .schedule-timeline-content { flex: 1; min-width: 0; }
 
-.schedule-slot { border-radius: 10px; font-size: 13.5px; }
+.schedule-slot { border-radius: 10px; font-size: 14.5px; }
 .schedule-slot-free {
     width: 100%; padding: 11px 12px; background: none; border: 1px dashed var(--border);
     color: var(--text-muted); text-align: center; font-family: inherit; cursor: pointer;
@@ -898,13 +940,13 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
 }
 .schedule-slot-booked { padding: 10px 12px; background: var(--surface); border: 1px solid var(--border); display: flex; align-items: center; gap: 10px; }
 .schedule-slot-booked-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
-.schedule-slot-booked-name { font-weight: 600; font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.schedule-slot-booked-service { color: var(--text-muted); font-size: 12px; }
-.schedule-slot-booked-range { color: var(--text-muted); font-size: 11.5px; font-variant-numeric: tabular-nums; }
+.schedule-slot-booked-name { font-weight: 600; font-size: 15px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.schedule-slot-booked-service { color: var(--text-muted); font-size: 13px; }
+.schedule-slot-booked-range { color: var(--text-muted); font-size: 12.5px; font-variant-numeric: tabular-nums; }
 .schedule-slot-booked-badge { align-self: flex-start; }
 .schedule-slot-cancel {
     flex-shrink: 0; background: none; border: none; color: var(--danger); font-family: inherit;
-    font-size: 12.5px; font-weight: 600; padding: 6px 4px; cursor: pointer;
+    font-size: 13.5px; font-weight: 600; padding: 6px 4px; cursor: pointer;
 }
 .schedule-slot-cancel:active { opacity: .6; }
 
@@ -915,7 +957,7 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
    showed barely more than two days at a time with the rest hidden off to the side,
    nothing like the "every day visible, just scroll down" table the website shows. */
 .schedule-week-legend { display: flex; gap: 16px; padding: 0 18px 10px; flex-shrink: 0; }
-.schedule-week-legend-item { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-muted); }
+.schedule-week-legend-item { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--text-muted); }
 .schedule-week-legend-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
 .schedule-week-legend-dot-ai { background: var(--primary); }
 .schedule-week-legend-dot-manual { background: var(--text-muted); }
@@ -926,17 +968,17 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
 }
 .schedule-week-day.today { border-color: var(--primary); }
 .schedule-week-day-header {
-    display: flex; justify-content: space-between; align-items: baseline; font-weight: 700; font-size: 12.5px;
+    display: flex; justify-content: space-between; align-items: baseline; font-weight: 700; font-size: 13.5px;
     margin-bottom: 8px; padding-bottom: 8px; border-bottom: 1px solid var(--border); color: var(--text-muted);
 }
 .schedule-week-day.today .schedule-week-day-header { color: var(--primary-ink); }
-.schedule-week-day-num { font-size: 15px; color: var(--text); }
-.schedule-week-closed { color: var(--text-muted); font-size: 12px; text-align: center; padding: 14px 0; }
+.schedule-week-day-num { font-size: 16px; color: var(--text); }
+.schedule-week-closed { color: var(--text-muted); font-size: 13px; text-align: center; padding: 14px 0; }
 /* Each entry is a time/name pair in its own aligned columns (not one run-on string) so
    the eye can scan straight down the times; a thin left accent (not a filled
    background) marks AI vs manual so the chip stays readable instead of a colored block. */
 .schedule-week-appt {
-    display: flex; align-items: baseline; gap: 6px; font-size: 11.5px; padding: 4px 6px 4px 8px;
+    display: flex; align-items: baseline; gap: 6px; font-size: 12.5px; padding: 4px 6px 4px 8px;
     border-radius: 4px; border-left: 2px solid var(--border); background: var(--background); margin-bottom: 4px;
 }
 .schedule-week-appt-ai { border-left-color: var(--primary); }
@@ -944,7 +986,7 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
 .schedule-week-appt-name { color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
 .schedule-week-more {
     display: block; width: 100%; text-align: left; background: none; border: none; font-family: inherit;
-    font-size: 11px; color: var(--text-muted); font-weight: 600; padding: 3px 6px; cursor: pointer;
+    font-size: 12px; color: var(--text-muted); font-weight: 600; padding: 3px 6px; cursor: pointer;
 }
 .schedule-week-more:active { color: var(--primary-ink); }
 
@@ -965,8 +1007,8 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
     display: flex; flex-direction: column;
 }
 .lang-modal.open .book-modal-sheet { transform: translate(-50%, -50%) scale(1); }
-.book-modal-title { font-size: 16.5px; font-weight: 700; }
-.book-modal-time { color: var(--primary-ink); font-size: 13px; font-weight: 600; margin-top: 2px; }
+.book-modal-title { font-size: 17.5px; font-weight: 700; }
+.book-modal-time { color: var(--primary-ink); font-size: 14px; font-weight: 600; margin-top: 2px; }
 .book-modal-sheet .alert { margin: 14px 0 0; }
 .book-modal-sheet .row-action-cancel { margin-top: 6px; }
 
@@ -987,9 +1029,9 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
 .tab-btn {
     flex: 1; border: none; background: none; cursor: pointer;
     display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
-    color: var(--text-muted); font-size: 11.5px; font-weight: 500;
+    color: var(--text-muted); font-size: 12.5px; font-weight: 500;
 }
-.tab-btn .tab-icon { font-size: 20px; line-height: 1; filter: grayscale(1); opacity: .55; }
+.tab-btn .tab-icon { font-size: 21px; line-height: 1; filter: grayscale(1); opacity: .55; }
 .tab-btn.active { color: var(--primary-ink); }
 .tab-btn.active .tab-icon { filter: none; opacity: 1; }
 
@@ -1080,7 +1122,7 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
     transform: translate(-50%, 10px); opacity: 0; pointer-events: none;
     max-width: calc(100% - 48px); text-align: center;
     background: var(--text); color: var(--background);
-    padding: 12px 20px; border-radius: 999px; font-size: 14px; font-weight: 600;
+    padding: 12px 20px; border-radius: 999px; font-size: 15px; font-weight: 600;
     box-shadow: 0 10px 28px rgba(0,0,0,.24);
     transition: opacity .2s ease, transform .2s ease;
 }
@@ -1120,13 +1162,13 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
 .save-success-overlay.visible .save-success-circle-progress { animation: save-success-draw .5s ease forwards; }
 .save-success-overlay.visible .save-success-check { animation: save-success-draw .35s ease forwards .45s; }
 @keyframes save-success-draw { to { stroke-dashoffset: 0; } }
-.save-success-text { margin: 0; font-size: 15px; font-weight: 600; color: var(--text); }
+.save-success-text { margin: 0; font-size: 16px; font-weight: 600; color: var(--text); }
 
 /* --- Offline banner --- */
 .offline-banner {
     position: fixed; top: 0; left: 0; right: 0; z-index: 50;
     background: var(--danger); color: #fff; text-align: center;
-    font-size: 13px; font-weight: 600; padding: calc(7px + var(--safe-top)) 12px 7px;
+    font-size: 14px; font-weight: 600; padding: calc(7px + var(--safe-top)) 12px 7px;
 }
 
 /* --- Native app-update banner --- */
@@ -1135,15 +1177,15 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
     background: var(--primary); color: #fff; border-radius: 12px;
     display: flex; align-items: center; gap: 10px;
     padding: 12px 10px 12px 16px; box-shadow: 0 6px 20px rgba(0,0,0,.2);
-    font-size: 13px; font-weight: 600;
+    font-size: 14px; font-weight: 600;
 }
 .update-banner span { flex: 1; }
 .update-download-btn {
     background: #fff; color: var(--primary-dark); border: none; border-radius: 8px;
-    padding: 8px 14px; font-size: 13px; font-weight: 700; font-family: inherit; cursor: pointer;
+    padding: 8px 14px; font-size: 14px; font-weight: 700; font-family: inherit; cursor: pointer;
 }
 .update-dismiss-btn {
-    background: none; border: none; color: #fff; opacity: .8; font-size: 20px; line-height: 1;
+    background: none; border: none; color: #fff; opacity: .8; font-size: 21px; line-height: 1;
     padding: 4px 2px; cursor: pointer;
 }
 
@@ -1172,7 +1214,7 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
     animation: ota-spin .8s linear infinite;
 }
 @keyframes ota-spin { to { transform: rotate(360deg); } }
-.ota-update-card p { margin: 0; font-size: 14px; font-weight: 600; }
+.ota-update-card p { margin: 0; font-size: 15px; font-weight: 600; }
 .ota-progress-track {
     width: 100%; height: 8px; border-radius: 999px; background: var(--border); overflow: hidden;
 }
@@ -1181,13 +1223,13 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
     background: linear-gradient(90deg, var(--primary), var(--primary-dark));
     transition: width .25s ease;
 }
-.ota-progress-percent { font-size: 12px; font-weight: 700; color: var(--text-muted); }
+.ota-progress-percent { font-size: 13px; font-weight: 700; color: var(--text-muted); }
 
 /* --- Search --- */
 .search-row { padding: 12px 18px 0; flex-shrink: 0; }
 .search-input {
     width: 100%; padding: 10px 14px; border: 1px solid var(--border); border-radius: 10px;
-    font-family: inherit; font-size: 15px; color: var(--text); background: var(--surface);
+    font-family: inherit; font-size: 16px; color: var(--text); background: var(--surface);
 }
 .search-input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(214,148,16,.18); }
 
@@ -1373,7 +1415,7 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
    above) - it's meant to depict a single message going out, not fly back and forth
    forever. */
 .onboarding-send-fly {
-    position: absolute; right: 6px; bottom: 34px; font-size: 15px; opacity: 0;
+    position: absolute; right: 6px; bottom: 34px; font-size: 16px; opacity: 0;
     animation: onboarding-send-fly 1.3s ease-in both; animation-play-state: paused;
 }
 .onboarding-slide.is-active .onboarding-send-fly { animation-play-state: running; }
@@ -1388,7 +1430,7 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
 .onboarding-badge {
     position: absolute; right: -6px; bottom: -6px; width: 46px; height: 46px; border-radius: 50%;
     background: var(--primary); color: #fff; display: flex; align-items: center; justify-content: center;
-    font-size: 20px; box-shadow: 0 8px 18px rgba(214, 148, 16, .38); border: 3px solid var(--background);
+    font-size: 21px; box-shadow: 0 8px 18px rgba(214, 148, 16, .38); border: 3px solid var(--background);
 }
 .onboarding-badge-pop { animation: onboarding-badge-pop .6s cubic-bezier(.22, 1.4, .4, 1) .35s backwards; }
 .onboarding-badge-pulse { animation: onboarding-badge-pop .6s cubic-bezier(.22, 1.4, .4, 1) .35s backwards, onboarding-badge-breathe 2.4s ease-in-out 1s infinite; animation-play-state: running, paused; }
@@ -1403,8 +1445,8 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
 .onboarding-orbit-dot-c { bottom: 26px; left: -4px; background: var(--success); animation-duration: 9s; animation-delay: -4s; }
 @keyframes onboarding-orbit { 0%, 100% { transform: translate(0, 0); } 50% { transform: translate(6px, -10px); } }
 
-.onboarding-slide h1 { font-family: Georgia, "Times New Roman", serif; font-weight: 700; font-size: 22px; margin: 0 0 10px; }
-.onboarding-slide p { color: var(--text-muted); font-size: 15px; max-width: 300px; margin: 0; }
+.onboarding-slide h1 { font-family: Georgia, "Times New Roman", serif; font-weight: 700; font-size: 23px; margin: 0 0 10px; }
+.onboarding-slide p { color: var(--text-muted); font-size: 16px; max-width: 300px; margin: 0; }
 /* Absolutely positioned (out of the slide's own centering flow) and pinned near the
    bottom, rather than a normal flex child after <p> - slide 4 is the only slide with a
    button below its copy, and leaving it in flow made THAT slide's flex column taller
@@ -1425,7 +1467,7 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
 }
 @keyframes onboarding-cta-sheen { 0%, 30% { left: -60%; } 60%, 100% { left: 130%; } }
 .onboarding-skip-wrap { position: absolute; top: calc(16px + var(--safe-top)); right: 16px; z-index: 5; }
-.onboarding-skip-btn { background: none; border: none; color: var(--text-muted); font-size: 14px; cursor: pointer; padding: 8px; }
+.onboarding-skip-btn { background: none; border: none; color: var(--text-muted); font-size: 15px; cursor: pointer; padding: 8px; }
 .onboarding-dots { display: flex; justify-content: center; gap: 8px; padding-bottom: calc(30px + var(--safe-bottom)); flex-shrink: 0; }
 .onboarding-dot { width: 8px; height: 8px; border-radius: 99px; background: var(--border); transition: background .2s, width .2s; }
 .onboarding-dot.active { background: var(--primary); width: 22px; }
