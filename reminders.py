@@ -1,18 +1,18 @@
-"""Scheduled email/DM jobs run from process_emails.py's background loop rather than
-inline with request handling, since neither has anything to do with any single incoming
-webhook call:
+"""Scheduled email/DM/notification jobs run from process_emails.py's background loop
+rather than inline with request handling, since neither has anything to do with any
+single incoming webhook call:
 
 - Appointment reminders (Faza 9/12, Pro plan) - two independent, independently-timed
-  reminders per appointment: a customer-facing Instagram DM, and an owner-facing email
-  (send_appointment_reminders_if_needed). Each has its own on/off toggle and its own
-  single configurable lead time (business.customer_reminder_minutes /
+  reminders per appointment: a customer-facing Instagram DM, and an owner-facing in-app
+  notification + push (send_appointment_reminders_if_needed). Each has its own on/off
+  toggle and its own single configurable lead time (business.customer_reminder_minutes /
   owner_reminder_minutes) rather than the old fixed 24h-and-2h pair.
 - Trial-ending warning emails - see send_trial_ending_warnings_if_needed below.
 
 The customer DM can only go out for appointments booked BY THE AI over Instagram DM
 (source has a real sender_igsid - see database.appointments_needing_reminders); a
-manually-entered appointment has no Instagram thread to send to. The owner email has no
-such restriction - it's checked independently of sender_igsid.
+manually-entered appointment has no Instagram thread to send to. The owner notification
+has no such restriction - it's checked independently of sender_igsid.
 
 Known platform limitation, accepted rather than worked around (same as the existing
 manual "Send reply" flow's 24h-window handling): Instagram only allows a business to
@@ -31,12 +31,13 @@ import requests
 from database import (
     appointments_needing_reminders, mark_reminder_sent, business_by_id,
     is_reminders_enabled, is_owner_reminders_enabled, get_reminder_minutes,
-    has_pro_access, log_client_error,
+    has_pro_access, log_client_error, create_notification,
     businesses_needing_trial_warning, mark_trial_warning_sent,
 )
 from booking import BUSINESS_TZ, now_local
 from instagram_api import send_message as send_instagram_message
 from send_email import send_email
+from push_notifications import send_push_to_business
 
 # How close start_time - now needs to be to a business's configured lead time before
 # that reminder fires - the loop that calls send_appointment_reminders_if_needed runs
@@ -59,14 +60,12 @@ def _customer_reminder_text(business_name, start_local, minutes):
     return f"Reminder: you have an appointment with {business_name} in {_format_lead_time(minutes)} ({when}). See you then!"
 
 
-def _owner_reminder_email_body(business_name, customer_name, service, start_local, minutes):
+def _owner_reminder_notification_body(customer_name, service, start_local, minutes):
     when = start_local.strftime("%A, %B %d at %H:%M")
     service_part = f" for {service}" if service else ""
     return (
-        f"Hi {business_name},\n\n"
-        f"Reminder: you have an appointment with {customer_name}{service_part} in "
-        f"{_format_lead_time(minutes)}, at {when}.\n\n"
-        f"- Camilius"
+        f"You have an appointment with {customer_name}{service_part} in "
+        f"{_format_lead_time(minutes)}, at {when}."
     )
 
 
@@ -95,7 +94,7 @@ def send_appointment_reminders_if_needed():
         # minus now (BUSINESS_TZ) needs no extra conversion to be correct.
         time_until = start_time - now
         start_local = start_time.astimezone(BUSINESS_TZ)
-        business_name, ig_account_id, access_token, contact_email = business[1], business[5], business[7], business[4]
+        business_name, ig_account_id, access_token = business[1], business[5], business[7]
         customer_minutes, owner_minutes = get_reminder_minutes(business_id)
 
         if (reminder_customer_sent_at is None and is_reminders_enabled(business_id)
@@ -115,17 +114,18 @@ def send_appointment_reminders_if_needed():
             mark_reminder_sent(appointment_id, "customer")
 
         if (reminder_owner_sent_at is None and is_owner_reminders_enabled(business_id)
-                and contact_email
                 and abs(time_until - timedelta(minutes=owner_minutes)) <= REMINDER_TOLERANCE):
-            body = _owner_reminder_email_body(business_name, customer_name, service, start_local, owner_minutes)
+            title = "Upcoming appointment reminder"
+            body = _owner_reminder_notification_body(customer_name, service, start_local, owner_minutes)
             try:
-                send_email(
-                    recipient=contact_email,
-                    subject="Upcoming appointment reminder",
-                    body=body,
-                    business_name="Camilius",
-                    reply_to=os.getenv("ALERT_EMAIL") or contact_email,
-                )
+                # In-app (bell icon on web, notifications screen on mobile) so this always
+                # shows up somewhere regardless of push setup, plus a real OS push
+                # (no-op until Firebase is configured/the device has no token - see
+                # push_notifications.py) for an actual phone notification.
+                create_notification(business_id, title, body)
+                send_push_to_business(business_id, title, body, data={
+                    "type": "appointment_reminder", "appointment_id": str(appointment_id),
+                })
                 print(f"[reminders] Sent owner reminder for appointment_id={appointment_id} business_id={business_id}", flush=True)
             except Exception as error:
                 print(f"[reminders] Failed to send owner reminder for appointment_id={appointment_id}: {error}", flush=True)

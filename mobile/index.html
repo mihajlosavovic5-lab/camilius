@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
 <title>Camilius</title>
-<link rel="stylesheet" href="app.css?v=d6f8dc8d0c42">
+<link rel="stylesheet" href="app.css?v=c7c2b3fefdef">
 </head>
 <body>
 
@@ -95,6 +95,18 @@
     <button type="button" class="row-action-btn" id="row-action-restore" data-i18n="inbox.restore">Restore</button>
     <button type="button" class="row-action-btn row-action-danger" id="row-action-delete" data-i18n="inbox.delete">Delete</button>
     <button type="button" class="row-action-btn row-action-cancel" id="row-action-cancel" data-i18n="inbox.cancel">Cancel</button>
+  </div>
+</div>
+
+<!-- Notifications bottom sheet - owner appointment reminders (reminders.py) land here
+     (and as a real OS push, see registerForPushNotifications() in app.js) instead of an
+     email. Same fixed-overlay + backdrop pattern as the other sheets here. See
+     openNotifModal()/loadNotifications() in app.js. -->
+<div id="notif-modal" class="lang-modal">
+  <div class="lang-modal-backdrop" id="notif-modal-backdrop"></div>
+  <div class="lang-modal-sheet notif-modal-sheet">
+    <div class="notif-modal-header" data-i18n="notifications.heading">Notifications</div>
+    <div id="notif-modal-list" class="notif-modal-list"></div>
   </div>
 </div>
 
@@ -526,6 +538,13 @@
           <h1 id="inbox-business-name">&nbsp;</h1>
         </div>
       </div>
+      <button type="button" class="topbar-action" id="inbox-notif-btn" aria-label="Notifications">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true" class="topbar-action-icon">
+          <path d="M6 9a6 6 0 1 1 12 0c0 3.5 1 5 2 6H4c1-1 2-2.5 2-6Z" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M9.5 18a2.5 2.5 0 0 0 5 0" stroke-width="1.6" stroke-linecap="round"/>
+        </svg>
+        <span class="topbar-action-dot hidden" id="inbox-notif-dot"></span>
+      </button>
     </header>
 
     <div class="inbox-stats-row" id="inbox-stats-row">
@@ -888,7 +907,7 @@
           <span class="hours-day-toggle-track"><span class="hours-day-toggle-thumb"></span></span>
         </label>
       </div>
-      <p class="field-hint" data-i18n="appSettings.remindersOwnerNote">Emails you before the customer's appointment.</p>
+      <p class="field-hint" data-i18n="appSettings.remindersOwnerNote">Notifies you in the app before the customer's appointment.</p>
       <div class="settings-row settings-row-stack reminder-lead-row" id="settings-reminders-owner-lead-row">
         <div class="reminder-lead-inline">
           <span data-i18n="appSettings.remindersLeadLabel">Send</span>
@@ -1096,7 +1115,7 @@
   </button>
 </nav>
 
-<script src="i18n.js?v=d6f8dc8d0c42"></script>
-<script src="app.js?v=d6f8dc8d0c42"></script>
+<script src="i18n.js?v=c7c2b3fefdef"></script>
+<script src="app.js?v=c7c2b3fefdef"></script>
 </body>
 </html>

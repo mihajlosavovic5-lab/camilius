@@ -22,6 +22,7 @@ from database import (
     email_verify_sent_recently, phone_verify_sent_recently,
     email_verify_resend_wait_seconds, phone_verify_resend_wait_seconds,
     get_slot_duration, set_slot_duration, create_appointment, get_appointment, cancel_appointment,
+    notifications_for_business, unread_notification_count, mark_notifications_read,
 )
 from instagram_api import send_message as send_instagram_message, authorize_url as instagram_authorize_url, get_sender_info
 from extensions import limiter
@@ -876,6 +877,35 @@ def api_save_push_token():
         return jsonify(error="missing token"), 400
     save_push_token(request.business_id, token)
     return jsonify(message="saved")
+
+
+# In-app notifications (bell/notifications screen) - currently just owner appointment
+# reminders (reminders.py), which land here (and as a real OS push, see push-token above)
+# instead of an email. Bearer-authed mobile equivalent of app.py's session-authed
+# /notifications used by the web dashboard's bell icon.
+@api.route("/notifications", methods=["GET"])
+@require_api_auth
+def api_get_notifications():
+    rows = notifications_for_business(request.business_id)
+    return jsonify(
+        notifications=[
+            {
+                "id": row[0], "title": row[1], "body": row[2], "kind": row[3],
+                "created_at": row[4].isoformat() if row[4] else None,
+                "read": row[5] is not None,
+            }
+            for row in rows
+        ],
+        unread_count=unread_notification_count(request.business_id),
+    )
+
+
+@api.route("/notifications/read", methods=["POST"])
+@require_api_auth
+def api_mark_notifications_read():
+    data = request.get_json(silent=True) or {}
+    mark_notifications_read(request.business_id, data.get("id"))
+    return jsonify(message="saved", unread_count=unread_notification_count(request.business_id))
 
 
 # Instant-apply preferences shown in the app's Settings tab (as opposed to Profile's

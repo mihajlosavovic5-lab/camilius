@@ -1870,6 +1870,7 @@ async function loadDashboard({ silent = false } = {}) {
         renderSkeletons();
         el("inbox-empty").classList.add("hidden");
         el("inbox-error").classList.add("hidden");
+        loadNotifications();
     }
     try {
         const data = await api("/api/dashboard?filter=" + state.filter);
@@ -2034,6 +2035,69 @@ function closeRowActions() {
 
 el("row-actions-backdrop").addEventListener("click", closeRowActions);
 el("row-action-cancel").addEventListener("click", closeRowActions);
+
+// --- Notifications (Faza 12 follow-up) ---
+//
+// Owner appointment reminders (reminders.py) used to be an email; they now land here
+// (plus a real OS push, see registerForPushNotifications() above) instead. Same
+// bottom-sheet pattern as the row actions sheet above. Fetched once per non-silent
+// loadDashboard() call (see below) rather than on every silent poll - this is a
+// convenience catch-up list alongside the real push, not something that needs to be
+// perfectly live-updating while the sheet is closed.
+let notifItems = [];
+
+function renderNotifList() {
+    const list = el("notif-modal-list");
+    list.innerHTML = "";
+    if (!notifItems.length) {
+        const empty = document.createElement("div");
+        empty.className = "notif-item-empty";
+        empty.textContent = t("notifications.empty");
+        list.appendChild(empty);
+        return;
+    }
+    notifItems.forEach((item) => {
+        const row = document.createElement("div");
+        row.className = "notif-item" + (item.read ? "" : " notif-item-unread");
+        const title = document.createElement("div");
+        title.className = "notif-item-title";
+        title.textContent = item.title;
+        const body = document.createElement("div");
+        body.className = "notif-item-body";
+        body.textContent = item.body;
+        row.appendChild(title);
+        row.appendChild(body);
+        list.appendChild(row);
+    });
+}
+
+async function loadNotifications() {
+    try {
+        const data = await api("/api/notifications");
+        notifItems = data.notifications || [];
+        el("inbox-notif-dot").classList.toggle("hidden", !(data.unread_count > 0));
+        if (el("notif-modal").classList.contains("open")) renderNotifList();
+    } catch (err) {
+        // Best-effort - a failed fetch just leaves the previous list/dot state as-is.
+    }
+}
+
+function openNotifModal() {
+    renderNotifList();
+    el("notif-modal").classList.add("open");
+    if (!el("inbox-notif-dot").classList.contains("hidden")) {
+        el("inbox-notif-dot").classList.add("hidden");
+        notifItems.forEach((item) => { item.read = true; });
+        api("/api/notifications/read", { method: "POST" }).catch(() => {});
+    }
+}
+
+function closeNotifModal() {
+    el("notif-modal").classList.remove("open");
+}
+
+el("inbox-notif-btn").addEventListener("click", openNotifModal);
+el("notif-modal-backdrop").addEventListener("click", closeNotifModal);
 
 async function runRowAction(path) {
     if (!rowActionsTarget) return;

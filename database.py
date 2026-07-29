@@ -289,6 +289,22 @@ def create_database():
         )
     """)
 
+    # In-app notifications (bell icon on web, notifications screen on mobile) - currently
+    # only owner appointment reminders (see reminders.py), which used to be an email and
+    # now land here plus a real push (push_tokens above) instead.
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS notifications (
+            id SERIAL PRIMARY KEY,
+            business_id INTEGER NOT NULL REFERENCES businesses(id),
+            title TEXT NOT NULL,
+            body TEXT NOT NULL,
+            kind TEXT NOT NULL DEFAULT 'owner_reminder',
+            read_at TIMESTAMP,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+    cursor.execute("CREATE INDEX IF NOT EXISTS notifications_business_created_idx ON notifications (business_id, created_at DESC)")
+
     # Self-hosted crash/error reporting from the Android app - avoids needing a
     # third-party crash reporting account during beta.
     cursor.execute("""
@@ -1789,6 +1805,69 @@ def remove_push_token(token):
     connection = connect()
     cursor = connection.cursor()
     cursor.execute("DELETE FROM push_tokens WHERE token = %s", (token,))
+    connection.commit()
+    connection.close()
+
+
+# --- In-app notifications (bell icon, web + mobile) ---
+# Owner-facing appointment reminders (Faza 12, see reminders.py) used to be an email;
+# they now land here instead, so they show up in the app itself (web bell icon, mobile
+# notifications screen) rather than in an inbox, in addition to a real OS push where
+# push_notifications.py has one to send (Android/FCM today). read_at is NULL until the
+# owner opens/dismisses it.
+
+def create_notification(business_id, title, body, kind="owner_reminder"):
+    connection = connect()
+    cursor = connection.cursor()
+    cursor.execute(
+        "INSERT INTO notifications (business_id, title, body, kind) VALUES (%s, %s, %s, %s)",
+        (business_id, title, body, kind),
+    )
+    connection.commit()
+    connection.close()
+
+
+def notifications_for_business(business_id, limit=30):
+    connection = connect()
+    cursor = connection.cursor()
+    cursor.execute(
+        """SELECT id, title, body, kind, created_at, read_at FROM notifications
+           WHERE business_id = %s ORDER BY created_at DESC LIMIT %s""",
+        (business_id, limit),
+    )
+    result = cursor.fetchall()
+    connection.close()
+    return result
+
+
+def unread_notification_count(business_id):
+    connection = connect()
+    cursor = connection.cursor()
+    cursor.execute(
+        "SELECT COUNT(*) FROM notifications WHERE business_id = %s AND read_at IS NULL",
+        (business_id,),
+    )
+    row = cursor.fetchone()
+    connection.close()
+    return row[0] if row else 0
+
+
+def mark_notifications_read(business_id, notification_id=None):
+    """Marks a single notification read (notification_id given, scoped to this business
+    so one account can't mark another's as read) or, when omitted, every unread
+    notification for this business at once (bell dropdown's "mark all read")."""
+    connection = connect()
+    cursor = connection.cursor()
+    if notification_id is None:
+        cursor.execute(
+            "UPDATE notifications SET read_at = NOW() WHERE business_id = %s AND read_at IS NULL",
+            (business_id,),
+        )
+    else:
+        cursor.execute(
+            "UPDATE notifications SET read_at = NOW() WHERE business_id = %s AND id = %s AND read_at IS NULL",
+            (business_id, notification_id),
+        )
     connection.commit()
     connection.close()
 
