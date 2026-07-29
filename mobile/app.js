@@ -3126,7 +3126,10 @@ async function loadNotificationPreferences() {
     try {
         const data = await api("/api/notification-preferences");
         el("settings-push-toggle").checked = !!data.push_enabled;
-        el("settings-autosend-toggle").checked = !!data.auto_send;
+        // Inverted from the server's auto_send - the toggle reads as "AI Draft Mode"
+        // (review before sending), same field/polarity as the website's own draft_mode
+        // checkbox (see update_auto_send() in api.py): draft mode ON means auto_send OFF.
+        el("settings-draft-mode-toggle").checked = !data.auto_send;
         el("settings-reminders-customer-toggle").checked = !!data.reminders_enabled;
         el("settings-reminders-owner-toggle").checked = !!data.owner_reminders_enabled;
         state.reminderCustomerMinutes = data.customer_reminder_minutes || 1440;
@@ -3149,7 +3152,7 @@ let appSettingsSnapshot = null;
 function serializeAppSettingsForm() {
     return JSON.stringify({
         push: el("settings-push-toggle").checked,
-        autoSend: el("settings-autosend-toggle").checked,
+        draftMode: el("settings-draft-mode-toggle").checked,
         remindersCustomer: el("settings-reminders-customer-toggle").checked,
         remindersOwner: el("settings-reminders-owner-toggle").checked,
         customerMinutes: state.reminderCustomerMinutes,
@@ -3162,7 +3165,7 @@ function updateAppSettingsSaveState() {
     el("settings-app-save").classList.toggle("hidden", !dirty);
 }
 
-["settings-push-toggle", "settings-autosend-toggle", "settings-reminders-customer-toggle", "settings-reminders-owner-toggle"].forEach((id) => {
+["settings-push-toggle", "settings-draft-mode-toggle", "settings-reminders-customer-toggle", "settings-reminders-owner-toggle"].forEach((id) => {
     el(id).addEventListener("change", updateAppSettingsSaveState);
 });
 
@@ -3252,7 +3255,7 @@ el("settings-app-save").addEventListener("click", async () => {
             method: "POST",
             body: {
                 push_enabled: el("settings-push-toggle").checked,
-                auto_send: el("settings-autosend-toggle").checked,
+                auto_send: !el("settings-draft-mode-toggle").checked,
                 reminders_enabled: state.proAccess ? el("settings-reminders-customer-toggle").checked : undefined,
                 owner_reminders_enabled: state.proAccess ? el("settings-reminders-owner-toggle").checked : undefined,
                 customer_reminder_minutes: state.proAccess ? state.reminderCustomerMinutes : undefined,
