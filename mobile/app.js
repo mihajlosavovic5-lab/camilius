@@ -417,7 +417,12 @@ function createAnchoredListPicker(modalId) {
         const naturalWidth = sheet.getBoundingClientRect().width;
         const maxWidth = window.innerWidth - rect.left - margin;
         sheet.style.width = `${Math.min(Math.max(rect.width, naturalWidth), maxWidth)}px`;
-        sheet.style.maxHeight = `${Math.max(160, Math.min(240, available))}px`;
+        // No minimum floor here anymore - a field sitting close to the tab bar can have
+        // well under 160px of real room above it, and forcing a 160px-tall sheet in that
+        // case is exactly what ran it behind the tab bar despite bottomLimit above (a
+        // floor bigger than the actual available space just overrides that limit back
+        // out). Clamped at 0 so a field with no room left doesn't get a negative height.
+        sheet.style.maxHeight = `${Math.max(0, Math.min(240, available))}px`;
         modal.classList.add("open");
         // Always open scrolled to the very top of the list, not centered on whichever
         // option is currently selected - centering could leave the first option cut off
