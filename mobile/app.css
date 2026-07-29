@@ -180,15 +180,12 @@ button { font-family: inherit; }
     display: flex; align-items: center; gap: 12px;
     background: transparent;
     flex-shrink: 0;
-    /* Scroll-hide (Faza X, main tab screens only - see .topbar-hidden below and
-       setupScrollHideHeader() in app.js): snaps to nothing instantly, no slide/collapse
-       animation - not clipped since 160px comfortably clears the tallest real topbar
-       (safe-area inset included). */
-    max-height: 160px; overflow: hidden;
 }
-.topbar.topbar-hidden {
-    max-height: 0; opacity: 0; padding-top: 0; padding-bottom: 0; pointer-events: none;
-}
+/* Scroll-hide (main tab screens only - see setupScrollHideHeader() in app.js): only the
+   title text itself is hidden, the bar's own box/height is untouched - so nothing below
+   it reflows/jumps when it hides or comes back. No transition either - it's just gone,
+   the same way text simply isn't in view once it's scrolled past on a plain page. */
+.topbar.topbar-hidden .topbar-title { visibility: hidden; }
 /* Every plain page-title topbar (i.e. not .topbar-detail's own sender/time/badge
    header - that one keeps its left-aligned flex layout below) centers its title in the
    bar instead of left-aligning it. .topbar-title itself takes the full row (flex:1) and
