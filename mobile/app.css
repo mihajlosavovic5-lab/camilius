@@ -889,15 +889,23 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
 }
 .schedule-week-more:active { color: var(--primary-ink); }
 
-/* Book-a-slot bottom sheet */
+/* Book-a-slot / Custom-duration dialog - centered on screen instead of a bottom sheet.
+   Both contain a text/number input, so opening them is immediately followed by the
+   on-screen keyboard popping up (see promptForCustomDuration()'s focus() in app.js) -
+   which shrinks the visual viewport and re-anchors anything pinned to "bottom: Npx",
+   so the old bottom sheet visibly appeared low on screen and then got shoved up into
+   the middle a beat later once the keyboard finished animating in. Opening already
+   centered (same scale-in transition as every other .lang-modal-sheet) means that
+   later resize only nudges it slightly instead of a jarring jump. */
 .book-modal-sheet {
-    left: 12px; right: 12px; top: auto; bottom: calc(16px + var(--safe-bottom));
-    width: auto; max-height: none; padding: 18px 16px 14px;
-    transform-origin: bottom center;
-    transform: translateY(12px) scale(.98);
+    left: 50%; right: auto; top: 50%; bottom: auto;
+    width: calc(100% - 48px); max-width: 360px; max-height: 80vh; overflow-y: auto;
+    padding: 20px 18px 16px;
+    transform-origin: center;
+    transform: translate(-50%, calc(-50% + 14px)) scale(.96);
     display: flex; flex-direction: column;
 }
-.lang-modal.open .book-modal-sheet { transform: translateY(0) scale(1); }
+.lang-modal.open .book-modal-sheet { transform: translate(-50%, -50%) scale(1); }
 .book-modal-title { font-size: 16.5px; font-weight: 700; }
 .book-modal-time { color: var(--primary-ink); font-size: 13px; font-weight: 600; margin-top: 2px; }
 .book-modal-sheet .alert { margin: 14px 0 0; }
