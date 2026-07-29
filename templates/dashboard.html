@@ -85,8 +85,9 @@
     </div>
 
     {% for c in conversations %}
-        {% set id, sender, subject, question, suggested_reply, final_reply, status, created_at, profile_pic_url = c %}
-        <div class="card conversation" data-search-text="{{ (sender ~ ' ' ~ question)|lower }}">
+        {% set id, sender, subject, question, suggested_reply, final_reply, status, created_at, profile_pic_url, expired_at = c %}
+        <div class="card conversation" data-search-text="{{ (sender ~ ' ' ~ question)|lower }}"
+             {% if status == 'pending' and not expired_at %}data-created-at="{{ created_at.isoformat() if created_at else '' }}"{% endif %}>
             <div class="conversation-top">
                 {#  The stored profile_pic_url is a signed Meta CDN link that expires after a
                     while, so it can easily 403 by the time the dashboard is actually opened
@@ -104,7 +105,9 @@
                     <div class="conversation-sender">{{ sender }}</div>
                     <div class="conversation-time">{{ created_at.strftime('%m/%d/%Y at %H:%M') if created_at else '' }}{% if subject %} &middot; {{ subject }}{% endif %}</div>
                 </div>
-                {% if status == 'pending' %}
+                {% if expired_at %}
+                    <span class="badge badge-expired"><span class="badge-dot"></span><span data-i18n="dashboard.expiredBadge">Expired</span></span>
+                {% elif status == 'pending' %}
                     <span class="badge badge-pending"><span class="badge-dot"></span><span data-i18n="dashboard.awaitingApproval">Awaiting approval</span></span>
                 {% else %}
                     <span class="badge badge-sent"><span class="badge-dot"></span><span data-i18n="dashboard.sentBadge">Sent</span></span>
@@ -119,6 +122,13 @@
             {% if status == 'pending' and filter_status not in ('archived', 'trash') %}
                 <div class="conversation-block">
                     <div class="conversation-label" data-i18n="dashboard.suggestedReplyEditable">Suggested reply &mdash; you can edit before sending</div>
+                    <!-- Hidden by default - toggled visible client-side (see the script at the
+                         bottom of this template) only once data-created-at on the parent card
+                         is actually over 24h old, since Jinja has no "now" to compare against
+                         server-side. Covers the gap between the window actually closing and the
+                         background worker's own periodic sweep (reminders.expire_stale_pending_
+                         conversations_if_needed) auto-archiving it - up to a few minutes. -->
+                    <div class="alert alert-warning hidden" data-expiry-warning data-i18n="dashboard.expiryWarning">Heads up: it's been over 24 hours since this customer's message - Instagram will likely reject the send.</div>
                     <!-- onsubmit disables the button so a double-click can't send the reply twice -->
                     <form method="POST" action="{{ url_for('send_reply', conversation_id=id) }}"
                           onsubmit="var d = this.querySelector('button'); d.disabled = true; d.textContent = t('dashboard.sending');">
@@ -132,6 +142,9 @@
             {% elif status == 'pending' %}
                 <!-- Archived/Trash: a still-pending conversation has no final_reply yet -
                      show the AI's suggestion read-only rather than final_reply (empty). -->
+                {% if expired_at %}
+                    <div class="alert alert-warning" data-i18n="dashboard.expiredNote">This conversation expired - Instagram only allows replying within 24 hours, so it was archived automatically.</div>
+                {% endif %}
                 <div class="conversation-block">
                     <div class="conversation-label" data-i18n="dashboard.suggestedReply">Suggested reply</div>
                     <p class="reply">{{ suggested_reply }}</p>
@@ -200,6 +213,23 @@
             if (matches) visibleCount++;
         });
         searchEmpty.classList.toggle("hidden", !query || visibleCount > 0);
+    });
+})();
+
+// Proactively flags a still-pending card whose customer message is already over 24h
+// old - Instagram's send API rejects a reply that late no matter what (same policy
+// dashboard.sendError already reports after a failed attempt), so this warns before the
+// click instead of only after. Only covers the gap up to the background worker's own
+// sweep auto-archiving it (reminders.expire_stale_pending_conversations_if_needed) -
+// that's why data-created-at is only rendered for cards not already expired server-side.
+(function () {
+    const HOURS_24_MS = 24 * 60 * 60 * 1000;
+    document.querySelectorAll(".card.conversation[data-created-at]").forEach((card) => {
+        const warning = card.querySelector("[data-expiry-warning]");
+        const createdAt = Date.parse(card.dataset.createdAt);
+        if (warning && !isNaN(createdAt) && Date.now() - createdAt > HOURS_24_MS) {
+            warning.classList.remove("hidden");
+        }
     });
 })();
 </script>

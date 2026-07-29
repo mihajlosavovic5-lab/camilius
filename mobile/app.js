@@ -1990,7 +1990,7 @@ async function renderInboxList(conversations) {
     const fragment = document.createDocumentFragment();
     conversations.forEach((c, i) => {
         const row = document.createElement("div");
-        row.className = "inbox-row" + (c.status === "sent" ? " inbox-row-sent" : "");
+        row.className = "inbox-row" + (c.status === "sent" || c.expired ? " inbox-row-sent" : "");
 
         const tapArea = document.createElement("button");
         tapArea.type = "button";
@@ -2004,7 +2004,7 @@ async function renderInboxList(conversations) {
                 </span>
                 <span class="inbox-preview">${escapeHtml(c.question)}</span>
             </span>
-            <span class="inbox-dot ${c.status === "sent" ? "sent" : ""}"></span>
+            <span class="inbox-dot ${c.expired ? "expired" : (c.status === "sent" ? "sent" : "")}"></span>
         `);
         tapArea.addEventListener("click", () => openDetail(c));
 
@@ -2268,15 +2268,39 @@ function openDetail(conversation) {
 
     const badge = el("detail-badge");
     const isPending = conversation.status === "pending";
-    badge.textContent = isPending ? t("detail.badgePending") : t("detail.badgeSent");
-    badge.className = "badge " + (isPending ? "badge-pending" : "badge-sent");
+    const isExpired = !!conversation.expired;
+    if (isExpired) {
+        badge.textContent = t("detail.badgeExpired");
+        badge.className = "badge badge-expired";
+    } else {
+        badge.textContent = isPending ? t("detail.badgePending") : t("detail.badgeSent");
+        badge.className = "badge " + (isPending ? "badge-pending" : "badge-sent");
+    }
 
     // Archived/Trash conversations are read-only here too (matches the web dashboard's
-    // same restriction) - sending a reply to something already archived or deleted would
-    // be a confusing way to act on it without restoring/unarchiving it first.
-    const canReply = isPending && state.filter !== "archived" && state.filter !== "trash";
+    // same restriction) - sending a reply to something already archived, deleted, or
+    // expired would be a confusing way to act on it without restoring/unarchiving first.
+    const canReply = isPending && !isExpired && state.filter !== "archived" && state.filter !== "trash";
     el("detail-pending-block").classList.toggle("hidden", !canReply);
     el("detail-sent-block").classList.toggle("hidden", canReply);
+
+    // Proactive heads-up for a still-pending reply whose 24h Instagram reply window has
+    // already quietly passed but the background sweep (reminders.expire_stale_pending_
+    // conversations_if_needed) hasn't caught up yet - it runs every few minutes, not
+    // instantly - so this warns before the tap instead of only after a failed send.
+    const HOURS_24_MS = 24 * 60 * 60 * 1000;
+    const createdAtMs = conversation.created_at ? new Date(conversation.created_at).getTime() : NaN;
+    const windowPassed = !isNaN(createdAtMs) && Date.now() - createdAtMs > HOURS_24_MS;
+    const warningEl = el("detail-expiry-warning");
+    if (isExpired) {
+        warningEl.textContent = t("detail.expiredNote");
+        warningEl.classList.remove("hidden");
+    } else if (canReply && windowPassed) {
+        warningEl.textContent = t("detail.expiryWarning");
+        warningEl.classList.remove("hidden");
+    } else {
+        warningEl.classList.add("hidden");
+    }
 
     if (canReply) {
         el("detail-reply").value = conversation.suggested_reply;

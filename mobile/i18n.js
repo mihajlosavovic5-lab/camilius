@@ -157,6 +157,9 @@ const TRANSLATIONS = {
         "detail.sentReply": "Sent reply",
         "detail.badgePending": "Awaiting approval",
         "detail.badgeSent": "Sent",
+        "detail.badgeExpired": "Expired",
+        "detail.expiryWarning": "Heads up: it's been over 24 hours since this customer's message - Instagram will likely reject the send.",
+        "detail.expiredNote": "This conversation expired - Instagram only allows replying within 24 hours, so it was archived automatically.",
         "detail.error": "Couldn't send the reply. Try again.",
         "detail.back": "Back",
 
@@ -451,6 +454,9 @@ const TRANSLATIONS = {
         "detail.sentReply": "Poslati odgovor",
         "detail.badgePending": "Čeka odobrenje",
         "detail.badgeSent": "Poslato",
+        "detail.badgeExpired": "Isteklo",
+        "detail.expiryWarning": "Pažnja: prošlo je više od 24 sata od poruke ovog mušterije - Instagram najverovatnije neće dozvoliti slanje.",
+        "detail.expiredNote": "Ovaj razgovor je istekao - Instagram dozvoljava odgovor samo u roku od 24 sata, pa je automatski arhiviran.",
         "detail.error": "Slanje odgovora nije uspelo. Pokušajte ponovo.",
         "detail.back": "Nazad",
 
@@ -740,6 +746,9 @@ const TRANSLATIONS = {
         "detail.sentReply": "Respuesta enviada",
         "detail.badgePending": "Esperando aprobación",
         "detail.badgeSent": "Enviado",
+        "detail.badgeExpired": "Caducado",
+        "detail.expiryWarning": "Atención: han pasado más de 24 horas desde el mensaje de este cliente - es probable que Instagram rechace el envío.",
+        "detail.expiredNote": "Esta conversación caducó - Instagram solo permite responder dentro de 24 horas, así que se archivó automáticamente.",
         "detail.error": "No se pudo enviar la respuesta. Inténtalo de nuevo.",
         "detail.back": "Atrás",
 
@@ -1027,6 +1036,9 @@ const TRANSLATIONS = {
         "detail.sentReply": "Resposta enviada",
         "detail.badgePending": "Aguardando aprovação",
         "detail.badgeSent": "Enviado",
+        "detail.badgeExpired": "Expirado",
+        "detail.expiryWarning": "Atenção: já se passaram mais de 24 horas desde a mensagem deste cliente - é provável que o Instagram recuse o envio.",
+        "detail.expiredNote": "Esta conversa expirou - o Instagram só permite responder em até 24 horas, então foi arquivada automaticamente.",
         "detail.error": "Não foi possível enviar a resposta. Tente novamente.",
         "detail.back": "Voltar",
 
@@ -1314,6 +1326,9 @@ const TRANSLATIONS = {
         "detail.sentReply": "Réponse envoyée",
         "detail.badgePending": "En attente d'approbation",
         "detail.badgeSent": "Envoyé",
+        "detail.badgeExpired": "Expiré",
+        "detail.expiryWarning": "Attention : plus de 24 heures se sont écoulées depuis le message de ce client - Instagram risque de refuser l'envoi.",
+        "detail.expiredNote": "Cette conversation a expiré - Instagram n'autorise une réponse que dans les 24 heures, elle a donc été archivée automatiquement.",
         "detail.error": "Impossible d'envoyer la réponse. Réessayez.",
         "detail.back": "Retour",
 
@@ -1601,6 +1616,9 @@ const TRANSLATIONS = {
         "detail.sentReply": "Gesendete Antwort",
         "detail.badgePending": "Wartet auf Freigabe",
         "detail.badgeSent": "Gesendet",
+        "detail.badgeExpired": "Abgelaufen",
+        "detail.expiryWarning": "Achtung: Es sind über 24 Stunden seit der Nachricht dieses Kunden vergangen - Instagram wird das Senden wahrscheinlich ablehnen.",
+        "detail.expiredNote": "Diese Unterhaltung ist abgelaufen - Instagram erlaubt eine Antwort nur innerhalb von 24 Stunden, daher wurde sie automatisch archiviert.",
         "detail.error": "Antwort konnte nicht gesendet werden. Versuch's noch mal.",
         "detail.back": "Zurück",
 
@@ -1888,6 +1906,9 @@ const TRANSLATIONS = {
         "detail.sentReply": "Risposta inviata",
         "detail.badgePending": "In attesa di approvazione",
         "detail.badgeSent": "Inviata",
+        "detail.badgeExpired": "Scaduta",
+        "detail.expiryWarning": "Attenzione: sono passate oltre 24 ore dal messaggio di questo cliente - è probabile che Instagram rifiuti l'invio.",
+        "detail.expiredNote": "Questa conversazione è scaduta - Instagram consente di rispondere solo entro 24 ore, quindi è stata archiviata automaticamente.",
         "detail.error": "Impossibile inviare la risposta. Riprova.",
         "detail.back": "Indietro",
 
@@ -2175,6 +2196,9 @@ const TRANSLATIONS = {
         "detail.sentReply": "Отправленный ответ",
         "detail.badgePending": "Ожидает одобрения",
         "detail.badgeSent": "Отправлено",
+        "detail.badgeExpired": "Истёк срок",
+        "detail.expiryWarning": "Внимание: с момента сообщения этого клиента прошло более 24 часов - Instagram, скорее всего, отклонит отправку.",
+        "detail.expiredNote": "Этот диалог истёк - Instagram разрешает ответ только в течение 24 часов, поэтому он был автоматически перемещён в архив.",
         "detail.error": "Не удалось отправить ответ. Попробуйте снова.",
         "detail.back": "Назад",
 
@@ -2462,6 +2486,9 @@ const TRANSLATIONS = {
         "detail.sentReply": "已发送的回复",
         "detail.badgePending": "等待批准",
         "detail.badgeSent": "已发送",
+        "detail.badgeExpired": "已过期",
+        "detail.expiryWarning": "注意:距离该顾客发消息已超过24小时 - Instagram很可能会拒绝发送。",
+        "detail.expiredNote": "此对话已过期 - Instagram仅允许在24小时内回复,因此已自动归档。",
         "detail.error": "回复发送失败，请重试。",
         "detail.back": "返回",
 
@@ -2749,6 +2776,9 @@ const TRANSLATIONS = {
         "detail.sentReply": "Gönderilen yanıt",
         "detail.badgePending": "Onay bekliyor",
         "detail.badgeSent": "Gönderildi",
+        "detail.badgeExpired": "Süresi doldu",
+        "detail.expiryWarning": "Dikkat: Bu müşterinin mesajının üzerinden 24 saatten fazla zaman geçti - Instagram gönderimi büyük olasılıkla reddedecek.",
+        "detail.expiredNote": "Bu konuşmanın süresi doldu - Instagram yalnızca 24 saat içinde yanıt vermeye izin verir, bu yüzden otomatik olarak arşivlendi.",
         "detail.error": "Yanıt gönderilemedi. Tekrar deneyin.",
         "detail.back": "Geri",
 

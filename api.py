@@ -193,7 +193,7 @@ def require_api_auth(function):
 
 
 def _serialize_conversation(c):
-    id_, sender, subject, question, suggested_reply, final_reply, status, created_at, profile_pic_url = c
+    id_, sender, subject, question, suggested_reply, final_reply, status, created_at, profile_pic_url, expired_at = c
     return {
         "id": id_,
         "sender": sender,
@@ -204,6 +204,7 @@ def _serialize_conversation(c):
         "status": status,
         "created_at": created_at.isoformat() if created_at else None,
         "profile_pic_url": profile_pic_url,
+        "expired": expired_at is not None,
     }
 
 

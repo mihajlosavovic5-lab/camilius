@@ -211,6 +211,16 @@ def create_database():
     cursor.execute("ALTER TABLE conversations ADD COLUMN IF NOT EXISTS archived_at TIMESTAMP")
     cursor.execute("ALTER TABLE conversations ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP")
 
+    # expired_at (2026-07-29): set alongside archived_at, but only by
+    # expire_stale_pending_conversations() below - never by a user's own Archive action.
+    # A conversation still 'pending' 24h after the customer's message can no longer be
+    # replied to at all (Instagram's send window has closed - see instagram_api.
+    # send_message), so leaving it sitting in the main Pending list forever would just be
+    # misleading. Keeping this separate from archived_at lets the UI show a distinct
+    # "Expired" badge instead of the normal Archived look, so it reads as "this timed out
+    # on its own" rather than "you archived this".
+    cursor.execute("ALTER TABLE conversations ADD COLUMN IF NOT EXISTS expired_at TIMESTAMP")
+
     # Real production bug found 2026-07-20: the 2026-07-16 Serbian->English migration
     # renamed the status VALUES used going forward ('na_cekanju'/'poslato' -> 'pending'/
     # 'sent'), but never touched the conversations.status COLUMN'S DEFAULT constraint
@@ -734,7 +744,7 @@ def conversations_for_business(business_id):
     cursor = connection.cursor()
 
     cursor.execute("""
-        SELECT id, sender, subject, question, suggested_reply, final_reply, status, created_at, sender_profile_pic
+        SELECT id, sender, subject, question, suggested_reply, final_reply, status, created_at, sender_profile_pic, expired_at
         FROM conversations
         WHERE business_id = %s AND archived_at IS NULL AND deleted_at IS NULL
         ORDER BY created_at DESC
@@ -750,7 +760,7 @@ def archived_conversations_for_business(business_id):
     cursor = connection.cursor()
 
     cursor.execute("""
-        SELECT id, sender, subject, question, suggested_reply, final_reply, status, created_at, sender_profile_pic
+        SELECT id, sender, subject, question, suggested_reply, final_reply, status, created_at, sender_profile_pic, expired_at
         FROM conversations
         WHERE business_id = %s AND archived_at IS NOT NULL AND deleted_at IS NULL
         ORDER BY archived_at DESC
@@ -771,7 +781,7 @@ def trashed_conversations_for_business(business_id):
     cursor = connection.cursor()
 
     cursor.execute("""
-        SELECT id, sender, subject, question, suggested_reply, final_reply, status, created_at, sender_profile_pic
+        SELECT id, sender, subject, question, suggested_reply, final_reply, status, created_at, sender_profile_pic, expired_at
         FROM conversations
         WHERE business_id = %s AND deleted_at IS NOT NULL
         ORDER BY deleted_at DESC
@@ -780,6 +790,28 @@ def trashed_conversations_for_business(business_id):
 
     connection.close()
     return result
+
+
+def expire_stale_pending_conversations():
+    """Archives every conversation still 'pending' more than 24h after the customer's
+    message - Instagram's send API rejects a reply that late no matter what (see
+    instagram_api.send_message's own docstring), so there's nothing left to wait for.
+    archived_at moves it out of the main Inbox the same way a manual archive would;
+    expired_at is set alongside it purely so the UI can tell the two apart and show an
+    "Expired" badge instead of treating it like a normal archive. Returns the number of
+    conversations expired, for the caller to log."""
+    connection = connect()
+    cursor = connection.cursor()
+    cursor.execute("""
+        UPDATE conversations
+        SET archived_at = NOW(), expired_at = NOW()
+        WHERE status = 'pending' AND archived_at IS NULL AND deleted_at IS NULL
+          AND created_at < NOW() - INTERVAL '24 hours'
+    """)
+    count = cursor.rowcount
+    connection.commit()
+    connection.close()
+    return count
 
 
 def archive_conversation(conversation_id):

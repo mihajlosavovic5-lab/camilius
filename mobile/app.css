@@ -835,6 +835,7 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
 .row-action-cancel { color: var(--text-muted); border-top: 1px solid var(--border); margin-top: 4px; padding-top: 14px; border-radius: 0; }
 .inbox-dot { width: 8px; height: 8px; border-radius: 99px; background: var(--warning); flex-shrink: 0; }
 .inbox-dot.sent { background: var(--success); opacity: .5; }
+.inbox-dot.expired { background: var(--text-muted); opacity: .5; }
 /* Conversations the AI has already replied to (status "sent" - whether a manually
    approved reply or one auto-mode fired off instantly) fade back like the "read" rows
    in Gmail/WhatsApp/Telegram, so the eye is drawn to what's still pending your
@@ -909,6 +910,10 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
 .badge { padding: 4px 11px; border-radius: 99px; font-size: 13px; font-weight: 600; flex-shrink: 0; }
 .badge-pending { background: var(--warning-bg); color: var(--warning); border: 1px solid var(--warning-border); }
 .badge-sent { background: var(--success-bg); color: var(--success); border: 1px solid var(--success-border); }
+/* Conversation timed out (24h+ still "pending", auto-archived server-side - see
+   reminders.expire_stale_pending_conversations_if_needed) - deliberately neutral/muted
+   rather than warning-colored, so it doesn't read as something still needing action. */
+.badge-expired { background: var(--border); color: var(--text-muted); border: 1px solid var(--border); }
 .badge-pro { background: transparent; color: var(--primary-dark); border: 1.5px solid var(--primary); font-weight: 700; }
 
 /* --- Schedule tab (Faza 12) - day/week calendar, native equivalent of the website's
