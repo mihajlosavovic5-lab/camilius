@@ -38,6 +38,14 @@ export default defineRailway(() => {
       PADDLE_PRICE_PRO_YEARLY: "pri_01ky9jwbhs6gnqx4jt8t4g2esz",
       PADDLE_CLIENT_TOKEN: preserve(),
       PADDLE_WEBHOOK_SECRET: preserve(),
+      // Firebase Cloud Messaging (push_notifications.py) - owner appointment reminders
+      // and new-message alerts push to the Android app through these. Both preserve()d:
+      // set once directly in Railway from the Firebase console (Project settings ->
+      // General for the project ID; Project settings -> Service accounts -> "Generate
+      // new private key" for the JSON, pasted here as one line). Inert (silently skips
+      // sending) until both are actually set - see push_notifications.py's docstring.
+      FIREBASE_PROJECT_ID: preserve(),
+      FIREBASE_SERVICE_ACCOUNT_JSON: preserve(),
     },
   });
 

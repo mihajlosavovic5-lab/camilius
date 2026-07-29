@@ -160,6 +160,31 @@ def test_stripe_subscription_link_writes_shared_status_and_plan_columns(client, 
     assert database.has_pro_access(business_id) is False
 
 
+def test_notifications_round_trip_and_mark_read(client, unique_username, unique_email):
+    reg = register_business(client, unique_username, unique_email)
+    business_id = reg.get_json()["business_id"]
+
+    assert database.notifications_for_business(business_id) == []
+    assert database.unread_notification_count(business_id) == 0
+
+    database.create_notification(business_id, "Upcoming appointment reminder", "You have an appointment with Ana in 1 hour.")
+    database.create_notification(business_id, "Upcoming appointment reminder", "You have an appointment with Bob in 1 hour.")
+
+    rows = database.notifications_for_business(business_id)
+    assert len(rows) == 2
+    assert rows[0][1] == "Upcoming appointment reminder"
+    assert all(row[5] is None for row in rows)  # read_at
+    assert database.unread_notification_count(business_id) == 2
+
+    # Marking a single notification read only clears that one.
+    database.mark_notifications_read(business_id, rows[0][0])
+    assert database.unread_notification_count(business_id) == 1
+
+    # Marking with no id clears every remaining unread notification.
+    database.mark_notifications_read(business_id)
+    assert database.unread_notification_count(business_id) == 0
+
+
 def test_delete_business_cascades_appointments(client, unique_username, unique_email):
     reg = register_business(client, unique_username, unique_email)
     business_id = reg.get_json()["business_id"]

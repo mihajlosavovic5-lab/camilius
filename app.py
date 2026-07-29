@@ -37,6 +37,7 @@ from database import (
     save_phone_verify_token, business_by_phone_verify_token, mark_phone_verified, phone_verify_sent_recently,
     phone_verify_resend_wait_seconds,
     grant_free_pro_access,
+    notifications_for_business, unread_notification_count, mark_notifications_read,
 )
 from send_email import send_email
 from generate_reply import generate_reply, generate_reply_with_booking
@@ -1108,6 +1109,36 @@ def update_reminders():
             request.form.get("owner_reminder_minutes"), request.form.get("owner_reminder_minutes_custom"), 60)
         set_reminder_minutes(business_id, customer_minutes, owner_minutes)
     return redirect(url_for("app_settings"))
+
+
+# Bell icon (base.html, shown on every logged-in page) - owner appointment reminders
+# (reminders.py) land here instead of an email, so this is polled once per page load the
+# same way the mobile app's /api/notifications is. Session-authed web equivalent of that
+# Bearer-authed endpoint - same underlying notifications table either way.
+@app.route("/notifications")
+@login_required
+def notifications():
+    business_id = session["business_id"]
+    rows = notifications_for_business(business_id)
+    return jsonify(
+        notifications=[
+            {
+                "id": row[0], "title": row[1], "body": row[2], "kind": row[3],
+                "created_at": row[4].isoformat() if row[4] else None,
+                "read": row[5] is not None,
+            }
+            for row in rows
+        ],
+        unread_count=unread_notification_count(business_id),
+    )
+
+
+@app.route("/notifications/read", methods=["POST"])
+@login_required
+def mark_notifications_read_route():
+    data = request.get_json(silent=True) or {}
+    mark_notifications_read(session["business_id"], data.get("id"))
+    return jsonify(message="saved", unread_count=unread_notification_count(session["business_id"]))
 
 
 @app.route("/delete-account", methods=["POST"])

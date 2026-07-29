@@ -72,7 +72,7 @@
 
     <div class="card settings-card" style="margin-top:20px;">
         <h2 style="margin-top:0;"><span data-i18n="appSettings.reminders.heading">No-show reminders</span> <span class="badge badge-pro">Pro</span></h2>
-        <p class="note" data-i18n="appSettings.reminders.note">Get reminded before appointments, or remind the customer too. Customer reminders are sent by Instagram DM (Instagram bookings only); yours come by email.</p>
+        <p class="note" data-i18n="appSettings.reminders.note">Get reminded before appointments, or remind the customer too. Customer reminders are sent by Instagram DM (Instagram bookings only); yours come as an app notification.</p>
         {% if pro_access %}
             <form method="POST" action="{{ url_for('update_reminders') }}" id="reminders-form">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
@@ -111,7 +111,7 @@
                 <div class="switch-row" style="margin-top:24px; padding-top:20px; border-top:1px solid var(--border);">
                     <div class="switch-row-text">
                         <span class="switch-row-label" data-i18n="appSettings.reminders.ownerHeading">Remind me</span>
-                        <span class="note" data-i18n="appSettings.reminders.ownerNote">Emails you before the customer's appointment.</span>
+                        <span class="note" data-i18n="appSettings.reminders.ownerNote">Notifies you in the app before the customer's appointment.</span>
                     </div>
                     <label class="hours-day-toggle">
                         <input type="checkbox" name="owner_reminders_enabled" {% if owner_reminders_enabled %}checked{% endif %} onchange="this.form.submit()">
