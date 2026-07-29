@@ -3460,6 +3460,27 @@ document.querySelectorAll(".theme-option").forEach((btn) => {
 
 el("settings-app-version").textContent = `Camilius · v${APP_VERSION}`;
 
+// --- Scroll-hide headers - the title bar on each main tab screen hides the moment its
+// content is scrolled down at all, and reappears the instant you're back at the very
+// top - same "classic" feel as a plain web page, where the header just scrolls out of
+// view and back into view with the page itself (see .topbar-hidden in app.css). Only
+// wired up for the four tab-bar screens - Detail/Help/legal/Subscription keep their
+// back button always reachable instead of hiding it mid-scroll.
+function setupScrollHideHeader(headerEl, scrollEl) {
+    if (!headerEl || !scrollEl) return;
+    let hidden = false;
+    scrollEl.addEventListener("scroll", () => {
+        const shouldHide = scrollEl.scrollTop > 0;
+        if (shouldHide === hidden) return;
+        hidden = shouldHide;
+        headerEl.classList.toggle("topbar-hidden", hidden);
+    }, { passive: true });
+}
+setupScrollHideHeader(document.querySelector("#screen-inbox .topbar"), el("inbox-list"));
+setupScrollHideHeader(document.querySelector("#screen-schedule .topbar"), el("schedule-body"));
+setupScrollHideHeader(document.querySelector("#screen-profile .topbar"), document.querySelector("#screen-profile .detail-body"));
+setupScrollHideHeader(document.querySelector("#screen-settings .topbar"), document.querySelector("#screen-settings .detail-body"));
+
 // --- Boot ---
 
 updateOfflineBanner();
