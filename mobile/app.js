@@ -1987,6 +1987,7 @@ async function renderInboxList(conversations) {
     if (token !== inboxRenderToken) return; // superseded by a newer render meanwhile
 
     list.innerHTML = "";
+    const fragment = document.createDocumentFragment();
     conversations.forEach((c, i) => {
         const row = document.createElement("div");
         row.className = "inbox-row";
@@ -2019,7 +2020,18 @@ async function renderInboxList(conversations) {
 
         row.appendChild(tapArea);
         row.appendChild(moreBtn);
-        list.appendChild(row);
+        fragment.appendChild(row);
+    });
+    list.appendChild(fragment);
+
+    // One measurement pass after every row is in the DOM (not interleaved with the
+    // appends above) so this is a single reflow instead of layout-thrashing once per
+    // row. Only a name that's actually clipped (its text is wider than the space the
+    // flex row gave it) gets the fade-to-transparent mask; a short name like "Pera"
+    // that fits next to the date stays fully readable, with just the row's normal
+    // 8px gap between it and the timestamp.
+    list.querySelectorAll(".inbox-sender").forEach((senderEl) => {
+        senderEl.classList.toggle("truncated", senderEl.scrollWidth > senderEl.clientWidth);
     });
 }
 
