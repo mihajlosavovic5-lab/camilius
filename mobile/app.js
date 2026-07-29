@@ -2901,6 +2901,7 @@ function promptForCustomDuration(currentMinutes, min, max, knownChoices = state.
         input.max = max;
         input.value = Number.isInteger(currentMinutes) && (currentMinutes < min || currentMinutes > max || knownChoices.includes(currentMinutes)) ? "" : currentMinutes;
         errorBox.classList.add("hidden");
+        pinModalCenter(modal);
         modal.classList.add("open");
         setTimeout(() => input.focus(), 250);
 
@@ -2956,6 +2957,19 @@ el("schedule-duration-btn").addEventListener("click", () => {
     });
 });
 
+// Pins a centered dialog's sheet to the screen center it measures right now, in real
+// pixels rather than the CSS top:50%/left:50% it falls back to - so that when the field
+// inside it is focused a beat later and the on-screen keyboard shrinks the layout
+// viewport, the sheet's position doesn't get recomputed against that new (shorter)
+// viewport and drift upward. A plain percentage is relative to the containing block's
+// CURRENT size on every layout, which is exactly what kept nudging it; a fixed pixel
+// value, set once before the keyboard ever opens, simply doesn't move.
+function pinModalCenter(modal) {
+    const sheet = modal.querySelector(".book-modal-sheet");
+    sheet.style.top = `${window.innerHeight / 2}px`;
+    sheet.style.left = `${window.innerWidth / 2}px`;
+}
+
 // --- Book-a-slot bottom sheet ---
 
 function openBookModal(time) {
@@ -2966,6 +2980,7 @@ function openBookModal(time) {
     el("book-service").value = "";
     el("book-duration-label").textContent = `${state.scheduleBookDuration} min`;
     el("book-modal-error").classList.add("hidden");
+    pinModalCenter(el("book-modal"));
     el("book-modal").classList.add("open");
     setTimeout(() => el("book-customer-name").focus(), 250);
 }
