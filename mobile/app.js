@@ -404,7 +404,12 @@ function createAnchoredListPicker(modalId) {
         const available = window.innerHeight - top - margin;
         sheet.style.top = `${top}px`;
         sheet.style.left = `${rect.left}px`;
-        sheet.style.width = `${Math.max(rect.width, 120)}px`;
+        // Exactly the trigger's own width, edge to edge - no forced minimum. A minimum
+        // wider than the field (used to be 120px) left the sheet's left edge aligned with
+        // the field but its right edge bulging past it, reading as "shifted right" instead
+        // of anchored to the field it belongs to (narrow fields like the currency picker
+        // and each hours-row time button are well under 120px on a phone-width screen).
+        sheet.style.width = `${rect.width}px`;
         sheet.style.maxHeight = `${Math.max(160, Math.min(240, available))}px`;
         modal.classList.add("open");
         if (selectedEl) selectedEl.scrollIntoView({ block: "center" });
