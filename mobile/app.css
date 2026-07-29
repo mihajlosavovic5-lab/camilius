@@ -819,6 +819,13 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
 }
 .block-label { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--text-muted); margin: 18px 0 6px; }
 .block-label:first-child { margin-top: 0; }
+/* Settings' first block-label ("Preferences") is never actually :first-child - two
+   always-present alert divs (#settings-app-message/-error, hidden via .hidden rather
+   than removed) sit before it in the DOM, so :first-child above never matched there and
+   it kept its 18px margin-top on top of .detail-body's own (zero) top padding - a bigger
+   gap under the page title than Inbox/Schedule get. Catches it via the sibling that's
+   actually there instead of assuming no such siblings exist. */
+.alert + .block-label { margin-top: 0; }
 .question { white-space: pre-wrap; margin: 0; padding: 13px 14px; background: var(--surface); border-radius: 10px; border-left: 3px solid var(--border); font-size: 14.5px; }
 .reply { white-space: pre-wrap; margin: 0; padding: 13px 14px; background: var(--success-bg); border-radius: 10px; border-left: 3px solid var(--success); font-size: 14.5px; }
 
@@ -830,6 +837,9 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
     box-shadow: var(--shadow); padding: 16px; margin-top: 16px;
 }
 .profile-section:first-child { margin-top: 0; }
+/* Same fix as .block-label above - the Account card is never actually :first-child
+   either, since #settings-message/-error (hidden alerts) sit before it in the DOM. */
+.alert + .profile-section { margin-top: 0; }
 .profile-section-header { margin-bottom: 14px; }
 .profile-section-title { font-size: 15px; font-weight: 700; margin: 0; display: flex; align-items: center; gap: 8px; }
 .profile-section-subtitle { color: var(--text-muted); font-size: 12.5px; margin: 3px 0 0; }
