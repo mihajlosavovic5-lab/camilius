@@ -1489,6 +1489,25 @@ body.auth {
 .support-widget-fab:hover { transform: translateY(-3px) scale(1.06); background: rgba(214,148,16,.16); box-shadow: 0 10px 22px -6px rgba(38,32,20,.22), 0 2px 6px rgba(38,32,20,.08); }
 .support-widget-fab:active { transform: translateY(-1px) scale(.96); }
 .support-widget-fab-icon { width: 27px; height: 27px; }
+/* --- Idle "I'm here" nudge - a quick double-bounce every 10s so the launcher catches
+   the eye like a real notification, the way Intercom/Drift-style widgets do, without
+   looping constantly (that reads as broken/attention-grabbing rather than helpful).
+   Rests for the first ~7.5s of each cycle, then bounces twice. Turned off on hover/
+   while the panel is open (own transform would fight the animation's) and for good
+   once the user has actually opened the widget once - see the nudge-done class toggled
+   in base.html's script - so people who already found it stop being nagged. --- */
+@media (prefers-reduced-motion: no-preference) {
+    .support-widget-fab { animation: support-widget-fab-nudge 10s ease-in-out infinite; }
+    .support-widget-fab:hover,
+    .support-widget-fab.support-widget-fab-nudge-done { animation: none; }
+}
+@keyframes support-widget-fab-nudge {
+    0%, 75%, 100% { transform: translateY(0); }
+    79% { transform: translateY(-9px); }
+    83% { transform: translateY(0); }
+    87% { transform: translateY(-5px); }
+    91% { transform: translateY(0); }
+}
 .support-widget-panel {
     position: absolute; right: 0; bottom: 70px; width: min(320px, calc(100vw - 32px));
     height: min(440px, calc(100vh - 108px)); background: var(--surface);

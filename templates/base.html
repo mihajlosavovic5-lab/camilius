@@ -338,10 +338,19 @@
         var open = false;
         var greetingRendered = false;
 
+        var NUDGE_SEEN_KEY = "clx_support_widget_seen";
+        try {
+            if (localStorage.getItem(NUDGE_SEEN_KEY)) toggle.classList.add("support-widget-fab-nudge-done");
+        } catch (e) {}
+
         function setOpen(value) {
             open = value;
             panel.classList.toggle("hidden", !open);
             backdrop.classList.toggle("open", open);
+            if (open) {
+                toggle.classList.add("support-widget-fab-nudge-done");
+                try { localStorage.setItem(NUDGE_SEEN_KEY, "1"); } catch (e) {}
+            }
             // Deliberately no input.focus() here - auto-focusing the field the instant
             // the panel opens pops the on-screen keyboard immediately on mobile, which
             // shoves the whole panel around before the user asked for it. The keyboard
