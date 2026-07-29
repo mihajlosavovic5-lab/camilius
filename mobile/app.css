@@ -835,6 +835,13 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
 .row-action-cancel { color: var(--text-muted); border-top: 1px solid var(--border); margin-top: 4px; padding-top: 14px; border-radius: 0; }
 .inbox-dot { width: 8px; height: 8px; border-radius: 99px; background: var(--warning); flex-shrink: 0; }
 .inbox-dot.sent { background: var(--success); opacity: .5; }
+/* Conversations the AI has already replied to (status "sent" - whether a manually
+   approved reply or one auto-mode fired off instantly) fade back like the "read" rows
+   in Gmail/WhatsApp/Telegram, so the eye is drawn to what's still pending your
+   approval. Only the tap area dims (name/avatar/preview/time) - the "..." more-options
+   button stays fully opaque, since it's still just as actionable on a sent row. */
+.inbox-row-sent .inbox-row-tap { opacity: .5; }
+.inbox-row-sent .inbox-sender { font-weight: 500; }
 
 /* --- Empty / loading --- */
 /* flex+centered rather than just padding - positions "You're all set" (and the other

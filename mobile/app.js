@@ -1990,7 +1990,7 @@ async function renderInboxList(conversations) {
     const fragment = document.createDocumentFragment();
     conversations.forEach((c, i) => {
         const row = document.createElement("div");
-        row.className = "inbox-row";
+        row.className = "inbox-row" + (c.status === "sent" ? " inbox-row-sent" : "");
 
         const tapArea = document.createElement("button");
         tapArea.type = "button";
