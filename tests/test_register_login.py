@@ -176,3 +176,42 @@ def test_register_web_resumes_abandoned_unverified_signup(client, unique_usernam
         assert session["pending_verify_business_id"] == first_business[0]
     # No second account was created for the new username.
     assert database.business_by_username(f"other-{unique_username}") is None
+
+
+# --- /api/check-availability - the Create Account wizard's live "already taken" check
+# gates its own Next/step button on this, so it has to agree with api_register()'s
+# resume behavior above or the wizard would block the user before they ever reach
+# submit (see api_check_availability()'s own comment in api.py). ---
+
+def test_check_availability_treats_unverified_email_as_available_when_anonymous(client, unique_username, unique_email):
+    client.post("/api/register", json=_api_register_payload(unique_username, unique_email))
+    response = client.post("/api/check-availability", json={"field": "contact_email", "value": unique_email})
+    assert response.status_code == 200
+    assert response.get_json()["taken"] is False
+
+
+def test_check_availability_still_blocks_verified_email_when_anonymous(client, unique_username, unique_email):
+    reg = client.post("/api/register", json=_api_register_payload(unique_username, unique_email))
+    database.mark_email_verified(reg.get_json()["business_id"])
+    response = client.post("/api/check-availability", json={"field": "contact_email", "value": unique_email})
+    assert response.status_code == 200
+    assert response.get_json()["taken"] is True
+
+
+def test_check_availability_still_blocks_unverified_email_for_authenticated_caller(client, unique_username, unique_email):
+    """The exception above is only for the anonymous Create Account wizard resuming its
+    OWN abandoned signup - a logged-in caller (Settings' email field) trying to claim a
+    DIFFERENT, unrelated account's still-unverified email must still see it as taken."""
+    client.post("/api/register", json=_api_register_payload(unique_username, unique_email))
+
+    other_username = f"other-{unique_username}"
+    other_email = f"other-{unique_email}"
+    token, _ = register_and_login(client, other_username, other_email)
+
+    response = client.post(
+        "/api/check-availability",
+        json={"field": "contact_email", "value": unique_email},
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert response.status_code == 200
+    assert response.get_json()["taken"] is True

@@ -905,12 +905,25 @@ _AVAILABILITY_CHECKS = {
 def check_availability():
     data = request.get_json(silent=True) or {}
     value = (data.get("value") or "").strip()
-    check = _AVAILABILITY_CHECKS.get(data.get("field"))
+    field = data.get("field")
+    check = _AVAILABILITY_CHECKS.get(field)
     if check is None:
         abort(400)
     if not value:
         return jsonify(taken=False)
-    return jsonify(taken=check(value, exclude_business_id=session.get("business_id")))
+
+    business_id = session.get("business_id")
+    if field == "contact_email" and business_id is None:
+        # Anonymous caller, i.e. the Create Account wizard (Settings' email field always
+        # has a logged-in session - see the branch below) - an email stuck on an
+        # abandoned, never-verified signup isn't a real conflict here, it's exactly the
+        # account register() will resume instead of blocking (see register()'s own
+        # comment above). Only a genuinely confirmed account should hold this field
+        # "taken" and keep the wizard's Next button disabled.
+        existing = business_by_contact_email(value)
+        return jsonify(taken=bool(existing and existing[12]))
+
+    return jsonify(taken=check(value, exclude_business_id=business_id))
 
 
 @app.route("/reset-password/<token>", methods=["GET", "POST"])

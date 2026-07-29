@@ -380,7 +380,8 @@ _AVAILABILITY_CHECKS = {
 def api_check_availability():
     data = request.get_json(silent=True) or {}
     value = (data.get("value") or "").strip()
-    check = _AVAILABILITY_CHECKS.get(data.get("field"))
+    field = data.get("field")
+    check = _AVAILABILITY_CHECKS.get(field)
     if check is None:
         return jsonify(error="invalid field"), 400
     if not value:
@@ -390,6 +391,15 @@ def api_check_availability():
     auth_header = request.headers.get("Authorization", "")
     if auth_header.startswith("Bearer "):
         exclude_id = _business_id_from_token(auth_header[len("Bearer "):])
+
+    if field == "contact_email" and exclude_id is None:
+        # Unauthenticated caller, i.e. the Create Account wizard (Profile's email field
+        # always sends a Bearer token - see the branch below) - same "an abandoned,
+        # never-verified signup is resumable, not a real conflict" exception as the web
+        # /check-availability route (see app.py), so the wizard's Next step doesn't stay
+        # blocked on an email api_register() is about to let the user resume anyway.
+        existing = business_by_contact_email(value)
+        return jsonify(taken=bool(existing and existing[12]))
 
     return jsonify(taken=check(value, exclude_business_id=exclude_id))
 
