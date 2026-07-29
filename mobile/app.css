@@ -181,13 +181,10 @@ button { font-family: inherit; }
     background: transparent;
     flex-shrink: 0;
     /* Scroll-hide (Faza X, main tab screens only - see .topbar-hidden below and
-       setupScrollHideHeader() in app.js): a generous max-height/opacity/padding
-       transition so it can collapse smoothly to nothing and let the scrollable content
-       below expand to fill the space, same "scrolls out of view, comes back at the top"
-       feel as a plain web page's header - not clipped mid-transition since 160px comfortably
-       clears the tallest real topbar (safe-area inset included). */
+       setupScrollHideHeader() in app.js): snaps to nothing instantly, no slide/collapse
+       animation - not clipped since 160px comfortably clears the tallest real topbar
+       (safe-area inset included). */
     max-height: 160px; overflow: hidden;
-    transition: max-height .25s ease, opacity .2s ease, padding-top .25s ease, padding-bottom .25s ease;
 }
 .topbar.topbar-hidden {
     max-height: 0; opacity: 0; padding-top: 0; padding-bottom: 0; pointer-events: none;
