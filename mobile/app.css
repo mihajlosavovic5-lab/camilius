@@ -30,6 +30,20 @@
 
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
+/* No text selection/copy anywhere in the app shell - a long-press on a label, message
+   bubble, or button used to bring up the WebView's own text-selection handles and
+   "Copy" popup, which reads as a website rather than a native app (no big/professional
+   app lets you select its own UI text). Re-enabled below only on input/textarea, where
+   selecting is how a user edits what THEY typed - never disable that. */
+* {
+    -webkit-user-select: none; user-select: none;
+    -webkit-touch-callout: none;
+}
+input, textarea {
+    -webkit-user-select: text; user-select: text;
+    -webkit-touch-callout: default;
+}
+
 html, body {
     height: 100%;
     overscroll-behavior-y: none; /* no browser-style pull bounce - feels less "webby" */
