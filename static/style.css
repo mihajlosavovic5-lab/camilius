@@ -576,22 +576,38 @@ input[readonly]:hover { border-color: var(--border); }
 .form-actions { margin-top: 24px; }
 .hidden { display: none !important; }
 
-/* Profile page's Save button (#settings-save-btn) floats fixed at the bottom-right of
-   the viewport instead of sitting inline at the end of the form - same idea as the
-   mobile app's own .fab-save. The Profile form is long (Account, Business details,
-   AI upsell, Security), so a change made near the top (e.g. Working hours, right after
-   Account) un-hid the button, but it stayed off-screen at the very bottom until the
-   whole page was scrolled through - easy to miss entirely and read as "the button
-   never appeared". Fixed position keeps it in view the moment it's no longer hidden,
-   regardless of scroll position, wherever on the page the edit happened. Stacked above
-   the support chat bubble (.support-widget-fab: fixed, right: 20px, bottom: 20px, 58px
-   tall - see further down in this file), not beside it, so the two never collide
-   regardless of this button's text width in any language. Scoped to this one button by
-   ID, not .form-actions/.button generally, since those classes are shared by ordinary
-   inline submit buttons elsewhere that must stay in their normal flow. */
+/* Profile page's Save button (#settings-save-btn) floats fixed near the bottom-right
+   instead of sitting inline at the end of the form - same idea as the mobile app's own
+   .fab-save. The Profile form is long (Account, Business details, AI upsell, Security),
+   so a change made near the top (e.g. Working hours, right after Account) un-hid the
+   button, but it stayed off-screen at the very bottom until the whole page was scrolled
+   through - easy to miss entirely and read as "the button never appeared". Fixed
+   position keeps it in view the moment it's no longer hidden, regardless of scroll
+   position, wherever on the page the edit happened.
+   Default (viewport too narrow for the switched rule below to fit without either
+   overlapping the card or running past the edge of the screen - this covers actual
+   mobile widths, where .content-narrow already fills the viewport, same as before):
+   right: 24px, the viewport's own corner.
+   Above 1000px (there's finally enough margin beside the centered 640px-wide card for a
+   140px-ish button plus a gap to fit without spilling past the edge of the screen):
+   switched to `left`, anchored just past the card's own right edge instead - sitting
+   flush beside the content instead of stranded off in empty space at the far edge of a
+   wide screen.
+   Left, not a `right` value computed from the card's edge, deliberately - the card's
+   content varies in height per section, and this stays fixed at the viewport's right
+   *margin* rather than ever drifting left onto the card and overlapping a field/button
+   that happens to be at this vertical position when the page is scrolled elsewhere.
+   Stacked above the support chat bubble (.support-widget-fab: fixed, right: 20px,
+   bottom: 20px, 58px tall - see further down in this file), not beside it, so the two
+   never collide regardless of this button's text width in any language. Scoped to this
+   one button by ID, not .form-actions/.button generally, since those classes are shared
+   by ordinary inline submit buttons elsewhere that must stay in their normal flow. */
 #settings-save-btn.button {
     position: fixed; right: 24px; bottom: 96px; z-index: 45;
     box-shadow: 0 8px 22px -4px rgba(214, 148, 16, .5);
+}
+@media (min-width: 1000px) {
+    #settings-save-btn.button { right: auto; left: calc(50% + 336px); }
 }
 
 /* Floating labels - the label sits centered inside the empty field like a
