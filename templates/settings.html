@@ -57,11 +57,17 @@
                     <div class="profile-instagram-actions">
                         <a href="{{ url_for('connect_instagram_start') }}" class="field-action-link"><span data-i18n="{{ 'settings.instagramReconnect' if business.instagram_username else 'connectInstagram.cta' }}">{{ 'Reconnect or switch account' if business.instagram_username else 'Connect Instagram' }}</span></a>
                         {% if business.instagram_username %}
-                            <form method="POST" action="{{ url_for('disconnect_instagram') }}"
-                                  onsubmit="return confirm(t('settings.instagramDisconnectConfirm'));">
-                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                <button type="submit" class="field-action-link field-action-link-danger" data-i18n="settings.instagramDisconnect">Disconnect</button>
-                            </form>
+                            <!-- form="disconnect-instagram-form" (not a nested <form> here) -
+                                 a <form> can't be nested inside #settings-form below; browsers
+                                 silently close #settings-form early at this </form>, which used
+                                 to knock Working hours/Price list/FAQ/AI upsell/the Save button
+                                 itself clean out of the real form (they render after this point
+                                 in the template), so none of those fields were ever submitted and
+                                 the Save button never received their bubbled change events. The
+                                 actual <form id="disconnect-instagram-form"> now lives after
+                                 #settings-form's closing tag instead - this button just points to
+                                 it by id, which HTML allows regardless of DOM position. -->
+                            <button type="submit" form="disconnect-instagram-form" class="field-action-link field-action-link-danger" data-i18n="settings.instagramDisconnect">Disconnect</button>
                         {% endif %}
                     </div>
                 </div>
@@ -134,6 +140,12 @@
             <button class="button hidden" type="submit" id="settings-save-btn" data-i18n="settings.saveChanges">Save changes</button>
         </div>
     </form>
+    {% if business.instagram_username %}
+        <form method="POST" action="{{ url_for('disconnect_instagram') }}" id="disconnect-instagram-form"
+              onsubmit="return confirm(t('settings.instagramDisconnectConfirm'));">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        </form>
+    {% endif %}
 </div>
 {% endblock %}
 
