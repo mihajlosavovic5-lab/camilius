@@ -5,17 +5,24 @@
 // point app.js has already run (classic <script> tags share one global scope, so a
 // function defined in a later script is still reachable from here at call time).
 
+// "flag" is an ISO country code for countryFlagEmoji() (app.js) to turn into an emoji
+// flag - same country choice per language as the website's own LANGUAGES list (static/
+// site-i18n.js), just an emoji glyph here instead of an image file. The website needed
+// real flag images because Chrome on Windows renders flag emoji as plain "GB"/"ES" text;
+// Android's own emoji font draws them properly, and the phone-number country picker
+// elsewhere in this file already relies on exactly that (see countryFlagEmoji's usage
+// there), so there's no reason to bundle image assets just for this picker too.
 const LANGUAGES = [
-    { code: "en", name: "English" },
-    { code: "es", name: "Español" },
-    { code: "pt", name: "Português" },
-    { code: "fr", name: "Français" },
-    { code: "de", name: "Deutsch" },
-    { code: "it", name: "Italiano" },
-    { code: "ru", name: "Русский" },
-    { code: "sr", name: "Srpski" },
-    { code: "zh", name: "中文" },
-    { code: "tr", name: "Türkçe" },
+    { code: "en", name: "English", flag: "GB" },
+    { code: "es", name: "Español", flag: "ES" },
+    { code: "pt", name: "Português", flag: "PT" },
+    { code: "fr", name: "Français", flag: "FR" },
+    { code: "de", name: "Deutsch", flag: "DE" },
+    { code: "it", name: "Italiano", flag: "IT" },
+    { code: "ru", name: "Русский", flag: "RU" },
+    { code: "sr", name: "Srpski", flag: "RS" },
+    { code: "zh", name: "中文", flag: "CN" },
+    { code: "tr", name: "Türkçe", flag: "TR" },
 ];
 
 const TRANSLATIONS = {
@@ -2910,6 +2917,11 @@ function applyTranslations() {
     if (label) label.textContent = lang ? lang.name : currentLang;
     const settingsValue = document.getElementById("settings-language-value");
     if (settingsValue) settingsValue.textContent = lang ? lang.name : currentLang;
+    const flagGlyph = lang ? countryFlagEmoji(lang.flag) : "";
+    const selectFlag = document.getElementById("lang-select-flag");
+    if (selectFlag) selectFlag.textContent = flagGlyph;
+    const settingsFlag = document.getElementById("settings-language-flag");
+    if (settingsFlag) settingsFlag.textContent = flagGlyph;
 }
 
 async function setLanguage(code) {
@@ -2939,12 +2951,37 @@ function setupLanguagePicker() {
     ].filter(Boolean);
     const modal = document.getElementById("lang-modal");
     const backdrop = document.getElementById("lang-modal-backdrop");
+    const sheet = modal ? modal.querySelector(".lang-modal-sheet") : null;
     const list = document.getElementById("lang-modal-list");
-    if (!triggers.length || !modal || !list) return;
+    if (!triggers.length || !modal || !sheet || !list) return;
 
-    const openPicker = () => {
+    // Anchored below whichever trigger opened it, sized to that trigger's own width -
+    // same mechanism (and the same earlier fixes: no forced-minimum overhang, grows only
+    // as much as an option's text actually needs, never opens behind the tab bar) as
+    // createAnchoredListPicker() in app.js uses for the working-hours/currency/duration
+    // pickers. This one manages its own two triggers/backdrop instead of going through
+    // that shared instance, so the same positioning math is repeated here rather than
+    // shared - the language picker was still a fixed, centered, un-anchored ~260px box.
+    const openPicker = (triggerBtn) => {
+        const rect = triggerBtn.getBoundingClientRect();
+        const margin = 12;
+        const top = rect.bottom + 6;
+        const bottomLimit = tabbar.classList.contains("hidden") ? window.innerHeight : tabbar.getBoundingClientRect().top;
+        const available = bottomLimit - top - margin;
+        sheet.style.top = `${top}px`;
+        sheet.style.left = `${rect.left}px`;
+        sheet.style.width = "auto";
+        const naturalWidth = sheet.getBoundingClientRect().width;
+        const maxWidth = window.innerWidth - rect.left - margin;
+        sheet.style.width = `${Math.min(Math.max(rect.width, naturalWidth), maxWidth)}px`;
+        sheet.style.maxHeight = `${Math.max(0, Math.min(240, available))}px`;
+
         modal.classList.add("open");
         triggers.forEach((t) => t.classList.add("active"));
+        // .lang-modal-sheet (not .lang-modal-list) is the element that actually scrolls
+        // here - see its own overflow-y:auto below, unlike the other anchored pickers
+        // where the inner list scrolls instead.
+        sheet.scrollTop = 0;
     };
     const closePicker = () => {
         modal.classList.remove("open");
@@ -2954,8 +2991,9 @@ function setupLanguagePicker() {
     LANGUAGES.forEach((lang) => {
         const row = document.createElement("button");
         row.type = "button";
-        row.className = "lang-option-btn";
-        row.textContent = lang.name;
+        row.className = "country-option-btn";
+        row.innerHTML = `<span class="country-option-flag">${countryFlagEmoji(lang.flag)}</span>` +
+            `<span class="country-option-name">${escapeHtml(lang.name)}</span>`;
         row.addEventListener("click", async () => {
             await setLanguage(lang.code);
             closePicker();
@@ -2966,7 +3004,7 @@ function setupLanguagePicker() {
     triggers.forEach((btn) => {
         btn.addEventListener("click", () => {
             if (modal.classList.contains("open")) closePicker();
-            else openPicker();
+            else openPicker(btn);
         });
     });
     backdrop.addEventListener("click", closePicker);

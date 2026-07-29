@@ -157,6 +157,7 @@ button { font-family: inherit; }
     border-radius: 8px; transition: background .15s ease;
 }
 .lang-select-btn.active { background: var(--background); }
+.lang-select-flag { font-size: 15px; }
 .lang-chevron { font-size: 12px; transform: translateY(1px); transition: transform .18s ease; }
 .lang-select-btn.active .lang-chevron { transform: translateY(1px) rotate(180deg); }
 /* Flexible spacers above/below the form cluster, close to an even split so the cluster
@@ -217,11 +218,6 @@ button { font-family: inherit; }
 }
 .lang-modal.open .lang-modal-sheet { transform: translate(-50%, 0) scale(1); opacity: 1; }
 .lang-modal-list { display: flex; flex-direction: column; }
-.lang-option-btn {
-    background: none; border: none; text-align: left; padding: 12px 14px; border-radius: 10px;
-    font-family: inherit; font-size: 15.5px; color: var(--text); cursor: pointer;
-}
-.lang-option-btn:active { background: var(--background); }
 
 /* --- Country code picker (phone number field) - list (flag + name + dial code), sized
    and positioned inline by JS to match the width of the whole phone-input-row (button +
@@ -517,7 +513,7 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
     font-size: 15px; cursor: pointer;
 }
 .settings-row:active { background: var(--background); }
-.settings-row-value { color: var(--text-muted); font-size: 14px; }
+.settings-row-value { display: inline-flex; align-items: center; gap: 4px; color: var(--text-muted); font-size: 14px; }
 .settings-row-chevron { color: var(--text-muted); font-size: 18px; }
 .settings-row-stack { flex-direction: column; align-items: stretch; gap: 10px; cursor: default; }
 .settings-row-stack:active { background: none; }

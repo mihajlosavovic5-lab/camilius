@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
 <title>Camilius</title>
-<link rel="stylesheet" href="app.css?v=a8656be25795">
+<link rel="stylesheet" href="app.css?v=824eaa933caa">
 </head>
 <body>
 
@@ -55,7 +55,7 @@
      "open" class (not "hidden") so CSS transitions can animate it. -->
 <div id="lang-modal" class="lang-modal">
   <div class="lang-modal-backdrop" id="lang-modal-backdrop"></div>
-  <div class="lang-modal-sheet">
+  <div class="lang-modal-sheet country-modal-sheet">
     <div id="lang-modal-list" class="lang-modal-list"></div>
   </div>
 </div>
@@ -251,6 +251,7 @@
     <div class="login-wrap">
       <div class="login-lang-row">
         <button type="button" id="lang-select-btn" class="lang-select-btn">
+          <span id="lang-select-flag" class="lang-select-flag"></span>
           <span id="lang-select-label">English</span>
           <span class="lang-chevron">⌄</span>
         </button>
@@ -831,7 +832,10 @@
       <div class="block-label" data-i18n="appSettings.preferences">Preferences</div>
       <div class="settings-row" id="settings-language-row">
         <span data-i18n="appSettings.language">Language</span>
-        <span class="settings-row-value" id="settings-language-value">English</span>
+        <span class="settings-row-value">
+          <span id="settings-language-flag"></span>
+          <span id="settings-language-value">English</span>
+        </span>
       </div>
       <div class="settings-row settings-row-stack">
         <span data-i18n="appSettings.theme">Theme</span>
@@ -1093,7 +1097,7 @@
   </button>
 </nav>
 
-<script src="i18n.js?v=a8656be25795"></script>
-<script src="app.js?v=a8656be25795"></script>
+<script src="i18n.js?v=824eaa933caa"></script>
+<script src="app.js?v=824eaa933caa"></script>
 </body>
 </html>
