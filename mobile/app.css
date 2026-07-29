@@ -93,12 +93,11 @@ button { font-family: inherit; }
    gradient show straight through makes the header feel like the top of the page instead
    of a separate strip glued onto it. */
 .topbar {
-    /* Equal 14px top/bottom padding around the title itself (the safe-top add-on to the
-       top is a separate system inset for the status bar/notch, not part of the bar's own
-       spacing) - was 12px on the bottom, and the content right after the bar added its
-       own top padding on top of that (see .detail-body/.inbox-stats-row below), which
-       together made the gap below the title noticeably bigger than the gap above it. */
-    padding: calc(14px + var(--safe-top)) 18px 14px;
+    /* Extra top padding beyond the safe-area inset (24px vs. the 14px bottom) - a
+       deliberate nudge down from the very top of the screen so the title doesn't sit
+       right against the status bar/notch, requested after the top/bottom balance above
+       was already settled. */
+    padding: calc(24px + var(--safe-top)) 18px 14px;
     display: flex; align-items: center; gap: 12px;
     background: transparent;
     flex-shrink: 0;
