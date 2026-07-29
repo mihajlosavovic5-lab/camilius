@@ -569,10 +569,11 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
 
 /* Customer/owner no-show reminder lead-time row (Faza 13) - sits directly under each
    reminder toggle: an inline label + the shared anchored .picker-btn dropdown (same
-   widget as the working-hours time fields) on one line, a trailing hint below, mirroring
-   the website's app_settings.html duration-picker layout. */
+   widget as the working-hours time fields) + the "before the appointment" hint, all on
+   one line - wraps onto a second line rather than overflowing if a narrow screen and a
+   longer translated hint don't both fit. */
 .reminder-lead-row { padding-top: 4px; padding-bottom: 16px; }
-.reminder-lead-inline { display: flex; align-items: center; gap: 10px; }
+.reminder-lead-inline { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; }
 .reminder-lead-row .picker-btn { width: auto; min-width: 90px; }
 .reminder-lead-row .field-hint { margin: 0; }
 
