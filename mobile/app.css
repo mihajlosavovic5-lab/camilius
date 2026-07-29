@@ -181,11 +181,6 @@ button { font-family: inherit; }
     background: transparent;
     flex-shrink: 0;
 }
-/* Scroll-hide (main tab screens only - see setupScrollHideHeader() in app.js): only the
-   title text itself is hidden, the bar's own box/height is untouched - so nothing below
-   it reflows/jumps when it hides or comes back. No transition either - it's just gone,
-   the same way text simply isn't in view once it's scrolled past on a plain page. */
-.topbar.topbar-hidden .topbar-title { visibility: hidden; }
 /* Every plain page-title topbar (i.e. not .topbar-detail's own sender/time/badge
    header - that one keeps its left-aligned flex layout below) centers its title in the
    bar instead of left-aligning it. .topbar-title itself takes the full row (flex:1) and
@@ -745,7 +740,7 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
 .legal-updated { color: var(--text-muted); font-size: 13.5px; margin-bottom: 16px; }
 
 /* --- Alerts --- */
-.alert { padding: 12px 14px; border-radius: 10px; font-size: 15px; margin: 0 0 14px; border: 1px solid; }
+.alert { padding: 12px 14px; border-radius: 10px; font-size: 15px; margin: 0 0 14px; border: 1px solid; flex-shrink: 0; }
 .alert-error { background: var(--danger-bg); border-color: var(--danger-border); color: #991b1b; }
 .alert-success { background: var(--success-bg); border-color: var(--success-border); color: #166534; }
 .alert-warning { background: var(--warning-bg); border-color: var(--warning-border); color: var(--warning); margin: 0 18px 14px; }
@@ -790,13 +785,13 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
    pill against the dark background every time a filter (All/Pending/Sent/...) is tapped. */
 .filter-pill.active { background: var(--text); color: #fff; border-color: var(--text); }
 .filter-pill span { opacity: .75; margin-left: 3px; }
-.trash-note { padding: 0 18px; margin: 8px 0 0; }
+.trash-note { padding: 0 18px; margin: 8px 0 0; flex-shrink: 0; }
 
 /* --- Inbox list --- */
-/* overflow-x explicit (not just overflow-y) - a row whose sender/preview text can't
-   shrink (see .inbox-sender/.inbox-row-top below) would otherwise leave this scrollable
-   left/right, since overflow-y:auto alone makes the UA compute overflow-x as auto too. */
-.inbox-list { flex: 1; overflow-y: auto; overflow-x: hidden; padding: 8px 12px calc(18px + var(--tabbar-h) + var(--safe-bottom)); -webkit-overflow-scrolling: touch; }
+/* overflow-x explicit - a row whose sender/preview text can't shrink (see
+   .inbox-sender/.inbox-row-top below) would otherwise leave this scrollable left/right;
+   scrolling itself now happens on the ancestor .inbox-list-wrap (see below), not here. */
+.inbox-list { flex-shrink: 0; overflow-x: hidden; padding: 8px 12px calc(18px + var(--tabbar-h) + var(--safe-bottom)); }
 .inbox-row { display: flex; align-items: center; border-bottom: 1px solid var(--border); min-width: 0; }
 .inbox-row-tap {
     display: flex; align-items: center; gap: 12px; padding: 13px 10px;
@@ -895,9 +890,6 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
     display: flex; flex-direction: column; align-items: center; justify-content: center;
 }
 .empty-icon { font-size: 41px; margin-bottom: 10px; }
-/* Inbox screen only - the donation strip added above eats into the space this centers
-   within, pushing "You're all set" low enough to clip under the tab bar. Nudge it back up. */
-#inbox-empty, #inbox-error { margin-top: -860px; }
 .empty-title { font-weight: 600; color: var(--text); font-size: 16.5px; margin: 4px 0; }
 .loading { text-align: center; padding: 30px; color: var(--text-muted); font-size: 15px; flex: 1; display: flex; align-items: center; justify-content: center; }
 .spinner {
@@ -1305,9 +1297,11 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
 .skeleton-line { height: 11px; border-radius: 6px; }
 @keyframes skeleton-shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
 
-/* Wraps the inbox list + empty/error states + the pull-to-refresh indicator below. */
-.inbox-list-wrap { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-height: 0; }
-.inbox-list-wrap .inbox-list { flex: 1; }
+/* Wraps everything from the title down - title/stats/search/filters scroll away
+   naturally with the rest of the screen instead of staying pinned in place, plain
+   ordinary page-scrolling behavior (this is the actual scrolling element now, not
+   .inbox-list - see .inbox-list above). */
+.inbox-list-wrap { flex: 1; display: flex; flex-direction: column; overflow-y: auto; min-height: 0; -webkit-overflow-scrolling: touch; }
 
 /* Pull-to-refresh (re-added on top of the automatic push-triggered + 15s poll refresh -
    users expect the gesture on an inbox screen even when the list already updates itself).
