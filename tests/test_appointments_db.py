@@ -101,6 +101,17 @@ def test_owner_reminders_enabled_defaults_off_and_round_trips_independently(clie
     assert database.is_reminders_enabled(business_id) is False
 
 
+def test_new_booking_notifications_enabled_defaults_on_and_round_trips(client, unique_username, unique_email):
+    # Default ON since this is a continuation of the previously-unconditional new-booking
+    # notification behavior, not something existing users need to opt into.
+    reg = register_business(client, unique_username, unique_email)
+    business_id = reg.get_json()["business_id"]
+
+    assert database.is_new_booking_notifications_enabled(business_id) is True
+    database.set_new_booking_notifications_enabled(business_id, False)
+    assert database.is_new_booking_notifications_enabled(business_id) is False
+
+
 def test_reminder_minutes_default_and_round_trip(client, unique_username, unique_email):
     reg = register_business(client, unique_username, unique_email)
     business_id = reg.get_json()["business_id"]

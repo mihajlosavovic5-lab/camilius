@@ -33,8 +33,9 @@ from database import (
     is_reminders_enabled, is_owner_reminders_enabled, get_reminder_minutes,
     has_pro_access, log_client_error, create_notification,
     businesses_needing_trial_warning, mark_trial_warning_sent,
+    expire_stale_pending_conversations,
 )
-from booking import BUSINESS_TZ, now_local
+from booking import BUSINESS_TZ, now_local, relative_when
 from instagram_api import send_message as send_instagram_message
 from send_email import send_email
 from push_notifications import send_push_to_business
@@ -56,16 +57,16 @@ def _format_lead_time(minutes):
 
 
 def _customer_reminder_text(business_name, start_local, minutes):
-    when = start_local.strftime("%A at %H:%M")
+    when = relative_when(start_local)
     return f"Reminder: you have an appointment with {business_name} in {_format_lead_time(minutes)} ({when}). See you then!"
 
 
 def _owner_reminder_notification_body(customer_name, service, start_local, minutes):
-    when = start_local.strftime("%A, %B %d at %H:%M")
+    when = relative_when(start_local)
     service_part = f" for {service}" if service else ""
     return (
         f"You have an appointment with {customer_name}{service_part} in "
-        f"{_format_lead_time(minutes)}, at {when}."
+        f"{_format_lead_time(minutes)}, {when}."
     )
 
 
@@ -173,3 +174,13 @@ def send_trial_ending_warnings_if_needed():
             print(f"[reminders] Failed to send trial-ending warning for business_id={business_id}: {error}", flush=True)
             log_client_error(business_id, f"trial warning email failed: {error}", "", "trial-warning-debug", "")
         mark_trial_warning_sent(business_id)
+
+
+def expire_stale_pending_conversations_if_needed():
+    """Checked every tick (cheap - a single indexed-by-status UPDATE, matching the other
+    every-tick jobs above): sweeps up any conversation that's been sitting 'pending' for
+    over 24h and auto-archives it, since Instagram will no longer let a reply through to
+    it either way. See database.expire_stale_pending_conversations for the actual query."""
+    count = expire_stale_pending_conversations()
+    if count:
+        print(f"[reminders] Auto-archived {count} conversation(s) past Instagram's 24h reply window", flush=True)

@@ -21,6 +21,9 @@ What this loop actually does now:
 - Trial-ending warning emails - checked every tick too; cheap (DB-side dedup via
   trial_warning_sent_at means a business is only ever matched once), and Paddle Billing
   has no webhook to react to instead of polling. See reminders.py.
+- Auto-archiving conversations stuck 'pending' past Instagram's 24h reply window -
+  checked every tick (cheap, a single UPDATE) so nothing sits in the main Pending list
+  long after it's actually unreplyable. See reminders.py.
 """
 
 import sys
@@ -32,7 +35,10 @@ from datetime import datetime, date
 from database import create_database, all_businesses, link_instagram_account, purge_expired_trash
 from backup import daily_backup_if_needed
 from instagram_api import refresh_long_lived_token
-from reminders import send_appointment_reminders_if_needed, send_trial_ending_warnings_if_needed
+from reminders import (
+    send_appointment_reminders_if_needed, send_trial_ending_warnings_if_needed,
+    expire_stale_pending_conversations_if_needed,
+)
 
 # Tightened from 3600s (hourly) to 300s (5 min) for Faza 9's appointment reminders,
 # which need much finer timing than the once-a-day jobs below - those stay correct
@@ -103,6 +109,7 @@ def run_loop():
             purge_expired_trash_if_needed()
             send_appointment_reminders_if_needed()
             send_trial_ending_warnings_if_needed()
+            expire_stale_pending_conversations_if_needed()
         except Exception as error:
             # Don't let one error (e.g. a temporary network blip) crash the whole loop
             print(f"[{now}] An error occurred: {error}")

@@ -811,6 +811,10 @@ input[readonly]:hover { border-color: var(--border); }
 }
 .badge-pending { background: var(--warning-bg); color: var(--warning); border: 1px solid var(--warning-border); }
 .badge-sent { background: var(--success-bg); color: var(--success); border: 1px solid var(--success-border); }
+/* Conversation timed out (24h+ still "pending", auto-archived - see
+   reminders.expire_stale_pending_conversations_if_needed) - deliberately neutral/muted
+   rather than warning-colored, so it doesn't read as something still needing action. */
+.badge-expired { background: var(--border); color: var(--text-muted); border: 1px solid var(--border); }
 .badge-dot { width: 6px; height: 6px; border-radius: 99px; background: currentColor; }
 
 /* --- "Upgrade to Pro" badge / locked-feature notice (Faza 9/10) - shared component for

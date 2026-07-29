@@ -23,6 +23,7 @@ from database import (
     email_verify_resend_wait_seconds, phone_verify_resend_wait_seconds,
     get_slot_duration, set_slot_duration, create_appointment, get_appointment, cancel_appointment,
     notifications_for_business, unread_notification_count, mark_notifications_read,
+    is_new_booking_notifications_enabled, set_new_booking_notifications_enabled,
 )
 from instagram_api import send_message as send_instagram_message, authorize_url as instagram_authorize_url, get_sender_info
 from extensions import limiter
@@ -192,7 +193,7 @@ def require_api_auth(function):
 
 
 def _serialize_conversation(c):
-    id_, sender, subject, question, suggested_reply, final_reply, status, created_at, profile_pic_url = c
+    id_, sender, subject, question, suggested_reply, final_reply, status, created_at, profile_pic_url, expired_at = c
     return {
         "id": id_,
         "sender": sender,
@@ -203,6 +204,7 @@ def _serialize_conversation(c):
         "status": status,
         "created_at": created_at.isoformat() if created_at else None,
         "profile_pic_url": profile_pic_url,
+        "expired": expired_at is not None,
     }
 
 
@@ -925,6 +927,7 @@ def api_get_notification_preferences():
     return jsonify(
         push_enabled=is_push_enabled(request.business_id),
         auto_send=is_auto_send_enabled(request.business_id),
+        new_booking_notifications_enabled=is_new_booking_notifications_enabled(request.business_id),
         reminders_enabled=is_reminders_enabled(request.business_id),
         owner_reminders_enabled=is_owner_reminders_enabled(request.business_id),
         customer_reminder_minutes=customer_minutes,
@@ -943,6 +946,8 @@ def api_update_notification_preferences():
         set_push_enabled(business_id, bool(data["push_enabled"]))
     if "auto_send" in data:
         set_auto_send(business_id, bool(data["auto_send"]))
+    if "new_booking_notifications_enabled" in data:
+        set_new_booking_notifications_enabled(business_id, bool(data["new_booking_notifications_enabled"]))
     # No-show reminders (Faza 9/11/12) are Pro-only - same server-side gate as the
     # website's /settings/reminders, so a Starter-plan app user can't flip these on
     # (or change their lead time) either.
@@ -975,6 +980,7 @@ def api_update_notification_preferences():
         message="saved",
         push_enabled=is_push_enabled(business_id),
         auto_send=is_auto_send_enabled(business_id),
+        new_booking_notifications_enabled=is_new_booking_notifications_enabled(business_id),
         reminders_enabled=is_reminders_enabled(business_id),
         owner_reminders_enabled=is_owner_reminders_enabled(business_id),
         customer_reminder_minutes=customer_minutes,

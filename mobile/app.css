@@ -606,10 +606,11 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
 
 /* Customer/owner no-show reminder lead-time row (Faza 13) - sits directly under each
    reminder toggle: an inline label + the shared anchored .picker-btn dropdown (same
-   widget as the working-hours time fields) on one line, a trailing hint below, mirroring
-   the website's app_settings.html duration-picker layout. */
+   widget as the working-hours time fields) + the "before the appointment" hint, all on
+   one line - wraps onto a second line rather than overflowing if a narrow screen and a
+   longer translated hint don't both fit. */
 .reminder-lead-row { padding-top: 4px; padding-bottom: 16px; }
-.reminder-lead-inline { display: flex; align-items: center; gap: 10px; }
+.reminder-lead-inline { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; }
 .reminder-lead-row .picker-btn { width: auto; min-width: 90px; }
 .reminder-lead-row .field-hint { margin: 0; }
 
@@ -830,15 +831,24 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
 /* Long sender names/previews dissolve into the background at the clipped edge instead
    of an abrupt cut or a literal "..." glyph (which reads as a second, confusing set of
    dots right next to the row's real "more options" ⋯ button) - the fade-to-transparent
-   truncation look used by Telegram/WhatsApp/iOS Mail list rows. Only visible when the
-   text actually overflows: on shorter text the masked region just falls past the text
-   end, over empty space, so nothing appears faded.
+   truncation look used by Telegram/WhatsApp/iOS Mail list rows.
    display:block is required here, not cosmetic - both are <span>s, and .inbox-preview's
    parent (.inbox-row-main) isn't a flex/grid container, so it never gets blockified the
    way .inbox-sender does as a flex item of .inbox-row-top. Left as inline, overflow/
    mask-image on .inbox-preview render inconsistently row to row instead of applying
    uniformly to every row's text. */
-.inbox-sender, .inbox-preview {
+.inbox-preview {
+    display: block;
+    -webkit-mask-image: linear-gradient(to right, #000 85%, transparent 100%);
+    mask-image: linear-gradient(to right, #000 85%, transparent 100%);
+}
+/* .inbox-sender only gets the fade when app.js (after layout) finds it actually clipped
+   (scrollWidth > clientWidth) and adds this class. Applying the mask unconditionally, as
+   .inbox-preview above still does, fades the tail of every name's real text even when it
+   fits with room to spare - the box sizes to the flex-shrunk width, so the mask's fixed
+   85% mark lands on visible characters instead of empty space. A name that fits stays
+   fully readable; only one that's genuinely clipped gets the fade-to-transparent look. */
+.inbox-sender.truncated {
     display: block;
     -webkit-mask-image: linear-gradient(to right, #000 85%, transparent 100%);
     mask-image: linear-gradient(to right, #000 85%, transparent 100%);
@@ -862,6 +872,14 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
 .row-action-cancel { color: var(--text-muted); border-top: 1px solid var(--border); margin-top: 4px; padding-top: 14px; border-radius: 0; }
 .inbox-dot { width: 8px; height: 8px; border-radius: 99px; background: var(--warning); flex-shrink: 0; }
 .inbox-dot.sent { background: var(--success); opacity: .5; }
+.inbox-dot.expired { background: var(--text-muted); opacity: .5; }
+/* Conversations the AI has already replied to (status "sent" - whether a manually
+   approved reply or one auto-mode fired off instantly) fade back like the "read" rows
+   in Gmail/WhatsApp/Telegram, so the eye is drawn to what's still pending your
+   approval. Only the tap area dims (name/avatar/preview/time) - the "..." more-options
+   button stays fully opaque, since it's still just as actionable on a sent row. */
+.inbox-row-sent .inbox-row-tap { opacity: .5; }
+.inbox-row-sent .inbox-sender { font-weight: 500; }
 
 /* --- Empty / loading --- */
 /* flex+centered rather than just padding - positions "You're all set" (and the other
@@ -929,6 +947,10 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
 .badge { padding: 4px 11px; border-radius: 99px; font-size: 13px; font-weight: 600; flex-shrink: 0; }
 .badge-pending { background: var(--warning-bg); color: var(--warning); border: 1px solid var(--warning-border); }
 .badge-sent { background: var(--success-bg); color: var(--success); border: 1px solid var(--success-border); }
+/* Conversation timed out (24h+ still "pending", auto-archived server-side - see
+   reminders.expire_stale_pending_conversations_if_needed) - deliberately neutral/muted
+   rather than warning-colored, so it doesn't read as something still needing action. */
+.badge-expired { background: var(--border); color: var(--text-muted); border: 1px solid var(--border); }
 .badge-pro { background: transparent; color: var(--primary-dark); border: 1.5px solid var(--primary); font-weight: 700; }
 
 /* --- Schedule tab (Faza 12) - day/week calendar, native equivalent of the website's
