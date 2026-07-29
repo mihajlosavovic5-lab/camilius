@@ -1160,15 +1160,36 @@ async function logout() {
 // password field (login, sign up, Profile security fields) instead of per-screen, so
 // any new password field just needs the .floating-field-password wrapper + button.
 document.querySelectorAll(".password-toggle").forEach((btn) => {
+    const input = btn.closest(".floating-field").querySelector("input");
+    if (!input) return;
+    // Only reveal the eye icon once the user has actually typed something.
+    const syncHasValue = () => {
+        btn.classList.toggle("has-value", input.value.length > 0);
+    };
+    input.addEventListener("input", syncHasValue);
+    syncHasValue();
     btn.addEventListener("click", () => {
-        const input = btn.closest(".floating-field").querySelector("input");
-        if (!input) return;
         const showing = input.type === "text";
         input.type = showing ? "password" : "text";
         btn.classList.toggle("is-visible", !showing);
         btn.setAttribute("aria-label", showing ? "Show password" : "Hide password");
     });
 });
+
+// Clears a password field and its toggle button together - plain `input.value = ""`
+// doesn't fire an "input" event, so the eye icon would otherwise keep showing after a
+// programmatic reset (e.g. after saving the settings form).
+function resetPasswordField(id) {
+    const input = el(id);
+    if (!input) return;
+    input.value = "";
+    input.type = "password";
+    const btn = input.closest(".floating-field").querySelector(".password-toggle");
+    if (btn) {
+        btn.classList.remove("has-value", "is-visible");
+        btn.setAttribute("aria-label", "Show password");
+    }
+}
 
 el("login-form").addEventListener("submit", async (event) => {
     event.preventDefault();
@@ -2453,8 +2474,8 @@ async function loadSettingsIntoForm() {
         profilePricesPicker.setValue(data.price_list);
         el("settings-faq").value = data.faq;
         el("settings-upsell-pairs").value = data.upsell_pairs || "";
-        el("settings-current-password").value = "";
-        el("settings-new-password").value = "";
+        resetPasswordField("settings-current-password");
+        resetPasswordField("settings-new-password");
         applyProAccessLocks();
         profileFormSnapshot = serializeProfileForm();
         updateSettingsSaveValidity();
@@ -2526,8 +2547,8 @@ el("settings-save").addEventListener("click", async () => {
         });
         showSaveSuccess(t("settings.saved"));
         el("inbox-business-name").textContent = el("settings-name").value;
-        el("settings-current-password").value = "";
-        el("settings-new-password").value = "";
+        resetPasswordField("settings-current-password");
+        resetPasswordField("settings-new-password");
         updatePhoneVerifyStatus(data.phone_number, data.phone_verified);
         profileFormSnapshot = serializeProfileForm();
     } catch (err) {
