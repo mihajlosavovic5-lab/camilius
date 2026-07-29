@@ -517,9 +517,6 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
 .settings-row-chevron { color: var(--text-muted); font-size: 18px; }
 .settings-row-stack { flex-direction: column; align-items: stretch; gap: 10px; cursor: default; }
 .settings-row-stack:active { background: none; }
-/* Language row's label and the current language name sit close together instead of
-   pushed to opposite edges like the other (chevron-ended) rows. */
-#settings-language-row { justify-content: flex-start; gap: 8px; }
 
 /* --- Pro-only feature lock (Faza 11) - a Starter-plan/lapsed business sees the row/
    field but can't turn it on, same "visible but disabled" treatment as the website's
