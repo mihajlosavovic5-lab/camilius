@@ -497,19 +497,10 @@ a:focus-visible, button:focus-visible, [tabindex]:focus-visible {
 .content-narrow { max-width: 640px; }
 
 .page-header { display: flex; align-items: flex-end; justify-content: center; text-align: center; gap: 16px; flex-wrap: wrap; margin-bottom: 28px; }
-.page-header h1 { font-size: 24px; }
-/* Dashboard's business-name heading only - dresses it up with the same serif
-   brand voice as .brand-name/.prose h1 instead of the plain sans-serif every
-   other .page-header title uses, since this one text just shows the owner's
-   own business name back to them and reads as a real title, not UI chrome.
-   Sized up and weighted a touch heavier than a plain heading, with a soft
-   shadow and a small gold rule underneath, for a premium storefront-sign feel
-   rather than plain app chrome. */
-.page-header h1.business-title {
-    font-family: Georgia, "Times New Roman", serif; font-weight: 500;
-    font-size: 38px; color: var(--text); letter-spacing: -.3px;
-    text-shadow: 0 1px 2px rgba(43, 32, 19, .1);
-}
+/* Same serif brand voice as the app's topbar titles (mobile/app.css's
+   .topbar-title h1) and every page title on this site uses it at the same
+   size, business name included, instead of one page standing out. */
+.page-header h1 { font-family: Georgia, "Times New Roman", serif; font-weight: 700; font-size: 24px; color: var(--text); }
 .business-title-rule {
     width: 56px; height: 3px; margin: 12px auto 0; border-radius: 999px;
     background: linear-gradient(90deg, var(--primary), var(--gold-dark));
@@ -1787,7 +1778,6 @@ body.intro { margin: 0; height: 100dvh; overflow: hidden; }
 
 @media (max-width: 560px) {
     .page-header h1 { font-size: 20px; }
-    .page-header h1.business-title { font-size: 28px; }
     .card { padding: 16px; }
     .auth-card { padding: 20px; }
     .price-amount { font-size: 32px; }
