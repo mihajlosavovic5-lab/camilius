@@ -10,7 +10,10 @@
             <h1><span data-i18n="common.schedule">Schedule</span> {% if locked %}<span class="badge badge-pro">Pro</span>{% endif %}</h1>
             <p class="subtitle" data-i18n="schedule.subtitle">Manage your appointment calendar.</p>
         </div>
-        {% if not locked %}
+    </div>
+
+    {% if not locked %}
+    <div class="schedule-duration-row">
         <form method="POST" action="{{ url_for('update_slot_duration') }}" class="duration-picker" id="schedule-duration-form">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <input type="hidden" name="date" value="{{ selected_date.isoformat() }}">
@@ -29,8 +32,8 @@
                        data-i18n-placeholder="schedule.custom" placeholder="Custom">
             </div>
         </form>
-        {% endif %}
     </div>
+    {% endif %}
 
     {% if locked %}
         <div class="empty">

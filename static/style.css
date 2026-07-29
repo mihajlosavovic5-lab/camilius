@@ -496,7 +496,7 @@ a:focus-visible, button:focus-visible, [tabindex]:focus-visible {
 .content { max-width: 960px; margin: 0 auto; padding: 40px 20px 72px; }
 .content-narrow { max-width: 640px; }
 
-.page-header { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 28px; }
+.page-header { display: flex; align-items: flex-end; justify-content: center; text-align: center; gap: 16px; flex-wrap: wrap; margin-bottom: 28px; }
 .page-header h1 { font-size: 24px; }
 /* Dashboard's business-name heading only - dresses it up with the same serif
    brand voice as .brand-name/.prose h1 instead of the plain sans-serif every
@@ -515,9 +515,6 @@ a:focus-visible, button:focus-visible, [tabindex]:focus-visible {
     background: linear-gradient(90deg, var(--primary), var(--gold-dark));
 }
 .page-header .subtitle { color: var(--text-muted); font-size: 14.5px; margin: 2px 0 0; }
-/* Subscription page only - title + subtitle centered as a block instead of the
-   left-aligned title / right-aligned actions layout every other .page-header uses. */
-.page-header-center { justify-content: center; text-align: center; }
 
 /* --- Cards --- */
 .card {
@@ -1300,6 +1297,7 @@ body.auth {
    plus a "Custom" pill that swaps itself for a plain number input in the same spot
    (same pattern as the per-slot duration control further down) - a field to type into,
    not a button that opens something else. */
+.schedule-duration-row { display: flex; justify-content: flex-end; margin: -8px 0 20px; }
 .duration-picker { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .duration-picker-label { margin: 0; font-weight: 500; font-size: 13.5px; color: var(--text-muted); }
 .duration-pills { display: flex; gap: 6px; flex-wrap: wrap; }
