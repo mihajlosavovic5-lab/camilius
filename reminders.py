@@ -31,7 +31,7 @@ import requests
 from database import (
     appointments_needing_reminders, mark_reminder_sent, business_by_id,
     is_reminders_enabled, is_owner_reminders_enabled, get_reminder_minutes,
-    has_pro_access, log_client_error, create_notification,
+    has_pro_access, log_client_error, create_notification, is_push_enabled,
     businesses_needing_trial_warning, mark_trial_warning_sent,
 )
 from booking import BUSINESS_TZ, now_local, relative_when
@@ -119,6 +119,7 @@ def send_appointment_reminders_if_needed():
             mark_reminder_sent(appointment_id, "customer")
 
         if (reminder_owner_sent_at is None and is_owner_reminders_enabled(business_id)
+                and is_push_enabled(business_id)
                 and abs(time_until - timedelta(minutes=owner_minutes)) <= REMINDER_TOLERANCE):
             title = "Upcoming appointment reminder"
             body = _owner_reminder_notification_body(customer_name, service, start_local, owner_minutes)

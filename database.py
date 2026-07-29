@@ -149,6 +149,13 @@ def create_database():
     # change).
     cursor.execute("ALTER TABLE businesses ADD COLUMN IF NOT EXISTS push_enabled BOOLEAN NOT NULL DEFAULT TRUE")
 
+    # Per-type notification toggle under the "Notifications" settings section, alongside
+    # push_enabled (the master switch) and reminders_enabled/owner_reminders_enabled (the
+    # No-show reminders toggles) - whether the owner gets notified when the AI books a
+    # customer in (booking.notify_owner_of_new_booking). Default ON since that's the
+    # existing (previously unconditional) behavior for everyone already using AI booking.
+    cursor.execute("ALTER TABLE businesses ADD COLUMN IF NOT EXISTS new_booking_notifications_enabled BOOLEAN NOT NULL DEFAULT TRUE")
+
     # Auto-send originally defaulted OFF (every reply waited for manual approval unless a
     # business deliberately turned this on). Flipped to default ON 2026-07-25 at the
     # product's request, including retroactively for every already-registered business -
@@ -1693,6 +1700,23 @@ def set_push_enabled(business_id, enabled):
     connection = connect()
     cursor = connection.cursor()
     cursor.execute("UPDATE businesses SET push_enabled = %s WHERE id = %s", (enabled, business_id))
+    connection.commit()
+    connection.close()
+
+
+def is_new_booking_notifications_enabled(business_id):
+    connection = connect()
+    cursor = connection.cursor()
+    cursor.execute("SELECT new_booking_notifications_enabled FROM businesses WHERE id = %s", (business_id,))
+    row = cursor.fetchone()
+    connection.close()
+    return bool(row[0]) if row else False
+
+
+def set_new_booking_notifications_enabled(business_id, enabled):
+    connection = connect()
+    cursor = connection.cursor()
+    cursor.execute("UPDATE businesses SET new_booking_notifications_enabled = %s WHERE id = %s", (enabled, business_id))
     connection.commit()
     connection.close()
 

@@ -38,6 +38,8 @@ from database import (
     phone_verify_resend_wait_seconds,
     grant_free_pro_access,
     notifications_for_business, unread_notification_count, mark_notifications_read,
+    is_push_enabled, set_push_enabled,
+    is_new_booking_notifications_enabled, set_new_booking_notifications_enabled,
 )
 from send_email import send_email
 from generate_reply import generate_reply, generate_reply_with_booking
@@ -1055,6 +1057,8 @@ def app_settings():
     return render_template(
         "app_settings.html",
         auto_send=is_auto_send_enabled(business_id),
+        push_enabled=is_push_enabled(business_id),
+        new_booking_notifications_enabled=is_new_booking_notifications_enabled(business_id),
         reminders_enabled=is_reminders_enabled(business_id),
         owner_reminders_enabled=is_owner_reminders_enabled(business_id),
         customer_reminder_minutes=customer_minutes,
@@ -1064,6 +1068,21 @@ def app_settings():
         reminder_lead_max_minutes=REMINDER_LEAD_MAX_MINUTES,
         pro_access=BETA_FREE_MODE or has_pro_access(business_id),
     )
+
+
+# Master "Notifications" switch (push_enabled) + the "New bookings" toggle - both
+# unconditional, no Pro gate, unlike the reminders toggles below. Website equivalent of
+# the mobile app's push_enabled/new_booking_notifications_enabled fields (see api.py's
+# /api/notification-preferences) - there's no real web push (no service worker
+# subscription/VAPID setup), so push_enabled here only gates whether the in-app
+# notification row itself gets created (reminders.py/booking.py both check it).
+@app.route("/settings/notifications", methods=["POST"])
+@login_required
+def update_notifications():
+    business_id = session["business_id"]
+    set_push_enabled(business_id, bool(request.form.get("push_enabled")))
+    set_new_booking_notifications_enabled(business_id, bool(request.form.get("new_booking_notifications_enabled")))
+    return redirect(url_for("app_settings"))
 
 
 # Website equivalent of the mobile app's Auto-send toggle (see api.py's

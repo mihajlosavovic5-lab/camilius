@@ -13,6 +13,7 @@ from zoneinfo import ZoneInfo
 from database import (
     appointments_in_range, create_appointment, cancel_appointment,
     next_upcoming_appointment_for_sender, create_notification,
+    is_push_enabled, is_new_booking_notifications_enabled,
 )
 from push_notifications import send_push_to_business
 
@@ -230,9 +231,13 @@ def notify_owner_of_new_booking(business_id, customer_name, service, start_local
     """In-app notification (+ best-effort push) telling the owner a customer just booked
     themselves in over Instagram DM - separate from, and not gated by, the "Remind me"
     reminder toggle (reminders.py) since this fires once at booking time regardless of
-    whether owner reminders are even turned on. Never allowed to fail the booking itself
-    if push/notification creation errors - the appointment is already committed by the
-    time this runs."""
+    whether owner reminders are even turned on. Gated by the "Notifications" settings
+    section's master switch (push_enabled) and its own "New bookings" toggle
+    (new_booking_notifications_enabled) - both must be on. Never allowed to fail the
+    booking itself if push/notification creation errors - the appointment is already
+    committed by the time this runs."""
+    if not (is_push_enabled(business_id) and is_new_booking_notifications_enabled(business_id)):
+        return
     title = "New appointment booked"
     when = relative_when(start_local)
     if service:

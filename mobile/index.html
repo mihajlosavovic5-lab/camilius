@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
 <title>Camilius</title>
-<link rel="stylesheet" href="app.css?v=60575d057d66">
+<link rel="stylesheet" href="app.css?v=5dc9c932a53e">
 </head>
 <body>
 
@@ -844,6 +844,7 @@
           <button type="button" class="theme-option" data-theme-choice="dark" data-i18n="appSettings.themeDark">Dark</button>
         </div>
       </div>
+      <div class="block-label" data-i18n="appSettings.notificationsHeading">Notifications</div>
       <div class="settings-row">
         <span data-i18n="appSettings.notifications">Push notifications</span>
         <label class="hours-day-toggle">
@@ -851,6 +852,14 @@
           <span class="hours-day-toggle-track"><span class="hours-day-toggle-thumb"></span></span>
         </label>
       </div>
+      <div class="settings-row" id="settings-new-booking-row">
+        <span data-i18n="appSettings.newBookingHeading">New bookings</span>
+        <label class="hours-day-toggle">
+          <input type="checkbox" id="settings-new-booking-toggle">
+          <span class="hours-day-toggle-track"><span class="hours-day-toggle-thumb"></span></span>
+        </label>
+      </div>
+      <p class="field-hint" data-i18n="appSettings.newBookingNote">Notifies you when a customer books an appointment.</p>
 
       <div class="block-label" data-i18n="appSettings.automation">Automation</div>
       <div class="settings-row">
@@ -1096,7 +1105,7 @@
   </button>
 </nav>
 
-<script src="i18n.js?v=60575d057d66"></script>
-<script src="app.js?v=60575d057d66"></script>
+<script src="i18n.js?v=5dc9c932a53e"></script>
+<script src="app.js?v=5dc9c932a53e"></script>
 </body>
 </html>

@@ -1761,21 +1761,11 @@ function enterApp() {
 }
 
 // --- Push notifications ---
-// Only ever called once we've confirmed (via /api/dashboard's push_enabled flag) that a
-// Firebase project is actually configured server-side - avoids calling into the
-// Firebase-backed native registration code at all while it isn't, so there's nothing to
-// go wrong before that's set up.
-let pushRegistrationAttempted = false;
+let pushListenersRegistered = false;
 
-function registerForPushNotifications() {
-    if (pushRegistrationAttempted) return;
-    pushRegistrationAttempted = true;
-    if (!capacitorPlugins || !capacitorPlugins.PushNotifications) return;
-
-    capacitorPlugins.PushNotifications.requestPermissions().then((result) => {
-        if (result.receive !== "granted") return;
-        capacitorPlugins.PushNotifications.register();
-    });
+function setupPushListeners() {
+    if (pushListenersRegistered || !capacitorPlugins || !capacitorPlugins.PushNotifications) return;
+    pushListenersRegistered = true;
 
     capacitorPlugins.PushNotifications.addListener("registration", (token) => {
         api("/api/push-token", { method: "POST", body: { token: token.value } }).catch((e) => {
@@ -1808,6 +1798,33 @@ function registerForPushNotifications() {
     capacitorPlugins.PushNotifications.addListener("pushNotificationReceived", () => {
         if (state.activeTab === "inbox") loadDashboard({ silent: true });
     });
+}
+
+// Requests OS notification permission and registers for a device token - safe to call
+// more than once (e.g. every time the Settings "Notifications" toggle is switched on),
+// unlike the old one-shot registerForPushNotifications() this replaces for that path.
+// Android only re-shows its own permission dialog if the user hasn't permanently denied
+// it - nothing this code can do about that OS-level restriction, but it always at least
+// tries, instead of silently doing nothing until a reinstall.
+function requestPushPermissionAndRegister() {
+    if (!capacitorPlugins || !capacitorPlugins.PushNotifications) return;
+    setupPushListeners();
+    capacitorPlugins.PushNotifications.requestPermissions().then((result) => {
+        if (result.receive === "granted") capacitorPlugins.PushNotifications.register();
+    });
+}
+
+// Only ever called once we've confirmed (via /api/dashboard's push_enabled flag) that a
+// Firebase project is actually configured server-side - avoids calling into the
+// Firebase-backed native registration code at all while it isn't, so there's nothing to
+// go wrong before that's set up. The initial silent request right after login; see
+// requestPushPermissionAndRegister() above for the explicit re-ask from Settings.
+let pushRegistrationAttempted = false;
+
+function registerForPushNotifications() {
+    if (pushRegistrationAttempted) return;
+    pushRegistrationAttempted = true;
+    requestPushPermissionAndRegister();
 }
 
 // --- Auto-refresh (only while the app is in the foreground, on the inbox tab) - a
@@ -3126,6 +3143,7 @@ async function loadNotificationPreferences() {
     try {
         const data = await api("/api/notification-preferences");
         el("settings-push-toggle").checked = !!data.push_enabled;
+        el("settings-new-booking-toggle").checked = !!data.new_booking_notifications_enabled;
         // Inverted from the server's auto_send - the toggle reads as "AI Draft Mode"
         // (review before sending), same field/polarity as the website's own draft_mode
         // checkbox (see update_auto_send() in api.py): draft mode ON means auto_send OFF.
@@ -3137,6 +3155,7 @@ async function loadNotificationPreferences() {
         el("settings-reminders-customer-lead-label").textContent = reminderLeadLabel(state.reminderCustomerMinutes);
         el("settings-reminders-owner-lead-label").textContent = reminderLeadLabel(state.reminderOwnerMinutes);
         applyProAccessLocks();
+        applyNotificationsMasterLock();
         appSettingsSnapshot = serializeAppSettingsForm();
         updateAppSettingsSaveState();
     } catch (err) {
@@ -3152,6 +3171,7 @@ let appSettingsSnapshot = null;
 function serializeAppSettingsForm() {
     return JSON.stringify({
         push: el("settings-push-toggle").checked,
+        newBooking: el("settings-new-booking-toggle").checked,
         draftMode: el("settings-draft-mode-toggle").checked,
         remindersCustomer: el("settings-reminders-customer-toggle").checked,
         remindersOwner: el("settings-reminders-owner-toggle").checked,
@@ -3165,8 +3185,17 @@ function updateAppSettingsSaveState() {
     el("settings-app-save").classList.toggle("hidden", !dirty);
 }
 
-["settings-push-toggle", "settings-draft-mode-toggle", "settings-reminders-customer-toggle", "settings-reminders-owner-toggle"].forEach((id) => {
+["settings-push-toggle", "settings-new-booking-toggle", "settings-draft-mode-toggle", "settings-reminders-customer-toggle", "settings-reminders-owner-toggle"].forEach((id) => {
     el(id).addEventListener("change", updateAppSettingsSaveState);
+});
+
+// Re-asks for OS notification permission the moment the master toggle is switched back
+// on - covers the case where it was declined (or never asked) at first launch and the
+// user only decides they want it later, instead of leaving them stuck with a toggle
+// that looks on but was never actually granted.
+el("settings-push-toggle").addEventListener("change", (event) => {
+    if (event.target.checked) requestPushPermissionAndRegister();
+    applyNotificationsMasterLock();
 });
 
 // Reminder lead-time pickers - same anchored optionPicker + "Custom" -> duration-modal
@@ -3244,6 +3273,20 @@ function applyProAccessLocks() {
     updateAppSettingsSaveState();
 }
 
+// "New bookings" only makes sense while the master "Notifications" toggle is on (it's
+// silently a no-op server-side otherwise anyway, see booking.notify_owner_of_new_booking) -
+// just grayed out and non-interactive here, not force-unchecked, so the user's actual
+// saved preference survives being reflected while the master happens to be off.
+function applyNotificationsMasterLock() {
+    const masterOn = el("settings-push-toggle").checked;
+    const newBookingToggle = el("settings-new-booking-toggle");
+    const newBookingRow = el("settings-new-booking-row");
+    if (newBookingToggle && newBookingRow) {
+        newBookingToggle.disabled = !masterOn;
+        newBookingRow.classList.toggle("pro-locked", !masterOn);
+    }
+}
+
 el("settings-app-save").addEventListener("click", async () => {
     const button = el("settings-app-save");
     const errorBox = el("settings-app-error");
@@ -3255,6 +3298,7 @@ el("settings-app-save").addEventListener("click", async () => {
             method: "POST",
             body: {
                 push_enabled: el("settings-push-toggle").checked,
+                new_booking_notifications_enabled: el("settings-new-booking-toggle").checked,
                 auto_send: !el("settings-draft-mode-toggle").checked,
                 reminders_enabled: state.proAccess ? el("settings-reminders-customer-toggle").checked : undefined,
                 owner_reminders_enabled: state.proAccess ? el("settings-reminders-owner-toggle").checked : undefined,
