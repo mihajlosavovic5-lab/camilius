@@ -87,6 +87,11 @@ button { font-family: inherit; }
     flex-shrink: 0;
 }
 .topbar-title { display: flex; align-items: center; gap: 10px; }
+/* Inbox only (Faza 15) - its own brand icon was dropped from the topbar, so its title
+   is centered in the now-empty bar instead of sitting left-aligned where the icon used
+   to anchor it. Every other screen's topbar (back button + title, or title + actions)
+   still needs its default left alignment, so this is scoped to .topbar-center alone. */
+.topbar-center { justify-content: center; }
 .topbar-title h1 { font-size: 18px; margin: 0; }
 .topbar-detail { gap: 10px; }
 .topbar-detail-meta { flex: 1; min-width: 0; }
