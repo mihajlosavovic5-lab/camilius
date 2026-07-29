@@ -205,6 +205,7 @@ button { font-family: inherit; }
     display: flex; align-items: center; gap: 10px; width: 100%;
     background: none; border: none; text-align: left; padding: 11px 14px; border-radius: 10px;
     font-family: inherit; font-size: 15px; color: var(--text); cursor: pointer;
+    white-space: nowrap;
 }
 .country-option-btn:active { background: var(--background); }
 .country-option-flag { font-size: 18px; flex-shrink: 0; }

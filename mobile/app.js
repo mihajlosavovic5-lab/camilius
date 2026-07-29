@@ -400,12 +400,17 @@ function createAnchoredListPicker(modalId) {
         const available = window.innerHeight - top - margin;
         sheet.style.top = `${top}px`;
         sheet.style.left = `${rect.left}px`;
-        // Exactly the trigger's own width, edge to edge - no forced minimum. A minimum
-        // wider than the field (used to be 120px) left the sheet's left edge aligned with
-        // the field but its right edge bulging past it, reading as "shifted right" instead
-        // of anchored to the field it belongs to (narrow fields like the currency picker
-        // and each hours-row time button are well under 120px on a phone-width screen).
-        sheet.style.width = `${rect.width}px`;
+        // Matches the trigger's own width, edge to edge, same as before - EXCEPT an
+        // option whose text (nowrap - see .country-option-btn) can't actually fit that
+        // width (e.g. "15 min" against the narrow reminder-lead-time field) forced it to
+        // wrap onto a second line instead. "auto" on a position:fixed box with only
+        // `left` set shrink-to-fits its content (CSS2.1 10.3.7), so measuring that first
+        // gives the width nothing wraps at - then the field width only wins when it's
+        // already wide enough, instead of a blanket minimum that overhangs every field.
+        sheet.style.width = "auto";
+        const naturalWidth = sheet.getBoundingClientRect().width;
+        const maxWidth = window.innerWidth - rect.left - margin;
+        sheet.style.width = `${Math.min(Math.max(rect.width, naturalWidth), maxWidth)}px`;
         sheet.style.maxHeight = `${Math.max(160, Math.min(240, available))}px`;
         modal.classList.add("open");
         // Always open scrolled to the very top of the list, not centered on whichever
