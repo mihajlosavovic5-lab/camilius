@@ -10,7 +10,11 @@ import re
 from datetime import datetime, timedelta, time as dtime
 from zoneinfo import ZoneInfo
 
-from database import appointments_in_range, create_appointment, cancel_appointment, next_upcoming_appointment_for_sender
+from database import (
+    appointments_in_range, create_appointment, cancel_appointment,
+    next_upcoming_appointment_for_sender, create_notification,
+)
+from push_notifications import send_push_to_business
 
 BUSINESS_TZ = ZoneInfo("Europe/Belgrade")
 
@@ -19,6 +23,22 @@ _WEEKDAY_NAMES = ["monday", "tuesday", "wednesday", "thursday", "friday", "satur
 
 def now_local():
     return datetime.now(BUSINESS_TZ)
+
+
+def relative_when(start_local):
+    """"at HH:MM" for a same-day appointment (no date - it's implied by "today" already
+    being the day this is about), "tomorrow at HH:MM" for the day after (relative to the
+    business's own local "now", not the server's, in case they ever differ), and a full
+    weekday/date for anything further out, where neither "today" nor "tomorrow" would be
+    accurate. Shared by reminders.py's reminder texts and the new-booking notification
+    below - any message that needs to say when an appointment is."""
+    time_str = start_local.strftime("%H:%M")
+    delta_days = (start_local.date() - now_local().date()).days
+    if delta_days == 0:
+        return f"at {time_str}"
+    if delta_days == 1:
+        return f"tomorrow at {time_str}"
+    return f"{start_local.strftime('%A, %B %d')} at {time_str}"
 
 
 # Any dash-like character someone might type (or a phone keyboard's "smart punctuation"
@@ -206,6 +226,26 @@ def upsell_suggestion_for(upsell_pairs_text, service):
     return parse_upsell_pairs(upsell_pairs_text).get(service.strip().lower())
 
 
+def notify_owner_of_new_booking(business_id, customer_name, service, start_local):
+    """In-app notification (+ best-effort push) telling the owner a customer just booked
+    themselves in over Instagram DM - separate from, and not gated by, the "Remind me"
+    reminder toggle (reminders.py) since this fires once at booking time regardless of
+    whether owner reminders are even turned on. Never allowed to fail the booking itself
+    if push/notification creation errors - the appointment is already committed by the
+    time this runs."""
+    title = "New appointment booked"
+    when = relative_when(start_local)
+    if service:
+        body = f"{customer_name} booked {service} for {when}."
+    else:
+        body = f"{customer_name} booked an appointment for {when}."
+    try:
+        create_notification(business_id, title, body, kind="new_booking")
+        send_push_to_business(business_id, title, body, data={"type": "new_booking"})
+    except Exception:
+        pass
+
+
 def attempt_ai_booking(business, business_id, slot_minutes, requested_dt_str, customer_name, sender_igsid, service=None, upsell_pairs_text=None):
     """Tool executor for generate_reply.py's check_and_book_appointment tool - the single
     source of truth for what the AI is allowed to tell a customer, since the model only
@@ -233,6 +273,7 @@ def attempt_ai_booking(business, business_id, slot_minutes, requested_dt_str, cu
         return {"status": "unavailable", "alternatives": [a.strftime("%A %Y-%m-%d %H:%M") for a in alternatives]}
 
     create_appointment(business_id, customer_name, requested, end, sender_igsid=sender_igsid, service=service, source="ai")
+    notify_owner_of_new_booking(business_id, customer_name, service, requested)
     result = {
         "status": "booked",
         "start_time": requested.strftime("%A %Y-%m-%d %H:%M"),

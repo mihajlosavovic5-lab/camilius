@@ -34,7 +34,7 @@ from database import (
     has_pro_access, log_client_error, create_notification,
     businesses_needing_trial_warning, mark_trial_warning_sent,
 )
-from booking import BUSINESS_TZ, now_local
+from booking import BUSINESS_TZ, now_local, relative_when
 from instagram_api import send_message as send_instagram_message
 from send_email import send_email
 from push_notifications import send_push_to_business
@@ -55,28 +55,13 @@ def _format_lead_time(minutes):
     return f"{minutes} minute" + ("s" if minutes != 1 else "")
 
 
-def _relative_when(start_local):
-    """"at HH:MM" for a same-day appointment (no date - it's implied by "today" already
-    being the day this reminder is about), "tomorrow at HH:MM" for the day after
-    (relative to the business's own local "now", not the server's, in case they ever
-    differ), and a full weekday/date for anything further out, where neither "today" nor
-    "tomorrow" would be accurate."""
-    time_str = start_local.strftime("%H:%M")
-    delta_days = (start_local.date() - now_local().date()).days
-    if delta_days == 0:
-        return f"at {time_str}"
-    if delta_days == 1:
-        return f"tomorrow at {time_str}"
-    return f"{start_local.strftime('%A, %B %d')} at {time_str}"
-
-
 def _customer_reminder_text(business_name, start_local, minutes):
-    when = _relative_when(start_local)
+    when = relative_when(start_local)
     return f"Reminder: you have an appointment with {business_name} in {_format_lead_time(minutes)} ({when}). See you then!"
 
 
 def _owner_reminder_notification_body(customer_name, service, start_local, minutes):
-    when = _relative_when(start_local)
+    when = relative_when(start_local)
     service_part = f" for {service}" if service else ""
     return (
         f"You have an appointment with {customer_name}{service_part} in "

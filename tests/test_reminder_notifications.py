@@ -7,6 +7,7 @@ from datetime import timedelta
 import app as app_module
 import database
 import reminders as reminders_module
+import booking
 from booking import BUSINESS_TZ, now_local
 from conftest import register_business
 
@@ -83,13 +84,43 @@ def test_owner_reminder_skipped_without_pro_access_when_beta_free_mode_is_off(cl
     assert database.notifications_for_business(business_id) == []
 
 
+_ALL_DAYS_OPEN = "\n".join(f"{day}: 00:00-23:59" for day in
+                           ("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"))
+
+
+def test_ai_booking_notifies_owner_of_new_appointment(client, unique_username, unique_email, monkeypatch):
+    # A customer booking themselves in over Instagram DM (booking.attempt_ai_booking,
+    # the AI's tool executor) should tell the owner right away - independent of the
+    # "Remind me" reminder toggle/lead time, which is a separate, later notification.
+    reg = register_business(client, unique_username, unique_email, working_hours=_ALL_DAYS_OPEN)
+    business_id = reg.get_json()["business_id"]
+    business = database.business_by_id(business_id)
+
+    pushes = []
+    monkeypatch.setattr(booking, "send_push_to_business", lambda *args, **kwargs: pushes.append((args, kwargs)))
+
+    requested = now_local() + timedelta(hours=2)
+    result = booking.attempt_ai_booking(
+        business, business_id, 30, requested.isoformat(), "Pera", "igsid_1", service="Haircut",
+    )
+
+    assert result["status"] == "booked"
+    rows = database.notifications_for_business(business_id)
+    assert len(rows) == 1
+    assert rows[0][1] == "New appointment booked"
+    assert "Pera" in rows[0][2]
+    assert "Haircut" in rows[0][2]
+    assert len(pushes) == 1
+    assert pushes[0][0][0] == business_id
+
+
 def test_relative_when_today_tomorrow_and_further_out():
     # Reads naturally in the reminder text - no date at all for a same-day appointment
     # (just the time), "tomorrow at HH:MM" for the day after, and a full date only once
     # neither of those words would be accurate.
     today = now_local()
-    assert reminders_module._relative_when(today) == f"at {today.strftime('%H:%M')}"
+    assert booking.relative_when(today) == f"at {today.strftime('%H:%M')}"
     tomorrow = today + timedelta(days=1)
-    assert reminders_module._relative_when(tomorrow) == f"tomorrow at {tomorrow.strftime('%H:%M')}"
+    assert booking.relative_when(tomorrow) == f"tomorrow at {tomorrow.strftime('%H:%M')}"
     later = today + timedelta(days=5)
-    assert reminders_module._relative_when(later) == f"{later.strftime('%A, %B %d')} at {later.strftime('%H:%M')}"
+    assert booking.relative_when(later) == f"{later.strftime('%A, %B %d')} at {later.strftime('%H:%M')}"
