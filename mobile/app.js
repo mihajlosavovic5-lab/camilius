@@ -1929,11 +1929,18 @@ function filteredConversations() {
     );
 }
 
-function renderInboxList(conversations) {
+// Bumped on every renderInboxList() call so a slower, older call (still waiting on
+// resolveAvatarUrl's preloads below) can tell it's been superseded by a newer one - e.g.
+// a poll refresh landing while the user is still typing in the search box - and bail
+// instead of overwriting the list with stale rows a moment later.
+let inboxRenderToken = 0;
+
+async function renderInboxList(conversations) {
+    const token = ++inboxRenderToken;
     const list = el("inbox-list");
-    list.innerHTML = "";
 
     if (conversations.length === 0) {
+        list.innerHTML = "";
         el("inbox-empty").classList.remove("hidden");
         if (state.search.trim()) {
             el("inbox-empty-title").textContent = t("inbox.emptySearchTitle");
@@ -1952,14 +1959,25 @@ function renderInboxList(conversations) {
     }
     el("inbox-empty").classList.add("hidden");
 
-    conversations.forEach((c) => {
+    // Every avatar is resolved (real photo loaded, or given up in favor of the letter
+    // avatar) BEFORE any row is built, instead of the old approach of building the row
+    // right away with an <img> whose src was still in flight - that showed the sender
+    // name/message text immediately with an empty avatar slot next to it, then had each
+    // photo pop in on its own as its own fetch happened to finish, one row at a time.
+    // Resolving everything up front (in parallel) means every row's avatar and text
+    // reach the screen together, in one pass, no matter how the network responses land.
+    const avatarUrls = await Promise.all(conversations.map(resolveAvatarUrl));
+    if (token !== inboxRenderToken) return; // superseded by a newer render meanwhile
+
+    list.innerHTML = "";
+    conversations.forEach((c, i) => {
         const row = document.createElement("div");
         row.className = "inbox-row";
 
         const tapArea = document.createElement("button");
         tapArea.type = "button";
         tapArea.className = "inbox-row-tap";
-        tapArea.appendChild(buildAvatar(c));
+        tapArea.appendChild(buildAvatarElement(c, avatarUrls[i]));
         tapArea.insertAdjacentHTML("beforeend", `
             <span class="inbox-row-main">
                 <span class="inbox-row-top">
@@ -2035,9 +2053,27 @@ el("row-action-unarchive").addEventListener("click", () => runRowAction("unarchi
 el("row-action-delete").addEventListener("click", () => runRowAction("delete"));
 el("row-action-restore").addEventListener("click", () => runRowAction("restore"));
 
-// Real Instagram profile picture when the platform gave us one, falling back to the
-// colored-letter avatar otherwise - set via the .src property rather than
-// string-interpolated markup so an unusual URL can never be parsed as HTML.
+// Loads (not just requests - actually waits for decode success/failure) a URL in a
+// detached Image(), so a later real <img src=url> for the same URL paints immediately
+// from the browser's own cache instead of re-fetching. Bounded by a timeout so one
+// slow or hanging request can't hold up the whole inbox list's render (see
+// resolveAvatarUrl/renderInboxList below) - past that, it's treated the same as a load
+// failure and falls back to the letter avatar.
+function preloadImage(url, timeoutMs = 3000) {
+    return new Promise((resolve) => {
+        if (!url) { resolve(false); return; }
+        let settled = false;
+        const finish = (ok) => { if (!settled) { settled = true; resolve(ok); } };
+        const img = new Image();
+        img.onload = () => finish(true);
+        img.onerror = () => finish(false);
+        img.src = url;
+        setTimeout(() => finish(false), timeoutMs);
+    });
+}
+
+// Resolves to the real Instagram profile picture URL once it's actually confirmed
+// loadable, or null (meaning "use the letter avatar" - see buildAvatarElement below).
 //
 // c.profile_pic_url is a signed Meta CDN link captured once when the message arrived
 // (see save_draft_reply/profile_pic_url) - it expires after a while, so it can easily
@@ -2048,26 +2084,38 @@ el("row-action-restore").addEventListener("click", () => runRowAction("restore")
 // failed (or skipped) load falls through to a live re-resolve via the server (GET
 // /api/conversations/<id>/avatar can't be a plain <img src> since it needs the app's
 // Bearer auth header, which a bare <img> tag can't send); only if that also comes up
-// empty does it fall back to the letter avatar.
-function buildAvatar(c) {
-    const img = document.createElement("img");
-    img.className = "inbox-avatar inbox-avatar-img";
-    img.alt = "";
-    img.onload = () => img.classList.add("loaded");
-    img.onerror = async () => {
-        img.onerror = () => img.replaceWith(buildLetterAvatar(c.sender));
+// empty does it resolve to null.
+//
+// Cached per conversation+URL so repeat calls (a poll refresh, typing in the search box
+// - both re-render the whole list) don't re-fetch/re-preload an avatar already resolved.
+const avatarUrlCache = new Map();
+async function resolveAvatarUrl(c) {
+    const cacheKey = `${c.id}:${c.profile_pic_url || ""}`;
+    if (avatarUrlCache.has(cacheKey)) return avatarUrlCache.get(cacheKey);
+
+    let resolved = null;
+    if (c.profile_pic_url && await preloadImage(c.profile_pic_url)) {
+        resolved = c.profile_pic_url;
+    } else {
         try {
             const data = await api(`/api/conversations/${c.id}/avatar`);
-            img.src = data.profile_pic_url;
+            if (data.profile_pic_url && await preloadImage(data.profile_pic_url)) resolved = data.profile_pic_url;
         } catch (err) {
-            img.replaceWith(buildLetterAvatar(c.sender));
+            // Falls through to null (letter avatar).
         }
-    };
-    if (c.profile_pic_url) {
-        img.src = c.profile_pic_url;
-    } else {
-        img.onerror();
     }
+    avatarUrlCache.set(cacheKey, resolved);
+    return resolved;
+}
+
+// Builds the actual avatar element from an already-resolved URL (or null) - never does
+// its own loading/fetching, so building it can never delay the row it belongs to.
+function buildAvatarElement(c, resolvedUrl) {
+    if (!resolvedUrl) return buildLetterAvatar(c.sender);
+    const img = document.createElement("img");
+    img.className = "inbox-avatar inbox-avatar-img loaded";
+    img.alt = "";
+    img.src = resolvedUrl;
     return img;
 }
 
