@@ -1475,22 +1475,20 @@ body.auth {
 }
 .support-widget-backdrop.open { opacity: 1; pointer-events: auto; }
 .support-widget { position: fixed; right: 20px; bottom: 20px; z-index: 1041; }
-/* Same amber-fill + white-icon pairing every other CTA on the page uses (e.g.
-   .support-widget-send below) - a plain vector chat-bubble glyph reads as "this site's
-   chat button" more clearly than a photo/logo would, while the color still ties it back
-   to the brand. */
+/* Same transparent-fill + gold-border look as .hours-customize-link/.hours-quickfill-btn
+   (Faza 5's hours picker) - a subtle outline instead of a solid amber-filled circle, so
+   the launcher sits quietly in the corner instead of pulling the eye on every page. */
 .support-widget-fab {
-    width: 58px; height: 58px; border-radius: 50%; border: none; cursor: pointer; padding: 0;
-    background: linear-gradient(150deg, var(--primary) 0%, var(--primary-dark) 100%); color: #fff;
+    width: 58px; height: 58px; border-radius: 50%; cursor: pointer; padding: 0;
+    border: 1.5px solid var(--primary); background: rgba(214,148,16,.08); color: var(--primary-ink);
+    backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
     display: flex; align-items: center; justify-content: center;
-    /* Soft amber glow plus a top highlight for depth, instead of one flat
-       drop-shadow. */
-    box-shadow: 0 10px 24px rgba(214,148,16,.38), 0 2px 6px rgba(38,32,20,.16), inset 0 1px 0 rgba(255,255,255,.3);
-    transition: transform .18s cubic-bezier(.2,.9,.3,1.3), box-shadow .18s ease;
+    box-shadow: 0 6px 16px -6px rgba(38,32,20,.18), 0 1px 3px rgba(38,32,20,.06);
+    transition: transform .18s cubic-bezier(.2,.9,.3,1.3), box-shadow .18s ease, background .18s ease;
 }
-.support-widget-fab:hover { transform: translateY(-3px) scale(1.06); box-shadow: 0 14px 30px rgba(214,148,16,.46), 0 4px 10px rgba(38,32,20,.2), inset 0 1px 0 rgba(255,255,255,.35); }
+.support-widget-fab:hover { transform: translateY(-3px) scale(1.06); background: rgba(214,148,16,.16); box-shadow: 0 10px 22px -6px rgba(38,32,20,.22), 0 2px 6px rgba(38,32,20,.08); }
 .support-widget-fab:active { transform: translateY(-1px) scale(.96); }
-.support-widget-fab-icon { width: 27px; height: 27px; filter: drop-shadow(0 1px 1px rgba(0,0,0,.12)); }
+.support-widget-fab-icon { width: 27px; height: 27px; }
 .support-widget-panel {
     position: absolute; right: 0; bottom: 70px; width: min(320px, calc(100vw - 32px));
     height: min(440px, calc(100vh - 108px)); background: var(--surface);
