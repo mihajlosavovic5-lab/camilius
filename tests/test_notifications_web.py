@@ -33,21 +33,16 @@ def test_web_notifications_requires_login(client):
     assert response.status_code in (302, 401)
 
 
-def test_web_settings_notifications_master_and_new_booking_toggles(client, unique_username, unique_email):
+def test_web_settings_new_booking_toggle(client, unique_username, unique_email):
     register_business_web(client, unique_username, unique_email)
     business_id = database.business_by_username(unique_username)[0]
-    assert database.is_push_enabled(business_id) is True  # column default
     assert database.is_new_booking_notifications_enabled(business_id) is True  # column default
 
     csrf_token = get_csrf_token(client, "/settings")
-    response = web_post(client, "/settings/notifications", {"csrf_token": csrf_token})  # both checkboxes unchecked
+    response = web_post(client, "/settings/notifications", {"csrf_token": csrf_token})  # checkbox unchecked
     assert response.status_code == 302
-    assert database.is_push_enabled(business_id) is False
     assert database.is_new_booking_notifications_enabled(business_id) is False
 
     csrf_token = get_csrf_token(client, "/settings")
-    web_post(client, "/settings/notifications", {
-        "csrf_token": csrf_token, "push_enabled": "on", "new_booking_notifications_enabled": "on",
-    })
-    assert database.is_push_enabled(business_id) is True
+    web_post(client, "/settings/notifications", {"csrf_token": csrf_token, "new_booking_notifications_enabled": "on"})
     assert database.is_new_booking_notifications_enabled(business_id) is True

@@ -128,37 +128,6 @@ def test_ai_booking_notification_respects_its_own_toggle(client, unique_username
     assert database.notifications_for_business(business_id) == []
 
 
-def test_ai_booking_notification_respects_master_push_toggle(client, unique_username, unique_email, monkeypatch):
-    # push_enabled is the "Notifications" section's master switch - off means nothing
-    # at all, regardless of the "New bookings" toggle's own state.
-    reg = register_business(client, unique_username, unique_email, working_hours=_ALL_DAYS_OPEN)
-    business_id = reg.get_json()["business_id"]
-    business = database.business_by_id(business_id)
-    database.set_push_enabled(business_id, False)
-
-    monkeypatch.setattr(booking, "send_push_to_business", lambda *args, **kwargs: None)
-    requested = now_local() + timedelta(hours=2)
-    result = booking.attempt_ai_booking(business, business_id, 30, requested.isoformat(), "Mia", "igsid_3")
-
-    assert result["status"] == "booked"
-    assert database.notifications_for_business(business_id) == []
-
-
-def test_owner_reminder_respects_master_push_toggle(client, unique_username, unique_email, monkeypatch):
-    # Same master switch also gates the "Remind me" owner reminder, not just new bookings.
-    reg = register_business(client, unique_username, unique_email)
-    business_id = reg.get_json()["business_id"]
-    database.set_push_enabled(business_id, False)
-    database.set_owner_reminders_enabled(business_id, True)
-    database.set_reminder_minutes(business_id, 1440, 60)
-    start = (now_local() + timedelta(minutes=60)).astimezone(BUSINESS_TZ)
-    database.create_appointment(business_id, "Uros", start, start + timedelta(minutes=30))
-
-    reminders_module.send_appointment_reminders_if_needed()
-
-    assert database.notifications_for_business(business_id) == []
-
-
 def test_relative_when_today_tomorrow_and_further_out():
     # Reads naturally in the reminder text - no date at all for a same-day appointment
     # (just the time), "tomorrow at HH:MM" for the day after, and a full date only once

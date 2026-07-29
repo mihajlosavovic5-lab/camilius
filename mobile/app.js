@@ -3142,7 +3142,6 @@ function reminderLeadLabel(minutes) {
 async function loadNotificationPreferences() {
     try {
         const data = await api("/api/notification-preferences");
-        el("settings-push-toggle").checked = !!data.push_enabled;
         el("settings-new-booking-toggle").checked = !!data.new_booking_notifications_enabled;
         // Inverted from the server's auto_send - the toggle reads as "AI Draft Mode"
         // (review before sending), same field/polarity as the website's own draft_mode
@@ -3155,7 +3154,6 @@ async function loadNotificationPreferences() {
         el("settings-reminders-customer-lead-label").textContent = reminderLeadLabel(state.reminderCustomerMinutes);
         el("settings-reminders-owner-lead-label").textContent = reminderLeadLabel(state.reminderOwnerMinutes);
         applyProAccessLocks();
-        applyNotificationsMasterLock();
         appSettingsSnapshot = serializeAppSettingsForm();
         updateAppSettingsSaveState();
     } catch (err) {
@@ -3170,7 +3168,6 @@ let appSettingsSnapshot = null;
 
 function serializeAppSettingsForm() {
     return JSON.stringify({
-        push: el("settings-push-toggle").checked,
         newBooking: el("settings-new-booking-toggle").checked,
         draftMode: el("settings-draft-mode-toggle").checked,
         remindersCustomer: el("settings-reminders-customer-toggle").checked,
@@ -3185,17 +3182,20 @@ function updateAppSettingsSaveState() {
     el("settings-app-save").classList.toggle("hidden", !dirty);
 }
 
-["settings-push-toggle", "settings-new-booking-toggle", "settings-draft-mode-toggle", "settings-reminders-customer-toggle", "settings-reminders-owner-toggle"].forEach((id) => {
+["settings-new-booking-toggle", "settings-draft-mode-toggle", "settings-reminders-customer-toggle", "settings-reminders-owner-toggle"].forEach((id) => {
     el(id).addEventListener("change", updateAppSettingsSaveState);
 });
 
-// Re-asks for OS notification permission the moment the master toggle is switched back
-// on - covers the case where it was declined (or never asked) at first launch and the
-// user only decides they want it later, instead of leaving them stuck with a toggle
-// that looks on but was never actually granted.
-el("settings-push-toggle").addEventListener("change", (event) => {
-    if (event.target.checked) requestPushPermissionAndRegister();
-    applyNotificationsMasterLock();
+// Re-asks for OS notification permission the moment either of the two owner-facing push
+// toggles is switched on - covers the case where permission was declined (or never
+// asked) at first launch and the user only decides they want it later, instead of
+// leaving them stuck with a toggle that looks on but was never actually granted. Not
+// wired to "Remind the customer" - that one sends an Instagram DM to the customer, not
+// a push to the owner's own device.
+["settings-new-booking-toggle", "settings-reminders-owner-toggle"].forEach((id) => {
+    el(id).addEventListener("change", (event) => {
+        if (event.target.checked) requestPushPermissionAndRegister();
+    });
 });
 
 // Reminder lead-time pickers - same anchored optionPicker + "Custom" -> duration-modal
@@ -3273,20 +3273,6 @@ function applyProAccessLocks() {
     updateAppSettingsSaveState();
 }
 
-// "New bookings" only makes sense while the master "Notifications" toggle is on (it's
-// silently a no-op server-side otherwise anyway, see booking.notify_owner_of_new_booking) -
-// just grayed out and non-interactive here, not force-unchecked, so the user's actual
-// saved preference survives being reflected while the master happens to be off.
-function applyNotificationsMasterLock() {
-    const masterOn = el("settings-push-toggle").checked;
-    const newBookingToggle = el("settings-new-booking-toggle");
-    const newBookingRow = el("settings-new-booking-row");
-    if (newBookingToggle && newBookingRow) {
-        newBookingToggle.disabled = !masterOn;
-        newBookingRow.classList.toggle("pro-locked", !masterOn);
-    }
-}
-
 el("settings-app-save").addEventListener("click", async () => {
     const button = el("settings-app-save");
     const errorBox = el("settings-app-error");
@@ -3297,7 +3283,6 @@ el("settings-app-save").addEventListener("click", async () => {
         await api("/api/notification-preferences", {
             method: "POST",
             body: {
-                push_enabled: el("settings-push-toggle").checked,
                 new_booking_notifications_enabled: el("settings-new-booking-toggle").checked,
                 auto_send: !el("settings-draft-mode-toggle").checked,
                 reminders_enabled: state.proAccess ? el("settings-reminders-customer-toggle").checked : undefined,
