@@ -93,7 +93,12 @@ button { font-family: inherit; }
    gradient show straight through makes the header feel like the top of the page instead
    of a separate strip glued onto it. */
 .topbar {
-    padding: calc(14px + var(--safe-top)) 18px 12px;
+    /* Equal 14px top/bottom padding around the title itself (the safe-top add-on to the
+       top is a separate system inset for the status bar/notch, not part of the bar's own
+       spacing) - was 12px on the bottom, and the content right after the bar added its
+       own top padding on top of that (see .detail-body/.inbox-stats-row below), which
+       together made the gap below the title noticeably bigger than the gap above it. */
+    padding: calc(14px + var(--safe-top)) 18px 14px;
     display: flex; align-items: center; gap: 12px;
     background: transparent;
     flex-shrink: 0;
@@ -683,7 +688,9 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
    (business_stats()) the website's dashboard shows in its own .stats-row, just laid out
    as two compact cards instead of full-width ones since the inbox tab is already
    fairly dense. --- */
-.inbox-stats-row { display: flex; gap: 10px; padding: 14px 18px 0; flex-shrink: 0; }
+/* No top padding of its own - the topbar's own bottom padding already provides the gap
+   below the (centered) business-name title, same reasoning as .detail-body above. */
+.inbox-stats-row { display: flex; gap: 10px; padding: 0 18px 0; flex-shrink: 0; }
 .inbox-stat-tile {
     flex: 1; text-align: center; padding: 12px 8px;
     background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
@@ -800,8 +807,11 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
 /* Bottom padding clears the fixed tab bar - every screen reachable after login keeps
    the tab bar visible underneath it (it's only ever hidden pre-login), so without this
    the last bit of content on any screen using .detail-body (Profile, Settings, Detail,
-   Help, legal pages...) was unreachably tucked behind it. */
-.detail-body { flex: 1; overflow-y: auto; padding: 18px 18px calc(24px + var(--tabbar-h) + var(--safe-bottom)); -webkit-overflow-scrolling: touch; }
+   Help, legal pages...) was unreachably tucked behind it. No top padding - every screen
+   using this puts it directly after a .topbar, whose own bottom padding already provides
+   that gap; adding more here on top of it was what made the space below the topbar's
+   title bigger than the space above it. */
+.detail-body { flex: 1; overflow-y: auto; padding: 0 18px calc(24px + var(--tabbar-h) + var(--safe-bottom)); -webkit-overflow-scrolling: touch; }
 /* Profile and Settings also have their own floating "Save changes" button pinned above
    the tab bar (see .fab-save) - extra clearance so the last field/row scrolls fully
    clear of it too, not just the tab bar. */
