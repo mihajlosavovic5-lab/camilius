@@ -86,12 +86,17 @@ button { font-family: inherit; }
     background: var(--surface); border-bottom: 1px solid var(--border);
     flex-shrink: 0;
 }
-.topbar-title { display: flex; align-items: center; gap: 10px; }
-/* Inbox only (Faza 15) - its own brand icon was dropped from the topbar, so its title
-   is centered in the now-empty bar instead of sitting left-aligned where the icon used
-   to anchor it. Every other screen's topbar (back button + title, or title + actions)
-   still needs its default left alignment, so this is scoped to .topbar-center alone. */
-.topbar-center { justify-content: center; }
+/* Every plain page-title topbar (i.e. not .topbar-detail's own sender/time/badge
+   header - that one keeps its left-aligned flex layout below) centers its title in the
+   bar instead of left-aligning it. .topbar-title itself takes the full row (flex:1) and
+   centers its own content within that, which works whether or not a back button is
+   present - the back button is taken out of flow (see .back-btn below) so it doesn't
+   skew where "centered" lands. */
+.topbar:not(.topbar-detail) { position: relative; }
+.topbar:not(.topbar-detail) .back-btn {
+    position: absolute; left: 0; top: 50%; transform: translateY(-50%); z-index: 1;
+}
+.topbar-title { display: flex; align-items: center; justify-content: center; gap: 10px; flex: 1; }
 .topbar-title h1 { font-size: 18px; margin: 0; }
 .topbar-detail { gap: 10px; }
 .topbar-detail-meta { flex: 1; min-width: 0; }
