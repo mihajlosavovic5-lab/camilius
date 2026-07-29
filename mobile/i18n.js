@@ -2955,13 +2955,17 @@ function setupLanguagePicker() {
     const list = document.getElementById("lang-modal-list");
     if (!triggers.length || !modal || !sheet || !list) return;
 
-    // Anchored below whichever trigger opened it, sized to that trigger's own width -
-    // same mechanism (and the same earlier fixes: no forced-minimum overhang, grows only
-    // as much as an option's text actually needs, never opens behind the tab bar) as
-    // createAnchoredListPicker() in app.js uses for the working-hours/currency/duration
-    // pickers. This one manages its own two triggers/backdrop instead of going through
-    // that shared instance, so the same positioning math is repeated here rather than
-    // shared - the language picker was still a fixed, centered, un-anchored ~260px box.
+    // Anchored below whichever trigger opened it, same mechanism (never opens behind the
+    // tab bar) as createAnchoredListPicker() in app.js uses for the working-hours/
+    // currency/duration pickers - except width is the list's own natural content width
+    // (the widest language name), not matched to the trigger's width like those pickers
+    // do. Those triggers are small pill-shaped fields worth matching edge-to-edge; the
+    // Settings row trigger here spans almost the full screen, so matching its width the
+    // same way turned the dropdown into a near-full-width slab with a lot of empty
+    // space next to each flag/name. This one manages its own two triggers/backdrop
+    // instead of going through that shared instance, so the positioning math is
+    // repeated here rather than shared - the language picker was still a fixed,
+    // centered, un-anchored ~260px box before any of this.
     const openPicker = (triggerBtn) => {
         const rect = triggerBtn.getBoundingClientRect();
         const margin = 12;
@@ -2973,7 +2977,7 @@ function setupLanguagePicker() {
         sheet.style.width = "auto";
         const naturalWidth = sheet.getBoundingClientRect().width;
         const maxWidth = window.innerWidth - rect.left - margin;
-        sheet.style.width = `${Math.min(Math.max(rect.width, naturalWidth), maxWidth)}px`;
+        sheet.style.width = `${Math.min(naturalWidth, maxWidth)}px`;
         sheet.style.maxHeight = `${Math.max(0, Math.min(240, available))}px`;
 
         modal.classList.add("open");
