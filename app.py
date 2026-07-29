@@ -292,6 +292,20 @@ def register():
         if request.form.get("password", "") != request.form.get("confirm_password", ""):
             return render_template("register.html", error="Passwords don't match.", data=request.form)
 
+        # Someone who abandoned signup before confirming their email (link buried in
+        # spam, app killed in the background while they went looking for it, etc.) has
+        # nothing but a dead end otherwise: they can't log in (unverified), "Forgot
+        # password" won't help (nothing's wrong with the password), and registering
+        # again just says the email is taken. Recognize that case here and resume the
+        # existing unverified signup - resend the confirmation link and drop them back
+        # into verify_pending - instead of blocking a second time.
+        existing = business_by_contact_email(request.form["contact_email"])
+        if existing and not existing[12]:  # email_verified
+            if not email_verify_sent_recently(existing[0], EMAIL_VERIFY_RESEND_COOLDOWN_SECONDS):
+                send_verification_email(existing[0], existing[1], existing[4])
+            session["pending_verify_business_id"] = existing[0]
+            return redirect(url_for("verify_pending"))
+
         # Explicit pre-check rather than relying solely on the UniqueViolation catch below -
         # contact_email has no actual UNIQUE index at the DB level (unlike username/
         # phone_number, which do - see database.py's create_database), a gap that let two
@@ -299,7 +313,7 @@ def register():
         # (business_by_login_identifier's OR-across-three-columns query started matching
         # both rows, returning whichever one Postgres felt like). This is the real fix
         # until that index exists; see also contact_email_taken's own docstring.
-        if contact_email_taken(request.form["contact_email"]):
+        if existing or contact_email_taken(request.form["contact_email"]):
             return render_template("register.html", error="That username, contact email, or phone number is already taken.", data=request.form)
 
         try:

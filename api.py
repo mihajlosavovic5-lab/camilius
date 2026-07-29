@@ -10,7 +10,7 @@ from werkzeug.security import check_password_hash
 
 from database import (
     conversations_for_business, get_conversation, mark_sent, business_by_login_identifier,
-    business_by_id, replies_today_count, update_business, get_subscription_status,
+    business_by_id, business_by_contact_email, replies_today_count, update_business, get_subscription_status,
     effective_subscription_active, has_pro_access, business_stats, log_event, save_push_token, log_client_error,
     add_business, delete_business, set_new_password, is_push_enabled, set_push_enabled,
     is_auto_send_enabled, set_auto_send, unlink_instagram_account,
@@ -251,6 +251,23 @@ def api_register():
     if len(data.get("password", "")) < 8:
         return jsonify(error="Password must be at least 8 characters."), 400
 
+    from app import send_verification_email, EMAIL_VERIFY_RESEND_COOLDOWN_SECONDS  # deferred: avoid circular import at module load
+
+    # Someone who abandoned signup before confirming their email has nothing but a dead
+    # end otherwise (unverified, so can't log in; nothing wrong with the password, so
+    # "Forgot password" doesn't help either) - mirrors app.py's web register() route.
+    # Resume the existing unverified account instead of blocking a second attempt.
+    existing = business_by_contact_email(data.get("contact_email", ""))
+    if existing and not existing[12]:  # email_verified
+        if not email_verify_sent_recently(existing[0], EMAIL_VERIFY_RESEND_COOLDOWN_SECONDS):
+            send_verification_email(existing[0], existing[1], existing[4])
+        return jsonify(
+            pending_verification=True,
+            business_id=existing[0],
+            contact_email=existing[4],
+            wait_seconds=email_verify_resend_wait_seconds(existing[0], EMAIL_VERIFY_RESEND_COOLDOWN_SECONDS),
+        )
+
     try:
         new_id = add_business(
             name=data.get("name", ""),
@@ -275,8 +292,6 @@ def api_register():
         return jsonify(error="That username, contact email, or phone number is already taken."), 409
 
     log_event("register_completed", business_id=new_id)
-    from app import send_verification_email, EMAIL_VERIFY_RESEND_COOLDOWN_SECONDS  # deferred: avoid circular import at module load
-
     send_verification_email(new_id, data.get("name", ""), data.get("contact_email", ""))
     return jsonify(
         pending_verification=True,
