@@ -599,8 +599,14 @@ input[readonly]:hover { border-color: var(--border); }
     /* width: max-content - an auto-width absolutely-positioned flex item (.button is
        display: inline-flex) shrink-to-fits against the *positioned ancestor's* box, not
        its own content, which wrapped "Save changes" onto two lines here since that box
-       is much narrower than the button's natural single-line width. */
-    #settings-save-btn.button { position: absolute; right: auto; left: 100%; margin-left: 24px; top: 0; width: max-content; }
+       is much narrower than the button's natural single-line width.
+       bottom: 24px, not top: 0 - #settings-form-actions has no in-flow content left once
+       the button is pulled out via position: absolute, so its own box collapses to zero
+       height, sitting exactly .form-actions' margin-top (24px) below the AI upsell
+       card's bottom edge. Anchoring the button's *bottom* 24px above that (rather than
+       its top flush with it) lines the button's bottom edge up with the card's bottom
+       edge - the requested alignment - without hardcoding the button's own height. */
+    #settings-save-btn.button { position: absolute; right: auto; left: 100%; margin-left: 24px; bottom: 24px; width: max-content; }
 }
 
 /* Floating labels - the label sits centered inside the empty field like a
