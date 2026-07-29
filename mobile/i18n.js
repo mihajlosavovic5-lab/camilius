@@ -114,7 +114,6 @@ const TRANSLATIONS = {
 
         "lang.pickerTitle": "Choose language",
 
-        "inbox.subtitle": "Customer questions",
         "inbox.donate.text": "Enjoying Camilius? A voluntary donation is always appreciated.",
         "inbox.statsSent": "Replies sent",
         "inbox.statsSentWeek": "Sent this week",
@@ -154,7 +153,6 @@ const TRANSLATIONS = {
         "detail.error": "Couldn't send the reply. Try again.",
         "detail.back": "Back",
 
-        "schedule.subtitle": "Manage your appointment calendar.",
         "schedule.appointmentLength": "Appointment length",
         "schedule.locked.title": "Schedule is a Pro plan feature",
         "schedule.locked.body": "View and manage a day/week calendar, and let the AI book, remind, and reschedule appointments straight from Instagram DMs.",
@@ -186,7 +184,6 @@ const TRANSLATIONS = {
         "schedule.errorTitle": "Couldn't load your schedule.",
 
         "settings.title": "Settings",
-        "settings.subtitle": "The AI uses this information to write replies — keep it up to date.",
         "settings.account.heading": "Account",
         "settings.account.subtitle": "Who you are and how customers reach you.",
         "settings.businessDetails.heading": "Business details",
@@ -410,7 +407,6 @@ const TRANSLATIONS = {
 
         "lang.pickerTitle": "Izaberite jezik",
 
-        "inbox.subtitle": "Pitanja kupaca",
         "inbox.donate.text": "Sviđa ti se Camilius? Dobrovoljna donacija je uvek dobrodošla.",
         "inbox.statsSent": "Poslati odgovori",
         "inbox.statsSentWeek": "Poslato ove nedelje",
@@ -450,7 +446,6 @@ const TRANSLATIONS = {
         "detail.error": "Slanje odgovora nije uspelo. Pokušajte ponovo.",
         "detail.back": "Nazad",
 
-        "schedule.subtitle": "Upravljajte svojim kalendarom termina.",
         "schedule.appointmentLength": "Trajanje termina",
         "schedule.locked.title": "Raspored je funkcija Pro plana",
         "schedule.locked.body": "Pregledajte i upravljajte dnevnim/nedeljnim kalendarom, i dozvolite AI-ju da zakazuje, podseća i premešta termine direktno iz Instagram poruka.",
@@ -482,7 +477,6 @@ const TRANSLATIONS = {
         "schedule.errorTitle": "Učitavanje rasporeda nije uspelo.",
 
         "settings.title": "Podešavanja",
-        "settings.subtitle": "AI koristi ove informacije da sastavi odgovore — održavajte ih ažurnim.",
         "settings.account.heading": "Nalog",
         "settings.account.subtitle": "Ko ste vi i kako vas mušterije kontaktiraju.",
         "settings.businessDetails.heading": "Detalji biznisa",
@@ -701,7 +695,6 @@ const TRANSLATIONS = {
 
         "lang.pickerTitle": "Elige un idioma",
 
-        "inbox.subtitle": "Preguntas de clientes",
         "inbox.donate.text": "¿Te gusta Camilius? Una donación voluntaria siempre es bienvenida.",
         "inbox.statsSent": "Respuestas enviadas",
         "inbox.statsSentWeek": "Enviadas esta semana",
@@ -741,7 +734,6 @@ const TRANSLATIONS = {
         "detail.error": "No se pudo enviar la respuesta. Inténtalo de nuevo.",
         "detail.back": "Atrás",
 
-        "schedule.subtitle": "Gestiona tu calendario de citas.",
         "schedule.appointmentLength": "Duración de la cita",
         "schedule.locked.title": "La Agenda es una función del plan Pro",
         "schedule.locked.body": "Consulta y gestiona un calendario diario/semanal, y deja que la IA reserve, recuerde y reprograme citas directamente desde los DM de Instagram.",
@@ -771,7 +763,6 @@ const TRANSLATIONS = {
         "schedule.setDuration": "Aplicar",
 
         "settings.title": "Ajustes",
-        "settings.subtitle": "La IA usa esta información para redactar respuestas; mantenla actualizada.",
         "settings.account.heading": "Cuenta",
         "settings.account.subtitle": "Quién eres y cómo te contactan los clientes.",
         "settings.businessDetails.heading": "Detalles del negocio",
@@ -990,7 +981,6 @@ const TRANSLATIONS = {
 
         "lang.pickerTitle": "Escolha o idioma",
 
-        "inbox.subtitle": "Perguntas de clientes",
         "inbox.donate.text": "Gostando do Camilius? Uma doação voluntária é sempre bem-vinda.",
         "inbox.statsSent": "Respostas enviadas",
         "inbox.statsSentWeek": "Enviadas esta semana",
@@ -1030,7 +1020,6 @@ const TRANSLATIONS = {
         "detail.error": "Não foi possível enviar a resposta. Tente novamente.",
         "detail.back": "Voltar",
 
-        "schedule.subtitle": "Gerencie sua agenda de compromissos.",
         "schedule.appointmentLength": "Duração do compromisso",
         "schedule.locked.title": "A Agenda é um recurso do plano Pro",
         "schedule.locked.body": "Veja e gerencie um calendário diário/semanal, e deixe a IA agendar, lembrar e reagendar compromissos diretamente pelos DMs do Instagram.",
@@ -1060,7 +1049,6 @@ const TRANSLATIONS = {
         "schedule.setDuration": "Aplicar",
 
         "settings.title": "Configurações",
-        "settings.subtitle": "A IA usa essas informações para redigir respostas — mantenha-as atualizadas.",
         "settings.account.heading": "Conta",
         "settings.account.subtitle": "Quem você é e como os clientes te encontram.",
         "settings.businessDetails.heading": "Detalhes do negócio",
@@ -1279,7 +1267,6 @@ const TRANSLATIONS = {
 
         "lang.pickerTitle": "Choisissez une langue",
 
-        "inbox.subtitle": "Questions des clients",
         "inbox.donate.text": "Vous aimez Camilius ? Un don volontaire est toujours apprécié.",
         "inbox.statsSent": "Réponses envoyées",
         "inbox.statsSentWeek": "Envoyées cette semaine",
@@ -1319,7 +1306,6 @@ const TRANSLATIONS = {
         "detail.error": "Impossible d'envoyer la réponse. Réessayez.",
         "detail.back": "Retour",
 
-        "schedule.subtitle": "Gérez votre agenda de rendez-vous.",
         "schedule.appointmentLength": "Durée du rendez-vous",
         "schedule.locked.title": "L'agenda est une fonctionnalité du forfait Pro",
         "schedule.locked.body": "Consultez et gérez un calendrier journalier/hebdomadaire, et laissez l'IA prendre, rappeler et reprogrammer les rendez-vous directement depuis les DM Instagram.",
@@ -1349,7 +1335,6 @@ const TRANSLATIONS = {
         "schedule.setDuration": "Définir",
 
         "settings.title": "Paramètres",
-        "settings.subtitle": "L'IA utilise ces informations pour rédiger ses réponses — gardez-les à jour.",
         "settings.account.heading": "Compte",
         "settings.account.subtitle": "Qui vous êtes et comment les clients vous contactent.",
         "settings.businessDetails.heading": "Détails de l'entreprise",
@@ -1568,7 +1553,6 @@ const TRANSLATIONS = {
 
         "lang.pickerTitle": "Sprache wählen",
 
-        "inbox.subtitle": "Kundenanfragen",
         "inbox.donate.text": "Gefällt dir Camilius? Eine freiwillige Spende ist immer willkommen.",
         "inbox.statsSent": "Gesendete Antworten",
         "inbox.statsSentWeek": "Diese Woche gesendet",
@@ -1608,7 +1592,6 @@ const TRANSLATIONS = {
         "detail.error": "Antwort konnte nicht gesendet werden. Versuch's noch mal.",
         "detail.back": "Zurück",
 
-        "schedule.subtitle": "Verwalte deinen Terminkalender.",
         "schedule.appointmentLength": "Termindauer",
         "schedule.locked.title": "Der Terminkalender ist eine Pro-Plan-Funktion",
         "schedule.locked.body": "Sieh dir einen Tages-/Wochenkalender an und verwalte ihn, und lass die KI Termine direkt aus Instagram-DMs buchen, erinnern und umbuchen.",
@@ -1638,7 +1621,6 @@ const TRANSLATIONS = {
         "schedule.setDuration": "Übernehmen",
 
         "settings.title": "Einstellungen",
-        "settings.subtitle": "Die KI nutzt diese Informationen, um Antworten zu verfassen — halte sie aktuell.",
         "settings.account.heading": "Konto",
         "settings.account.subtitle": "Wer du bist und wie Kunden dich erreichen.",
         "settings.businessDetails.heading": "Unternehmensdetails",
@@ -1857,7 +1839,6 @@ const TRANSLATIONS = {
 
         "lang.pickerTitle": "Scegli la lingua",
 
-        "inbox.subtitle": "Domande dei clienti",
         "inbox.donate.text": "Ti piace Camilius? Una donazione volontaria è sempre gradita.",
         "inbox.statsSent": "Risposte inviate",
         "inbox.statsSentWeek": "Inviate questa settimana",
@@ -1897,7 +1878,6 @@ const TRANSLATIONS = {
         "detail.error": "Impossibile inviare la risposta. Riprova.",
         "detail.back": "Indietro",
 
-        "schedule.subtitle": "Gestisci il tuo calendario appuntamenti.",
         "schedule.appointmentLength": "Durata dell'appuntamento",
         "schedule.locked.title": "L'Agenda è una funzione del piano Pro",
         "schedule.locked.body": "Visualizza e gestisci un calendario giornaliero/settimanale, e lascia che l'IA prenoti, ricordi e riprogrammi gli appuntamenti direttamente dai DM Instagram.",
@@ -1927,7 +1907,6 @@ const TRANSLATIONS = {
         "schedule.setDuration": "Imposta",
 
         "settings.title": "Impostazioni",
-        "settings.subtitle": "L'IA usa queste informazioni per redigere le risposte — mantienile aggiornate.",
         "settings.account.heading": "Account",
         "settings.account.subtitle": "Chi sei e come i clienti ti raggiungono.",
         "settings.businessDetails.heading": "Dettagli dell'attività",
@@ -2146,7 +2125,6 @@ const TRANSLATIONS = {
 
         "lang.pickerTitle": "Выберите язык",
 
-        "inbox.subtitle": "Вопросы клиентов",
         "inbox.donate.text": "Нравится Camilius? Добровольное пожертвование всегда приветствуется.",
         "inbox.statsSent": "Отправлено ответов",
         "inbox.statsSentWeek": "Отправлено на этой неделе",
@@ -2186,7 +2164,6 @@ const TRANSLATIONS = {
         "detail.error": "Не удалось отправить ответ. Попробуйте снова.",
         "detail.back": "Назад",
 
-        "schedule.subtitle": "Управляйте своим календарём записей.",
         "schedule.appointmentLength": "Длительность записи",
         "schedule.locked.title": "Расписание - функция плана Pro",
         "schedule.locked.body": "Просматривайте и управляйте дневным/недельным календарём, и позвольте ИИ записывать, напоминать и переносить записи прямо из директ-сообщений Instagram.",
@@ -2216,7 +2193,6 @@ const TRANSLATIONS = {
         "schedule.setDuration": "Применить",
 
         "settings.title": "Настройки",
-        "settings.subtitle": "ИИ использует эту информацию для составления ответов — держите её актуальной.",
         "settings.account.heading": "Аккаунт",
         "settings.account.subtitle": "Кто вы и как клиенты с вами связываются.",
         "settings.businessDetails.heading": "Данные о бизнесе",
@@ -2435,7 +2411,6 @@ const TRANSLATIONS = {
 
         "lang.pickerTitle": "选择语言",
 
-        "inbox.subtitle": "客户提问",
         "inbox.donate.text": "喜欢 Camilius 吗?欢迎自愿捐赠支持。",
         "inbox.statsSent": "已发送回复",
         "inbox.statsSentWeek": "本周已发送",
@@ -2475,7 +2450,6 @@ const TRANSLATIONS = {
         "detail.error": "回复发送失败，请重试。",
         "detail.back": "返回",
 
-        "schedule.subtitle": "管理您的预约日历。",
         "schedule.appointmentLength": "预约时长",
         "schedule.locked.title": "日程安排是Pro套餐功能",
         "schedule.locked.body": "查看并管理日/周日历,让AI直接通过Instagram私信预约、提醒和改期。",
@@ -2505,7 +2479,6 @@ const TRANSLATIONS = {
         "schedule.setDuration": "设置",
 
         "settings.title": "设置",
-        "settings.subtitle": "AI使用这些信息来撰写回复——请保持信息更新。",
         "settings.account.heading": "账户",
         "settings.account.subtitle": "您是谁,以及顾客如何联系您。",
         "settings.businessDetails.heading": "商家详情",
@@ -2724,7 +2697,6 @@ const TRANSLATIONS = {
 
         "lang.pickerTitle": "Dil seçin",
 
-        "inbox.subtitle": "Müşteri soruları",
         "inbox.donate.text": "Camilius'u beğendin mi? Gönüllü bağış her zaman memnuniyetle karşılanır.",
         "inbox.statsSent": "Gönderilen yanıtlar",
         "inbox.statsSentWeek": "Bu hafta gönderilen",
@@ -2764,7 +2736,6 @@ const TRANSLATIONS = {
         "detail.error": "Yanıt gönderilemedi. Tekrar deneyin.",
         "detail.back": "Geri",
 
-        "schedule.subtitle": "Randevu takviminizi yönetin.",
         "schedule.appointmentLength": "Randevu süresi",
         "schedule.locked.title": "Program bir Pro plan özelliğidir",
         "schedule.locked.body": "Günlük/haftalık bir takvimi görüntüleyin ve yönetin, yapay zekânın randevuları doğrudan Instagram DM'lerinden almasına, hatırlatmasına ve yeniden planlamasına izin verin.",
@@ -2794,7 +2765,6 @@ const TRANSLATIONS = {
         "schedule.setDuration": "Uygula",
 
         "settings.title": "Ayarlar",
-        "settings.subtitle": "Yapay zekâ yanıt yazmak için bu bilgileri kullanır — güncel tutun.",
         "settings.account.heading": "Hesap",
         "settings.account.subtitle": "Kim olduğunuz ve müşterilerin size nasıl ulaştığı.",
         "settings.businessDetails.heading": "İşletme detayları",
