@@ -38,6 +38,43 @@
     unicode-range: U+0460-052F, U+1C80-1C8A, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
 }
 
+/* Lora - self-hosted serif, same "one variable file per subset" approach as Inter
+   above. Replaces the plain Georgia system serif on headings/titles/brand name
+   with an actual designed typeface - more refined, better letterforms at both
+   large display sizes and small titles than the OS default. */
+@font-face {
+    font-family: 'Lora';
+    font-style: normal;
+    font-weight: 400 700;
+    font-display: swap;
+    src: url('fonts/lora-latin.woff2') format('woff2');
+    unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+    font-family: 'Lora';
+    font-style: normal;
+    font-weight: 400 700;
+    font-display: swap;
+    src: url('fonts/lora-latin-ext.woff2') format('woff2');
+    unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+    font-family: 'Lora';
+    font-style: normal;
+    font-weight: 400 700;
+    font-display: swap;
+    src: url('fonts/lora-cyrillic.woff2') format('woff2');
+    unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+@font-face {
+    font-family: 'Lora';
+    font-style: normal;
+    font-weight: 400 700;
+    font-display: swap;
+    src: url('fonts/lora-cyrillic-ext.woff2') format('woff2');
+    unicode-range: U+0460-052F, U+1C80-1C8A, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+
 /* --- Page transitions - a subtle native crossfade+drift between full page navigations
    (login/register success, any plain link) and htmx-boosted nav clicks (Conversations/
    Schedule/Profile/Settings - see _nav.html/base.html's globalViewTransitions bit),
@@ -218,10 +255,11 @@
     --menu-sheet-bg: linear-gradient(180deg, var(--primary-light) 0%, var(--background) 42%);
     --menu-row-bg: var(--surface);
     --menu-row-border: var(--border);
-    /* Falls back to the OS system font for any character Inter's self-hosted
+    /* Falls back to the OS system font for any character Inter's/Lora's self-hosted
        subsets above don't cover (CJK, Greek, Vietnamese, ...) - see the
-       @font-face block at the top of this file. */
+       @font-face blocks at the top of this file. */
     --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --font-serif: 'Lora', Georgia, "Times New Roman", serif;
 }
 
 /* --- Dark mode - follows the OS/browser preference by default ("System" in the
@@ -425,7 +463,7 @@ a:focus-visible, button:focus-visible, [tabindex]:focus-visible {
     background-size: cover; background-position: center;
     color: transparent; font-size: 0; flex-shrink: 0;
 }
-.brand-name { font-family: Georgia, "Times New Roman", serif; font-weight: 700; font-size: 18px; color: var(--text); letter-spacing: 0; }
+.brand-name { font-family: var(--font-serif); font-weight: 700; font-size: 20px; color: var(--text); letter-spacing: 0; }
 
 /* --- Navigation (logged-in pages) --- */
 /* An ordinary in-flow block, same as any other part of the page - scrolls
@@ -542,7 +580,7 @@ a:focus-visible, button:focus-visible, [tabindex]:focus-visible {
 /* Same serif brand voice as the app's topbar titles (mobile/app.css's
    .topbar-title h1) and every page title on this site uses it at the same
    size, business name included, instead of one page standing out. */
-.page-header h1 { font-family: Georgia, "Times New Roman", serif; font-weight: 700; font-size: 25px; color: var(--text); }
+.page-header h1 { font-family: var(--font-serif); font-weight: 700; font-size: 27px; color: var(--text); }
 .business-title-rule {
     width: 56px; height: 3px; margin: 12px auto 0; border-radius: 999px;
     background: linear-gradient(90deg, var(--primary), var(--gold-dark));
@@ -1561,7 +1599,7 @@ body.auth {
     background: linear-gradient(160deg, var(--primary-light) 0%, var(--surface) 130%);
 }
 .support-widget-header-icon { width: 34px; height: 34px; border-radius: 24%; box-shadow: 0 2px 8px rgba(38, 32, 20, .12); }
-.support-widget-title { font-family: Georgia, "Times New Roman", serif; font-weight: 700; font-size: 16.5px; margin: 0; color: var(--text); }
+.support-widget-title { font-family: var(--font-serif); font-weight: 700; font-size: 18px; margin: 0; color: var(--text); }
 .support-widget-subtitle { color: var(--text-muted); font-size: 12.5px; margin: 2px 0 0; }
 .support-widget-close { margin-left: auto; background: none; border: none; color: var(--text-muted); font-size: 20px; cursor: pointer; padding: 4px 6px; flex-shrink: 0; border-radius: 8px; transition: background .12s ease, color .12s ease; }
 .support-widget-close:hover { background: rgba(20,15,8,.08); color: var(--text); }
@@ -1610,7 +1648,7 @@ body.auth {
 
 /* --- Legal pages (prose) --- */
 .prose { max-width: 720px; }
-.prose h1 { font-family: Georgia, "Times New Roman", serif; font-weight: 700; font-size: 28px; }
+.prose h1 { font-family: var(--font-serif); font-weight: 700; font-size: 30px; }
 .prose h2 { font-size: 18px; margin-top: 30px; }
 .prose p, .prose li { color: #4a3d29; font-size: 16px; }
 .prose ul { padding-left: 22px; }
@@ -1639,8 +1677,8 @@ body.auth {
 body.landing .content { padding-top: 32px; }
 .hero { position: relative; text-align: center; padding: 56px 0 48px; }
 .hero h1 {
-    font-family: Georgia, "Times New Roman", serif; font-weight: 700;
-    font-size: 43px; letter-spacing: -.5px; line-height: 1.15; margin-bottom: 16px;
+    font-family: var(--font-serif); font-weight: 700;
+    font-size: 46px; letter-spacing: -.5px; line-height: 1.15; margin-bottom: 16px;
 }
 .hero-subtitle { color: var(--text-muted); font-size: 18px; max-width: 620px; margin: 0 auto 26px; }
 .hero-actions { margin-bottom: 12px; }
@@ -1648,7 +1686,7 @@ body.landing .content { padding-top: 32px; }
 .hero-fine-print { color: #a89a7d; font-size: 14px; }
 
 .section { padding: 56px 0; }
-.section-title { position: relative; text-align: center; font-family: Georgia, "Times New Roman", serif; font-weight: 700; font-size: 26px; margin-bottom: 28px; padding-bottom: 16px; }
+.section-title { position: relative; text-align: center; font-family: var(--font-serif); font-weight: 700; font-size: 28px; margin-bottom: 28px; padding-bottom: 16px; }
 .section-title::after {
     content: "";
     position: absolute;
@@ -1801,7 +1839,7 @@ body.intro { margin: 0; height: 100dvh; overflow: hidden; }
     margin-bottom: 22px;
 }
 .intro-slide .intro-emoji { font-size: 53px; margin-bottom: 22px; }
-.intro-slide h1 { font-family: Georgia, "Times New Roman", serif; font-weight: 700; font-size: 25px; margin-bottom: 10px; }
+.intro-slide h1 { font-family: var(--font-serif); font-weight: 700; font-size: 27px; margin-bottom: 10px; }
 .intro-slide p { color: var(--text-muted); font-size: 16.5px; max-width: 300px; }
 .intro-cta { margin-top: 26px; padding: 12px 32px; }
 
