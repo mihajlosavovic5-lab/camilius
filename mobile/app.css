@@ -87,10 +87,15 @@ button { font-family: inherit; }
 .hidden { display: none !important; }
 
 /* --- Top bar --- */
+/* Transparent instead of a flat --surface block with a hard border-bottom cutting
+   across it - now that every screen behind it carries the gradient wash, an opaque bar
+   on top read as a dead, disconnected slab instead of part of the same page. Letting the
+   gradient show straight through makes the header feel like the top of the page instead
+   of a separate strip glued onto it. */
 .topbar {
     padding: calc(14px + var(--safe-top)) 18px 12px;
     display: flex; align-items: center; gap: 12px;
-    background: var(--surface); border-bottom: 1px solid var(--border);
+    background: transparent;
     flex-shrink: 0;
 }
 /* Every plain page-title topbar (i.e. not .topbar-detail's own sender/time/badge
@@ -104,7 +109,11 @@ button { font-family: inherit; }
     position: absolute; left: 0; top: 50%; transform: translateY(-50%); z-index: 1;
 }
 .topbar-title { display: flex; align-items: center; justify-content: center; gap: 10px; flex: 1; }
-.topbar-title h1 { font-size: 18px; margin: 0; }
+/* Same serif brand font as the login screen's "Camilius" wordmark (.brand-name) instead
+   of the plain system sans every other label uses - now that the title is centered and
+   the bar itself is transparent, it's the one piece of text meant to read as a proper
+   page heading rather than another UI label. */
+.topbar-title h1 { font-family: Georgia, "Times New Roman", serif; font-size: 19px; font-weight: 700; margin: 0; }
 .topbar-detail { gap: 10px; }
 .topbar-detail-meta { flex: 1; min-width: 0; }
 .detail-sender { font-weight: 700; font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
