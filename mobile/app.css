@@ -1018,6 +1018,42 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
 }
 .toast.show { opacity: 1; transform: translate(-50%, 0); pointer-events: auto; }
 
+/* --- Save success overlay - same animated "circle draws in, then the checkmark traces
+   after" celebration as the website's settings.html save-success-overlay (see that
+   file's own comment for the pathLength="1"/stroke-dasharray reasoning), used here for
+   Profile/App settings saves instead of the plain .toast above. Below the mandatory OTA
+   update overlay (100) but above every modal/toast so it always reads on top of the
+   screen it was triggered from. --- */
+.save-success-overlay {
+    position: fixed; inset: 0; z-index: 90;
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(20,15,8,.42);
+    opacity: 0; pointer-events: none;
+    transition: opacity .25s ease;
+}
+.save-success-overlay.visible { opacity: 1; pointer-events: auto; }
+.save-success-card {
+    background: var(--surface); border-radius: var(--radius); box-shadow: 0 14px 36px rgba(43,32,19,.24);
+    padding: 32px 38px; display: flex; flex-direction: column; align-items: center; gap: 16px;
+    max-width: 280px; text-align: center;
+    transform: scale(.9); transition: transform .25s ease;
+}
+.save-success-overlay.visible .save-success-card { transform: scale(1); }
+.save-success-circle { width: 84px; height: 84px; overflow: visible; flex-shrink: 0; }
+.save-success-circle-track { fill: none; stroke: var(--success-bg); stroke-width: 6; }
+.save-success-circle-progress {
+    fill: none; stroke: var(--success); stroke-width: 6; stroke-linecap: round;
+    stroke-dasharray: 1; stroke-dashoffset: 1; transform: rotate(-90deg); transform-origin: center;
+}
+.save-success-check {
+    fill: none; stroke: var(--success); stroke-width: 7; stroke-linecap: round; stroke-linejoin: round;
+    stroke-dasharray: 1; stroke-dashoffset: 1;
+}
+.save-success-overlay.visible .save-success-circle-progress { animation: save-success-draw .5s ease forwards; }
+.save-success-overlay.visible .save-success-check { animation: save-success-draw .35s ease forwards .45s; }
+@keyframes save-success-draw { to { stroke-dashoffset: 0; } }
+.save-success-text { margin: 0; font-size: 15px; font-weight: 600; color: var(--text); }
+
 /* --- Offline banner --- */
 .offline-banner {
     position: fixed; top: 0; left: 0; right: 0; z-index: 50;

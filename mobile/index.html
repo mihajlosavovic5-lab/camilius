@@ -4,13 +4,29 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
 <title>Camilius</title>
-<link rel="stylesheet" href="app.css?v=22b00f06ed4b">
+<link rel="stylesheet" href="app.css?v=4a0d66466411">
 </head>
 <body>
 
 <div id="offline-banner" class="offline-banner hidden" data-i18n="offline">No internet connection</div>
 
 <div id="toast" class="toast"></div>
+
+<!-- Animated checkmark confirmation for a successful save (Profile, App settings) -
+     same "circle draws in, then the check traces after" celebration as the website's
+     settings.html save-success-overlay, instead of the plain text toast every other
+     confirmation still uses. Lives outside #app for the same position:fixed reason as
+     the modals below. -->
+<div id="save-success-overlay" class="save-success-overlay" role="status" aria-live="polite">
+  <div class="save-success-card">
+    <svg class="save-success-circle" viewBox="0 0 100 100" aria-hidden="true">
+      <circle class="save-success-circle-track" cx="50" cy="50" r="45"></circle>
+      <circle class="save-success-circle-progress" cx="50" cy="50" r="45" pathLength="1"></circle>
+      <path class="save-success-check" d="M28 52 L44 68 L74 33" pathLength="1"></path>
+    </svg>
+    <p id="save-success-text" class="save-success-text"></p>
+  </div>
+</div>
 
 <div id="update-banner" class="update-banner hidden">
   <span data-i18n="update.available">A new version of the app is available.</span>
@@ -1081,7 +1097,7 @@
   </button>
 </nav>
 
-<script src="i18n.js?v=22b00f06ed4b"></script>
-<script src="app.js?v=22b00f06ed4b"></script>
+<script src="i18n.js?v=4a0d66466411"></script>
+<script src="app.js?v=4a0d66466411"></script>
 </body>
 </html>

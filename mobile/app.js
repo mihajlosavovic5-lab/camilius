@@ -1106,6 +1106,28 @@ function showToast(message) {
     toastTimer = setTimeout(() => toast.classList.remove("show"), 2400);
 }
 
+// --- Save success overlay (Faza 14) - the same animated "circle draws in, then the
+// checkmark traces after" celebration the website's settings.html shows for its own
+// Profile save, in place of the plain .toast above for save confirmations specifically.
+// classList add/remove "visible" (not "hidden") so the CSS transitions actually animate,
+// same reasoning as the website's initSaveSuccessOverlay().
+let saveSuccessTimer = null;
+function showSaveSuccess(message) {
+    const overlay = el("save-success-overlay");
+    el("save-success-text").textContent = message;
+    // Restart the circle/checkmark draw animations even if the overlay is already
+    // showing from a previous save - removing then re-adding "visible" on the next
+    // frame forces the CSS animations to replay from the start instead of a no-op.
+    overlay.classList.remove("visible");
+    clearTimeout(saveSuccessTimer);
+    requestAnimationFrame(() => overlay.classList.add("visible"));
+    saveSuccessTimer = setTimeout(() => overlay.classList.remove("visible"), 2200);
+}
+el("save-success-overlay").addEventListener("click", () => {
+    clearTimeout(saveSuccessTimer);
+    el("save-success-overlay").classList.remove("visible");
+});
+
 // --- Auth ---
 
 async function logout() {
@@ -1624,7 +1646,7 @@ el("settings-instagram-disconnect-btn").addEventListener("click", async () => {
         await api("/api/instagram-disconnect", { method: "POST" });
         el("settings-instagram-account").value = "";
         updateInstagramDisconnectVisibility(null);
-        showToast(t("settings.saved"));
+        showSaveSuccess(t("settings.saved"));
     } catch (err) {
         if (err.status === 401) { logout(); return; }
         showToast(err.message || t("connect.notYetBody"));
@@ -1645,7 +1667,7 @@ if (capacitorPlugins && capacitorPlugins.Browser) {
                 updateInstagramDisconnectVisibility(data.instagram_username);
                 if (data.instagram_username) {
                     if (capacitorPlugins.Haptics) capacitorPlugins.Haptics.impact({ style: "LIGHT" });
-                    showToast(t("settings.saved"));
+                    showSaveSuccess(t("settings.saved"));
                 }
             } catch (err) {
                 if (err.status === 401) logout();
@@ -2382,7 +2404,7 @@ el("settings-save").addEventListener("click", async () => {
                 new_password: newPassword || undefined,
             },
         });
-        showToast(t("settings.saved"));
+        showSaveSuccess(t("settings.saved"));
         el("inbox-business-name").textContent = el("settings-name").value;
         el("settings-current-password").value = "";
         el("settings-new-password").value = "";
@@ -3157,7 +3179,7 @@ el("settings-app-save").addEventListener("click", async () => {
                 owner_reminder_minutes: state.proAccess ? state.reminderOwnerMinutes : undefined,
             },
         });
-        showToast(t("settings.saved"));
+        showSaveSuccess(t("settings.saved"));
         appSettingsSnapshot = serializeAppSettingsForm();
         updateAppSettingsSaveState();
     } catch (err) {
