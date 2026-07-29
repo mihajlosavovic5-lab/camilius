@@ -466,9 +466,6 @@ a:focus-visible, button:focus-visible, [tabindex]:focus-visible {
 .brand-name { font-family: var(--font-serif); font-weight: 700; font-size: 20px; color: var(--text); letter-spacing: 0; }
 
 /* --- Navigation (logged-in pages) --- */
-/* An ordinary in-flow block, same as any other part of the page - scrolls
-   away with the rest of the content instead of staying pinned to the
-   viewport, same as the language flag button above. */
 .navbar {
     background: transparent;
 }
@@ -553,6 +550,16 @@ a:focus-visible, button:focus-visible, [tabindex]:focus-visible {
 .nav-menu-btn.open .nav-menu-btn-bar:nth-child(3) { transform: translateY(-6px) rotate(-45deg); }
 
 @media (max-width: 640px) {
+    /* Pinned to the top of the screen instead of scrolling away with the rest of
+       the page (the "app version" - phone width) - Conversations/Schedule/
+       Profile/Settings should always stay reachable while listing through a long
+       inbox or settings form, not disappear upward the moment you scroll down.
+       Sticky (not fixed) so it still reserves its own space in normal flow -
+       no separate spacer element needed, unlike the landing page's #lp-header. */
+    .navbar {
+        position: sticky; top: var(--install-banner-h); z-index: 900;
+        background: var(--surface); border-bottom: 1px solid var(--border); box-shadow: var(--shadow);
+    }
     /* Reserve room for the fixed top-right language flag (.site-lang-select-btn,
        base.html), same reason as the desktop padding-right above - without it the
        hamburger button sits directly under the flag, in the same top-right corner. */
