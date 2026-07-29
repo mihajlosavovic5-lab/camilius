@@ -304,7 +304,6 @@ const TRANSLATIONS = {
         "connectMobile.fallbackNote": "If this doesn't close on its own, go ahead and close this tab.",
 
         "appSettings.title": "Settings",
-        "appSettings.subtitle": "App-level preferences, legal, and account data.",
         "appSettings.preferences.heading": "Preferences",
         "appSettings.theme": "Theme",
         "appSettings.themeSystem": "System",
@@ -341,7 +340,6 @@ const TRANSLATIONS = {
         "appSettings.danger.confirm": "Are you sure? Your account and all conversations will be permanently deleted.",
 
         "settings.title": "Profile",
-        "settings.subtitle": "The AI uses this information to write replies — keep it up to date.",
         "settings.account.heading": "Account",
         "settings.account.subtitle": "Who you are and how customers reach you.",
         "settings.businessName": "Business name",
@@ -415,7 +413,6 @@ const TRANSLATIONS = {
         "subscription.paddleNoteLine1": "Payment is securely processed by Paddle, our reseller of record.",
         "subscription.paddleNoteLine2": "Your 14-day free trial unlocks every Pro feature — we'll send you a reminder before it ends.",
 
-        "schedule.subtitle": "Manage your appointment calendar.",
         "schedule.appointmentLength": "Appointment length",
         "schedule.locked.title": "Schedule is a Pro plan feature",
         "schedule.locked.body": "View and manage a day/week calendar, and let the AI book, remind, and reschedule appointments straight from Instagram DMs.",
@@ -770,7 +767,6 @@ const TRANSLATIONS = {
         "connectMobile.fallbackNote": "Si esto no se cierra solo, adelante, cierra esta pestaña.",
 
         "appSettings.title": "Configuración",
-        "appSettings.subtitle": "Preferencias de la app, legal, y datos de la cuenta.",
         "appSettings.preferences.heading": "Preferencias",
         "appSettings.theme": "Tema",
         "appSettings.themeSystem": "Sistema",
@@ -798,7 +794,6 @@ const TRANSLATIONS = {
         "appSettings.danger.confirm": "¿Estás seguro? Tu cuenta y todas las conversaciones se eliminarán permanentemente.",
 
         "settings.title": "Perfil",
-        "settings.subtitle": "La IA usa esta información para redactar respuestas; mantenla actualizada.",
         "settings.account.heading": "Cuenta",
         "settings.account.subtitle": "Quién eres y cómo te contactan los clientes.",
         "settings.businessName": "Nombre del negocio",
@@ -872,7 +867,6 @@ const TRANSLATIONS = {
         "subscription.paddleNoteLine1": "El pago se procesa de forma segura por Paddle, nuestro revendedor autorizado.",
         "subscription.paddleNoteLine2": "Tu prueba gratuita de 14 días incluye todas las funciones Pro — te avisaremos por correo antes de que termine.",
 
-        "schedule.subtitle": "Gestiona tu calendario de citas.",
         "schedule.appointmentLength": "Duración de la cita",
         "schedule.locked.title": "La Agenda es una función del plan Pro",
         "schedule.locked.body": "Consulta y gestiona un calendario diario/semanal, y deja que la IA reserve, recuerde y reprograme citas directamente desde los DM de Instagram.",
@@ -1227,7 +1221,6 @@ const TRANSLATIONS = {
         "connectMobile.fallbackNote": "Se isso não fechar sozinho, pode fechar esta aba.",
 
         "appSettings.title": "Configurações",
-        "appSettings.subtitle": "Preferências do app, legal, e dados da conta.",
         "appSettings.preferences.heading": "Preferências",
         "appSettings.theme": "Tema",
         "appSettings.themeSystem": "Sistema",
@@ -1255,7 +1248,6 @@ const TRANSLATIONS = {
         "appSettings.danger.confirm": "Tem certeza? Sua conta e todas as conversas serão excluídas permanentemente.",
 
         "settings.title": "Perfil",
-        "settings.subtitle": "A IA usa essas informações para redigir respostas — mantenha-as atualizadas.",
         "settings.account.heading": "Conta",
         "settings.account.subtitle": "Quem você é e como os clientes te encontram.",
         "settings.businessName": "Nome do negócio",
@@ -1329,7 +1321,6 @@ const TRANSLATIONS = {
         "subscription.paddleNoteLine1": "O pagamento é processado com segurança pela Paddle, nossa revendedora autorizada.",
         "subscription.paddleNoteLine2": "Seu teste grátis de 14 dias inclui todos os recursos Pro — avisaremos você por e-mail antes que termine.",
 
-        "schedule.subtitle": "Gerencie sua agenda de compromissos.",
         "schedule.appointmentLength": "Duração do compromisso",
         "schedule.locked.title": "A Agenda é um recurso do plano Pro",
         "schedule.locked.body": "Veja e gerencie um calendário diário/semanal, e deixe a IA agendar, lembrar e reagendar compromissos diretamente pelos DMs do Instagram.",
@@ -1684,7 +1675,6 @@ const TRANSLATIONS = {
         "connectMobile.fallbackNote": "Si cette page ne se ferme pas d'elle-même, vous pouvez fermer cet onglet.",
 
         "appSettings.title": "Paramètres",
-        "appSettings.subtitle": "Préférences de l'application, mentions légales et données du compte.",
         "appSettings.preferences.heading": "Préférences",
         "appSettings.theme": "Thème",
         "appSettings.themeSystem": "Système",
@@ -1712,7 +1702,6 @@ const TRANSLATIONS = {
         "appSettings.danger.confirm": "Êtes-vous sûr ? Votre compte et toutes les conversations seront définitivement supprimés.",
 
         "settings.title": "Profil",
-        "settings.subtitle": "L'IA utilise ces informations pour rédiger ses réponses — gardez-les à jour.",
         "settings.account.heading": "Compte",
         "settings.account.subtitle": "Qui vous êtes et comment les clients vous contactent.",
         "settings.businessName": "Nom de l'entreprise",
@@ -1786,7 +1775,6 @@ const TRANSLATIONS = {
         "subscription.paddleNoteLine1": "Le paiement est traité en toute sécurité par Paddle, notre revendeur agréé.",
         "subscription.paddleNoteLine2": "Votre essai gratuit de 14 jours inclut toutes les fonctionnalités Pro — nous vous enverrons un rappel par e-mail avant la fin.",
 
-        "schedule.subtitle": "Gérez votre agenda de rendez-vous.",
         "schedule.appointmentLength": "Durée du rendez-vous",
         "schedule.locked.title": "L'agenda est une fonctionnalité du forfait Pro",
         "schedule.locked.body": "Consultez et gérez un calendrier journalier/hebdomadaire, et laissez l'IA prendre, rappeler et reprogrammer les rendez-vous directement depuis les DM Instagram.",
@@ -2141,7 +2129,6 @@ const TRANSLATIONS = {
         "connectMobile.fallbackNote": "Falls sich dies nicht von selbst schließt, kannst du diesen Tab einfach schließen.",
 
         "appSettings.title": "Einstellungen",
-        "appSettings.subtitle": "App-Einstellungen, Rechtliches und Kontodaten.",
         "appSettings.preferences.heading": "Einstellungen",
         "appSettings.theme": "Design",
         "appSettings.themeSystem": "System",
@@ -2169,7 +2156,6 @@ const TRANSLATIONS = {
         "appSettings.danger.confirm": "Bist du sicher? Dein Konto und alle Konversationen werden dauerhaft gelöscht.",
 
         "settings.title": "Profil",
-        "settings.subtitle": "Die KI nutzt diese Informationen, um Antworten zu verfassen — halte sie aktuell.",
         "settings.account.heading": "Konto",
         "settings.account.subtitle": "Wer du bist und wie Kunden dich erreichen.",
         "settings.businessName": "Unternehmensname",
@@ -2243,7 +2229,6 @@ const TRANSLATIONS = {
         "subscription.paddleNoteLine1": "Die Zahlung wird sicher über Paddle, unseren autorisierten Reseller, abgewickelt.",
         "subscription.paddleNoteLine2": "Deine 14-tägige kostenlose Testphase umfasst alle Pro-Funktionen — wir schicken dir vorher eine Erinnerung per E-Mail.",
 
-        "schedule.subtitle": "Verwalte deinen Terminkalender.",
         "schedule.appointmentLength": "Termindauer",
         "schedule.locked.title": "Der Terminkalender ist eine Pro-Plan-Funktion",
         "schedule.locked.body": "Sieh dir einen Tages-/Wochenkalender an und verwalte ihn, und lass die KI Termine direkt aus Instagram-DMs buchen, erinnern und umbuchen.",
@@ -2598,7 +2583,6 @@ const TRANSLATIONS = {
         "connectMobile.fallbackNote": "Se questa pagina non si chiude da sola, puoi chiudere questa scheda.",
 
         "appSettings.title": "Impostazioni",
-        "appSettings.subtitle": "Preferenze dell'app, legale e dati dell'account.",
         "appSettings.preferences.heading": "Preferenze",
         "appSettings.theme": "Tema",
         "appSettings.themeSystem": "Sistema",
@@ -2626,7 +2610,6 @@ const TRANSLATIONS = {
         "appSettings.danger.confirm": "Sei sicuro? Il tuo account e tutte le conversazioni saranno eliminati definitivamente.",
 
         "settings.title": "Profilo",
-        "settings.subtitle": "L'IA usa queste informazioni per redigere le risposte — mantienile aggiornate.",
         "settings.account.heading": "Account",
         "settings.account.subtitle": "Chi sei e come i clienti ti raggiungono.",
         "settings.businessName": "Nome dell'attività",
@@ -2700,7 +2683,6 @@ const TRANSLATIONS = {
         "subscription.paddleNoteLine1": "Il pagamento è elaborato in modo sicuro da Paddle, il nostro rivenditore autorizzato.",
         "subscription.paddleNoteLine2": "La tua prova gratuita di 14 giorni include tutte le funzioni Pro — ti invieremo un promemoria via email prima della fine.",
 
-        "schedule.subtitle": "Gestisci il tuo calendario appuntamenti.",
         "schedule.appointmentLength": "Durata dell'appuntamento",
         "schedule.locked.title": "L'Agenda è una funzione del piano Pro",
         "schedule.locked.body": "Visualizza e gestisci un calendario giornaliero/settimanale, e lascia che l'IA prenoti, ricordi e riprogrammi gli appuntamenti direttamente dai DM Instagram.",
@@ -3055,7 +3037,6 @@ const TRANSLATIONS = {
         "connectMobile.fallbackNote": "Если это окно не закроется само, можете закрыть эту вкладку.",
 
         "appSettings.title": "Настройки",
-        "appSettings.subtitle": "Настройки приложения, правовая информация и данные аккаунта.",
         "appSettings.preferences.heading": "Настройки приложения",
         "appSettings.theme": "Тема",
         "appSettings.themeSystem": "Системная",
@@ -3083,7 +3064,6 @@ const TRANSLATIONS = {
         "appSettings.danger.confirm": "Вы уверены? Ваш аккаунт и все разговоры будут удалены навсегда.",
 
         "settings.title": "Профиль",
-        "settings.subtitle": "ИИ использует эту информацию для составления ответов — держите её актуальной.",
         "settings.account.heading": "Аккаунт",
         "settings.account.subtitle": "Кто вы и как клиенты с вами связываются.",
         "settings.businessName": "Название бизнеса",
@@ -3157,7 +3137,6 @@ const TRANSLATIONS = {
         "subscription.paddleNoteLine1": "Оплата безопасно обрабатывается через Paddle, нашего уполномоченного реселлера.",
         "subscription.paddleNoteLine2": "14-дневный бесплатный пробный период включает все функции Pro — мы пришлём напоминание по почте перед его окончанием.",
 
-        "schedule.subtitle": "Управляйте своим календарём записей.",
         "schedule.appointmentLength": "Длительность записи",
         "schedule.locked.title": "Расписание - функция плана Pro",
         "schedule.locked.body": "Просматривайте и управляйте дневным/недельным календарём, и позвольте ИИ записывать, напоминать и переносить записи прямо из директ-сообщений Instagram.",
@@ -3512,7 +3491,6 @@ const TRANSLATIONS = {
         "connectMobile.fallbackNote": "Ako se ovo ne zatvori samo, slobodno zatvorite ovu karticu.",
 
         "appSettings.title": "Podešavanja",
-        "appSettings.subtitle": "Podešavanja aplikacije, pravna dokumenta i podaci naloga.",
         "appSettings.preferences.heading": "Podešavanja aplikacije",
         "appSettings.theme": "Tema",
         "appSettings.themeSystem": "Sistemski",
@@ -3549,7 +3527,6 @@ const TRANSLATIONS = {
         "appSettings.danger.confirm": "Da li ste sigurni? Vaš nalog i svi razgovori biće trajno obrisani.",
 
         "settings.title": "Profil",
-        "settings.subtitle": "AI koristi ove informacije da sastavi odgovore — održavajte ih ažurnim.",
         "settings.account.heading": "Nalog",
         "settings.account.subtitle": "Ko ste vi i kako vas mušterije kontaktiraju.",
         "settings.businessName": "Naziv biznisa",
@@ -3623,7 +3600,6 @@ const TRANSLATIONS = {
         "subscription.paddleNoteLine1": "Plaćanje bezbedno obrađuje Paddle, naš ovlašćeni preprodavac.",
         "subscription.paddleNoteLine2": "Besplatni probni period od 14 dana uključuje sve Pro funkcije — poslaćemo vam podsetnik imejlom pre isteka.",
 
-        "schedule.subtitle": "Upravljajte svojim kalendarom termina.",
         "schedule.appointmentLength": "Trajanje termina",
         "schedule.locked.title": "Raspored je funkcija Pro plana",
         "schedule.locked.body": "Pregledajte i upravljajte dnevnim/nedeljnim kalendarom, i dozvolite AI-ju da zakazuje, podseća i premešta termine direktno iz Instagram poruka.",
@@ -3978,7 +3954,6 @@ const TRANSLATIONS = {
         "connectMobile.fallbackNote": "如果此页面没有自动关闭,请直接关闭此标签页。",
 
         "appSettings.title": "设置",
-        "appSettings.subtitle": "应用偏好设置、法律信息和账户数据。",
         "appSettings.preferences.heading": "偏好设置",
         "appSettings.theme": "主题",
         "appSettings.themeSystem": "跟随系统",
@@ -4006,7 +3981,6 @@ const TRANSLATIONS = {
         "appSettings.danger.confirm": "您确定吗?您的账户和所有对话将被永久删除。",
 
         "settings.title": "个人资料",
-        "settings.subtitle": "AI使用这些信息来撰写回复——请保持信息更新。",
         "settings.account.heading": "账户",
         "settings.account.subtitle": "您是谁,以及顾客如何联系您。",
         "settings.businessName": "商家名称",
@@ -4080,7 +4054,6 @@ const TRANSLATIONS = {
         "subscription.paddleNoteLine1": "付款由我们的授权经销商Paddle安全处理。",
         "subscription.paddleNoteLine2": "14天免费试用包含所有Pro功能——试用结束前我们会通过邮件提醒您。",
 
-        "schedule.subtitle": "管理您的预约日历。",
         "schedule.appointmentLength": "预约时长",
         "schedule.locked.title": "日程安排是Pro套餐功能",
         "schedule.locked.body": "查看并管理日/周日历,让AI直接通过Instagram私信预约、提醒和改期。",
@@ -4435,7 +4408,6 @@ const TRANSLATIONS = {
         "connectMobile.fallbackNote": "Bu sayfa kendiliğinden kapanmazsa, bu sekmeyi kapatabilirsiniz.",
 
         "appSettings.title": "Ayarlar",
-        "appSettings.subtitle": "Uygulama tercihleri, yasal bilgiler ve hesap verileri.",
         "appSettings.preferences.heading": "Tercihler",
         "appSettings.theme": "Tema",
         "appSettings.themeSystem": "Sistem",
@@ -4463,7 +4435,6 @@ const TRANSLATIONS = {
         "appSettings.danger.confirm": "Emin misiniz? Hesabınız ve tüm konuşmalarınız kalıcı olarak silinecek.",
 
         "settings.title": "Profil",
-        "settings.subtitle": "Yapay zekâ yanıt yazmak için bu bilgileri kullanır — güncel tutun.",
         "settings.account.heading": "Hesap",
         "settings.account.subtitle": "Kim olduğunuz ve müşterilerin size nasıl ulaştığı.",
         "settings.businessName": "İşletme adı",
@@ -4537,7 +4508,6 @@ const TRANSLATIONS = {
         "subscription.paddleNoteLine1": "Ödeme, yetkili bayimiz Paddle tarafından güvenle işlenir.",
         "subscription.paddleNoteLine2": "14 günlük ücretsiz deneme tüm Pro özelliklerini içerir — deneme bitmeden önce size e-posta ile hatırlatacağız.",
 
-        "schedule.subtitle": "Randevu takviminizi yönetin.",
         "schedule.appointmentLength": "Randevu süresi",
         "schedule.locked.title": "Program bir Pro plan özelliğidir",
         "schedule.locked.body": "Günlük/haftalık bir takvimi görüntüleyin ve yönetin, yapay zekânın randevuları doğrudan Instagram DM'lerinden almasına, hatırlatmasına ve yeniden planlamasına izin verin.",
