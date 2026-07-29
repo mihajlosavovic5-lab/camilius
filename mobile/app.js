@@ -2053,6 +2053,7 @@ function buildAvatar(c) {
     const img = document.createElement("img");
     img.className = "inbox-avatar inbox-avatar-img";
     img.alt = "";
+    img.onload = () => img.classList.add("loaded");
     img.onerror = async () => {
         img.onerror = () => img.replaceWith(buildLetterAvatar(c.sender));
         try {

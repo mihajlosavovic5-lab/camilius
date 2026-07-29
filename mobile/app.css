@@ -737,7 +737,16 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
     display: flex; align-items: center; justify-content: center;
     background: var(--primary-light); color: var(--primary-ink); font-weight: 700; font-size: 16px; text-transform: uppercase;
 }
-.inbox-avatar-img { object-fit: cover; background: none; }
+/* Starts invisible (over the same --primary-light placeholder circle the letter avatar
+   uses) and fades in once the real photo has actually loaded, instead of sitting empty/
+   blank next to the sender name and message text - which had already rendered
+   synchronously - for however long the network fetch takes. Reads as one thing settling
+   in together instead of the photo popping in separately a beat after the text. */
+.inbox-avatar-img {
+    object-fit: cover; background: var(--primary-light);
+    opacity: 0; transition: opacity .2s ease;
+}
+.inbox-avatar-img.loaded { opacity: 1; }
 .inbox-row-main { flex: 1; min-width: 0; }
 .inbox-row-top { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; min-width: 0; }
 /* min-width:0 - as a flex child, .inbox-sender otherwise refuses to shrink below its
