@@ -233,7 +233,6 @@ const TRANSLATIONS = {
         "profile.title": "Profile",
 
         "appSettings.title": "Settings",
-        "appSettings.preferences": "Preferences",
         "appSettings.language": "Language",
         "appSettings.theme": "Theme",
         "appSettings.themeSystem": "System",
@@ -523,7 +522,6 @@ const TRANSLATIONS = {
         "profile.title": "Profil",
 
         "appSettings.title": "Podešavanja",
-        "appSettings.preferences": "Podešavanja aplikacije",
         "appSettings.language": "Jezik",
         "appSettings.theme": "Tema",
         "appSettings.themeSystem": "Sistemski",
@@ -809,7 +807,6 @@ const TRANSLATIONS = {
         "profile.title": "Perfil",
 
         "appSettings.title": "Ajustes",
-        "appSettings.preferences": "Preferencias",
         "appSettings.language": "Idioma",
         "appSettings.theme": "Tema",
         "appSettings.themeSystem": "Sistema",
@@ -1095,7 +1092,6 @@ const TRANSLATIONS = {
         "profile.title": "Perfil",
 
         "appSettings.title": "Configurações",
-        "appSettings.preferences": "Preferências",
         "appSettings.language": "Idioma",
         "appSettings.theme": "Tema",
         "appSettings.themeSystem": "Sistema",
@@ -1381,7 +1377,6 @@ const TRANSLATIONS = {
         "profile.title": "Profil",
 
         "appSettings.title": "Paramètres",
-        "appSettings.preferences": "Préférences",
         "appSettings.language": "Langue",
         "appSettings.theme": "Thème",
         "appSettings.themeSystem": "Système",
@@ -1667,7 +1662,6 @@ const TRANSLATIONS = {
         "profile.title": "Profil",
 
         "appSettings.title": "Einstellungen",
-        "appSettings.preferences": "Einstellungen",
         "appSettings.language": "Sprache",
         "appSettings.theme": "Design",
         "appSettings.themeSystem": "System",
@@ -1953,7 +1947,6 @@ const TRANSLATIONS = {
         "profile.title": "Profilo",
 
         "appSettings.title": "Impostazioni",
-        "appSettings.preferences": "Preferenze",
         "appSettings.language": "Lingua",
         "appSettings.theme": "Tema",
         "appSettings.themeSystem": "Sistema",
@@ -2239,7 +2232,6 @@ const TRANSLATIONS = {
         "profile.title": "Профиль",
 
         "appSettings.title": "Настройки",
-        "appSettings.preferences": "Настройки приложения",
         "appSettings.language": "Язык",
         "appSettings.theme": "Тема",
         "appSettings.themeSystem": "Системная",
@@ -2525,7 +2517,6 @@ const TRANSLATIONS = {
         "profile.title": "个人资料",
 
         "appSettings.title": "设置",
-        "appSettings.preferences": "偏好设置",
         "appSettings.language": "语言",
         "appSettings.theme": "主题",
         "appSettings.themeSystem": "跟随系统",
@@ -2811,7 +2802,6 @@ const TRANSLATIONS = {
         "profile.title": "Profil",
 
         "appSettings.title": "Ayarlar",
-        "appSettings.preferences": "Tercihler",
         "appSettings.language": "Dil",
         "appSettings.theme": "Tema",
         "appSettings.themeSystem": "Sistem",
