@@ -257,8 +257,6 @@ const TRANSLATIONS = {
         "pickers.pricePlaceholder": "Price",
         "pickers.addonPlaceholder": "Suggested add-on",
 
-        "notifications.heading": "Notifications",
-        "notifications.empty": "No notifications yet.",
         "installBanner.text": "Get the Camilius app for a faster, native experience.",
         "installBanner.install": "Install",
 
@@ -3467,8 +3465,6 @@ const TRANSLATIONS = {
         "pickers.pricePlaceholder": "Cena",
         "pickers.addonPlaceholder": "Predložena dodatna usluga",
 
-        "notifications.heading": "Notifikacije",
-        "notifications.empty": "Još uvek nema notifikacija.",
         "installBanner.text": "Preuzmite Camilius aplikaciju za brže, nativnije iskustvo.",
         "installBanner.install": "Instaliraj",
 

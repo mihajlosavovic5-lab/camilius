@@ -472,41 +472,6 @@ a:focus-visible, button:focus-visible, [tabindex]:focus-visible {
 .nav-menu-btn.open .nav-menu-btn-bar:nth-child(2) { opacity: 0; }
 .nav-menu-btn.open .nav-menu-btn-bar:nth-child(3) { transform: translateY(-6px) rotate(-45deg); }
 
-/* --- Notification bell (logged-in nav, _nav.html) - owner appointment reminders
-   (reminders.py) land here instead of an email; the mobile app shows the same
-   notifications via its own bell/screen. Shown at every width, unlike .nav-menu-btn
-   which only appears once the nav collapses. --- */
-.notif-bell { position: relative; }
-.notif-bell-btn {
-    position: relative; display: flex; align-items: center; justify-content: center;
-    width: 36px; height: 36px; flex-shrink: 0;
-    border: 1px solid transparent; border-radius: 8px; background: none; cursor: pointer;
-    color: var(--text-muted);
-}
-.notif-bell-btn:hover { background: var(--surface); border-color: var(--border); color: var(--text); }
-.notif-bell-icon { width: 20px; height: 20px; }
-.notif-bell-badge {
-    position: absolute; top: 2px; right: 2px; min-width: 15px; height: 15px;
-    padding: 0 3px; border-radius: 999px; background: var(--primary); color: #fff;
-    font-size: 10px; font-weight: 700; line-height: 15px; text-align: center;
-}
-.notif-bell-badge.hidden { display: none; }
-.notif-bell-panel {
-    display: none; position: absolute; top: calc(100% + 8px); right: 0; z-index: 999;
-    width: 320px; max-width: calc(100vw - 32px);
-    background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
-    box-shadow: var(--shadow-lg); overflow: hidden;
-}
-.notif-bell-panel.open { display: block; }
-.notif-bell-panel-header { padding: 12px 14px; font-weight: 600; font-size: 14px; border-bottom: 1px solid var(--border); }
-.notif-bell-panel-list { max-height: 340px; overflow-y: auto; }
-.notif-bell-empty { padding: 20px 14px; color: var(--text-muted); font-size: 13.5px; text-align: center; }
-.notif-bell-item { padding: 10px 14px; border-bottom: 1px solid var(--border); }
-.notif-bell-item:last-child { border-bottom: none; }
-.notif-bell-item-unread { background: color-mix(in srgb, var(--primary) 7%, transparent); }
-.notif-bell-item-title { font-weight: 600; font-size: 13.5px; margin-bottom: 2px; }
-.notif-bell-item-body { font-size: 13px; color: var(--text-muted); }
-
 @media (max-width: 640px) {
     /* Reserve room for the fixed top-right language flag (.site-lang-select-btn,
        base.html), same reason as the desktop padding-right above - without it the
