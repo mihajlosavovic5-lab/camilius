@@ -70,6 +70,8 @@ def _owner_reminder_notification_body(customer_name, service, start_local, minut
 
 
 def send_appointment_reminders_if_needed():
+    from app import BETA_FREE_MODE  # deferred: avoid circular import at module load
+
     now = now_local()
     business_cache = {}
 
@@ -85,8 +87,11 @@ def send_appointment_reminders_if_needed():
 
         # Re-checked here (not just at toggle-time) so a business that downgraded off
         # Pro after turning this on stops getting reminders sent immediately, without
-        # needing to separately flip the toggle back off.
-        if not has_pro_access(business_id):
+        # needing to separately flip the toggle back off. BETA_FREE_MODE included so this
+        # matches every other Pro gate (Schedule, upsell, the settings toggle itself) -
+        # without it, a BETA_FREE_MODE business could turn the toggle on but never
+        # actually get a reminder, since has_pro_access() alone ignores that override.
+        if not (BETA_FREE_MODE or has_pro_access(business_id)):
             continue
 
         # Aware-datetime subtraction is instant-based regardless of each side's specific

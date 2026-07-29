@@ -4,6 +4,7 @@ mobile app) plus a best-effort OS push instead. This covers that behavior direct
 against the real CI Postgres, same pattern as test_appointments_db.py."""
 from datetime import timedelta
 
+import app as app_module
 import database
 import reminders as reminders_module
 from booking import BUSINESS_TZ, now_local
@@ -41,3 +42,42 @@ def test_owner_reminder_creates_notification_and_attempts_push_instead_of_email(
     # A second run within the same tolerance window must not double-send.
     reminders_module.send_appointment_reminders_if_needed()
     assert len(database.notifications_for_business(business_id)) == 1
+
+
+def test_owner_reminder_fires_under_beta_free_mode_without_real_pro_access(client, unique_username, unique_email, monkeypatch):
+    # BETA_FREE_MODE unlocks the reminders toggle in Settings for every business
+    # regardless of real subscription status (same as Schedule/upsell) - the send-time
+    # re-check here must honor that too, not just has_pro_access() alone, or a
+    # BETA_FREE_MODE business could turn the toggle on and never actually get a reminder.
+    reg = register_business(client, unique_username, unique_email)
+    business_id = reg.get_json()["business_id"]
+    database.link_subscription(business_id, "cust", "sub", "active", plan="starter")
+    assert database.has_pro_access(business_id) is False
+
+    database.set_owner_reminders_enabled(business_id, True)
+    database.set_reminder_minutes(business_id, 1440, 60)
+    start = (now_local() + timedelta(minutes=60)).astimezone(BUSINESS_TZ)
+    database.create_appointment(business_id, "Bob", start, start + timedelta(minutes=30))
+
+    monkeypatch.setattr(reminders_module, "send_push_to_business", lambda *args, **kwargs: None)
+    reminders_module.send_appointment_reminders_if_needed()
+
+    assert len(database.notifications_for_business(business_id)) == 1
+
+
+def test_owner_reminder_skipped_without_pro_access_when_beta_free_mode_is_off(client, unique_username, unique_email, monkeypatch):
+    # Once BETA_FREE_MODE is turned off (real launch), a non-Pro business must go back to
+    # getting nothing - same real gating as every other Pro-only feature.
+    monkeypatch.setattr(app_module, "BETA_FREE_MODE", False)
+    reg = register_business(client, unique_username, unique_email)
+    business_id = reg.get_json()["business_id"]
+    database.link_subscription(business_id, "cust", "sub", "active", plan="starter")
+
+    database.set_owner_reminders_enabled(business_id, True)
+    database.set_reminder_minutes(business_id, 1440, 60)
+    start = (now_local() + timedelta(minutes=60)).astimezone(BUSINESS_TZ)
+    database.create_appointment(business_id, "Cara", start, start + timedelta(minutes=30))
+
+    reminders_module.send_appointment_reminders_if_needed()
+
+    assert database.notifications_for_business(business_id) == []
