@@ -381,15 +381,11 @@ function createAnchoredListPicker(modalId) {
     function open(triggerBtn, options, currentValue, onSelect) {
         openTriggerBtn = triggerBtn;
         list.innerHTML = "";
-        let selectedEl = null;
         options.forEach((opt) => {
             const optionBtn = document.createElement("button");
             optionBtn.type = "button";
             optionBtn.className = "country-option-btn";
-            if (opt === currentValue) {
-                optionBtn.classList.add("selected");
-                selectedEl = optionBtn;
-            }
+            if (opt === currentValue) optionBtn.classList.add("selected");
             optionBtn.textContent = opt;
             optionBtn.addEventListener("click", () => {
                 onSelect(opt);
@@ -412,7 +408,10 @@ function createAnchoredListPicker(modalId) {
         sheet.style.width = `${rect.width}px`;
         sheet.style.maxHeight = `${Math.max(160, Math.min(240, available))}px`;
         modal.classList.add("open");
-        if (selectedEl) selectedEl.scrollIntoView({ block: "center" });
+        // Always open scrolled to the very top of the list, not centered on whichever
+        // option is currently selected - centering could leave the first option cut off
+        // above the visible area, reading as if the list started mid-way through itself.
+        list.scrollTop = 0;
     }
     function close() {
         modal.classList.remove("open");
