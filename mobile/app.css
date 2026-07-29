@@ -52,7 +52,10 @@ html, body {
 body {
     margin: 0;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-    background: var(--background);
+    /* Same warm gold-wash-into-background gradient as the website's own <body> (see
+       static/style.css) and this file's .screen-login below, instead of a flat white -
+       so the app reads as the same product as the site rather than a plain default. */
+    background: linear-gradient(180deg, var(--primary-light) 0%, var(--background) 42%);
     color: var(--text);
     line-height: 1.5;
     -webkit-font-smoothing: antialiased;
@@ -67,7 +70,11 @@ button { font-family: inherit; }
 .screen {
     position: absolute; inset: 0;
     display: flex; flex-direction: column;
-    background: var(--background);
+    /* Same warm gold-wash gradient as <body> above/the website - .screen-login and
+       .screen-onboarding each still override this with their own bespoke background
+       further down the file, so only screens without one of those (Inbox, Schedule,
+       Profile, Settings, and the rest) actually pick this up. */
+    background: linear-gradient(180deg, var(--primary-light) 0%, var(--background) 42%);
     transform: translateX(100%);
     transition: transform .22s ease;
     visibility: hidden;
@@ -118,13 +125,12 @@ button { font-family: inherit; }
 .brand-name { font-family: Georgia, "Times New Roman", serif; font-weight: 700; font-size: 20px; }
 
 /* --- Login screen --- */
-/* A warm gradient wash (this brand's own gold, not IG's stark white) plus the badge/
-   accent treatment below are deliberately original touches - this screen started as a
-   close copy of Instagram's login for a layout reference, and these are the changes
-   that keep the same overall flow but make it read as its own design. */
+/* The gradient wash is now just .screen's own default background (every screen has it) -
+   the badge/accent treatment below is this screen's own deliberately original touch, on
+   top of that shared gradient, to read as its own design rather than a copy of
+   Instagram's login (which is where this screen started as a layout reference). */
 .screen-login {
     overflow: hidden;
-    background: linear-gradient(180deg, var(--primary-light) 0%, var(--background) 42%);
 }
 .login-wrap {
     position: relative; z-index: 1;
