@@ -1826,6 +1826,30 @@ body.landing .content { padding-top: 32px; }
     .lp-step-visual, .lp-step-mode { font-size: 13px; padding: 9px 10px; }
 }
 
+/* "How it works" only, wide viewports: .content caps out at 960px (border-box,
+   so that's its full rendered width once the viewport is wide enough), which
+   made the 4-card row above cramped even though there's clearly more room in
+   the browser window. This lets just the .steps grid break out wider than its
+   960px parent via negative side margins - -110px each side is exact for a
+   1180px result (960 - 1180 = -220, split across both sides), safe once
+   min-width comfortably clears 960 + .content's 40px padding so .content is
+   reliably already pinned to its 960px cap. Nothing else on the page (or on
+   narrower screens) is affected. */
+@media (min-width: 1040px) {
+    .steps {
+        max-width: 1180px;
+        margin-left: -110px;
+        margin-right: -110px;
+        gap: 22px;
+    }
+    .step { padding: 30px 20px; }
+    .step-number { width: 48px; height: 48px; font-size: 19.5px; }
+    .step h3 { font-size: 18px; }
+    .step p.lp-step-desc-main { font-size: 15.5px; }
+    .step p.lp-step-desc-sub { font-size: 14px; }
+    .lp-step-visual, .lp-step-mode { font-size: 14px; padding: 10px 12px; }
+}
+
 .price-card { max-width: 380px; margin: 0 auto; text-align: center; padding: 30px; }
 .price-card .button:hover { text-decoration: none; }
 
