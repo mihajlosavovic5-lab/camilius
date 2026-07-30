@@ -106,7 +106,7 @@
 /* --- Site-wide language picker (fixed top-right on every page, base.html) - a
    flag+chevron button opening a dropdown of the same 10 languages (each shown with
    its own flag), translations applied client-side via static/site-i18n.js. --- */
-:root { --install-banner-h: 0px; }
+:root { --install-banner-h: 0px; --lp-header-half-h: 37px; }
 /* z-index must clear #lp-header's 999 (landing page's fixed full-width header) - it's
    transparent so the button paints visibly through it, but without this it still
    swallows clicks aimed at the button underneath. */
@@ -121,6 +121,21 @@
 }
 .site-lang-select-btn:hover { transform: scale(1.08); }
 .site-lang-select-btn.active .site-lang-chevron { transform: rotate(180deg); }
+/* Landing page's #lp-header stays position:fixed at every viewport width
+   (unlike .navbar elsewhere, which only pins itself below 640px, see the
+   max-width:640px .navbar rule further down) - so on the landing page the
+   flag needs to be pinned the same way, or it scrolls away above the
+   ever-present header after ~16px and never reappears. --lp-header-half-h
+   is kept in sync with the header's real (scroll-dependent) height by
+   landing.html's scroll handler, so top:50%/translateY(-50%) here centers
+   the flag on the header exactly like #lp-corner-brand/.lp-menu-btn above,
+   in both the unscrolled and scrolled (shorter-padding) states. */
+body.landing .site-lang-select-btn {
+    position: fixed;
+    top: calc(var(--lp-header-half-h) + var(--install-banner-h));
+    transform: translateY(-50%);
+}
+body.landing .site-lang-select-btn:hover { transform: translateY(-50%) scale(1.08); }
 .site-lang-flag {
     width: 32px; height: 23px; object-fit: cover; border-radius: 5px; flex-shrink: 0;
     box-shadow: 0 0 0 1px rgba(20,15,8,.15), var(--shadow-lg);
@@ -1962,9 +1977,13 @@ body.lp-menu-open { position: fixed; left: 0; right: 0; width: 100%; overflow: h
    handler) - #lp-header is fixed/full-width so absolute here resolves against
    the viewport, not the centered .public-header. Resets the button's own
    default appearance (border/background/font) back to plain text, since
-   .brand is shared with plain non-interactive <span> markup elsewhere. */
+   .brand is shared with plain non-interactive <span> markup elsewhere.
+   top: 50%/translateY(-50%) (not a fixed px top) centers it on #lp-header's
+   own height regardless of the header's scroll-driven padding shrink (18px
+   unscrolled vs 12px scrolled, see #lp-header.lp-scrolled) - a fixed top
+   offset stayed correct for only one of those two states. */
 #lp-corner-brand {
-    position: absolute; top: 20px; left: 50%; transform: translateX(-50%);
+    position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
     background: none; border: none; padding: 0; font: inherit; cursor: pointer;
 }
 /* Same dim+disable treatment as body.lp-menu-open .site-lang-select-btn above -
@@ -1997,8 +2016,15 @@ body.lp-menu-open .support-widget {
     display: inline-flex;
     /* z-index above .lp-menu-modal's 1002 - the drawer now covers this same
        corner (full-height, from left:0), so the button (turned into an "X")
-       must stay on top of it to remain visible/clickable as the close control. */
-    position: absolute; top: 20px; left: 20px; z-index: 1003;
+       must stay on top of it to remain visible/clickable as the close control.
+       top: 50%/translateY(-50%) (not a fixed px top) centers it on #lp-header's
+       own height regardless of the header's scroll-driven padding shrink (18px
+       unscrolled vs 12px scrolled, see #lp-header.lp-scrolled) - a fixed top
+       offset stayed correct for only one of those two states. The hover/active
+       rules below re-state this translateY alongside their own scale() so the
+       button doesn't jump back to a plain top-anchored position on interaction. */
+    position: absolute; top: 50%; left: 20px; z-index: 1003;
+    transform: translateY(-50%);
     width: 34px; height: 34px; align-items: center; justify-content: center;
     flex-direction: column; gap: 5px;
     background: none; border: none; border-radius: 50%; cursor: pointer; padding: 0;
@@ -2017,10 +2043,10 @@ body.lp-menu-open .support-widget {
    than a plain scale. Desktop keeps the richer treatment since a mouse
    actually leaves on its own. */
 @media (hover: hover) and (pointer: fine) {
-    .lp-menu-btn:hover { transform: scale(1.08); background-color: var(--primary-light); }
+    .lp-menu-btn:hover { transform: translateY(-50%) scale(1.08); background-color: var(--primary-light); }
     .lp-menu-btn:hover span { background: var(--primary-ink); }
 }
-.lp-menu-btn:active { transform: scale(.92); }
+.lp-menu-btn:active { transform: translateY(-50%) scale(.92); }
 .lp-menu-btn:focus-visible {
     outline: 2px solid var(--primary); outline-offset: 2px;
 }

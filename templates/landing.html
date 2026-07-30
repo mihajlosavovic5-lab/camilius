@@ -604,6 +604,12 @@
     function onScroll() {
         var scrollTop = window.scrollY || document.documentElement.scrollTop;
         header.classList.toggle('lp-scrolled', scrollTop > 12);
+        // Keeps the fixed top-right language flag (.site-lang-select-btn,
+        // base.html - lives outside #lp-header entirely) vertically centered
+        // on the header via CSS var --lp-header-half-h (see style.css), so it
+        // tracks the header's own real height instead of drifting off-center
+        // when #lp-header.lp-scrolled shrinks its padding (18px -> 12px).
+        document.documentElement.style.setProperty('--lp-header-half-h', (header.offsetHeight / 2) + 'px');
         var docHeight = document.documentElement.scrollHeight - window.innerHeight;
         var pct = docHeight > 0 ? (scrollTop / docHeight) * 100 : 0;
         progress.style.width = pct + '%';
