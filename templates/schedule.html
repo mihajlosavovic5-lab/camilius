@@ -1,6 +1,63 @@
 {% extends "base.html" %}
 {% block title %}Schedule - {{ session['business_name'] }}{% endblock %}
 
+{% macro render_slot_row(row) %}
+    <div class="schedule-timeline-row {{ 'schedule-timeline-hour' if row.time.endswith(':00') }}">
+        <div class="schedule-timeline-time">{{ row.time }}</div>
+        <div class="schedule-timeline-content">
+            {% if row.appointment %}
+                <div class="card schedule-slot schedule-slot-booked">
+                    <div class="schedule-slot-info">
+                        <strong>{{ row.appointment.customer_name }}</strong>
+                        {% if row.appointment.service %}<span class="note">{{ row.appointment.service }}</span>{% endif %}
+                        <span class="note schedule-slot-range">{{ row.appointment.start_local.strftime('%H:%M') }}&ndash;{{ row.appointment.end_local.strftime('%H:%M') }}</span>
+                        <span class="badge {{ 'badge-sent' if row.appointment.source == 'ai' else 'badge-pending' }}"><span class="badge-dot"></span><span data-i18n="{{ 'schedule.aiBooked' if row.appointment.source == 'ai' else 'schedule.manual' }}">{{ 'AI booked' if row.appointment.source == 'ai' else 'Manual' }}</span></span>
+                    </div>
+                    <form method="POST" action="{{ url_for('cancel_appointment_route', appointment_id=row.appointment.id) }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <input type="hidden" name="date" value="{{ selected_date.isoformat() }}">
+                        <input type="hidden" name="view" value="day">
+                        <button class="button button-secondary" type="submit" data-i18n="schedule.cancel">Cancel</button>
+                    </form>
+                </div>
+            {% elif row.covered_by %}
+                <div class="schedule-slot schedule-slot-covered">
+                    <span class="note"><span data-i18n="schedule.partOfAppointment">Part of</span> {{ row.covered_by.customer_name }}{% if row.covered_by.service %}&rsquo;s {{ row.covered_by.service }}{% endif %}</span>
+                </div>
+            {% elif row.is_past %}
+                <div class="schedule-slot schedule-slot-free schedule-slot-past">
+                    <span class="note" data-i18n="schedule.past">Past</span>
+                </div>
+            {% else %}
+                <div class="schedule-slot schedule-slot-free">
+                    <form method="POST" action="{{ url_for('create_appointment_route') }}" class="schedule-slot-form">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <input type="hidden" name="date" value="{{ selected_date.isoformat() }}">
+                        <input type="hidden" name="time" value="{{ row.time }}">
+                        <input type="text" name="customer_name" data-i18n-placeholder="schedule.customerNamePlaceholder" placeholder="Customer name" required>
+                        <input type="text" name="service" data-i18n-placeholder="schedule.servicePlaceholder" placeholder="Service (optional)">
+                        <div class="duration-dd">
+                            <input type="hidden" name="duration" class="duration-dd-value" value="{{ slot_minutes }}">
+                            <button type="button" class="schedule-slot-duration-select duration-dd-trigger" aria-haspopup="listbox" aria-expanded="false">{{ slot_minutes }} min</button>
+                            <div class="duration-dd-menu hidden" role="listbox">
+                                {% for choice in slot_duration_choices %}
+                                    <button type="button" class="duration-dd-option {{ 'active' if choice == slot_minutes }}" data-value="{{ choice }}" data-label="{{ choice }} min">{{ choice }} min</button>
+                                {% endfor %}
+                                {% if slot_minutes not in slot_duration_choices %}
+                                    <button type="button" class="duration-dd-option active" data-value="{{ slot_minutes }}" data-label="{{ slot_minutes }} min">{{ slot_minutes }} min</button>
+                                {% endif %}
+                                <button type="button" class="duration-dd-option duration-dd-option-custom" data-value="custom" data-label="Custom" data-i18n="schedule.custom">Custom</button>
+                            </div>
+                            <input type="number" name="duration_custom" class="schedule-slot-duration-custom hidden" min="{{ slot_duration_min }}" max="{{ slot_duration_max }}" step="5" disabled data-i18n-placeholder="schedule.custom" placeholder="Custom">
+                        </div>
+                        <button class="button" type="submit" data-i18n="schedule.book">Book</button>
+                    </form>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+{% endmacro %}
+
 {% block content %}
 {% include "_nav.html" %}
 
@@ -118,64 +175,31 @@
                 <p data-i18n="schedule.closedOnDay.body">Pick another date, or update your working hours in Profile.</p>
             </div>
         {% else %}
-            <div class="schedule-timeline">
-                {% for row in slot_rows %}
-                    <div class="schedule-timeline-row {{ 'schedule-timeline-hour' if row.time.endswith(':00') }}">
-                        <div class="schedule-timeline-time">{{ row.time }}</div>
-                        <div class="schedule-timeline-content">
-                            {% if row.appointment %}
-                                <div class="card schedule-slot schedule-slot-booked">
-                                    <div class="schedule-slot-info">
-                                        <strong>{{ row.appointment.customer_name }}</strong>
-                                        {% if row.appointment.service %}<span class="note">{{ row.appointment.service }}</span>{% endif %}
-                                        <span class="note schedule-slot-range">{{ row.appointment.start_local.strftime('%H:%M') }}&ndash;{{ row.appointment.end_local.strftime('%H:%M') }}</span>
-                                        <span class="badge {{ 'badge-sent' if row.appointment.source == 'ai' else 'badge-pending' }}"><span class="badge-dot"></span><span data-i18n="{{ 'schedule.aiBooked' if row.appointment.source == 'ai' else 'schedule.manual' }}">{{ 'AI booked' if row.appointment.source == 'ai' else 'Manual' }}</span></span>
-                                    </div>
-                                    <form method="POST" action="{{ url_for('cancel_appointment_route', appointment_id=row.appointment.id) }}">
-                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                        <input type="hidden" name="date" value="{{ selected_date.isoformat() }}">
-                                        <input type="hidden" name="view" value="day">
-                                        <button class="button button-secondary" type="submit" data-i18n="schedule.cancel">Cancel</button>
-                                    </form>
-                                </div>
-                            {% elif row.covered_by %}
-                                <div class="schedule-slot schedule-slot-covered">
-                                    <span class="note"><span data-i18n="schedule.partOfAppointment">Part of</span> {{ row.covered_by.customer_name }}{% if row.covered_by.service %}&rsquo;s {{ row.covered_by.service }}{% endif %}</span>
-                                </div>
-                            {% elif row.is_past %}
-                                <div class="schedule-slot schedule-slot-free schedule-slot-past">
-                                    <span class="note" data-i18n="schedule.past">Past</span>
-                                </div>
-                            {% else %}
-                                <div class="schedule-slot schedule-slot-free">
-                                    <form method="POST" action="{{ url_for('create_appointment_route') }}" class="schedule-slot-form">
-                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                        <input type="hidden" name="date" value="{{ selected_date.isoformat() }}">
-                                        <input type="hidden" name="time" value="{{ row.time }}">
-                                        <input type="text" name="customer_name" data-i18n-placeholder="schedule.customerNamePlaceholder" placeholder="Customer name" required>
-                                        <input type="text" name="service" data-i18n-placeholder="schedule.servicePlaceholder" placeholder="Service (optional)">
-                                        <div class="duration-dd">
-                                            <input type="hidden" name="duration" class="duration-dd-value" value="{{ slot_minutes }}">
-                                            <button type="button" class="schedule-slot-duration-select duration-dd-trigger" aria-haspopup="listbox" aria-expanded="false">{{ slot_minutes }} min</button>
-                                            <div class="duration-dd-menu hidden" role="listbox">
-                                                {% for choice in slot_duration_choices %}
-                                                    <button type="button" class="duration-dd-option {{ 'active' if choice == slot_minutes }}" data-value="{{ choice }}" data-label="{{ choice }} min">{{ choice }} min</button>
-                                                {% endfor %}
-                                                {% if slot_minutes not in slot_duration_choices %}
-                                                    <button type="button" class="duration-dd-option active" data-value="{{ slot_minutes }}" data-label="{{ slot_minutes }} min">{{ slot_minutes }} min</button>
-                                                {% endif %}
-                                                <button type="button" class="duration-dd-option duration-dd-option-custom" data-value="custom" data-label="Custom" data-i18n="schedule.custom">Custom</button>
-                                            </div>
-                                            <input type="number" name="duration_custom" class="schedule-slot-duration-custom hidden" min="{{ slot_duration_min }}" max="{{ slot_duration_max }}" step="5" disabled data-i18n-placeholder="schedule.custom" placeholder="Custom">
-                                        </div>
-                                        <button class="button" type="submit" data-i18n="schedule.book">Book</button>
-                                    </form>
-                                </div>
-                            {% endif %}
-                        </div>
+            {% set past_rows = slot_rows | selectattr("is_past") | list %}
+            {% set future_rows = slot_rows | rejectattr("is_past") | list %}
+            {% if past_rows and future_rows %}
+                {#- Both past and upcoming rows exist only when viewing today - a day
+                   already in the past has nothing to show below the toggle, and a future
+                   day has no past rows to hide, so this branch only ever fires for
+                   "today", which is exactly the case that needs decluttering. -#}
+                <details class="schedule-past-toggle">
+                    <summary class="schedule-past-summary">
+                        <span class="schedule-past-chevron">&#9656;</span>
+                        <span data-i18n="schedule.past">Past</span>
+                        <span class="schedule-past-count">({{ past_rows|length }})</span>
+                    </summary>
+                    <div class="schedule-timeline schedule-timeline-past">
+                        {% for row in past_rows %}{{ render_slot_row(row) }}{% endfor %}
                     </div>
-                {% endfor %}
-            </div>
+                </details>
+                <div class="schedule-timeline">
+                    {% for row in future_rows %}{{ render_slot_row(row) }}{% endfor %}
+                </div>
+            {% else %}
+                <div class="schedule-timeline">
+                    {% for row in slot_rows %}{{ render_slot_row(row) }}{% endfor %}
+                </div>
+            {% endif %}
         {% endif %}
     {% endif %}
 

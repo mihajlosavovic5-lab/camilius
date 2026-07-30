@@ -2824,6 +2824,108 @@ function renderSchedule(data) {
     }
 }
 
+function buildScheduleRow(row) {
+    const rowEl = document.createElement("div");
+    rowEl.className = "schedule-timeline-row" + (row.time.endsWith(":00") ? " schedule-timeline-row-hour" : "");
+
+    const timeEl = document.createElement("div");
+    timeEl.className = "schedule-timeline-time";
+    timeEl.textContent = row.time;
+    rowEl.appendChild(timeEl);
+
+    const contentEl = document.createElement("div");
+    contentEl.className = "schedule-timeline-content";
+
+    if (row.appointment) {
+        const card = document.createElement("div");
+        card.className = "schedule-slot schedule-slot-booked";
+
+        const info = document.createElement("div");
+        info.className = "schedule-slot-booked-info";
+        const badge = document.createElement("span");
+        badge.className = "badge schedule-slot-booked-badge " + (row.appointment.source === "ai" ? "badge-sent" : "badge-pending");
+        badge.textContent = row.appointment.source === "ai" ? t("schedule.aiBooked") : t("schedule.manual");
+        const name = document.createElement("div");
+        name.className = "schedule-slot-booked-name";
+        name.textContent = row.appointment.customer_name;
+        info.appendChild(name);
+        if (row.appointment.service) {
+            const service = document.createElement("div");
+            service.className = "schedule-slot-booked-service";
+            service.textContent = row.appointment.service;
+            info.appendChild(service);
+        }
+        // The actual start-end range, not just the grid slot it starts in - a custom-
+        // duration booking can run longer than one row (see row.covered_by below).
+        if (row.appointment.start_time && row.appointment.end_time) {
+            const range = document.createElement("div");
+            range.className = "schedule-slot-booked-range";
+            range.textContent = `${row.appointment.start_time}–${row.appointment.end_time}`;
+            info.appendChild(range);
+        }
+        info.appendChild(badge);
+        card.appendChild(info);
+
+        const cancelBtn = document.createElement("button");
+        cancelBtn.type = "button";
+        cancelBtn.className = "schedule-slot-cancel";
+        cancelBtn.textContent = t("schedule.cancel");
+        cancelBtn.addEventListener("click", () => cancelAppointment(row.appointment.id));
+        card.appendChild(cancelBtn);
+
+        contentEl.appendChild(card);
+    } else if (row.covered_by) {
+        // Swallowed by a longer appointment that started earlier - blocked, not a
+        // free "Book" button, even though nothing starts at this exact time.
+        const covered = document.createElement("div");
+        covered.className = "schedule-slot schedule-slot-covered";
+        covered.textContent = `${t("schedule.partOfAppointment")} ${row.covered_by.customer_name}`;
+        contentEl.appendChild(covered);
+    } else if (row.is_past) {
+        const past = document.createElement("div");
+        past.className = "schedule-slot schedule-slot-past";
+        past.textContent = t("schedule.past");
+        contentEl.appendChild(past);
+    } else {
+        const freeBtn = document.createElement("button");
+        freeBtn.type = "button";
+        freeBtn.className = "schedule-slot schedule-slot-free";
+        freeBtn.textContent = t("schedule.book");
+        freeBtn.addEventListener("click", () => openBookModal(row.time));
+        contentEl.appendChild(freeBtn);
+    }
+
+    rowEl.appendChild(contentEl);
+    return rowEl;
+}
+
+// Past-slots toggle (Faza 13) - collapsed by default so a day that's already partly
+// elapsed doesn't bury the still-relevant (current/upcoming) slots under a wall of
+// "Past" placeholders. pastRows and futureRows are only both non-empty when viewing
+// today - a fully past day or a fully future day has nothing to split, so this only
+// ever changes what "today" looks like. Mirrors schedule.html's <details> toggle.
+function buildSchedulePastToggle(pastRows) {
+    const details = document.createElement("details");
+    details.className = "schedule-past-toggle";
+
+    const summary = document.createElement("summary");
+    summary.className = "schedule-past-summary";
+    summary.innerHTML = `<span class="schedule-past-chevron">&#9656;</span><span></span><span class="schedule-past-count"></span>`;
+    summary.children[1].textContent = t("schedule.past");
+    summary.children[2].textContent = `(${pastRows.length})`;
+    details.appendChild(summary);
+
+    // No "schedule-timeline" class here (unlike schedule.html's equivalent) - #schedule-
+    // timeline is already the padded ancestor these rows render into on this platform,
+    // so a second copy of that padding would just double the gutter.
+    const pastTimeline = document.createElement("div");
+    pastTimeline.className = "schedule-timeline-past";
+    pastRows.forEach((row) => pastTimeline.appendChild(buildScheduleRow(row)));
+    details.appendChild(pastTimeline);
+
+    return details;
+}
+
 function renderScheduleDay(data) {
     const timeline = el("schedule-timeline");
     const closedBox = el("schedule-closed-day");
@@ -2835,80 +2937,15 @@ function renderScheduleDay(data) {
     }
     closedBox.classList.add("hidden");
 
-    data.slot_rows.forEach((row) => {
-        const rowEl = document.createElement("div");
-        rowEl.className = "schedule-timeline-row" + (row.time.endsWith(":00") ? " schedule-timeline-row-hour" : "");
+    const pastRows = data.slot_rows.filter((row) => row.is_past);
+    const futureRows = data.slot_rows.filter((row) => !row.is_past);
 
-        const timeEl = document.createElement("div");
-        timeEl.className = "schedule-timeline-time";
-        timeEl.textContent = row.time;
-        rowEl.appendChild(timeEl);
-
-        const contentEl = document.createElement("div");
-        contentEl.className = "schedule-timeline-content";
-
-        if (row.appointment) {
-            const card = document.createElement("div");
-            card.className = "schedule-slot schedule-slot-booked";
-
-            const info = document.createElement("div");
-            info.className = "schedule-slot-booked-info";
-            const badge = document.createElement("span");
-            badge.className = "badge schedule-slot-booked-badge " + (row.appointment.source === "ai" ? "badge-sent" : "badge-pending");
-            badge.textContent = row.appointment.source === "ai" ? t("schedule.aiBooked") : t("schedule.manual");
-            const name = document.createElement("div");
-            name.className = "schedule-slot-booked-name";
-            name.textContent = row.appointment.customer_name;
-            info.appendChild(name);
-            if (row.appointment.service) {
-                const service = document.createElement("div");
-                service.className = "schedule-slot-booked-service";
-                service.textContent = row.appointment.service;
-                info.appendChild(service);
-            }
-            // The actual start-end range, not just the grid slot it starts in - a custom-
-            // duration booking can run longer than one row (see row.covered_by below).
-            if (row.appointment.start_time && row.appointment.end_time) {
-                const range = document.createElement("div");
-                range.className = "schedule-slot-booked-range";
-                range.textContent = `${row.appointment.start_time}–${row.appointment.end_time}`;
-                info.appendChild(range);
-            }
-            info.appendChild(badge);
-            card.appendChild(info);
-
-            const cancelBtn = document.createElement("button");
-            cancelBtn.type = "button";
-            cancelBtn.className = "schedule-slot-cancel";
-            cancelBtn.textContent = t("schedule.cancel");
-            cancelBtn.addEventListener("click", () => cancelAppointment(row.appointment.id));
-            card.appendChild(cancelBtn);
-
-            contentEl.appendChild(card);
-        } else if (row.covered_by) {
-            // Swallowed by a longer appointment that started earlier - blocked, not a
-            // free "Book" button, even though nothing starts at this exact time.
-            const covered = document.createElement("div");
-            covered.className = "schedule-slot schedule-slot-covered";
-            covered.textContent = `${t("schedule.partOfAppointment")} ${row.covered_by.customer_name}`;
-            contentEl.appendChild(covered);
-        } else if (row.is_past) {
-            const past = document.createElement("div");
-            past.className = "schedule-slot schedule-slot-past";
-            past.textContent = t("schedule.past");
-            contentEl.appendChild(past);
-        } else {
-            const freeBtn = document.createElement("button");
-            freeBtn.type = "button";
-            freeBtn.className = "schedule-slot schedule-slot-free";
-            freeBtn.textContent = t("schedule.book");
-            freeBtn.addEventListener("click", () => openBookModal(row.time));
-            contentEl.appendChild(freeBtn);
-        }
-
-        rowEl.appendChild(contentEl);
-        timeline.appendChild(rowEl);
-    });
+    if (pastRows.length && futureRows.length) {
+        timeline.appendChild(buildSchedulePastToggle(pastRows));
+        futureRows.forEach((row) => timeline.appendChild(buildScheduleRow(row)));
+    } else {
+        data.slot_rows.forEach((row) => timeline.appendChild(buildScheduleRow(row)));
+    }
 }
 
 function goToScheduleDay(date) {
