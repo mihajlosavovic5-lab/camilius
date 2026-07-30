@@ -1904,18 +1904,30 @@ function stopInstagramConnectPoll() {
 }
 
 function pollForInstagramConnected(oauthState, attemptsLeft) {
-    if (!awaitingInstagramConnect || attemptsLeft <= 0) return;
+    if (!awaitingInstagramConnect) return;
+    if (attemptsLeft <= 0) {
+        // Logged (not just silently dropped) so a run that never saw "done" - vs. one
+        // that saw it but Browser.close() itself failed below - are told apart later,
+        // instead of both looking identical from the outside (tab still sitting open).
+        reportClientError("instagram connect poll exhausted without done=true", "", "instagram-connect-poll");
+        return;
+    }
     api("/api/instagram-connect-status?state=" + encodeURIComponent(oauthState))
         .then((data) => {
             if (!awaitingInstagramConnect) return;
             if (data.done) {
-                if (capacitorPlugins.Browser) capacitorPlugins.Browser.close().catch(() => {});
+                if (capacitorPlugins.Browser) {
+                    capacitorPlugins.Browser.close().catch((err) => {
+                        reportClientError("Browser.close() failed: " + err.message, err.stack, "instagram-connect-poll");
+                    });
+                }
                 return;
             }
             instagramConnectPollTimer = setTimeout(() => pollForInstagramConnected(oauthState, attemptsLeft - 1), 1800);
         })
         .catch((err) => {
-            if (!awaitingInstagramConnect || err.status === 401) return;
+            if (!awaitingInstagramConnect) return;
+            if (err.status === 401) return;
             instagramConnectPollTimer = setTimeout(() => pollForInstagramConnected(oauthState, attemptsLeft - 1), 1800);
         });
 }
@@ -3870,6 +3882,17 @@ document.querySelectorAll(".theme-option").forEach((btn) => {
 });
 
 el("settings-app-version").textContent = `Camilius · v${APP_VERSION}`;
+// The native APK version above never changes between OTA pushes (see build_mobile_bundle.py) -
+// appending the actual active bundle hash too gives a way to confirm from the device
+// itself whether a given OTA update actually landed, without needing server-side logs.
+if (capacitorPlugins.CapacitorUpdater) {
+    capacitorPlugins.CapacitorUpdater.current()
+        .then((current) => {
+            const bundleVersion = (current && current.bundle && current.bundle.version) || "builtin";
+            el("settings-app-version").textContent += ` · ${bundleVersion.slice(0, 12)}`;
+        })
+        .catch(() => {});
+}
 
 // --- Boot ---
 
