@@ -618,19 +618,14 @@ function createHoursPicker(containerId) {
     quickfillBtn.dataset.i18n = "hoursPicker.applyChanges";
     quickfillBtn.textContent = t("hoursPicker.applyChanges");
     // Purely navigation - the seven rows are already the saved state (each one syncs
-    // itself on its own change), so this never touches row values. It always takes the
-    // user back to the collapsed view; when every weekday happens to share the same
-    // hours that view's own pair is updated to show it, otherwise it's left as-is (a day
+    // itself on its own change), so this never touches row values. Always takes the user
+    // back to the collapsed view, showing Monday's hours in its pair - the exact figure
+    // only when every weekday shares it, otherwise a representative stand-in (a day
     // customized differently stays saved even though the collapsed summary can't display
-    // it - expanding again shows the real per-day state, not this stale display).
+    // it - expanding again via "Set different hours" shows the real per-day state).
     quickfillBtn.addEventListener("click", () => {
-        const allSame = HOURS_WEEKDAYS.every((day) => rows[day].checkbox.checked) &&
-            HOURS_WEEKDAYS.every((day) => rows[day].openTimeBtn.value === rows.monday.openTimeBtn.value &&
-                rows[day].closeTimeBtn.value === rows.monday.closeTimeBtn.value);
-        if (allSame) {
-            simpleOpenBtn.value = rows.monday.openTimeBtn.value;
-            simpleCloseBtn.value = rows.monday.closeTimeBtn.value;
-        }
+        simpleOpenBtn.value = rows.monday.openTimeBtn.value;
+        simpleCloseBtn.value = rows.monday.closeTimeBtn.value;
         advancedView.classList.add("hidden");
         simpleView.classList.remove("hidden");
     });
@@ -717,9 +712,10 @@ function createHoursPicker(containerId) {
         // Best-effort parse of our own generated format (or something close enough to
         // it) back into picker state - used when loading a business's existing hours
         // into the Profile screen. Leaves a day's defaults alone if its line isn't found
-        // or doesn't parse, rather than guessing. Collapses back to the "Working days"
-        // summary when every weekday came out identical, otherwise expands to the
-        // per-day list so the customized days are visible.
+        // or doesn't parse, rather than guessing. Always lands on the collapsed "Working
+        // days" summary (opening the app straight into a 7-row list read as far more
+        // overwhelming than useful) - "Set different hours for a specific day" is right
+        // there for a business whose days genuinely differ.
         setValue(text) {
             const lines = (text || "").split("\n");
             HOURS_DAYS.forEach((day) => {
@@ -742,17 +738,10 @@ function createHoursPicker(containerId) {
                 updateRowVisibility(day);
             });
 
-            const allSame = HOURS_WEEKDAYS.every((day) => rows[day].checkbox.checked) &&
-                HOURS_WEEKDAYS.every((day) => rows[day].openTimeBtn.value === rows.monday.openTimeBtn.value &&
-                    rows[day].closeTimeBtn.value === rows.monday.closeTimeBtn.value);
-            if (allSame) {
-                simpleOpenBtn.value = rows.monday.openTimeBtn.value;
-                simpleCloseBtn.value = rows.monday.closeTimeBtn.value;
-                advancedView.classList.add("hidden");
-                simpleView.classList.remove("hidden");
-            } else {
-                showAdvanced();
-            }
+            simpleOpenBtn.value = rows.monday.openTimeBtn.value;
+            simpleCloseBtn.value = rows.monday.closeTimeBtn.value;
+            advancedView.classList.add("hidden");
+            simpleView.classList.remove("hidden");
             updateWeekendNote();
         },
         // Restores every day to the default open 09:00-18:00 for weekdays / closed for
