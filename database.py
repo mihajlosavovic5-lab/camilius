@@ -138,6 +138,18 @@ def create_database():
     # (businesses that haven't connected Instagram yet) are allowed under UNIQUE in Postgres.
     cursor.execute("CREATE UNIQUE INDEX IF NOT EXISTS businesses_instagram_account_id_idx ON businesses (instagram_account_id)")
 
+    # Lets the mobile app's Instagram-connect OAuth tab close itself proactively (see
+    # mobile/app.js's pollForInstagramConnected and api.py's instagram_connect_state_is_done)
+    # instead of depending only on that tab's own window.close(), which isn't reliable on
+    # every Custom Tabs provider. Stores the last OAuth "state" token (see
+    # make_instagram_connect_state) whose round-trip finished, so the poll can tell "this
+    # specific attempt is done" apart from "an Instagram account happens to already be
+    # connected" on a RE-connect. Persisted here rather than kept in an in-process dict -
+    # this app only runs one gunicorn worker today, but an in-memory flag would silently
+    # go missing across a worker restart or a multi-instance deploy, leaving the app
+    # polling forever for something the server already forgot happened.
+    cursor.execute("ALTER TABLE businesses ADD COLUMN IF NOT EXISTS instagram_connect_done_state TEXT")
+
     # Optional phone number - lets a business log in with username, contact email, OR
     # phone (same "any of these identify you" pattern most consumer apps use), without
     # requiring it at registration. Same unique-but-multiple-NULLs-allowed index pattern.
@@ -557,6 +569,29 @@ def unlink_instagram_account(business_id):
     )
     connection.commit()
     connection.close()
+
+
+def mark_instagram_connect_done(business_id, state):
+    """Records that this business's Instagram OAuth round-trip (identified by its one-shot
+    "state" token) finished - see instagram_connect_done_state's column comment in
+    create_database. Called from app.py's instagram_oauth_callback on every mobile-flow
+    exit path, success or failure alike."""
+    connection = connect()
+    cursor = connection.cursor()
+    cursor.execute("UPDATE businesses SET instagram_connect_done_state = %s WHERE id = %s", (state, business_id))
+    connection.commit()
+    connection.close()
+
+
+def instagram_connect_done_state(business_id):
+    """The most recent OAuth state token this business finished, if any - see
+    mark_instagram_connect_done above. Polled by api.py's instagram_connect_state_is_done."""
+    connection = connect()
+    cursor = connection.cursor()
+    cursor.execute("SELECT instagram_connect_done_state FROM businesses WHERE id = %s", (business_id,))
+    row = cursor.fetchone()
+    connection.close()
+    return row[0] if row else None
 
 
 def all_businesses():

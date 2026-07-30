@@ -1,6 +1,5 @@
 import hashlib
 import os
-import time
 from datetime import date as date_type, datetime, timedelta
 from functools import wraps
 
@@ -26,6 +25,7 @@ from database import (
     notifications_for_business, unread_notification_count, mark_notifications_read,
     is_new_booking_notifications_enabled, set_new_booking_notifications_enabled,
     record_account_deletion, ACCOUNT_DELETION_REASONS,
+    mark_instagram_connect_done, instagram_connect_done_state,
 )
 from instagram_api import send_message as send_instagram_message, authorize_url as instagram_authorize_url, get_sender_info
 from extensions import limiter
@@ -109,29 +109,21 @@ def business_id_from_instagram_connect_state(state):
 # before this attempt started" on a RE-connect, where the username may end up unchanged -
 # this is keyed by the same one-shot state token instead, so it answers "did THIS
 # specific round-trip finish" regardless of whether the linked account changed.
-# A plain dict is safe here only because this app runs a single gunicorn worker (see
-# Procfile / .railway/railway.ts) - entries would go invisible across worker processes
-# otherwise. Swept on every write since entries are tiny and short-lived (same max-age
-# as the state token itself), so this never accumulates beyond one path's worth of
-# in-flight connect attempts.
-_INSTAGRAM_CONNECT_STATE_DONE = {}
-
-
-def mark_instagram_connect_state_done(state):
+# Persisted on the businesses row (database.mark_instagram_connect_done/
+# instagram_connect_done_state) rather than kept in an in-process dict - this app only
+# runs one gunicorn worker today, but an in-memory flag would silently go missing across
+# a worker restart or a multi-instance deploy, leaving the app polling forever for
+# something the server already forgot happened.
+def mark_instagram_connect_state_done(state, business_id):
     if not state:
         return
-    now = time.time()
-    for key, marked_at in list(_INSTAGRAM_CONNECT_STATE_DONE.items()):
-        if now - marked_at > INSTAGRAM_CONNECT_STATE_MAX_AGE:
-            del _INSTAGRAM_CONNECT_STATE_DONE[key]
-    _INSTAGRAM_CONNECT_STATE_DONE[state] = now
+    mark_instagram_connect_done(business_id, state)
 
 
 def instagram_connect_state_is_done(state, business_id):
-    if business_id_from_instagram_connect_state(state) != business_id:
+    if not state or business_id_from_instagram_connect_state(state) != business_id:
         return False
-    marked_at = _INSTAGRAM_CONNECT_STATE_DONE.get(state)
-    return marked_at is not None and time.time() - marked_at <= INSTAGRAM_CONNECT_STATE_MAX_AGE
+    return instagram_connect_done_state(business_id) == state
 
 
 # Same bridge pattern as the Instagram-connect state token above, for the same reason:

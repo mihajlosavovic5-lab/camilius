@@ -465,7 +465,7 @@ def instagram_oauth_callback():
         # User declined the Instagram permission prompt, or it otherwise failed before
         # ever giving us a code - not our error, just let them try again.
         if is_mobile_flow:
-            mark_instagram_connect_state_done(state)
+            mark_instagram_connect_state_done(state, business_id)
             return render_template("instagram_connect_mobile.html", success=False)
         return redirect(url_for("connect_instagram", error="Instagram connection was cancelled. Try again whenever you're ready."))
 
@@ -489,7 +489,7 @@ def instagram_oauth_callback():
         detail = error.response.text if getattr(error, "response", None) is not None else str(error)
         log_client_error(business_id, f"instagram connect failed: {detail}", "", "instagram-connect-debug", "")
         if is_mobile_flow:
-            mark_instagram_connect_state_done(state)
+            mark_instagram_connect_state_done(state, business_id)
             return render_template("instagram_connect_mobile.html", success=False)
         return redirect(url_for("connect_instagram", error="Couldn't connect to Instagram - please try again."))
     except psycopg2.errors.UniqueViolation:
@@ -502,14 +502,14 @@ def instagram_oauth_callback():
         # business owner what actually went wrong.
         log_client_error(business_id, "instagram connect failed: instagram_account_id already linked to another business", "", "instagram-connect-debug", "")
         if is_mobile_flow:
-            mark_instagram_connect_state_done(state)
+            mark_instagram_connect_state_done(state, business_id)
             return render_template("instagram_connect_mobile.html", success=False)
         message = "This Instagram account is already connected to another Camilius account. Disconnect it there first, or use a different Instagram account."
         return redirect(url_for("connect_instagram", error=message))
 
     log_event("instagram_connected", business_id=business_id)
     if is_mobile_flow:
-        mark_instagram_connect_state_done(state)
+        mark_instagram_connect_state_done(state, business_id)
         return render_template("instagram_connect_mobile.html", success=True)
     return redirect(url_for("home"))
 
