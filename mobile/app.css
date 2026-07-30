@@ -757,7 +757,7 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
     background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
 }
 .donation-strip-text { font-size: 14.5px; color: var(--text); }
-.donation-strip-btn { padding: 6px 14px; font-size: 14px; flex-shrink: 0; text-decoration: none; }
+.donation-strip-btn { padding: 6px 14px; font-size: 14px; flex-shrink: 0; text-decoration: none; margin-top: 0; }
 
 /* --- Inbox stats row (Faza 13) - "Replies sent" / "Sent this week" tiles, same data
    (business_stats()) the website's dashboard shows in its own .stats-row, just laid out
