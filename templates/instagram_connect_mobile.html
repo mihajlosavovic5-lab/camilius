@@ -3,7 +3,7 @@
 {% block body_class %}auth{% endblock %}
 
 {% block content %}
-<div class="auth-wrapper">
+<div class="auth-wrapper auth-wrapper-connect">
     <div class="auth-brand">
         <span class="brand">
             <span class="brand-mark">C</span>
@@ -26,16 +26,19 @@
 // Auto-return to the app instead of requiring the user to manually close this tab -
 // window.close() dismisses an Android Chrome Custom Tab (what Capacitor's Browser
 // plugin opens for the Instagram OAuth flow) when this page is the top of its own
-// history stack, which it always is here (a fresh OAuth-redirect landing page). The app
-// itself already listens for the tab closing (browserFinished, see mobile/app.js) and
-// checks /api/settings right after - this just removes the manual tap that used to be
-// required to get back to that point.
+// history stack, which it always is here (a fresh OAuth-redirect landing page).
 //
 // window.close() isn't equally reliable on every Custom Tabs provider (some OEM
-// browsers only honor it on the first call, or only once the page has fully settled),
-// so this retries a few times on a backoff instead of trying exactly once - cheap and
+// browsers only honor it on the first call, only once the page has fully settled, or
+// never at all for a tab opened via an Android Intent rather than window.open()), so
+// this retries a few times on a backoff rather than trying exactly once - cheap and
 // harmless if the very first attempt already worked, since a closed tab can't run the
-// timers that would fire the later attempts.
+// timers that would fire the later attempts. It's the fast path, not the only one: the
+// app itself (mobile/app.js) polls /api/instagram-connect-status while this OAuth
+// round-trip is in flight and calls Browser.close() - a native call, not a script
+// permission some browsers withhold - the moment the backend confirms this attempt
+// finished, so this tab still gets closed even on a provider where every attempt below
+// is a no-op.
 [250, 600, 1200, 2000].forEach(function (delay) {
     setTimeout(function () { window.close(); }, delay);
 });

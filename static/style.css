@@ -1019,6 +1019,12 @@ body.auth {
     min-height: 100vh; display: flex; flex-direction: column;
     align-items: center; justify-content: center; padding: 40px 16px;
 }
+/* instagram_connect_mobile.html's content is much shorter than every other .auth-wrapper
+   page (login/register have full forms below the brand mark) - centered with the same
+   even top/bottom padding as those, it reads as sitting slightly low rather than centered,
+   since there's no long form pulling the eye down to balance it out. Extra bottom padding
+   (vs. top) nudges the whole cluster up within the viewport instead. */
+.auth-wrapper-connect { padding-bottom: 200px; }
 .auth-brand { margin-bottom: 22px; text-align: center; }
 .auth-brand .brand { flex-direction: column; gap: 12px; }
 .auth-brand .brand-mark { width: 64px; height: 64px; border-radius: 22%; box-shadow: 0 10px 26px rgba(43,32,19,.16); }

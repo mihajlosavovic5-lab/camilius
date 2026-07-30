@@ -1881,6 +1881,44 @@ el("verify-pending-back").addEventListener("click", () => {
 
 let awaitingInstagramConnect = false;
 let instagramConnectContext = null; // "gate" | "profile"
+let instagramConnectPollTimer = null;
+
+// Backup for the OAuth landing page's own window.close() (instagram_connect_mobile.html)
+// - that only works if the Custom Tabs provider honors a script-initiated close, which
+// isn't every OEM browser, and isn't something the app can detect or retry from the
+// outside. Browser.close() is a first-class native call instead of a cross-context script
+// permission, so it doesn't have that problem - polling /api/instagram-connect-status
+// (keyed by this attempt's own state token, see api.py) here means the app itself can
+// call it the moment the backend confirms THIS round-trip finished, tab-closing quirks or
+// not. Deliberately not just re-checking /api/settings' instagram_username here - on a
+// RE-connect (context "profile") that field is already truthy before the user does
+// anything, and stays exactly as truthy after reconnecting the same account, so it can't
+// tell "just finished" apart from "already connected when this attempt started". The
+// state token can. browserFinished (the existing listener below) still does the actual
+// success UI work once the tab visibly closes, whichever side triggered that.
+function stopInstagramConnectPoll() {
+    if (instagramConnectPollTimer) {
+        clearTimeout(instagramConnectPollTimer);
+        instagramConnectPollTimer = null;
+    }
+}
+
+function pollForInstagramConnected(oauthState, attemptsLeft) {
+    if (!awaitingInstagramConnect || attemptsLeft <= 0) return;
+    api("/api/instagram-connect-status?state=" + encodeURIComponent(oauthState))
+        .then((data) => {
+            if (!awaitingInstagramConnect) return;
+            if (data.done) {
+                if (capacitorPlugins.Browser) capacitorPlugins.Browser.close().catch(() => {});
+                return;
+            }
+            instagramConnectPollTimer = setTimeout(() => pollForInstagramConnected(oauthState, attemptsLeft - 1), 1800);
+        })
+        .catch((err) => {
+            if (!awaitingInstagramConnect || err.status === 401) return;
+            instagramConnectPollTimer = setTimeout(() => pollForInstagramConnected(oauthState, attemptsLeft - 1), 1800);
+        });
+}
 
 async function openInstagramConnectBrowser(context, errorBoxId) {
     const errorBox = el(errorBoxId);
@@ -1891,6 +1929,9 @@ async function openInstagramConnectBrowser(context, errorBoxId) {
         if (capacitorPlugins && capacitorPlugins.Browser) {
             awaitingInstagramConnect = true;
             await capacitorPlugins.Browser.open({ url: data.url });
+            // ~90s of polling (50 x 1.8s) - comfortably covers a slow Instagram login/
+            // consent flow without polling indefinitely if the user abandons it instead.
+            pollForInstagramConnected(data.state, 50);
         } else {
             window.open(data.url, "_blank");
         }
@@ -1942,6 +1983,7 @@ if (capacitorPlugins && capacitorPlugins.Browser) {
     capacitorPlugins.Browser.addListener("browserFinished", async () => {
         if (!awaitingInstagramConnect) return;
         awaitingInstagramConnect = false;
+        stopInstagramConnectPoll();
         const context = instagramConnectContext;
         instagramConnectContext = null;
 

@@ -1,5 +1,6 @@
 import hashlib
 import os
+import time
 from datetime import date as date_type, datetime, timedelta
 from functools import wraps
 
@@ -99,6 +100,38 @@ def business_id_from_instagram_connect_state(state):
     except (BadSignature, SignatureExpired):
         return None
     return data.get("business_id")
+
+
+# Lets the mobile app close its own Instagram OAuth tab proactively (see mobile/app.js's
+# pollForInstagramConnected) instead of depending only on that tab's own window.close(),
+# which isn't reliable on every Custom Tabs provider. Polling /api/settings for
+# instagram_username alone can't tell "just finished" apart from "already connected
+# before this attempt started" on a RE-connect, where the username may end up unchanged -
+# this is keyed by the same one-shot state token instead, so it answers "did THIS
+# specific round-trip finish" regardless of whether the linked account changed.
+# A plain dict is safe here only because this app runs a single gunicorn worker (see
+# Procfile / .railway/railway.ts) - entries would go invisible across worker processes
+# otherwise. Swept on every write since entries are tiny and short-lived (same max-age
+# as the state token itself), so this never accumulates beyond one path's worth of
+# in-flight connect attempts.
+_INSTAGRAM_CONNECT_STATE_DONE = {}
+
+
+def mark_instagram_connect_state_done(state):
+    if not state:
+        return
+    now = time.time()
+    for key, marked_at in list(_INSTAGRAM_CONNECT_STATE_DONE.items()):
+        if now - marked_at > INSTAGRAM_CONNECT_STATE_MAX_AGE:
+            del _INSTAGRAM_CONNECT_STATE_DONE[key]
+    _INSTAGRAM_CONNECT_STATE_DONE[state] = now
+
+
+def instagram_connect_state_is_done(state, business_id):
+    if business_id_from_instagram_connect_state(state) != business_id:
+        return False
+    marked_at = _INSTAGRAM_CONNECT_STATE_DONE.get(state)
+    return marked_at is not None and time.time() - marked_at <= INSTAGRAM_CONNECT_STATE_MAX_AGE
 
 
 # Same bridge pattern as the Instagram-connect state token above, for the same reason:
@@ -415,7 +448,21 @@ def api_check_availability():
 def api_instagram_connect_url():
     redirect_uri = url_for("instagram_oauth_callback", _external=True)
     state = make_instagram_connect_state(request.business_id)
-    return jsonify(url=instagram_authorize_url(redirect_uri, state=state))
+    # "state" is returned alongside the URL (not just embedded in it) so the app can pass
+    # it straight to /api/instagram-connect-status afterwards without parsing it back out
+    # of the authorize URL's query string.
+    return jsonify(url=instagram_authorize_url(redirect_uri, state=state), state=state)
+
+
+# Polled by the app while its Instagram OAuth tab is open (see mobile/app.js's
+# pollForInstagramConnected) so it can close that tab itself the moment this specific
+# round-trip finishes, instead of depending only on the tab's own window.close() - see
+# instagram_connect_state_is_done above for why this needs its own signal rather than
+# just re-checking /api/settings.
+@api.route("/instagram-connect-status")
+@require_api_auth
+def api_instagram_connect_status():
+    return jsonify(done=instagram_connect_state_is_done(request.args.get("state", ""), request.business_id))
 
 
 # Frees up instagram_account_id's UNIQUE index (see database.py's create_database) so
