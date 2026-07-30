@@ -474,9 +474,20 @@ function createOptionButton(initialValue, options, extraClass) {
     };
 }
 
+// Most businesses using this picker work the same hours Mon-Fri and are closed
+// weekends, so - same as the website's own picker (static/pickers.js) - it starts
+// collapsed into a single "Working days" summary (one open/close pair applied to all
+// five weekdays, with a note about Saturday/Sunday) instead of always showing all 7 days
+// up front like the old mobile picker did. A "Set different hours for a specific day"
+// link reveals the full 7-day list, Saturday and Sunday included, each with its own
+// working/not-working toggle - the collapsed note above adapts to whatever the user sets
+// for the weekend.
+const HOURS_WEEKEND_DAYS = ["saturday", "sunday"];
+
 function createHoursPicker(containerId) {
     const container = el(containerId);
     const rows = {};
+    const HOURS_WEEKDAYS = HOURS_DAYS.filter((day) => !HOURS_WEEKEND_DAYS.includes(day));
 
     // Shows either the open/close pickers or a "Closed" label in a row's middle slot,
     // without changing the row's own height either way - avoids the layout "jumping"
@@ -488,8 +499,106 @@ function createHoursPicker(containerId) {
         r.closedLabel.classList.toggle("hidden", open);
     }
 
-    // Quick-fill row: lets a business set one open/close pair and apply it to every day
-    // at once, instead of repeating the same two picks seven times.
+    // Shared by the collapsed view's own pair and the advanced view's quickfill pair -
+    // both are deliberate "set every weekday to this" actions, unlike a single row's own
+    // pickers which only ever touch that one day.
+    function applyPairToWeekdays(openTime, closeTime) {
+        HOURS_WEEKDAYS.forEach((day) => {
+            const r = rows[day];
+            r.checkbox.checked = true;
+            r.openTimeBtn.value = openTime;
+            r.closeTimeBtn.value = closeTime;
+            updateRowVisibility(day);
+        });
+    }
+
+    // Collapsed default view: one open/close pair covering all five weekdays, plus a
+    // note that reflects the weekend and a link to switch to per-day editing below.
+    const simpleView = document.createElement("div");
+    simpleView.className = "hours-simple-view";
+
+    const simpleRow = document.createElement("div");
+    simpleRow.className = "hours-simple-row";
+    const simpleLabel = document.createElement("span");
+    simpleLabel.className = "hours-simple-label-btn";
+    simpleLabel.dataset.i18n = "hoursPicker.workingDays";
+    simpleLabel.textContent = t("hoursPicker.workingDays");
+    const simpleTimes = document.createElement("div");
+    simpleTimes.className = "hours-day-times";
+    const simpleOpenBtn = createOptionButton("09:00", HOURS_TIME_OPTIONS, "time-picker-btn");
+    const simpleCloseBtn = createOptionButton("18:00", HOURS_TIME_OPTIONS, "time-picker-btn");
+    const simpleSep = document.createElement("span");
+    simpleSep.className = "hours-time-sep";
+    simpleSep.textContent = "–";
+    simpleTimes.appendChild(simpleOpenBtn.el);
+    simpleTimes.appendChild(simpleSep);
+    simpleTimes.appendChild(simpleCloseBtn.el);
+    simpleRow.appendChild(simpleLabel);
+    simpleRow.appendChild(simpleTimes);
+    simpleView.appendChild(simpleRow);
+
+    // No static dataset.i18n here - the text depends on what's set for Saturday/Sunday
+    // (updateWeekendNote below), so it's composed in JS instead of a single fixed string.
+    const simpleNote = document.createElement("p");
+    simpleNote.className = "hours-simple-note";
+    simpleView.appendChild(simpleNote);
+
+    // Reflects whichever of Saturday/Sunday are open (with their own hours) and which are
+    // closed, e.g. "Saturday: 10:00–14:00. Closed: Sunday." - rows.saturday/rows.sunday
+    // don't exist until the day-list loop further below runs, so this is a no-op until
+    // then; it's called for real once everything is built (near the bottom of this function).
+    function updateWeekendNote() {
+        const openParts = [];
+        const closedNames = [];
+        HOURS_WEEKEND_DAYS.forEach((day) => {
+            const r = rows[day];
+            if (!r) return;
+            if (r.checkbox.checked) {
+                openParts.push(t("hoursPicker.dayHours")
+                    .replace("{day}", t(`days.${day}`))
+                    .replace("{open}", r.openTimeBtn.value)
+                    .replace("{close}", r.closeTimeBtn.value));
+            } else {
+                closedNames.push(t(`days.${day}`));
+            }
+        });
+        if (closedNames.length === 2) {
+            openParts.push(t("hoursPicker.closedOn").replace("{days}", `${closedNames[0]} ${t("hoursPicker.and")} ${closedNames[1]}`));
+        } else if (closedNames.length === 1) {
+            openParts.push(t("hoursPicker.closedOn").replace("{days}", closedNames[0]));
+        }
+        simpleNote.textContent = openParts.join(" ");
+    }
+
+    const customizeLink = document.createElement("button");
+    customizeLink.type = "button";
+    customizeLink.className = "hours-customize-link";
+    customizeLink.dataset.i18n = "hoursPicker.customizeLink";
+    customizeLink.textContent = t("hoursPicker.customizeLink");
+    simpleView.appendChild(customizeLink);
+    container.appendChild(simpleView);
+
+    simpleOpenBtn.el.addEventListener("change", () => applyPairToWeekdays(simpleOpenBtn.value, simpleCloseBtn.value));
+    simpleCloseBtn.el.addEventListener("change", () => applyPairToWeekdays(simpleOpenBtn.value, simpleCloseBtn.value));
+
+    const advancedView = document.createElement("div");
+    advancedView.className = "hours-advanced-view hidden";
+    container.appendChild(advancedView);
+
+    // Just switches which view is on screen - the seven rows already hold whatever the
+    // real current state is (kept up to date by applyPairToWeekdays and each row's own
+    // controls), so there's nothing to seed here beyond the quickfill row's own display.
+    function showAdvanced() {
+        quickOpenBtn.value = rows.monday.openTimeBtn.value;
+        quickCloseBtn.value = rows.monday.closeTimeBtn.value;
+        simpleView.classList.add("hidden");
+        advancedView.classList.remove("hidden");
+    }
+    customizeLink.addEventListener("click", showAdvanced);
+
+    // Quick-fill row: lets a business set one open/close pair and apply it to every
+    // weekday at once, instead of repeating the same two picks five times. Applies the
+    // moment either time is changed here, same as the collapsed view's own pair above.
     const quickfill = document.createElement("div");
     quickfill.className = "hours-quickfill";
     const quickfillLabel = document.createElement("span");
@@ -501,32 +610,43 @@ function createHoursPicker(containerId) {
     const quickSep = document.createElement("span");
     quickSep.className = "hours-time-sep";
     quickSep.textContent = "–";
+    quickOpenBtn.el.addEventListener("change", () => applyPairToWeekdays(quickOpenBtn.value, quickCloseBtn.value));
+    quickCloseBtn.el.addEventListener("change", () => applyPairToWeekdays(quickOpenBtn.value, quickCloseBtn.value));
     const quickfillBtn = document.createElement("button");
     quickfillBtn.type = "button";
     quickfillBtn.className = "hours-quickfill-btn";
-    quickfillBtn.dataset.i18n = "hoursPicker.applyToAll";
-    quickfillBtn.textContent = t("hoursPicker.applyToAll");
+    quickfillBtn.dataset.i18n = "hoursPicker.applyChanges";
+    quickfillBtn.textContent = t("hoursPicker.applyChanges");
+    // Purely navigation - the seven rows are already the saved state (each one syncs
+    // itself on its own change), so this never touches row values. It always takes the
+    // user back to the collapsed view; when every weekday happens to share the same
+    // hours that view's own pair is updated to show it, otherwise it's left as-is (a day
+    // customized differently stays saved even though the collapsed summary can't display
+    // it - expanding again shows the real per-day state, not this stale display).
     quickfillBtn.addEventListener("click", () => {
-        HOURS_DAYS.forEach((day) => {
-            const r = rows[day];
-            r.checkbox.checked = true;
-            r.openTimeBtn.value = quickOpenBtn.value;
-            r.closeTimeBtn.value = quickCloseBtn.value;
-            updateRowVisibility(day);
-        });
+        const allSame = HOURS_WEEKDAYS.every((day) => rows[day].checkbox.checked) &&
+            HOURS_WEEKDAYS.every((day) => rows[day].openTimeBtn.value === rows.monday.openTimeBtn.value &&
+                rows[day].closeTimeBtn.value === rows.monday.closeTimeBtn.value);
+        if (allSame) {
+            simpleOpenBtn.value = rows.monday.openTimeBtn.value;
+            simpleCloseBtn.value = rows.monday.closeTimeBtn.value;
+        }
+        advancedView.classList.add("hidden");
+        simpleView.classList.remove("hidden");
     });
     quickfill.appendChild(quickfillLabel);
     quickfill.appendChild(quickOpenBtn.el);
     quickfill.appendChild(quickSep);
     quickfill.appendChild(quickCloseBtn.el);
     quickfill.appendChild(quickfillBtn);
-    container.appendChild(quickfill);
+    advancedView.appendChild(quickfill);
 
     const dayList = document.createElement("div");
     dayList.className = "hours-day-list";
-    container.appendChild(dayList);
+    advancedView.appendChild(dayList);
 
     HOURS_DAYS.forEach((day) => {
+        const isWeekend = HOURS_WEEKEND_DAYS.includes(day);
         const row = document.createElement("div");
         row.className = "hours-day-row";
         if (day === "saturday") row.classList.add("hours-day-row-weekend");
@@ -556,7 +676,9 @@ function createHoursPicker(containerId) {
         toggleLabel.className = "hours-day-toggle";
         const checkbox = document.createElement("input");
         checkbox.type = "checkbox";
-        checkbox.checked = true;
+        // Weekdays default to open, weekend days default to closed - matches what the
+        // collapsed "Working days" summary already implies before anyone customizes it.
+        checkbox.checked = !isWeekend;
         const track = document.createElement("span");
         track.className = "hours-day-toggle-track";
         const thumb = document.createElement("span");
@@ -565,7 +687,12 @@ function createHoursPicker(containerId) {
         toggleLabel.appendChild(checkbox);
         toggleLabel.appendChild(track);
 
-        checkbox.addEventListener("change", () => updateRowVisibility(day));
+        checkbox.addEventListener("change", () => {
+            updateRowVisibility(day);
+            if (isWeekend) updateWeekendNote();
+        });
+        openTimeBtn.el.addEventListener("change", () => { if (isWeekend) updateWeekendNote(); });
+        closeTimeBtn.el.addEventListener("change", () => { if (isWeekend) updateWeekendNote(); });
 
         row.appendChild(label);
         row.appendChild(times);
@@ -574,7 +701,10 @@ function createHoursPicker(containerId) {
         dayList.appendChild(row);
 
         rows[day] = { checkbox, openTimeBtn, closeTimeBtn, times, closedLabel };
+        updateRowVisibility(day);
     });
+
+    updateWeekendNote();
 
     return {
         getValue() {
@@ -587,7 +717,9 @@ function createHoursPicker(containerId) {
         // Best-effort parse of our own generated format (or something close enough to
         // it) back into picker state - used when loading a business's existing hours
         // into the Profile screen. Leaves a day's defaults alone if its line isn't found
-        // or doesn't parse, rather than guessing.
+        // or doesn't parse, rather than guessing. Collapses back to the "Working days"
+        // summary when every weekday came out identical, otherwise expands to the
+        // per-day list so the customized days are visible.
         setValue(text) {
             const lines = (text || "").split("\n");
             HOURS_DAYS.forEach((day) => {
@@ -609,21 +741,41 @@ function createHoursPicker(containerId) {
                 r.checkbox.checked = true;
                 updateRowVisibility(day);
             });
+
+            const allSame = HOURS_WEEKDAYS.every((day) => rows[day].checkbox.checked) &&
+                HOURS_WEEKDAYS.every((day) => rows[day].openTimeBtn.value === rows.monday.openTimeBtn.value &&
+                    rows[day].closeTimeBtn.value === rows.monday.closeTimeBtn.value);
+            if (allSame) {
+                simpleOpenBtn.value = rows.monday.openTimeBtn.value;
+                simpleCloseBtn.value = rows.monday.closeTimeBtn.value;
+                advancedView.classList.add("hidden");
+                simpleView.classList.remove("hidden");
+            } else {
+                showAdvanced();
+            }
+            updateWeekendNote();
         },
-        // Restores every day to the default open 09:00-18:00 - NOT the same as
-        // setValue("") (a no-op, since an empty string matches no day's line). Used when
-        // opening a fresh Create Account form, since a plain form.reset() would instead
-        // revert these dynamically-created <select>/<input> elements to the browser's
-        // own default (first option / unchecked), not our intended defaults, because
-        // they were never given selected/checked HTML attributes at creation time.
+        // Restores every day to the default open 09:00-18:00 for weekdays / closed for
+        // the weekend, and collapses back to the "Working days" summary - NOT the same
+        // as setValue("") (a no-op, since an empty string matches no day's line). Used
+        // when opening a fresh Create Account form, since a plain form.reset() would
+        // instead revert these dynamically-created elements to the browser's own default
+        // (first option / unchecked), not our intended defaults, because they were never
+        // given selected/checked HTML attributes at creation time.
         reset() {
             HOURS_DAYS.forEach((day) => {
                 const r = rows[day];
-                r.checkbox.checked = true;
+                const isWeekend = HOURS_WEEKEND_DAYS.includes(day);
+                r.checkbox.checked = !isWeekend;
                 r.openTimeBtn.value = "09:00";
                 r.closeTimeBtn.value = "18:00";
                 updateRowVisibility(day);
             });
+            simpleOpenBtn.value = "09:00";
+            simpleCloseBtn.value = "18:00";
+            advancedView.classList.add("hidden");
+            simpleView.classList.remove("hidden");
+            updateWeekendNote();
         },
         // False if any open day's closing time isn't after its opening time (the
         // dropdowns only ever hold valid times, so this is the one way the picker's own

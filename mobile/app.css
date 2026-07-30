@@ -657,6 +657,25 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
    quick-fill control above it so one open/close pick can apply to every day at once. --- */
 .hours-picker { display: flex; flex-direction: column; gap: 10px; margin: 6px 0 16px; }
 
+/* Collapsed default view (most businesses work the same hours Mon-Fri and are closed
+   weekends) - one open/close pair covering all five weekdays, a note about the weekend,
+   and a link that reveals the full per-day list below (.hours-advanced-view). */
+.hours-simple-view {
+    display: flex; flex-direction: column; gap: 10px; padding: 12px 14px;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+}
+.hours-simple-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.hours-simple-label-btn { font-weight: 600; font-size: 14.5px; color: var(--text); flex: 1 1 auto; }
+.hours-simple-row .hours-day-times { flex: 1 1 160px; }
+.hours-simple-note { font-size: 13px; color: var(--text-muted); margin: 0; }
+.hours-customize-link {
+    align-self: flex-start; padding: 0; border: none; background: none;
+    color: var(--primary-ink); font-family: inherit; font-size: 13.5px; font-weight: 600;
+    text-decoration: underline; cursor: pointer;
+}
+
+.hours-advanced-view { display: flex; flex-direction: column; gap: 10px; }
+
 .hours-quickfill {
     display: flex; align-items: center; flex-wrap: wrap; gap: 8px;
     padding: 10px 12px; background: var(--background); border: 1px solid var(--border); border-radius: 10px;
