@@ -795,6 +795,11 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
    .inbox-sender/.inbox-row-top below) would otherwise leave this scrollable left/right;
    scrolling itself now happens on the ancestor .inbox-list-wrap (see below), not here. */
 .inbox-list { flex-shrink: 0; overflow-x: hidden; padding: 8px 12px calc(18px + var(--tabbar-h) + var(--safe-bottom)); }
+/* Emptied via list.innerHTML = "" when a filter has no results - without this, its own
+   padding (sized for the tab bar clearance below real rows) still ate ~90px above the
+   centered .empty state, so the icon/title/detail visually sat well below the true
+   center of the space the user actually sees below the filter pills. */
+.inbox-list:empty { padding: 0; }
 .inbox-row { display: flex; align-items: center; border-bottom: 1px solid var(--border); min-width: 0; }
 .inbox-row-tap {
     display: flex; align-items: center; gap: 12px; padding: 13px 10px;

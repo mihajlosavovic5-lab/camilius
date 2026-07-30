@@ -1989,6 +1989,9 @@ async function renderInboxList(conversations) {
         } else if (state.filter === "trash") {
             el("inbox-empty-title").textContent = t("inbox.emptyTrashTitle");
             el("inbox-empty-detail").textContent = t("inbox.emptyTrashDetail");
+        } else if (state.filter === "pending") {
+            el("inbox-empty-title").textContent = t("inbox.emptyPendingTitle");
+            el("inbox-empty-detail").textContent = t("inbox.emptyPendingDetail");
         } else {
             el("inbox-empty-title").textContent = t("inbox.emptyTitle");
             el("inbox-empty-detail").textContent = t("inbox.emptyDetail");

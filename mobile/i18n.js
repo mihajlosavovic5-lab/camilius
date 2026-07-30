@@ -149,6 +149,8 @@ const TRANSLATIONS = {
         "inbox.emptyArchivedDetail": "Conversations you archive will show up here.",
         "inbox.emptyTrashTitle": "Trash is empty",
         "inbox.emptyTrashDetail": "Deleted conversations stay here for 30 days before they're permanently removed.",
+        "inbox.emptyPendingTitle": "Nothing pending",
+        "inbox.emptyPendingDetail": "No replies are waiting on you.",
 
         "detail.question": "Customer question",
         "detail.suggestedReply": "Suggested reply — edit before sending",
@@ -446,6 +448,8 @@ const TRANSLATIONS = {
         "inbox.emptyArchivedDetail": "Razgovori koje arhivirate pojaviće se ovde.",
         "inbox.emptyTrashTitle": "Korpa je prazna",
         "inbox.emptyTrashDetail": "Obrisani razgovori ostaju ovde 30 dana pre nego što budu trajno uklonjeni.",
+        "inbox.emptyPendingTitle": "Nema na čekanju",
+        "inbox.emptyPendingDetail": "Nijedan odgovor ne čeka vaš pregled.",
 
         "detail.question": "Pitanje kupca",
         "detail.suggestedReply": "Predloženi odgovor — izmenite pre slanja",
@@ -738,6 +742,8 @@ const TRANSLATIONS = {
         "inbox.emptyArchivedDetail": "Las conversaciones que archives aparecerán aquí.",
         "inbox.emptyTrashTitle": "La papelera está vacía",
         "inbox.emptyTrashDetail": "Las conversaciones eliminadas permanecen aquí 30 días antes de eliminarse definitivamente.",
+        "inbox.emptyPendingTitle": "Nada pendiente",
+        "inbox.emptyPendingDetail": "No hay respuestas esperando tu revisión.",
 
         "detail.question": "Pregunta del cliente",
         "detail.suggestedReply": "Respuesta sugerida — edítala antes de enviar",
@@ -1028,6 +1034,8 @@ const TRANSLATIONS = {
         "inbox.emptyArchivedDetail": "As conversas que você arquivar aparecerão aqui.",
         "inbox.emptyTrashTitle": "A lixeira está vazia",
         "inbox.emptyTrashDetail": "As conversas excluídas ficam aqui por 30 dias antes de serem removidas permanentemente.",
+        "inbox.emptyPendingTitle": "Nada pendente",
+        "inbox.emptyPendingDetail": "Nenhuma resposta está esperando sua revisão.",
 
         "detail.question": "Pergunta do cliente",
         "detail.suggestedReply": "Resposta sugerida — edite antes de enviar",
@@ -1318,6 +1326,8 @@ const TRANSLATIONS = {
         "inbox.emptyArchivedDetail": "Les conversations que vous archivez apparaîtront ici.",
         "inbox.emptyTrashTitle": "La corbeille est vide",
         "inbox.emptyTrashDetail": "Les conversations supprimées restent ici 30 jours avant d'être définitivement supprimées.",
+        "inbox.emptyPendingTitle": "Rien en attente",
+        "inbox.emptyPendingDetail": "Aucune réponse n'attend votre validation.",
 
         "detail.question": "Question du client",
         "detail.suggestedReply": "Réponse suggérée — modifiez avant l'envoi",
@@ -1608,6 +1618,8 @@ const TRANSLATIONS = {
         "inbox.emptyArchivedDetail": "Unterhaltungen, die du archivierst, erscheinen hier.",
         "inbox.emptyTrashTitle": "Der Papierkorb ist leer",
         "inbox.emptyTrashDetail": "Gelöschte Unterhaltungen bleiben 30 Tage hier, bevor sie endgültig entfernt werden.",
+        "inbox.emptyPendingTitle": "Nichts ausstehend",
+        "inbox.emptyPendingDetail": "Keine Antworten warten auf deine Prüfung.",
 
         "detail.question": "Kundenfrage",
         "detail.suggestedReply": "Vorgeschlagene Antwort — vor dem Senden bearbeiten",
@@ -1898,6 +1910,8 @@ const TRANSLATIONS = {
         "inbox.emptyArchivedDetail": "Le conversazioni che archivi appariranno qui.",
         "inbox.emptyTrashTitle": "Il cestino è vuoto",
         "inbox.emptyTrashDetail": "Le conversazioni eliminate restano qui per 30 giorni prima di essere rimosse definitivamente.",
+        "inbox.emptyPendingTitle": "Niente in sospeso",
+        "inbox.emptyPendingDetail": "Nessuna risposta è in attesa della tua revisione.",
 
         "detail.question": "Domanda del cliente",
         "detail.suggestedReply": "Risposta suggerita — modifica prima di inviare",
@@ -2188,6 +2202,8 @@ const TRANSLATIONS = {
         "inbox.emptyArchivedDetail": "Разговоры, которые вы архивируете, появятся здесь.",
         "inbox.emptyTrashTitle": "Корзина пуста",
         "inbox.emptyTrashDetail": "Удалённые разговоры хранятся здесь 30 дней, прежде чем будут удалены навсегда.",
+        "inbox.emptyPendingTitle": "Нет ожидающих",
+        "inbox.emptyPendingDetail": "Нет ответов, ожидающих вашей проверки.",
 
         "detail.question": "Вопрос клиента",
         "detail.suggestedReply": "Предложенный ответ — отредактируйте перед отправкой",
@@ -2478,6 +2494,8 @@ const TRANSLATIONS = {
         "inbox.emptyArchivedDetail": "您归档的对话将显示在这里。",
         "inbox.emptyTrashTitle": "回收站是空的",
         "inbox.emptyTrashDetail": "已删除的对话会在此保留30天，之后将被永久删除。",
+        "inbox.emptyPendingTitle": "没有待处理",
+        "inbox.emptyPendingDetail": "没有需要您审核的回复。",
 
         "detail.question": "客户提问",
         "detail.suggestedReply": "建议回复 — 发送前可编辑",
@@ -2768,6 +2786,8 @@ const TRANSLATIONS = {
         "inbox.emptyArchivedDetail": "Arşivlediğiniz konuşmalar burada görünecek.",
         "inbox.emptyTrashTitle": "Çöp kutusu boş",
         "inbox.emptyTrashDetail": "Silinen konuşmalar kalıcı olarak kaldırılmadan önce 30 gün burada kalır.",
+        "inbox.emptyPendingTitle": "Bekleyen yok",
+        "inbox.emptyPendingDetail": "İncelemenizi bekleyen yanıt yok.",
 
         "detail.question": "Müşteri sorusu",
         "detail.suggestedReply": "Önerilen yanıt — göndermeden önce düzenleyin",
