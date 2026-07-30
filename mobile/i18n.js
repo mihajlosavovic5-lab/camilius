@@ -317,9 +317,7 @@ const TRANSLATIONS = {
         "hoursPicker.applyChanges": "Apply changes",
         "hoursPicker.closed": "Closed",
         "hoursPicker.workingDays": "Working days",
-        "hoursPicker.closedOn": "Closed: {days}.",
         "hoursPicker.dayHours": "{day}: {open}–{close}.",
-        "hoursPicker.and": "and",
         "hoursPicker.customizeLink": "Set different hours for a specific day",
 
         "offline": "No internet connection",
@@ -616,9 +614,7 @@ const TRANSLATIONS = {
         "hoursPicker.applyChanges": "Primeni izmene",
         "hoursPicker.closed": "Zatvoreno",
         "hoursPicker.workingDays": "Radni dani",
-        "hoursPicker.closedOn": "Zatvoreno: {days}.",
         "hoursPicker.dayHours": "{day}: {open}–{close}.",
-        "hoursPicker.and": "i",
         "hoursPicker.customizeLink": "Podesi drugačije radno vreme za pojedini dan",
 
         "offline": "Nema internet konekcije",
@@ -913,9 +909,7 @@ const TRANSLATIONS = {
         "hoursPicker.applyChanges": "Aplicar cambios",
         "hoursPicker.closed": "Cerrado",
         "hoursPicker.workingDays": "Días laborables",
-        "hoursPicker.closedOn": "Cerrado: {days}.",
         "hoursPicker.dayHours": "{day}: {open}–{close}.",
-        "hoursPicker.and": "y",
         "hoursPicker.customizeLink": "Establecer horarios distintos para un día en concreto",
 
         "offline": "Sin conexión a internet",
@@ -1210,9 +1204,7 @@ const TRANSLATIONS = {
         "hoursPicker.applyChanges": "Aplicar alterações",
         "hoursPicker.closed": "Fechado",
         "hoursPicker.workingDays": "Dias úteis",
-        "hoursPicker.closedOn": "Fechado: {days}.",
         "hoursPicker.dayHours": "{day}: {open}–{close}.",
-        "hoursPicker.and": "e",
         "hoursPicker.customizeLink": "Definir horários diferentes para um dia específico",
 
         "offline": "Sem conexão com a internet",
@@ -1507,9 +1499,7 @@ const TRANSLATIONS = {
         "hoursPicker.applyChanges": "Appliquer les modifications",
         "hoursPicker.closed": "Fermé",
         "hoursPicker.workingDays": "Jours ouvrés",
-        "hoursPicker.closedOn": "Fermé : {days}.",
         "hoursPicker.dayHours": "{day} : {open}–{close}.",
-        "hoursPicker.and": "et",
         "hoursPicker.customizeLink": "Définir des horaires différents pour un jour précis",
 
         "offline": "Pas de connexion internet",
@@ -1804,9 +1794,7 @@ const TRANSLATIONS = {
         "hoursPicker.applyChanges": "Änderungen übernehmen",
         "hoursPicker.closed": "Geschlossen",
         "hoursPicker.workingDays": "Arbeitstage",
-        "hoursPicker.closedOn": "Geschlossen: {days}.",
         "hoursPicker.dayHours": "{day}: {open}–{close}.",
-        "hoursPicker.and": "und",
         "hoursPicker.customizeLink": "Abweichende Öffnungszeiten für einen bestimmten Tag festlegen",
 
         "offline": "Keine Internetverbindung",
@@ -2101,9 +2089,7 @@ const TRANSLATIONS = {
         "hoursPicker.applyChanges": "Applica modifiche",
         "hoursPicker.closed": "Chiuso",
         "hoursPicker.workingDays": "Giorni lavorativi",
-        "hoursPicker.closedOn": "Chiuso: {days}.",
         "hoursPicker.dayHours": "{day}: {open}–{close}.",
-        "hoursPicker.and": "e",
         "hoursPicker.customizeLink": "Imposta orari diversi per un giorno specifico",
 
         "offline": "Nessuna connessione internet",
@@ -2398,9 +2384,7 @@ const TRANSLATIONS = {
         "hoursPicker.applyChanges": "Применить изменения",
         "hoursPicker.closed": "Закрыто",
         "hoursPicker.workingDays": "Рабочие дни",
-        "hoursPicker.closedOn": "Закрыто: {days}.",
         "hoursPicker.dayHours": "{day}: {open}–{close}.",
-        "hoursPicker.and": "и",
         "hoursPicker.customizeLink": "Задать другое время для конкретного дня",
 
         "offline": "Нет подключения к интернету",
@@ -2695,9 +2679,7 @@ const TRANSLATIONS = {
         "hoursPicker.applyChanges": "应用更改",
         "hoursPicker.closed": "休息",
         "hoursPicker.workingDays": "工作日",
-        "hoursPicker.closedOn": "休息：{days}。",
         "hoursPicker.dayHours": "{day}：{open}–{close}。",
-        "hoursPicker.and": "和",
         "hoursPicker.customizeLink": "为某一天单独设置时间",
 
         "offline": "无网络连接",
@@ -2992,9 +2974,7 @@ const TRANSLATIONS = {
         "hoursPicker.applyChanges": "Değişiklikleri uygula",
         "hoursPicker.closed": "Kapalı",
         "hoursPicker.workingDays": "Çalışma günleri",
-        "hoursPicker.closedOn": "Kapalı: {days}.",
         "hoursPicker.dayHours": "{day}: {open}–{close}.",
-        "hoursPicker.and": "ve",
         "hoursPicker.customizeLink": "Belirli bir gün için farklı saat belirle",
 
         "offline": "İnternet bağlantısı yok",
