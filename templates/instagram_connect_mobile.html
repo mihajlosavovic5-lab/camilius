@@ -46,13 +46,26 @@
 
 // Manual fallback button - stays hidden at first (every attempt above still gets a
 // chance to close this tab on its own) and only appears if none of them worked within
-// a few seconds. Deliberately a real button tied to a tap rather than more silent
-// auto-close attempts: some browsers only grant window.close() to a call that's
-// directly inside a user-gesture handler (a click) and quietly ignore it otherwise,
-// including every timer-driven attempt above - so a tap here can succeed even where
-// none of those did.
+// a few seconds.
+//
+// Doesn't rely on window.close() at all - on some Custom Tabs providers that call is
+// refused outright, tap or no tap, which turned out to be exactly what was happening
+// here (window.close() from a real click still did nothing). Instead this navigates to
+// an Android "intent://" URI that explicitly launches Camilius by its own package name
+// (com.ai_auto_reply_mail.app.twa - see capacitor.config.json's appId and android/app/
+// build.gradle's applicationId) with the same action+category its own launcher intent-
+// filter already matches (see AndroidManifest.xml) - no new native code or manifest
+// entry needed, this just invokes the entry point every Android app already has.
+// MainActivity's launchMode="singleTask" means Android brings the already-running app
+// straight to the foreground instead of starting a second instance, which is exactly
+// "return to the app" - closing this tab afterward is a nice-to-have at that point, not
+// the part that actually matters, so window.close() still runs right after but isn't
+// depended on.
 var connectMobileBackBtn = document.getElementById("connect-mobile-back-btn");
-connectMobileBackBtn.addEventListener("click", function () { window.close(); });
+connectMobileBackBtn.addEventListener("click", function () {
+    window.location.href = "intent://#Intent;action=android.intent.action.MAIN;category=android.intent.category.LAUNCHER;package=com.ai_auto_reply_mail.app.twa;end";
+    window.close();
+});
 setTimeout(function () { connectMobileBackBtn.classList.remove("hidden"); }, 2500);
 </script>
 {% endblock %}
