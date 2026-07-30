@@ -602,6 +602,17 @@
     var ticking = false;
 
     function onScroll() {
+        // Toggling position:fixed on <body> to lock scroll (the hamburger drawer
+        // above and the language dropdown in static/site-i18n.js both do this)
+        // makes window.scrollY briefly report 0 and fires a real 'scroll' event
+        // for that - without this guard, this handler believed the page had
+        // scrolled back to the top and un-shrunk the header mid-lock, visibly
+        // dropping the fixed flag/corner-brand down until the next real scroll
+        // recomputed things correctly.
+        if (document.body.classList.contains('lp-menu-open') || document.body.classList.contains('site-lang-open')) {
+            ticking = false;
+            return;
+        }
         var scrollTop = window.scrollY || document.documentElement.scrollTop;
         header.classList.toggle('lp-scrolled', scrollTop > 12);
         // Keeps the fixed top-right language flag (.site-lang-select-btn,
