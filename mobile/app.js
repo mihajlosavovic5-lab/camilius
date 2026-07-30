@@ -2596,7 +2596,6 @@ const profilePhoneAvailability = setupAvailabilityField(
 
 function updatePhoneVerifyStatus(phoneNumber, phoneVerified) {
     el("settings-phone-verify-sent").classList.add("hidden");
-    el("settings-phone-empty-hint").classList.toggle("hidden", !!phoneNumber);
     el("settings-phone-verified-badge").classList.toggle("hidden", !(phoneNumber && phoneVerified));
     el("settings-phone-unverified-banner").classList.toggle("hidden", !(phoneNumber && !phoneVerified));
 }
