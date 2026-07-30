@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}Delete account - Camilius{% endblock %}
+
+{% block content %}
+{% include "_nav.html" %}
+
+<div class="content content-narrow">
+    <div class="page-header">
+        <div>
+            <h1 data-i18n="deleteWizard.title">Delete your account</h1>
+            <p class="subtitle" data-i18n="deleteWizard.step1.subtitle">Step 1 of 3 &mdash; what you're about to lose</p>
+        </div>
+    </div>
+
+    <div class="register-step-dots" style="justify-content:center; margin-bottom:22px;">
+        <span class="register-step-dot active"></span>
+        <span class="register-step-dot"></span>
+        <span class="register-step-dot"></span>
+    </div>
+
+    <div class="card" style="padding: 32px;">
+        <div class="alert alert-warning" style="margin-bottom:20px;">
+            <span class="alert-icon">&#9888;&#65039;</span>
+            <span data-i18n="deleteWizard.step1.warning">This is permanent and immediate &mdash; there is no recovery period once it's done.</span>
+        </div>
+
+        <p class="note" style="display:block; margin-bottom:10px;" data-i18n="deleteWizard.step1.intro">Deleting your account permanently removes:</p>
+        <ul style="margin: 0 0 22px; padding-left: 20px; line-height: 1.8; color: var(--text);">
+            <li data-i18n="deleteWizard.step1.item1">Your business profile (name, username, contact email, password, working hours, price list, FAQ)</li>
+            <li data-i18n="deleteWizard.step1.item2">Your connected Instagram account link and access token</li>
+            <li data-i18n="deleteWizard.step1.item3">All conversations and messages (customer questions, suggested and sent replies)</li>
+            <li data-i18n="deleteWizard.step1.item4">Appointments, push notification tokens, and usage/error logs tied to your account</li>
+        </ul>
+        <p class="note" data-i18n="deleteWizard.step1.exportHint">Want a copy first? Go to Settings &rarr; Export Data before continuing.</p>
+
+        <div class="form-actions" style="display:flex; gap:12px; flex-wrap:wrap;">
+            <a class="button button-secondary" href="{{ url_for('app_settings') }}" data-i18n="deleteWizard.cancel">Cancel</a>
+            <a class="button button-danger" href="{{ url_for('delete_account_step2') }}" data-i18n="deleteWizard.continue">Continue</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

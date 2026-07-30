@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% block title %}Delete account - Camilius{% endblock %}
+
+{% block content %}
+{% include "_nav.html" %}
+
+<div class="content content-narrow">
+    <div class="page-header">
+        <div>
+            <h1 data-i18n="deleteWizard.title">Delete your account</h1>
+            <p class="subtitle" data-i18n="deleteWizard.step3.subtitle">Step 3 of 3 &mdash; confirm</p>
+        </div>
+    </div>
+
+    <div class="register-step-dots" style="justify-content:center; margin-bottom:22px;">
+        <span class="register-step-dot active"></span>
+        <span class="register-step-dot active"></span>
+        <span class="register-step-dot active"></span>
+    </div>
+
+    <div class="card" style="padding: 32px;">
+        {% if error %}
+            <div class="alert alert-error" style="margin-bottom:18px;"><span class="alert-icon">&#9888;&#65039;</span><span>{{ error }}</span></div>
+        {% endif %}
+
+        <p class="note" style="display:block; margin-bottom:16px;" data-i18n="deleteWizard.step3.intro">Last step. Enter your password and confirm below &mdash; once you submit, everything is deleted immediately and permanently.</p>
+
+        <form method="POST" action="{{ url_for('delete_account') }}" id="delete-confirm-form">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="reason_category" value="{{ reason_category }}">
+            <input type="hidden" name="reason_details" value="{{ reason_details or '' }}">
+
+            <div class="floating-field floating-field-password">
+                <input type="password" id="delete-password-input" name="password" placeholder=" " autocomplete="current-password" required>
+                <label for="delete-password-input" data-i18n="deleteWizard.step3.passwordLabel">Enter your password to confirm</label>
+                {% include "_password_toggle.html" %}
+            </div>
+
+            <label class="checkbox-row">
+                <input type="checkbox" id="delete-confirm-checkbox" required>
+                <span data-i18n="deleteWizard.step3.confirmCheckbox">I understand this will permanently delete my account and all of my data. This cannot be undone.</span>
+            </label>
+
+            <div class="form-actions" style="display:flex; gap:12px; flex-wrap:wrap;">
+                <a class="button button-secondary" href="{{ url_for('delete_account_step2') }}" data-i18n="deleteWizard.back">Back</a>
+                <button class="button button-danger" type="submit" id="delete-confirm-submit" disabled data-i18n="deleteWizard.step3.submit">Delete my account</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+(function () {
+    var passwordInput = document.getElementById("delete-password-input");
+    var checkbox = document.getElementById("delete-confirm-checkbox");
+    var submitBtn = document.getElementById("delete-confirm-submit");
+
+    function updateSubmitState() {
+        submitBtn.disabled = !(passwordInput.value.trim().length > 0 && checkbox.checked);
+    }
+    passwordInput.addEventListener("input", updateSubmitState);
+    checkbox.addEventListener("change", updateSubmitState);
+    updateSubmitState();
+
+    var form = document.getElementById("delete-confirm-form");
+    form.addEventListener("submit", function () {
+        // Guards against a double-tap firing two deletions - the page navigates away
+        // (redirect to login, or a re-rendered error page) either way, so there's no
+        // later state where the button needs to become clickable again.
+        submitBtn.disabled = true;
+        submitBtn.textContent = t ? t("deleteWizard.step3.deleting") : submitBtn.textContent;
+    });
+})();
+</script>
+{% endblock %}

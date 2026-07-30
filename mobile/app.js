@@ -106,6 +106,9 @@ const screens = {
     schedule: el("screen-schedule"),
     profile: el("screen-profile"),
     settings: el("screen-settings"),
+    deleteWarning: el("screen-delete-warning"),
+    deleteReason: el("screen-delete-reason"),
+    deleteConfirm: el("screen-delete-confirm"),
     help: el("screen-help"),
     terms: el("screen-terms"),
     privacy: el("screen-privacy"),
@@ -209,6 +212,12 @@ if (capacitorPlugins) {
             showScreen(legalReturnTo);
         } else if (screens.help.classList.contains("active") || screens.subscription.classList.contains("active")) {
             showScreen("settings");
+        } else if (screens.deleteWarning.classList.contains("active")) {
+            showScreen("settings");
+        } else if (screens.deleteReason.classList.contains("active")) {
+            showScreen("deleteWarning");
+        } else if (screens.deleteConfirm.classList.contains("active")) {
+            showScreen("deleteReason");
         } else if (canGoBack) {
             history.back();
         } else {
@@ -2831,16 +2840,74 @@ el("settings-export").addEventListener("click", async () => {
     }
 });
 
-el("settings-delete-account").addEventListener("click", async () => {
-    if (!window.confirm(t("appSettings.deleteConfirm"))) return;
-    const errorBox = el("settings-app-error");
+// --- Delete account wizard: warning -> reason -> confirm, three separate screens
+// instead of the old single confirm() dialog (see the 3 screen-delete-* sections in
+// index.html). Reason + optional free-text picked on the middle screen are held here in
+// plain JS state and only ever sent to the server as part of the final DELETE call on
+// the confirm screen - nothing is persisted (or even validated server-side) before then.
+
+let deleteWizardReasonCategory = null;
+let deleteWizardReasonDetails = "";
+
+el("settings-delete-account").addEventListener("click", () => {
+    deleteWizardReasonCategory = null;
+    deleteWizardReasonDetails = "";
+    document.querySelectorAll('input[name="delete-reason"]').forEach((input) => { input.checked = false; });
+    el("delete-reason-details").value = "";
+    el("delete-reason-error").classList.add("hidden");
+    el("delete-confirm-password").value = "";
+    el("delete-confirm-checkbox").checked = false;
+    el("delete-confirm-error").classList.add("hidden");
+    el("delete-confirm-submit").disabled = true;
+    showScreen("deleteWarning");
+});
+
+el("delete-warning-back").addEventListener("click", () => showScreen("settings"));
+el("delete-warning-continue").addEventListener("click", () => showScreen("deleteReason"));
+
+el("delete-reason-back").addEventListener("click", () => showScreen("deleteWarning"));
+el("delete-reason-continue").addEventListener("click", () => {
+    const checked = document.querySelector('input[name="delete-reason"]:checked');
+    if (!checked) {
+        el("delete-reason-error").textContent = t("deleteWizard.step2.errorReason");
+        el("delete-reason-error").classList.remove("hidden");
+        return;
+    }
+    el("delete-reason-error").classList.add("hidden");
+    deleteWizardReasonCategory = checked.value;
+    deleteWizardReasonDetails = el("delete-reason-details").value.trim().slice(0, 1000);
+    showScreen("deleteConfirm");
+});
+
+function updateDeleteConfirmSubmitState() {
+    el("delete-confirm-submit").disabled = !(
+        el("delete-confirm-password").value.trim().length > 0 && el("delete-confirm-checkbox").checked
+    );
+}
+el("delete-confirm-password").addEventListener("input", updateDeleteConfirmSubmitState);
+el("delete-confirm-checkbox").addEventListener("change", updateDeleteConfirmSubmitState);
+
+el("delete-confirm-back").addEventListener("click", () => showScreen("deleteReason"));
+
+el("delete-confirm-submit").addEventListener("click", async () => {
+    const button = el("delete-confirm-submit");
+    const errorBox = el("delete-confirm-error");
     errorBox.classList.add("hidden");
+    button.disabled = true;
     try {
-        await api("/api/delete-account", { method: "POST" });
+        await api("/api/delete-account", {
+            method: "POST",
+            body: {
+                password: el("delete-confirm-password").value,
+                reason_category: deleteWizardReasonCategory,
+                reason_details: deleteWizardReasonDetails,
+            },
+        });
         await logout();
     } catch (err) {
         errorBox.textContent = err.message || t("appSettings.deleteError");
         errorBox.classList.remove("hidden");
+        updateDeleteConfirmSubmitState();
     }
 });
 

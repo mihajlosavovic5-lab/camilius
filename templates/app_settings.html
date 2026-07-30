@@ -272,11 +272,7 @@
     <div class="danger-zone">
         <h2 data-i18n="appSettings.danger.heading">Delete account</h2>
         <p data-i18n="appSettings.danger.note">Permanently deletes your account and all conversations. This action cannot be undone.</p>
-        <form method="POST" action="{{ url_for('delete_account') }}"
-              onsubmit="return confirm(t('appSettings.danger.confirm'));">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <button class="button button-danger" type="submit" data-i18n="appSettings.danger.cta">Delete account</button>
-        </form>
+        <a class="button button-danger" href="{{ url_for('delete_account_step1') }}" data-i18n="appSettings.danger.cta">Delete account</a>
     </div>
 </div>
 {% endblock %}

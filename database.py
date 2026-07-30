@@ -437,6 +437,29 @@ def create_database():
     cursor.execute("ALTER TABLE businesses ADD COLUMN IF NOT EXISTS phone_verify_expires TIMESTAMP")
     cursor.execute("ALTER TABLE businesses ADD COLUMN IF NOT EXISTS phone_verify_sent_at TIMESTAMP")
 
+    # Account-deletion exit survey (web + mobile "Delete account" wizard) - a snapshot of
+    # the business's own identifying fields plus why they left, kept AFTER delete_business()
+    # removes the business row itself, so the founder still has something to look at in
+    # /admin/account-deletions. No REFERENCES businesses(id) on purpose: that FK would block
+    # delete_business()'s own DELETE FROM businesses once this row exists, and the whole
+    # point is for this row to outlive the business it describes.
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS account_deletions (
+            id SERIAL PRIMARY KEY,
+            business_id INTEGER,
+            business_name TEXT,
+            username TEXT,
+            contact_email TEXT,
+            instagram_username TEXT,
+            phone_number TEXT,
+            reason_category TEXT NOT NULL,
+            reason_details TEXT,
+            source TEXT NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+    cursor.execute("CREATE INDEX IF NOT EXISTS account_deletions_created_idx ON account_deletions (created_at DESC)")
+
     connection.commit()
     connection.close()
 
@@ -1176,6 +1199,59 @@ def delete_business(business_id):
 
     connection.commit()
     connection.close()
+
+
+# Slugs offered on the "why are you leaving?" step of the delete-account wizard (web
+# templates/delete_account_reason.html and the mobile app's screen-delete-reason) -
+# shared here so both app.py and api.py validate against the exact same set instead of
+# each hardcoding its own copy that could drift out of sync.
+ACCOUNT_DELETION_REASONS = (
+    "not_using", "too_expensive", "missing_features", "bugs", "switching", "privacy", "other",
+)
+
+
+def record_account_deletion(business_id, reason_category, reason_details, source):
+    """Snapshots the business's own identifying fields plus why they left, called right
+    before delete_business() below removes the row for good - this is the only place the
+    founder can still see who deleted their account and why (see /admin/account-deletions
+    in app.py). reason_category not in ACCOUNT_DELETION_REASONS is the caller's bug, not
+    something to silently paper over here - app.py/api.py both validate it first."""
+    business = business_by_id(business_id)
+    connection = connect()
+    cursor = connection.cursor()
+    cursor.execute(
+        """INSERT INTO account_deletions
+               (business_id, business_name, username, contact_email, instagram_username,
+                phone_number, reason_category, reason_details, source)
+           VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)""",
+        (
+            business_id,
+            business[1] if business else None,
+            business[2] if business else None,
+            business[4] if business else None,
+            business[6] if business else None,
+            business[11] if business else None,
+            reason_category,
+            reason_details or None,
+            source,
+        ),
+    )
+    connection.commit()
+    connection.close()
+
+
+def recent_account_deletions(limit=200):
+    connection = connect()
+    cursor = connection.cursor()
+    cursor.execute(
+        """SELECT id, business_id, business_name, username, contact_email, instagram_username,
+                  phone_number, reason_category, reason_details, source, created_at
+           FROM account_deletions ORDER BY created_at DESC LIMIT %s""",
+        (limit,),
+    )
+    rows = cursor.fetchall()
+    connection.close()
+    return rows
 
 
 # --- Subscription (Paddle) ---

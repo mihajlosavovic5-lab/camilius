@@ -24,6 +24,7 @@ from database import (
     get_slot_duration, set_slot_duration, create_appointment, get_appointment, cancel_appointment,
     notifications_for_business, unread_notification_count, mark_notifications_read,
     is_new_booking_notifications_enabled, set_new_booking_notifications_enabled,
+    record_account_deletion, ACCOUNT_DELETION_REASONS,
 )
 from instagram_api import send_message as send_instagram_message, authorize_url as instagram_authorize_url, get_sender_info
 from extensions import limiter
@@ -1013,11 +1014,27 @@ def api_update_notification_preferences():
     )
 
 
-# Mobile equivalent of the web dashboard's "Delete account" button - same underlying
-# delete_business(), just Bearer-authed instead of session-based.
+# Mobile equivalent of the web dashboard's delete-account wizard (see app.py's
+# /settings/delete-account and /delete-account) - the app's own 3-screen wizard
+# (screen-delete-warning/reason/confirm in mobile/app.js) collects the same password +
+# reason before calling this, just Bearer-authed instead of session-based. Requires the
+# current password (re-typed on the confirm screen) so a stolen/leftover token alone
+# can't nuke the account, same spirit as the password re-check on a settings password
+# change further up this file.
 @api.route("/delete-account", methods=["POST"])
 @require_api_auth
 def api_delete_account():
+    data = request.get_json(silent=True) or {}
+    business = business_by_id(request.business_id)
+    if not business or not check_password_hash(business[3], data.get("password", "")):
+        return jsonify(error="Wrong password."), 400
+
+    reason_category = data.get("reason_category", "")
+    if reason_category not in ACCOUNT_DELETION_REASONS:
+        return jsonify(error="Please choose a reason."), 400
+    reason_details = (data.get("reason_details") or "").strip()[:1000]
+
+    record_account_deletion(request.business_id, reason_category, reason_details, source="mobile")
     delete_business(request.business_id)
     return jsonify(message="deleted")
 
