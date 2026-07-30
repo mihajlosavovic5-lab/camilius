@@ -41,9 +41,6 @@
          with everything the site nav has (See it in action/Who it's for/How it
          works/Pricing, Log in, Try for free, Download for Android); the brand
          logo sits centered top. -->
-    <button type="button" id="lp-menu-btn" class="lp-menu-btn" aria-label="Menu" aria-expanded="false" aria-controls="lp-menu-modal">
-        <span></span><span></span><span></span>
-    </button>
     <div class="public-header">
         <button type="button" class="brand" id="lp-corner-brand" aria-label="Scroll to top">
             <span class="brand-mark">C</span>
@@ -51,13 +48,24 @@
         </button>
     </div>
 </header>
-<!-- Kept out of #lp-header (not nested inside it) on purpose: #lp-header.lp-scrolled
-     sets backdrop-filter once the page is scrolled, and a filter on an ancestor
-     turns it into the containing block for this modal's position:fixed - which
-     clipped the whole drawer down to the header's own (short) height instead of
-     covering the viewport, with the row list showing a scrollbar in that
-     shrunken box. z-index (1002, above the header's 999) is what keeps it
-     stacking correctly as a later sibling instead of the old nested position. -->
+<!-- Button and drawer both kept out of #lp-header (not nested inside it) on
+     purpose: #lp-header.lp-scrolled sets backdrop-filter once the page is
+     scrolled, and a filter on an ancestor turns it into the containing block
+     for position:fixed descendants - which used to clip the whole drawer down
+     to the header's own (short) height instead of covering the viewport
+     (moving the modal out fixed that), and separately capped the button's
+     z-index (1003) at the header's own 999 once compared against page-level
+     siblings, so the "X" close state rendered underneath the open drawer and
+     couldn't be clicked to close it (moving the button out too fixes that -
+     both now compare their z-index directly against each other: 1003 above
+     the drawer's 1002). Since it's no longer inside #lp-header, its own
+     top:50% centering broke - .lp-menu-btn now uses the same fixed
+     top:calc(var(--lp-header-half-h) + ...) trick .site-lang-select-btn
+     already relies on (see style.css) to stay centered on the header's real,
+     scroll-dependent height. -->
+<button type="button" id="lp-menu-btn" class="lp-menu-btn" aria-label="Menu" aria-expanded="false" aria-controls="lp-menu-modal">
+    <span></span><span></span><span></span>
+</button>
 <div id="lp-menu-modal" class="lp-menu-modal">
     <div class="lp-menu-modal-backdrop" id="lp-menu-modal-backdrop"></div>
     <nav class="lp-menu-modal-sheet" id="lp-menu-modal-sheet">

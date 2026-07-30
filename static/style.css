@@ -2090,18 +2090,22 @@ body.lp-menu-open .support-widget {
     /* z-index above .lp-menu-modal's 1002 - the drawer now covers this same
        corner (full-height, from left:0), so the button (turned into an "X")
        must stay on top of it to remain visible/clickable as the close control.
-       top: 50%/translateY(-50%) (not a fixed px top) centers it on #lp-header's
-       own height regardless of the header's scroll-driven padding shrink (18px
-       unscrolled vs 12px scrolled, see #lp-header.lp-scrolled) - a fixed top
-       offset stayed correct for only one of those two states. The hover/active
-       rules below re-state this translateY alongside their own scale() so the
-       button doesn't jump back to a plain top-anchored position on interaction. */
-    position: absolute; top: 50%; left: 20px; z-index: 1003;
+       Lives outside #lp-header in the DOM now (landing.html), same reason as
+       .lp-menu-modal (see the HTML comment there) - so position: fixed (not
+       absolute) plus top: calc(var(--lp-header-half-h) + ...) is what centers
+       it on the header's own height instead of the header's box itself acting
+       as the containing block; --lp-header-half-h already tracks the header's
+       real, scroll-dependent height for the language flag button (see
+       .site-lang-select-btn) and is kept in sync by landing.html's scroll
+       handler. The hover/active rules below re-state this translateY
+       alongside their own scale() so the button doesn't jump back to a plain
+       top-anchored position on interaction. */
+    position: fixed; top: calc(var(--lp-header-half-h) + var(--install-banner-h)); left: 20px; z-index: 1003;
     transform: translateY(-50%);
     width: 34px; height: 34px; align-items: center; justify-content: center;
     flex-direction: column; gap: 5px;
     background: none; border: none; border-radius: 50%; cursor: pointer; padding: 0;
-    transition: transform .15s ease, background-color .2s ease;
+    transition: transform .15s ease, background-color .2s ease, top .2s cubic-bezier(.16,1,.3,1);
 }
 .lp-menu-btn span {
     display: block; width: 22px; height: 2px; border-radius: 2px;
@@ -2214,6 +2218,14 @@ body.lp-menu-open .support-widget {
 @media (hover: hover) and (pointer: fine) {
     .lp-menu-modal.open .lp-menu-modal-sheet a:hover {
         text-decoration: none;
+        /* Re-stating the resting background here - not just for these plain
+           rows (a no-op, they're already this color) but to outrank
+           .button:hover's own `background: var(--primary-dark)` for the "Try
+           for free" row, which otherwise still won that one property (this
+           selector stopped declaring it, and cascade resolves per-property,
+           not per-rule) and darkened only that row on hover while its
+           siblings got the plain transform-only pop. */
+        background: var(--menu-row-bg);
         transform: translateY(-2px) scale(1.03);
         box-shadow: 0 4px 10px -6px rgba(214, 148, 16, .35);
         transition-delay: 0s;
