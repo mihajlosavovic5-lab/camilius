@@ -182,6 +182,13 @@ body.landing .site-lang-select-btn:hover { transform: translateY(-50%) scale(1.0
 .site-lang-modal.open { visibility: visible; pointer-events: auto; }
 .site-lang-modal-backdrop { position: absolute; inset: 0; background: rgba(20,15,8,.32); opacity: 0; transition: opacity .2s ease; }
 .site-lang-modal.open .site-lang-modal-backdrop { opacity: 1; }
+/* Scroll lock while the language dropdown is open - same pattern as the landing
+   page's hamburger drawer (body.lp-menu-open above): static/site-i18n.js sets
+   body.style.top to the negative of the scroll position being locked at so the
+   page doesn't visually jump when position flips to fixed, then restores the
+   real scroll position on close. Needed site-wide (not just landing) since the
+   flag/dropdown is rendered on every page via base.html. */
+body.site-lang-open { position: fixed; left: 0; right: 0; width: 100%; overflow: hidden; }
 .site-lang-modal-sheet {
     /* top must track --install-banner-h the same way .site-lang-select-btn does -
        otherwise, whenever the install banner is showing, the button sits lower on

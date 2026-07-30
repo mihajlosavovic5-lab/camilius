@@ -4926,13 +4926,28 @@ function setupLanguagePicker() {
     const list = document.getElementById("site-lang-modal-list");
     if (!btn || !modal || !list) return;
 
+    // Scroll lock: same pattern as the landing page's hamburger drawer
+    // (templates/landing.html's menuBtn handler) - remembers the scroll
+    // position it opened at, pins the body there via position:fixed (see
+    // body.site-lang-open in style.css) so the page behind can't scroll/
+    // bounce while the dropdown is open, then restores the exact same scroll
+    // position on close instead of jumping to the top.
+    let lockedScrollY = 0;
     const openPicker = () => {
+        lockedScrollY = window.scrollY || document.documentElement.scrollTop;
+        document.body.style.top = (-lockedScrollY) + "px";
+        document.body.classList.add("site-lang-open");
         modal.classList.add("open");
         btn.classList.add("active");
     };
     const closePicker = () => {
         modal.classList.remove("open");
         btn.classList.remove("active");
+        document.body.classList.remove("site-lang-open");
+        document.body.style.top = "";
+        // behavior: "instant" overrides the site-wide smooth-scroll so this
+        // restore snaps back immediately instead of visibly animating.
+        window.scrollTo({ top: lockedScrollY, left: 0, behavior: "instant" });
     };
 
     LANGUAGES.forEach((lang) => {
