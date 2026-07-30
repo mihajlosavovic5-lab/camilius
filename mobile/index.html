@@ -964,6 +964,107 @@
     <button class="fab-save hidden" id="settings-app-save" data-i18n="settings.save">Save changes</button>
   </section>
 
+  <!-- DELETE ACCOUNT WIZARD - three separate screens (warning -> reason -> confirm)
+       instead of the old single confirm()-dialog delete. See settings-delete-account's
+       click handler and showDeleteStep() in app.js. -->
+  <section id="screen-delete-warning" class="screen screen-delete-warning">
+    <header class="topbar">
+      <button class="back-btn" id="delete-warning-back" aria-label="Back">‹</button>
+      <div class="topbar-title"><div><h1 data-i18n="deleteWizard.title">Delete account</h1></div></div>
+    </header>
+    <div class="detail-body">
+      <div class="register-step-dots" style="justify-content:center; margin: 2px 0 16px;">
+        <span class="register-step-dot active"></span>
+        <span class="register-step-dot"></span>
+        <span class="register-step-dot"></span>
+      </div>
+      <p class="screen-subtitle" data-i18n="deleteWizard.step1.subtitle">Step 1 of 3 — what you're about to lose</p>
+
+      <div class="alert alert-warning">
+        <span data-i18n="deleteWizard.step1.warning">This is permanent and immediate — there is no recovery period once it's done.</span>
+      </div>
+
+      <div class="info-card">
+        <p class="field-hint" style="margin: 0 0 8px;" data-i18n="deleteWizard.step1.intro">Deleting your account permanently removes:</p>
+        <ul class="delete-wizard-list">
+          <li data-i18n="deleteWizard.step1.item1">Your business profile (name, username, contact email, password, working hours, price list, FAQ)</li>
+          <li data-i18n="deleteWizard.step1.item2">Your connected Instagram account link and access token</li>
+          <li data-i18n="deleteWizard.step1.item3">All conversations and messages (customer questions, suggested and sent replies)</li>
+          <li data-i18n="deleteWizard.step1.item4">Appointments, push notification tokens, and usage/error logs tied to your account</li>
+        </ul>
+      </div>
+      <p class="field-hint" data-i18n="deleteWizard.step1.exportHint">Want a copy first? Go to Settings → Export my data before continuing.</p>
+
+      <button type="button" class="button button-full button-pill button-danger" id="delete-warning-continue" data-i18n="deleteWizard.continue">Continue</button>
+    </div>
+  </section>
+
+  <section id="screen-delete-reason" class="screen screen-delete-reason">
+    <header class="topbar">
+      <button class="back-btn" id="delete-reason-back" aria-label="Back">‹</button>
+      <div class="topbar-title"><div><h1 data-i18n="deleteWizard.title">Delete account</h1></div></div>
+    </header>
+    <div class="detail-body">
+      <div class="register-step-dots" style="justify-content:center; margin: 2px 0 16px;">
+        <span class="register-step-dot active"></span>
+        <span class="register-step-dot active"></span>
+        <span class="register-step-dot"></span>
+      </div>
+      <p class="screen-subtitle" data-i18n="deleteWizard.step2.subtitle">Step 2 of 3 — tell us why</p>
+      <div id="delete-reason-error" class="alert alert-error hidden"></div>
+      <p class="field-hint" data-i18n="deleteWizard.step2.intro">This helps us understand what we could have done better. Your answer is only ever seen by us, never shared.</p>
+
+      <label class="checkbox-row"><input type="radio" name="delete-reason" value="not_using"><span data-i18n="deleteWizard.reasons.notUsing">I don't use it enough</span></label>
+      <label class="checkbox-row"><input type="radio" name="delete-reason" value="too_expensive"><span data-i18n="deleteWizard.reasons.tooExpensive">It's too expensive</span></label>
+      <label class="checkbox-row"><input type="radio" name="delete-reason" value="missing_features"><span data-i18n="deleteWizard.reasons.missingFeatures">It's missing features I need</span></label>
+      <label class="checkbox-row"><input type="radio" name="delete-reason" value="bugs"><span data-i18n="deleteWizard.reasons.bugs">I ran into technical issues or bugs</span></label>
+      <label class="checkbox-row"><input type="radio" name="delete-reason" value="switching"><span data-i18n="deleteWizard.reasons.switching">I'm switching to another tool</span></label>
+      <label class="checkbox-row"><input type="radio" name="delete-reason" value="privacy"><span data-i18n="deleteWizard.reasons.privacy">Privacy or data concerns</span></label>
+      <label class="checkbox-row"><input type="radio" name="delete-reason" value="other"><span data-i18n="deleteWizard.reasons.other">Other</span></label>
+
+      <label for="delete-reason-details" class="block-label" style="margin-top:14px;" data-i18n="deleteWizard.step2.detailsLabel">Anything else you'd like to share? (optional)</label>
+      <textarea id="delete-reason-details" rows="3" maxlength="1000" data-i18n-placeholder="deleteWizard.step2.detailsPlaceholder" placeholder="Tell us more..."></textarea>
+
+      <button type="button" class="button button-full button-pill button-danger" id="delete-reason-continue" data-i18n="deleteWizard.continue">Continue</button>
+    </div>
+  </section>
+
+  <section id="screen-delete-confirm" class="screen screen-delete-confirm">
+    <header class="topbar">
+      <button class="back-btn" id="delete-confirm-back" aria-label="Back">‹</button>
+      <div class="topbar-title"><div><h1 data-i18n="deleteWizard.title">Delete account</h1></div></div>
+    </header>
+    <div class="detail-body">
+      <div class="register-step-dots" style="justify-content:center; margin: 2px 0 16px;">
+        <span class="register-step-dot active"></span>
+        <span class="register-step-dot active"></span>
+        <span class="register-step-dot active"></span>
+      </div>
+      <p class="screen-subtitle" data-i18n="deleteWizard.step3.subtitle">Step 3 of 3 — confirm</p>
+      <div id="delete-confirm-error" class="alert alert-error hidden"></div>
+      <p class="field-hint" data-i18n="deleteWizard.step3.intro">Last step. Enter your password and confirm below — once you submit, everything is deleted immediately and permanently.</p>
+
+      <div class="floating-field floating-field-password">
+        <input type="password" id="delete-confirm-password" placeholder=" " autocomplete="current-password">
+        <label for="delete-confirm-password" data-i18n="deleteWizard.step3.passwordLabel">Enter your password to confirm</label>
+        <button type="button" class="password-toggle" aria-label="Show password">
+          <svg class="password-toggle-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
+            <path d="M1.5 12S5 5 12 5s10.5 7 10.5 7-3.5 7-10.5 7S1.5 12 1.5 12z" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+            <circle cx="12" cy="12" r="3" stroke-width="1.6"/>
+            <line class="password-toggle-slash" x1="2.5" y1="21.5" x2="21.5" y2="2.5" stroke-width="1.6" stroke-linecap="round"/>
+          </svg>
+        </button>
+      </div>
+
+      <label class="checkbox-row">
+        <input type="checkbox" id="delete-confirm-checkbox">
+        <span data-i18n="deleteWizard.step3.confirmCheckbox">I understand this will permanently delete my account and all of my data. This cannot be undone.</span>
+      </label>
+
+      <button type="button" class="button button-full button-pill button-danger" id="delete-confirm-submit" disabled data-i18n="deleteWizard.step3.submit">Delete my account</button>
+    </div>
+  </section>
+
   <!-- HELP -->
   <section id="screen-help" class="screen screen-help">
     <header class="topbar">

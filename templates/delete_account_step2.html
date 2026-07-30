@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block title %}Delete account - Camilius{% endblock %}
+
+{% block content %}
+{% include "_nav.html" %}
+
+<div class="content content-narrow">
+    <div class="page-header">
+        <div>
+            <h1 data-i18n="deleteWizard.title">Delete your account</h1>
+            <p class="subtitle" data-i18n="deleteWizard.step2.subtitle">Step 2 of 3 &mdash; tell us why</p>
+        </div>
+    </div>
+
+    <div class="register-step-dots" style="justify-content:center; margin-bottom:22px;">
+        <span class="register-step-dot active"></span>
+        <span class="register-step-dot active"></span>
+        <span class="register-step-dot"></span>
+    </div>
+
+    <div class="card" style="padding: 32px;">
+        {% if error %}
+            <div class="alert alert-error" style="margin-bottom:18px;"><span class="alert-icon">&#9888;&#65039;</span><span>{{ error }}</span></div>
+        {% endif %}
+
+        <p class="note" style="display:block; margin-bottom:16px;" data-i18n="deleteWizard.step2.intro">This helps us understand what we could have done better. Your answer is only ever seen by us, never shared.</p>
+
+        <form method="POST" action="{{ url_for('delete_account_step3') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+            <label class="checkbox-row">
+                <input type="radio" name="reason_category" value="not_using" {% if reason_category == 'not_using' %}checked{% endif %} required>
+                <span data-i18n="deleteWizard.reasons.notUsing">I don't use it enough</span>
+            </label>
+            <label class="checkbox-row">
+                <input type="radio" name="reason_category" value="too_expensive" {% if reason_category == 'too_expensive' %}checked{% endif %}>
+                <span data-i18n="deleteWizard.reasons.tooExpensive">It's too expensive</span>
+            </label>
+            <label class="checkbox-row">
+                <input type="radio" name="reason_category" value="missing_features" {% if reason_category == 'missing_features' %}checked{% endif %}>
+                <span data-i18n="deleteWizard.reasons.missingFeatures">It's missing features I need</span>
+            </label>
+            <label class="checkbox-row">
+                <input type="radio" name="reason_category" value="bugs" {% if reason_category == 'bugs' %}checked{% endif %}>
+                <span data-i18n="deleteWizard.reasons.bugs">I ran into technical issues or bugs</span>
+            </label>
+            <label class="checkbox-row">
+                <input type="radio" name="reason_category" value="switching" {% if reason_category == 'switching' %}checked{% endif %}>
+                <span data-i18n="deleteWizard.reasons.switching">I'm switching to another tool</span>
+            </label>
+            <label class="checkbox-row">
+                <input type="radio" name="reason_category" value="privacy" {% if reason_category == 'privacy' %}checked{% endif %}>
+                <span data-i18n="deleteWizard.reasons.privacy">Privacy or data concerns</span>
+            </label>
+            <label class="checkbox-row">
+                <input type="radio" name="reason_category" value="other" {% if reason_category == 'other' %}checked{% endif %}>
+                <span data-i18n="deleteWizard.reasons.other">Other</span>
+            </label>
+
+            <label style="display:block; margin-top:20px;" data-i18n="deleteWizard.step2.detailsLabel">Anything else you'd like to share? (optional)</label>
+            <textarea name="reason_details" rows="3" maxlength="1000" data-i18n-placeholder="deleteWizard.step2.detailsPlaceholder" placeholder="Tell us more...">{{ reason_details or '' }}</textarea>
+
+            <div class="form-actions" style="display:flex; gap:12px; flex-wrap:wrap;">
+                <a class="button button-secondary" href="{{ url_for('delete_account_step1') }}" data-i18n="deleteWizard.back">Back</a>
+                <button class="button button-danger" type="submit" data-i18n="deleteWizard.continue">Continue</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

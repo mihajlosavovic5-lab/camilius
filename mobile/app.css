@@ -496,7 +496,7 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
 .checkbox-row { display: flex; align-items: flex-start; gap: 9px; font-weight: 400; font-size: 15px; margin: 16px 0 4px; cursor: pointer; }
 /* accent-color intentionally uses --text (not --primary/gold) - a plain, clean
    checkmark instead of a bright yellow-filled box when checked. */
-.checkbox-row input[type="checkbox"] { width: 18px; height: 18px; margin-top: 1px; accent-color: var(--text); flex-shrink: 0; }
+.checkbox-row input[type="checkbox"], .checkbox-row input[type="radio"] { width: 18px; height: 18px; margin-top: 1px; accent-color: var(--text); flex-shrink: 0; }
 
 /* --- Create Account: multi-step wizard (Account -> Working hours -> Prices/FAQ/Terms),
    a step-dots + bottom-right arrow pattern instead of one long scrolling form --- */
@@ -568,6 +568,9 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
     padding: 14px 16px; margin: 4px 0 6px; font-size: 14.5px; color: var(--text-muted); line-height: 1.5;
 }
 .info-card strong { color: var(--text); }
+.delete-wizard-list { margin: 0; padding-left: 20px; }
+.delete-wizard-list li { margin-bottom: 8px; }
+.delete-wizard-list li:last-child { margin-bottom: 0; }
 
 /* Connect Instagram - centered description with the Connect button pinned to the
    bottom of the screen (same flex-column + flex:1-spacer pattern as .login-wrap's
@@ -636,6 +639,8 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
 
 .button-danger-outline { color: var(--danger); border-color: var(--danger-border); }
 .button-danger-outline:active { background: var(--danger-bg); }
+.button-danger { background: var(--danger); color: #fff; }
+.button-danger:active { background: var(--danger); opacity: .85; }
 
 /* --- Shared anchored-dropdown button (Faza 4) - used for the working-hours time
    fields and the price-list currency field (see createOptionButton()/optionPicker in

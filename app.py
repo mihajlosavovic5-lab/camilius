@@ -39,6 +39,7 @@ from database import (
     grant_free_pro_access,
     notifications_for_business, unread_notification_count, mark_notifications_read,
     is_new_booking_notifications_enabled, set_new_booking_notifications_enabled,
+    record_account_deletion, recent_account_deletions, ACCOUNT_DELETION_REASONS,
 )
 from send_email import send_email
 from generate_reply import generate_reply, generate_reply_with_booking
@@ -1183,12 +1184,65 @@ def mark_notifications_read_route():
     return jsonify(message="saved", unread_count=unread_notification_count(session["business_id"]))
 
 
+# --- Delete-account wizard (web) - three separate pages instead of one instant-delete
+# button, mirroring the mobile app's own screen-delete-warning/reason/confirm flow (see
+# mobile/app.js). Wizard state is carried forward purely via each step's own hidden form
+# fields (no server-side session stash needed) - step 3 is rendered by POSTing step 2's
+# form straight into it, and step 3's own form re-submits everything (reason included)
+# to the final POST /delete-account below.
+
+@app.route("/settings/delete-account")
+@login_required
+def delete_account_step1():
+    return render_template("delete_account_step1.html")
+
+
+@app.route("/settings/delete-account/reason")
+@login_required
+def delete_account_step2():
+    return render_template("delete_account_step2.html", reason_category=None, reason_details="", error=None)
+
+
+@app.route("/settings/delete-account/confirm", methods=["POST"])
+@login_required
+def delete_account_step3():
+    reason_category = request.form.get("reason_category", "")
+    reason_details = (request.form.get("reason_details") or "").strip()[:1000]
+    if reason_category not in ACCOUNT_DELETION_REASONS:
+        return render_template(
+            "delete_account_step2.html", reason_category=reason_category, reason_details=reason_details,
+            error="Please choose a reason so we know why you're leaving.",
+        )
+    return render_template(
+        "delete_account_step3.html", reason_category=reason_category, reason_details=reason_details, error=None,
+    )
+
+
 @app.route("/delete-account", methods=["POST"])
 @login_required
 def delete_account():
-    delete_business(session["business_id"])
+    business_id = session["business_id"]
+    reason_category = request.form.get("reason_category", "")
+    reason_details = (request.form.get("reason_details") or "").strip()[:1000]
+    password = request.form.get("password", "")
+
+    if reason_category not in ACCOUNT_DELETION_REASONS:
+        return render_template(
+            "delete_account_step2.html", reason_category=reason_category, reason_details=reason_details,
+            error="Please choose a reason so we know why you're leaving.",
+        )
+
+    business = business_by_id(business_id)
+    if not business or not check_password_hash(business[3], password):
+        return render_template(
+            "delete_account_step3.html", reason_category=reason_category, reason_details=reason_details,
+            error="Wrong password. Please try again.",
+        ), 400
+
+    record_account_deletion(business_id, reason_category, reason_details, source="web")
+    delete_business(business_id)
     session.clear()
-    return redirect(url_for("login"))
+    return redirect(url_for("login", message="Your account has been permanently deleted. We're sorry to see you go."))
 
 
 def business_export_data(business_id):
@@ -1474,6 +1528,20 @@ def admin_client_errors():
 
     errors = recent_client_errors(limit=100)
     return render_template("admin_client_errors.html", errors=errors)
+
+
+# Founder-only view of the delete-account wizard's exit survey (web + mobile) - same
+# secret-token gating as every other /admin route. This is the one place that reason a
+# business gave for leaving is still readable after delete_business() has removed their
+# row (see database.record_account_deletion).
+@app.route("/admin/account-deletions")
+def admin_account_deletions():
+    token = os.getenv("ADMIN_TOKEN")
+    if not token or request.args.get("token") != token:
+        abort(404)
+
+    deletions = recent_account_deletions(limit=200)
+    return render_template("admin_account_deletions.html", deletions=deletions)
 
 
 # Temporary diagnostic: dumps the raw conversation rows straight from the DB (status,
