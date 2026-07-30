@@ -308,10 +308,19 @@ if (capacitorPlugins) {
         };
 
         // Check at cold start AND every time the app returns to the foreground - "every
-        // time I enter the app", not just full restarts.
+        // time I enter the app", not just full restarts. Both the native appStateChange
+        // event AND the web-standard visibilitychange are wired up (not just one) - on
+        // some OEM WebViews the former doesn't fire reliably on a simple app-switcher
+        // resume (no real backgrounding happened at the OS level), which otherwise left
+        // an update sitting on the server for however long it took the user to next force-
+        // close and relaunch. checkForOtaUpdate() is a no-op re-entrancy guard
+        // (otaCheckInProgress), so both listeners firing for the same resume is harmless.
         checkForOtaUpdate();
         capacitorPlugins.App.addListener("appStateChange", ({ isActive }) => {
             if (isActive) checkForOtaUpdate();
+        });
+        document.addEventListener("visibilitychange", () => {
+            if (document.visibilityState === "visible") checkForOtaUpdate();
         });
     }
 
