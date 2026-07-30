@@ -1033,6 +1033,17 @@ body.auth {
 .connect-mobile-card { display: flex; flex-direction: column; min-height: 170px; }
 .connect-mobile-message { flex: 1; display: flex; align-items: center; }
 .connect-mobile-message .alert { width: 100%; }
+/* The site-wide "* { -webkit-tap-highlight-color: transparent }" reset (near the top of
+   this file) and "a, button, [tabindex] { outline: none }" don't fully suppress this
+   Custom Tabs provider's own tap feedback on a real <button> - it shows through as a
+   blue flash on tap regardless, much more visible now that this button is a light
+   outline style rather than a solid fill. -webkit-appearance/appearance: none drops the
+   element back to a plain box with no native button chrome left for that feedback to
+   attach to. */
+#connect-mobile-back-btn {
+    -webkit-tap-highlight-color: transparent;
+    -webkit-appearance: none; appearance: none;
+}
 .auth-brand { margin-bottom: 22px; text-align: center; }
 .auth-brand .brand { flex-direction: column; gap: 12px; }
 .auth-brand .brand-mark { width: 64px; height: 64px; border-radius: 22%; box-shadow: 0 10px 26px rgba(43,32,19,.16); }

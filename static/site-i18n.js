@@ -306,7 +306,7 @@ const TRANSLATIONS = {
         "connectInstagram.subtitle": "Camilius reads incoming DMs and drafts replies — automatic by default, optional review in Settings.",
         "connectInstagram.cta": "Connect Instagram",
 
-        "connectMobile.success": "Instagram connected! Returning you to Camilius…",
+        "connectMobile.success": "Instagram connected!",
         "connectMobile.failure": "Something went wrong connecting Instagram. Returning you to Camilius…",
         "connectMobile.backToApp": "Back to Camilius",
 
@@ -816,7 +816,7 @@ const TRANSLATIONS = {
         "connectInstagram.subtitle": "Camilius lee los MD entrantes y redacta respuestas — automáticas por defecto, revisión opcional en Configuración.",
         "connectInstagram.cta": "Conectar Instagram",
 
-        "connectMobile.success": "¡Instagram conectado! Volviendo a Camilius…",
+        "connectMobile.success": "¡Instagram conectado!",
         "connectMobile.failure": "Algo salió mal al conectar Instagram. Volviendo a Camilius…",
         "connectMobile.backToApp": "Volver a Camilius",
 
@@ -1281,7 +1281,7 @@ const TRANSLATIONS = {
         "connectInstagram.subtitle": "O Camilius lê DMs recebidas e redige respostas — automáticas por padrão, revisão opcional em Configurações.",
         "connectInstagram.cta": "Conectar Instagram",
 
-        "connectMobile.success": "Instagram conectado! Voltando para o Camilius…",
+        "connectMobile.success": "Instagram conectado!",
         "connectMobile.failure": "Algo deu errado ao conectar o Instagram. Voltando para o Camilius…",
         "connectMobile.backToApp": "Voltar para o Camilius",
 
@@ -1746,7 +1746,7 @@ const TRANSLATIONS = {
         "connectInstagram.subtitle": "Camilius lit les MD entrants et rédige des réponses — automatiques par défaut, relecture optionnelle dans les Paramètres.",
         "connectInstagram.cta": "Connecter Instagram",
 
-        "connectMobile.success": "Instagram connecté ! Retour vers Camilius…",
+        "connectMobile.success": "Instagram connecté !",
         "connectMobile.failure": "Un problème est survenu lors de la connexion à Instagram. Retour vers Camilius…",
         "connectMobile.backToApp": "Retour à Camilius",
 
@@ -2211,7 +2211,7 @@ const TRANSLATIONS = {
         "connectInstagram.subtitle": "Camilius liest eingehende DMs und verfasst Antworten — standardmäßig automatisch, optional manuelle Prüfung in den Einstellungen.",
         "connectInstagram.cta": "Instagram verbinden",
 
-        "connectMobile.success": "Instagram verbunden! Du wirst zu Camilius zurückgeleitet…",
+        "connectMobile.success": "Instagram verbunden!",
         "connectMobile.failure": "Beim Verbinden mit Instagram ist etwas schiefgelaufen. Du wirst zu Camilius zurückgeleitet…",
         "connectMobile.backToApp": "Zurück zu Camilius",
 
@@ -2676,7 +2676,7 @@ const TRANSLATIONS = {
         "connectInstagram.subtitle": "Camilius legge i DM in arrivo e redige risposte — automatiche di default, revisione opzionale in Impostazioni.",
         "connectInstagram.cta": "Collega Instagram",
 
-        "connectMobile.success": "Instagram collegato! Ritorno a Camilius…",
+        "connectMobile.success": "Instagram collegato!",
         "connectMobile.failure": "Qualcosa è andato storto collegando Instagram. Ritorno a Camilius…",
         "connectMobile.backToApp": "Torna a Camilius",
 
@@ -3141,7 +3141,7 @@ const TRANSLATIONS = {
         "connectInstagram.subtitle": "Camilius читает входящие ЛС и составляет ответы — по умолчанию автоматически, ручная проверка опциональна в Настройках.",
         "connectInstagram.cta": "Подключить Instagram",
 
-        "connectMobile.success": "Instagram подключён! Возвращаем вас в Camilius…",
+        "connectMobile.success": "Instagram подключён!",
         "connectMobile.failure": "Что-то пошло не так при подключении Instagram. Возвращаем вас в Camilius…",
         "connectMobile.backToApp": "Вернуться в Camilius",
 
@@ -3606,7 +3606,7 @@ const TRANSLATIONS = {
         "connectInstagram.subtitle": "Camilius čita dolazne DM poruke i sastavlja odgovore — automatski po podrazumevanom, opcioni pregled u Podešavanjima.",
         "connectInstagram.cta": "Poveži Instagram",
 
-        "connectMobile.success": "Instagram povezan! Vraćamo vas u Camilius…",
+        "connectMobile.success": "Instagram povezan!",
         "connectMobile.failure": "Došlo je do greške prilikom povezivanja Instagram-a. Vraćamo vas u Camilius…",
         "connectMobile.backToApp": "Nazad u Camilius",
 
@@ -4116,7 +4116,7 @@ const TRANSLATIONS = {
         "connectInstagram.subtitle": "Camilius读取收到的私信并草拟回复——默认自动发送，可在设置中开启人工审核。",
         "connectInstagram.cta": "连接Instagram",
 
-        "connectMobile.success": "Instagram已连接!正在返回Camilius…",
+        "connectMobile.success": "Instagram已连接!",
         "connectMobile.failure": "连接Instagram时出了点问题。正在返回Camilius…",
         "connectMobile.backToApp": "返回 Camilius",
 
@@ -4581,7 +4581,7 @@ const TRANSLATIONS = {
         "connectInstagram.subtitle": "Camilius gelen DM'leri okur ve yanıtlar hazırlar — varsayılan olarak otomatik, Ayarlar'dan isteğe bağlı inceleme.",
         "connectInstagram.cta": "Instagram'ı bağla",
 
-        "connectMobile.success": "Instagram bağlandı! Camilius'a geri dönülüyor…",
+        "connectMobile.success": "Instagram bağlandı!",
         "connectMobile.failure": "Instagram bağlanırken bir sorun oluştu. Camilius'a geri dönülüyor…",
         "connectMobile.backToApp": "Camilius'a dön",
 
