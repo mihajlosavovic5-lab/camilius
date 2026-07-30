@@ -176,7 +176,7 @@ const TRANSLATIONS = {
         "landing.hero.title1": "A customer messages your business on Instagram.",
         "landing.hero.title2": "Camilius already answered.",
         "landing.hero.subtitle1": "Camilius reads every Instagram message instantly, drafts a reply from your hours, prices, and FAQ, and books the appointment when needed.",
-        "landing.hero.subtitle2": "Sent in seconds, day or night — no customer ever waits. Prefer to double-check? Turn on manual review anytime.",
+        "landing.hero.subtitle2": "Sent in seconds, day or night — no customer ever waits.",
         "landing.hero.ctaFree": "Get started for free",
         "landing.hero.ctaTrial": "Try free for 14 days",
         "landing.hero.finePrintBeta": "Free during the beta",
