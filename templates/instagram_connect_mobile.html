@@ -70,8 +70,18 @@
 // that actually matters, so window.close() still runs right after but isn't depended on.
 var connectMobileBackBtn = document.getElementById("connect-mobile-back-btn");
 connectMobileBackBtn.addEventListener("click", function () {
-    window.location.href = "intent://#Intent;action=android.intent.action.MAIN;category=android.intent.category.LAUNCHER;component=com.ai_auto_reply_mail.app.twa/com.ai_auto_reply_mail.app.twa.MainActivity;end";
-    window.close();
+    // Real-world intent:// examples always have SOMETHING between "://" and "#Intent"
+    // (a host segment, even a throwaway one) - an empty one here may have been why the
+    // previous version's loading bar flashed and went nowhere: the browser trying (and
+    // failing) to treat it as a normal, empty-host URL instead of recognizing the
+    // special Android-intent syntax at all.
+    window.location.href = "intent://camilius/#Intent;action=android.intent.action.MAIN;category=android.intent.category.LAUNCHER;component=com.ai_auto_reply_mail.app.twa/com.ai_auto_reply_mail.app.twa.MainActivity;end";
+    // window.close() right after used to run immediately, in the same tick as the
+    // location.href assignment above - handing the intent off to Android likely isn't
+    // instantaneous, so an immediate close() may have been tearing the tab down (or at
+    // least racing to) before that handoff actually happened. Delayed instead, well
+    // after the intent has had a real chance to fire; still not depended on either way.
+    setTimeout(function () { window.close(); }, 1000);
 });
 setTimeout(function () { connectMobileBackBtn.classList.remove("hidden"); }, 2500);
 </script>
