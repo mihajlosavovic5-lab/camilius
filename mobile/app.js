@@ -261,14 +261,22 @@ if (capacitorPlugins) {
             return bundles.find((b) => b.version === version) || null;
         };
 
-        const checkForOtaUpdate = async () => {
+        // `manual` (Settings > About's "Check for updates" link) gets a toast either way -
+        // "found one, applying" (moot, since set() below reloads the app before it could
+        // even be seen) or "already up to date" - instead of silently doing nothing
+        // visible when there's nothing to apply, which is fine for the three background
+        // triggers below but would make a manual button feel broken.
+        const checkForOtaUpdate = async (manual) => {
             if (otaCheckInProgress) return;
             otaCheckInProgress = true;
             let step = "fetch-manifest";
             try {
                 const response = await fetch(API_BASE + "/api/mobile-manifest");
                 const manifest = await response.json();
-                if (!manifest.available) return;
+                if (!manifest.available) {
+                    if (manual) showToast(t("appSettings.upToDate"));
+                    return;
+                }
 
                 // Gate on the plugin's OWN record of the active bundle (current()), not
                 // anything we store ourselves - a self-kept flag drifted from native
@@ -276,7 +284,10 @@ if (capacitorPlugins) {
                 step = "current";
                 const current = await capacitorPlugins.CapacitorUpdater.current();
                 const activeVersion = (current && current.bundle) ? current.bundle.version : "unknown";
-                if (activeVersion === manifest.version) return;
+                if (activeVersion === manifest.version) {
+                    if (manual) showToast(t("appSettings.upToDate"));
+                    return;
+                }
 
                 setOtaProgress(0);
                 otaOverlay.classList.remove("hidden");
@@ -307,14 +318,17 @@ if (capacitorPlugins) {
             }
         };
 
-        // Check at cold start AND every time the app returns to the foreground - "every
-        // time I enter the app", not just full restarts. Both the native appStateChange
-        // event AND the web-standard visibilitychange are wired up (not just one) - on
-        // some OEM WebViews the former doesn't fire reliably on a simple app-switcher
-        // resume (no real backgrounding happened at the OS level), which otherwise left
-        // an update sitting on the server for however long it took the user to next force-
-        // close and relaunch. checkForOtaUpdate() is a no-op re-entrancy guard
-        // (otaCheckInProgress), so both listeners firing for the same resume is harmless.
+        // Check at cold start, every time the app returns to the foreground, AND on a
+        // plain repeating timer while it stays open - three independent triggers instead
+        // of relying on any single one, since both "foreground" signals below are Capacitor/
+        // OS lifecycle events that some OEM WebViews are known to skip or delay on a plain
+        // app-switcher resume (no real backgrounding happened at the OS level). A device
+        // where every lifecycle callback is unreliable would otherwise leave an update
+        // sitting on the server indefinitely, with nothing short of a manual force-close +
+        // relaunch ever noticing it - the timer doesn't need any lifecycle event to fire at
+        // all. checkForOtaUpdate() is a no-op re-entrancy guard (otaCheckInProgress) and a
+        // single cheap /api/mobile-manifest fetch when there's nothing to do, so three
+        // triggers overlapping is harmless, not wasteful.
         checkForOtaUpdate();
         capacitorPlugins.App.addListener("appStateChange", ({ isActive }) => {
             if (isActive) checkForOtaUpdate();
@@ -322,6 +336,8 @@ if (capacitorPlugins) {
         document.addEventListener("visibilitychange", () => {
             if (document.visibilityState === "visible") checkForOtaUpdate();
         });
+        setInterval(checkForOtaUpdate, 20000);
+        el("settings-check-update").addEventListener("click", () => checkForOtaUpdate(true));
     }
 
     // Native-code changes (new plugin, permissions, icon, splash, anything under
