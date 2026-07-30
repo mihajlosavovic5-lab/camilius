@@ -11,13 +11,15 @@
         </span>
     </div>
 
-    <div class="auth-card">
-        {% if success %}
-            <div class="alert alert-success"><span class="alert-icon">&#9989;</span><span data-i18n="connectMobile.success">Instagram connected! Returning you to Camilius&hellip;</span></div>
-        {% else %}
-            <div class="alert alert-error"><span class="alert-icon">&#9888;&#65039;</span><span data-i18n="connectMobile.failure">Something went wrong connecting Instagram. Returning you to Camilius&hellip;</span></div>
-        {% endif %}
-        <button type="button" class="button button-full" id="connect-mobile-back-btn" style="margin-top: 18px;" data-i18n="connectMobile.backToApp">Back to Camilius</button>
+    <div class="auth-card connect-mobile-card">
+        <div class="connect-mobile-message">
+            {% if success %}
+                <div class="alert alert-success"><span class="alert-icon">&#9989;</span><span data-i18n="connectMobile.success">Instagram connected! Returning you to Camilius&hellip;</span></div>
+            {% else %}
+                <div class="alert alert-error"><span class="alert-icon">&#9888;&#65039;</span><span data-i18n="connectMobile.failure">Something went wrong connecting Instagram. Returning you to Camilius&hellip;</span></div>
+            {% endif %}
+        </div>
+        <button type="button" class="button button-secondary button-full button-pill button-primary-outline" id="connect-mobile-back-btn" data-i18n="connectMobile.backToApp">Back to Camilius</button>
     </div>
 </div>
 {% endblock %}

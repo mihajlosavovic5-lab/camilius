@@ -1025,6 +1025,14 @@ body.auth {
    since there's no long form pulling the eye down to balance it out. Extra bottom padding
    (vs. top) nudges the whole cluster up within the viewport instead. */
 .auth-wrapper-connect { padding-bottom: 200px; }
+/* instagram_connect_mobile.html's own card - taller than its content actually needs
+   (min-height) and laid out as a column so .connect-mobile-message (flex: 1) claims all
+   the leftover space above the button and centers the alert within it, putting the
+   message at the visual midpoint between the card's top edge and the button instead of
+   sitting flush against the top like a normal (short) card would. */
+.connect-mobile-card { display: flex; flex-direction: column; min-height: 260px; }
+.connect-mobile-message { flex: 1; display: flex; align-items: center; }
+.connect-mobile-message .alert { width: 100%; }
 .auth-brand { margin-bottom: 22px; text-align: center; }
 .auth-brand .brand { flex-direction: column; gap: 12px; }
 .auth-brand .brand-mark { width: 64px; height: 64px; border-radius: 22%; box-shadow: 0 10px 26px rgba(43,32,19,.16); }
