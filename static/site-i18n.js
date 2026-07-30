@@ -308,7 +308,6 @@ const TRANSLATIONS = {
 
         "connectMobile.success": "Instagram connected! Returning you to Camilius…",
         "connectMobile.failure": "Something went wrong connecting Instagram. Returning you to Camilius…",
-        "connectMobile.fallbackNote": "If this doesn't close on its own, go ahead and close this tab.",
 
         "appSettings.title": "Settings",
         "appSettings.preferences.heading": "Preferences",
@@ -818,7 +817,6 @@ const TRANSLATIONS = {
 
         "connectMobile.success": "¡Instagram conectado! Volviendo a Camilius…",
         "connectMobile.failure": "Algo salió mal al conectar Instagram. Volviendo a Camilius…",
-        "connectMobile.fallbackNote": "Si esto no se cierra solo, adelante, cierra esta pestaña.",
 
         "appSettings.title": "Configuración",
         "appSettings.preferences.heading": "Preferencias",
@@ -1283,7 +1281,6 @@ const TRANSLATIONS = {
 
         "connectMobile.success": "Instagram conectado! Voltando para o Camilius…",
         "connectMobile.failure": "Algo deu errado ao conectar o Instagram. Voltando para o Camilius…",
-        "connectMobile.fallbackNote": "Se isso não fechar sozinho, pode fechar esta aba.",
 
         "appSettings.title": "Configurações",
         "appSettings.preferences.heading": "Preferências",
@@ -1748,7 +1745,6 @@ const TRANSLATIONS = {
 
         "connectMobile.success": "Instagram connecté ! Retour vers Camilius…",
         "connectMobile.failure": "Un problème est survenu lors de la connexion à Instagram. Retour vers Camilius…",
-        "connectMobile.fallbackNote": "Si cette page ne se ferme pas d'elle-même, vous pouvez fermer cet onglet.",
 
         "appSettings.title": "Paramètres",
         "appSettings.preferences.heading": "Préférences",
@@ -2213,7 +2209,6 @@ const TRANSLATIONS = {
 
         "connectMobile.success": "Instagram verbunden! Du wirst zu Camilius zurückgeleitet…",
         "connectMobile.failure": "Beim Verbinden mit Instagram ist etwas schiefgelaufen. Du wirst zu Camilius zurückgeleitet…",
-        "connectMobile.fallbackNote": "Falls sich dies nicht von selbst schließt, kannst du diesen Tab einfach schließen.",
 
         "appSettings.title": "Einstellungen",
         "appSettings.preferences.heading": "Einstellungen",
@@ -2678,7 +2673,6 @@ const TRANSLATIONS = {
 
         "connectMobile.success": "Instagram collegato! Ritorno a Camilius…",
         "connectMobile.failure": "Qualcosa è andato storto collegando Instagram. Ritorno a Camilius…",
-        "connectMobile.fallbackNote": "Se questa pagina non si chiude da sola, puoi chiudere questa scheda.",
 
         "appSettings.title": "Impostazioni",
         "appSettings.preferences.heading": "Preferenze",
@@ -3143,7 +3137,6 @@ const TRANSLATIONS = {
 
         "connectMobile.success": "Instagram подключён! Возвращаем вас в Camilius…",
         "connectMobile.failure": "Что-то пошло не так при подключении Instagram. Возвращаем вас в Camilius…",
-        "connectMobile.fallbackNote": "Если это окно не закроется само, можете закрыть эту вкладку.",
 
         "appSettings.title": "Настройки",
         "appSettings.preferences.heading": "Настройки приложения",
@@ -3608,7 +3601,6 @@ const TRANSLATIONS = {
 
         "connectMobile.success": "Instagram povezan! Vraćamo vas u Camilius…",
         "connectMobile.failure": "Došlo je do greške prilikom povezivanja Instagram-a. Vraćamo vas u Camilius…",
-        "connectMobile.fallbackNote": "Ako se ovo ne zatvori samo, slobodno zatvorite ovu karticu.",
 
         "appSettings.title": "Podešavanja",
         "appSettings.preferences.heading": "Podešavanja aplikacije",
@@ -4118,7 +4110,6 @@ const TRANSLATIONS = {
 
         "connectMobile.success": "Instagram已连接!正在返回Camilius…",
         "connectMobile.failure": "连接Instagram时出了点问题。正在返回Camilius…",
-        "connectMobile.fallbackNote": "如果此页面没有自动关闭,请直接关闭此标签页。",
 
         "appSettings.title": "设置",
         "appSettings.preferences.heading": "偏好设置",
@@ -4583,7 +4574,6 @@ const TRANSLATIONS = {
 
         "connectMobile.success": "Instagram bağlandı! Camilius'a geri dönülüyor…",
         "connectMobile.failure": "Instagram bağlanırken bir sorun oluştu. Camilius'a geri dönülüyor…",
-        "connectMobile.fallbackNote": "Bu sayfa kendiliğinden kapanmazsa, bu sekmeyi kapatabilirsiniz.",
 
         "appSettings.title": "Ayarlar",
         "appSettings.preferences.heading": "Tercihler",

@@ -173,6 +173,12 @@
         if (isStandalone) return;
         if (!/Android/i.test(navigator.userAgent)) return;
         if (window.location.pathname === "/download" || window.location.pathname === "/intro") return;
+        // The Instagram OAuth callback page (instagram_connect_mobile.html) is a
+        // transitional "returning you to Camilius..." screen shown inside the app's own
+        // in-app browser tab mid-flow - the visitor already has the app open, so "get the
+        // app" is nonsensical here, and the banner's height was throwing off that page's
+        // otherwise-centered layout (see .auth-wrapper in style.css).
+        if (window.location.pathname === "/instagram-oauth-callback") return;
         // Shown on every fresh page load, even if dismissed on a previous visit -
         // deliberately not remembered via localStorage (user wants it to reappear
         // every time rather than being suppressed forever after one dismissal).

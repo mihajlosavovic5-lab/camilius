@@ -17,7 +17,6 @@
         {% else %}
             <div class="alert alert-error"><span class="alert-icon">&#9888;&#65039;</span><span data-i18n="connectMobile.failure">Something went wrong connecting Instagram. Returning you to Camilius&hellip;</span></div>
         {% endif %}
-        <p class="note hidden" id="connect-mobile-fallback-note" data-i18n="connectMobile.fallbackNote">If this doesn't close on its own, go ahead and close this tab.</p>
     </div>
 </div>
 {% endblock %}
@@ -25,21 +24,20 @@
 {% block scripts %}
 <script>
 // Auto-return to the app instead of requiring the user to manually close this tab -
-// window.close() reliably dismisses an Android Chrome Custom Tab (what Capacitor's
-// Browser plugin opens for the Instagram OAuth flow) when this page is the top of its
-// own history stack, which it always is here (a fresh OAuth-redirect landing page). The
-// app itself already listens for the tab closing (browserFinished, see mobile/app.js)
-// and checks /api/settings right after - this just removes the manual tap that used to
-// be required to get back to that point.
-setTimeout(function () {
-    window.close();
-    // Still here after a beat - closing didn't work (e.g. this loaded in a regular
-    // browser tab instead of an in-app Custom Tab). Show the manual fallback rather than
-    // leaving the user looking at a page that seems to be doing nothing.
-    setTimeout(function () {
-        var note = document.getElementById("connect-mobile-fallback-note");
-        if (note) note.classList.remove("hidden");
-    }, 400);
-}, 300);
+// window.close() dismisses an Android Chrome Custom Tab (what Capacitor's Browser
+// plugin opens for the Instagram OAuth flow) when this page is the top of its own
+// history stack, which it always is here (a fresh OAuth-redirect landing page). The app
+// itself already listens for the tab closing (browserFinished, see mobile/app.js) and
+// checks /api/settings right after - this just removes the manual tap that used to be
+// required to get back to that point.
+//
+// window.close() isn't equally reliable on every Custom Tabs provider (some OEM
+// browsers only honor it on the first call, or only once the page has fully settled),
+// so this retries a few times on a backoff instead of trying exactly once - cheap and
+// harmless if the very first attempt already worked, since a closed tab can't run the
+// timers that would fire the later attempts.
+[250, 600, 1200, 2000].forEach(function (delay) {
+    setTimeout(function () { window.close(); }, delay);
+});
 </script>
 {% endblock %}
