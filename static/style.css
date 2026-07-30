@@ -220,9 +220,13 @@ body.site-lang-open { position: fixed; left: 0; right: 0; width: 100%; overflow:
     background: none; border: none; text-align: left; padding: 9px 10px; border-radius: 10px;
     font-family: inherit; font-size: 15.5px; color: var(--text); cursor: pointer; width: 100%;
     display: flex; align-items: center; gap: 10px;
-    transition: background .12s ease;
+    transition: transform .12s ease;
 }
-.site-lang-option-btn:hover { background: var(--primary-light); }
+/* Pop toward the cursor instead of a background-color fill - keeps the row's
+   own colors untouched on hover, .active below still owns the tinted look
+   for the currently-selected language. */
+.site-lang-option-btn:hover { transform: scale(1.03) translateX(2px); }
+.site-lang-option-btn:active { transform: scale(.98) translateX(2px); }
 .site-lang-option-flag {
     width: 26px; height: 19px; object-fit: cover; border-radius: 4px; flex-shrink: 0;
     box-shadow: 0 0 0 1px rgba(20,15,8,.12);
@@ -514,11 +518,12 @@ a:focus-visible, button:focus-visible, [tabindex]:focus-visible {
 }
 /* Lift + soft shadow gives the pill some depth on hover instead of a flat
    color swap - excludes .button (the landing-page "Try for free" CTA) which
-   already has its own amber-glow hover treatment further down. */
+   already has its own amber-glow hover treatment further down. No background/
+   border-color change here on purpose - just the row popping toward the
+   cursor via transform, not a fill swap. */
 .nav-links a:not(.button):hover {
-    background: var(--surface); color: var(--text); text-decoration: none;
-    border-color: var(--border);
-    transform: translateY(-1px);
+    color: var(--text); text-decoration: none;
+    transform: translateY(-2px) scale(1.03);
     box-shadow: 0 6px 14px -6px rgba(38, 32, 20, .18), 0 1px 3px rgba(38, 32, 20, .06);
 }
 .nav-links a:not(.button):active { transform: translateY(0); box-shadow: 0 1px 3px rgba(38, 32, 20, .1); }
@@ -561,8 +566,9 @@ a:focus-visible, button:focus-visible, [tabindex]:focus-visible {
     display: none; flex-direction: column; align-items: center; justify-content: center;
     gap: 4px; width: 36px; height: 36px; flex-shrink: 0;
     border: 1px solid transparent; border-radius: 8px; background: none; cursor: pointer;
+    transition: transform .15s ease;
 }
-.nav-menu-btn:hover { background: var(--surface); border-color: var(--border); }
+.nav-menu-btn:hover { transform: scale(1.1); }
 .nav-menu-btn-bar {
     width: 18px; height: 2px; border-radius: 1px; background: var(--text);
     transition: transform .2s ease, opacity .2s ease;
@@ -2104,13 +2110,13 @@ body.lp-menu-open .support-widget {
 .lp-menu-btn.active span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
 .lp-menu-btn.active span:nth-child(2) { opacity: 0; }
 .lp-menu-btn.active span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
-/* Hover-only polish (amber wash + tinted bars), gated to real mice/trackpads -
-   on touch, `:hover` sticks after a tap until the next stray touch elsewhere,
-   which read as a stuck-highlighted button on mobile once this got richer
-   than a plain scale. Desktop keeps the richer treatment since a mouse
-   actually leaves on its own. */
+/* Hover-only polish (pop + tinted bars, no background fill), gated to real
+   mice/trackpads - on touch, `:hover` sticks after a tap until the next stray
+   touch elsewhere, which read as a stuck-highlighted button on mobile once
+   this got richer than a plain scale. Desktop keeps the richer treatment
+   since a mouse actually leaves on its own. */
 @media (hover: hover) and (pointer: fine) {
-    .lp-menu-btn:hover { transform: translateY(-50%) scale(1.08); background-color: var(--primary-light); }
+    .lp-menu-btn:hover { transform: translateY(-50%) scale(1.08); }
     .lp-menu-btn:hover span { background: var(--primary-ink); }
 }
 .lp-menu-btn:active { transform: translateY(-50%) scale(.92); }
@@ -2186,14 +2192,9 @@ body.lp-menu-open .support-widget {
 .lp-menu-modal.open .lp-menu-modal-sheet a:nth-of-type(5) { transition-delay: .24s; }
 .lp-menu-modal.open .lp-menu-modal-sheet a:nth-of-type(6) { transition-delay: .28s; }
 .lp-menu-modal.open .lp-menu-modal-sheet a:nth-of-type(7) { transition-delay: .32s; }
-/* Deliberately understated hover: rows rest as plain white/--surface cards
-   (see --menu-row-bg above), so hover only needs a soft gold wash - the same
-   --primary-light tint the site already uses for hover/active states
-   elsewhere (.site-lang-option-btn, .nav-links a.active) - plus a light lift,
-   not a full solid-color block with inverted white text. That harder treatment
-   read as a jarring flash rather than feedback; this stays legible against the
-   still-visible row border/text colors and reads as "gently highlighted", not
-   "replaced".
+/* No background-color change on hover - rows keep their resting --menu-row-bg
+   fill (see above) and just pop toward the cursor via transform, same
+   treatment as .site-lang-option-btn and .nav-links a.
    Selector is as specific as `.lp-menu-modal.open .lp-menu-modal-sheet a` above
    (same 3 classes, plus :hover) - without matching that specificity, the open
    state's `transform: translateX(0)` always won and the hover lift never
@@ -2212,9 +2213,8 @@ body.lp-menu-open .support-widget {
    position. */
 @media (hover: hover) and (pointer: fine) {
     .lp-menu-modal.open .lp-menu-modal-sheet a:hover {
-        background: var(--primary-light); color: var(--primary-ink); text-decoration: none;
-        border-color: var(--primary);
-        transform: translateY(-1px);
+        text-decoration: none;
+        transform: translateY(-2px) scale(1.03);
         box-shadow: 0 4px 10px -6px rgba(214, 148, 16, .35);
         transition-delay: 0s;
     }
