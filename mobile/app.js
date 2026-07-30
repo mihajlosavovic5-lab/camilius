@@ -1864,9 +1864,9 @@ el("verify-pending-back").addEventListener("click", () => {
 //
 // Two entry points share this same OAuth round-trip: the mandatory gate screen below
 // (a business with no Instagram account connected yet has nowhere else to go) and the
-// "Reconnect or switch account" link on the Profile screen (see settings-instagram-
-// reconnect-btn below), for a business that's already connected but wants to switch
-// accounts or fix a broken connection - same as the website's own Settings page.
+// "Reconnect" link on the Profile screen (see settings-instagram-reconnect-btn below),
+// for a business that's already connected but wants to fix a broken connection - same
+// as the website's own Settings page.
 // instagramConnectContext records which one is in flight so the shared browserFinished
 // listener knows whether to route into the app or just refresh Profile's read-only field. ---
 

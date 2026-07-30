@@ -54,7 +54,7 @@
                         {% if business.instagram_username %}@{{ business.instagram_username }}{% else %}<span data-i18n="settings.instagramNotConnected">Not connected</span>{% endif %}
                     </span>
                     <div class="profile-instagram-actions">
-                        <a href="{{ url_for('connect_instagram_start') }}" class="field-action-link"><span data-i18n="{{ 'settings.instagramReconnect' if business.instagram_username else 'connectInstagram.cta' }}">{{ 'Reconnect or switch account' if business.instagram_username else 'Connect Instagram' }}</span></a>
+                        <a href="{{ url_for('connect_instagram_start') }}" class="field-action-link"><span data-i18n="{{ 'settings.instagramReconnect' if business.instagram_username else 'connectInstagram.cta' }}">{{ 'Reconnect' if business.instagram_username else 'Connect Instagram' }}</span></a>
                         {% if business.instagram_username %}
                             <!-- form="disconnect-instagram-form" (not a nested <form> here) -
                                  a <form> can't be nested inside #settings-form below; browsers
