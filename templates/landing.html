@@ -601,6 +601,33 @@
     var progress = document.getElementById('lp-progress');
     var ticking = false;
 
+    // Precompute the header's full height in both the scrolled and unscrolled
+    // states, once, up front - transition:none+forced reflow so this isn't
+    // caught mid-animation. offsetHeight is a transitioning property
+    // (#lp-header.lp-scrolled's padding change animates over .25s), and reading
+    // it live inside onScroll right after toggling the class returned the OLD
+    // height for a frame or two (a CSS transition's box doesn't jump straight
+    // to its end state the instant the class changes) - meanwhile
+    // --lp-header-half-h below drives the fixed flag's own `top`, which has its
+    // *own* separate transition, so it briefly animated toward that stale
+    // height before snapping to the real one on the next scroll tick, reading
+    // as the flag dropping down then twitching back into place every time a
+    // scroll crossed the scrolled/unscrolled threshold. Looking up a cached
+    // number instead of re-measuring a mid-transition box sidesteps the race
+    // entirely.
+    var headerHeights = (function () {
+        var prevTransition = header.style.transition;
+        header.style.transition = 'none';
+        header.classList.remove('lp-scrolled');
+        var unscrolled = header.offsetHeight;
+        header.classList.add('lp-scrolled');
+        var scrolled = header.offsetHeight;
+        header.classList.remove('lp-scrolled');
+        void header.offsetHeight; // force reflow before restoring the transition
+        header.style.transition = prevTransition;
+        return { scrolled: scrolled, unscrolled: unscrolled };
+    })();
+
     function onScroll() {
         // Toggling position:fixed on <body> to lock scroll (the hamburger drawer
         // above and the language dropdown in static/site-i18n.js both do this)
@@ -614,13 +641,16 @@
             return;
         }
         var scrollTop = window.scrollY || document.documentElement.scrollTop;
-        header.classList.toggle('lp-scrolled', scrollTop > 12);
+        var isScrolled = scrollTop > 12;
+        header.classList.toggle('lp-scrolled', isScrolled);
         // Keeps the fixed top-right language flag (.site-lang-select-btn,
         // base.html - lives outside #lp-header entirely) vertically centered
         // on the header via CSS var --lp-header-half-h (see style.css), so it
         // tracks the header's own real height instead of drifting off-center
-        // when #lp-header.lp-scrolled shrinks its padding (18px -> 12px).
-        document.documentElement.style.setProperty('--lp-header-half-h', (header.offsetHeight / 2) + 'px');
+        // when #lp-header.lp-scrolled shrinks its padding (18px -> 12px). Uses
+        // the precomputed heights above rather than re-measuring offsetHeight
+        // here - see headerHeights' own comment for why.
+        document.documentElement.style.setProperty('--lp-header-half-h', ((isScrolled ? headerHeights.scrolled : headerHeights.unscrolled) / 2) + 'px');
         var docHeight = document.documentElement.scrollHeight - window.innerHeight;
         var pct = docHeight > 0 ? (scrollTop / docHeight) * 100 : 0;
         progress.style.width = pct + '%';
