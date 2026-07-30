@@ -2545,7 +2545,7 @@ html { scroll-behavior: smooth; }
     padding: 52px 0 26px; border-top: 1px solid var(--border); margin-top: 12px;
 }
 .lp-footer-grid {
-    display: flex; justify-content: center; align-items: flex-start;
+    display: flex; justify-content: space-between; align-items: flex-start;
     flex-wrap: wrap; gap: 64px; margin-bottom: 30px;
 }
 .lp-footer-brand .brand-name { font-size: 17px; }
