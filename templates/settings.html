@@ -140,10 +140,19 @@
         </div>
     </form>
     {% if business.instagram_username %}
-        <form method="POST" action="{{ url_for('disconnect_instagram') }}" id="disconnect-instagram-form"
-              onsubmit="return confirm(t('settings.instagramDisconnectConfirm'));">
+        <form method="POST" action="{{ url_for('disconnect_instagram') }}" id="disconnect-instagram-form">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         </form>
+        <div class="confirm-modal" id="disconnect-instagram-modal" role="alertdialog" aria-modal="true" aria-describedby="disconnect-instagram-modal-message">
+            <div class="confirm-modal-backdrop"></div>
+            <div class="confirm-modal-card">
+                <p class="confirm-modal-message" id="disconnect-instagram-modal-message" data-i18n="settings.instagramDisconnectConfirm">Are you sure? You'll need to reconnect Instagram before Camilius can read or send messages again.</p>
+                <div class="confirm-modal-actions">
+                    <button type="button" class="button button-secondary" id="disconnect-instagram-cancel" data-i18n="settings.cancel">Cancel</button>
+                    <button type="button" class="button button-danger" id="disconnect-instagram-confirm" data-i18n="settings.instagramDisconnect">Disconnect</button>
+                </div>
+            </div>
+        </div>
     {% endif %}
 </div>
 {% endblock %}
@@ -166,6 +175,36 @@ function initSettingsPickers() {
     safeInit(initSettingsSaveButton);
     safeInit(initSaveSuccessOverlay);
     safeInit(initSettingsUsernameAvailability);
+    safeInit(initDisconnectInstagramModal);
+}
+
+// Replaces the native confirm() that used to gate this submit (bare browser/OS popup,
+// styled nothing like the rest of the site) with .confirm-modal, matching the
+// save-success overlay's own look. "confirmed" lets requestSubmit() below re-enter this
+// same submit handler without reopening the modal a second time.
+function initDisconnectInstagramModal() {
+    const form = document.getElementById("disconnect-instagram-form");
+    const modal = document.getElementById("disconnect-instagram-modal");
+    if (!form || !modal) return;
+
+    const cancelBtn = document.getElementById("disconnect-instagram-cancel");
+    const confirmBtn = document.getElementById("disconnect-instagram-confirm");
+    let confirmed = false;
+
+    function close() { modal.classList.remove("open"); }
+
+    form.addEventListener("submit", (e) => {
+        if (confirmed) return;
+        e.preventDefault();
+        modal.classList.add("open");
+    });
+    cancelBtn.addEventListener("click", close);
+    modal.querySelector(".confirm-modal-backdrop").addEventListener("click", close);
+    confirmBtn.addEventListener("click", () => {
+        confirmed = true;
+        close();
+        form.requestSubmit();
+    });
 }
 
 // Live "is this username taken" check as the user types, same debounced

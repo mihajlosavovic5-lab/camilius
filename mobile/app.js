@@ -1907,8 +1907,17 @@ function updateInstagramDisconnectVisibility(instagramUsername) {
 el("connect-instagram-btn").addEventListener("click", () => openInstagramConnectBrowser("gate", "connect-error"));
 el("settings-instagram-reconnect-btn").addEventListener("click", () => openInstagramConnectBrowser("profile", null));
 
-el("settings-instagram-disconnect-btn").addEventListener("click", async () => {
-    if (!confirm(t("settings.instagramDisconnectConfirm"))) return;
+function closeInstagramDisconnectModal() {
+    el("instagram-disconnect-modal").classList.remove("open");
+}
+
+el("settings-instagram-disconnect-btn").addEventListener("click", () => {
+    el("instagram-disconnect-modal").classList.add("open");
+});
+el("instagram-disconnect-backdrop").addEventListener("click", closeInstagramDisconnectModal);
+el("instagram-disconnect-cancel").addEventListener("click", closeInstagramDisconnectModal);
+el("instagram-disconnect-confirm").addEventListener("click", async () => {
+    closeInstagramDisconnectModal();
     try {
         await api("/api/instagram-disconnect", { method: "POST" });
         el("settings-instagram-account").value = "";

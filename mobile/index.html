@@ -143,6 +143,20 @@
   </div>
 </div>
 
+<!-- Instagram disconnect confirm (Profile tab) - same .lang-modal overlay machinery as
+     every sheet above, replacing a bare native confirm() with something that actually
+     matches the app. See settings-instagram-disconnect-btn's click handler in app.js. -->
+<div id="instagram-disconnect-modal" class="lang-modal">
+  <div class="lang-modal-backdrop" id="instagram-disconnect-backdrop"></div>
+  <div class="lang-modal-sheet confirm-modal-sheet">
+    <p class="confirm-modal-message" data-i18n="settings.instagramDisconnectConfirm">Are you sure? You'll need to reconnect Instagram before Camilius can read or send messages again.</p>
+    <div class="confirm-modal-actions">
+      <button type="button" class="button button-secondary" id="instagram-disconnect-cancel" data-i18n="settings.cancel">Cancel</button>
+      <button type="button" class="button button-danger" id="instagram-disconnect-confirm" data-i18n="settings.instagramDisconnect">Disconnect</button>
+    </div>
+  </div>
+</div>
+
 <div id="app">
 
   <!-- ONBOARDING (shown once, only inside the installed app). Each slide's illustration

@@ -826,6 +826,32 @@ input[readonly]:hover { border-color: var(--border); }
 @keyframes save-success-draw { to { stroke-dashoffset: 0; } }
 .save-success-text { margin: 0; font-size: 16.5px; font-weight: 600; color: var(--text); }
 
+/* --- Confirm modal --- */
+/* Reusable centered "are you sure?" dialog replacing native confirm(), which renders as
+   the browser/OS's own unstyled popup (bare text + CANCEL/OK) instead of matching the
+   rest of the site. Same overlay/backdrop/scale-in choreography as .save-success-overlay
+   and .site-lang-modal above, just with actions instead of a checkmark. */
+.confirm-modal {
+    position: fixed; inset: 0; z-index: 1060;
+    display: flex; align-items: center; justify-content: center; padding: 20px;
+    visibility: hidden; pointer-events: none;
+}
+.confirm-modal.open { visibility: visible; pointer-events: auto; }
+.confirm-modal-backdrop {
+    position: absolute; inset: 0; background: rgba(20,15,8,.42);
+    opacity: 0; transition: opacity .2s ease;
+}
+.confirm-modal.open .confirm-modal-backdrop { opacity: 1; }
+.confirm-modal-card {
+    position: relative; background: var(--surface); border-radius: var(--radius); box-shadow: var(--shadow-lg);
+    padding: 28px; max-width: 360px; width: 100%;
+    transform: translateY(6px) scale(.96); opacity: 0;
+    transition: transform .2s cubic-bezier(.22,.9,.32,1.2), opacity .16s ease;
+}
+.confirm-modal.open .confirm-modal-card { transform: translateY(0) scale(1); opacity: 1; }
+.confirm-modal-message { margin: 0 0 22px; color: var(--text); font-size: 15.5px; line-height: 1.5; }
+.confirm-modal-actions { display: flex; justify-content: flex-end; gap: 10px; }
+
 /* --- Badges (status) --- */
 .badge {
     display: inline-flex; align-items: center; gap: 6px;
