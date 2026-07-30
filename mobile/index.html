@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
 <title>Camilius</title>
-<link rel="stylesheet" href="app.css?v=8541ce8bf8a3">
+<link rel="stylesheet" href="app.css?v=9ff0c8513c76">
 </head>
 <body>
 
@@ -808,8 +808,12 @@
           <p class="profile-section-title"><span data-i18n="settings.upsell.heading">AI upsell</span> <span class="badge badge-pro">Pro</span></p>
           <p class="profile-section-subtitle" data-i18n="settings.upsell.subtitle">When the AI books one service, it can suggest a related one too.</p>
         </div>
-        <textarea id="settings-upsell-pairs" rows="3" placeholder="Haircut -> Treatment"></textarea>
-        <p class="field-hint" id="settings-upsell-hint" data-i18n="settings.upsellHint">Related services, one pair per line ("Service A -> Service B") - the AI gently suggests the other when it books one during a DM conversation.</p>
+        <label data-i18n="settings.upsell.relatedServices">Related services</label>
+        <div class="upsell-picker" id="settings-upsell-picker">
+          <div class="upsell-rows" id="settings-upsell-rows"></div>
+          <button type="button" class="price-add-btn" id="settings-upsell-add" data-i18n="settings.upsell.addPair">+ Add pair</button>
+        </div>
+        <p class="field-hint" id="settings-upsell-hint" data-i18n="settings.upsell.note">Add a service on the left and what to suggest with it on the right.</p>
         <p class="field-hint hidden" id="settings-upsell-locked-hint" data-i18n="settings.upsellLockedHint">Upgrade to Pro to let the AI suggest complementary services.</p>
       </div>
 
@@ -1126,7 +1130,7 @@
   </button>
 </nav>
 
-<script src="i18n.js?v=8541ce8bf8a3"></script>
-<script src="app.js?v=8541ce8bf8a3"></script>
+<script src="i18n.js?v=9ff0c8513c76"></script>
+<script src="app.js?v=9ff0c8513c76"></script>
 </body>
 </html>

@@ -885,12 +885,98 @@ function createPricePicker(rowsContainerId, addButtonId, currencyContainerId) {
     };
 }
 
+// AI upsell pairs picker (Profile only - Pro feature, not part of registration) - a
+// repeatable "Service -> suggested service" row pair, mirroring the website's
+// arrow-separated picker (static/pickers.js createUpsellPicker) instead of the old
+// freeform "Service -> Add-on" textarea.
+function createUpsellPicker(rowsContainerId, addButtonId) {
+    const rowsContainer = el(rowsContainerId);
+
+    function addRow(serviceA = "", serviceB = "") {
+        const row = document.createElement("div");
+        row.className = "upsell-row";
+
+        const fieldA = document.createElement("div");
+        fieldA.className = "floating-field";
+        const inputA = document.createElement("input");
+        inputA.type = "text";
+        inputA.className = "upsell-service-a";
+        inputA.placeholder = " ";
+        inputA.value = serviceA;
+        const labelA = document.createElement("label");
+        labelA.dataset.i18n = "settings.upsell.examplePlaceholder1";
+        labelA.textContent = t("settings.upsell.examplePlaceholder1");
+        fieldA.appendChild(inputA);
+        fieldA.appendChild(labelA);
+
+        const arrow = document.createElement("span");
+        arrow.className = "upsell-arrow";
+        arrow.textContent = "→";
+
+        const fieldB = document.createElement("div");
+        fieldB.className = "floating-field";
+        const inputB = document.createElement("input");
+        inputB.type = "text";
+        inputB.className = "upsell-service-b";
+        inputB.placeholder = " ";
+        inputB.value = serviceB;
+        const labelB = document.createElement("label");
+        labelB.dataset.i18n = "settings.upsell.examplePlaceholder2";
+        labelB.textContent = t("settings.upsell.examplePlaceholder2");
+        fieldB.appendChild(inputB);
+        fieldB.appendChild(labelB);
+
+        const removeBtn = document.createElement("button");
+        removeBtn.type = "button";
+        removeBtn.className = "price-remove-btn";
+        removeBtn.setAttribute("aria-label", "Remove");
+        removeBtn.textContent = "×";
+        removeBtn.addEventListener("click", () => row.remove());
+
+        row.appendChild(fieldA);
+        row.appendChild(arrow);
+        row.appendChild(fieldB);
+        row.appendChild(removeBtn);
+        rowsContainer.appendChild(row);
+    }
+
+    el(addButtonId).addEventListener("click", () => addRow());
+
+    return {
+        getValue() {
+            return Array.from(rowsContainer.querySelectorAll(".upsell-row"))
+                .map((row) => {
+                    const a = row.querySelector(".upsell-service-a").value.trim();
+                    const b = row.querySelector(".upsell-service-b").value.trim();
+                    return a && b ? `${a} -> ${b}` : null;
+                })
+                .filter(Boolean)
+                .join("\n");
+        },
+        setValue(text) {
+            rowsContainer.innerHTML = "";
+            const lines = (text || "").split("\n").map((l) => l.trim()).filter(Boolean);
+            if (lines.length === 0) {
+                addRow();
+                return;
+            }
+            lines.forEach((line) => {
+                const idx = line.indexOf("->");
+                if (idx === -1) return;
+                addRow(line.slice(0, idx).trim(), line.slice(idx + 2).trim());
+            });
+        },
+    };
+}
+
 const registerHoursPicker = createHoursPicker("register-hours-picker");
 const registerPricesPicker = createPricePicker("register-prices-rows", "register-prices-add", "register-price-currency");
 registerPricesPicker.setValue("");
 const profileHoursPicker = createHoursPicker("settings-hours-picker");
 const profilePricesPicker = createPricePicker("settings-prices-rows", "settings-prices-add", "settings-price-currency");
 profilePricesPicker.setValue("");
+const profileUpsellPicker = createUpsellPicker("settings-upsell-rows", "settings-upsell-add");
+profileUpsellPicker.setValue("");
 
 // --- Country code picker (Create Account's phone number field) - every country with
 // its calling code, searchable/scrollable in a modal (same fixed-overlay mechanism as
@@ -2534,7 +2620,7 @@ function serializeProfileForm() {
         hours: profileHoursPicker.getValue(),
         prices: profilePricesPicker.getValue(),
         faq: el("settings-faq").value,
-        upsell: el("settings-upsell-pairs").value,
+        upsell: profileUpsellPicker.getValue(),
         currentPassword: el("settings-current-password").value,
         newPassword: el("settings-new-password").value,
     });
@@ -2609,7 +2695,7 @@ async function loadSettingsIntoForm() {
         profileHoursPicker.setValue(data.working_hours);
         profilePricesPicker.setValue(data.price_list);
         el("settings-faq").value = data.faq;
-        el("settings-upsell-pairs").value = data.upsell_pairs || "";
+        profileUpsellPicker.setValue(data.upsell_pairs || "");
         resetPasswordField("settings-current-password");
         resetPasswordField("settings-new-password");
         applyProAccessLocks();
@@ -2676,7 +2762,7 @@ el("settings-save").addEventListener("click", async () => {
                 working_hours: profileHoursPicker.getValue(),
                 price_list: profilePricesPicker.getValue(),
                 faq: el("settings-faq").value,
-                upsell_pairs: state.proAccess ? el("settings-upsell-pairs").value : undefined,
+                upsell_pairs: state.proAccess ? profileUpsellPicker.getValue() : undefined,
                 current_password: currentPassword || undefined,
                 new_password: newPassword || undefined,
             },
@@ -3491,11 +3577,12 @@ function applyProAccessLocks() {
         if (ownerLeadBtn) ownerLeadBtn.disabled = !state.proAccess;
         if (!state.proAccess) ownerToggle.checked = false;
     }
-    const upsellField = el("settings-upsell-pairs");
+    const upsellPicker = el("settings-upsell-picker");
     const upsellHint = el("settings-upsell-hint");
     const upsellLockedHint = el("settings-upsell-locked-hint");
-    if (upsellField) {
-        upsellField.disabled = !state.proAccess;
+    if (upsellPicker) {
+        upsellPicker.classList.toggle("pro-locked", !state.proAccess);
+        upsellPicker.querySelectorAll("input, button").forEach((field) => { field.disabled = !state.proAccess; });
         if (upsellHint) upsellHint.classList.toggle("hidden", !state.proAccess);
         if (upsellLockedHint) upsellLockedHint.classList.toggle("hidden", state.proAccess);
     }
