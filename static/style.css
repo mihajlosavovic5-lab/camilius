@@ -1713,7 +1713,7 @@ body.landing .content { padding-top: 32px; }
     background: linear-gradient(90deg, var(--primary), var(--gold-dark));
 }
 
-.steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; position: relative; }
+.steps { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; position: relative; }
 .step { position: relative; text-align: center; padding-top: 34px; display: flex; flex-direction: column; gap: 20px; }
 .step h3 { font-size: 17.5px; margin: 16px 0 7px; }
 .step p { color: var(--text-muted); font-size: 15px; margin: 0; }

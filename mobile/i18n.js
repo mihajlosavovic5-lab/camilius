@@ -36,6 +36,8 @@ const TRANSLATIONS = {
         "onboarding.slide3.body": "The AI drafts a reply based on your working hours, price list, and FAQ.",
         "onboarding.slide4.title": "Sent for you, instantly",
         "onboarding.slide4.body": "Camilius sends the AI's reply the moment it's ready — turn on manual review in Settings if you'd rather approve each one first.",
+        "onboarding.slide5.title": "Books the appointment too",
+        "onboarding.slide5.body": "When a customer wants to schedule, Camilius checks your calendar, books the slot, and notifies you the moment it's done.",
         "onboarding.getStarted": "Get started",
 
         "login.tagline": "AI replies for your Instagram DMs",
@@ -333,6 +335,8 @@ const TRANSLATIONS = {
         "onboarding.slide3.body": "AI piše odgovor na osnovu vašeg radnog vremena, cenovnika i čestih pitanja.",
         "onboarding.slide4.title": "Šalje se umesto vas, odmah",
         "onboarding.slide4.body": "Camilius odmah šalje AI odgovor čim je spreman — uključite ručni pregled u Podešavanjima ako želite prvo da odobravate svaki odgovor.",
+        "onboarding.slide5.title": "I sam zakazuje termin",
+        "onboarding.slide5.body": "Kada mušterija želi da zakaže, Camilius proverava vaš raspored, rezerviše termin i odmah vas obaveštava kad je gotovo.",
         "onboarding.getStarted": "Počnimo",
 
         "login.tagline": "AI odgovori za vaše Instagram poruke",
@@ -625,6 +629,8 @@ const TRANSLATIONS = {
         "onboarding.slide3.body": "La IA redacta una respuesta según tu horario, tu lista de precios y tus preguntas frecuentes.",
         "onboarding.slide4.title": "Enviado por ti, al instante",
         "onboarding.slide4.body": "Camilius envía la respuesta de la IA en cuanto está lista — activa la revisión manual en Ajustes si prefieres aprobar cada una primero.",
+        "onboarding.slide5.title": "También reserva la cita",
+        "onboarding.slide5.body": "Cuando un cliente quiere reservar, Camilius revisa tu agenda, reserva el horario y te avisa en cuanto queda hecho.",
         "onboarding.getStarted": "Empezar",
 
         "login.tagline": "Respuestas con IA para tus DM de Instagram",
@@ -915,6 +921,8 @@ const TRANSLATIONS = {
         "onboarding.slide3.body": "A IA redige uma resposta com base no seu horário de funcionamento, tabela de preços e perguntas frequentes.",
         "onboarding.slide4.title": "Enviado para você, na hora",
         "onboarding.slide4.body": "O Camilius envia a resposta da IA assim que fica pronta — ative a revisão manual em Configurações se preferir aprovar cada uma antes.",
+        "onboarding.slide5.title": "Também agenda o horário",
+        "onboarding.slide5.body": "Quando um cliente quer agendar, o Camilius verifica sua agenda, reserva o horário e te avisa assim que estiver feito.",
         "onboarding.getStarted": "Começar",
 
         "login.tagline": "Respostas com IA para seus DMs do Instagram",
@@ -1205,6 +1213,8 @@ const TRANSLATIONS = {
         "onboarding.slide3.body": "L'IA rédige une réponse selon vos horaires, votre grille tarifaire et votre FAQ.",
         "onboarding.slide4.title": "Envoyé pour vous, instantanément",
         "onboarding.slide4.body": "Camilius envoie la réponse de l'IA dès qu'elle est prête — activez la relecture manuelle dans les Paramètres si vous préférez approuver chaque réponse au préalable.",
+        "onboarding.slide5.title": "Réserve aussi le rendez-vous",
+        "onboarding.slide5.body": "Quand un client veut réserver, Camilius consulte votre agenda, réserve le créneau et vous prévient dès que c'est fait.",
         "onboarding.getStarted": "Commencer",
 
         "login.tagline": "Réponses IA pour vos DM Instagram",
@@ -1495,6 +1505,8 @@ const TRANSLATIONS = {
         "onboarding.slide3.body": "Die KI verfasst eine Antwort auf Basis deiner Öffnungszeiten, Preisliste und FAQ.",
         "onboarding.slide4.title": "Sofort für dich gesendet",
         "onboarding.slide4.body": "Camilius sendet die KI-Antwort, sobald sie fertig ist — aktiviere die manuelle Prüfung in den Einstellungen, wenn du lieber jede Antwort vorher genehmigen möchtest.",
+        "onboarding.slide5.title": "Bucht auch den Termin",
+        "onboarding.slide5.body": "Wenn ein Kunde einen Termin möchte, prüft Camilius deinen Kalender, bucht den Termin und benachrichtigt dich, sobald es erledigt ist.",
         "onboarding.getStarted": "Los geht's",
 
         "login.tagline": "KI-Antworten für deine Instagram-DMs",
@@ -1785,6 +1797,8 @@ const TRANSLATIONS = {
         "onboarding.slide3.body": "L'IA redige una risposta in base ai tuoi orari, al listino prezzi e alle domande frequenti.",
         "onboarding.slide4.title": "Inviato per te, all'istante",
         "onboarding.slide4.body": "Camilius invia la risposta dell'IA non appena è pronta — attiva la revisione manuale nelle Impostazioni se preferisci approvare ogni risposta prima.",
+        "onboarding.slide5.title": "Prenota anche l'appuntamento",
+        "onboarding.slide5.body": "Quando un cliente vuole prenotare, Camilius controlla la tua agenda, prenota lo slot e ti avvisa non appena è fatto.",
         "onboarding.getStarted": "Inizia",
 
         "login.tagline": "Risposte IA per i tuoi DM di Instagram",
@@ -2075,6 +2089,8 @@ const TRANSLATIONS = {
         "onboarding.slide3.body": "ИИ составляет ответ на основе вашего графика работы, прайс-листа и частых вопросов.",
         "onboarding.slide4.title": "Отправляется за вас, мгновенно",
         "onboarding.slide4.body": "Camilius отправляет ответ ИИ, как только он готов — включите ручную проверку в Настройках, если хотите сначала одобрять каждый ответ.",
+        "onboarding.slide5.title": "А ещё сам записывает на приём",
+        "onboarding.slide5.body": "Когда клиент хочет записаться, Camilius проверяет ваше расписание, бронирует время и уведомляет вас, как только всё готово.",
         "onboarding.getStarted": "Начать",
 
         "login.tagline": "ИИ-ответы для ваших Instagram-сообщений",
@@ -2365,6 +2381,8 @@ const TRANSLATIONS = {
         "onboarding.slide3.body": "AI 会根据您的营业时间、价目表和常见问题起草回复。",
         "onboarding.slide4.title": "即时为您发送",
         "onboarding.slide4.body": "Camilius 一准备好就发送 AI 回复——如果您想先审核每条回复，可在设置中开启人工审核。",
+        "onboarding.slide5.title": "还能自动预约",
+        "onboarding.slide5.body": "当顾客想要预约时，Camilius会查看您的日程表，预订时段，并在完成后立即通知您。",
         "onboarding.getStarted": "开始使用",
 
         "login.tagline": "为您的 Instagram 私信提供 AI 回复",
@@ -2655,6 +2673,8 @@ const TRANSLATIONS = {
         "onboarding.slide3.body": "Yapay zeka, çalışma saatlerinize, fiyat listenize ve sık sorulan sorularınıza göre bir yanıt hazırlar.",
         "onboarding.slide4.title": "Sizin için anında gönderilir",
         "onboarding.slide4.body": "Camilius, yapay zekâ yanıtı hazır olur olmaz gönderir — her yanıtı önce siz onaylamak isterseniz Ayarlar'dan manuel incelemeyi açabilirsiniz.",
+        "onboarding.slide5.title": "Randevuyu da ayarlar",
+        "onboarding.slide5.body": "Bir müşteri randevu almak istediğinde Camilius takviminizi kontrol eder, saati ayırır ve işlem tamamlanır tamamlanmaz size bildirim gönderir.",
         "onboarding.getStarted": "Başla",
 
         "login.tagline": "Instagram DM'leriniz için yapay zeka yanıtları",

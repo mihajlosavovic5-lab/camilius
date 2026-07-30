@@ -18,7 +18,7 @@
             "name": "Camilius AI",
             "applicationCategory": "BusinessApplication",
             "operatingSystem": "Web, Android",
-            "description": "Camilius AI reads a business's Instagram messages and drafts AI-suggested replies based on its working hours, price list, and FAQ, so the owner can just review and send.",
+            "description": "Camilius AI reads a business's Instagram messages, drafts AI-suggested replies based on its working hours, price list, and FAQ, and can book the appointment straight into the business's schedule and notify the owner, so the owner can just review, send, or let it run on its own.",
             "url": "{{ url_for('home', _external=True) }}",
             "offers": {
                 "@type": "Offer",
@@ -74,7 +74,7 @@
     <!-- Hero -->
     <section class="hero lp-hero">
         <h1 class="lp-enter lp-enter-1"><span data-i18n="landing.hero.title1">A customer messages your business on Instagram.</span><br><span class="lp-accent" data-i18n="landing.hero.title2">Camilius already answered.</span></h1>
-        <p class="hero-subtitle lp-enter lp-enter-2"><span data-i18n="landing.hero.subtitle1">Camilius reads every Instagram message the moment it arrives and drafts a reply based on your working hours, price list, and FAQ.</span><br><span data-i18n="landing.hero.subtitle2">By default, AI Autopilot sends it in seconds, day and night, so no customer is ever left waiting, but if you prefer to double-check first, you can turn on manual review anytime.</span></p>
+        <p class="hero-subtitle lp-enter lp-enter-2"><span data-i18n="landing.hero.subtitle1">Camilius reads every Instagram message the moment it arrives, drafts a reply based on your working hours, price list, and FAQ, and books the appointment straight into your schedule when that's what's needed.</span><br><span data-i18n="landing.hero.subtitle2">By default, AI Autopilot sends it in seconds, day and night, so no customer is ever left waiting, but if you prefer to double-check first, you can turn on manual review anytime.</span></p>
         <div class="hero-actions lp-enter lp-enter-3">
             {% if beta_free_mode %}
             <a href="{{ url_for('register') }}" class="button lp-shine" style="font-size: 16px; padding: 13px 28px;" data-i18n="landing.hero.ctaFree">Get started for free</a>
@@ -359,6 +359,19 @@
                     </span>
                 </div>
             </div>
+            <div class="card step lp-card-hover lp-reveal">
+                <div class="lp-step-copy">
+                    <div class="step-number lp-step-number">4</div>
+                    <h3><span data-i18n="landing.howItWorks.step4.title">Books it on your calendar</span> <span class="badge badge-pro" style="margin-left:6px; vertical-align:middle;">Pro</span></h3>
+                    <p class="lp-step-desc-main" data-i18n="landing.howItWorks.step4.desc">If it's a booking request, the AI checks your schedule and reserves the slot instantly.</p>
+                    <p class="lp-step-desc-sub"><span data-i18n="landing.howItWorks.step4.descSub1">You get a notification the moment it's booked.</span><br><span data-i18n="landing.howItWorks.step4.descSub2">Every appointment lands straight in your Schedule.</span></p>
+                </div>
+                <div class="lp-step-visual">
+                    <span class="lp-step-visual-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></span>
+                    <span data-i18n="landing.howItWorks.step4.visual">Tue, 14:00 &mdash; booked</span>
+                    <span class="lp-step-visual-check" aria-hidden="true">&#10003;</span>
+                </div>
+            </div>
         </div>
     </section>
 
@@ -440,7 +453,7 @@
                     <span class="brand-mark">C</span>
                     <span class="brand-name">Camilius</span>
                 </span>
-                <p data-i18n="landing.footer.tagline">AI reads your customers' Instagram messages and sends replies automatically &mdash; you can turn on manual review anytime if you'd rather approve each one first.</p>
+                <p data-i18n="landing.footer.tagline">AI reads your customers' Instagram messages, sends replies automatically, and books appointments straight into your schedule when needed &mdash; you can turn on manual review anytime if you'd rather approve each one first.</p>
             </div>
             <div class="lp-footer-cols">
                 <div class="lp-footer-col">

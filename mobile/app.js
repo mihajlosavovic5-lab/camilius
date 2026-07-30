@@ -3384,6 +3384,7 @@ const ONBOARDING_ACCENTS = {
     2: "var(--warning)",
     3: "var(--primary-dark)",
     4: "var(--success)",
+    5: "var(--primary)",
 };
 
 function setupOnboarding() {
