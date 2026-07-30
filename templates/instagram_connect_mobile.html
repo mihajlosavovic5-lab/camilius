@@ -17,7 +17,7 @@
         {% else %}
             <div class="alert alert-error"><span class="alert-icon">&#9888;&#65039;</span><span data-i18n="connectMobile.failure">Something went wrong connecting Instagram. Returning you to Camilius&hellip;</span></div>
         {% endif %}
-        <button type="button" class="button button-full hidden" id="connect-mobile-back-btn" style="margin-top: 18px;" data-i18n="connectMobile.backToApp">Back to Camilius</button>
+        <button type="button" class="button button-full" id="connect-mobile-back-btn" style="margin-top: 18px;" data-i18n="connectMobile.backToApp">Back to Camilius</button>
     </div>
 </div>
 {% endblock %}
@@ -44,9 +44,10 @@
     setTimeout(function () { window.close(); }, delay);
 });
 
-// Manual fallback button - stays hidden at first (every attempt above still gets a
-// chance to close this tab on its own) and only appears if none of them worked within
-// a few seconds. Layers three attempts instead of trusting any single one, since two
+// Manual fallback button - shown immediately alongside the page rather than only after
+// a delay, now that it's a reliably-working way back rather than a last resort: no
+// reason to make the user wait out the automatic attempts above first when tapping this
+// works right away. Layers three attempts instead of trusting any single one, since two
 // browser-side tricks have each turned out not to work on at least one real device:
 //
 // 1. "camilius://" - a plain custom URL scheme (see AndroidManifest.xml's second
@@ -80,6 +81,5 @@ connectMobileBackBtn.addEventListener("click", function () {
     }, 600);
     setTimeout(function () { window.close(); }, 1600);
 });
-setTimeout(function () { connectMobileBackBtn.classList.remove("hidden"); }, 2500);
 </script>
 {% endblock %}
