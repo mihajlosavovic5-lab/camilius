@@ -689,11 +689,6 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
 }
 .hours-quickfill-label { flex: 1 1 100%; font-size: 13.5px; font-weight: 600; color: var(--text-muted); }
 .hours-quickfill .time-picker-btn { flex: 1; min-width: 0; }
-.hours-quickfill-btn {
-    flex: 1 1 100%; padding: 9px 12px; border: 1.5px solid var(--primary); border-radius: 8px; background: none;
-    color: var(--primary-ink); font-family: inherit; font-size: 14px; font-weight: 600; cursor: pointer;
-}
-.hours-quickfill-btn:active { background: var(--primary-light); }
 
 .hours-day-list { display: flex; flex-direction: column; border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
 .hours-day-row {

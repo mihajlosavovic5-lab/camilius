@@ -603,7 +603,8 @@ function createHoursPicker(containerId) {
                     .replace("{day}", t(`days.${day}`))
                     .replace("{open}", r.openTimeBtn.value)
                     .replace("{close}", r.closeTimeBtn.value)
-                : `${t(`days.${day}`)}: ${t("hoursPicker.closed")}.`;
+                    .replace(/[.。]$/, "")
+                : `${t(`days.${day}`)}: ${t("hoursPicker.closed")}`;
             simpleNote.appendChild(line);
         });
     }
@@ -650,28 +651,10 @@ function createHoursPicker(containerId) {
     quickSep.textContent = "–";
     quickOpenBtn.el.addEventListener("change", () => applyPairToWeekdays(quickOpenBtn.value, quickCloseBtn.value));
     quickCloseBtn.el.addEventListener("change", () => applyPairToWeekdays(quickOpenBtn.value, quickCloseBtn.value));
-    const quickfillBtn = document.createElement("button");
-    quickfillBtn.type = "button";
-    quickfillBtn.className = "hours-quickfill-btn";
-    quickfillBtn.dataset.i18n = "hoursPicker.applyChanges";
-    quickfillBtn.textContent = t("hoursPicker.applyChanges");
-    // Purely navigation - the seven rows are already the saved state (each one syncs
-    // itself on its own change), so this never touches row values. Always takes the user
-    // back to the collapsed view, showing Monday's hours in its pair - the exact figure
-    // only when every weekday shares it, otherwise a representative stand-in (a day
-    // customized differently stays saved even though the collapsed summary can't display
-    // it - expanding again via "Set different hours" shows the real per-day state).
-    quickfillBtn.addEventListener("click", () => {
-        simpleOpenBtn.value = rows.monday.openTimeBtn.value;
-        simpleCloseBtn.value = rows.monday.closeTimeBtn.value;
-        advancedView.classList.add("hidden");
-        simpleView.classList.remove("hidden");
-    });
     quickfill.appendChild(quickfillLabel);
     quickfill.appendChild(quickOpenBtn.el);
     quickfill.appendChild(quickSep);
     quickfill.appendChild(quickCloseBtn.el);
-    quickfill.appendChild(quickfillBtn);
     advancedView.appendChild(quickfill);
 
     const dayList = document.createElement("div");
