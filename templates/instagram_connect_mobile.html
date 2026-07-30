@@ -51,19 +51,26 @@
 // Doesn't rely on window.close() at all - on some Custom Tabs providers that call is
 // refused outright, tap or no tap, which turned out to be exactly what was happening
 // here (window.close() from a real click still did nothing). Instead this navigates to
-// an Android "intent://" URI that explicitly launches Camilius by its own package name
-// (com.ai_auto_reply_mail.app.twa - see capacitor.config.json's appId and android/app/
-// build.gradle's applicationId) with the same action+category its own launcher intent-
-// filter already matches (see AndroidManifest.xml) - no new native code or manifest
-// entry needed, this just invokes the entry point every Android app already has.
-// MainActivity's launchMode="singleTask" means Android brings the already-running app
-// straight to the foreground instead of starting a second instance, which is exactly
-// "return to the app" - closing this tab afterward is a nice-to-have at that point, not
-// the part that actually matters, so window.close() still runs right after but isn't
-// depended on.
+// an Android "intent://" URI that launches Camilius directly.
+//
+// Targets the exact component (package/activity), not just a package name - a
+// package-only intent (action+category+package, no component) still has to be
+// *resolved* by Chrome via the same lookup Android's package-visibility rules can
+// restrict for the app installed here (a directly-distributed/sideloaded build,
+// per its own "didn't come from Google Play" notice, now that this app also has a
+// Google Play Early Access listing under the same package) - when that resolution
+// comes up empty, Chrome's own documented fallback for an intent:// URI with no
+// explicit browser_fallback_url is to open the Play Store listing for the package
+// instead, which is exactly what happened testing the package-only version of this.
+// Naming the component directly addresses it without going through that resolution/
+// visibility check at all. MainActivity's launchMode="singleTask" (see
+// AndroidManifest.xml) means Android brings the already-running app straight to the
+// foreground instead of starting a second instance, which is exactly "return to the
+// app" - closing this tab afterward is a nice-to-have at that point, not the part
+// that actually matters, so window.close() still runs right after but isn't depended on.
 var connectMobileBackBtn = document.getElementById("connect-mobile-back-btn");
 connectMobileBackBtn.addEventListener("click", function () {
-    window.location.href = "intent://#Intent;action=android.intent.action.MAIN;category=android.intent.category.LAUNCHER;package=com.ai_auto_reply_mail.app.twa;end";
+    window.location.href = "intent://#Intent;action=android.intent.action.MAIN;category=android.intent.category.LAUNCHER;component=com.ai_auto_reply_mail.app.twa/com.ai_auto_reply_mail.app.twa.MainActivity;end";
     window.close();
 });
 setTimeout(function () { connectMobileBackBtn.classList.remove("hidden"); }, 2500);
