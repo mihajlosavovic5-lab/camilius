@@ -1713,7 +1713,7 @@ body.landing .content { padding-top: 32px; }
     background: linear-gradient(90deg, var(--primary), var(--gold-dark));
 }
 
-.steps { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; position: relative; }
+.steps { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; position: relative; }
 .step { position: relative; text-align: center; padding-top: 34px; display: flex; flex-direction: column; gap: 20px; }
 .step h3 { font-size: 17.5px; margin: 16px 0 7px; }
 .step p { color: var(--text-muted); font-size: 15px; margin: 0; }
@@ -1817,13 +1817,13 @@ body.landing .content { padding-top: 32px; }
     .lp-who-name { font-size: 16.5px; }
     .lp-who-example { font-size: 13.5px; }
 
-    .steps { gap: 28px; }
-    .step { padding: 34px 30px; }
-    .step-number { width: 50px; height: 50px; font-size: 20px; }
-    .step h3 { font-size: 19px; }
-    .step p.lp-step-desc-main { font-size: 16px; }
-    .step p.lp-step-desc-sub { font-size: 14.5px; }
-    .lp-step-visual, .lp-step-mode { font-size: 14.5px; padding: 11px 14px; }
+    .steps { gap: 16px; }
+    .step { padding: 26px 16px; }
+    .step-number { width: 46px; height: 46px; font-size: 19px; }
+    .step h3 { font-size: 17px; }
+    .step p.lp-step-desc-main { font-size: 14.5px; }
+    .step p.lp-step-desc-sub { font-size: 13px; }
+    .lp-step-visual, .lp-step-mode { font-size: 13px; padding: 9px 10px; }
 }
 
 .price-card { max-width: 380px; margin: 0 auto; text-align: center; padding: 30px; }
