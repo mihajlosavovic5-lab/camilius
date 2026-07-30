@@ -1030,7 +1030,7 @@ body.auth {
    the leftover space above the button and centers the alert within it, putting the
    message at the visual midpoint between the card's top edge and the button instead of
    sitting flush against the top like a normal (short) card would. */
-.connect-mobile-card { display: flex; flex-direction: column; min-height: 260px; }
+.connect-mobile-card { display: flex; flex-direction: column; min-height: 170px; }
 .connect-mobile-message { flex: 1; display: flex; align-items: center; }
 .connect-mobile-message .alert { width: 100%; }
 .auth-brand { margin-bottom: 22px; text-align: center; }
