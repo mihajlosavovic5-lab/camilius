@@ -889,16 +889,19 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
 .inbox-row-sent .inbox-sender { font-weight: 500; }
 
 /* --- Empty / loading --- */
-/* Weighted spacers (same trick as .screen-register .detail-body below) rather than
-   justify-content:center - sits "You're all set" (and the other empty states) around a
-   third of the way down the available space instead of dead-center, which read as too
-   low given all the eye-level white space still below it down to the tab bar. */
+/* ::before has a fixed flex-basis (not flex-grow sharing the leftover space with
+   ::after) so the icon always starts at the same fixed % down the box on every tab,
+   regardless of how many lines that tab's own title/detail text happen to wrap to -
+   a proportional (flex-grow) split made the icon drift up or down between e.g. Pending
+   (1-line detail) and Trash (2-line detail) since it divided the *remaining* space
+   after content, and content height differs per tab. ::after just soaks up whatever's
+   left so the box still fills the full available height on any screen size. */
 .empty {
     text-align: center; padding: 24px; color: var(--text-muted); flex: 1;
     display: flex; flex-direction: column; align-items: center;
 }
-.empty::before { content: ''; flex: 1 0 0; }
-.empty::after { content: ''; flex: 2 0 0; }
+.empty::before { content: ''; flex: 0 0 28%; }
+.empty::after { content: ''; flex: 1 0 0; }
 .empty-icon { font-size: 41px; margin-bottom: 10px; }
 .empty-title { font-weight: 600; color: var(--text); font-size: 16.5px; margin: 4px 0; }
 .loading { text-align: center; padding: 30px; color: var(--text-muted); font-size: 15px; flex: 1; display: flex; align-items: center; justify-content: center; }
