@@ -1920,7 +1920,6 @@ async function loadDashboard({ silent = false } = {}) {
         el("count-sent").textContent = data.sent_count;
         el("count-archived").textContent = data.archived_count;
         el("count-trash").textContent = data.trash_count;
-        el("trash-note").classList.toggle("hidden", state.filter !== "trash");
 
         if (data.stats) {
             el("inbox-stat-sent").textContent = data.stats.total_sent;

@@ -788,7 +788,6 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
    pill against the dark background every time a filter (All/Pending/Sent/...) is tapped. */
 .filter-pill.active { background: var(--text); color: #fff; border-color: var(--text); }
 .filter-pill span { opacity: .75; margin-left: 3px; }
-.trash-note { padding: 0 18px; margin: 8px 0 0; flex-shrink: 0; }
 
 /* --- Inbox list --- */
 /* overflow-x explicit - a row whose sender/preview text can't shrink (see
