@@ -1734,10 +1734,10 @@ body.landing .content { padding-top: 32px; }
    .question/.reply demo cards above); step 3 previews the real Autopilot/manual
    toggle the visitor will see in Settings. --- */
 .lp-step-visual {
-    display: flex; align-items: center; justify-content: center; gap: 6px;
-    margin-top: auto; padding: 9px 12px; border-radius: 10px;
+    display: flex; align-items: center; justify-content: center; gap: 5px;
+    margin-top: auto; padding: 9px 10px; border-radius: 10px;
     background: var(--background); border: 1px solid var(--border);
-    font-size: 13.5px; color: var(--text-muted);
+    font-size: 13px; color: var(--text-muted); white-space: nowrap;
 }
 .lp-step-visual-icon { display: inline-flex; color: var(--primary); flex-shrink: 0; }
 .lp-step-visual-icon svg { width: 15px; height: 15px; }
@@ -1747,8 +1747,8 @@ body.landing .content { padding-top: 32px; }
 
 .lp-step-mode-row { display: flex; flex-direction: column; gap: 8px; margin-top: auto; }
 .lp-step-mode {
-    display: flex; align-items: center; justify-content: center; gap: 8px; padding: 9px 12px; border-radius: 10px;
-    font-size: 13.5px; font-weight: 600; text-align: center;
+    display: flex; align-items: center; justify-content: center; gap: 7px; padding: 9px 10px; border-radius: 10px;
+    font-size: 13px; font-weight: 600; text-align: center; white-space: nowrap;
 }
 .lp-step-mode-active { background: var(--primary-light); color: var(--primary-ink); }
 .lp-step-mode-muted { background: var(--background); color: var(--text-muted); border: 1px dashed var(--border); }
@@ -1847,7 +1847,7 @@ body.landing .content { padding-top: 32px; }
     .step h3 { font-size: 18px; }
     .step p.lp-step-desc-main { font-size: 15.5px; }
     .step p.lp-step-desc-sub { font-size: 14px; }
-    .lp-step-visual, .lp-step-mode { font-size: 13.5px; padding: 10px 10px; }
+    .lp-step-visual, .lp-step-mode { font-size: 13px; padding: 10px 10px; }
 }
 
 .price-card { max-width: 380px; margin: 0 auto; text-align: center; padding: 30px; }
