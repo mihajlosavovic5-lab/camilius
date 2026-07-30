@@ -787,6 +787,17 @@ function createHoursPicker(containerId) {
             simpleView.classList.remove("hidden");
             updateWeekendNote();
         },
+        // Collapses the advanced per-day list back to the "Working days" summary without
+        // touching any day's values - called after a successful Save, since the "Apply
+        // changes" button that used to do this navigation was removed (Save is now the
+        // only action within this section, so it takes over returning to the collapsed view).
+        collapseToSimple() {
+            simpleOpenBtn.value = rows.monday.openTimeBtn.value;
+            simpleCloseBtn.value = rows.monday.closeTimeBtn.value;
+            advancedView.classList.add("hidden");
+            simpleView.classList.remove("hidden");
+            updateWeekendNote();
+        },
         // False if any open day's closing time isn't after its opening time (the
         // dropdowns only ever hold valid times, so this is the one way the picker's own
         // state can still be nonsensical - e.g. "09:00-09:00" or "18:00-09:00").
@@ -2862,6 +2873,7 @@ el("settings-save").addEventListener("click", async () => {
         resetPasswordField("settings-current-password");
         resetPasswordField("settings-new-password");
         updatePhoneVerifyStatus(data.phone_number, data.phone_verified);
+        profileHoursPicker.collapseToSimple();
         profileFormSnapshot = serializeProfileForm();
     } catch (err) {
         errorBox.textContent = err.message || t("settings.error");
