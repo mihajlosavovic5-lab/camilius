@@ -121,7 +121,7 @@ const TRANSLATIONS = {
 
         "lang.pickerTitle": "Choose language",
 
-        "inbox.donate.text": "Enjoying Camilius? A voluntary donation is always appreciated.",
+        "inbox.donate.text": "Enjoying Camilius? Voluntary donations are appreciated.",
         "inbox.statsSent": "Replies sent",
         "inbox.statsSentWeek": "Sent this week",
         "inbox.donate.button": "Donate",
