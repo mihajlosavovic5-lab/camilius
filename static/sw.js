@@ -3,7 +3,7 @@
 // resilience. Deliberately does NOT cache page navigations, the API, or anything
 // outside /static/ - the dashboard/login state must always come straight from the
 // network so the app never shows stale inbox data or a stale logged-in/out state.
-const CACHE_VERSION = "v2";
+const CACHE_VERSION = "v3";
 const STATIC_CACHE = "camilius-static-" + CACHE_VERSION;
 
 const PRECACHE_URLS = [
