@@ -1504,6 +1504,23 @@ body.auth {
 .schedule-timeline-hour .schedule-timeline-time { font-weight: 700; color: var(--text); font-size: 14px; }
 .schedule-timeline-content { min-width: 0; padding: 2px 0; }
 
+/* Past-slots toggle (day view) - collapsed by default so a day that's already partly
+   elapsed doesn't bury the still-relevant (current/upcoming) slots under a wall of
+   "Past" placeholders. Only rendered when the day mixes past and upcoming rows, i.e.
+   effectively only for "today" - see schedule.html. */
+.schedule-past-toggle { margin: 0 0 10px; }
+.schedule-past-summary {
+    display: flex; align-items: center; gap: 6px; cursor: pointer; list-style: none;
+    padding: 6px 4px; margin-left: 4px; font-size: 13px; font-weight: 600; color: var(--text-muted);
+    -webkit-tap-highlight-color: transparent;
+}
+.schedule-past-summary::-webkit-details-marker { display: none; }
+.schedule-past-summary:hover { color: var(--text); }
+.schedule-past-chevron { display: inline-block; font-size: 10px; transition: transform .15s ease; }
+.schedule-past-toggle[open] .schedule-past-chevron { transform: rotate(90deg); }
+.schedule-past-count { font-weight: 400; color: var(--text-muted); }
+.schedule-timeline-past { margin-top: 6px; }
+
 .schedule-slot { display: flex; align-items: center; gap: 12px; padding: 10px 14px; border-radius: 10px; border: 1px solid var(--border-soft); background: var(--surface); }
 .schedule-slot-free { background: var(--background); }
 /* A booked slot is the important cell in this "table" - a slightly stronger frame
