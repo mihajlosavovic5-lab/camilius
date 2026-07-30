@@ -308,6 +308,7 @@ const TRANSLATIONS = {
 
         "connectMobile.success": "Instagram connected! Returning you to Camilius…",
         "connectMobile.failure": "Something went wrong connecting Instagram. Returning you to Camilius…",
+        "connectMobile.backToApp": "Back to Camilius",
 
         "appSettings.title": "Settings",
         "appSettings.preferences.heading": "Preferences",
@@ -817,6 +818,7 @@ const TRANSLATIONS = {
 
         "connectMobile.success": "¡Instagram conectado! Volviendo a Camilius…",
         "connectMobile.failure": "Algo salió mal al conectar Instagram. Volviendo a Camilius…",
+        "connectMobile.backToApp": "Volver a Camilius",
 
         "appSettings.title": "Configuración",
         "appSettings.preferences.heading": "Preferencias",
@@ -1281,6 +1283,7 @@ const TRANSLATIONS = {
 
         "connectMobile.success": "Instagram conectado! Voltando para o Camilius…",
         "connectMobile.failure": "Algo deu errado ao conectar o Instagram. Voltando para o Camilius…",
+        "connectMobile.backToApp": "Voltar para o Camilius",
 
         "appSettings.title": "Configurações",
         "appSettings.preferences.heading": "Preferências",
@@ -1745,6 +1748,7 @@ const TRANSLATIONS = {
 
         "connectMobile.success": "Instagram connecté ! Retour vers Camilius…",
         "connectMobile.failure": "Un problème est survenu lors de la connexion à Instagram. Retour vers Camilius…",
+        "connectMobile.backToApp": "Retour à Camilius",
 
         "appSettings.title": "Paramètres",
         "appSettings.preferences.heading": "Préférences",
@@ -2209,6 +2213,7 @@ const TRANSLATIONS = {
 
         "connectMobile.success": "Instagram verbunden! Du wirst zu Camilius zurückgeleitet…",
         "connectMobile.failure": "Beim Verbinden mit Instagram ist etwas schiefgelaufen. Du wirst zu Camilius zurückgeleitet…",
+        "connectMobile.backToApp": "Zurück zu Camilius",
 
         "appSettings.title": "Einstellungen",
         "appSettings.preferences.heading": "Einstellungen",
@@ -2673,6 +2678,7 @@ const TRANSLATIONS = {
 
         "connectMobile.success": "Instagram collegato! Ritorno a Camilius…",
         "connectMobile.failure": "Qualcosa è andato storto collegando Instagram. Ritorno a Camilius…",
+        "connectMobile.backToApp": "Torna a Camilius",
 
         "appSettings.title": "Impostazioni",
         "appSettings.preferences.heading": "Preferenze",
@@ -3137,6 +3143,7 @@ const TRANSLATIONS = {
 
         "connectMobile.success": "Instagram подключён! Возвращаем вас в Camilius…",
         "connectMobile.failure": "Что-то пошло не так при подключении Instagram. Возвращаем вас в Camilius…",
+        "connectMobile.backToApp": "Вернуться в Camilius",
 
         "appSettings.title": "Настройки",
         "appSettings.preferences.heading": "Настройки приложения",
@@ -3601,6 +3608,7 @@ const TRANSLATIONS = {
 
         "connectMobile.success": "Instagram povezan! Vraćamo vas u Camilius…",
         "connectMobile.failure": "Došlo je do greške prilikom povezivanja Instagram-a. Vraćamo vas u Camilius…",
+        "connectMobile.backToApp": "Nazad u Camilius",
 
         "appSettings.title": "Podešavanja",
         "appSettings.preferences.heading": "Podešavanja aplikacije",
@@ -4110,6 +4118,7 @@ const TRANSLATIONS = {
 
         "connectMobile.success": "Instagram已连接!正在返回Camilius…",
         "connectMobile.failure": "连接Instagram时出了点问题。正在返回Camilius…",
+        "connectMobile.backToApp": "返回 Camilius",
 
         "appSettings.title": "设置",
         "appSettings.preferences.heading": "偏好设置",
@@ -4574,6 +4583,7 @@ const TRANSLATIONS = {
 
         "connectMobile.success": "Instagram bağlandı! Camilius'a geri dönülüyor…",
         "connectMobile.failure": "Instagram bağlanırken bir sorun oluştu. Camilius'a geri dönülüyor…",
+        "connectMobile.backToApp": "Camilius'a dön",
 
         "appSettings.title": "Ayarlar",
         "appSettings.preferences.heading": "Tercihler",

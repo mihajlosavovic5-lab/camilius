@@ -17,6 +17,7 @@
         {% else %}
             <div class="alert alert-error"><span class="alert-icon">&#9888;&#65039;</span><span data-i18n="connectMobile.failure">Something went wrong connecting Instagram. Returning you to Camilius&hellip;</span></div>
         {% endif %}
+        <button type="button" class="button button-full hidden" id="connect-mobile-back-btn" style="margin-top: 18px;" data-i18n="connectMobile.backToApp">Back to Camilius</button>
     </div>
 </div>
 {% endblock %}
@@ -42,5 +43,16 @@
 [250, 600, 1200, 2000].forEach(function (delay) {
     setTimeout(function () { window.close(); }, delay);
 });
+
+// Manual fallback button - stays hidden at first (every attempt above still gets a
+// chance to close this tab on its own) and only appears if none of them worked within
+// a few seconds. Deliberately a real button tied to a tap rather than more silent
+// auto-close attempts: some browsers only grant window.close() to a call that's
+// directly inside a user-gesture handler (a click) and quietly ignore it otherwise,
+// including every timer-driven attempt above - so a tap here can succeed even where
+// none of those did.
+var connectMobileBackBtn = document.getElementById("connect-mobile-back-btn");
+connectMobileBackBtn.addEventListener("click", function () { window.close(); });
+setTimeout(function () { connectMobileBackBtn.classList.remove("hidden"); }, 2500);
 </script>
 {% endblock %}
