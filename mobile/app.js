@@ -225,6 +225,16 @@ if (capacitorPlugins) {
         }
     });
 
+    // "camilius://" deep link (see AndroidManifest.xml's second intent-filter) -
+    // currently only used by instagram_connect_mobile.html's "Back to Camilius" button to
+    // bring this already-running app to the foreground from its own OAuth tab, a plain
+    // Android scheme handoff every browser resolves via the OS itself rather than a
+    // browser-specific trick. Nothing to route on here: the intent-filter's
+    // launchMode="singleTask" already did the actual work (foregrounding the app) before
+    // this ever fires - a listener still has to be registered for Capacitor to process
+    // the deep link at all, even one that (for now) doesn't need to act on the URL itself.
+    capacitorPlugins.App.addListener("appUrlOpen", () => {});
+
     // Self-hosted OTA updates: the app ships with the mobile/ shell baked in at build
     // time, but small changes to it can be pushed live afterward without a new signed
     // APK - see api.py's /api/mobile-manifest and build_mobile_bundle.py.
