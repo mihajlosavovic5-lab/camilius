@@ -42,8 +42,17 @@
          hx-swap="show:none" turns off boosted requests' own default of scrolling the page
          back to the top after swapping (htmx.config.scrollIntoViewOnBoost, on by default -
          fine for a real nav between pages, not for staying on this same one) - see the
-         initScrollPreservation() comment below for the rest of this same fix. -->
-    <form method="POST" id="settings-form" hx-boost="true" hx-swap="show:none">
+         initScrollPreservation() comment below for the rest of this same fix.
+
+         transition:false turns off base.html's globalViewTransitions=true for this one
+         swap. Confirmed via screen recording: the native View Transition snapshots the
+         page's "after" state (for its cross-fade) before this script's own scroll restore
+         has run, so the transition visibly animates through that wrong, not-yet-restored
+         scroll position before settling on the right one - the "yanked down, then back"
+         the transition was supposed to smooth over is that snapshot mismatch, not the
+         actual final state (which was already correct). Nav links keep the transition;
+         this is scoped to Save alone. -->
+    <form method="POST" id="settings-form" hx-boost="true" hx-swap="show:none transition:false">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
         <div class="card profile-section">
