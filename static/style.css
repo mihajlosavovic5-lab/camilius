@@ -686,37 +686,20 @@ input[readonly]:hover { border-color: var(--border); }
 .form-actions { margin-top: 24px; }
 .hidden { display: none !important; }
 
-/* Profile page's Save button (#settings-save-btn) lives at the end of the form (inside
-   #settings-form-actions, right after AI upsell) rather than floating fixed over the
-   whole viewport - only visible once the page is scrolled down to this row, same as any
-   other ordinary submit button. Deliberately not position: fixed (tried earlier) - that
-   kept the button on screen even while looking at fields near the top of this long form
-   (Account, Business details), which read as the button trailing you around the page
-   rather than living in one place.
-   Above 1000px (there's real margin beside the centered 640px-wide card), the button is
-   pulled out of #settings-form-actions' own right-aligned flow and placed just past the
-   card's right edge instead (position: absolute against #settings-form-actions, which
-   this rule makes the positioned ancestor) - it still scrolls normally with the page
-   (only in view once scrolled to this row, per the above), just sitting beside the card
-   at that row instead of stacked directly under it. Below 1000px there isn't reliably
-   enough margin for that without spilling off-screen, so it stays in its plain inline
-   spot inside #settings-form-actions. */
+/* Profile page's Save button (#settings-save-btn) floats fixed above the bottom-left
+   corner of the viewport once there are unsaved changes (its "hidden" class, toggled by
+   initSettingsSaveButton in settings.html, still controls whether it shows at all) -
+   same floating "Save changes" pill already used on the app version of this screen (see
+   .fab-save in mobile/app.css), so it stays in view while editing fields near the top of
+   this long form instead of requiring a scroll down to the end of the AI upsell card.
+   Anchored bottom-left rather than bottom-right so it doesn't sit on top of the floating
+   support widget (#support-widget), which is pinned bottom-right on every page. */
 #settings-save-btn.button {
+    position: fixed; left: 20px; bottom: 20px; z-index: 950;
     box-shadow: 0 8px 22px -4px rgba(214, 148, 16, .5);
 }
-@media (min-width: 1000px) {
-    #settings-form-actions { position: relative; }
-    /* width: max-content - an auto-width absolutely-positioned flex item (.button is
-       display: inline-flex) shrink-to-fits against the *positioned ancestor's* box, not
-       its own content, which wrapped "Save changes" onto two lines here since that box
-       is much narrower than the button's natural single-line width.
-       bottom: 24px, not top: 0 - #settings-form-actions has no in-flow content left once
-       the button is pulled out via position: absolute, so its own box collapses to zero
-       height, sitting exactly .form-actions' margin-top (24px) below the AI upsell
-       card's bottom edge. Anchoring the button's *bottom* 24px above that (rather than
-       its top flush with it) lines the button's bottom edge up with the card's bottom
-       edge - the requested alignment - without hardcoding the button's own height. */
-    #settings-save-btn.button { position: absolute; right: auto; left: 100%; margin-left: 24px; bottom: 24px; width: max-content; }
+@media (max-width: 480px) {
+    #settings-save-btn.button { left: 14px; bottom: 14px; }
 }
 
 /* Floating labels - the label sits centered inside the empty field like a
