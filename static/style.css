@@ -686,20 +686,21 @@ input[readonly]:hover { border-color: var(--border); }
 .form-actions { margin-top: 24px; }
 .hidden { display: none !important; }
 
-/* Profile page's Save button (#settings-save-btn) floats fixed above the bottom-left
+/* Profile page's Save button (#settings-save-btn) floats fixed in the bottom-right
    corner of the viewport once there are unsaved changes (its "hidden" class, toggled by
    initSettingsSaveButton in settings.html, still controls whether it shows at all) -
    same floating "Save changes" pill already used on the app version of this screen (see
    .fab-save in mobile/app.css), so it stays in view while editing fields near the top of
    this long form instead of requiring a scroll down to the end of the AI upsell card.
-   Anchored bottom-left rather than bottom-right so it doesn't sit on top of the floating
-   support widget (#support-widget), which is pinned bottom-right on every page. */
+   Sits immediately left of the floating support widget (#support-widget, 58px wide,
+   pinned bottom-right: 20px on every page) rather than on top of it - same bottom offset,
+   with enough of a right offset to clear the widget's width plus a gap. */
 #settings-save-btn.button {
-    position: fixed; left: 20px; bottom: 20px; z-index: 950;
+    position: fixed; right: 90px; bottom: 20px; z-index: 950;
     box-shadow: 0 8px 22px -4px rgba(214, 148, 16, .5);
 }
 @media (max-width: 480px) {
-    #settings-save-btn.button { left: 14px; bottom: 14px; }
+    #settings-save-btn.button { right: 84px; bottom: 14px; }
 }
 
 /* Floating labels - the label sits centered inside the empty field like a
