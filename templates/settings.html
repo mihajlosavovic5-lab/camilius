@@ -169,7 +169,16 @@
 // tells us that once it's no longer "loading" (true for every swap after the first page
 // load, by which point <head> - untouched by the swap - has long since run it).
 function initSettingsPickers() {
-    safeInit(() => createHoursPicker("settings-hours-picker-mount", "settings-working-hours"));
+    const hoursPicker = safeInit(() => createHoursPicker("settings-hours-picker-mount", "settings-working-hours"));
+    // This exact message is only ever rendered on the response to a successful profile
+    // save POST (app.py's settings() view) - other messages reaching this page (e.g.
+    // "Instagram disconnected." via query string after a redirect) shouldn't trigger this,
+    // since nothing about the working hours actually changed on those. Collapses the hours
+    // section back to its "Working days" summary, same as the mobile app does after Save,
+    // regardless of whether the saved days actually share one set of hours.
+    {% if message == "Your details have been saved." %}
+    if (hoursPicker) hoursPicker.collapseToSimple();
+    {% endif %}
     safeInit(() => createPricePicker("settings-price-picker-mount", "settings-price-add", "settings-price-currency", "settings-price-list"));
     safeInit(() => createUpsellPicker("settings-upsell-picker-mount", "settings-upsell-add", "settings-upsell-pairs", "settings-price-list"));
     safeInit(initSettingsSaveButton);
