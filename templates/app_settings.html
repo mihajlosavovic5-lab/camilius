@@ -260,8 +260,45 @@
     <div class="card settings-card" style="margin-top:20px;">
         <h2 style="margin-top:0;" data-i18n="appSettings.logout.heading">Log out</h2>
         <p class="note" data-i18n="appSettings.logout.note">All set &mdash; you can log out any time. Your data stays right where you left it, ready for whenever you sign back in.</p>
-        <a class="button button-secondary" href="{{ url_for('logout') }}" data-i18n="common.logOut">Log out</a>
+        <a class="button button-secondary" id="logout-link" href="{{ url_for('logout') }}" data-i18n="common.logOut">Log out</a>
     </div>
+
+    <div class="confirm-modal" id="logout-modal" role="alertdialog" aria-modal="true" aria-describedby="logout-modal-message">
+        <div class="confirm-modal-backdrop"></div>
+        <div class="confirm-modal-card">
+            <p class="confirm-modal-message" id="logout-modal-message" data-i18n="settings.logoutConfirm">Are you sure you want to log out?</p>
+            <div class="confirm-modal-actions">
+                <button type="button" class="button button-secondary" id="logout-cancel" data-i18n="settings.cancel">Cancel</button>
+                <button type="button" class="button button-danger" id="logout-confirm" data-i18n="common.logOut">Log out</button>
+            </div>
+        </div>
+    </div>
+    <script>
+    (function () {
+        var link = document.getElementById("logout-link");
+        var modal = document.getElementById("logout-modal");
+        if (!link || !modal) return;
+
+        var cancelBtn = document.getElementById("logout-cancel");
+        var confirmBtn = document.getElementById("logout-confirm");
+        var confirmed = false;
+
+        function close() { modal.classList.remove("open"); }
+
+        link.addEventListener("click", function (e) {
+            if (confirmed) return;
+            e.preventDefault();
+            modal.classList.add("open");
+        });
+        cancelBtn.addEventListener("click", close);
+        modal.querySelector(".confirm-modal-backdrop").addEventListener("click", close);
+        confirmBtn.addEventListener("click", function () {
+            confirmed = true;
+            close();
+            link.click();
+        });
+    })();
+    </script>
 
     <div class="danger-zone">
         <h2 data-i18n="appSettings.danger.heading">Delete account</h2>
