@@ -932,6 +932,14 @@ input.search-input {
     background: var(--surface);
     transition: border-color .15s, box-shadow .15s, transform .15s cubic-bezier(.2,.9,.3,1.3);
 }
+/* Search box grew a floating label (placeholder=" " + <label>, same mechanism as
+   .floating-field elsewhere - see the shared rules below) to match the mobile app's
+   inbox search field. The wrapping .floating-field itself needs the same flex sizing
+   .search-input had directly before, and its input needs the pill's own padding/radius
+   back (beats the generic .floating-field input[type="text"] rule on specificity). */
+.search-row .floating-field { flex: 1 1 260px; max-width: 420px; margin-top: 0; }
+.search-row .floating-field label { left: 18px; right: 18px; }
+.search-row .floating-field input.search-input[type="text"] { padding: 19px 18px 5px; }
 /* Same card lift as the nav pills/filter tabs/donation strip, for a consistent hover feel. */
 .search-input:hover {
     transform: translateY(-1px);
@@ -1013,6 +1021,49 @@ input.search-input {
 .conversation-actions { display: flex; gap: 8px; margin-top: 14px; }
 .conversation-actions form { margin: 0; }
 .conversation-actions .button { padding: 7px 14px; font-size: 14.5px; }
+
+/* --- Dashboard inbox rows (Faza web-inbox-parity) - a compact summary row that
+   expands in place to the full question/reply detail on click, mirroring the mobile
+   app's inbox row -> detail screen pattern (mobile/app.js renderInboxList/openDetail).
+   Scoped to .dashboard-conversation rather than the bare .conversation/.card classes,
+   which templates/landing.html's "see it in action" demo slider also reuses as plain
+   always-expanded cards - none of this touches the marketing page. --- */
+.dashboard-conversation { padding: 0; overflow: hidden; }
+.conv-row {
+    display: flex; align-items: center; gap: 12px; width: 100%;
+    padding: 16px 20px; border: none; background: none; cursor: pointer;
+    font: inherit; color: inherit; text-align: left;
+}
+.conv-row:hover { background: var(--background); }
+.conv-row:focus-visible { outline: 2px solid var(--primary); outline-offset: -2px; }
+.conv-row-main { flex: 1; min-width: 0; }
+.conv-row-top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; min-width: 0; }
+.conv-row-sender {
+    font-weight: 600; font-size: 16px; min-width: 0;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.conv-row-time { color: var(--text-muted); font-size: 13px; flex-shrink: 0; white-space: nowrap; }
+.conv-row-preview {
+    display: block; margin-top: 2px; color: var(--text-muted); font-size: 14.5px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.conv-row-dot { width: 8px; height: 8px; border-radius: 99px; background: var(--warning); flex-shrink: 0; }
+.conv-row-dot.sent { background: var(--success); opacity: .5; }
+.conv-row-dot.expired { background: var(--text-muted); opacity: .5; }
+.conv-row-chevron {
+    color: var(--text-muted); font-size: 20px; line-height: 1; flex-shrink: 0;
+    transition: transform .2s cubic-bezier(.2,.9,.3,1.3);
+}
+.dashboard-conversation.expanded .conv-row-chevron { transform: rotate(90deg); }
+/* Sent/expired rows read like "already handled" (Gmail/WhatsApp-style dimming of read
+   rows) - only the summary row dims, not the expanded detail, so opening one back up
+   for reference still reads at full contrast. */
+.conv-read .conv-row-main, .conv-read .avatar { opacity: .6; }
+
+.conv-detail { display: none; padding: 0 20px 20px; border-top: 1px solid var(--border); }
+.dashboard-conversation.expanded .conv-detail { display: block; padding-top: 18px; }
+.conv-detail-badge { margin-bottom: 12px; }
+.conv-detail-badge + .conversation-block { margin-top: 0; }
 
 /* --- Empty state --- */
 .empty {

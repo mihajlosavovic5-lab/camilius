@@ -38,8 +38,10 @@
     {% endif %}
 
     <div class="search-row">
-        <input type="text" id="dashboard-search" class="search-input" autocomplete="off"
-               data-i18n-placeholder="dashboard.searchPlaceholder" placeholder="Search conversations">
+        <div class="floating-field">
+            <input type="text" id="dashboard-search" class="search-input" autocomplete="off" placeholder=" ">
+            <label for="dashboard-search" data-i18n="dashboard.searchPlaceholder">Search conversations</label>
+        </div>
 
         {% if donation_link %}
             <div class="donation-strip">
@@ -86,9 +88,15 @@
 
     {% for c in conversations %}
         {% set id, sender, subject, question, suggested_reply, final_reply, status, created_at, profile_pic_url, expired_at = c %}
-        <div class="card conversation" data-search-text="{{ (sender ~ ' ' ~ question)|lower }}"
+        <div class="card conversation dashboard-conversation{% if status != 'pending' or expired_at %} conv-read{% endif %}"
+             data-search-text="{{ (sender ~ ' ' ~ question)|lower }}"
              {% if status == 'pending' and not expired_at %}data-created-at="{{ created_at.isoformat() if created_at else '' }}"{% endif %}>
-            <div class="conversation-top">
+            <!-- Collapsed summary row - avatar, sender/time, one-line preview and a status
+                 dot, mirroring the mobile app's inbox row (mobile/app.js renderInboxList).
+                 Click/tap expands .conv-detail below in place, instead of navigating to a
+                 separate screen the way the app does (there's no page-stack on the web
+                 dashboard to navigate within). -->
+            <button type="button" class="conv-row" aria-expanded="false">
                 {#  The stored profile_pic_url is a signed Meta CDN link that expires after a
                     while, so it can easily 403 by the time the dashboard is actually opened
                     even though the sender still has a picture - and a conversation can have
@@ -101,25 +109,34 @@
                      src="{{ profile_pic_url or url_for('conversation_avatar', conversation_id=id) }}" alt=""
                      onerror="if ({{ 'true' if profile_pic_url else 'false' }} && !this.dataset.retried) { this.dataset.retried = '1'; this.src = '{{ url_for('conversation_avatar', conversation_id=id) }}'; } else { this.style.display='none'; this.nextElementSibling.style.display='inline-flex'; }">
                 <span class="avatar" style="display:none;">{{ sender[0] }}</span>
-                <div class="conversation-meta">
-                    <div class="conversation-sender">{{ sender }}</div>
-                    <div class="conversation-time">{{ created_at.strftime('%m/%d/%Y at %H:%M') if created_at else '' }}{% if subject %} &middot; {{ subject }}{% endif %}</div>
+                <span class="conv-row-main">
+                    <span class="conv-row-top">
+                        <span class="conv-row-sender">{{ sender }}</span>
+                        <span class="conv-row-time">{{ created_at.strftime('%m/%d %H:%M') if created_at else '' }}</span>
+                    </span>
+                    <span class="conv-row-preview">{% if subject %}{{ subject }} &middot; {% endif %}{{ question|replace("\n", " ") }}</span>
+                </span>
+                <span class="conv-row-dot {{ 'expired' if expired_at else ('sent' if status != 'pending' else '') }}"></span>
+                <span class="conv-row-chevron" aria-hidden="true">&#8250;</span>
+            </button>
+
+            <div class="conv-detail">
+                <div class="conv-detail-badge">
+                    {% if expired_at %}
+                        <span class="badge badge-expired"><span class="badge-dot"></span><span data-i18n="dashboard.expiredBadge">Expired</span></span>
+                    {% elif status == 'pending' %}
+                        <span class="badge badge-pending"><span class="badge-dot"></span><span data-i18n="dashboard.awaitingApproval">Awaiting approval</span></span>
+                    {% else %}
+                        <span class="badge badge-sent"><span class="badge-dot"></span><span data-i18n="dashboard.sentBadge">Sent</span></span>
+                    {% endif %}
                 </div>
-                {% if expired_at %}
-                    <span class="badge badge-expired"><span class="badge-dot"></span><span data-i18n="dashboard.expiredBadge">Expired</span></span>
-                {% elif status == 'pending' %}
-                    <span class="badge badge-pending"><span class="badge-dot"></span><span data-i18n="dashboard.awaitingApproval">Awaiting approval</span></span>
-                {% else %}
-                    <span class="badge badge-sent"><span class="badge-dot"></span><span data-i18n="dashboard.sentBadge">Sent</span></span>
-                {% endif %}
-            </div>
 
-            <div class="conversation-block">
-                <div class="conversation-label" data-i18n="landing.slider.customerQuestionLabel">Customer question</div>
-                <p class="question">{{ question }}</p>
-            </div>
+                <div class="conversation-block">
+                    <div class="conversation-label" data-i18n="landing.slider.customerQuestionLabel">Customer question</div>
+                    <p class="question">{{ question }}</p>
+                </div>
 
-            {% if status == 'pending' and filter_status not in ('archived', 'trash') %}
+                {% if status == 'pending' and filter_status not in ('archived', 'trash') %}
                 <div class="conversation-block">
                     <div class="conversation-label" data-i18n="dashboard.suggestedReplyEditable">Suggested reply &mdash; you can edit before sending</div>
                     <!-- Hidden by default - toggled visible client-side (see the script at the
@@ -186,6 +203,7 @@
                         <button class="button button-secondary" type="submit" data-i18n="dashboard.delete">Delete</button>
                     </form>
                 {% endif %}
+                </div>
             </div>
         </div>
     {% endfor %}
@@ -215,6 +233,18 @@
         searchEmpty.classList.toggle("hidden", !query || visibleCount > 0);
     });
 })();
+
+// Expands/collapses a conversation's full question/reply detail in place - the web
+// equivalent of the mobile app's tap-a-row-to-open-detail-screen flow (there's no
+// separate screen to navigate to here, so the detail slides open under its own row
+// instead). Independent per card - opening one doesn't close any others.
+document.querySelectorAll(".dashboard-conversation .conv-row").forEach((row) => {
+    row.addEventListener("click", () => {
+        const card = row.closest(".dashboard-conversation");
+        const expanded = card.classList.toggle("expanded");
+        row.setAttribute("aria-expanded", expanded ? "true" : "false");
+    });
+});
 
 // Proactively flags a still-pending card whose customer message is already over 24h
 // old - Instagram's send API rejects a reply that late no matter what (same policy
