@@ -1388,28 +1388,6 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
     padding: 4px 2px; cursor: pointer;
 }
 
-/* --- Boot loading overlay - covers the screen from first paint until hideBootOverlay()
-   (app.js) fires, once there's somewhere real to show. Highest z-index in the app: it can
-   land on top of literally anything else since it's only ever visible before the app has
-   shown its first real screen, when nothing else meaningful could be open yet. --- */
-.boot-loading-overlay {
-    position: fixed; inset: 0; z-index: 110;
-    display: flex; align-items: center; justify-content: center;
-    background: var(--surface);
-    opacity: 1; transition: opacity .35s ease;
-}
-.boot-loading-overlay.hidden { opacity: 0; pointer-events: none; }
-.boot-loading-spinner {
-    width: 56px; height: 56px; border-radius: 50%;
-    border: 5px solid var(--border);
-    border-top-color: var(--primary);
-    animation: boot-loading-spin .85s linear infinite;
-}
-@keyframes boot-loading-spin { to { transform: rotate(360deg); } }
-@media (prefers-reduced-motion: reduce) {
-    .boot-loading-spinner { animation-duration: 2.4s; }
-}
-
 /* --- OTA update overlay - full-screen, automatic, no user action needed. Sits above
    the lang modal (z-index 60) and toast (70) since a mandatory update must win over
    anything else on screen. --- */
