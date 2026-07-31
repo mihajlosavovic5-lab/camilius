@@ -236,7 +236,7 @@ const TRANSLATIONS = {
         "landing.footer.supportHeading": "Support",
         "landing.footer.donate": "Buy us a coffee",
 
-        "appSettings.automation.draftLabel": "AI Draft Mode — review before sending",
+        "appSettings.automation.draftLabel": "AI Draft Mode",
 
         "pricePicker.currencyLabel": "Currency",
         "pricePicker.addButton": "+ Add service",
@@ -743,7 +743,7 @@ const TRANSLATIONS = {
         "landing.footer.supportHeading": "Apoyo",
         "landing.footer.donate": "Invítanos un café",
 
-        "appSettings.automation.draftLabel": "Modo de borrador de IA — revisar antes de enviar",
+        "appSettings.automation.draftLabel": "Modo de borrador de IA",
 
         "pricePicker.currencyLabel": "Moneda",
         "pricePicker.addButton": "+ Añadir servicio",
@@ -1208,7 +1208,7 @@ const TRANSLATIONS = {
         "landing.footer.supportHeading": "Apoio",
         "landing.footer.donate": "Pague um café para nós",
 
-        "appSettings.automation.draftLabel": "Modo de rascunho da IA — revisar antes de enviar",
+        "appSettings.automation.draftLabel": "Modo de rascunho da IA",
 
         "pricePicker.currencyLabel": "Moeda",
         "pricePicker.addButton": "+ Adicionar serviço",
@@ -1673,7 +1673,7 @@ const TRANSLATIONS = {
         "landing.footer.supportHeading": "Soutien",
         "landing.footer.donate": "Offrez-nous un café",
 
-        "appSettings.automation.draftLabel": "Mode brouillon IA — vérifier avant l'envoi",
+        "appSettings.automation.draftLabel": "Mode brouillon IA",
 
         "pricePicker.currencyLabel": "Devise",
         "pricePicker.addButton": "+ Ajouter un service",
@@ -2138,7 +2138,7 @@ const TRANSLATIONS = {
         "landing.footer.supportHeading": "Unterstützung",
         "landing.footer.donate": "Spendier uns einen Kaffee",
 
-        "appSettings.automation.draftLabel": "KI-Entwurfsmodus — vor dem Senden prüfen",
+        "appSettings.automation.draftLabel": "KI-Entwurfsmodus",
 
         "pricePicker.currencyLabel": "Währung",
         "pricePicker.addButton": "+ Leistung hinzufügen",
@@ -2603,7 +2603,7 @@ const TRANSLATIONS = {
         "landing.footer.supportHeading": "Supporto",
         "landing.footer.donate": "Offrici un caffè",
 
-        "appSettings.automation.draftLabel": "Modalità bozza IA — controlla prima di inviare",
+        "appSettings.automation.draftLabel": "Modalità bozza IA",
 
         "pricePicker.currencyLabel": "Valuta",
         "pricePicker.addButton": "+ Aggiungi servizio",
@@ -3068,7 +3068,7 @@ const TRANSLATIONS = {
         "landing.footer.supportHeading": "Поддержка",
         "landing.footer.donate": "Угостите нас кофе",
 
-        "appSettings.automation.draftLabel": "Режим черновика ИИ — проверка перед отправкой",
+        "appSettings.automation.draftLabel": "Режим черновика ИИ",
 
         "pricePicker.currencyLabel": "Валюта",
         "pricePicker.addButton": "+ Добавить услугу",
@@ -3533,7 +3533,7 @@ const TRANSLATIONS = {
         "landing.footer.supportHeading": "Podrška",
         "landing.footer.donate": "Časti nas kafom",
 
-        "appSettings.automation.draftLabel": "AI režim nacrta — pregled pre slanja",
+        "appSettings.automation.draftLabel": "AI režim nacrta",
 
         "pricePicker.currencyLabel": "Valuta",
         "pricePicker.addButton": "+ Dodaj uslugu",
@@ -4040,7 +4040,7 @@ const TRANSLATIONS = {
         "landing.footer.supportHeading": "支持",
         "landing.footer.donate": "请我们喝杯咖啡",
 
-        "appSettings.automation.draftLabel": "AI 草稿模式 — 发送前先审核",
+        "appSettings.automation.draftLabel": "AI 草稿模式",
 
         "pricePicker.currencyLabel": "货币",
         "pricePicker.addButton": "+ 添加服务",
@@ -4505,7 +4505,7 @@ const TRANSLATIONS = {
         "landing.footer.supportHeading": "Destek",
         "landing.footer.donate": "Bize bir kahve ısmarla",
 
-        "appSettings.automation.draftLabel": "Yapay Zeka Taslak Modu — göndermeden önce incele",
+        "appSettings.automation.draftLabel": "Yapay Zeka Taslak Modu",
 
         "pricePicker.currencyLabel": "Para birimi",
         "pricePicker.addButton": "+ Hizmet ekle",
