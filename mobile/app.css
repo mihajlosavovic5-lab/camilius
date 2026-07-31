@@ -1029,7 +1029,17 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
 .schedule-today-btn:active { background: var(--border); }
 
 /* Day view */
-.schedule-day-view .empty { padding-top: 56px; }
+/* flex:1 so this stretches to fill the leftover space below the date nav (needed for
+   the closed-day .empty state below to have an actual height to center within) - a
+   plain populated timeline just renders top-aligned inside it as before, since none of
+   its rows carry their own flex-grow. */
+.schedule-day-view { display: flex; flex-direction: column; flex: 1; }
+/* Unlike the shared .empty rule above (fixed ::before so the icon lines up the same
+   across tabs with different detail-text lengths), this is the only content that ever
+   renders here - no drift risk - so ::before/::after split the leftover space evenly
+   instead, centering the icon/title/body in the space below the date nav rather than
+   sitting a fixed distance from the top of it. */
+.schedule-day-view .empty::before, .schedule-day-view .empty::after { flex: 1 0 0; }
 .schedule-timeline { padding: 0 18px 4px; }
 .schedule-timeline-row { display: flex; gap: 12px; padding: 6px 0; }
 .schedule-timeline-time { width: 46px; flex-shrink: 0; padding-top: 11px; color: var(--text-muted); font-size: 13px; }
