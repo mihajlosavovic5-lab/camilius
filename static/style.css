@@ -1258,8 +1258,11 @@ body.auth {
     padding: 10px 14px; border: 1px solid var(--border); border-radius: 10px;
 }
 .hours-simple-label-btn { font-weight: 600; font-size: 15px; color: var(--text); }
-.hours-simple-note { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 0 2px; }
+.hours-simple-note { display: flex; flex-direction: row; align-items: center; justify-content: center; flex-wrap: wrap; gap: 8px; padding: 0 2px; }
 .hours-simple-note-line { font-size: 13.5px; color: var(--text-muted); margin: 0; text-align: center; }
+/* Thin vertical rule between the Saturday/Sunday lines when both are shown - a visual
+   separator now that they sit side by side instead of stacked. */
+.hours-simple-note-line + .hours-simple-note-line { padding-left: 8px; border-left: 1px solid var(--border); }
 /* Solid-border box look, sized to its own text. Hover keeps the same lift/shadow as the
    time pills above it, but not their color/border-color shift - text and border stay the
    same gold on hover as at rest. */
