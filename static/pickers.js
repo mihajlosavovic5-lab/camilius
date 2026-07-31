@@ -230,35 +230,30 @@ function createHoursPicker(mountId, hiddenFieldId) {
     // (updateWeekendNote below), so it's composed in JS instead of a single fixed string.
     // It still reacts to a language switch via the "site-language-changed" listener
     // further down, same pattern base.html's support widget uses for its own dynamic text.
-    const simpleNote = document.createElement("p");
+    const simpleNote = document.createElement("div");
     simpleNote.className = "hours-simple-note";
     simpleView.appendChild(simpleNote);
 
-    // Reflects whichever of Saturday/Sunday are open (with their own hours) and which are
-    // closed, e.g. "Saturday: 10:00–14:00. Closed: Sunday." - rows.saturday/rows.sunday
-    // don't exist until the day-list loop further below runs, so this is a no-op until
-    // then; it's called for real once everything is built (near the bottom of this function).
+    // One line per weekend day (Saturday above Sunday), each showing its own hours or
+    // "Closed" - same layout as the mobile app's picker. rows.saturday/rows.sunday don't
+    // exist until the day-list loop further below runs, so this is a no-op until then;
+    // it's called for real once everything is built (near the bottom of this function).
     function updateWeekendNote() {
-        const openParts = [];
-        const closedNames = [];
+        simpleNote.innerHTML = "";
         WEEKEND_DAYS.forEach((day) => {
             const r = rows[day];
             if (!r) return;
-            if (r.checkbox.checked) {
-                openParts.push(t("hoursPicker.dayHours")
+            const line = document.createElement("p");
+            line.className = "hours-simple-note-line";
+            line.textContent = r.checkbox.checked
+                ? t("hoursPicker.dayHours")
                     .replace("{day}", t(HOURS_DAY_I18N_KEYS[day]))
                     .replace("{open}", r.openSelect.value)
-                    .replace("{close}", r.closeSelect.value));
-            } else {
-                closedNames.push(t(HOURS_DAY_I18N_KEYS[day]));
-            }
+                    .replace("{close}", r.closeSelect.value)
+                    .replace(/[.。]$/, "")
+                : `${t(HOURS_DAY_I18N_KEYS[day])}: ${t("hoursPicker.closed")}`;
+            simpleNote.appendChild(line);
         });
-        if (closedNames.length === 2) {
-            openParts.push(t("hoursPicker.closedOn").replace("{days}", `${closedNames[0]} ${t("hoursPicker.and")} ${closedNames[1]}`));
-        } else if (closedNames.length === 1) {
-            openParts.push(t("hoursPicker.closedOn").replace("{days}", closedNames[0]));
-        }
-        simpleNote.textContent = openParts.join(" ").replace(/[.。]$/, "");
     }
     document.addEventListener("site-language-changed", updateWeekendNote);
 
