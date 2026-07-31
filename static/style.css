@@ -660,6 +660,12 @@ a:focus-visible, button:focus-visible, [tabindex]:focus-visible {
 }
 .info-card strong { color: var(--text); }
 .block-label { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--text-muted); margin: 18px 0 6px; }
+/* Common questions - scrolls after the first couple of items instead of pushing the
+   rest of Settings down; same thin-scrollbar treatment as .site-lang-modal-list. */
+.faq-scroll { max-height: 240px; overflow-y: auto; }
+.faq-scroll::-webkit-scrollbar { width: 6px; }
+.faq-scroll::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+.faq-scroll::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
 
 /* --- Forms --- */
 label { display: block; font-weight: 600; font-size: 15px; margin: 16px 0 5px; }
