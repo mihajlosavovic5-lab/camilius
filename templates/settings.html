@@ -165,6 +165,24 @@
             {% endif %}
         </div>
 
+        <div class="card profile-section" style="margin-top: 20px;">
+            <div class="profile-section-header">
+                <p class="profile-section-title" data-i18n="settings.security">Security</p>
+            </div>
+            <label style="margin-top: 0;" data-i18n="settings.changePassword">Change password</label>
+            <div class="floating-field floating-field-password">
+                <input type="password" id="settings-current-password-input" name="current_password" placeholder=" " autocomplete="current-password">
+                <label for="settings-current-password-input" data-i18n="settings.currentPassword">Current password</label>
+                {% include "_password_toggle.html" %}
+            </div>
+            <div class="floating-field floating-field-password">
+                <input type="password" id="settings-new-password-input" name="new_password" placeholder=" " autocomplete="new-password">
+                <label for="settings-new-password-input" data-i18n="settings.newPassword">New password</label>
+                {% include "_password_toggle.html" %}
+            </div>
+            <p class="field-error hidden" id="settings-password-error"></p>
+        </div>
+
         <div class="form-actions" id="settings-form-actions" style="text-align: right;">
             <button class="button hidden" type="submit" id="settings-save-btn" data-i18n="settings.saveChanges">Save changes</button>
         </div>
@@ -220,6 +238,7 @@ function initSettingsPickers() {
     safeInit(initSettingsSaveButton);
     safeInit(initSaveSuccessOverlay);
     safeInit(initSettingsUsernameAvailability);
+    safeInit(initSettingsPasswordValidation);
     safeInit(initDisconnectInstagramModal);
     safeInit(initScrollPreservation);
     // Runs last, once every picker above (including the collapseToSimple() call, which can
@@ -362,6 +381,42 @@ function initSettingsUsernameAvailability() {
                 if (status !== "taken") form.requestSubmit();
             });
         }
+    });
+}
+
+// Mirrors the mobile app's own Profile screen validation (see mobile/app.js's
+// isProfileFormValid): a new password is meaningless without the current one to confirm
+// it, and needs to meet the same 8-character minimum as everywhere else on the site -
+// blocks submit and shows the same field-error styling other fields on this page use
+// instead of letting the request round-trip just to bounce off the server-side check.
+function initSettingsPasswordValidation() {
+    const form = document.getElementById("settings-form");
+    const currentInput = document.getElementById("settings-current-password-input");
+    const newInput = document.getElementById("settings-new-password-input");
+    const errorEl = document.getElementById("settings-password-error");
+    if (!form || !currentInput || !newInput || !errorEl) return;
+
+    function invalidReason() {
+        const newPassword = newInput.value;
+        const currentPassword = currentInput.value;
+        if (newPassword && !currentPassword) return t("settings.errorCurrentPasswordRequired");
+        if (newPassword && newPassword.length < 8) return t("register.errorPasswordLength");
+        return null;
+    }
+
+    function updateError() {
+        const reason = invalidReason();
+        errorEl.textContent = reason || "";
+        errorEl.classList.toggle("hidden", !reason);
+    }
+
+    [currentInput, newInput].forEach((input) => input.addEventListener("input", updateError));
+    form.addEventListener("submit", (e) => {
+        const reason = invalidReason();
+        if (!reason) return;
+        e.preventDefault();
+        updateError();
+        newInput.focus();
     });
 }
 

@@ -986,6 +986,8 @@ def settings():
         working_hours = request.form["working_hours"]
         price_list = request.form["price_list"]
         faq = request.form["faq"]
+        current_password = request.form.get("current_password", "")
+        new_password = request.form.get("new_password", "")
 
         def _rerender(error):
             return render_template(
@@ -1030,10 +1032,22 @@ def settings():
                 send_email_change_verification(business_id, name, submitted_email)
             pending_contact_email = submitted_email
 
+        # Password change - same "current password required, new one at least 8 chars"
+        # rule as the mobile app's own Profile screen (see api.py's api_update_settings).
+        # An empty new_password field means the user isn't touching their password at all.
+        if new_password:
+            if not check_password_hash(business[3], current_password):
+                return _rerender("Current password is incorrect.")
+            if len(new_password) < 8:
+                return _rerender("New password must be at least 8 characters.")
+
         # Phone isn't editable from this page (the mobile app's Profile screen is where
         # that lives) - carry the existing value through unchanged.
         update_business(business_id, name, username, contact_email, business[11], working_hours, price_list, faq)
         session["business_name"] = name
+
+        if new_password:
+            set_new_password(business_id, new_password)
 
         # AI upsell pairs (Faza 9, Pro-only) - a separate call/column from the rest of
         # the profile fields above, and only saved for Pro-access businesses so a raw
