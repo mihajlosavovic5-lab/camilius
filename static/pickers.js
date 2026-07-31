@@ -258,7 +258,7 @@ function createHoursPicker(mountId, hiddenFieldId) {
         } else if (closedNames.length === 1) {
             openParts.push(t("hoursPicker.closedOn").replace("{days}", closedNames[0]));
         }
-        simpleNote.textContent = openParts.join(" ");
+        simpleNote.textContent = openParts.join(" ").replace(/[.。]$/, "");
     }
     document.addEventListener("site-language-changed", updateWeekendNote);
 
@@ -304,33 +304,10 @@ function createHoursPicker(mountId, hiddenFieldId) {
     quickSep.textContent = "–";
     quickOpenSelect.addEventListener("change", () => applyPairToWeekdays(quickOpenSelect.value, quickCloseSelect.value));
     quickCloseSelect.addEventListener("change", () => applyPairToWeekdays(quickOpenSelect.value, quickCloseSelect.value));
-    const quickfillBtn = document.createElement("button");
-    quickfillBtn.type = "button";
-    quickfillBtn.className = "hours-quickfill-btn";
-    quickfillBtn.setAttribute("data-i18n", "hoursPicker.applyChanges");
-    quickfillBtn.textContent = t("hoursPicker.applyChanges");
-    // Purely navigation - the five rows are already the saved state (each one syncs
-    // itself on its own change), so this never touches row values. It always takes the
-    // user back to the collapsed view; when every weekday happens to share the same
-    // hours that view's own pair is updated to show it, otherwise it's left as-is (a day
-    // customized differently stays saved even though the collapsed summary can't display
-    // it - expanding again shows the real per-day state, not this stale display).
-    quickfillBtn.addEventListener("click", () => {
-        const allSame = WEEKDAYS.every((day) => rows[day].checkbox.checked) &&
-            WEEKDAYS.every((day) => rows[day].openSelect.value === rows.monday.openSelect.value &&
-                rows[day].closeSelect.value === rows.monday.closeSelect.value);
-        if (allSame) {
-            simpleOpenSelect.value = rows.monday.openSelect.value;
-            simpleCloseSelect.value = rows.monday.closeSelect.value;
-        }
-        advancedView.classList.add("hidden");
-        simpleView.classList.remove("hidden");
-    });
     quickfill.appendChild(quickfillLabel);
     quickfill.appendChild(quickOpenSelect);
     quickfill.appendChild(quickSep);
     quickfill.appendChild(quickCloseSelect);
-    quickfill.appendChild(quickfillBtn);
     advancedView.appendChild(quickfill);
 
     const dayList = document.createElement("div");
