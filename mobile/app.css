@@ -193,9 +193,12 @@ button { font-family: inherit; }
    the whole box sits the button (10px + safe-top)/2 above where the title's own text
    actually centers, which grows very visible on devices with a tall status-bar inset.
    The extra offset compensates for exactly that gap so the button lines up with the
-   title regardless of safe-top. */
+   title regardless of safe-top. left is likewise set to the topbar's own 18px side
+   padding (an absolutely positioned element sits at its containing block's padding
+   edge, ignoring that padding entirely) instead of 0, so the button lines up with
+   everything else's left margin instead of sitting flush in the corner. */
 .topbar:not(.topbar-detail) .back-btn {
-    position: absolute; left: 0; top: calc(50% + 5px + (var(--safe-top) / 2)); transform: translateY(-50%); z-index: 1;
+    position: absolute; left: 18px; top: calc(50% + 5px + (var(--safe-top) / 2)); transform: translateY(-50%); z-index: 1;
 }
 .topbar-title { display: flex; align-items: center; justify-content: center; gap: 10px; flex: 1; }
 /* Same serif brand font as the login screen's "Camilius" wordmark (.brand-name) instead
