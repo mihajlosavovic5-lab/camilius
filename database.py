@@ -857,13 +857,24 @@ def expire_stale_pending_conversations():
     archived_at moves it out of the main Inbox the same way a manual archive would;
     expired_at is set alongside it purely so the UI can tell the two apart and show an
     "Expired" badge instead of treating it like a normal archive. Returns the number of
-    conversations expired, for the caller to log."""
+    conversations expired, for the caller to log.
+
+    Deliberately keyed off expired_at IS NULL rather than archived_at IS NULL - a
+    conversation that a business manually archived while still pending, back before this
+    column existed, is exactly as unsendable past 24h as one this sweep itself archives,
+    but the old WHERE clause's archived_at IS NULL excluded it forever (already archived,
+    so never matched, so expired_at stayed NULL and the UI kept showing "Awaiting
+    approval" indefinitely). COALESCE(archived_at, NOW()) still moves a genuinely-still-
+    pending one out of the main Inbox like before, without stomping the original
+    timestamp on one that was already archived manually. deleted_at IS NULL is kept as
+    before - a trashed conversation is already out of every active view, so there's
+    nothing for expired_at to fix there."""
     connection = connect()
     cursor = connection.cursor()
     cursor.execute("""
         UPDATE conversations
-        SET archived_at = NOW(), expired_at = NOW()
-        WHERE status = 'pending' AND archived_at IS NULL AND deleted_at IS NULL
+        SET archived_at = COALESCE(archived_at, NOW()), expired_at = NOW()
+        WHERE status = 'pending' AND expired_at IS NULL AND deleted_at IS NULL
           AND created_at < NOW() - INTERVAL '24 hours'
     """)
     count = cursor.rowcount

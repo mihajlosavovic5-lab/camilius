@@ -64,3 +64,41 @@ def test_expire_stale_pending_conversations_archives_only_conversations_past_24h
     # status, expired_at are indices 6 and 9 (see archived_conversations_for_business's SELECT)
     assert archived[stale_id][6] == "pending"
     assert archived[stale_id][9] is not None
+
+
+def test_expire_stale_pending_conversations_backfills_manually_archived_ones(client, unique_username, unique_email):
+    """Regression test: a conversation a business archived manually while it was still
+    pending (e.g. before this expiry feature existed) used to be excluded forever by the
+    sweep's old `archived_at IS NULL` condition - already archived, so it never matched,
+    so expired_at stayed NULL and the dashboard kept showing "Awaiting approval" on it
+    indefinitely even though Instagram had long since rejected any reply past 24h. The
+    sweep must catch it too, without moving its original archived_at timestamp."""
+    reg = register_business(client, unique_username, unique_email)
+    business_id = reg.get_json()["business_id"]
+
+    conversation_id = database.save_draft_reply(
+        business_id, "old_sender", "How much for a haircut?", "It's 800 dinars.",
+    )
+    database.archive_conversation(conversation_id)
+
+    connection = database.connect()
+    cursor = connection.cursor()
+    cursor.execute("UPDATE conversations SET created_at = created_at - INTERVAL '25 hours' WHERE id = %s", (conversation_id,))
+    cursor.execute("SELECT archived_at FROM conversations WHERE id = %s", (conversation_id,))
+    original_archived_at = cursor.fetchone()[0]
+    connection.commit()
+    connection.close()
+
+    expired_count = database.expire_stale_pending_conversations()
+    assert expired_count == 1
+
+    archived = {c[0]: c for c in database.archived_conversations_for_business(business_id)}
+    # status, expired_at are indices 6 and 9 (see archived_conversations_for_business's SELECT)
+    assert archived[conversation_id][6] == "pending"
+    assert archived[conversation_id][9] is not None
+
+    connection = database.connect()
+    cursor = connection.cursor()
+    cursor.execute("SELECT archived_at FROM conversations WHERE id = %s", (conversation_id,))
+    assert cursor.fetchone()[0] == original_archived_at
+    connection.close()
