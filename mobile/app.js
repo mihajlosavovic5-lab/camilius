@@ -2969,7 +2969,22 @@ el("delete-confirm-submit").addEventListener("click", async () => {
     }
 });
 
-el("settings-logout").addEventListener("click", logout);
+// Confirm modal (same .lang-modal pattern as Instagram disconnect above) instead of
+// logging out immediately on tap - a real tap-target for something this hard to undo
+// mid-session shouldn't fire on the first touch.
+function closeLogoutConfirmModal() {
+    el("logout-confirm-modal").classList.remove("open");
+}
+
+el("settings-logout").addEventListener("click", () => {
+    el("logout-confirm-modal").classList.add("open");
+});
+el("logout-confirm-backdrop").addEventListener("click", closeLogoutConfirmModal);
+el("logout-confirm-cancel").addEventListener("click", closeLogoutConfirmModal);
+el("logout-confirm-confirm").addEventListener("click", () => {
+    closeLogoutConfirmModal();
+    logout();
+});
 
 // --- Settings: Terms/Privacy/Help rows, and the Help screen itself ---
 

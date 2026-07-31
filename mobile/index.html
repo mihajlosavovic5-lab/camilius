@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
 <title>Camilius</title>
-<link rel="stylesheet" href="app.css?v=4c2da4f533da">
+<link rel="stylesheet" href="app.css?v=d66c893f80d6">
 </head>
 <body>
 
@@ -153,6 +153,20 @@
     <div class="confirm-modal-actions">
       <button type="button" class="button button-secondary" id="instagram-disconnect-cancel" data-i18n="settings.cancel">Cancel</button>
       <button type="button" class="button button-danger" id="instagram-disconnect-confirm" data-i18n="settings.instagramDisconnect">Disconnect</button>
+    </div>
+  </div>
+</div>
+
+<!-- Log out confirm (Settings tab) - same .lang-modal overlay machinery as the
+     Instagram disconnect confirm above, instead of a bare native confirm(). See
+     settings-logout's click handler in app.js. -->
+<div id="logout-confirm-modal" class="lang-modal">
+  <div class="lang-modal-backdrop" id="logout-confirm-backdrop"></div>
+  <div class="lang-modal-sheet confirm-modal-sheet">
+    <p class="confirm-modal-message" data-i18n="settings.logoutConfirm">Are you sure you want to log out?</p>
+    <div class="confirm-modal-actions">
+      <button type="button" class="button button-secondary" id="logout-confirm-cancel" data-i18n="settings.cancel">Cancel</button>
+      <button type="button" class="button button-danger" id="logout-confirm-confirm" data-i18n="settings.logout">Log out</button>
     </div>
   </div>
 </div>
@@ -1246,7 +1260,7 @@
   </button>
 </nav>
 
-<script src="i18n.js?v=4c2da4f533da"></script>
-<script src="app.js?v=4c2da4f533da"></script>
+<script src="i18n.js?v=d66c893f80d6"></script>
+<script src="app.js?v=d66c893f80d6"></script>
 </body>
 </html>
