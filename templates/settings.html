@@ -55,6 +55,22 @@
     <form method="POST" id="settings-form" hx-boost="true" hx-swap="show:none transition:false">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
+        <!-- Decoy username/password pair, invisible to the user but present in the DOM
+             (off-screen, not display:none - browsers skip display:none inputs when
+             deciding what to autofill) ahead of every real field. The browser's password
+             manager sees the real "Username" field followed later by real password
+             inputs and, on its own, treats this whole form as a login form - silently
+             filling "Current password" with this site's saved credential on load, even
+             though resetSecurityPasswordFields() (see the script block below) already
+             clears it right after render, because that clear can lose the race with how
+             early some browsers autofill. Putting a matching decoy pair first gives the
+             browser's autofill something to land on instead of the real fields further
+             down - unique name= (not "username"/"current_password") so a submitted decoy
+             value can never collide with or shadow the real ones app.py's /profile POST
+             handler reads. -->
+        <input type="text" name="settings-decoy-username" autocomplete="username" tabindex="-1" aria-hidden="true" style="position:absolute; width:1px; height:1px; overflow:hidden; opacity:0; pointer-events:none;">
+        <input type="password" name="settings-decoy-password" autocomplete="current-password" tabindex="-1" aria-hidden="true" style="position:absolute; width:1px; height:1px; overflow:hidden; opacity:0; pointer-events:none;">
+
         <div class="card profile-section">
             <div class="profile-section-header">
                 <p class="profile-section-title" data-i18n="settings.account.heading">Account</p>
