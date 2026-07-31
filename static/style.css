@@ -686,21 +686,38 @@ input[readonly]:hover { border-color: var(--border); }
 .form-actions { margin-top: 24px; }
 .hidden { display: none !important; }
 
-/* Profile page's Save button (#settings-save-btn) floats fixed in the bottom-right
-   corner of the viewport once there are unsaved changes (its "hidden" class, toggled by
-   initSettingsSaveButton in settings.html, still controls whether it shows at all) -
-   same floating "Save changes" pill already used on the app version of this screen (see
-   .fab-save in mobile/app.css), so it stays in view while editing fields near the top of
-   this long form instead of requiring a scroll down to the end of the AI upsell card.
-   Sits immediately left of the floating support widget (#support-widget, 58px wide,
-   pinned bottom-right: 20px on every page) rather than on top of it - same bottom offset,
-   with enough of a right offset to clear the widget's width plus a gap. */
+/* Profile page's Save button (#settings-save-btn) floats fixed once there are unsaved
+   changes (its "hidden" class, toggled by initSettingsSaveButton in settings.html, still
+   controls whether it shows at all) - same floating "Save changes" pill already used on
+   the app version of this screen (see .fab-save in mobile/app.css), so it stays in view
+   while editing fields near the top of this long form instead of requiring a scroll down
+   to the end of the AI upsell card.
+   Below 1000px (see the media query further down) there isn't reliably enough margin
+   beside the centered card to sit next to it without spilling off-screen, so it instead
+   sits immediately left of the floating support widget (#support-widget, 58px wide,
+   pinned bottom-right: 20px on every page) - same bottom offset, with enough of a right
+   offset to clear the widget's width plus a gap. */
 #settings-save-btn.button {
     position: fixed; right: 90px; bottom: 20px; z-index: 950;
     box-shadow: 0 8px 22px -4px rgba(214, 148, 16, .5);
 }
 @media (max-width: 480px) {
     #settings-save-btn.button { right: 84px; bottom: 14px; }
+}
+@media (min-width: 1000px) {
+    /* Above 1000px there's real margin beside the centered 640px-wide .content-narrow
+       card (see .content/.content-narrow below) - sits in that margin instead, right
+       beside the card rather than down in the support-widget corner. left here is the
+       card's own left edge (50% of the viewport minus half its 640px width, plus the
+       .content padding that sits between the outer box and the visible card) minus a
+       20px gap; translateX(-100%) then right-aligns the button's own right edge to that
+       point regardless of the button's width (which varies by language), same trick
+       used to anchor a fixed element to a computed left-hand point without knowing its
+       size up front. */
+    #settings-save-btn.button {
+        left: calc(50% - 300px - 20px); right: auto; bottom: 24px;
+        transform: translateX(-100%);
+    }
 }
 
 /* Floating labels - the label sits centered inside the empty field like a
