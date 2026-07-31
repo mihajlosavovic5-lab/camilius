@@ -149,6 +149,14 @@ _MODERATE_CACHE_STATIC_PATHS = {
     f"/static/flags/{name}"
     for name in ("gb.svg", "es.png", "pt.svg", "fr.svg", "de.svg", "it.svg", "ru.svg", "rs.png", "cn.svg", "tr.svg")
 }
+# Werkzeug's plain "no-cache" default (see comment above) only asks a cache to
+# revalidate before reusing a stored response - a CDN/proxy sitting between Railway and
+# a phone (or the OS's own HTTP cache) is still technically allowed to store one and
+# serve it again after a cheap conditional check, which can leave an OTA update
+# invisible to the app even though the manifest and zip are both already fresh on the
+# origin. These two responses drive the OTA updater directly, so they get the stronger
+# "no-store" instead - never keep a copy anywhere, full stop.
+_NO_STORE_PATHS = {"/static/mobile-bundle.zip", "/api/mobile-manifest"}
 
 
 @app.context_processor
@@ -158,7 +166,9 @@ def inject_static_versions():
 
 @app.after_request
 def cache_static_assets(response):
-    if request.path in _FOREVER_CACHE_STATIC_PATHS:
+    if request.path in _NO_STORE_PATHS:
+        response.headers["Cache-Control"] = "no-store, must-revalidate"
+    elif request.path in _FOREVER_CACHE_STATIC_PATHS:
         response.headers["Cache-Control"] = "public, max-age=31536000, immutable"
     elif request.path in _MODERATE_CACHE_STATIC_PATHS:
         response.headers["Cache-Control"] = "public, max-age=604800"
