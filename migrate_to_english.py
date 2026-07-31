@@ -8,14 +8,15 @@ runs and against the new names until it does.
 """
 import os
 import sys
-import psycopg2
 from dotenv import load_dotenv
+
+from database import _pg8000_connect
 
 load_dotenv()
 
 
 def konektuj():
-    return psycopg2.connect(os.environ["DATABASE_URL"])
+    return _pg8000_connect(os.environ["DATABASE_URL"])
 
 
 TABLE_RENAMES = [

@@ -5,7 +5,6 @@ import secrets
 from datetime import datetime, timedelta, timezone, date as date_type
 from functools import wraps
 
-import psycopg2
 import requests
 from dotenv import load_dotenv
 from flask import Flask, render_template, request, redirect, url_for, session, abort, jsonify, send_from_directory, Response
@@ -40,6 +39,7 @@ from database import (
     notifications_for_business, unread_notification_count, mark_notifications_read,
     is_new_booking_notifications_enabled, set_new_booking_notifications_enabled,
     record_account_deletion, recent_account_deletions, ACCOUNT_DELETION_REASONS,
+    UniqueViolation,
 )
 from send_email import send_email
 from generate_reply import generate_reply, generate_reply_with_booking
@@ -335,7 +335,7 @@ def register():
                 # is unchanged from before: every account starts 'trialing' immediately.
                 initial_status="none" if paddle_billing.is_configured() else "trialing",
             )
-        except psycopg2.errors.UniqueViolation:
+        except UniqueViolation:
             return render_template("register.html", error="That username, contact email, or phone number is already taken.", data=request.form)
 
         log_event("register_completed", business_id=new_id)
@@ -395,7 +395,7 @@ def verify_email(token):
         # which is only for that original, one-time signup confirmation.
         try:
             confirm_pending_email_change(business_id)
-        except psycopg2.errors.UniqueViolation:
+        except UniqueViolation:
             return render_template("verify_email.html", success=False, email_taken=True)
         log_event("email_changed", business_id=business_id)
         return render_template("verify_email.html", success=True, changed_email=True)
@@ -492,7 +492,7 @@ def instagram_oauth_callback():
             mark_instagram_connect_state_done(state, business_id)
             return render_template("instagram_connect_mobile.html", success=False)
         return redirect(url_for("connect_instagram", error="Couldn't connect to Instagram - please try again."))
-    except psycopg2.errors.UniqueViolation:
+    except UniqueViolation:
         # businesses.instagram_account_id has a UNIQUE index (see database.py) - this
         # Instagram account is already linked to a different Camilius business (e.g. an
         # older test/registration of the same person's account), so the UPDATE inside
@@ -1064,7 +1064,7 @@ def settings():
 def disconnect_instagram():
     # Frees up instagram_account_id's UNIQUE index (see database.py) so the account can
     # be reconnected here or linked to a different business - see instagram_oauth_callback's
-    # psycopg2.errors.UniqueViolation handling above for the failure this exists to avoid.
+    # UniqueViolation handling above for the failure this exists to avoid.
     unlink_instagram_account(session["business_id"])
     return redirect(url_for("settings", message="Instagram disconnected."))
 

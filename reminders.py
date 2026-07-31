@@ -96,8 +96,8 @@ def send_appointment_reminders_if_needed():
             continue
 
         # Aware-datetime subtraction is instant-based regardless of each side's specific
-        # tzinfo representation, so start_time (whatever offset psycopg2 returned it in)
-        # minus now (BUSINESS_TZ) needs no extra conversion to be correct.
+        # tzinfo representation, so start_time (whatever offset the DB driver returned it
+        # in) minus now (BUSINESS_TZ) needs no extra conversion to be correct.
         time_until = start_time - now
         start_local = start_time.astimezone(BUSINESS_TZ)
         business_name, ig_account_id, access_token = business[1], business[5], business[7]
