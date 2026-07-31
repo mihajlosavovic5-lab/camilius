@@ -960,11 +960,14 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
    title bigger than the space above it. */
 .detail-body { flex: 1; overflow-y: auto; padding: 0 18px calc(24px + var(--tabbar-h) + var(--safe-bottom)); -webkit-overflow-scrolling: touch; }
 /* Profile and Settings also have their own floating "Save changes" button pinned above
-   the tab bar (see .fab-save) - extra clearance so the last field/row scrolls fully
-   clear of it too, not just the tab bar. .fab-save's own height (52px, from its 14px
-   vertical padding + 24px line-height) plus its 18px bottom offset means 70px is the
-   floor before the button starts covering content - this adds a small margin on top. */
-.screen-profile .detail-body, .screen-settings .detail-body {
+   the tab bar (see .fab-save), but it only exists in the DOM while there are unsaved
+   changes to save (see updateSettingsSaveValidity()/updateAppSettingsSaveState() in
+   app.js, which toggle "has-unsaved" on the .screen alongside the button's own hidden
+   class) - so the extra scroll clearance for it is reserved only while it's actually
+   showing, instead of permanently baked into every visit to these screens. .fab-save's
+   own height (52px, from its 14px vertical padding + 24px line-height) plus its 18px
+   bottom offset means 70px is the floor before the button starts covering content. */
+.screen-profile.has-unsaved .detail-body, .screen-settings.has-unsaved .detail-body {
     padding-bottom: calc(76px + var(--tabbar-h) + var(--safe-bottom));
 }
 .block-label { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--text-muted); margin: 18px 0 6px; }

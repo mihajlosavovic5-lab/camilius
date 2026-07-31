@@ -2744,6 +2744,7 @@ function updateSettingsSaveValidity() {
     const dirty = profileFormSnapshot !== null && serializeProfileForm() !== profileFormSnapshot;
     button.classList.toggle("hidden", !dirty);
     button.disabled = !isProfileFormValid();
+    el("screen-profile").classList.toggle("has-unsaved", dirty);
 }
 
 // Delegated instead of one listener per field - also catches the hours/prices pickers'
@@ -3650,6 +3651,7 @@ function serializeAppSettingsForm() {
 function updateAppSettingsSaveState() {
     const dirty = appSettingsSnapshot !== null && serializeAppSettingsForm() !== appSettingsSnapshot;
     el("settings-app-save").classList.toggle("hidden", !dirty);
+    el("screen-settings").classList.toggle("has-unsaved", dirty);
 }
 
 ["settings-new-booking-toggle", "settings-draft-mode-toggle", "settings-reminders-customer-toggle", "settings-reminders-owner-toggle"].forEach((id) => {
