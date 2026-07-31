@@ -1,36 +1,108 @@
 import os
+import ssl
 from datetime import datetime, timedelta, timezone
+from urllib.parse import parse_qs, urlparse
 
-import psycopg2
+import pg8000.dbapi
 from werkzeug.security import generate_password_hash
 
 from encryption import encrypt, decrypt
 
 
+class UniqueViolation(Exception):
+    """Raised when an INSERT/UPDATE would violate a UNIQUE constraint (Postgres SQLSTATE
+    23505) - callers (app.py/api.py) catch this the same way they used to catch
+    psycopg2.errors.UniqueViolation. pg8000 (unlike psycopg2, which exposes that specific
+    exception class directly) only ever raises a generic pg8000.dbapi.DatabaseError whose
+    args[0] is the raw error-response field dict keyed by single-letter codes - "C" is
+    the SQLSTATE - so _execute_or_raise_unique_violation below is what actually
+    translates that into this, right where the violation can occur."""
+
+
+def _execute_or_raise_unique_violation(cursor, query, params):
+    try:
+        cursor.execute(query, params)
+    except pg8000.dbapi.DatabaseError as error:
+        if error.args and isinstance(error.args[0], dict) and error.args[0].get("C") == "23505":
+            raise UniqueViolation() from error
+        raise
+
+
+def _pg8000_connect(database_url):
+    """pg8000.dbapi.connect() takes individual host/port/user/... keyword arguments
+    rather than the single DSN string psycopg2.connect() accepts - this parses
+    DATABASE_URL (postgres:// or postgresql://) into those. sslmode is opt-in via the
+    URL's own query string: Railway's internal DATABASE_URL (see .railway/railway.ts) is
+    a private-network connection between services in the same project and neither sets
+    nor needs one, same as CI's local Postgres service container - anything other than
+    an explicit "disable"/absent sslmode turns on a default SSL context."""
+    parsed = urlparse(database_url)
+    query = parse_qs(parsed.query)
+    sslmode = (query.get("sslmode") or [None])[0]
+    ssl_context = ssl.create_default_context() if sslmode and sslmode != "disable" else None
+    return pg8000.dbapi.connect(
+        user=parsed.username,
+        password=parsed.password,
+        host=parsed.hostname,
+        port=parsed.port or 5432,
+        database=parsed.path.lstrip("/"),
+        ssl_context=ssl_context,
+    )
+
+
+class _ReusableCursor:
+    """Wraps a real pg8000 cursor so fetchone()/fetchall() return the same row shapes
+    psycopg2's did - a tuple (or None) from fetchone(), a list of tuples from fetchall().
+    pg8000 returns each row as a list, and fetchall() itself as a tuple of those (the
+    opposite convention) - every call site in this file that unpacks/slices/concatenates
+    a row (e.g. _decrypt_row_token's row[:7] + (token,) + row[8:], or this suite's own
+    `== []` assertions against a fetchall() result) assumes the psycopg2 shapes, so this
+    is where that gets translated instead of at every one of those call sites."""
+
+    def __init__(self, real_cursor):
+        self._real = real_cursor
+
+    def execute(self, *args, **kwargs):
+        return self._real.execute(*args, **kwargs)
+
+    def fetchone(self):
+        row = self._real.fetchone()
+        return tuple(row) if row is not None else None
+
+    def fetchall(self):
+        return [tuple(row) for row in self._real.fetchall()]
+
+    @property
+    def rowcount(self):
+        return self._real.rowcount
+
+
 class _ReusableConnection:
-    """Wraps a real psycopg2 connection so every call site's existing connection.close()
-    ends the current transaction (commit) instead of tearing the connection down - a
-    plain wrapper because psycopg2's C-implemented connection object doesn't allow
-    overriding .close directly (its attributes are read-only). Only .cursor()/.commit()/
-    .closed/.close() are used anywhere in this file, so that's all that needs forwarding."""
+    """Wraps a real pg8000 connection so every call site's existing connection.close()
+    ends the current transaction (commit) instead of tearing the connection down. Only
+    .cursor()/.commit()/.closed/.close() are used anywhere in this file, so that's all
+    that needs forwarding. pg8000's Connection doesn't expose a public "am I closed"
+    flag the way psycopg2's .closed is - closed here reaches into the same private
+    _usock the driver itself nulls out in Connection.close(), which is the only signal
+    available for connect()'s pre-probe check below."""
 
     def __init__(self, real_connection):
         self._real = real_connection
 
     def cursor(self, *args, **kwargs):
-        return self._real.cursor(*args, **kwargs)
+        return _ReusableCursor(self._real.cursor(*args, **kwargs))
 
     def commit(self):
         self._real.commit()
 
     @property
     def closed(self):
-        return self._real.closed
+        return self._real._usock is None
 
     def close(self):
         try:
             self._real.commit()
-        except psycopg2.Error:
+        except pg8000.dbapi.Error:
             pass  # a broken connection here just means the next connect() call's probe
             # will detect it and open a fresh one instead
 
@@ -60,19 +132,19 @@ def connect():
     global _shared_connection
     if _shared_connection is not None and _shared_connection.closed == 0:
         try:
-            with _shared_connection.cursor() as probe:
-                probe.execute("SELECT 1")
+            probe = _shared_connection.cursor()
+            probe.execute("SELECT 1")
             return _shared_connection
-        except psycopg2.Error:
+        except pg8000.dbapi.Error:
             # Stale or left in an aborted-transaction state - actually close the real
             # connection before replacing it, so it doesn't linger as an orphaned
             # connection on Postgres's side until garbage collection gets to it.
             try:
                 _shared_connection._real.close()
-            except psycopg2.Error:
+            except pg8000.dbapi.Error:
                 pass
 
-    _shared_connection = _ReusableConnection(psycopg2.connect(os.environ["DATABASE_URL"]))
+    _shared_connection = _ReusableConnection(_pg8000_connect(os.environ["DATABASE_URL"]))
     return _shared_connection
 
 
@@ -113,7 +185,7 @@ def create_database():
         cursor.execute("ALTER TABLE businesses DROP COLUMN email")
     # contact_email should be unique the same way username/phone_number are (see the two
     # unique indexes below) but never actually got one - the app only ever caught
-    # duplicates reactively via psycopg2.errors.UniqueViolation (see app.py's register()),
+    # duplicates reactively via UniqueViolation (see app.py's register()),
     # which never fired for this column since no DB constraint backed it. That let two
     # businesses register with the identical contact_email, which broke login for both
     # (business_by_login_identifier's OR-across-three-columns query started matching two
@@ -372,7 +444,7 @@ def create_database():
     # Appointments (Faza 8 - Smart Booking/Schedule). start_time/end_time are TIMESTAMPTZ
     # (unlike every naive-UTC TIMESTAMP column elsewhere in this file) deliberately - real
     # wall-clock appointment times need unambiguous, DST-safe timezone handling, which
-    # psycopg2 gives for free with an aware column (see booking.py, the only module that
+    # the driver gives for free with an aware column (see booking.py, the only module that
     # writes/reads these). sender_igsid is set only for AI-booked appointments (links back
     # to the Instagram conversation); manual bookings made from the Schedule page leave it
     # NULL. status is 'confirmed'/'canceled' - cancellations are soft (kept for history),
@@ -527,7 +599,8 @@ def add_business(name, username, password, contact_email, working_hours, price_l
     connection = connect()
     cursor = connection.cursor()
 
-    cursor.execute(
+    _execute_or_raise_unique_violation(
+        cursor,
         """INSERT INTO businesses (name, username, password, contact_email, working_hours, price_list, faq, phone_number, subscription_status, email_verified, phone_verified, push_enabled)
            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, FALSE, FALSE, %s) RETURNING id""",
         (name, username, generate_password_hash(password), contact_email, working_hours, price_list, faq, phone_number or None, initial_status, push_enabled),
@@ -544,7 +617,8 @@ def link_instagram_account(business_id, instagram_account_id, instagram_username
     the webhook handler and send-reply code use afterward. Called from the OAuth callback."""
     connection = connect()
     cursor = connection.cursor()
-    cursor.execute(
+    _execute_or_raise_unique_violation(
+        cursor,
         """UPDATE businesses
            SET instagram_account_id = %s, instagram_username = %s, instagram_access_token = %s
            WHERE id = %s""",
@@ -1090,11 +1164,12 @@ def save_pending_email_change(business_id, pending_email, token, expires):
 
 def confirm_pending_email_change(business_id):
     """Redeems a pending email change: swaps contact_email for the staged address. Raises
-    psycopg2.errors.UniqueViolation (same as update_business()) if someone else claimed
-    that address in the meantime - the caller is expected to catch it."""
+    UniqueViolation (same as update_business()) if someone else claimed that address in
+    the meantime - the caller is expected to catch it."""
     connection = connect()
     cursor = connection.cursor()
-    cursor.execute(
+    _execute_or_raise_unique_violation(
+        cursor,
         """UPDATE businesses
            SET contact_email = pending_contact_email, pending_contact_email = NULL,
                email_verify_token = NULL, email_verify_expires = NULL
@@ -1191,7 +1266,7 @@ def update_business(business_id, name, username, contact_email, phone_number, wo
     # Reconnecting Instagram is a separate OAuth round-trip (link_instagram_account), not
     # a settings-form field like the old Gmail app password was - nothing to branch on here.
     # username/contact_email/phone_number share the same UNIQUE constraints as at
-    # registration - the caller is expected to catch psycopg2.errors.UniqueViolation.
+    # registration - the caller is expected to catch UniqueViolation.
     #
     # The phone_verified/token CASE expressions compare against the row's OLD phone_number
     # (Postgres evaluates every SET expression in an UPDATE against the pre-update row, so
@@ -1206,7 +1281,8 @@ def update_business(business_id, name, username, contact_email, phone_number, wo
     # number's (now-irrelevant) link was sent.
     connection = connect()
     cursor = connection.cursor()
-    cursor.execute(
+    _execute_or_raise_unique_violation(
+        cursor,
         """UPDATE businesses
            SET name=%s, username=%s, contact_email=%s,
                phone_verified = CASE WHEN phone_number IS DISTINCT FROM %s THEN FALSE ELSE phone_verified END,

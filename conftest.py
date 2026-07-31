@@ -2,11 +2,12 @@
 send_email, generate_reply, instagram_api, extensions) is imported anywhere, since
 several of those read required env vars at MODULE LOAD time and raise immediately if
 missing (FLASK_SECRET_KEY, DATABASE_URL, ENCRYPTION_KEY, OPENAI_API_KEY). CI provides a
-real Postgres service container for DATABASE_URL - see .github/workflows/tests.yml. The
-rest are throwaway test-only placeholders, never real secrets, generated fresh for this
-purpose (the local dev machine can't run these anyway - psycopg2's DLL is blocked by a
-Windows Application Control policy here, see the deploy-railway-state memory - so this
-suite only ever actually runs in CI).
+real Postgres service container for DATABASE_URL - see .github/workflows/tests.yml; run
+locally against any reachable Postgres by exporting the same env vars yourself first
+(switching the DB driver from psycopg2 to pg8000 - a pure-Python driver with no native
+DLL - is what makes that possible on a machine where a Windows Application Control
+policy blocks psycopg2's, see the deploy-railway-state memory). The rest are throwaway
+test-only placeholders, never real secrets, generated fresh for this purpose.
 """
 import os
 

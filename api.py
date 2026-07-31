@@ -3,7 +3,6 @@ import os
 from datetime import date as date_type, datetime, timedelta
 from functools import wraps
 
-import psycopg2
 from flask import Blueprint, request, jsonify, url_for
 from itsdangerous import URLSafeTimedSerializer, BadSignature, SignatureExpired
 from werkzeug.security import check_password_hash
@@ -26,6 +25,7 @@ from database import (
     is_new_booking_notifications_enabled, set_new_booking_notifications_enabled,
     record_account_deletion, ACCOUNT_DELETION_REASONS,
     mark_instagram_connect_done, instagram_connect_done_state,
+    UniqueViolation,
 )
 from instagram_api import send_message as send_instagram_message, authorize_url as instagram_authorize_url, get_sender_info
 from extensions import limiter
@@ -314,7 +314,7 @@ def api_register():
             # later from Settings (see /api/notification-preferences) either way.
             push_enabled=bool(data.get("push_enabled", True)),
         )
-    except psycopg2.errors.UniqueViolation:
+    except UniqueViolation:
         return jsonify(error="That username, contact email, or phone number is already taken."), 409
 
     log_event("register_completed", business_id=new_id)
@@ -886,7 +886,7 @@ def api_update_settings():
 
     try:
         update_business(business_id, name, username, contact_email, phone_number or None, working_hours, price_list, faq)
-    except psycopg2.errors.UniqueViolation:
+    except UniqueViolation:
         return jsonify(error="That username, contact email, or phone number is already taken."), 409
 
     # Mirrors update_business()'s own CASE-on-old-value logic (index 11 phone_number, 13
