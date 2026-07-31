@@ -241,11 +241,48 @@
     <div class="card settings-card" style="margin-top:20px;">
         <h2 style="margin-top:0;" data-i18n="appSettings.support.heading">Help &amp; support</h2>
         <p class="note" data-i18n="appSettings.support.note">Questions or ran into an issue? We're happy to help.</p>
-        <p><strong>support@ai-auto-reply-mail.com</strong></p>
-        <div class="form-actions">
-            <a id="settings-email-btn" class="button button-secondary button-pill button-primary-outline" href="mailto:support@ai-auto-reply-mail.com?subject=Camilius%20support" data-i18n="appSettings.support.emailCta">Send us an email</a>
+
+        <div class="info-card">
+            <strong data-i18n="appSettings.support.emailLabel">Email us</strong><br>
+            <span id="settings-email-text">support@ai-auto-reply-mail.com</span>
+        </div>
+
+        <a class="button button-full" href="mailto:support@ai-auto-reply-mail.com?subject=Camilius%20support" data-i18n="appSettings.support.emailCta">Send us an email</a>
+        <button type="button" class="button button-secondary button-full" id="settings-copy-email-btn" style="margin-top:12px;" data-i18n="appSettings.support.copyBtn">Copy email address</button>
+        <div id="settings-copy-confirmation" class="alert alert-success hidden" style="margin-top:14px;" data-i18n="appSettings.support.copied">Copied to clipboard.</div>
+
+        <div class="block-label" data-i18n="appSettings.support.faqTitle">Common questions</div>
+        <div class="info-card">
+            <strong data-i18n="appSettings.support.faq1Q">Why didn't a customer message show up?</strong><br>
+            <span data-i18n="appSettings.support.faq1A">Make sure your Instagram account is still connected in Profile, and that it's a Professional (Business or Creator) account - that's required for Camilius to read its messages.</span>
+        </div>
+        <div class="info-card">
+            <strong data-i18n="appSettings.support.faq2Q">Can I edit a reply before sending?</strong><br>
+            <span data-i18n="appSettings.support.faq2A">Yes - every AI-drafted reply is just a suggestion. Open it from the inbox, edit the text if you like, then send.</span>
         </div>
     </div>
+    <script>
+    (function () {
+        var copyBtn = document.getElementById("settings-copy-email-btn");
+        if (!copyBtn) return;
+        var email = document.getElementById("settings-email-text").textContent;
+        copyBtn.addEventListener("click", async function () {
+            try {
+                await navigator.clipboard.writeText(email);
+            } catch (e) {
+                var temp = document.createElement("input");
+                temp.value = email;
+                document.body.appendChild(temp);
+                temp.select();
+                document.execCommand("copy");
+                document.body.removeChild(temp);
+            }
+            var confirmation = document.getElementById("settings-copy-confirmation");
+            confirmation.classList.remove("hidden");
+            setTimeout(function () { confirmation.classList.add("hidden"); }, 2500);
+        });
+    })();
+    </script>
 
     <div class="card settings-card" style="margin-top:20px;">
         <h2 style="margin-top:0;" data-i18n="appSettings.logout.heading">Log out</h2>

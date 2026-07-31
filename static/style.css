@@ -652,9 +652,14 @@ a:focus-visible, button:focus-visible, [tabindex]:focus-visible {
 .button-primary-outline { color: var(--primary); border-color: var(--primary); }
 .button-primary-outline:hover { background: var(--primary-light); }
 .button-pill { border-radius: 999px; }
-/* "Send us an email" (Help & support) keeps the lift/shadow from .button:hover
-   but shouldn't swap color on hover like other outline buttons. */
-#settings-email-btn:hover { background: var(--surface); }
+/* Help & support's "Email us" box and FAQ items - same look as the mobile app's
+   .info-card/.block-label (mobile/app.css), reused here for parity. */
+.info-card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+    padding: 14px 16px; margin: 10px 0; font-size: 14.5px; color: var(--text-muted); line-height: 1.5;
+}
+.info-card strong { color: var(--text); }
+.block-label { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--text-muted); margin: 18px 0 6px; }
 
 /* --- Forms --- */
 label { display: block; font-weight: 600; font-size: 15px; margin: 16px 0 5px; }
