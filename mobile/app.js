@@ -271,12 +271,7 @@ if (capacitorPlugins) {
             return bundles.find((b) => b.version === version) || null;
         };
 
-        // `manual` (Settings > About's "Check for updates" link) gets a toast either way -
-        // "found one, applying" (moot, since set() below reloads the app before it could
-        // even be seen) or "already up to date" - instead of silently doing nothing
-        // visible when there's nothing to apply, which is fine for the three background
-        // triggers below but would make a manual button feel broken.
-        const checkForOtaUpdate = async (manual) => {
+        const checkForOtaUpdate = async () => {
             if (otaCheckInProgress) return;
             otaCheckInProgress = true;
             let step = "fetch-manifest";
@@ -284,7 +279,6 @@ if (capacitorPlugins) {
                 const response = await fetch(API_BASE + "/api/mobile-manifest");
                 const manifest = await response.json();
                 if (!manifest.available) {
-                    if (manual) showToast(t("appSettings.upToDate"));
                     return;
                 }
 
@@ -295,7 +289,6 @@ if (capacitorPlugins) {
                 const current = await capacitorPlugins.CapacitorUpdater.current();
                 const activeVersion = (current && current.bundle) ? current.bundle.version : "unknown";
                 if (activeVersion === manifest.version) {
-                    if (manual) showToast(t("appSettings.upToDate"));
                     return;
                 }
 
@@ -347,7 +340,6 @@ if (capacitorPlugins) {
             if (document.visibilityState === "visible") checkForOtaUpdate();
         });
         setInterval(checkForOtaUpdate, 20000);
-        el("settings-check-update").addEventListener("click", () => checkForOtaUpdate(true));
     }
 
     // Native-code changes (new plugin, permissions, icon, splash, anything under

@@ -961,9 +961,11 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
 .detail-body { flex: 1; overflow-y: auto; padding: 0 18px calc(24px + var(--tabbar-h) + var(--safe-bottom)); -webkit-overflow-scrolling: touch; }
 /* Profile and Settings also have their own floating "Save changes" button pinned above
    the tab bar (see .fab-save) - extra clearance so the last field/row scrolls fully
-   clear of it too, not just the tab bar. */
+   clear of it too, not just the tab bar. .fab-save's own height (52px, from its 14px
+   vertical padding + 24px line-height) plus its 18px bottom offset means 70px is the
+   floor before the button starts covering content - this adds a small margin on top. */
 .screen-profile .detail-body, .screen-settings .detail-body {
-    padding-bottom: calc(92px + var(--tabbar-h) + var(--safe-bottom));
+    padding-bottom: calc(76px + var(--tabbar-h) + var(--safe-bottom));
 }
 .block-label { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--text-muted); margin: 18px 0 6px; }
 .block-label:first-child { margin-top: 0; }
