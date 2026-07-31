@@ -375,7 +375,20 @@ function initSettingsUsernameAvailability() {
 function initSaveSuccessOverlay() {
     const overlay = document.getElementById("save-success-overlay");
     if (!overlay) return;
-    requestAnimationFrame(() => overlay.classList.add("visible"));
+    // Confirmed via an instrumented real-browser trace: htmx's own anti-flicker "settle"
+    // step (htmx.config.attributesToSettle includes "class") kicks in whenever an element's
+    // id already existed in the page before the boosted swap - true for every save from the
+    // second one on, since the previous save's own overlay is still sitting in the DOM with
+    // this same id. ~20ms after the swap it forcibly resets the class attribute back to a
+    // snapshot taken at swap time (before this script ever runs), silently wiping out the
+    // "visible" this line adds - so the checkmark/text appeared on the first save and then
+    // never again. htmx fires "htmx:afterSettle" once that whole settle step (including that
+    // class reset) is done, so re-adding "visible" there wins for certain regardless of the
+    // race. rAF is the only signal on a plain, non-boosted load (no swap, event never
+    // fires) - calling classList.add("visible") twice is harmless.
+    function show() { overlay.classList.add("visible"); }
+    document.body.addEventListener("htmx:afterSettle", show, { once: true });
+    requestAnimationFrame(show);
     let dismissed = false;
     function dismiss() {
         if (dismissed) return;
