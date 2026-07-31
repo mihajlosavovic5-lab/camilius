@@ -141,7 +141,11 @@ body {
 }
 
 a, button, [tabindex] { outline: none; }
-button { font-family: inherit; }
+/* appearance:none strips the OS's own native button chrome - without it, Android's
+   WebView renders its own default tap/focus treatment (a blue Material ripple/halo)
+   underneath a button on press, regardless of the tap-highlight-color and outline
+   resets above (neither one touches that native rendering, only this does). */
+button { font-family: inherit; -webkit-appearance: none; appearance: none; }
 
 #app { position: fixed; inset: 0; overflow: hidden; }
 
