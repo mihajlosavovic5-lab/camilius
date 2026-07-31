@@ -351,6 +351,7 @@ const TRANSLATIONS = {
         "hoursPicker.workingDays": "Working days",
         "hoursPicker.dayHours": "{day}: {open}–{close}.",
         "hoursPicker.customizeLink": "Set different hours for a specific day",
+        "hoursPicker.customHoursNote": "Some days have custom hours",
 
         "offline": "No internet connection",
         "update.available": "A new version of the app is available.",
@@ -680,6 +681,7 @@ const TRANSLATIONS = {
         "hoursPicker.workingDays": "Radni dani",
         "hoursPicker.dayHours": "{day}: {open}–{close}.",
         "hoursPicker.customizeLink": "Podesi drugačije radno vreme za pojedini dan",
+        "hoursPicker.customHoursNote": "Neki dani imaju posebno radno vreme",
 
         "offline": "Nema internet konekcije",
         "update.available": "Dostupna je nova verzija aplikacije.",
@@ -976,6 +978,7 @@ const TRANSLATIONS = {
         "hoursPicker.workingDays": "Días laborables",
         "hoursPicker.dayHours": "{day}: {open}–{close}.",
         "hoursPicker.customizeLink": "Establecer horarios distintos para un día en concreto",
+        "hoursPicker.customHoursNote": "Algunos días tienen horarios personalizados",
 
         "offline": "Sin conexión a internet",
         "update.available": "Hay una nueva versión de la aplicación disponible.",
@@ -1272,6 +1275,7 @@ const TRANSLATIONS = {
         "hoursPicker.workingDays": "Dias úteis",
         "hoursPicker.dayHours": "{day}: {open}–{close}.",
         "hoursPicker.customizeLink": "Definir horários diferentes para um dia específico",
+        "hoursPicker.customHoursNote": "Alguns dias têm horários personalizados",
 
         "offline": "Sem conexão com a internet",
         "update.available": "Uma nova versão do aplicativo está disponível.",
@@ -1568,6 +1572,7 @@ const TRANSLATIONS = {
         "hoursPicker.workingDays": "Jours ouvrés",
         "hoursPicker.dayHours": "{day} : {open}–{close}.",
         "hoursPicker.customizeLink": "Définir des horaires différents pour un jour précis",
+        "hoursPicker.customHoursNote": "Certains jours ont des horaires personnalisés",
 
         "offline": "Pas de connexion internet",
         "update.available": "Une nouvelle version de l'application est disponible.",
@@ -1864,6 +1869,7 @@ const TRANSLATIONS = {
         "hoursPicker.workingDays": "Arbeitstage",
         "hoursPicker.dayHours": "{day}: {open}–{close}.",
         "hoursPicker.customizeLink": "Abweichende Öffnungszeiten für einen bestimmten Tag festlegen",
+        "hoursPicker.customHoursNote": "Für einige Tage gelten abweichende Öffnungszeiten",
 
         "offline": "Keine Internetverbindung",
         "update.available": "Eine neue Version der App ist verfügbar.",
@@ -2160,6 +2166,7 @@ const TRANSLATIONS = {
         "hoursPicker.workingDays": "Giorni lavorativi",
         "hoursPicker.dayHours": "{day}: {open}–{close}.",
         "hoursPicker.customizeLink": "Imposta orari diversi per un giorno specifico",
+        "hoursPicker.customHoursNote": "Alcuni giorni hanno orari personalizzati",
 
         "offline": "Nessuna connessione internet",
         "update.available": "È disponibile una nuova versione dell'app.",
@@ -2456,6 +2463,7 @@ const TRANSLATIONS = {
         "hoursPicker.workingDays": "Рабочие дни",
         "hoursPicker.dayHours": "{day}: {open}–{close}.",
         "hoursPicker.customizeLink": "Задать другое время для конкретного дня",
+        "hoursPicker.customHoursNote": "Для некоторых дней заданы другие часы",
 
         "offline": "Нет подключения к интернету",
         "update.available": "Доступна новая версия приложения.",
@@ -2752,6 +2760,7 @@ const TRANSLATIONS = {
         "hoursPicker.workingDays": "工作日",
         "hoursPicker.dayHours": "{day}：{open}–{close}。",
         "hoursPicker.customizeLink": "为某一天单独设置时间",
+        "hoursPicker.customHoursNote": "部分日期设置了自定义时间",
 
         "offline": "无网络连接",
         "update.available": "有可用的应用新版本。",
@@ -3048,6 +3057,7 @@ const TRANSLATIONS = {
         "hoursPicker.workingDays": "Çalışma günleri",
         "hoursPicker.dayHours": "{day}: {open}–{close}.",
         "hoursPicker.customizeLink": "Belirli bir gün için farklı saat belirle",
+        "hoursPicker.customHoursNote": "Bazı günler için özel saatler belirlendi",
 
         "offline": "İnternet bağlantısı yok",
         "update.available": "Uygulamanın yeni bir sürümü mevcut.",
