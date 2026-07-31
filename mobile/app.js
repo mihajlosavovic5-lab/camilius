@@ -1384,21 +1384,6 @@ async function api(path, { method = "GET", body } = {}) {
     return data;
 }
 
-// --- Boot loading overlay (see #boot-loading-overlay in index.html) ---
-
-let bootOverlayHidden = false;
-// Called from every path boot() can end on - a screen with nothing to fetch (login,
-// onboarding, connectInstagram) hides it right away; entering the app itself hides it once
-// loadDashboard()'s first fetch settles (see enterApp() below), not before, so the inbox
-// never shows through this as skeleton rows and zeroed counters. Idempotent since some of
-// those paths overlap (e.g. logout() also runs after a normal in-app logout, long after
-// this already hid itself once).
-function hideBootOverlay() {
-    if (bootOverlayHidden) return;
-    bootOverlayHidden = true;
-    el("boot-loading-overlay").classList.add("hidden");
-}
-
 // --- Offline detection ---
 
 function updateOfflineBanner() {
@@ -1450,7 +1435,6 @@ async function logout() {
     showTabbar(false);
     if (capacitorPlugins && capacitorPlugins.Badge) capacitorPlugins.Badge.clear().catch(() => {});
     showScreen("login");
-    hideBootOverlay();
 }
 
 // Show/hide password toggle (see .password-toggle in app.css) - wired once for every
@@ -2116,7 +2100,6 @@ async function enterOrGateOnInstagram() {
             showTabbar(false);
             el("connect-error").classList.add("hidden");
             showScreen("connectInstagram");
-            hideBootOverlay();
         }
     } catch (err) {
         if (err.status === 401) { logout(); return; }
@@ -2130,7 +2113,7 @@ async function enterOrGateOnInstagram() {
 function enterApp() {
     showTabbar(true);
     setActiveTab("inbox");
-    loadDashboard().finally(hideBootOverlay);
+    loadDashboard();
     loadSettingsIntoForm();
     startAutoRefresh();
     // Fire-and-forget: warms state.scheduleCache in the background so the Schedule tab
@@ -3955,7 +3938,7 @@ el("settings-app-version").textContent = `Camilius · v${APP_VERSION}`;
 // The native APK version above never changes between OTA pushes (see build_mobile_bundle.py) -
 // appending the actual active bundle hash too gives a way to confirm from the device
 // itself whether a given OTA update actually landed, without needing server-side logs.
-if (capacitorPlugins && capacitorPlugins.CapacitorUpdater) {
+if (capacitorPlugins.CapacitorUpdater) {
     capacitorPlugins.CapacitorUpdater.current()
         .then((current) => {
             const bundleVersion = (current && current.bundle && current.bundle.version) || "builtin";
@@ -3989,22 +3972,10 @@ updateOfflineBanner();
     if (donationLink) el("donation-strip-link").href = donationLink;
 
     if (state.token) {
-        // Left showing until enterOrGateOnInstagram() reaches one of its own terminal
-        // screens (connectInstagram right away, or the inbox once its first load settles) -
-        // there's real content to wait for on this path, unlike the two branches below.
         enterOrGateOnInstagram();
     } else if (isNative && !onboardingSeen) {
         showScreen("onboarding");
-        hideBootOverlay();
     } else {
         showScreen("login");
-        hideBootOverlay();
     }
-})().catch((e) => {
-    // A genuine crash before any of the branches above ever ran (storage/language init
-    // itself throwing) would otherwise leave the overlay up forever with nothing behind
-    // it to reveal - surfacing whatever screen is already in the markup by default beats
-    // trapping the user behind a spinner that will never go away.
-    hideBootOverlay();
-    reportClientError(e.message, e.stack, "boot");
-});
+})().catch((e) => reportClientError(e.message, e.stack, "boot"));
