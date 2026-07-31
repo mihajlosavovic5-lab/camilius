@@ -2274,6 +2274,13 @@ async function loadDashboard({ silent = false } = {}) {
 
         el("donation-strip").classList.toggle("hidden", !data.donation_link);
         if (data.donation_link) el("donation-strip-link").href = data.donation_link;
+        // Cached so the next launch can show/hide this correctly right away instead of
+        // waiting on this same fetch every time - see the boot sequence below, which reads
+        // this back before the inbox is even shown. donation_link barely ever changes (it's
+        // a business-wide setting, not per-conversation), so a stale cached copy for the
+        // first render or two of a rare change is a fine trade for never seeing this strip
+        // pop in and shove the list down after the screen already looks fully loaded.
+        storageSet("donationLink", data.donation_link || "").catch(() => {});
 
         state.betaFreeMode = !!data.beta_free_mode;
         state.subscriptionActive = !!data.subscription_active;
@@ -3945,17 +3952,24 @@ if (capacitorPlugins.CapacitorUpdater) {
 updateOfflineBanner();
 
 (async () => {
-    const [token, businessName, onboardingSeen, theme] = await Promise.all([
+    const [token, businessName, onboardingSeen, theme, donationLink] = await Promise.all([
         storageGet("token"),
         storageGet("businessName"),
         storageGet("onboardingSeen"),
         storageGet("theme"),
+        storageGet("donationLink"),
     ]);
     await initLanguage();
     applyTheme(theme || "system");
 
     state.token = token || null;
     state.businessName = businessName || "";
+    // Applied from last launch's cache before the inbox is ever shown, same reasoning as
+    // loadDashboard() caching it in the first place - avoids the strip popping in and
+    // shoving the conversation list down partway through the very first render. Corrected
+    // by that same fetch moments later if the business's donation link actually changed.
+    el("donation-strip").classList.toggle("hidden", !donationLink);
+    if (donationLink) el("donation-strip-link").href = donationLink;
 
     if (state.token) {
         enterOrGateOnInstagram();
