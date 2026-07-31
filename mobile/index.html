@@ -1034,8 +1034,11 @@
       <label class="checkbox-row"><input type="radio" name="delete-reason" value="privacy"><span data-i18n="deleteWizard.reasons.privacy">Privacy or data concerns</span></label>
       <label class="checkbox-row"><input type="radio" name="delete-reason" value="other"><span data-i18n="deleteWizard.reasons.other">Other</span></label>
 
-      <label for="delete-reason-details" class="block-label" style="margin-top:14px;" data-i18n="deleteWizard.step2.detailsLabel">Anything else you'd like to share? (optional)</label>
-      <textarea id="delete-reason-details" rows="3" maxlength="1000" data-i18n-placeholder="deleteWizard.step2.detailsPlaceholder" placeholder="Tell us more..."></textarea>
+      <p class="block-label" style="margin-top:14px;" data-i18n="deleteWizard.step2.detailsLabel">Anything else you'd like to share? (optional)</p>
+      <div class="floating-field floating-field-textarea">
+        <textarea id="delete-reason-details" rows="3" maxlength="1000" placeholder=" "></textarea>
+        <label for="delete-reason-details" data-i18n="deleteWizard.step2.detailsPlaceholder">Tell us more...</label>
+      </div>
 
       <button type="button" class="button button-full button-pill button-danger" id="delete-reason-continue" data-i18n="deleteWizard.continue">Continue</button>
     </div>

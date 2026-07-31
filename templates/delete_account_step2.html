@@ -58,7 +58,10 @@
             </label>
 
             <label style="display:block; margin-top:20px;" data-i18n="deleteWizard.step2.detailsLabel">Anything else you'd like to share? (optional)</label>
-            <textarea name="reason_details" rows="3" maxlength="1000" data-i18n-placeholder="deleteWizard.step2.detailsPlaceholder" placeholder="Tell us more...">{{ reason_details or '' }}</textarea>
+            <div class="floating-field floating-field-textarea">
+                <textarea name="reason_details" id="reason-details" rows="3" maxlength="1000" placeholder=" ">{{ reason_details or '' }}</textarea>
+                <label for="reason-details" data-i18n="deleteWizard.step2.detailsPlaceholder">Tell us more...</label>
+            </div>
 
             <div class="form-actions" style="display:flex; gap:12px; flex-wrap:wrap;">
                 <a class="button button-secondary" href="{{ url_for('delete_account_step1') }}" data-i18n="deleteWizard.back">Back</a>
