@@ -229,16 +229,12 @@
     </div>
 
     <div class="card settings-card" style="margin-top:20px;">
-        <h2 style="margin-top:0;" data-i18n="appSettings.billing.heading">Billing</h2>
+        <h2 style="margin-top:0;" data-i18n="appSettings.billingLegal.heading">Billing &amp; Legal</h2>
         <a class="settings-link-row" href="{{ url_for('subscription') }}">
             <span data-i18n="common.subscription">Subscription</span>
             <span class="settings-link-chevron">&rsaquo;</span>
         </a>
-    </div>
-
-    <div class="card settings-card" style="margin-top:20px;">
-        <h2 style="margin-top:0;" data-i18n="appSettings.legal.heading">Legal</h2>
-        <p class="note" data-i18n="appSettings.legal.note">Read our policies any time.</p>
+        <p class="note" style="margin-top:16px;" data-i18n="appSettings.legal.note">Read our policies any time.</p>
         <div class="form-actions" style="gap:12px;">
             <a class="button button-secondary" href="{{ url_for('terms') }}" data-i18n="common.termsOfService">Terms of Service</a>
             <a class="button button-secondary" href="{{ url_for('privacy') }}" data-i18n="common.privacyPolicy">Privacy Policy</a>
