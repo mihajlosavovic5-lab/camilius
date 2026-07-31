@@ -4,9 +4,19 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
 <title>Camilius</title>
-<link rel="stylesheet" href="app.css?v=4cea048a4bf9">
+<link rel="stylesheet" href="app.css?v=7e0cdbfb7214">
 </head>
 <body>
+
+<!-- Covers the screen from the very first paint until the app has somewhere real to show
+     (the inbox once its first load finishes, or straight away for a screen with nothing to
+     fetch, like login/onboarding) - see hideBootOverlay() in app.js. Without this, the
+     inbox screen switched itself active immediately (skeleton rows, zeroed stat counters)
+     while loadDashboard()'s fetch was still in flight, which read as everything rendering
+     half-done instead of a single clean load. -->
+<div id="boot-loading-overlay" class="boot-loading-overlay">
+  <div class="boot-loading-spinner"></div>
+</div>
 
 <div id="offline-banner" class="offline-banner hidden" data-i18n="offline">No internet connection</div>
 
@@ -1257,7 +1267,7 @@
   </button>
 </nav>
 
-<script src="i18n.js?v=4cea048a4bf9"></script>
-<script src="app.js?v=4cea048a4bf9"></script>
+<script src="i18n.js?v=7e0cdbfb7214"></script>
+<script src="app.js?v=7e0cdbfb7214"></script>
 </body>
 </html>
