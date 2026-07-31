@@ -235,6 +235,9 @@ function initSettingsPickers() {
     {% endif %}
     safeInit(() => createPricePicker("settings-price-picker-mount", "settings-price-add", "settings-price-currency", "settings-price-list"));
     safeInit(() => createUpsellPicker("settings-upsell-picker-mount", "settings-upsell-add", "settings-upsell-pairs", "settings-price-list"));
+    // Runs before initSettingsSaveButton's snapshot below so that snapshot reflects these
+    // fields as genuinely empty. See resetSecurityPasswordFields for why this is needed.
+    safeInit(resetSecurityPasswordFields);
     safeInit(initSettingsSaveButton);
     safeInit(initSaveSuccessOverlay);
     safeInit(initSettingsUsernameAvailability);
@@ -381,6 +384,24 @@ function initSettingsUsernameAvailability() {
                 if (status !== "taken") form.requestSubmit();
             });
         }
+    });
+}
+
+// The browser's own password manager sees a text "username" field followed by real
+// password inputs on this page and treats it as a login form, silently autofilling
+// "Current password" with whatever credential it has saved for this site the moment
+// the page loads - nothing here should ever start pre-filled. autocomplete="off" is
+// well known to be ignored by browsers for password fields, so the only reliable fix
+// is clearing it back out right after render, same as the mobile app's own
+// resetPasswordField does for this exact reason. Dispatching "input" (plain
+// input.value = "" doesn't fire it) keeps the show/hide eye icon and the password
+// validation error above in sync with the now-empty fields.
+function resetSecurityPasswordFields() {
+    ["settings-current-password-input", "settings-new-password-input"].forEach((id) => {
+        const input = document.getElementById(id);
+        if (!input || !input.value) return;
+        input.value = "";
+        input.dispatchEvent(new Event("input", { bubbles: true }));
     });
 }
 
