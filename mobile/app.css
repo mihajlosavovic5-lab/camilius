@@ -1440,6 +1440,17 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
 .skeleton-line { height: 11px; border-radius: 6px; }
 @keyframes skeleton-shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
 
+/* --- Inbox summary blur: the business name, stat numbers and filter counts wear the
+   same "not ready yet" treatment as the skeleton rows above instead of popping straight
+   in the moment the fetch resolves. They stay blurred (illegible, like the shimmering
+   skeleton) until the list itself - including its own avatar preloading, which finishes
+   later - is also ready, so everything on screen unblurs in the same instant instead of
+   the numbers appearing first and the list catching up a beat later. Toggled via
+   .inbox-summary-loading on #inbox-list-wrap; see loadDashboard()/renderInboxList() in
+   app.js. */
+.inbox-summary-blur { transition: filter .25s ease; }
+.inbox-list-wrap.inbox-summary-loading .inbox-summary-blur { filter: blur(6px); pointer-events: none; }
+
 /* Wraps everything from the title down - title/stats/search/filters scroll away
    naturally with the rest of the screen instead of staying pinned in place, plain
    ordinary page-scrolling behavior (this is the actual scrolling element now, not

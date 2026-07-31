@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
 <title>Camilius</title>
-<link rel="stylesheet" href="app.css?v=4cea048a4bf9">
+<link rel="stylesheet" href="app.css?v=539718452f6d">
 </head>
 <body>
 
@@ -572,22 +572,22 @@
          content, same as the rest of the list below it - it scrolls up and out of view
          as you scroll down and comes back the moment you're back at the top, exactly
          like any ordinary page, instead of staying pinned via its own fixed position. -->
-    <div class="inbox-list-wrap">
+    <div class="inbox-list-wrap" id="inbox-list-wrap">
       <header class="topbar">
         <div class="topbar-title">
           <div>
-            <h1 id="inbox-business-name">&nbsp;</h1>
+            <h1 id="inbox-business-name" class="inbox-summary-blur">&nbsp;</h1>
           </div>
         </div>
       </header>
 
       <div class="inbox-stats-row" id="inbox-stats-row">
         <div class="inbox-stat-tile">
-          <div class="inbox-stat-value" id="inbox-stat-sent">0</div>
+          <div class="inbox-stat-value inbox-summary-blur" id="inbox-stat-sent">0</div>
           <div class="inbox-stat-label" data-i18n="inbox.statsSent">Replies sent</div>
         </div>
         <div class="inbox-stat-tile">
-          <div class="inbox-stat-value" id="inbox-stat-sent-week">0</div>
+          <div class="inbox-stat-value inbox-summary-blur" id="inbox-stat-sent-week">0</div>
           <div class="inbox-stat-label" data-i18n="inbox.statsSentWeek">Sent this week</div>
         </div>
       </div>
@@ -609,11 +609,11 @@
       </div>
 
       <div class="filters" id="filters">
-        <button class="filter-pill active" data-filter="all"><span data-i18n="inbox.filterAll">All</span> <span id="count-all">0</span></button>
-        <button class="filter-pill" data-filter="pending"><span data-i18n="inbox.filterPending">Pending</span> <span id="count-pending">0</span></button>
-        <button class="filter-pill" data-filter="sent"><span data-i18n="inbox.filterSent">Sent</span> <span id="count-sent">0</span></button>
-        <button class="filter-pill" data-filter="archived"><span data-i18n="inbox.filterArchived">Archived</span> <span id="count-archived">0</span></button>
-        <button class="filter-pill" data-filter="trash"><span data-i18n="inbox.filterTrash">Trash</span> <span id="count-trash">0</span></button>
+        <button class="filter-pill active" data-filter="all"><span data-i18n="inbox.filterAll">All</span> <span id="count-all" class="inbox-summary-blur">0</span></button>
+        <button class="filter-pill" data-filter="pending"><span data-i18n="inbox.filterPending">Pending</span> <span id="count-pending" class="inbox-summary-blur">0</span></button>
+        <button class="filter-pill" data-filter="sent"><span data-i18n="inbox.filterSent">Sent</span> <span id="count-sent" class="inbox-summary-blur">0</span></button>
+        <button class="filter-pill" data-filter="archived"><span data-i18n="inbox.filterArchived">Archived</span> <span id="count-archived" class="inbox-summary-blur">0</span></button>
+        <button class="filter-pill" data-filter="trash"><span data-i18n="inbox.filterTrash">Trash</span> <span id="count-trash" class="inbox-summary-blur">0</span></button>
       </div>
 
       <div id="inbox-pull-indicator" class="inbox-pull-indicator"><span class="inbox-pull-spinner"></span></div>
@@ -1257,7 +1257,7 @@
   </button>
 </nav>
 
-<script src="i18n.js?v=4cea048a4bf9"></script>
-<script src="app.js?v=4cea048a4bf9"></script>
+<script src="i18n.js?v=539718452f6d"></script>
+<script src="app.js?v=539718452f6d"></script>
 </body>
 </html>

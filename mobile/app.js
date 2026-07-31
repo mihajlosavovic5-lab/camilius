@@ -2250,6 +2250,11 @@ function renderSkeletons() {
 async function loadDashboard({ silent = false } = {}) {
     if (!silent) {
         renderSkeletons();
+        // Blurs the business name/stats/filter counts the same way the rows above are
+        // skeletoned, so they don't pop straight in ahead of the list - removed by
+        // renderInboxList() once the list (and its own avatar preloading) is also ready,
+        // so everything on screen unblurs together. See .inbox-summary-blur in app.css.
+        el("inbox-list-wrap").classList.add("inbox-summary-loading");
         el("inbox-empty").classList.add("hidden");
         el("inbox-error").classList.add("hidden");
     }
@@ -2303,6 +2308,7 @@ async function loadDashboard({ silent = false } = {}) {
         if (err.status === 401) return logout();
         if (!silent) {
             el("inbox-list").innerHTML = "";
+            el("inbox-list-wrap").classList.remove("inbox-summary-loading");
             el("inbox-error-message").textContent = err.isNetworkError ? err.message : t("inbox.errorGeneric");
             el("inbox-error").classList.remove("hidden");
         }
@@ -2346,6 +2352,7 @@ async function renderInboxList(conversations) {
             el("inbox-empty-title").textContent = t("inbox.emptyTitle");
             el("inbox-empty-detail").textContent = t("inbox.emptyDetail");
         }
+        el("inbox-list-wrap").classList.remove("inbox-summary-loading");
         return;
     }
     el("inbox-empty").classList.add("hidden");
@@ -2407,6 +2414,7 @@ async function renderInboxList(conversations) {
     list.querySelectorAll(".inbox-sender").forEach((senderEl) => {
         senderEl.classList.toggle("truncated", senderEl.scrollWidth > senderEl.clientWidth);
     });
+    el("inbox-list-wrap").classList.remove("inbox-summary-loading");
 }
 
 // --- Archive / Delete / Restore / Unarchive (Faza 3) ---
