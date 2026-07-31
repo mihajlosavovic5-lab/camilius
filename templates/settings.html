@@ -27,7 +27,18 @@
         </div>
     {% endif %}
 
-    <form method="POST" id="settings-form">
+    <!-- hx-boost: Save currently did a real browser navigation (full unload + re-parse of
+         the whole document, external resources reprocessed, nav rebuilt from scratch) even
+         though the response is just this same page re-rendered - on a real device that's
+         visible as a two-stage flash (page goes blank/reflows, then the saved state pops
+         in a beat later), unlike the mobile app's own Save which never leaves the page at
+         all (a plain fetch that updates state in place). Boosting swaps in the response's
+         <body> via AJAX instead, same mechanism _nav.html's hx-boosted links already use to
+         move between pages without a hard reload - the server-side view is untouched, and
+         the swap already re-runs this file's own <script> block (see the comment on
+         initSettingsPickers below), so pickers/save-button/overlay all re-init exactly as
+         they do today. -->
+    <form method="POST" id="settings-form" hx-boost="true">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
         <div class="card profile-section">
@@ -127,11 +138,16 @@
                     <div class="upsell-row-picker"><input type="text" data-i18n-placeholder="settings.upsell.examplePlaceholder1" placeholder="Haircut" disabled><span class="upsell-arrow">&rarr;</span><input type="text" data-i18n-placeholder="settings.upsell.examplePlaceholder2" placeholder="Treatment" disabled></div>
                 </div>
                 <p class="pro-locked-note">&#10024; <a href="{{ url_for('subscription') }}" data-i18n="appSettings.reminders.upgradeCta">Upgrade to Pro</a> <span data-i18n="settings.upsell.upgradeSuffix">to let the AI suggest complementary services.</span>
-                    <form method="POST" action="{{ url_for('upgrade_to_pro_free') }}" style="display: inline-block; margin-left: 8px;">
-                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                        <input type="hidden" name="next" value="settings">
-                        <button type="submit" class="button button-secondary" style="padding: 4px 12px; font-size: 12.5px;" data-i18n="common.upgradeFreeBtn">Free</button>
-                    </form>
+                    <!-- form="upgrade-to-pro-free-form" (not a nested <form> here) - same fix,
+                         same reason, as settings-instagram-disconnect-btn below: a <form>
+                         can't be nested inside #settings-form, which wraps this whole card.
+                         Browsers silently close #settings-form at this inner form's own
+                         </form>, which knocked the Save button (rendered further down, inside
+                         .form-actions) clean out of the real form for any non-Pro business -
+                         Save then submitted nothing at all when clicked. The actual
+                         <form id="upgrade-to-pro-free-form"> now lives after #settings-form's
+                         closing tag instead - this button just points to it by id. -->
+                    <button type="submit" form="upgrade-to-pro-free-form" class="button button-secondary" style="padding: 4px 12px; font-size: 12.5px; margin-left: 8px;" data-i18n="common.upgradeFreeBtn">Free</button>
                 </p>
             {% endif %}
         </div>
@@ -140,6 +156,12 @@
             <button class="button hidden" type="submit" id="settings-save-btn" data-i18n="settings.saveChanges">Save changes</button>
         </div>
     </form>
+    {% if not pro_access %}
+        <form method="POST" action="{{ url_for('upgrade_to_pro_free') }}" id="upgrade-to-pro-free-form">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="next" value="settings">
+        </form>
+    {% endif %}
     {% if business.instagram_username %}
         <form method="POST" action="{{ url_for('disconnect_instagram') }}" id="disconnect-instagram-form">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
