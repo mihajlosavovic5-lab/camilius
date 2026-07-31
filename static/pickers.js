@@ -430,10 +430,23 @@ function createHoursPicker(mountId, hiddenFieldId) {
         });
     }
 
+    // Collapses the advanced per-day list back to the "Working days" summary without
+    // touching any day's values - meant to be called after a successful save, so the
+    // section returns to its collapsed default the same way the mobile app's picker does,
+    // regardless of whether the saved days actually share the same hours (unlike parse()
+    // above, which opens the advanced view whenever they don't).
+    function collapseToSimple() {
+        simpleOpenSelect.value = rows.monday.openSelect.value;
+        simpleCloseSelect.value = rows.monday.closeSelect.value;
+        advancedView.classList.add("hidden");
+        simpleView.classList.remove("hidden");
+        updateWeekendNote();
+    }
+
     if (hiddenField.value.trim()) parse(hiddenField.value);
     sync();
     updateWeekendNote();
-    return { sync, validate };
+    return { sync, validate, collapseToSimple };
 }
 
 // Major world currencies - same list as the mobile app's price-list currency picker
