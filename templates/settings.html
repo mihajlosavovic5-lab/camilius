@@ -503,6 +503,14 @@ function initSettingsSaveButton() {
     function serialize() {
         const data = new FormData(form);
         data.delete("csrf_token");
+        // The decoy autofill-bait fields (see the form's own comment above them) can get
+        // filled by the browser's password manager asynchronously, at unpredictable
+        // times relative to this snapshot - left in, any such fill permanently disagreed
+        // with the snapshot taken here and the Save button never hid again, since nothing
+        // the user does ever makes serialize() match it. They're not real form data, so
+        // they were never part of "did the user change anything" to begin with.
+        data.delete("settings-decoy-username");
+        data.delete("settings-decoy-password");
         return new URLSearchParams(data).toString();
     }
 
