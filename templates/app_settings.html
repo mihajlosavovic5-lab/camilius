@@ -88,7 +88,6 @@
             </div>
         </form>
 
-        <p class="note" style="margin-top:16px;" data-i18n="appSettings.reminders.note">Get reminded before appointments, or remind the customer too. Customer reminders are sent by Instagram DM (Instagram bookings only); yours come as an app notification.</p>
         {% if pro_access %}
             <form method="POST" action="{{ url_for('update_reminders') }}" id="reminders-form">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
