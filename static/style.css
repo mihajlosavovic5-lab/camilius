@@ -1001,6 +1001,7 @@ input.search-input {
 .conversation-sender { font-weight: 600; font-size: 16px; word-break: break-all; }
 .conversation-time { color: var(--text-muted); font-size: 14px; }
 .conversation-block { margin-top: 14px; }
+.conversation-block + .alert { margin-top: 14px; }
 .conversation-label {
     font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px;
     color: var(--text-muted); margin-bottom: 6px;
