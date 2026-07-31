@@ -601,6 +601,30 @@ function createHoursPicker(containerId) {
         });
     }
 
+    // True iff every weekday is open with the exact same hours as Monday - i.e. the
+    // collapsed pair above actually represents the whole week accurately. Shared by
+    // setValue() (decides whether to open straight into the advanced view) and
+    // updateCustomHoursNote() (decides whether to warn that it doesn't).
+    function weekdaysAreUniform() {
+        return HOURS_WEEKDAYS.every((day) => rows[day].checkbox.checked) &&
+            HOURS_WEEKDAYS.every((day) => rows[day].openTimeBtn.value === rows.monday.openTimeBtn.value &&
+                rows[day].closeTimeBtn.value === rows.monday.closeTimeBtn.value);
+    }
+
+    // Warns that the pair above isn't the whole story whenever a weekday other than
+    // Monday has been customized (different hours, or closed) - collapseToSimple() always
+    // shows Monday's hours here regardless, so without this a customized Tuesday looks
+    // like it silently reverted rather than just being one tap away under "Set different
+    // hours for a specific day" below.
+    const customHoursNote = document.createElement("p");
+    customHoursNote.className = "hours-custom-note hidden";
+    customHoursNote.dataset.i18n = "hoursPicker.customHoursNote";
+    customHoursNote.textContent = t("hoursPicker.customHoursNote");
+    simpleView.appendChild(customHoursNote);
+    function updateCustomHoursNote() {
+        customHoursNote.classList.toggle("hidden", weekdaysAreUniform());
+    }
+
     const customizeLink = document.createElement("button");
     customizeLink.type = "button";
     customizeLink.className = "hours-customize-link";
@@ -713,6 +737,7 @@ function createHoursPicker(containerId) {
     });
 
     updateWeekendNote();
+    updateCustomHoursNote();
 
     return {
         getValue() {
@@ -756,6 +781,7 @@ function createHoursPicker(containerId) {
             advancedView.classList.add("hidden");
             simpleView.classList.remove("hidden");
             updateWeekendNote();
+            updateCustomHoursNote();
         },
         // Restores every day to the default open 09:00-18:00 for weekdays / closed for
         // the weekend, and collapses back to the "Working days" summary - NOT the same
@@ -778,17 +804,21 @@ function createHoursPicker(containerId) {
             advancedView.classList.add("hidden");
             simpleView.classList.remove("hidden");
             updateWeekendNote();
+            updateCustomHoursNote();
         },
         // Collapses the advanced per-day list back to the "Working days" summary without
         // touching any day's values - called after a successful Save, since the "Apply
         // changes" button that used to do this navigation was removed (Save is now the
         // only action within this section, so it takes over returning to the collapsed view).
+        // Since the pair shown here is always Monday's regardless, updateCustomHoursNote()
+        // is what keeps a customized Tuesday (say) from silently looking like it never saved.
         collapseToSimple() {
             simpleOpenBtn.value = rows.monday.openTimeBtn.value;
             simpleCloseBtn.value = rows.monday.closeTimeBtn.value;
             advancedView.classList.add("hidden");
             simpleView.classList.remove("hidden");
             updateWeekendNote();
+            updateCustomHoursNote();
         },
         // False if any open day's closing time isn't after its opening time (the
         // dropdowns only ever hold valid times, so this is the one way the picker's own

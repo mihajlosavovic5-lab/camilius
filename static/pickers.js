@@ -257,6 +257,33 @@ function createHoursPicker(mountId, hiddenFieldId) {
     }
     document.addEventListener("site-language-changed", updateWeekendNote);
 
+    // True iff every weekday is open with the exact same hours as Monday - i.e. the
+    // collapsed pair above actually represents the whole week accurately. Shared by
+    // parse() (decides whether to open straight into the advanced view) and
+    // updateCustomHoursNote() (decides whether to warn that it doesn't).
+    function weekdaysAreUniform() {
+        return WEEKDAYS.every((day) => rows[day].checkbox.checked) &&
+            WEEKDAYS.every((day) => rows[day].openSelect.value === rows.monday.openSelect.value &&
+                rows[day].closeSelect.value === rows.monday.closeSelect.value);
+    }
+
+    // Warns that the pair above isn't the whole story whenever a weekday other than
+    // Monday has been customized (different hours, or closed) - collapseToSimple() always
+    // shows Monday's hours here regardless, so without this a customized Tuesday looks
+    // like it silently reverted rather than just being one click away under "Set different
+    // hours for a specific day" below.
+    const customHoursNote = document.createElement("p");
+    customHoursNote.className = "hours-custom-note hidden";
+    customHoursNote.setAttribute("data-i18n", "hoursPicker.customHoursNote");
+    customHoursNote.textContent = t("hoursPicker.customHoursNote");
+    simpleView.appendChild(customHoursNote);
+    // Static text (unlike updateWeekendNote's, which interpolates day names) - the page's
+    // own generic [data-i18n] re-scan on language change already keeps it in sync, same as
+    // customizeLink below, so no dedicated listener is needed here.
+    function updateCustomHoursNote() {
+        customHoursNote.classList.toggle("hidden", weekdaysAreUniform());
+    }
+
     const customizeLink = document.createElement("button");
     customizeLink.type = "button";
     customizeLink.className = "hours-customize-link";
@@ -405,15 +432,13 @@ function createHoursPicker(mountId, hiddenFieldId) {
         // If every weekday came out open with identical hours, the collapsed "Working
         // days" summary already represents this schedule exactly, so keep it collapsed.
         // A closed weekday or differing hours needs the per-day view to show correctly.
-        const allSame = WEEKDAYS.every((day) => rows[day].checkbox.checked) &&
-            WEEKDAYS.every((day) => rows[day].openSelect.value === rows.monday.openSelect.value &&
-                rows[day].closeSelect.value === rows.monday.closeSelect.value);
-        if (allSame) {
+        if (weekdaysAreUniform()) {
             simpleOpenSelect.value = rows.monday.openSelect.value;
             simpleCloseSelect.value = rows.monday.closeSelect.value;
         } else {
             showAdvanced();
         }
+        updateCustomHoursNote();
     }
 
     // True iff every open day's closing time is after its opening time - same rule the
@@ -429,18 +454,22 @@ function createHoursPicker(mountId, hiddenFieldId) {
     // touching any day's values - meant to be called after a successful save, so the
     // section returns to its collapsed default the same way the mobile app's picker does,
     // regardless of whether the saved days actually share the same hours (unlike parse()
-    // above, which opens the advanced view whenever they don't).
+    // above, which opens the advanced view whenever they don't). Since the pair shown here
+    // is always Monday's regardless, updateCustomHoursNote() is what keeps a customized
+    // Tuesday (say) from silently looking like it never saved.
     function collapseToSimple() {
         simpleOpenSelect.value = rows.monday.openSelect.value;
         simpleCloseSelect.value = rows.monday.closeSelect.value;
         advancedView.classList.add("hidden");
         simpleView.classList.remove("hidden");
         updateWeekendNote();
+        updateCustomHoursNote();
     }
 
     if (hiddenField.value.trim()) parse(hiddenField.value);
     sync();
     updateWeekendNote();
+    updateCustomHoursNote();
     return { sync, validate, collapseToSimple };
 }
 
