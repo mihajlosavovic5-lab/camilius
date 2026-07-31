@@ -96,7 +96,8 @@
 
             <label data-i18n="register.prices">Price list</label>
             <input type="hidden" name="price_list" id="settings-price-list" value="{{ business.price_list }}">
-            <div class="price-currency-row" style="justify-content: flex-end;">
+            <div class="price-currency-row">
+                <span data-i18n="pricePicker.currencyLabel">Currency</span>
                 <select id="settings-price-currency"></select>
             </div>
             <div class="price-picker-rows" id="settings-price-picker-mount"></div>
