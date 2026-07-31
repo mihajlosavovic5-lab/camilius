@@ -1406,7 +1406,7 @@ body.auth {
 /* Thin vertical rule between Reconnect and Disconnect when both are shown - same divider
    treatment as the Saturday/Sunday hours summary lines. */
 .field-action-link + .field-action-link { padding-left: 12px; border-left: 1px solid var(--border); }
-.field-action-link-danger { background: none; border: none; padding: 0; margin: 0; font: inherit; color: var(--danger); cursor: pointer; }
+.field-action-link-danger { background: none; border: none; padding: 0; margin: 0; font-family: inherit; color: var(--danger); cursor: pointer; }
 
 /* --- Danger zone --- */
 .danger-zone {
