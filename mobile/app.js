@@ -2898,34 +2898,6 @@ el("settings-phone-verify-btn").addEventListener("click", async () => {
     }
 });
 
-// Export my data (GDPR-style self-serve export) - mirrors the APK-update-download
-// pattern: fetch a short-lived signed link with the Bearer token, then hand the actual
-// download off to the in-app browser (which can't carry that header itself, hence the
-// link-based bridge - see api.py's /api/export-data-link).
-el("settings-export").addEventListener("click", async () => {
-    const button = el("settings-export");
-    const errorBox = el("settings-app-error");
-    errorBox.classList.add("hidden");
-    button.disabled = true;
-    button.textContent = t("settings.exportLoading");
-
-    try {
-        const data = await api("/api/export-data-link");
-        if (capacitorPlugins && capacitorPlugins.Browser) {
-            await capacitorPlugins.Browser.open({ url: data.url });
-        } else {
-            window.open(data.url, "_blank");
-        }
-    } catch (err) {
-        if (err.status === 401) { logout(); return; }
-        errorBox.textContent = err.message || t("settings.exportError");
-        errorBox.classList.remove("hidden");
-    } finally {
-        button.disabled = false;
-        button.textContent = t("settings.export");
-    }
-});
-
 // --- Delete account wizard: warning -> reason -> confirm, three separate screens
 // instead of the old single confirm() dialog (see the 3 screen-delete-* sections in
 // index.html). Reason + optional free-text picked on the middle screen are held here in
@@ -3036,8 +3008,8 @@ function renderSubscriptionScreen() {
 
 // "Choose a plan" opens the website's own Starter/Pro pricing page (built for the web,
 // not duplicated natively) in the in-app browser - same short-lived-signed-link bridge
-// already used for Export my data and Connect Instagram, since the mobile app's Bearer
-// token can't be attached to a request the Browser plugin opens.
+// already used for Connect Instagram, since the mobile app's Bearer token can't be
+// attached to a request the Browser plugin opens.
 async function openChoosePlan() {
     try {
         const data = await api("/api/subscription-link");
