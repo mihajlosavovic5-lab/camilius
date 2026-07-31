@@ -2634,11 +2634,17 @@ function openDetail(conversation) {
     if (isExpired) {
         warningEl.textContent = t("detail.expiredNote");
         warningEl.classList.remove("hidden");
+        // Expired: show the reply first, the expiry note after it (matches the web
+        // dashboard's archived-conversation order). Otherwise the warning stays above
+        // the still-editable reply form (see the non-expired branch below).
+        el("detail-sent-block").insertAdjacentElement("afterend", warningEl);
     } else if (canReply && windowPassed) {
         warningEl.textContent = t("detail.expiryWarning");
         warningEl.classList.remove("hidden");
+        el("detail-pending-block").insertAdjacentElement("beforebegin", warningEl);
     } else {
         warningEl.classList.add("hidden");
+        el("detail-pending-block").insertAdjacentElement("beforebegin", warningEl);
     }
 
     if (canReply) {

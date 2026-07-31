@@ -159,13 +159,13 @@
             {% elif status == 'pending' %}
                 <!-- Archived/Trash: a still-pending conversation has no final_reply yet -
                      show the AI's suggestion read-only rather than final_reply (empty). -->
-                {% if expired_at %}
-                    <div class="alert alert-warning" data-i18n="dashboard.expiredNote">This conversation expired - Instagram only allows replying within 24 hours, so it was archived automatically.</div>
-                {% endif %}
                 <div class="conversation-block">
                     <div class="conversation-label" data-i18n="dashboard.suggestedReply">Suggested reply</div>
                     <p class="reply">{{ suggested_reply }}</p>
                 </div>
+                {% if expired_at %}
+                    <div class="alert alert-warning" data-i18n="dashboard.expiredNote">This conversation expired - Instagram only allows replying within 24 hours, so it was archived automatically.</div>
+                {% endif %}
             {% else %}
                 <div class="conversation-block">
                     <div class="conversation-label" data-i18n="dashboard.sentReply">Sent reply</div>
