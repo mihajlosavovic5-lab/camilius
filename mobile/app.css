@@ -1022,6 +1022,9 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
    gap under the page title than Inbox/Schedule get. Catches it via the sibling that's
    actually there instead of assuming no such siblings exist. */
 .alert + .block-label { margin-top: 0; }
+/* Common questions (Help screen) - scrolls after the first couple of items instead of
+   pushing the rest of the screen down; same treatment as the web app_settings page. */
+.faq-scroll { max-height: 240px; overflow-y: auto; -webkit-overflow-scrolling: touch; }
 .question { white-space: pre-wrap; margin: 0; padding: 13px 14px; background: var(--surface); border-radius: 10px; border-left: 3px solid var(--border); font-size: 15.5px; }
 .reply { white-space: pre-wrap; margin: 0; padding: 13px 14px; background: var(--success-bg); border-radius: 10px; border-left: 3px solid var(--success); font-size: 15.5px; }
 /* Expired conversation detail: the expiry-warning alert is moved (via JS in openDetail)
