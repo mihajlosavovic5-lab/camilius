@@ -217,26 +217,40 @@ function initSettingsPickers() {
     // Runs last, once every picker above (including the collapseToSimple() call, which can
     // shorten Working hours a lot) has already settled the page's final height - restoring
     // any earlier than that would just get overwritten by the layout still shifting under
-    // it. Only fires right after a boosted Save swap (see initScrollPreservation below for
-    // where this gets set); a plain page load never sets it, so this is a no-op then.
+    // it. Only fires right after a boosted Save swap (see initScrollPreservation above for
+    // where these get set); a plain page load never sets them, so this is a no-op then.
+    // The min-height lock comes off last, after the scroll position it was protecting is
+    // already back where it should be - releasing it any earlier would let the page shrink
+    // out from under that exact restore.
     if (typeof window.__profileScrollY === "number") {
         window.scrollTo(0, window.__profileScrollY);
         window.__profileScrollY = null;
     }
+    if (window.__profileMinHeightLocked) {
+        document.body.style.minHeight = "";
+        window.__profileMinHeightLocked = false;
+    }
 }
 
 // hx-boost keeps Save from doing a real page navigation (see the <form> tag's own comment
-// above), but the resulting swap can still change the page's height enough (mainly the
-// hours picker's collapseToSimple() call) that the browser's own scroll position ends up
-// clamped to a different spot than where the click happened - reads as Save yanking you
-// back toward the top. window.__profileScrollY survives the swap (it's a plain global, and
-// the swap only replaces DOM content, not the JS realm) so the value set here on submit is
-// still there for initSettingsPickers' restore step above once the new body has settled.
+// above), but the swapped-in HTML's picker mounts (hours/price/upsell) start out empty -
+// the pickers that fill them back in only run once this script block re-executes, a beat
+// after the swap itself lands - so the page is genuinely shorter for a moment, the browser
+// clamps window.scrollY to fit, and only then does the restore below put it back. That
+// whole detour (jump away, then back) is what's visible as Save "pulling" the page around,
+// even though the end state is right. Locking body's min-height to its pre-submit value for
+// that same window keeps the page from ever actually getting shorter, so there's nothing
+// for the browser to clamp - the scroll position simply never has to move.
+// window.__profileScrollY/__profileMinHeightLocked survive the swap (plain globals - the
+// swap only replaces DOM content, not the JS realm), so the values set here on submit are
+// still there for initSettingsPickers' restore step once the new body has settled.
 function initScrollPreservation() {
     const form = document.getElementById("settings-form");
     if (!form) return;
     form.addEventListener("submit", () => {
         window.__profileScrollY = window.scrollY;
+        document.body.style.minHeight = document.body.scrollHeight + "px";
+        window.__profileMinHeightLocked = true;
     });
 }
 
