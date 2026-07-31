@@ -37,8 +37,13 @@
          move between pages without a hard reload - the server-side view is untouched, and
          the swap already re-runs this file's own <script> block (see the comment on
          initSettingsPickers below), so pickers/save-button/overlay all re-init exactly as
-         they do today. -->
-    <form method="POST" id="settings-form" hx-boost="true">
+         they do today.
+
+         hx-swap="show:none" turns off boosted requests' own default of scrolling the page
+         back to the top after swapping (htmx.config.scrollIntoViewOnBoost, on by default -
+         fine for a real nav between pages, not for staying on this same one) - see the
+         initScrollPreservation() comment below for the rest of this same fix. -->
+    <form method="POST" id="settings-form" hx-boost="true" hx-swap="show:none">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
         <div class="card profile-section">
@@ -208,6 +213,31 @@ function initSettingsPickers() {
     safeInit(initSaveSuccessOverlay);
     safeInit(initSettingsUsernameAvailability);
     safeInit(initDisconnectInstagramModal);
+    safeInit(initScrollPreservation);
+    // Runs last, once every picker above (including the collapseToSimple() call, which can
+    // shorten Working hours a lot) has already settled the page's final height - restoring
+    // any earlier than that would just get overwritten by the layout still shifting under
+    // it. Only fires right after a boosted Save swap (see initScrollPreservation below for
+    // where this gets set); a plain page load never sets it, so this is a no-op then.
+    if (typeof window.__profileScrollY === "number") {
+        window.scrollTo(0, window.__profileScrollY);
+        window.__profileScrollY = null;
+    }
+}
+
+// hx-boost keeps Save from doing a real page navigation (see the <form> tag's own comment
+// above), but the resulting swap can still change the page's height enough (mainly the
+// hours picker's collapseToSimple() call) that the browser's own scroll position ends up
+// clamped to a different spot than where the click happened - reads as Save yanking you
+// back toward the top. window.__profileScrollY survives the swap (it's a plain global, and
+// the swap only replaces DOM content, not the JS realm) so the value set here on submit is
+// still there for initSettingsPickers' restore step above once the new body has settled.
+function initScrollPreservation() {
+    const form = document.getElementById("settings-form");
+    if (!form) return;
+    form.addEventListener("submit", () => {
+        window.__profileScrollY = window.scrollY;
+    });
 }
 
 // Replaces the native confirm() that used to gate this submit (bare browser/OS popup,
