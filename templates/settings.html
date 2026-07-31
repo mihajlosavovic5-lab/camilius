@@ -232,7 +232,13 @@ function initSettingsPickers() {
     // already back where it should be - releasing it any earlier would let the page shrink
     // out from under that exact restore.
     if (typeof window.__profileScrollY === "number") {
-        window.scrollTo(0, window.__profileScrollY);
+        // behavior: "instant" (not the 2-arg window.scrollTo(0, y) form) - style.css sets
+        // html { scroll-behavior: smooth } for anchor-link scrolling elsewhere, which the
+        // 2-arg form inherits too, so this was animating the correction over ~300ms instead
+        // of snapping straight to it - the actual "pulled down, then eased back" motion
+        // that was visible, confirmed with instrumented traces of window.scrollY during a
+        // real Save click. The options-object form's own behavior overrides the CSS.
+        window.scrollTo({ top: window.__profileScrollY, left: 0, behavior: "instant" });
         window.__profileScrollY = null;
     }
     if (window.__profileMinHeightLocked) {
