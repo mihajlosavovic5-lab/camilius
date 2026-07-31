@@ -188,8 +188,14 @@ button { font-family: inherit; }
    present - the back button is taken out of flow (see .back-btn below) so it doesn't
    skew where "centered" lands. */
 .topbar:not(.topbar-detail) { position: relative; }
+/* top:50% alone centers on the FULL padded box, but that box's top/bottom padding
+   isn't symmetric (24px + safe-top vs. just 14px, see .topbar above) - centering on
+   the whole box sits the button (10px + safe-top)/2 above where the title's own text
+   actually centers, which grows very visible on devices with a tall status-bar inset.
+   The extra offset compensates for exactly that gap so the button lines up with the
+   title regardless of safe-top. */
 .topbar:not(.topbar-detail) .back-btn {
-    position: absolute; left: 0; top: 50%; transform: translateY(-50%); z-index: 1;
+    position: absolute; left: 0; top: calc(50% + 5px + (var(--safe-top) / 2)); transform: translateY(-50%); z-index: 1;
 }
 .topbar-title { display: flex; align-items: center; justify-content: center; gap: 10px; flex: 1; }
 /* Same serif brand font as the login screen's "Camilius" wordmark (.brand-name) instead
