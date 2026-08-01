@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
 <title>Camilius</title>
-<link rel="stylesheet" href="app.css?v=bf8f1b692076">
+<link rel="stylesheet" href="app.css?v=ac5697feada3">
 </head>
 <body>
 
@@ -406,25 +406,44 @@
 
   <!-- CREATE ACCOUNT -->
   <section id="screen-register" class="screen screen-register">
-    <header class="topbar">
-      <button class="back-btn" id="register-back" aria-label="Back">‹</button>
-      <div class="topbar-title"><div><h1 data-i18n="register.title">Create account</h1></div></div>
-    </header>
     <form id="register-form" class="register-form">
       <div class="detail-body">
-        <div id="register-error" class="alert alert-error hidden"></div>
-
-        <!-- Persistent wizard heading (shown above every step, not just the first) -
-             same wording/role as the web register page's .register-wizard-heading
-             (templates/register.html), which stays put across all three steps instead
-             of being replaced by step-specific copy. -->
-        <div class="register-step-intro">
-          <h1 data-i18n="register.headline">Register your business</h1>
-          <p class="screen-subtitle" data-i18n="register.headlineSubtitle">You can change all of these fields later in settings.</p>
+        <!-- Same brand moment (icon + wordmark) the website's register page opens
+             with (.auth-brand in templates/register.html) - the app used to jump
+             straight to a plain utility topbar here instead. -->
+        <div class="register-brand">
+          <span class="brand-mark register-brand-icon"></span>
+          <h1 class="register-brand-name">Camilius</h1>
         </div>
 
-        <div class="register-steps-viewport" id="register-steps-viewport">
-          <div class="register-steps-track" id="register-steps-track">
+        <!-- Elevated white card wrapping the whole wizard (heading through the step
+             dots/arrow), same look as the website's .auth-card-wide - the back button
+             moves in next to the heading (.register-card-top, matching the website's
+             .register-wizard-top) instead of living in its own separate topbar above.
+             Still ends before .register-bottom-bar below, which stays pinned at the
+             true bottom of the screen (outside this card) so the step arrow/submit
+             button are always within thumb reach regardless of step content length or
+             an open keyboard - a website page can rely on the whole document
+             scrolling to reach a button; a native screen can't assume that, so this
+             is the one deliberate divergence from the website's "everything scrolls
+             inside one card" layout. -->
+        <div class="register-card">
+          <div id="register-error" class="alert alert-error hidden"></div>
+
+          <!-- Persistent wizard heading (shown above every step, not just the first) -
+               same wording/role as the web register page's .register-wizard-heading
+               (templates/register.html), which stays put across all three steps instead
+               of being replaced by step-specific copy. -->
+          <div class="register-card-top">
+            <button type="button" class="back-btn" id="register-back" aria-label="Back">‹</button>
+            <div class="register-step-intro">
+              <h1 data-i18n="register.headline">Register your business</h1>
+              <p class="screen-subtitle" data-i18n="register.headlineSubtitle">You can change all of these fields later in settings.</p>
+            </div>
+          </div>
+
+          <div class="register-steps-viewport" id="register-steps-viewport">
+            <div class="register-steps-track" id="register-steps-track">
             <div class="register-step" id="register-step-1">
               <div class="floating-field">
                 <input type="text" id="register-name" placeholder=" " required>
@@ -525,6 +544,7 @@
               </label>
             </div>
           </div>
+        </div>
         </div>
       </div>
 
@@ -1325,7 +1345,7 @@
   </button>
 </nav>
 
-<script src="i18n.js?v=bf8f1b692076"></script>
-<script src="app.js?v=bf8f1b692076"></script>
+<script src="i18n.js?v=ac5697feada3"></script>
+<script src="app.js?v=ac5697feada3"></script>
 </body>
 </html>
