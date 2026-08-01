@@ -42,6 +42,17 @@
     <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
     <meta name="theme-color" content="#d69410">
     <link rel="apple-touch-icon" href="{{ url_for('static', filename='icon-512.png') }}">
+    <!-- Preload the Inter/Lora subsets almost every page actually renders text with
+         (latin + cyrillic - Serbian needs both scripts), so the browser fetches them
+         in parallel with style.css instead of only discovering them once the CSS is
+         parsed. Without this, font-display: swap (below) briefly paints text in the
+         fallback system font and then swaps to Inter/Lora once the woff2 lands - since
+         the two have different metrics, that swap reads as the font "growing" right
+         after the page opens. Preloading shrinks that window to (near) nothing. -->
+    <link rel="preload" href="{{ url_for('static', filename='fonts/inter-latin.woff2') }}" as="font" type="font/woff2" crossorigin>
+    <link rel="preload" href="{{ url_for('static', filename='fonts/inter-cyrillic.woff2') }}" as="font" type="font/woff2" crossorigin>
+    <link rel="preload" href="{{ url_for('static', filename='fonts/lora-latin.woff2') }}" as="font" type="font/woff2" crossorigin>
+    <link rel="preload" href="{{ url_for('static', filename='fonts/lora-cyrillic.woff2') }}" as="font" type="font/woff2" crossorigin>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v={{ static_versions['style.css'] }}">
     <!-- htmx (vendored, not CDN-loaded - see static/htmx.min.js) powers hx-boost on the
          main nav (see _nav.html): clicking Conversations/Profile/Settings/Subscription
