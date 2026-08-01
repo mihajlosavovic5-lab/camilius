@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
 <title>Camilius</title>
-<link rel="stylesheet" href="app.css?v=fc579228697d">
+<link rel="stylesheet" href="app.css?v=dda5a4d2d982">
 </head>
 <body>
 
@@ -408,30 +408,26 @@
   <section id="screen-register" class="screen screen-register">
     <form id="register-form" class="register-form">
       <div class="detail-body">
-        <!-- Elevated white card wrapping the whole wizard (heading through the step
-             dots/arrow), same look as the website's .auth-card-wide - the back button
-             moves in next to the heading (.register-card-top, matching the website's
-             .register-wizard-top) instead of living in its own separate topbar above.
-             Still ends before .register-bottom-bar below, which stays pinned at the
-             true bottom of the screen (outside this card) so the step arrow/submit
-             button are always within thumb reach regardless of step content length or
-             an open keyboard - a website page can rely on the whole document
-             scrolling to reach a button; a native screen can't assume that, so this
-             is the one deliberate divergence from the website's "everything scrolls
-             inside one card" layout. -->
+        <!-- Groups the back button through the step dots/arrow - no background/border
+             of its own (see .register-card in app.css). Still ends before
+             .register-bottom-bar below, which stays pinned at the true bottom of the
+             screen (outside this card) so the step arrow/submit button are always
+             within thumb reach regardless of step content length or an open keyboard. -->
         <div class="register-card">
           <div id="register-error" class="alert alert-error hidden"></div>
+
+          <!-- Back button sits in its own corner, above the heading, not inline next
+               to it - same corner position it had back when this screen still used a
+               plain .topbar. -->
+          <button type="button" class="back-btn register-card-back" id="register-back" aria-label="Back">‹</button>
 
           <!-- Persistent wizard heading (shown above every step, not just the first) -
                same wording/role as the web register page's .register-wizard-heading
                (templates/register.html), which stays put across all three steps instead
                of being replaced by step-specific copy. -->
-          <div class="register-card-top">
-            <button type="button" class="back-btn" id="register-back" aria-label="Back">‹</button>
-            <div class="register-step-intro">
-              <h1 data-i18n="register.headline">Register your business</h1>
-              <p class="screen-subtitle" data-i18n="register.headlineSubtitle">You can change all of these fields later in settings.</p>
-            </div>
+          <div class="register-step-intro">
+            <h1 data-i18n="register.headline">Register your business</h1>
+            <p class="screen-subtitle" data-i18n="register.headlineSubtitle">You can change all of these fields later in settings.</p>
           </div>
 
           <div class="register-steps-viewport" id="register-steps-viewport">
@@ -1337,7 +1333,7 @@
   </button>
 </nav>
 
-<script src="i18n.js?v=fc579228697d"></script>
-<script src="app.js?v=fc579228697d"></script>
+<script src="i18n.js?v=dda5a4d2d982"></script>
+<script src="app.js?v=dda5a4d2d982"></script>
 </body>
 </html>

@@ -539,23 +539,20 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
 /* No background/border/shadow of its own (tried the website register page's
    .auth-card/.auth-card-wide treatment here first - a white panel behind the heading
    and fields - but it read as a large, pointless "field" of its own sitting behind
-   the real ones). Purely a layout container now: groups the heading through the step
-   content so .register-card-top/.register-steps-viewport can lay out against it,
-   with the fields themselves sitting directly on the screen's own gradient
-   background, same as every other screen in the app. */
+   the real ones). Purely a layout container now: groups the back button through the
+   step content, with the fields themselves sitting directly on the screen's own
+   gradient background, same as every other screen in the app. */
 .register-card { padding: 0; }
-/* Back button sits next to the heading now (matching the website's own
-   .register-wizard-top/.register-back-btn), not in its own separate topbar above -
-   .back-btn is the same 34px round button used everywhere else in the app. */
-.register-card-top { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 4px; }
+/* Back sits in its own corner above the heading again (its original spot from when
+   this screen still had a plain .topbar), not inline next to the heading - .back-btn
+   is the same 34px round button used everywhere else in the app. */
+.register-card-back { margin-bottom: 10px; }
 /* Persistent wizard heading, shown above every step (not just step 1) - same wording
    and role as the web register page's .register-wizard-heading (templates/
    register.html), which stays fixed across all three steps instead of being swapped
-   for step-specific copy. Left-aligned next to the back button now instead of
-   centered on its own - same reasoning as .register-wizard-heading on the website:
-   color is plain --text (not --primary) to match the website's heading, which is
-   just a bare <h1> with no color override of its own. */
-.register-step-intro { flex: 1; min-width: 0; margin-bottom: 18px; }
+   for step-specific copy. Color is plain --text (not --primary) to match the
+   website's heading, which is just a bare <h1> with no color override of its own. */
+.register-step-intro { margin-bottom: 18px; }
 .register-step-intro h1 { font-family: var(--font-serif); font-weight: 700; font-size: 21px; margin: 4px 0 4px; color: var(--text); }
 .register-step-intro .screen-subtitle { margin: 0; }
 
