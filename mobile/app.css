@@ -489,6 +489,26 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
 .password-toggle.is-visible { color: var(--primary-ink); }
 .password-toggle.is-visible .password-toggle-slash { opacity: 0; }
 
+/* Copy-to-clipboard button inside the Instagram account field (Profile) - same inside-the-
+   field icon-button mechanic as .password-toggle above, just always the same icon (no
+   is-visible-style state swap) and triggering a clipboard write instead of a reveal.
+   Positioned identically so it doesn't need its own padding-right tweak beyond reusing
+   .floating-field-password's numbers under a field-specific class. */
+.floating-field-instagram input { padding-right: 40px; }
+.floating-field-instagram label { right: 38px; }
+.instagram-copy-btn {
+    position: absolute; top: 0; right: 4px; height: 100%; width: 34px;
+    display: none; align-items: center; justify-content: center;
+    background: none; border: none; padding: 0; margin: 0; cursor: pointer;
+    color: var(--text-muted);
+}
+/* Hidden until there's a username to copy - toggled alongside the Disconnect button by
+   updateInstagramDisconnectVisibility in app.js (nothing to copy right after a failed/
+   cancelled connect, or right after disconnecting). */
+.instagram-copy-btn.has-value { display: flex; }
+.instagram-copy-btn:active { color: var(--primary-ink); }
+.instagram-copy-icon { width: 18px; height: 18px; }
+
 /* Business description (FAQ) field - same floating-label mechanic as the inputs above,
    but the label anchors to the top of the box instead of vertically centering, since a
    textarea has several lines of room below it for the value. */
@@ -1219,6 +1239,53 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
 .lang-modal.open .confirm-modal-sheet { transform: translate(-50%, -50%) scale(1); }
 .confirm-modal-message { margin: 0 0 20px; color: var(--text); font-size: 15px; line-height: 1.5; }
 .confirm-modal-actions { display: flex; justify-content: flex-end; gap: 10px; }
+
+/* --- Instagram handle zoom (Profile) - centered like .confirm-modal-sheet, but its
+   resting (pre-open) transform is driven by --ig-zoom-x/-y/-scale (set from JS just
+   before it's shown) instead of a fixed small offset, so the open animation actually
+   travels from the tapped field's on-screen position instead of just fading in in place.
+   The custom properties default to "no offset, full size" (0px, 0px, 1) rather than some
+   placeholder shrink - initInstagramZoomModal (app.js) reads this element's
+   getBoundingClientRect() *before* setting them, to get its natural centered/full-size
+   box as the animation's target, and a shrink-by-default fallback would get measured
+   already shrunk (transforms apply before layout box queries), throwing off the ratio
+   used to compute how much the source field should scale up to reach it. */
+.ig-zoom-sheet {
+    left: 50%; right: auto; top: 50%; bottom: auto;
+    width: min(300px, calc(100% - 56px)); max-height: 70vh;
+    padding: 28px 24px; display: flex; flex-direction: column; align-items: center; gap: 12px; text-align: center;
+    transform-origin: center;
+    transform: translate(calc(-50% + var(--ig-zoom-x, 0px)), calc(-50% + var(--ig-zoom-y, 0px))) scale(var(--ig-zoom-scale, 1));
+    /* Smooth ease-out (no overshoot) rather than the bounce every other .lang-modal-sheet
+       uses - that bounce suits a small near-1 scale nudge, but this sheet travels a much
+       larger distance (from wherever the field sits on screen out to centered/full-size),
+       where a spring overshoot would read as a jarring wobble instead of a clean
+       zoom-to-center. */
+    transition: transform .42s cubic-bezier(.16,1,.3,1), opacity .3s ease;
+}
+.lang-modal.open .ig-zoom-sheet { transform: translate(-50%, -50%) scale(1); }
+/* Applied only for the JS's synchronous "measure source, set the from-pose" step, then
+   removed before .open goes on - see initInstagramZoomModal. Without it, setting
+   --ig-zoom-x/-y/-scale would itself be an animated change (this element already has a
+   transition on transform), immediately fighting the real open animation queued a frame
+   later. */
+.ig-zoom-sheet.no-transition { transition: none !important; }
+/* Decoupled from the shared .lang-modal.open visibility toggle (which every other sheet
+   uses directly) - this needs its own "visible" step so the from-pose above gets one real
+   frame to paint before .open (added a frame later, by JS) starts the actual transition;
+   otherwise both style changes land in the same frame and the sheet just appears already
+   open with no visible motion. */
+#ig-zoom-modal.visible { visibility: visible; pointer-events: auto; }
+.ig-zoom-icon {
+    width: 52px; height: 52px; border-radius: 16px; flex-shrink: 0;
+    background: linear-gradient(135deg, #f9ce34, #ee2a7b 55%, #6228d7);
+    display: flex; align-items: center; justify-content: center; color: #fff;
+    /* Held back at .7 while the sheet itself is mid-open, so the badge finishes growing a
+       beat after the sheet settles instead of both landing in lockstep. */
+    transform: scale(.7); transition: transform .3s cubic-bezier(.22,.9,.28,1.2) .08s;
+}
+.lang-modal.open .ig-zoom-icon { transform: scale(1); }
+.ig-zoom-handle { font-size: 18px; font-weight: 700; color: var(--text); word-break: break-word; }
 
 /* Per-appointment duration picker inside the Book sheet - lets a single booking run
    longer or shorter than the business's default slot length (e.g. a 90-minute color

@@ -2000,16 +2000,93 @@ async function openInstagramConnectBrowser(context, errorBoxId) {
     }
 }
 
-// Shows the "Disconnect" button only once an account is actually connected - there's
-// nothing to disconnect right after a failed/cancelled reconnect attempt, and Profile is
-// unreachable before the very first connection (see enterOrGateOnInstagram) so this
-// only ever needs to react to a successful reconnect or a disconnect happening here.
+// Shows the "Disconnect" button, and the copy icon inside the field itself, only once an
+// account is actually connected - there's nothing to disconnect or copy right after a
+// failed/cancelled reconnect attempt, and Profile is unreachable before the very first
+// connection (see enterOrGateOnInstagram) so this only ever needs to react to a successful
+// reconnect or a disconnect happening here.
 function updateInstagramDisconnectVisibility(instagramUsername) {
     el("settings-instagram-disconnect-btn").classList.toggle("hidden", !instagramUsername);
+    el("settings-instagram-copy-btn").classList.toggle("has-value", !!instagramUsername);
 }
 
 el("connect-instagram-btn").addEventListener("click", () => openInstagramConnectBrowser("gate", "connect-error"));
 el("settings-instagram-reconnect-btn").addEventListener("click", () => openInstagramConnectBrowser("profile", null));
+
+el("settings-instagram-copy-btn").addEventListener("click", async () => {
+    const value = el("settings-instagram-account").value;
+    if (!value) return;
+    try {
+        await navigator.clipboard.writeText(value);
+    } catch (e) {
+        // Clipboard API can be unavailable in some WebView configs - same manual
+        // select-all-and-copy fallback via a temporary input as help-copy-btn uses.
+        const temp = document.createElement("input");
+        temp.value = value;
+        document.body.appendChild(temp);
+        temp.select();
+        document.execCommand("copy");
+        document.body.removeChild(temp);
+    }
+    if (capacitorPlugins && capacitorPlugins.Haptics) capacitorPlugins.Haptics.impact({ style: "LIGHT" });
+    showToast(t("help.copied"));
+});
+
+// Tapping the (read-only) Instagram account field zooms its value from its own on-screen
+// position into a centered card - handy for reading a long username in full on a small
+// phone screen, same zoom-from-source treatment as the website's Profile page. Wired once
+// here at load, not per-navigation - unlike settings.html's htmx-reloaded version of this,
+// this whole app is a single page, so the field and modal elements never get replaced.
+(function initInstagramZoomModal() {
+    const valueEl = el("settings-instagram-account");
+    const modal = el("ig-zoom-modal");
+    const sheet = el("ig-zoom-sheet");
+    const handleEl = el("ig-zoom-handle");
+    const backdrop = el("ig-zoom-backdrop");
+
+    function open() {
+        const value = valueEl.value;
+        if (!value) return;
+        handleEl.textContent = value;
+        const sourceRect = valueEl.getBoundingClientRect();
+        const sheetRect = sheet.getBoundingClientRect();
+        const dx = (sourceRect.left + sourceRect.width / 2) - (sheetRect.left + sheetRect.width / 2);
+        const dy = (sourceRect.top + sourceRect.height / 2) - (sheetRect.top + sheetRect.height / 2);
+        // Clamped so a very short field doesn't shrink the sheet to an illegible sliver,
+        // and a freak huge field never overshoots 1.
+        const scale = Math.max(.22, Math.min(.55, sourceRect.height / sheetRect.height));
+        // no-transition while these get set (and while .visible goes on) - see
+        // .ig-zoom-sheet.no-transition in app.css for why: without it, this write is
+        // itself an animated change on an element that already has a transform
+        // transition, which would immediately fight the real open animation queued below.
+        sheet.classList.add("no-transition");
+        sheet.style.setProperty("--ig-zoom-x", `${dx}px`);
+        sheet.style.setProperty("--ig-zoom-y", `${dy}px`);
+        sheet.style.setProperty("--ig-zoom-scale", scale.toFixed(3));
+        modal.classList.add("visible");
+        void sheet.offsetWidth; // forces the "from" pose above to commit before it's un-frozen
+        sheet.classList.remove("no-transition");
+        // Only now, one real frame later, does adding .open (the actual, transitioned
+        // change to identity/full-opacity) have a committed "from" state to animate from.
+        requestAnimationFrame(() => modal.classList.add("open"));
+    }
+    function close() {
+        if (!modal.classList.contains("open")) return;
+        modal.classList.remove("open");
+        const onTransitionEnd = (e) => {
+            if (e.target !== sheet || e.propertyName !== "transform") return;
+            sheet.removeEventListener("transitionend", onTransitionEnd);
+            modal.classList.remove("visible");
+        };
+        sheet.addEventListener("transitionend", onTransitionEnd);
+    }
+
+    valueEl.addEventListener("click", open);
+    backdrop.addEventListener("click", close);
+    // Tapping the zoomed handle itself closes it too - same "tap to dismiss" reflex as a
+    // photo lightbox, and the sheet has nothing else in it to tap.
+    sheet.addEventListener("click", close);
+})();
 
 function closeInstagramDisconnectModal() {
     el("instagram-disconnect-modal").classList.remove("open");
