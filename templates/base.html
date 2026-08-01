@@ -145,6 +145,171 @@
          means it's already loaded - and never reloaded - by the time any page's own script
          runs, on the first load or any later swap. -->
     <script src="{{ url_for('static', filename='pickers.js') }}?v={{ static_versions['pickers.js'] }}" defer></script>
+    <!-- Smart install banner init (Faza 5, extended Faza 7 with a real beforeinstallprompt
+         PWA install; the banner's own markup is in <body>, right where it renders - see
+         #mobile-install-banner below). Lives here in <head>, not next to that markup, for
+         the same reason as pickers.js above: a hx-boosted tab switch swaps <body>, and a
+         <script> re-inserted there DOES mostly re-run for a normal forward boosted fetch -
+         but browser back/forward that hits htmx's own client-side history cache restores
+         the cached HTML directly without re-running any script at all, silently leaving
+         the banner stuck on whatever state an earlier tab left it in (hidden, if that tab
+         had scrolled past it or been dismissed). Hooking htmx's own htmx:afterSettle
+         (forward boost) and htmx:historyRestore (back/forward from cache) events instead
+         covers every navigation path the same way, from one listener that's only ever
+         registered once. -->
+    <script>
+        (function () {
+            var deferredInstallPrompt = null;
+            var scrollLinked = false;
+            var reserved = false;
+            var fullHeight = 0;
+            var ticking = false;
+
+            // Captured as early as possible so we don't miss the event. preventDefault()
+            // suppresses the browser's own automatic mini-infobar - "presretni" (intercept) -
+            // so our own banner is the only install prompt shown; doesn't affect desktop
+            // Chrome/Edge's separate omnibox install icon, which keeps working on its own.
+            window.addEventListener("beforeinstallprompt", function (event) {
+                event.preventDefault();
+                deferredInstallPrompt = event;
+            });
+            window.addEventListener("appinstalled", function () {
+                deferredInstallPrompt = null;
+                hideInstallBanner();
+            });
+
+            // Hides the banner AND resets --install-banner-h back to 0 - anything anchored
+            // off that variable (the fixed header, the language button) tracks the banner's
+            // real height only while it's shown; without resetting it here, dismissing the
+            // banner left a dead gap where it used to be, with everything below still
+            // pushed down by its old height.
+            function hideInstallBanner() {
+                var banner = document.getElementById("mobile-install-banner");
+                scrollLinked = false;
+                document.documentElement.style.setProperty("--install-banner-h", "0px");
+                if (banner) {
+                    banner.classList.remove("shown");
+                    // Let the slide-out play before fully removing it from layout/the a11y
+                    // tree, instead of an abrupt display:none snap mid-animation.
+                    setTimeout(function () { banner.classList.add("hidden"); }, 400);
+                }
+            }
+
+            // Runs on the real first load and again on every later tab switch (see this
+            // block's own comment above) - shown every time, even if dismissed on a
+            // previous one, deliberately not remembered via localStorage (user wants it to
+            // reappear every time rather than being suppressed forever after one dismissal).
+            function initInstallBanner() {
+                var isStandalone = window.matchMedia("(display-mode: standalone)").matches
+                    || window.navigator.standalone === true
+                    || document.referrer.indexOf("android-app://") === 0;
+                if (isStandalone) return;
+                if (!/Android/i.test(navigator.userAgent)) return;
+                if (window.location.pathname === "/download" || window.location.pathname === "/intro") return;
+                // The Instagram OAuth callback page (instagram_connect_mobile.html) is a
+                // transitional "returning you to Camilius..." screen shown inside the app's
+                // own in-app browser tab mid-flow - the visitor already has the app open, so
+                // "get the app" is nonsensical here, and the banner's height was throwing
+                // off that page's otherwise-centered layout (see .auth-wrapper in style.css).
+                if (window.location.pathname === "/instagram-oauth-callback") return;
+
+                var banner = document.getElementById("mobile-install-banner");
+                if (!banner) return;
+                banner.classList.remove("hidden");
+                // The site-wide language button is fixed top-right on every page - this
+                // pushes it (and anything else anchored the same way) down below the banner
+                // instead of the two overlapping, without hardcoding the banner's height
+                // (it can wrap to two lines on a narrow phone).
+                fullHeight = banner.offsetHeight;
+                // The banner is a floating notification (position: fixed, see style.css),
+                // shown/hidden with its own slide+fade via the .shown class below - it no
+                // longer scrolls away as part of the page, so its appearance is a proper
+                // animated event every time, at load and every time the user scrolls back
+                // to the top, not just a side effect of native scrolling. --install-banner-h
+                // still tracks the same discrete "reserved or not" state (matching #lp-header/
+                // .site-lang-select-btn/.navbar/body's own padding-top) so nothing needs its
+                // own duplicate scroll logic. Always starts reserved/shown on this (re-)init,
+                // regardless of scrollY - it may not be 0 yet on a fresh tab switch, but the
+                // scroll listener below still hides/reshows it normally from here on.
+                scrollLinked = true;
+                reserved = true;
+                document.documentElement.style.setProperty("--install-banner-h", fullHeight + "px");
+                // Double rAF: guarantees the browser has painted the starting
+                // (translateY(-100%), opacity: 0) state from a plain class-removal before
+                // flipping to .shown - otherwise the two style changes can get coalesced
+                // into one and the slide-in never plays.
+                requestAnimationFrame(function () {
+                    requestAnimationFrame(function () {
+                        banner.classList.add("shown");
+                    });
+                });
+
+                // Re-bound on every (re-)init since a tab switch renders fresh Install/
+                // Dismiss button elements each time - old listeners on the old (now
+                // detached) buttons are simply discarded along with them.
+                var dismissBtn = document.getElementById("mobile-install-banner-dismiss");
+                if (dismissBtn) dismissBtn.addEventListener("click", hideInstallBanner);
+                var installBtn = document.getElementById("mobile-install-banner-btn");
+                if (installBtn) {
+                    installBtn.addEventListener("click", function (event) {
+                        // No captured prompt (unsupported browser, or the event hasn't fired
+                        // yet) - let the link fall through to the normal /download APK page.
+                        if (!deferredInstallPrompt) return;
+                        event.preventDefault();
+                        var promptEvent = deferredInstallPrompt;
+                        deferredInstallPrompt = null;
+                        promptEvent.prompt();
+                        promptEvent.userChoice.finally(hideInstallBanner);
+                    });
+                }
+            }
+
+            // initInstallBanner can run before static/site-i18n.js (a deferred script)
+            // swaps the banner's text from its English default to the visitor's actual
+            // language - which can wrap to a different number of lines (e.g. Serbian's
+            // longer string wraps to 3 lines instead of English's 2 on a narrow phone),
+            // silently invalidating the fullHeight measured above. Exposed globally so
+            // applyTranslations() can call this right after it changes the text,
+            // re-measuring against the real rendered banner and refreshing both fullHeight
+            // (so the scroll handler below stays correct too) and --install-banner-h itself.
+            window.refreshInstallBannerHeight = function () {
+                var banner = document.getElementById("mobile-install-banner");
+                if (!banner || !scrollLinked) return;
+                fullHeight = banner.offsetHeight;
+                if (reserved) {
+                    document.documentElement.style.setProperty("--install-banner-h", fullHeight + "px");
+                }
+            };
+
+            // Registered once (not per tab switch) - reads the current banner element
+            // fresh on every tick instead of closing over whichever one happened to exist
+            // when this was set up, so it keeps working correctly across every swap.
+            window.addEventListener("scroll", function () {
+                if (!scrollLinked || ticking) return;
+                ticking = true;
+                requestAnimationFrame(function () {
+                    var banner = document.getElementById("mobile-install-banner");
+                    var y = window.scrollY;
+                    if (banner) {
+                        if (reserved && y >= fullHeight) {
+                            reserved = false;
+                            document.documentElement.style.setProperty("--install-banner-h", "0px");
+                            banner.classList.remove("shown");
+                        } else if (!reserved && y <= 0) {
+                            reserved = true;
+                            document.documentElement.style.setProperty("--install-banner-h", fullHeight + "px");
+                            banner.classList.add("shown");
+                        }
+                    }
+                    ticking = false;
+                });
+            }, { passive: true });
+
+            document.addEventListener("DOMContentLoaded", initInstallBanner);
+            document.addEventListener("htmx:afterSettle", initInstallBanner);
+            document.addEventListener("htmx:historyRestore", initInstallBanner);
+        })();
+    </script>
 </head>
 <body class="{% block body_class %}{% endblock %}">
 {% if request.endpoint != 'instagram_oauth_callback' %}
@@ -182,160 +347,6 @@
     <a href="{{ url_for('download') }}" class="mobile-install-banner-btn" id="mobile-install-banner-btn" data-i18n="installBanner.install">Install</a>
     <button type="button" class="mobile-install-banner-dismiss" id="mobile-install-banner-dismiss" aria-label="Dismiss">&times;</button>
 </div>
-<script>
-    // Captured as early as possible so we don't miss the event. preventDefault()
-    // suppresses the browser's own automatic mini-infobar - "presretni" (intercept) -
-    // so our own banner below is the only install prompt the user sees; it does not
-    // affect desktop Chrome/Edge's separate omnibox install icon, which keeps working
-    // on its own regardless of this page's JS.
-    var deferredInstallPrompt = null;
-    // Hides the banner AND resets --install-banner-h back to 0 - anything anchored
-    // off that variable (the fixed header, the language button) tracks the banner's
-    // real height only while it's shown; without resetting it here, dismissing the
-    // banner left a dead gap where it used to be, with everything below still
-    // pushed down by its old height.
-    var installBannerScrollLinked = false;
-    function hideInstallBanner() {
-        var banner = document.getElementById("mobile-install-banner");
-        installBannerScrollLinked = false;
-        document.documentElement.style.setProperty("--install-banner-h", "0px");
-        if (banner) {
-            banner.classList.remove("shown");
-            // Let the slide-out play before fully removing it from layout/the a11y
-            // tree, instead of an abrupt display:none snap mid-animation.
-            setTimeout(function () { banner.classList.add("hidden"); }, 400);
-        }
-    }
-    window.addEventListener("beforeinstallprompt", function (event) {
-        event.preventDefault();
-        deferredInstallPrompt = event;
-    });
-    window.addEventListener("appinstalled", function () {
-        deferredInstallPrompt = null;
-        hideInstallBanner();
-    });
-    (function () {
-        var isStandalone = window.matchMedia("(display-mode: standalone)").matches
-            || window.navigator.standalone === true
-            || document.referrer.indexOf("android-app://") === 0;
-        if (isStandalone) return;
-        if (!/Android/i.test(navigator.userAgent)) return;
-        if (window.location.pathname === "/download" || window.location.pathname === "/intro") return;
-        // The Instagram OAuth callback page (instagram_connect_mobile.html) is a
-        // transitional "returning you to Camilius..." screen shown inside the app's own
-        // in-app browser tab mid-flow - the visitor already has the app open, so "get the
-        // app" is nonsensical here, and the banner's height was throwing off that page's
-        // otherwise-centered layout (see .auth-wrapper in style.css).
-        if (window.location.pathname === "/instagram-oauth-callback") return;
-        // Shown on every fresh page load, even if dismissed on a previous visit -
-        // deliberately not remembered via localStorage (user wants it to reappear
-        // every time rather than being suppressed forever after one dismissal).
-        var banner = document.getElementById("mobile-install-banner");
-        if (banner) {
-            banner.classList.remove("hidden");
-            // The site-wide language button is fixed top-right on every page - this
-            // pushes it (and anything else anchored the same way) down below the banner
-            // instead of the two overlapping, without hardcoding the banner's height
-            // (it can wrap to two lines on a narrow phone).
-            var fullHeight = banner.offsetHeight;
-            // The banner is a floating notification (position: fixed, see style.css),
-            // shown/hidden with its own slide+fade via the .shown class below - it no
-            // longer scrolls away as part of the page, so its appearance is a proper
-            // animated event every time, at load and every time the user scrolls back
-            // to the top, not just a side effect of native scrolling. --install-banner-h
-            // still tracks the same discrete "reserved or not" state (matching #lp-header/
-            // .site-lang-select-btn/.navbar/body's own padding-top) so nothing needs its
-            // own duplicate scroll logic.
-            installBannerScrollLinked = true;
-            // Always starts reserved/shown on this (re-)init, regardless of the actual
-            // scrollY - an hx-boosted tab switch (Conversations/Schedule/Profile/
-            // Settings) swaps the body and re-runs this script (see base.html's pickers.js
-            // comment on that), but does NOT reset window.scrollY back to 0 the way a
-            // real navigation would, since it's just an AJAX swap of the same document.
-            // Gating on scrollY here meant the banner only ever showed on a real first
-            // load (naturally unscrolled) and silently stayed hidden on every later tab
-            // if the visitor had scrolled at all on a previous one. The scroll listener
-            // below still hides/reshows it normally as the visitor scrolls this page.
-            var bannerReserved = true;
-            document.documentElement.style.setProperty("--install-banner-h", (bannerReserved ? fullHeight : 0) + "px");
-            if (bannerReserved) {
-                // Double rAF: guarantees the browser has painted the starting
-                // (translateY(-100%), opacity: 0) state from a plain class-removal
-                // before flipping to .shown - otherwise the two style changes can
-                // get coalesced into one and the slide-in never plays.
-                requestAnimationFrame(function () {
-                    requestAnimationFrame(function () {
-                        banner.classList.add("shown");
-                    });
-                });
-            }
-
-            // This script runs synchronously during initial parse, BEFORE static/
-            // site-i18n.js (a deferred script) swaps the banner's text from its English
-            // default to the visitor's actual language - which can wrap to a different
-            // number of lines (e.g. Serbian's longer string wraps to 3 lines instead of
-            // English's 2 on a narrow phone), silently invalidating the fullHeight
-            // measured above. Exposed globally so applyTranslations() can call this
-            // right after it changes the text, re-measuring against the real rendered
-            // banner and refreshing both the closured fullHeight (so the scroll handler
-            // below stays correct too) and --install-banner-h itself - otherwise the
-            // fixed header/lang button stay reserved for the stale, too-small height
-            // and visibly overlap the now-taller banner.
-            window.refreshInstallBannerHeight = function () {
-                if (!installBannerScrollLinked) return;
-                fullHeight = banner.offsetHeight;
-                if (bannerReserved) {
-                    document.documentElement.style.setProperty("--install-banner-h", fullHeight + "px");
-                }
-            };
-
-            var ticking = false;
-            window.addEventListener("scroll", function () {
-                if (!installBannerScrollLinked || ticking) return;
-                ticking = true;
-                requestAnimationFrame(function () {
-                    var y = window.scrollY;
-                    if (bannerReserved && y >= fullHeight) {
-                        bannerReserved = false;
-                        document.documentElement.style.setProperty("--install-banner-h", "0px");
-                        banner.classList.remove("shown");
-                    } else if (!bannerReserved && y <= 0) {
-                        bannerReserved = true;
-                        document.documentElement.style.setProperty("--install-banner-h", fullHeight + "px");
-                        banner.classList.add("shown");
-                    }
-                    ticking = false;
-                });
-            }, { passive: true });
-        }
-    })();
-    // Wired up immediately (not on DOMContentLoaded) - that event only ever fires once
-    // per real page load, never again on an hx-boosted tab switch, which would leave
-    // every later tab's Install/Dismiss buttons dead (freshly swapped-in elements with
-    // no listener attached). Safe to run right away: this inline script sits right
-    // after the banner's own markup above, so by the time it executes (synchronously,
-    // same as any non-deferred inline script), that markup - and these buttons - are
-    // already parsed into the DOM.
-    (function () {
-        var dismissBtn = document.getElementById("mobile-install-banner-dismiss");
-        if (dismissBtn) {
-            dismissBtn.addEventListener("click", hideInstallBanner);
-        }
-        var installBtn = document.getElementById("mobile-install-banner-btn");
-        if (installBtn) {
-            installBtn.addEventListener("click", function (event) {
-                // No captured prompt (unsupported browser, or the event hasn't fired
-                // yet) - let the link fall through to the normal /download APK page.
-                if (!deferredInstallPrompt) return;
-                event.preventDefault();
-                var promptEvent = deferredInstallPrompt;
-                deferredInstallPrompt = null;
-                promptEvent.prompt();
-                promptEvent.userChoice.finally(hideInstallBanner);
-            });
-        }
-    })();
-</script>
 <script>
     // Only inside the installed Android app (never a regular browser tab), and only the
     // first time ever - show the swipeable onboarding slides, regardless of whether the
