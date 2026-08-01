@@ -311,24 +311,34 @@
         })();
     </script>
     <!-- Logging out, then hitting the browser's back button, must not land back on an
-         authenticated page - the account/settings screen the visitor just left is still
-         sitting fully rendered in the browser's back/forward cache (bfcache), and a
-         plain back navigation can restore that memory snapshot directly with NO new
-         request to the server at all, so the now-cleared session is never re-checked;
-         it just shows the stale logged-in page as-is. pageshow's persisted flag is the
-         standard way to detect exactly that restore (false on a real/fresh load, true
-         when the browser pulled this document back out of bfcache instead of
-         re-fetching it) - forcing a real reload on it makes that reload hit the server
-         again, which @login_required now correctly bounces to /login since the session
-         is gone. Scoped to body.app (dashboard/schedule/profile/settings/subscription -
-         see their body_class blocks) since that's the only bfcache snapshot this could
-         ever apply to; the public pages have nothing to protect. -->
+         authenticated page. Two SEPARATE caches can serve a stale page with no new
+         request to the server at all, so the now-cleared session is never re-checked -
+         both need their own handling:
+         1) The browser's own back/forward cache (bfcache) - a full memory snapshot of
+            the whole document, restored on a real cross-document back/forward
+            navigation. pageshow's persisted flag (false on a real/fresh load, true when
+            the browser pulled the document back out of bfcache) is the standard way to
+            detect it.
+         2) htmx's OWN separate history cache for boosted navigation - going back
+            through Conversations/Schedule/Profile/Settings tab switches (each just a
+            pushState within the SAME document, not a real navigation htmx's boost
+            already intercepted) restores a saved HTML snapshot of that tab client-side,
+            firing htmx:historyRestore instead of a real pageshow.
+         Either way, forcing a real reload makes that reload hit the server again, which
+         @login_required correctly bounces to /login once the session is gone. Scoped to
+         body.app (dashboard/schedule/profile/settings/subscription - see their
+         body_class blocks) since that's the only content either cache could ever be
+         holding that needs this; the public pages have nothing to protect. -->
     <script>
-        window.addEventListener("pageshow", function (event) {
-            if (event.persisted && document.body.classList.contains("app")) {
+        function reloadIfStaleAppPage() {
+            if (document.body.classList.contains("app")) {
                 window.location.reload();
             }
+        }
+        window.addEventListener("pageshow", function (event) {
+            if (event.persisted) reloadIfStaleAppPage();
         });
+        document.addEventListener("htmx:historyRestore", reloadIfStaleAppPage);
     </script>
 </head>
 <body class="{% block body_class %}{% endblock %}">
