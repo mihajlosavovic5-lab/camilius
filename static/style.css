@@ -596,13 +596,26 @@ a:focus-visible, button:focus-visible, [tabindex]:focus-visible {
        fill/blur/shadow once scrolled (.navbar-scrolled, toggled by base.html's scroll
        listener) - so the top bar looks and behaves the same whether you're logged in
        or not, instead of switching to a flat opaque bar the moment you log in. */
-    .navbar {
-        position: sticky; top: var(--install-banner-h); z-index: 900;
+    .navbar { position: sticky; top: var(--install-banner-h); z-index: 900; }
+    /* The fill/blur/shadow live on a ::before, not on .navbar itself, for the same
+       reason landing.html's #lp-corner-brand/.lp-menu-btn were pulled OUT of #lp-header
+       (see that comment further down): .nav-menu-btn/.nav-menu-backdrop/.nav-links are
+       position: fixed DESCENDANTS of .navbar (see _nav.html) that rely on the viewport
+       as their containing block to stay pinned regardless of .navbar's own scroll-driven
+       position. backdrop-filter (or any filter/transform) on an element turns it into
+       the containing block for its own fixed-position descendants instead - putting it
+       directly on .navbar made the hamburger button and drawer jump to wherever .navbar
+       itself happened to be, most visibly whenever the install banner was showing (its
+       height offset then got counted twice). A ::before carries the filter without
+       being the ancestor those fixed children escape through, since the containing-block
+       switch only applies to the element that itself has the filter. */
+    .navbar::before {
+        content: ""; position: absolute; inset: 0; z-index: -1;
         background: rgba(253, 252, 250, 0);
         border-bottom: 1px solid rgba(236, 230, 218, 0);
         transition: background .25s ease, border-color .25s ease, box-shadow .25s ease;
     }
-    .navbar.navbar-scrolled {
+    .navbar.navbar-scrolled::before {
         background: rgba(255, 255, 255, .85);
         backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
         border-bottom-color: var(--border);
