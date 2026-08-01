@@ -31,8 +31,14 @@ def test_owner_reminder_creates_notification_and_attempts_push_instead_of_email(
     reminders_module.send_appointment_reminders_if_needed()
 
     assert sent_emails == []  # no more owner email
-    assert len(pushes) == 1
-    assert pushes[0][0][0] == business_id
+    # Filtered to this test's own business rather than asserting on `pushes` as a whole -
+    # this shares one real, un-truncated Postgres DB across the whole suite (see
+    # conftest.py), so a still-"due" appointment left behind by an earlier run (business
+    # id differs every time via the unique_username/unique_email fixtures, but
+    # send_appointment_reminders_if_needed() scans every business, not just this one)
+    # can otherwise inflate this count without this test having done anything wrong.
+    own_pushes = [call for call in pushes if call[0][0] == business_id]
+    assert len(own_pushes) == 1
 
     rows = database.notifications_for_business(business_id)
     assert len(rows) == 1
@@ -88,6 +94,16 @@ _ALL_DAYS_OPEN = "\n".join(f"{day}: 00:00-23:59" for day in
                            ("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"))
 
 
+def _safe_future_slot():
+    """A booking slot guaranteed to fall safely inside _ALL_DAYS_OPEN's hours regardless of
+    what time of day the test happens to run - tomorrow at 10:00 local time, unlike
+    `now_local() + timedelta(hours=2)` (used below), which spills past the current day's
+    23:59 close time - and so gets rejected as unavailable - whenever the suite happens to
+    run in the last ~2.5 hours before local midnight."""
+    tomorrow = (now_local() + timedelta(days=1)).astimezone(BUSINESS_TZ)
+    return tomorrow.replace(hour=10, minute=0, second=0, microsecond=0)
+
+
 def test_ai_booking_notifies_owner_of_new_appointment(client, unique_username, unique_email, monkeypatch):
     # A customer booking themselves in over Instagram DM (booking.attempt_ai_booking,
     # the AI's tool executor) should tell the owner right away - independent of the
@@ -99,7 +115,7 @@ def test_ai_booking_notifies_owner_of_new_appointment(client, unique_username, u
     pushes = []
     monkeypatch.setattr(booking, "send_push_to_business", lambda *args, **kwargs: pushes.append((args, kwargs)))
 
-    requested = now_local() + timedelta(hours=2)
+    requested = _safe_future_slot()
     result = booking.attempt_ai_booking(
         business, business_id, 30, requested.isoformat(), "Pera", "igsid_1", service="Haircut",
     )
@@ -121,7 +137,7 @@ def test_ai_booking_notification_respects_its_own_toggle(client, unique_username
     database.set_new_booking_notifications_enabled(business_id, False)
 
     monkeypatch.setattr(booking, "send_push_to_business", lambda *args, **kwargs: None)
-    requested = now_local() + timedelta(hours=2)
+    requested = _safe_future_slot()
     result = booking.attempt_ai_booking(business, business_id, 30, requested.isoformat(), "Ana", "igsid_2")
 
     assert result["status"] == "booked"  # the booking itself always succeeds
