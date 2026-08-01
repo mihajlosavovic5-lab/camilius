@@ -575,13 +575,18 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
     border-top: 1px solid var(--border); background: var(--surface);
 }
 .screen-register .detail-body { padding-bottom: 18px; display: flex; flex-direction: column; }
-/* Weighted spacers rather than justify-content:center, so a short step (1
-   especially) sits a little above dead-center instead of exactly centered - and so
-   it degrades safely: a step tall enough to fill/overflow the screen just shrinks
-   both spacers to 0 (their basis is already 0) and scrolls normally, instead of a
-   centered flex line clipping its own top edge above the scroll container's reach. */
-.screen-register .detail-body::before { content: ''; flex: 0.65 0 0; }
-.screen-register .detail-body::after { content: ''; flex: 2.35 0 0; }
+/* ::before is a fixed height, not a proportional flex-grow spacer - steps 1/2/3 have
+   very different content heights (step 1's six fields vs. step 2's short hours
+   picker), and a proportional spacer divides the SAME ratio of a different amount of
+   leftover space per step, landing the heading at a different height on each one. A
+   constant height keeps the heading (and so its distance from the back button, fixed
+   in the topbar above) identical across all three steps regardless of content length.
+   ::after stays a flexible spacer, growing to fill whatever's left below the content -
+   its own height doesn't affect the heading's position, and a step tall enough to
+   fill/overflow the screen just shrinks it to 0 and scrolls normally instead of
+   clipping. */
+.screen-register .detail-body::before { content: ''; flex: 0 0 62px; }
+.screen-register .detail-body::after { content: ''; flex: 1 0 0; }
 .register-step-nav { display: flex; align-items: center; justify-content: space-between; }
 .register-step-dots { display: flex; gap: 6px; }
 .register-step-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--border); transition: background .2s ease, width .2s ease; }
