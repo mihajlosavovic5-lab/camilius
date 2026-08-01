@@ -1022,6 +1022,12 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
    gap under the page title than Inbox/Schedule get. Catches it via the sibling that's
    actually there instead of assuming no such siblings exist. */
 .alert + .block-label { margin-top: 0; }
+/* Same story for the Detail screen's "Suggested reply"/"Sent reply" labels - each is
+   :first-child of its own #detail-pending-block/#detail-sent-block wrapper div, so the
+   rule above zeroes its margin-top as if it opened the page. In reality .question (the
+   customer's message bubble) always sits right before it, and with no margin the label
+   ran flush against that bubble instead of sitting clear of it. */
+#detail-pending-block > .block-label, #detail-sent-block > .block-label { margin-top: 18px; }
 /* Common questions (Help screen) - scrolls after the first couple of items instead of
    pushing the rest of the screen down; same treatment as the web app_settings page. */
 .faq-scroll { max-height: 240px; overflow-y: auto; -webkit-overflow-scrolling: touch; }
