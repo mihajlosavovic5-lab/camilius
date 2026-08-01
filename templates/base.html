@@ -247,7 +247,16 @@
             // .site-lang-select-btn/.navbar/body's own padding-top) so nothing needs its
             // own duplicate scroll logic.
             installBannerScrollLinked = true;
-            var bannerReserved = window.scrollY <= 0;
+            // Always starts reserved/shown on this (re-)init, regardless of the actual
+            // scrollY - an hx-boosted tab switch (Conversations/Schedule/Profile/
+            // Settings) swaps the body and re-runs this script (see base.html's pickers.js
+            // comment on that), but does NOT reset window.scrollY back to 0 the way a
+            // real navigation would, since it's just an AJAX swap of the same document.
+            // Gating on scrollY here meant the banner only ever showed on a real first
+            // load (naturally unscrolled) and silently stayed hidden on every later tab
+            // if the visitor had scrolled at all on a previous one. The scroll listener
+            // below still hides/reshows it normally as the visitor scrolls this page.
+            var bannerReserved = true;
             document.documentElement.style.setProperty("--install-banner-h", (bannerReserved ? fullHeight : 0) + "px");
             if (bannerReserved) {
                 // Double rAF: guarantees the browser has painted the starting
@@ -300,7 +309,14 @@
             }, { passive: true });
         }
     })();
-    document.addEventListener("DOMContentLoaded", function () {
+    // Wired up immediately (not on DOMContentLoaded) - that event only ever fires once
+    // per real page load, never again on an hx-boosted tab switch, which would leave
+    // every later tab's Install/Dismiss buttons dead (freshly swapped-in elements with
+    // no listener attached). Safe to run right away: this inline script sits right
+    // after the banner's own markup above, so by the time it executes (synchronously,
+    // same as any non-deferred inline script), that markup - and these buttons - are
+    // already parsed into the DOM.
+    (function () {
         var dismissBtn = document.getElementById("mobile-install-banner-dismiss");
         if (dismissBtn) {
             dismissBtn.addEventListener("click", hideInstallBanner);
@@ -318,7 +334,7 @@
                 promptEvent.userChoice.finally(hideInstallBanner);
             });
         }
-    });
+    })();
 </script>
 <script>
     // Only inside the installed Android app (never a regular browser tab), and only the
