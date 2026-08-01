@@ -41,12 +41,9 @@
                             <input type="hidden" name="duration" class="duration-dd-value" value="{{ slot_minutes }}">
                             <button type="button" class="schedule-slot-duration-select duration-dd-trigger" aria-haspopup="listbox" aria-expanded="false">{{ slot_minutes }} min</button>
                             <div class="duration-dd-menu hidden" role="listbox">
-                                {% for choice in slot_duration_choices %}
-                                    <button type="button" class="duration-dd-option {{ 'active' if choice == slot_minutes }}" data-value="{{ choice }}" data-label="{{ choice }} min">{{ choice }} min</button>
+                                {% for value, label in slot_duration_choices %}
+                                    <button type="button" class="duration-dd-option {{ 'active' if value == slot_minutes }}" data-value="{{ value }}" data-label="{{ label }} min">{{ label }} min</button>
                                 {% endfor %}
-                                {% if slot_minutes not in slot_duration_choices %}
-                                    <button type="button" class="duration-dd-option active" data-value="{{ slot_minutes }}" data-label="{{ slot_minutes }} min">{{ slot_minutes }} min</button>
-                                {% endif %}
                                 <button type="button" class="duration-dd-option duration-dd-option-custom" data-value="custom" data-label="Custom" data-i18n="schedule.custom">Custom</button>
                             </div>
                             <input type="number" name="duration_custom" class="schedule-slot-duration-custom hidden" min="{{ slot_duration_min }}" max="{{ slot_duration_max }}" step="5" disabled data-i18n-placeholder="schedule.custom" placeholder="Custom">
@@ -77,12 +74,9 @@
             <label class="duration-picker-label" data-i18n="schedule.appointmentLength">Appointment length</label>
             <input type="hidden" name="slot_duration" id="schedule-duration-value" value="{{ slot_minutes }}">
             <div class="duration-pills" id="schedule-duration-pills">
-                {% for choice in slot_duration_choices %}
-                    <button type="button" class="duration-pill {{ 'active' if choice == slot_minutes }}" data-duration-value="{{ choice }}">{{ choice }}</button>
+                {% for value, label in slot_duration_choices %}
+                    <button type="button" class="duration-pill {{ 'active' if value == slot_minutes }}" data-duration-value="{{ value }}">{{ label }}</button>
                 {% endfor %}
-                {% if slot_minutes not in slot_duration_choices %}
-                    <button type="button" class="duration-pill duration-pill-custom-value active" data-duration-value="{{ slot_minutes }}">{{ slot_minutes }}</button>
-                {% endif %}
                 <button type="button" class="duration-pill duration-pill-custom" id="schedule-duration-custom-btn" data-i18n="schedule.custom">Custom</button>
                 <input type="number" min="{{ slot_duration_min }}" max="{{ slot_duration_max }}" step="5"
                        id="schedule-duration-custom-input" class="duration-pill-custom-input hidden"

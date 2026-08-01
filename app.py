@@ -1125,6 +1125,18 @@ REMINDER_LEAD_CHOICES = [(15, "15 min"), (30, "30 min"), (60, "1h"), (120, "2h")
 REMINDER_LEAD_MAX_MINUTES = 7 * 24 * 60
 
 
+def _duration_choices_with_custom(choices, current_value, label_fn=str):
+    """Merges a saved custom value into a preset (value, label) choice list, sorted
+    ascending by value - used by every pill picker that offers a fixed set of presets
+    plus a "Custom" option (reminder lead times, slot duration), so a custom pick reads
+    in its correct smallest-to-largest position (e.g. 5 min before 15 min) instead of
+    always being tacked on after the largest preset just because it was chosen last."""
+    pairs = list(choices)
+    if current_value not in {value for value, _ in pairs}:
+        pairs.append((current_value, label_fn(current_value)))
+    return sorted(pairs, key=lambda pair: pair[0])
+
+
 @app.route("/settings")
 @login_required
 def app_settings():
@@ -1138,7 +1150,8 @@ def app_settings():
         owner_reminders_enabled=is_owner_reminders_enabled(business_id),
         customer_reminder_minutes=customer_minutes,
         owner_reminder_minutes=owner_minutes,
-        reminder_lead_choices=REMINDER_LEAD_CHOICES,
+        customer_reminder_choices=_duration_choices_with_custom(REMINDER_LEAD_CHOICES, customer_minutes, lambda m: f"{m} min"),
+        owner_reminder_choices=_duration_choices_with_custom(REMINDER_LEAD_CHOICES, owner_minutes, lambda m: f"{m} min"),
         reminder_lead_minutes=[value for value, _ in REMINDER_LEAD_CHOICES],
         reminder_lead_max_minutes=REMINDER_LEAD_MAX_MINUTES,
         pro_access=BETA_FREE_MODE or has_pro_access(business_id),
@@ -1846,7 +1859,8 @@ def schedule():
         selected_date=selected_date,
         today=booking.now_local().date(),
         slot_minutes=slot_minutes,
-        slot_duration_choices=SLOT_DURATION_CHOICES,
+        slot_duration_choices=_duration_choices_with_custom(
+            [(c, str(c)) for c in SLOT_DURATION_CHOICES], slot_minutes),
         slot_duration_min=SLOT_DURATION_MIN,
         slot_duration_max=SLOT_DURATION_MAX,
         has_any_open_day=any(booking.parse_working_hours(working_hours).values()),
