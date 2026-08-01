@@ -321,17 +321,12 @@ if (capacitorPlugins) {
             }
         };
 
-        // Check at cold start, every time the app returns to the foreground, AND on a
-        // plain repeating timer while it stays open - three independent triggers instead
-        // of relying on any single one, since both "foreground" signals below are Capacitor/
-        // OS lifecycle events that some OEM WebViews are known to skip or delay on a plain
-        // app-switcher resume (no real backgrounding happened at the OS level). A device
-        // where every lifecycle callback is unreliable would otherwise leave an update
-        // sitting on the server indefinitely, with nothing short of a manual force-close +
-        // relaunch ever noticing it - the timer doesn't need any lifecycle event to fire at
-        // all. checkForOtaUpdate() is a no-op re-entrancy guard (otaCheckInProgress) and a
-        // single cheap /api/mobile-manifest fetch when there's nothing to do, so three
-        // triggers overlapping is harmless, not wasteful.
+        // Check at cold start and every time the app returns to the foreground - two
+        // redundant triggers for the same "reopened" moment, since both are Capacitor/OS
+        // lifecycle events that some OEM WebViews are known to skip or delay on a plain
+        // app-switcher resume (no real backgrounding happened at the OS level). Deliberately
+        // no repeating timer while the app stays open - that polled the server continuously
+        // for every open session, which doesn't scale.
         checkForOtaUpdate();
         capacitorPlugins.App.addListener("appStateChange", ({ isActive }) => {
             if (isActive) checkForOtaUpdate();
@@ -339,7 +334,6 @@ if (capacitorPlugins) {
         document.addEventListener("visibilitychange", () => {
             if (document.visibilityState === "visible") checkForOtaUpdate();
         });
-        setInterval(checkForOtaUpdate, 20000);
     }
 
     // Native-code changes (new plugin, permissions, icon, splash, anything under
