@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
 <title>Camilius</title>
-<link rel="stylesheet" href="app.css?v=dda5a4d2d982">
+<link rel="stylesheet" href="app.css?v=3166c817fe75">
 </head>
 <body>
 
@@ -406,29 +406,30 @@
 
   <!-- CREATE ACCOUNT -->
   <section id="screen-register" class="screen screen-register">
+    <!-- Back button pinned in the corner, title centered in the bar - the same
+         .topbar/.topbar-title convention every other screen uses (see the comment on
+         .topbar in app.css), instead of living inline with the rest of the wizard
+         content below. -->
+    <header class="topbar">
+      <button class="back-btn" id="register-back" aria-label="Back">‹</button>
+      <div class="topbar-title"><div><h1 data-i18n="register.headline">Register your business</h1></div></div>
+    </header>
     <form id="register-form" class="register-form">
       <div class="detail-body">
-        <!-- Groups the back button through the step dots/arrow - no background/border
-             of its own (see .register-card in app.css). Still ends before
+        <!-- Groups the heading subtitle through the step dots/arrow - no background/
+             border of its own (see .register-card in app.css). Still ends before
              .register-bottom-bar below, which stays pinned at the true bottom of the
              screen (outside this card) so the step arrow/submit button are always
              within thumb reach regardless of step content length or an open keyboard. -->
         <div class="register-card">
           <div id="register-error" class="alert alert-error hidden"></div>
 
-          <!-- Back button sits in its own corner, above the heading, not inline next
-               to it - same corner position it had back when this screen still used a
-               plain .topbar. -->
-          <button type="button" class="back-btn register-card-back" id="register-back" aria-label="Back">‹</button>
-
-          <!-- Persistent wizard heading (shown above every step, not just the first) -
+          <!-- Persistent wizard subtitle (shown above every step, not just the first) -
                same wording/role as the web register page's .register-wizard-heading
-               (templates/register.html), which stays put across all three steps instead
-               of being replaced by step-specific copy. -->
-          <div class="register-step-intro">
-            <h1 data-i18n="register.headline">Register your business</h1>
-            <p class="screen-subtitle" data-i18n="register.headlineSubtitle">You can change all of these fields later in settings.</p>
-          </div>
+               (templates/register.html), which stays fixed across all three steps
+               instead of being replaced by step-specific copy. The heading itself now
+               lives in the topbar above (see .topbar-title h1). -->
+          <p class="screen-subtitle register-step-intro" data-i18n="register.headlineSubtitle">You can change all of these fields later in settings.</p>
 
           <div class="register-steps-viewport" id="register-steps-viewport">
             <div class="register-steps-track" id="register-steps-track">
@@ -1333,7 +1334,7 @@
   </button>
 </nav>
 
-<script src="i18n.js?v=dda5a4d2d982"></script>
-<script src="app.js?v=dda5a4d2d982"></script>
+<script src="i18n.js?v=3166c817fe75"></script>
+<script src="app.js?v=3166c817fe75"></script>
 </body>
 </html>

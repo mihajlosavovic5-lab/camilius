@@ -539,22 +539,15 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
 /* No background/border/shadow of its own (tried the website register page's
    .auth-card/.auth-card-wide treatment here first - a white panel behind the heading
    and fields - but it read as a large, pointless "field" of its own sitting behind
-   the real ones). Purely a layout container now: groups the back button through the
-   step content, with the fields themselves sitting directly on the screen's own
-   gradient background, same as every other screen in the app. */
+   the real ones). Purely a layout container now: groups the subtitle through the step
+   content, with the fields themselves sitting directly on the screen's own gradient
+   background, same as every other screen in the app. */
 .register-card { padding: 0; }
-/* Back sits in its own corner above the heading again (its original spot from when
-   this screen still had a plain .topbar), not inline next to the heading - .back-btn
-   is the same 34px round button used everywhere else in the app. */
-.register-card-back { margin-bottom: 10px; }
-/* Persistent wizard heading, shown above every step (not just step 1) - same wording
-   and role as the web register page's .register-wizard-heading (templates/
-   register.html), which stays fixed across all three steps instead of being swapped
-   for step-specific copy. Color is plain --text (not --primary) to match the
-   website's heading, which is just a bare <h1> with no color override of its own. */
+/* Persistent wizard subtitle, shown above every step (not just step 1) - same role as
+   the web register page's .register-wizard-heading subtitle (templates/register.html),
+   which stays fixed across all three steps instead of being swapped for step-specific
+   copy. The heading itself lives in .topbar-title above, not here. */
 .register-step-intro { margin-bottom: 18px; }
-.register-step-intro h1 { font-family: var(--font-serif); font-weight: 700; font-size: 21px; margin: 4px 0 4px; color: var(--text); }
-.register-step-intro .screen-subtitle { margin: 0; }
 
 .register-steps-viewport {
     overflow: hidden; transition: height .22s ease;
@@ -574,19 +567,14 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
     flex-shrink: 0; padding: 14px 18px calc(18px + var(--safe-bottom));
     border-top: 1px solid var(--border); background: var(--surface);
 }
-/* padding-top makes up for this screen no longer having a .topbar - every other
-   .detail-body relies on its screen's own .topbar for top clearance (see the "No top
-   padding" comment on the base .detail-body rule above), but this screen dropped its
-   topbar in favor of .register-brand, so needs to own that safe-area clearance itself
-   now (same value the topbar used to apply). */
-.screen-register .detail-body { padding-top: calc(24px + var(--safe-top)); padding-bottom: 18px; display: flex; flex-direction: column; }
+.screen-register .detail-body { padding-bottom: 18px; display: flex; flex-direction: column; }
 /* Weighted spacers rather than justify-content:center, so a short step (1
    especially) sits a little above dead-center instead of exactly centered - and so
    it degrades safely: a step tall enough to fill/overflow the screen just shrinks
    both spacers to 0 (their basis is already 0) and scrolls normally, instead of a
    centered flex line clipping its own top edge above the scroll container's reach. */
-.screen-register .detail-body::before { content: ''; flex: 0.6 0 0; }
-.screen-register .detail-body::after { content: ''; flex: 2.4 0 0; }
+.screen-register .detail-body::before { content: ''; flex: 0.4 0 0; }
+.screen-register .detail-body::after { content: ''; flex: 2.6 0 0; }
 .register-step-nav { display: flex; align-items: center; justify-content: space-between; }
 .register-step-dots { display: flex; gap: 6px; }
 .register-step-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--border); transition: background .2s ease, width .2s ease; }
