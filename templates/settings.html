@@ -260,6 +260,7 @@ function initSettingsPickers() {
     safeInit(initSettingsUsernameAvailability);
     safeInit(initSettingsPasswordValidation);
     safeInit(initDisconnectInstagramModal);
+    safeInit(initInstagramValueTruncation);
     safeInit(initScrollPreservation);
     // Runs last, once every picker above (including the collapseToSimple() call, which can
     // shorten Working hours a lot) has already settled the page's final height - restoring
@@ -334,6 +335,18 @@ function initDisconnectInstagramModal() {
         close();
         form.requestSubmit();
     });
+}
+
+// Fades the Instagram username's clipped edge to transparent instead of leaving it to
+// overflow: hidden's hard cut - same measure-then-mark approach as the mobile app's
+// .inbox-sender.truncated (mobile/app.js), so only a username that's actually wider than
+// the field gets the mask (see .profile-instagram-value.truncated in style.css). The
+// username's length is fixed once this page has rendered (it doesn't change without a
+// reload), so a one-time measurement here is enough - no resize listener needed.
+function initInstagramValueTruncation() {
+    const valueEl = document.querySelector(".profile-instagram-value");
+    if (!valueEl) return;
+    valueEl.classList.toggle("truncated", valueEl.scrollWidth > valueEl.clientWidth);
 }
 
 // Live "is this username taken" check as the user types, same debounced

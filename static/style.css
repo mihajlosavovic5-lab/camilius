@@ -1558,11 +1558,22 @@ body.auth {
 }
 /* flex: 1 + min-width: 0 lets this shrink below its content width (flex items default to
    min-width: auto, which would otherwise force the row wider than the field and push
-   .profile-instagram-actions out past its right edge); the ellipsis then kicks in on long
-   usernames instead of the text running underneath the actions beside it. */
+   .profile-instagram-actions out past its right edge). Clipped text then fades to
+   transparent at the edge (.truncated below) instead of the text running underneath the
+   actions beside it. */
 .profile-instagram-value {
     font-size: 16px; color: var(--text);
-    flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    flex: 1; min-width: 0; overflow: hidden; white-space: nowrap;
+}
+/* Same fade-to-transparent truncation as the mobile app's .inbox-sender.truncated
+   (mobile/app.css) instead of a literal "..." glyph - reads as the text dissolving into
+   the field's background rather than an abrupt cut. Only added when settings.html's init
+   script measures this as actually clipped (scrollWidth > clientWidth), same reasoning as
+   the mobile version: applying the mask unconditionally would fade the tail of every
+   username's real text even when it fits with room to spare. */
+.profile-instagram-value.truncated {
+    -webkit-mask-image: linear-gradient(to right, #000 85%, transparent 100%);
+    mask-image: linear-gradient(to right, #000 85%, transparent 100%);
 }
 
 /* A pair of golden action links at the field's right edge. Used to be position: absolute
