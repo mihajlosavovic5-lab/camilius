@@ -106,7 +106,7 @@
                     <label class="duration-picker-label" data-i18n="appSettings.reminders.leadTimeLabel">Send</label>
                     <input type="hidden" name="customer_reminder_minutes" id="customer-reminder-minutes-value"
                            value="{{ customer_reminder_minutes if customer_reminder_minutes in reminder_lead_minutes else 'custom' }}">
-                    <div class="duration-pills" id="customer-reminder-pills">
+                    <div class="duration-pills duration-pills-grid" id="customer-reminder-pills">
                         {% for value, label in reminder_lead_choices %}
                             <button type="button" class="duration-pill {{ 'active' if value == customer_reminder_minutes }}" data-duration-value="{{ value }}">{{ label }}</button>
                         {% endfor %}
@@ -136,7 +136,7 @@
                     <label class="duration-picker-label" data-i18n="appSettings.reminders.leadTimeLabel">Send</label>
                     <input type="hidden" name="owner_reminder_minutes" id="owner-reminder-minutes-value"
                            value="{{ owner_reminder_minutes if owner_reminder_minutes in reminder_lead_minutes else 'custom' }}">
-                    <div class="duration-pills" id="owner-reminder-pills">
+                    <div class="duration-pills duration-pills-grid" id="owner-reminder-pills">
                         {% for value, label in reminder_lead_choices %}
                             <button type="button" class="duration-pill {{ 'active' if value == owner_reminder_minutes }}" data-duration-value="{{ value }}">{{ label }}</button>
                         {% endfor %}
