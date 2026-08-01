@@ -611,6 +611,16 @@ a:focus-visible, button:focus-visible, [tabindex]:focus-visible {
     /* Reserve room for the fixed top-right language flag (.site-lang-select-btn,
        base.html), same reason as the desktop padding-right above - without it the
        hamburger button sits directly under the flag, in the same top-right corner. */
+    /* The flag defaults to position: absolute (scrolls away with the page, see the
+       base rule above) - fine on desktop/auth pages, but on phone-width app pages
+       .navbar itself is sticky and stays on screen while the rest of the page
+       scrolls underneath it, so the flag needs to stay put too instead of scrolling
+       out of view after ~16px, same as the logged-out landing page's own fixed flag
+       (body.landing above) tracks its fixed #lp-header. No dynamic half-height
+       centering needed here unlike landing's version - the app navbar's height
+       doesn't shrink on scroll, so the same top offset the default rule already
+       uses lines up correctly in both states. */
+    body.app .site-lang-select-btn { position: fixed; }
     /* min-height: both .brand and .nav-menu-btn are pulled out of flow below (absolute/
        fixed, for corner/center-pinning) leaving no in-flow content to size this row -
        without it the sticky bar's own visible background collapsed to just its padding
