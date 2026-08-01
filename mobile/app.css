@@ -824,6 +824,15 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
 .legal-body li { font-size: 15px; line-height: 1.6; margin-bottom: 6px; }
 .legal-updated { color: var(--text-muted); font-size: 13.5px; margin-bottom: 16px; }
 
+/* --- Subscription screen ---
+   Shares .legal-body with Terms/Privacy/Help, but its copy is short (a badge, one line,
+   a few bullets) - left at the default top alignment it leaves a big empty gap below, so
+   center the block vertically in the screen instead. Terms/Privacy/Help keep the default
+   top alignment since their content is long enough to fill (and scroll past) the screen. */
+#screen-subscription .detail-body { display: flex; flex-direction: column; justify-content: center; text-align: center; }
+#screen-subscription .alert { display: inline-block; width: auto; }
+#screen-subscription .legal-body ul { text-align: left; max-width: 320px; margin: 0 auto 12px; }
+
 /* --- Alerts --- */
 .alert { padding: 12px 14px; border-radius: 10px; font-size: 15px; margin: 0 0 14px; border: 1px solid; flex-shrink: 0; }
 .alert-error { background: var(--danger-bg); border-color: var(--danger-border); color: #991b1b; }
