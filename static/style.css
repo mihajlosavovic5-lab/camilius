@@ -1217,8 +1217,12 @@ input.search-input {
 .conv-row-main { flex: 1; min-width: 0; }
 .conv-row-top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; min-width: 0; }
 .conv-row-sender-group { display: flex; align-items: baseline; gap: 6px; min-width: 0; flex: 1; }
+/* min-width: 3em (not 0) - shrinks to fit next to the WhatsApp badge/timestamp same as
+   before, but keeps a readable few-characters-plus-ellipsis floor instead of a long name
+   being squeezed down to a sliver when the badge (flex-shrink: 0, never gives up space)
+   is also competing for room in the same row. */
 .conv-row-sender {
-    font-weight: 600; font-size: 16px; min-width: 0;
+    font-weight: 600; font-size: 16px; min-width: 3em;
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .conv-row-time { color: var(--text-muted); font-size: 13px; flex-shrink: 0; white-space: nowrap; }

@@ -980,7 +980,11 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
    needs the same min-width:0 - it's now the direct flex child of .inbox-row-top instead
    of .inbox-sender itself. */
 .inbox-sender-group { display: flex; align-items: baseline; gap: 6px; min-width: 0; }
-.inbox-sender { font-weight: 600; font-size: 15.5px; white-space: nowrap; overflow: hidden; min-width: 0; }
+/* min-width: 3em (not 0) - same reasoning as the website's .conv-row-sender: shrinks to
+   fit next to the WhatsApp badge/timestamp, but keeps a readable few-characters-plus-
+   ellipsis floor instead of a long name being squeezed to a sliver by the badge
+   (flex-shrink: 0, never gives up space) competing for room in the same row. */
+.inbox-sender { font-weight: 600; font-size: 15.5px; white-space: nowrap; overflow: hidden; min-width: 3em; }
 .inbox-time { color: var(--text-muted); font-size: 12.5px; flex-shrink: 0; }
 .inbox-preview { color: var(--text-muted); font-size: 14.5px; white-space: nowrap; overflow: hidden; margin-top: 2px; min-width: 0; }
 /* Long sender names/previews dissolve into the background at the clipped edge instead

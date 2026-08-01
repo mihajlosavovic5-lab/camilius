@@ -114,7 +114,7 @@
                     <span class="conv-row-top">
                         <span class="conv-row-sender-group">
                             <span class="conv-row-sender">{{ sender }}</span>
-                            {% if channel == 'whatsapp' %}<span class="channel-badge channel-badge-whatsapp">WhatsApp</span>{% endif %}
+                            {% if channel == 'whatsapp' %}<span class="channel-badge channel-badge-whatsapp" title="WhatsApp">WA</span>{% endif %}
                         </span>
                         <span class="conv-row-time">{{ created_at.strftime('%m/%d %H:%M') if created_at else '' }}</span>
                     </span>
