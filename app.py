@@ -97,10 +97,27 @@ csrf.exempt(api_blueprint)
 # the comment this replaced, no further code changes needed.
 BETA_FREE_MODE = True
 
+# Same underlying cause as BETA_FREE_MODE above (no registered business entity yet), but
+# a separate flag because it clears on a different milestone: this one turns off the
+# moment the Meta app passes App Review, which can happen well before real billing goes
+# live. Until then, "Instagram API with Instagram Login" is in Development Mode, where
+# only accounts added as Instagram Testers in the Meta App dashboard (App roles > Roles)
+# - and who've accepted that invite in Instagram itself (Profile > menu > Settings >
+# Apps and websites > Tester invites) - can complete the OAuth screen at all. No API
+# exists to add testers or check invite status programmatically, so the only thing this
+# flag does is show that requirement on the connect-Instagram screen instead of letting
+# people find out the hard way. Flip to False once App Review is approved.
+INSTAGRAM_TESTERS_ONLY = True
+
 
 @app.context_processor
 def inject_beta_free_mode():
     return {"beta_free_mode": BETA_FREE_MODE}
+
+
+@app.context_processor
+def inject_instagram_testers_only():
+    return {"instagram_testers_only": INSTAGRAM_TESTERS_ONLY}
 
 
 # Voluntary "support the project" donation link (PayPal.me or similar), shown on the

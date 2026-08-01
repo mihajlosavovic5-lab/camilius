@@ -303,6 +303,7 @@ const TRANSLATIONS = {
         "connectInstagram.title": "Connect your Instagram account",
         "connectInstagram.subtitle": "Camilius reads incoming DMs and drafts replies — automatic by default, optional review in Settings.",
         "connectInstagram.cta": "Connect Instagram",
+        "connectInstagram.testerNote": "Still in Meta's review — only invited testers can connect for now. Invited? In Instagram: Profile → menu → Settings → Apps and websites → Tester invites → Accept, then tap Connect below.",
 
         "connectMobile.success": "Instagram connected!",
         "connectMobile.failure": "Something went wrong connecting Instagram. Returning you to Camilius…",
@@ -3788,6 +3789,7 @@ const TRANSLATIONS = {
         "connectInstagram.title": "Povežite svoj Instagram nalog",
         "connectInstagram.subtitle": "Camilius čita dolazne DM poruke i sastavlja odgovore — automatski po podrazumevanom, opcioni pregled u Podešavanjima.",
         "connectInstagram.cta": "Poveži Instagram",
+        "connectInstagram.testerNote": "Aplikacija je još u Meta pregledu — trenutno mogu da se povežu samo pozvani testeri. Ako ste pozvani: u Instagramu Profil → meni → Podešavanja → Aplikacije i vebsajtovi → Pozivi za testere → Prihvati, pa kliknite Poveži ispod.",
 
         "connectMobile.success": "Instagram povezan!",
         "connectMobile.failure": "Došlo je do greške prilikom povezivanja Instagram-a. Vraćamo vas u Camilius…",

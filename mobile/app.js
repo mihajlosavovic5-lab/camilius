@@ -2191,6 +2191,7 @@ async function enterOrGateOnInstagram() {
         } else {
             showTabbar(false);
             el("connect-error").classList.add("hidden");
+            el("connect-tester-note").classList.toggle("hidden", !data.instagram_testers_only);
             showScreen("connectInstagram");
         }
     } catch (err) {

@@ -853,6 +853,8 @@ def api_send_reply(conversation_id):
 @api.route("/settings", methods=["GET"])
 @require_api_auth
 def api_get_settings():
+    from app import INSTAGRAM_TESTERS_ONLY  # deferred to avoid a circular import at module load
+
     business = business_by_id(request.business_id)
     return jsonify(
         name=business[1],
@@ -865,6 +867,10 @@ def api_get_settings():
         phone_number=business[11] or "",
         phone_verified=business[13],
         upsell_pairs=get_upsell_pairs(request.business_id) or "",
+        # Read by the app's connect-Instagram gate screen (enterOrGateOnInstagram in
+        # mobile/app.js) to show/hide the "only invited testers can connect" note - see
+        # INSTAGRAM_TESTERS_ONLY's own comment in app.py for why this exists.
+        instagram_testers_only=INSTAGRAM_TESTERS_ONLY,
     )
 
 
