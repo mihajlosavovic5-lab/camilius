@@ -22,6 +22,7 @@ from database import (
     business_stats, log_event, event_funnel, recent_client_errors, log_client_error,
     add_tester_request, recent_tester_requests,
     link_instagram_account, unlink_instagram_account, business_by_instagram_account_id, already_processed_messages,
+    link_whatsapp_account, unlink_whatsapp_account, business_by_whatsapp_phone_number_id,
     mark_message_processed, save_draft_reply, previous_conversations_with,
     log_webhook_hit, recent_webhook_hits, raw_conversation_rows, is_auto_send_enabled,
     set_auto_send, business_by_username, business_by_phone_number,
@@ -55,6 +56,7 @@ from instagram_api import (
     verify_webhook_challenge, verify_webhook_signature, parse_webhook_messages, get_sender_info,
     get_webhook_subscription_status,
 )
+import whatsapp_api
 from database import all_businesses, all_businesses_unfiltered
 from api import api as api_blueprint, APK_VERSION
 from extensions import limiter
@@ -1073,11 +1075,12 @@ def settings():
     business = business_by_id(business_id)
     # indices: 0 id, 1 name, 2 username, 4 contact_email, 5 instagram_account_id,
     # 6 instagram_username, 8 working_hours, 9 price_list, 10 faq, 11 phone_number,
-    # 14 pending_contact_email
+    # 14 pending_contact_email, 16 whatsapp_display_number
     username = business[2]
     contact_email = business[4]
     instagram_username = business[6]
     pending_contact_email = business[14]
+    whatsapp_display_number = business[16]
     pro_access = BETA_FREE_MODE or has_pro_access(business_id)
 
     if request.method == "POST":
@@ -1099,6 +1102,7 @@ def settings():
                 business={
                     "name": name, "username": username, "contact_email": contact_email,
                     "pending_contact_email": pending_contact_email, "instagram_username": instagram_username,
+                    "whatsapp_display_number": whatsapp_display_number,
                     "working_hours": working_hours, "price_list": price_list, "faq": faq,
                     "upsell_pairs": get_upsell_pairs(business_id),
                 },
@@ -1166,6 +1170,7 @@ def settings():
             business={
                 "name": name, "username": username, "contact_email": contact_email,
                 "pending_contact_email": pending_contact_email, "instagram_username": instagram_username,
+                "whatsapp_display_number": whatsapp_display_number,
                 "working_hours": working_hours, "price_list": price_list, "faq": faq, "upsell_pairs": upsell_pairs,
             },
         )
@@ -1178,6 +1183,7 @@ def settings():
         business={
             "name": business[1], "username": username, "contact_email": contact_email,
             "pending_contact_email": pending_contact_email, "instagram_username": instagram_username,
+            "whatsapp_display_number": whatsapp_display_number,
             "working_hours": business[8], "price_list": business[9], "faq": business[10],
             "upsell_pairs": get_upsell_pairs(business_id),
         },
@@ -1192,6 +1198,53 @@ def disconnect_instagram():
     # UniqueViolation handling above for the failure this exists to avoid.
     unlink_instagram_account(session["business_id"])
     return redirect(url_for("settings", message="Instagram disconnected."))
+
+
+@app.route("/connect-whatsapp", methods=["GET", "POST"])
+@login_required
+def connect_whatsapp():
+    """No OAuth redirect here, unlike Instagram - see whatsapp_api.py's module docstring
+    for why. The business pastes in values it generated itself, directly in its own Meta
+    Business Suite: a Phone Number ID and WhatsApp Business Account (WABA) ID (both shown
+    on the WABA's own dashboard page), a display number (just a label, doesn't need to be
+    exact), and a permanent access token (System User > Generate token, with that WABA's
+    messaging permission, scoped to Camilius's Meta App as a partner)."""
+    if request.method == "POST":
+        phone_number_id = request.form.get("phone_number_id", "").strip()
+        waba_id = request.form.get("waba_id", "").strip()
+        display_number = request.form.get("display_number", "").strip()
+        access_token = request.form.get("access_token", "").strip()
+
+        if not phone_number_id or not waba_id or not display_number or not access_token:
+            return render_template("connect_whatsapp.html", error="Please fill in every field.")
+
+        # Subscribing the WABA to Camilius's webhook doubles as validating the pasted
+        # token actually works - saving unusable credentials (typo'd token, wrong
+        # permission scope) would otherwise look "connected" while silently never
+        # receiving a single message.
+        try:
+            whatsapp_api.subscribe_account_to_webhook(waba_id, access_token)
+        except requests.RequestException as error:
+            detail = error.response.text if getattr(error, "response", None) is not None else str(error)
+            log_client_error(session["business_id"], f"whatsapp connect failed: {detail}", "", "whatsapp-connect-debug", "")
+            return render_template("connect_whatsapp.html", error="Couldn't verify that - double check the IDs and token, then try again.")
+
+        try:
+            link_whatsapp_account(session["business_id"], phone_number_id, display_number, access_token)
+        except UniqueViolation:
+            return render_template("connect_whatsapp.html", error="This WhatsApp number is already connected to another Camilius account.")
+
+        log_event("whatsapp_connected", business_id=session["business_id"])
+        return redirect(url_for("settings", message="WhatsApp connected."))
+
+    return render_template("connect_whatsapp.html", error=None)
+
+
+@app.route("/disconnect-whatsapp", methods=["POST"])
+@login_required
+def disconnect_whatsapp():
+    unlink_whatsapp_account(session["business_id"])
+    return redirect(url_for("settings", message="WhatsApp disconnected."))
 
 
 # Distinct from /settings above (renamed "Profile" in the nav - business info the AI
@@ -1872,12 +1925,27 @@ def conversation_avatar(conversation_id):
     return redirect(profile_pic_url)
 
 
+def send_channel_reply(conversation, business, final_reply):
+    """Sends final_reply through whichever channel `conversation` came in on - shared by
+    the web send_reply route below and api.py's api_send_reply, so a manual send never
+    needs its own per-channel branch anywhere else. conversation is a get_conversation()
+    row: index 6 sender_igsid, 7 channel, 8 sender_wa_id. Raises requests.RequestException
+    on failure exactly like calling send_instagram_message/whatsapp_api.send_message
+    directly would - callers already handle that (both channels fail the same way outside
+    their 24h customer-reply window, which is an expected business outcome, not a bug)."""
+    sender_igsid, channel, sender_wa_id = conversation[6], conversation[7], conversation[8]
+    if channel == "whatsapp":
+        return whatsapp_api.send_message(sender_wa_id, final_reply, business[17], business[15])
+    return send_instagram_message(sender_igsid, final_reply, business[7], business[5])
+
+
 @app.route("/send/<int:conversation_id>", methods=["POST"])
 @login_required
 def send_reply(conversation_id):
     final_reply = request.form["reply"]
 
-    _, business_id, sender, subject, question, suggested_reply, sender_igsid = get_conversation(conversation_id)
+    conversation = get_conversation(conversation_id)
+    _, business_id, sender, subject, question, suggested_reply, sender_igsid, channel, sender_wa_id = conversation
 
     # Security check: this conversation must belong to the logged-in business,
     # otherwise someone could guess other people's IDs in the URL and send replies on their behalf
@@ -1886,21 +1954,17 @@ def send_reply(conversation_id):
 
     business = business_by_id(business_id)
 
-    # Temporary diagnostic: the dashboard was showing "Sent" (Instagram's API accepted
-    # the request with 2xx) while the reply never reached the customer's real Instagram
-    # DM thread - logging Instagram's own response body here (viewable at
-    # /admin/client-errors) so we can see exactly what it returned instead of guessing.
-    debug_context = f"web-reply-send-debug conversation_id={conversation_id} sender_igsid={sender_igsid} ig_account_id={business[5]} final_reply={final_reply!r}"
+    # Temporary diagnostic: the dashboard was showing "Sent" (the platform's API accepted
+    # the request with 2xx) while the reply never reached the customer's real DM thread -
+    # logging the platform's own response body here (viewable at /admin/client-errors) so
+    # we can see exactly what it returned instead of guessing.
+    debug_context = f"web-reply-send-debug conversation_id={conversation_id} channel={channel} sender_igsid={sender_igsid} sender_wa_id={sender_wa_id} final_reply={final_reply!r}"
     try:
-        # Instagram only allows sending within 24h of the customer's last message (same
-        # policy every DM platform has) - a send past that window fails here, which is an
-        # expected business outcome (not a bug), hence the friendly redirect rather than
-        # letting it 500.
-        result = send_instagram_message(sender_igsid, final_reply, business[7], business[5])
-        log_client_error(business_id, f"instagram send OK: {result}", "", debug_context, "")
+        result = send_channel_reply(conversation, business, final_reply)
+        log_client_error(business_id, f"{channel} send OK: {result}", "", debug_context, "")
     except requests.RequestException as e:
         error_body = e.response.text if getattr(e, "response", None) is not None else str(e)
-        log_client_error(business_id, f"instagram send FAILED: {error_body}", "", debug_context, "")
+        log_client_error(business_id, f"{channel} send FAILED: {error_body}", "", debug_context, "")
         return redirect(url_for("home", send_error=1))
 
     mark_sent(conversation_id, final_reply)
@@ -2565,6 +2629,150 @@ def _process_instagram_message(message):
     except Exception as error:
         # A push failure must never block draft processing
         print(f"[instagram-webhook] Push notification failed: {error}", flush=True)
+
+
+@app.route("/whatsapp-webhook", methods=["GET", "POST"])
+@csrf.exempt  # external request from Meta, no session/CSRF token of ours - signed instead (checked below)
+def whatsapp_webhook():
+    """Mirrors instagram_webhook() above - same verify/signature/dedup/retry shape, just
+    against whatsapp_api's functions and business_by_whatsapp_phone_number_id instead of
+    the Instagram equivalents. Kept as its own separate route+handler rather than a shared
+    parameterized one - the two channels' underlying data (profile-pic lookup, sender-name
+    resolution) differ enough that a shared abstraction would need almost as many
+    channel-specific branches as just writing it twice plainly does."""
+    if request.method == "GET":
+        try:
+            log_webhook_hit("WA GET verify", str(dict(request.args)))
+        except Exception:
+            pass
+        challenge = whatsapp_api.verify_webhook_challenge(
+            request.args.get("hub.mode"),
+            request.args.get("hub.verify_token"),
+            request.args.get("hub.challenge"),
+        )
+        if challenge is None:
+            abort(403)
+        return challenge, 200
+
+    raw_body = request.get_data()
+
+    sig_ok = whatsapp_api.verify_webhook_signature(raw_body, request.headers.get("X-Hub-Signature-256", ""))
+    try:
+        log_webhook_hit(f"WA POST sig_ok={sig_ok}", raw_body.decode("utf-8", errors="replace"))
+    except Exception:
+        pass
+
+    if not sig_ok:
+        abort(403)
+
+    payload = request.get_json(silent=True) or {}
+    messages = whatsapp_api.parse_webhook_messages(payload)
+    for message in messages:
+        try:
+            _process_whatsapp_message(message)
+        except Exception as error:
+            print(f"[whatsapp-webhook] Error processing message: {error!r}", flush=True)
+
+    return "", 200
+
+
+def _process_whatsapp_message(message):
+    business = business_by_whatsapp_phone_number_id(message["phone_number_id"])
+    if business is None:
+        print(f"[whatsapp-webhook] No business found for phone_number_id={message['phone_number_id']!r} - ignoring", flush=True)
+        return
+
+    business_id = business[0]
+    print(f"[whatsapp-webhook] Matched business_id={business_id} name={business[1]!r}", flush=True)
+
+    if not BETA_FREE_MODE and not effective_subscription_active(business_id):
+        print(f"[whatsapp-webhook] business_id={business_id} subscription not active - skipping", flush=True)
+        return
+    if replies_today_count(business_id) >= DAILY_REPLY_LIMIT:
+        print(f"[whatsapp-webhook] business_id={business_id} daily limit reached - skipping", flush=True)
+        return
+
+    message_id = message["message_id"]
+    if message_id and already_processed_messages(business_id, [message_id]):
+        print(f"[whatsapp-webhook] message_id={message_id} already processed - skipping (dedup)", flush=True)
+        return
+
+    sender_wa_id = message["sender_wa_id"]
+    access_token = business[17]
+    # No profile-picture equivalent to Instagram's get_sender_info here - WhatsApp's Cloud
+    # API doesn't expose one - so profile_pic_url stays None and the dashboard/app fall
+    # back to the letter avatar for every WhatsApp conversation, same as any Instagram
+    # sender whose picture lookup fails. The display name, unlike Instagram, comes free
+    # with every message webhook payload (message["sender_name"]) - no extra API call
+    # needed for that part.
+    sender_display = message["sender_name"] or sender_wa_id
+    business_info = {
+        "business_name": business[1],
+        "working_hours": business[8],
+        "price_list": business[9],
+        "faq": business[10],
+    }
+
+    print(f"[whatsapp-webhook] Generating AI reply for text={message['text']!r} from sender_wa_id={sender_wa_id}", flush=True)
+    history = previous_conversations_with(business_id, sender_display)
+
+    if BETA_FREE_MODE or has_pro_access(business_id):
+        slot_minutes = get_slot_duration(business_id)
+        upsell_pairs_text = get_upsell_pairs(business_id)
+        now_local_display = booking.now_local().strftime("%A, %Y-%m-%d %H:%M")
+
+        def book_tool(requested_datetime, service=None):
+            return booking.attempt_ai_booking(
+                business, business_id, slot_minutes, requested_datetime, sender_display, sender_wa_id, service, upsell_pairs_text,
+            )
+
+        def cancel_tool():
+            return booking.attempt_ai_cancel_or_reschedule(
+                business, business_id, slot_minutes, sender_wa_id, None, upsell_pairs_text,
+            )
+
+        def reschedule_tool(new_requested_datetime):
+            return booking.attempt_ai_cancel_or_reschedule(
+                business, business_id, slot_minutes, sender_wa_id, new_requested_datetime, upsell_pairs_text,
+            )
+
+        tool_impls = {
+            "check_and_book_appointment": book_tool,
+            "cancel_appointment": cancel_tool,
+            "reschedule_appointment": reschedule_tool,
+        }
+        suggested_reply = generate_reply_with_booking(message["text"], business_info, history, now_local_display, tool_impls)
+    else:
+        suggested_reply = generate_reply(message["text"], business_info, history=history)
+    print(f"[whatsapp-webhook] AI reply generated: {suggested_reply!r}", flush=True)
+
+    new_conversation_id = save_draft_reply(
+        business_id, sender_display, message["text"], suggested_reply,
+        channel="whatsapp", sender_wa_id=sender_wa_id,
+    )
+    print(f"[whatsapp-webhook] Draft saved as conversation_id={new_conversation_id}", flush=True)
+    if message_id:
+        mark_message_processed(business_id, message_id)
+
+    auto_sent = False
+    if is_auto_send_enabled(business_id):
+        try:
+            whatsapp_api.send_message(sender_wa_id, suggested_reply, access_token, business[15])
+            mark_sent(new_conversation_id, suggested_reply)
+            auto_sent = True
+            print(f"[whatsapp-webhook] Auto-sent reply for conversation_id={new_conversation_id}", flush=True)
+        except requests.RequestException as error:
+            print(f"[whatsapp-webhook] Auto-send failed for conversation_id={new_conversation_id}, left as pending: {error}", flush=True)
+
+    try:
+        send_push_to_business(
+            business_id,
+            title="Auto-replied to a customer" if auto_sent else "New customer question",
+            body=f"{sender_display}: {message['text'][:80]}",
+            data={"conversation_id": str(new_conversation_id)},
+        )
+    except Exception as error:
+        print(f"[whatsapp-webhook] Push notification failed: {error}", flush=True)
 
 
 if __name__ == "__main__":

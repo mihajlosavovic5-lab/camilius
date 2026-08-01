@@ -27,7 +27,7 @@ from database import (
     mark_instagram_connect_done, instagram_connect_done_state,
     UniqueViolation,
 )
-from instagram_api import send_message as send_instagram_message, authorize_url as instagram_authorize_url, get_sender_info
+from instagram_api import authorize_url as instagram_authorize_url, get_sender_info
 from extensions import limiter
 import booking
 import paddle_billing
@@ -219,7 +219,7 @@ def require_api_auth(function):
 
 
 def _serialize_conversation(c):
-    id_, sender, subject, question, suggested_reply, final_reply, status, created_at, profile_pic_url, expired_at = c
+    id_, sender, subject, question, suggested_reply, final_reply, status, created_at, profile_pic_url, expired_at, channel = c
     return {
         "id": id_,
         "sender": sender,
@@ -231,6 +231,7 @@ def _serialize_conversation(c):
         "created_at": created_at.isoformat() if created_at else None,
         "profile_pic_url": profile_pic_url,
         "expired": expired_at is not None,
+        "channel": channel,
     }
 
 
@@ -820,27 +821,29 @@ def api_send_reply(conversation_id):
     if conversation is None:
         return jsonify(error="not found"), 404
 
-    _, business_id, sender, subject, question, suggested_reply, sender_igsid = conversation
+    _, business_id, sender, subject, question, suggested_reply, sender_igsid, channel, sender_wa_id = conversation
     if business_id != request.business_id:
         return jsonify(error="forbidden"), 403
 
+    from app import send_channel_reply  # deferred to avoid a circular import at module load
+
     business = business_by_id(business_id)
-    # indices: 5 instagram_account_id, 7 instagram_access_token
-    debug_context = f"reply-send-debug conversation_id={conversation_id} sender_igsid={sender_igsid} ig_account_id={business[5]}"
+    debug_context = f"reply-send-debug conversation_id={conversation_id} channel={channel} sender_igsid={sender_igsid} sender_wa_id={sender_wa_id}"
     try:
-        result = send_instagram_message(sender_igsid, final_reply, business[7], business[5])
-        # Temporary diagnostic: the dashboard/app was showing "sent" (Instagram's API
+        result = send_channel_reply(conversation, business, final_reply)
+        # Temporary diagnostic: the dashboard/app was showing "sent" (the platform's API
         # accepted the request with 2xx) while the reply never actually reached the
-        # customer's real Instagram DM thread - logging Instagram's own response body
-        # here (viewable at /admin/client-errors) so we can see exactly what it returned
+        # customer's real DM thread - logging the platform's own response body here
+        # (viewable at /admin/client-errors) so we can see exactly what it returned
         # (message id, recipient id echoed back, etc.) instead of guessing blind.
-        log_client_error(business_id, f"instagram send OK: {result}", "", debug_context, "")
+        log_client_error(business_id, f"{channel} send OK: {result}", "", debug_context, "")
     except requests.RequestException as e:
         error_body = e.response.text if getattr(e, "response", None) is not None else str(e)
-        log_client_error(business_id, f"instagram send FAILED: {error_body}", "", debug_context, "")
-        # Most likely Instagram's 24-hour reply window has passed - an expected business
-        # outcome, not a bug, hence the specific message rather than a generic 500.
-        return jsonify(error="Couldn't send - Instagram only allows replying within 24 hours of the customer's last message."), 400
+        log_client_error(business_id, f"{channel} send FAILED: {error_body}", "", debug_context, "")
+        # Most likely the platform's 24-hour reply window has passed - an expected
+        # business outcome, not a bug, hence the specific message rather than a generic 500.
+        platform_name = "WhatsApp" if channel == "whatsapp" else "Instagram"
+        return jsonify(error=f"Couldn't send - {platform_name} only allows replying within 24 hours of the customer's last message."), 400
 
     mark_sent(conversation_id, final_reply)
 

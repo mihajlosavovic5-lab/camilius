@@ -19,6 +19,8 @@ os.environ.setdefault("ENCRYPTION_KEY", "lq6DN50PbDefktBQDzopjb_x9c2Ry7lxHtn3o3q
 # module load) - never actually called by this suite, no real API calls are made.
 os.environ.setdefault("OPENAI_API_KEY", "sk-test-dummy-not-real")
 os.environ.setdefault("INSTAGRAM_APP_SECRET", "test-instagram-app-secret")
+os.environ.setdefault("WHATSAPP_APP_SECRET", "test-whatsapp-app-secret")
+os.environ.setdefault("WHATSAPP_WEBHOOK_VERIFY_TOKEN", "test-whatsapp-verify-token")
 os.environ.setdefault("FLASK_DEBUG", "true")  # test client uses plain http - avoids SESSION_COOKIE_SECURE dropping the session cookie
 
 import re

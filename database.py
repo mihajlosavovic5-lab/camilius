@@ -210,6 +210,18 @@ def create_database():
     # (businesses that haven't connected Instagram yet) are allowed under UNIQUE in Postgres.
     cursor.execute("CREATE UNIQUE INDEX IF NOT EXISTS businesses_instagram_account_id_idx ON businesses (instagram_account_id)")
 
+    # WhatsApp Cloud API connection - a second, independent message channel alongside
+    # Instagram (see conversations.channel below). Unlike Instagram, there's no OAuth
+    # redirect here: Camilius isn't a Meta-verified "Tech Provider" (that itself needs
+    # business verification, same wall as Instagram App Review - see whatsapp_api.py's
+    # module docstring), so a business generates its own permanent access token directly
+    # in its own Meta Business Suite and pastes it in via Settings (app.py's
+    # connect_whatsapp route) instead of Camilius ever requesting access to it.
+    cursor.execute("ALTER TABLE businesses ADD COLUMN IF NOT EXISTS whatsapp_phone_number_id TEXT")
+    cursor.execute("ALTER TABLE businesses ADD COLUMN IF NOT EXISTS whatsapp_display_number TEXT")
+    cursor.execute("ALTER TABLE businesses ADD COLUMN IF NOT EXISTS whatsapp_access_token TEXT")
+    cursor.execute("CREATE UNIQUE INDEX IF NOT EXISTS businesses_whatsapp_phone_number_id_idx ON businesses (whatsapp_phone_number_id)")
+
     # Lets the mobile app's Instagram-connect OAuth tab close itself proactively (see
     # mobile/app.js's pollForInstagramConnected and api.py's instagram_connect_state_is_done)
     # instead of depending only on that tab's own window.close(), which isn't reliable on
@@ -281,6 +293,18 @@ def create_database():
     # back (Instagram's Send API takes that id, not a username) - kept separate since a
     # username isn't necessarily resolvable (or stable) and isn't valid as a send target.
     cursor.execute("ALTER TABLE conversations ADD COLUMN IF NOT EXISTS sender_igsid TEXT")
+
+    # Which channel this conversation came in on - defaults to 'instagram' so every
+    # existing row (all of them, before WhatsApp existed) keeps its correct meaning
+    # without a backfill. sender_wa_id is WhatsApp's equivalent of sender_igsid above (the
+    # id actually needed to send a reply back, via whatsapp_api.send_message) - kept as
+    # its own column rather than repurposing sender_igsid for both, so it stays obvious
+    # from the schema alone which id a 'whatsapp' row's reply-target actually is.
+    # appointments.sender_igsid (see its own comment above) is NOT given a matching
+    # sender_wa_id twin - it's reused as-is for a WhatsApp customer's AI-booked
+    # appointment too, since nothing there depends on which platform the id came from.
+    cursor.execute("ALTER TABLE conversations ADD COLUMN IF NOT EXISTS channel TEXT NOT NULL DEFAULT 'instagram'")
+    cursor.execute("ALTER TABLE conversations ADD COLUMN IF NOT EXISTS sender_wa_id TEXT")
 
     # Sender's Instagram profile picture URL, resolved alongside `sender` at the same time
     # (see instagram_api.get_sender_info) - NULL when the platform has none on file, or the
@@ -461,9 +485,12 @@ def create_database():
     # wall-clock appointment times need unambiguous, DST-safe timezone handling, which
     # the driver gives for free with an aware column (see booking.py, the only module that
     # writes/reads these). sender_igsid is set only for AI-booked appointments (links back
-    # to the Instagram conversation); manual bookings made from the Schedule page leave it
-    # NULL. status is 'confirmed'/'canceled' - cancellations are soft (kept for history),
-    # same spirit as conversations' archived_at/deleted_at.
+    # to the source conversation, Instagram or WhatsApp alike - reused as-is for a
+    # WhatsApp customer's id too rather than adding a twin sender_wa_id column here, since
+    # nothing reading it needs to know which platform it came from); manual bookings made
+    # from the Schedule page leave it NULL. status is 'confirmed'/'canceled' -
+    # cancellations are soft (kept for history), same spirit as conversations'
+    # archived_at/deleted_at.
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS appointments (
             id SERIAL PRIMARY KEY,
@@ -571,18 +598,27 @@ def create_database():
 #   6 instagram_username, 7 instagram_access_token (decrypted, None if not connected yet),
 #   8 working_hours, 9 price_list, 10 faq, 11 phone_number (None if never set),
 #   12 email_verified, 13 phone_verified, 14 pending_contact_email (None unless an email
-#   change confirmation is awaiting a click - see save_pending_email_change() below)
+#   change confirmation is awaiting a click - see save_pending_email_change() below),
+#   15 whatsapp_phone_number_id, 16 whatsapp_display_number, 17 whatsapp_access_token
+#   (decrypted, None if not connected yet). The WhatsApp columns are appended at the END
+#   rather than grouped next to the Instagram ones above, deliberately - this tuple is
+#   indexed positionally (business[5], business[7], ...) in well over a hundred places
+#   across app.py/api.py/booking.py, so inserting them in the middle would silently shift
+#   every existing index instead of just adding new ones.
 
 _BUSINESS_COLUMNS = """id, name, username, password, contact_email, instagram_account_id,
                        instagram_username, instagram_access_token, working_hours, price_list, faq,
-                       phone_number, email_verified, phone_verified, pending_contact_email"""
+                       phone_number, email_verified, phone_verified, pending_contact_email,
+                       whatsapp_phone_number_id, whatsapp_display_number, whatsapp_access_token"""
 
 
 def _decrypt_row_token(row):
-    # instagram_access_token is at index 7 - decrypt it before use. A business that
-    # hasn't connected Instagram yet has NULL here, not an encrypted empty string.
-    token = decrypt(row[7]) if row[7] else None
-    return row[:7] + (token,) + row[8:]
+    # instagram_access_token (index 7) and whatsapp_access_token (index 17) both need
+    # decrypting before use - either can be NULL (that channel not connected yet), not an
+    # encrypted empty string.
+    ig_token = decrypt(row[7]) if row[7] else None
+    wa_token = decrypt(row[17]) if row[17] else None
+    return row[:7] + (ig_token,) + row[8:17] + (wa_token,)
 
 
 def add_business(name, username, password, contact_email, working_hours, price_list, faq, phone_number=None, initial_status="trialing", push_enabled=True, auto_send=True, new_booking_notifications_enabled=True, reminders_enabled=False):
@@ -662,6 +698,52 @@ def unlink_instagram_account(business_id):
     connection.close()
 
 
+def link_whatsapp_account(business_id, phone_number_id, display_number, access_token):
+    """Saves a WhatsApp Business phone number the business connected by pasting its own
+    access token in Settings (see connect_whatsapp() in app.py) - no OAuth round-trip like
+    Instagram's, see whatsapp_phone_number_id's own comment in create_database for why."""
+    connection = connect()
+    cursor = connection.cursor()
+    _execute_or_raise_unique_violation(
+        cursor,
+        """UPDATE businesses
+           SET whatsapp_phone_number_id = %s, whatsapp_display_number = %s, whatsapp_access_token = %s
+           WHERE id = %s""",
+        (phone_number_id, display_number, encrypt(access_token), business_id),
+    )
+    connection.commit()
+    connection.close()
+
+
+def unlink_whatsapp_account(business_id):
+    """Frees up this business's WhatsApp connection (whatsapp_phone_number_id has a UNIQUE
+    index, same reasoning as unlink_instagram_account above)."""
+    connection = connect()
+    cursor = connection.cursor()
+    cursor.execute(
+        """UPDATE businesses
+           SET whatsapp_phone_number_id = NULL, whatsapp_display_number = NULL, whatsapp_access_token = NULL
+           WHERE id = %s""",
+        (business_id,),
+    )
+    connection.commit()
+    connection.close()
+
+
+def business_by_whatsapp_phone_number_id(phone_number_id):
+    """Routes an incoming WhatsApp webhook payload (which identifies the recipient by
+    phone_number_id, not a business id) to the business that connected it - mirrors
+    business_by_instagram_account_id below."""
+    connection = connect()
+    cursor = connection.cursor()
+    cursor.execute(f"SELECT {_BUSINESS_COLUMNS} FROM businesses WHERE whatsapp_phone_number_id = %s", (phone_number_id,))
+    row = cursor.fetchone()
+    connection.close()
+    if row is None:
+        return None
+    return _decrypt_row_token(row)
+
+
 def mark_instagram_connect_done(business_id, state):
     """Records that this business's Instagram OAuth round-trip (identified by its one-shot
     "state" token) finished - see instagram_connect_done_state's column comment in
@@ -698,7 +780,7 @@ def all_businesses():
     """)
     result = cursor.fetchall()
     connection.close()
-    return [_decrypt_row_token(row[:15]) + (row[15],) for row in result]
+    return [_decrypt_row_token(row[:18]) + (row[18],) for row in result]
 
 
 def all_businesses_unfiltered():
@@ -711,7 +793,7 @@ def all_businesses_unfiltered():
     cursor.execute(f"SELECT {_BUSINESS_COLUMNS}, subscription_status, created_at FROM businesses ORDER BY created_at DESC")
     result = cursor.fetchall()
     connection.close()
-    return [_decrypt_row_token(row[:15]) + (row[15], row[16]) for row in result]
+    return [_decrypt_row_token(row[:18]) + (row[18], row[19]) for row in result]
 
 
 def business_by_id(business_id):
@@ -797,7 +879,7 @@ def replies_today_count(business_id):
 
 
 def save_draft_reply(business_id, sender, question, suggested_reply, subject=None, sender_igsid=None,
-                      profile_pic_url=None):
+                      profile_pic_url=None, channel="instagram", sender_wa_id=None):
     # subject only ever came from email (there's no such thing on an Instagram DM) - kept
     # as an optional column rather than dropped, since dashboard.html already guards its
     # display with {% if subject %} and removing the column outright isn't worth the churn.
@@ -805,9 +887,9 @@ def save_draft_reply(business_id, sender, question, suggested_reply, subject=Non
     cursor = connection.cursor()
 
     cursor.execute(
-        """INSERT INTO conversations (business_id, sender, subject, question, suggested_reply, sender_igsid, sender_profile_pic)
-           VALUES (%s, %s, %s, %s, %s, %s, %s) RETURNING id""",
-        (business_id, sender, subject, question, suggested_reply, sender_igsid, profile_pic_url),
+        """INSERT INTO conversations (business_id, sender, subject, question, suggested_reply, sender_igsid, sender_profile_pic, channel, sender_wa_id)
+           VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s) RETURNING id""",
+        (business_id, sender, subject, question, suggested_reply, sender_igsid, profile_pic_url, channel, sender_wa_id),
     )
 
     new_id = cursor.fetchone()[0]
@@ -858,11 +940,14 @@ def mark_sent(conversation_id, final_reply):
 
 
 def get_conversation(conversation_id):
+    # channel/sender_wa_id appended at the end (indices 7, 8) rather than inserted next to
+    # sender_igsid - same reasoning as _BUSINESS_COLUMNS above, this tuple is unpacked
+    # positionally in app.py/api.py and this keeps every existing index unchanged.
     connection = connect()
     cursor = connection.cursor()
 
     cursor.execute(
-        "SELECT id, business_id, sender, subject, question, suggested_reply, sender_igsid FROM conversations WHERE id = %s",
+        "SELECT id, business_id, sender, subject, question, suggested_reply, sender_igsid, channel, sender_wa_id FROM conversations WHERE id = %s",
         (conversation_id,),
     )
     row = cursor.fetchone()
@@ -888,12 +973,15 @@ def raw_conversation_rows(limit=30):
 
 def conversations_for_business(business_id):
     """The normal Inbox view (All/Pending/Sent) - excludes anything archived or in the
-    Trash, which live in their own separate views below."""
+    Trash, which live in their own separate views below. `channel` ('instagram' or
+    'whatsapp') is the last column, appended rather than inserted alongside sender_igsid -
+    same shared-shape convention as trashed_conversations_for_business's own docstring
+    describes, so index 10 stays index 10 everywhere this row is consumed."""
     connection = connect()
     cursor = connection.cursor()
 
     cursor.execute("""
-        SELECT id, sender, subject, question, suggested_reply, final_reply, status, created_at, sender_profile_pic, expired_at
+        SELECT id, sender, subject, question, suggested_reply, final_reply, status, created_at, sender_profile_pic, expired_at, channel
         FROM conversations
         WHERE business_id = %s AND archived_at IS NULL AND deleted_at IS NULL
         ORDER BY created_at DESC
@@ -909,7 +997,7 @@ def archived_conversations_for_business(business_id):
     cursor = connection.cursor()
 
     cursor.execute("""
-        SELECT id, sender, subject, question, suggested_reply, final_reply, status, created_at, sender_profile_pic, expired_at
+        SELECT id, sender, subject, question, suggested_reply, final_reply, status, created_at, sender_profile_pic, expired_at, channel
         FROM conversations
         WHERE business_id = %s AND archived_at IS NOT NULL AND deleted_at IS NULL
         ORDER BY archived_at DESC
@@ -930,7 +1018,7 @@ def trashed_conversations_for_business(business_id):
     cursor = connection.cursor()
 
     cursor.execute("""
-        SELECT id, sender, subject, question, suggested_reply, final_reply, status, created_at, sender_profile_pic, expired_at
+        SELECT id, sender, subject, question, suggested_reply, final_reply, status, created_at, sender_profile_pic, expired_at, channel
         FROM conversations
         WHERE business_id = %s AND deleted_at IS NOT NULL
         ORDER BY deleted_at DESC
