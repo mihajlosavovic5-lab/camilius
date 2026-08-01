@@ -997,6 +997,14 @@ input.search-input {
 }
 .filters a:active { transform: translateY(0); box-shadow: 0 1px 3px rgba(38, 32, 20, .1); }
 .filters a.active { background: var(--text); color: #fff; border-color: var(--text); }
+/* Phone-web only: wrapping to a second row (the desktop behavior above) reads as a
+   web page reflowing, not an app. The native app's own filter chips (mobile/app.css's
+   .filters) never wrap - they scroll horizontally in one row - so match that here
+   instead, without touching the desktop wrap behavior. */
+@media (max-width: 640px) {
+    .filters { flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    .filters a { flex-shrink: 0; }
+}
 
 /* --- Stats bar (dashboard) --- */
 .stats-row { display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 24px; }
