@@ -599,8 +599,16 @@ a:focus-visible, button:focus-visible, [tabindex]:focus-visible {
     /* Reserve room for the fixed top-right language flag (.site-lang-select-btn,
        base.html), same reason as the desktop padding-right above - without it the
        hamburger button sits directly under the flag, in the same top-right corner. */
-    .navbar-inner { flex-wrap: nowrap; position: relative; padding-right: 84px; }
+    .navbar-inner { flex-wrap: nowrap; justify-content: flex-start; position: relative; padding-right: 84px; }
     .nav-menu-btn { display: flex; }
+    /* Brand moves to dead-center of the screen and the hamburger takes the top-left
+       corner instead of sitting next to the brand on the left - the flag keeps its own
+       fixed top-right spot untouched. Absolute positioning (not order/margin tricks) so
+       the brand centers on the full-width bar regardless of the hamburger's width on one
+       side and the flag's reserved space on the other, which aren't equal. Once the
+       brand is out of flow, .nav-menu-btn is the only flow child left, so it lands at
+       the bar's start (left) on its own. */
+    .navbar-inner .brand { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); }
     /* Collapsed into a dropdown sheet anchored under the navbar instead of the plain
        wrap-to-two-lines the shared .nav-links flex-wrap rule gives it above - that read
        as unfinished/cluttered on a phone-width screen next to the desktop nav's tidy
@@ -1756,6 +1764,16 @@ body.auth {
 }
 .support-widget-backdrop.open { opacity: 1; pointer-events: auto; }
 .support-widget { position: fixed; right: 20px; bottom: 20px; z-index: 1041; }
+/* Phone-web only, logged-in app screens only (body.app - dashboard/schedule/profile/
+   settings/subscription, see their body_class blocks): the support AI launcher is
+   dropped here per request - the app itself has no equivalent floating assistant, and
+   on a phone the fixed FAB sits in the same corner as in-page action buttons (e.g. the
+   dashboard's own bottom-right elements), fighting for the same thumb-reach spot.
+   Desktop and the pre-login pages (landing/login/register/etc.) keep it as-is. */
+@media (max-width: 640px) {
+    body.app .support-widget,
+    body.app .support-widget-backdrop { display: none; }
+}
 /* Same transparent-fill + gold-border look as .hours-customize-link (Faza 5's hours
    picker) - a subtle outline instead of a solid amber-filled circle, so the launcher
    sits quietly in the corner instead of pulling the eye on every page. */

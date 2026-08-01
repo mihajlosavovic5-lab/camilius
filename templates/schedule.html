@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% block title %}Schedule - {{ session['business_name'] }}{% endblock %}
+{% block body_class %}app{% endblock %}
 
 {% macro render_slot_row(row) %}
     <div class="schedule-timeline-row {{ 'schedule-timeline-hour' if row.time.endswith(':00') }}">
