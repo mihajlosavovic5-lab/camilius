@@ -544,7 +544,7 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
 .register-card { padding: 0; }
 /* Nudges the back button down slightly from the very top edge - a small deliberate gap
    from the status bar, not flush against it. */
-.screen-register.screen .topbar { padding-top: calc(34px + var(--safe-top)); }
+.screen-register.screen .topbar { padding-top: calc(44px + var(--safe-top)); }
 /* Persistent wizard heading, shown above every step (not just step 1) - same wording
    and role as the web register page's .register-wizard-heading (templates/
    register.html), which stays fixed across all three steps instead of being swapped
@@ -584,7 +584,7 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
    its own height doesn't affect the heading's position, and a step tall enough to
    fill/overflow the screen just shrinks it to 0 and scrolls normally instead of
    clipping. */
-.screen-register .detail-body::before { content: ''; flex: 0 0 62px; }
+.screen-register .detail-body::before { content: ''; flex: 0 0 46px; }
 .screen-register .detail-body::after { content: ''; flex: 1 0 0; }
 .register-step-nav { display: flex; align-items: center; justify-content: space-between; }
 .register-step-dots { display: flex; gap: 6px; }
