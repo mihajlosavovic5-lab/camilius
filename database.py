@@ -420,6 +420,21 @@ def create_database():
         )
     """)
 
+    # "Request tester access" submissions (see /request-tester-access in app.py) - lets
+    # someone who wants to try the app during the INSTAGRAM_TESTERS_ONLY period hand over
+    # their Instagram username instead of the founder having to chase people down for it.
+    # No FK to businesses - this is filled out by people who may not have (or ever get) a
+    # Camilius account at all, it's purely "please add me as a Meta Instagram tester".
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS tester_requests (
+            id SERIAL PRIMARY KEY,
+            instagram_username TEXT NOT NULL,
+            email TEXT NOT NULL,
+            note TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+
     # Every raw hit on /instagram-webhook is recorded here, purely for diagnosing delivery
     # (does Meta actually call us?) independently of Railway's log viewer, which has been
     # unreliable. Kept small by the trim in log_webhook_hit. Temporary diagnostic aid.
@@ -2148,6 +2163,31 @@ def recent_client_errors(limit=100):
     cursor.execute("""
         SELECT id, business_id, message, stack, context, app_version, created_at
         FROM client_errors ORDER BY created_at DESC LIMIT %s
+    """, (limit,))
+    result = cursor.fetchall()
+    connection.close()
+    return result
+
+
+# --- "Request tester access" submissions ---
+
+def add_tester_request(instagram_username, email, note):
+    connection = connect()
+    cursor = connection.cursor()
+    cursor.execute(
+        "INSERT INTO tester_requests (instagram_username, email, note) VALUES (%s, %s, %s)",
+        (instagram_username, email, note),
+    )
+    connection.commit()
+    connection.close()
+
+
+def recent_tester_requests(limit=200):
+    connection = connect()
+    cursor = connection.cursor()
+    cursor.execute("""
+        SELECT id, instagram_username, email, note, created_at
+        FROM tester_requests ORDER BY created_at DESC LIMIT %s
     """, (limit,))
     result = cursor.fetchall()
     connection.close()

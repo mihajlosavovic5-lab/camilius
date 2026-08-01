@@ -2177,6 +2177,15 @@ if (capacitorPlugins && capacitorPlugins.Browser) {
 // chrome instead of an explicit logout affordance.
 el("connect-instagram-back").addEventListener("click", logout);
 
+el("connect-request-tester-access-btn").addEventListener("click", async () => {
+    const url = API_BASE + "/request-tester-access";
+    if (capacitorPlugins && capacitorPlugins.Browser) {
+        await capacitorPlugins.Browser.open({ url });
+    } else {
+        window.open(url, "_blank");
+    }
+});
+
 // Gates entry into the app on Instagram actually being connected - mirrors the
 // website's own home route, which redirects to /connect-instagram whenever
 // instagram_account_id isn't set yet (see app.py). Called after login and on a
@@ -2192,6 +2201,7 @@ async function enterOrGateOnInstagram() {
             showTabbar(false);
             el("connect-error").classList.add("hidden");
             el("connect-tester-note").classList.toggle("hidden", !data.instagram_testers_only);
+            el("connect-request-tester-access-btn").classList.toggle("hidden", !data.instagram_testers_only);
             showScreen("connectInstagram");
         }
     } catch (err) {

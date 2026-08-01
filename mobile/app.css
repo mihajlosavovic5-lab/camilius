@@ -632,6 +632,7 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
 .connect-instagram-center .screen-subtitle { margin: 6px 0 0; }
 .connect-instagram-center .alert,
 .connect-instagram-center #connect-waiting { margin-top: 14px; width: 100%; }
+.connect-instagram-center #connect-request-tester-access-btn { margin-top: 10px; font-size: 14px; }
 
 /* Verify-pending - reuses .login-wrap's layout (see .screen-login above) but with plain
    centered text/buttons instead of a form, same idea as .connect-instagram-center. */

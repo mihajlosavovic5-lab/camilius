@@ -37,6 +37,9 @@
         </div>
 
         <div class="auth-links">
+            {% if instagram_testers_only %}
+                <a href="{{ url_for('request_tester_access') }}" data-i18n="connectInstagram.requestTesterAccess">Haven't been invited yet? Request access</a>
+            {% endif %}
             <a href="{{ url_for('logout') }}" data-i18n="common.logOut">Log out</a>
         </div>
     </div>

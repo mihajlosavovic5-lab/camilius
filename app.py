@@ -20,6 +20,7 @@ from database import (
     link_stripe_subscription, update_stripe_subscription_status, business_by_stripe_subscription_id,
     effective_subscription_active, has_pro_access,
     business_stats, log_event, event_funnel, recent_client_errors, log_client_error,
+    add_tester_request, recent_tester_requests,
     link_instagram_account, unlink_instagram_account, business_by_instagram_account_id, already_processed_messages,
     mark_message_processed, save_draft_reply, previous_conversations_with,
     log_webhook_hit, recent_webhook_hits, raw_conversation_rows, is_auto_send_enabled,
@@ -485,6 +486,55 @@ def connect_instagram():
 def connect_instagram_start():
     redirect_uri = url_for("instagram_oauth_callback", _external=True)
     return redirect(instagram_authorize_url(redirect_uri))
+
+
+# Public (no login required - someone requesting access may not have a Camilius account
+# yet, or may have one but obviously can't get past the tester gate to reach a logged-in
+# page) hand-off for the INSTAGRAM_TESTERS_ONLY period: collects an Instagram username so
+# the founder can add it in the Meta App dashboard (App roles > Roles > Instagram
+# Testers) without having to chase people down for it over DM. Linked from
+# connectInstagram.testerNote's "haven't been invited yet?" line.
+@app.route("/request-tester-access", methods=["GET", "POST"])
+@limiter.limit("10 per hour", methods=["POST"])
+def request_tester_access():
+    if request.method == "POST":
+        instagram_username = request.form.get("instagram_username", "").strip().lstrip("@")
+        email = request.form.get("email", "").strip()
+        note = request.form.get("note", "").strip() or None
+
+        if not instagram_username or not email:
+            return render_template(
+                "request_tester_access.html", submitted=False,
+                error="Please fill in your Instagram username and email.", data=request.form,
+            )
+
+        add_tester_request(instagram_username, email, note)
+        log_event("tester_access_requested")
+
+        # Best-effort only, same as every other notification-style send in this file - a
+        # failure here must not lose the request itself, which is already safely in the
+        # DB by this point (visible at /admin/tester-requests regardless).
+        alert_email = os.getenv("ALERT_EMAIL")
+        if alert_email:
+            try:
+                send_email(
+                    recipient=alert_email,
+                    subject=f"New tester request: @{instagram_username}",
+                    body=(
+                        f"Instagram: @{instagram_username}\n"
+                        f"Email: {email}\n"
+                        f"Note: {note or '(none)'}\n\n"
+                        f"Add them: Meta App dashboard > App roles > Roles > Instagram Testers."
+                    ),
+                    business_name="Camilius",
+                    reply_to=email,
+                )
+            except Exception as error:
+                log_client_error(None, f"tester request notification email failed: {error}", "", "tester-request-notify", "")
+
+        return render_template("request_tester_access.html", submitted=True)
+
+    return render_template("request_tester_access.html", submitted=False, error=None, data={})
 
 
 @app.route("/instagram-oauth-callback")
@@ -1625,6 +1675,20 @@ def admin_client_errors():
 
     errors = recent_client_errors(limit=100)
     return render_template("admin_client_errors.html", errors=errors)
+
+
+# Founder-only view of /request-tester-access submissions - same secret-token gating as
+# every other /admin route. Each row still needs a manual step in the Meta App dashboard
+# (App roles > Roles > Instagram Testers) - nothing here does that automatically, there's
+# no API for it.
+@app.route("/admin/tester-requests")
+def admin_tester_requests():
+    token = os.getenv("ADMIN_TOKEN")
+    if not token or request.args.get("token") != token:
+        abort(404)
+
+    requests_list = recent_tester_requests(limit=200)
+    return render_template("admin_tester_requests.html", requests=requests_list)
 
 
 # Founder-only view of the delete-account wizard's exit survey (web + mobile) - same

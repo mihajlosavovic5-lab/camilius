@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block title %}Request tester access - Camilius{% endblock %}
+{% block body_class %}auth{% endblock %}
+
+{% block content %}
+<div class="auth-wrapper">
+    <div class="auth-brand">
+        <span class="brand">
+            <span class="brand-mark">C</span>
+            <span class="brand-name">Camilius</span>
+        </span>
+    </div>
+
+    <div class="auth-card">
+        {% if submitted %}
+            <h1 data-i18n="testerRequest.submittedTitle">You're on the list</h1>
+            <p class="auth-subtitle" data-i18n="testerRequest.submittedBody">We'll add your Instagram account as a tester and let you know at the email you gave us - usually within a day or two.</p>
+            <div class="auth-links">
+                <a href="{{ url_for('login') }}" data-i18n="testerRequest.backToLogin">Back to login</a>
+            </div>
+        {% else %}
+            <h1 data-i18n="testerRequest.title">Request tester access</h1>
+            <p class="auth-subtitle" data-i18n="testerRequest.subtitle">Camilius hasn't finished Meta's app review yet, so only invited testers can connect an Instagram account. Tell us your Instagram username and we'll send you an invite.</p>
+
+            {% if error %}
+                <div class="alert alert-error"><span class="alert-icon">&#9888;&#65039;</span><span>{{ error }}</span></div>
+            {% endif %}
+
+            <form method="POST">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                <div class="floating-field">
+                    <input type="text" id="tester-request-instagram-input" name="instagram_username" value="{{ data.get('instagram_username', '') }}" placeholder=" " required>
+                    <label for="tester-request-instagram-input" data-i18n="testerRequest.instagramUsername">Instagram username</label>
+                </div>
+
+                <div class="floating-field">
+                    <input type="email" id="tester-request-email-input" name="email" value="{{ data.get('email', '') }}" placeholder=" " required>
+                    <label for="tester-request-email-input" data-i18n="testerRequest.email">Email</label>
+                </div>
+
+                <div class="floating-field">
+                    <input type="text" id="tester-request-note-input" name="note" value="{{ data.get('note', '') }}" placeholder=" ">
+                    <label for="tester-request-note-input" data-i18n="testerRequest.note">Note (optional)</label>
+                </div>
+
+                <div class="form-actions">
+                    <button class="button button-full" type="submit" data-i18n="testerRequest.submit">Request access</button>
+                </div>
+            </form>
+
+            <div class="auth-links">
+                <a href="{{ url_for('login') }}" data-i18n="testerRequest.backToLogin">Back to login</a>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
