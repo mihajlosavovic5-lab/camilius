@@ -1758,6 +1758,13 @@ body.auth {
     padding: 4px; border-radius: 12px; border: 1px solid var(--border);
     background: var(--surface); box-shadow: 0 10px 24px -8px rgba(38, 32, 20, .22), 0 2px 6px rgba(38, 32, 20, .08);
     max-height: 240px; overflow-y: auto;
+    /* Anchors the scale-in to the same corner the menu is actually positioned from
+       (top: 100%; left: 0 above) - without this, scale()'s default center origin shrinks
+       the box in from BOTH sides symmetrically, so the menu's left edge visibly drifts
+       right of the trigger's own left edge for the first frames of the animation instead
+       of staying flush with it the whole time. Same reasoning as .site-lang-modal-sheet's
+       own transform-origin: top right further up. */
+    transform-origin: top left;
     animation: duration-dd-menu-in .15s cubic-bezier(.16,1,.3,1) both;
 }
 @keyframes duration-dd-menu-in {
