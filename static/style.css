@@ -659,10 +659,16 @@ a:focus-visible, button:focus-visible, [tabindex]:focus-visible {
     }
     /* Each link is its own opaque "chip" (--menu-row-bg/--menu-row-border, the same
        tokens the landing drawer's rows use) instead of a bare text row, so they read
-       as solid, tappable buttons against the tinted drawer panel. */
+       as solid, tappable buttons against the tinted drawer panel. Text color also
+       matches the landing drawer's rows (--primary-ink on every row, active or not -
+       that menu has no "current page" concept to distinguish) rather than the muted
+       .nav-links default further up, which only reads correctly on the desktop pill
+       row it was written for; muted next to three solid gold rows just looked broken
+       here. The active item still stands apart via its bolder weight + underline
+       (.nav-links a.active below), not color. */
     .nav-links a {
         padding: 13px 14px; margin: 3px 0; border-radius: 10px;
-        font-size: 17px; text-align: left;
+        font-size: 17px; text-align: left; color: var(--primary-ink);
         background: var(--menu-row-bg); border: 1px solid var(--menu-row-border);
     }
     /* Scroll lock while the drawer is open - same pattern as body.lp-menu-open/
