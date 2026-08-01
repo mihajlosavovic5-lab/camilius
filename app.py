@@ -231,7 +231,11 @@ _CSP = (
     "script-src 'self' 'unsafe-inline' https://cdn.paddle.com; "
     "style-src 'self' 'unsafe-inline'; "
     "img-src 'self' data: https:; "
-    "connect-src 'self' https://*.paddle.com; "
+    # ipapi.co: best-effort IP geolocation the language picker uses to guess a first-time
+    # visitor's language from their country (static/site-i18n.js's detectLanguageFromLocation)
+    # - without this allowance every one of those requests was silently CSP-blocked, so the
+    # feature never actually worked (caught testing this, not by design).
+    "connect-src 'self' https://*.paddle.com https://ipapi.co; "
     "frame-src https://*.paddle.com; "
     "frame-ancestors 'self'; "
     "base-uri 'self'; "

@@ -146,6 +146,12 @@
             var navScrollTicking = false;
             function onNavbarScroll() {
                 navScrollTicking = false;
+                // This script runs in <head>, before <body> exists yet - the initial call
+                // below (unlike every later one, which only ever fires from a real 'scroll'
+                // or htmx event, by which point <body> is long since parsed) hits this
+                // before document.body exists at all. Guarded the same way as the .navbar
+                // lookup right below, instead of throwing on document.body.classList.
+                if (!document.body) return;
                 if (document.body.classList.contains("nav-menu-open") || document.body.classList.contains("site-lang-open")) return;
                 var navbar = document.querySelector(".navbar");
                 if (!navbar) return;
