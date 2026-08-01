@@ -667,8 +667,12 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
 .instagram-field-row {
     /* align-items left at its default (stretch), not center - the divider below needs
        .instagram-actions-row to actually stretch to the row's full height (driven by the
-       taller field/input beside it) rather than shrink-wrapping its own button text. */
-    display: flex; gap: 10px; margin-top: 14px;
+       taller field/input beside it) rather than shrink-wrapping its own button text.
+       No gap here (unlike a plain flex row elsewhere) - .instagram-actions-row's own left
+       padding already separates it from the field, and stacking a gap on top of that on
+       top of the field's own input padding was three separate spacers doing one job,
+       starving the username of width it could otherwise have. */
+    display: flex; margin-top: 14px;
     border: 1px solid var(--border); border-radius: 10px; background: var(--background);
     overflow: hidden;
 }
@@ -678,15 +682,16 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
    actually apply instead of losing to those. */
 .instagram-field-row .floating-field-instagram input[readonly] { background: transparent; }
 .instagram-field-row .floating-field-instagram input[type="text"] { border: none; border-radius: 0; }
-.instagram-actions-row {
-    display: flex; align-items: center; gap: 10px; flex-shrink: 0;
-    padding: 0 14px;
-}
-.instagram-actions-row .link-btn { font-size: 14px; white-space: nowrap; }
+/* Slightly smaller than a plain .link-btn, and no flex gap (the divider below handles
+   Reconnect/Disconnect's own spacing) - both trimmed for the same reason as the row's own
+   gap above: every px not spent on chrome here is a px the username field gets instead. */
+.instagram-actions-row { display: flex; align-items: center; flex-shrink: 0; padding: 0 12px; }
+.instagram-actions-row .link-btn { font-size: 13.5px; white-space: nowrap; }
 /* Divider sits between Reconnect and Disconnect themselves, not between the field and the
    actions as a group - Disconnect is the only one ever preceded by another .link-btn here,
-   so this only ever draws when both are actually shown side by side. */
-.instagram-actions-row .link-btn + .link-btn { border-left: 1px solid var(--border); padding-left: 10px; }
+   so this only ever draws when both are actually shown side by side. Single spacer
+   (padding-left, no companion margin/gap) rather than stacking multiple. */
+.instagram-actions-row .link-btn + .link-btn { border-left: 1px solid var(--border); padding-left: 8px; }
 #settings-instagram-reconnect-btn { color: var(--primary-ink); }
 .instagram-actions-row #settings-instagram-disconnect-btn { flex-shrink: 0; }
 
