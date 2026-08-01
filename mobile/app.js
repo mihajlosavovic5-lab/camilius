@@ -1796,6 +1796,8 @@ el("login-signup-link").addEventListener("click", () => {
     });
     el("register-terms").checked = false;
     el("register-push-toggle").checked = true;
+    el("register-draft-mode-toggle").checked = false;
+    el("register-new-booking-toggle").checked = true;
     registerHoursPicker.reset();
     registerPricesPicker.setValue("");
     registerUsernameAvailability.reset();
@@ -1874,6 +1876,10 @@ el("register-form").addEventListener("submit", async (event) => {
                 faq: el("register-faq").value,
                 accept_terms: el("register-terms").checked,
                 push_enabled: el("register-push-toggle").checked,
+                // Draft Mode is the toggle's own sense (checked = review before sending);
+                // auto_send is its inverse, same as Settings' own save handler.
+                auto_send: !el("register-draft-mode-toggle").checked,
+                new_booking_notifications_enabled: el("register-new-booking-toggle").checked,
             },
         });
         showVerifyPendingScreen(data.business_id, data.contact_email, data.wait_seconds);

@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
 <title>Camilius</title>
-<link rel="stylesheet" href="app.css?v=efbfba89841c">
+<link rel="stylesheet" href="app.css?v=8a15207cf443">
 </head>
 <body>
 
@@ -455,6 +455,30 @@
                 </label>
               </div>
               <p class="field-hint" data-i18n="register.notificationsHint">You can turn this on or off anytime in Settings.</p>
+
+              <!-- Two more toggles from Settings that are just as relevant from day one
+                   (both already default to on server-side - see add_business in
+                   database.py - so leaving either checked here changes nothing; only
+                   unchecking one actually does something, same as the notify toggle
+                   above), grouped with it here in the same row+hint pattern instead of
+                   only ever being discoverable after the fact in Settings. -->
+              <div class="settings-row">
+                <span data-i18n="appSettings.autoSend">AI Draft Mode</span>
+                <label class="hours-day-toggle">
+                  <input type="checkbox" id="register-draft-mode-toggle">
+                  <span class="hours-day-toggle-track"><span class="hours-day-toggle-thumb"></span></span>
+                </label>
+              </div>
+              <p class="field-hint" data-i18n="appSettings.autoSendHint">Review each AI reply before it's sent.</p>
+
+              <div class="settings-row">
+                <span data-i18n="appSettings.newBookingHeading">New bookings</span>
+                <label class="hours-day-toggle">
+                  <input type="checkbox" id="register-new-booking-toggle" checked>
+                  <span class="hours-day-toggle-track"><span class="hours-day-toggle-thumb"></span></span>
+                </label>
+              </div>
+              <p class="field-hint" data-i18n="appSettings.newBookingNote">Notifies you when a customer books an appointment.</p>
 
               <label class="checkbox-row">
                 <input type="checkbox" id="register-terms" required>
@@ -1341,7 +1365,7 @@
   </button>
 </nav>
 
-<script src="i18n.js?v=efbfba89841c"></script>
-<script src="app.js?v=efbfba89841c"></script>
+<script src="i18n.js?v=8a15207cf443"></script>
+<script src="app.js?v=8a15207cf443"></script>
 </body>
 </html>

@@ -313,6 +313,12 @@ def api_register():
             # user picked there is the account's starting push_enabled value, changeable
             # later from Settings (see /api/notification-preferences) either way.
             push_enabled=bool(data.get("push_enabled", True)),
+            # Same deal for the wizard's AI Draft Mode / New bookings toggles, added
+            # alongside it - the mobile app already negates Draft Mode into auto_send
+            # before sending it here, same as it does for /api/notification-preferences
+            # below, also changeable later from Settings either way.
+            auto_send=bool(data.get("auto_send", True)),
+            new_booking_notifications_enabled=bool(data.get("new_booking_notifications_enabled", True)),
         )
     except UniqueViolation:
         return jsonify(error="That username, contact email, or phone number is already taken."), 409
