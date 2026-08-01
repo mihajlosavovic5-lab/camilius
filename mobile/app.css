@@ -492,9 +492,13 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
 /* Copy-to-clipboard button inside the Instagram account field (Profile) - same inside-the-
    field icon-button mechanic as .password-toggle above, just always the same icon (no
    is-visible-style state swap) and triggering a clipboard write instead of a reveal.
-   Positioned identically so it doesn't need its own padding-right tweak beyond reusing
-   .floating-field-password's numbers under a field-specific class. */
-.floating-field-instagram input { padding-right: 40px; }
+   Selector specificity deliberately matches (not just beats) .floating-field
+   input[type="text"] above (same reasoning noted on .floating-field-password's own
+   equivalent rule) - a plain element selector here loses that specificity tie regardless
+   of source order, leaving this input's real padding-right at the base rule's 13px, which
+   let the field's own text run behind the copy icon once the field got narrower (see
+   .instagram-field-row below). */
+.floating-field-instagram input[type="text"] { padding-right: 40px; }
 .floating-field-instagram label { right: 38px; }
 .instagram-copy-btn {
     position: absolute; top: 0; right: 4px; height: 100%; width: 34px;
@@ -673,12 +677,16 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
 .reminder-lead-row .picker-btn { width: auto; min-width: 90px; }
 .reminder-lead-row .field-hint { margin: 0; }
 
-/* Instagram field's "Reconnect" link (Faza 13) - sits right under the
-   read-only field it applies to, same treatment as the phone field's own verify link
-   just below it in the markup. Disconnect sits to its right on the same row instead of
-   wrapping below, so the two account actions read as one line. */
-.instagram-actions-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 8px 2px 0; }
-.instagram-actions-row .link-btn { font-size: 14px; }
+/* Instagram field row - field + Reconnect/Disconnect side by side, same position as the
+   website Profile page's .profile-instagram-row/.profile-instagram-actions (style.css),
+   instead of the actions sitting in their own row below the field like this used to.
+   min-width: 0 on the field lets it shrink below its content width (flex items default to
+   min-width: auto, which would otherwise force this row wider than the screen); actions
+   stay flex-shrink: 0 so Reconnect/Disconnect are never the thing that gives up space. */
+.instagram-field-row { display: flex; align-items: center; gap: 10px; margin-top: 14px; }
+.instagram-field-row .floating-field-instagram { flex: 1; min-width: 0; margin-top: 0; }
+.instagram-actions-row { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+.instagram-actions-row .link-btn { font-size: 14px; white-space: nowrap; }
 #settings-instagram-reconnect-btn { color: var(--primary-ink); }
 .instagram-actions-row #settings-instagram-disconnect-btn { flex-shrink: 0; }
 
