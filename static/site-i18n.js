@@ -363,7 +363,9 @@ const TRANSLATIONS = {
         "appSettings.support.faq12Q": "Why did a conversation get archived as expired?",
         "appSettings.support.faq12A": "Instagram only allows replying within 24 hours of the customer's last message, so conversations past that window are archived automatically.",
         "appSettings.logout.heading": "Log out",
+        "appSettings.logout.note": "All set — you can log out any time.",
         "appSettings.danger.heading": "Delete account",
+        "appSettings.danger.note": "Permanently deletes your account and all conversations.",
         "appSettings.danger.cta": "Delete account",
         "appSettings.danger.confirm": "Are you sure? Your account and all conversations will be permanently deleted.",
 
@@ -884,7 +886,9 @@ const TRANSLATIONS = {
         "appSettings.support.faq12Q": "¿Por qué una conversación se archivó como caducada?",
         "appSettings.support.faq12A": "Instagram solo permite responder dentro de las 24 horas posteriores al último mensaje del cliente, así que las conversaciones fuera de ese plazo se archivan automáticamente.",
         "appSettings.logout.heading": "Cerrar sesión",
+        "appSettings.logout.note": "Todo listo — puedes cerrar sesión cuando quieras.",
         "appSettings.danger.heading": "Eliminar cuenta",
+        "appSettings.danger.note": "Elimina permanentemente tu cuenta y todas las conversaciones.",
         "appSettings.danger.cta": "Eliminar cuenta",
         "appSettings.danger.confirm": "¿Estás seguro? Tu cuenta y todas las conversaciones se eliminarán permanentemente.",
 
@@ -1374,7 +1378,9 @@ const TRANSLATIONS = {
         "appSettings.support.faq12Q": "Por que uma conversa foi arquivada como expirada?",
         "appSettings.support.faq12A": "O Instagram só permite responder dentro de 24 horas após a última mensagem do cliente, então conversas fora desse prazo são arquivadas automaticamente.",
         "appSettings.logout.heading": "Sair",
+        "appSettings.logout.note": "Tudo certo — você pode sair quando quiser.",
         "appSettings.danger.heading": "Excluir conta",
+        "appSettings.danger.note": "Exclui permanentemente sua conta e todas as conversas.",
         "appSettings.danger.cta": "Excluir conta",
         "appSettings.danger.confirm": "Tem certeza? Sua conta e todas as conversas serão excluídas permanentemente.",
 
@@ -1864,7 +1870,9 @@ const TRANSLATIONS = {
         "appSettings.support.faq12Q": "Pourquoi une conversation a-t-elle été archivée comme expirée ?",
         "appSettings.support.faq12A": "Instagram n'autorise une réponse que dans les 24 heures suivant le dernier message du client, donc les conversations passé ce délai sont archivées automatiquement.",
         "appSettings.logout.heading": "Se déconnecter",
+        "appSettings.logout.note": "Tout est prêt — vous pouvez vous déconnecter à tout moment.",
         "appSettings.danger.heading": "Supprimer le compte",
+        "appSettings.danger.note": "Supprime définitivement votre compte et toutes les conversations.",
         "appSettings.danger.cta": "Supprimer le compte",
         "appSettings.danger.confirm": "Êtes-vous sûr ? Votre compte et toutes les conversations seront définitivement supprimés.",
 
@@ -2354,7 +2362,9 @@ const TRANSLATIONS = {
         "appSettings.support.faq12Q": "Warum wurde eine Unterhaltung als abgelaufen archiviert?",
         "appSettings.support.faq12A": "Instagram erlaubt eine Antwort nur innerhalb von 24 Stunden nach der letzten Kundennachricht, daher werden Unterhaltungen danach automatisch archiviert.",
         "appSettings.logout.heading": "Abmelden",
+        "appSettings.logout.note": "Alles bereit — Sie können sich jederzeit abmelden.",
         "appSettings.danger.heading": "Konto löschen",
+        "appSettings.danger.note": "Löscht dein Konto und alle Konversationen dauerhaft.",
         "appSettings.danger.cta": "Konto löschen",
         "appSettings.danger.confirm": "Bist du sicher? Dein Konto und alle Konversationen werden dauerhaft gelöscht.",
 
@@ -2844,7 +2854,9 @@ const TRANSLATIONS = {
         "appSettings.support.faq12Q": "Perché una conversazione è stata archiviata come scaduta?",
         "appSettings.support.faq12A": "Instagram consente di rispondere solo entro 24 ore dall'ultimo messaggio del cliente, quindi le conversazioni oltre questo limite vengono archiviate automaticamente.",
         "appSettings.logout.heading": "Esci",
+        "appSettings.logout.note": "Tutto pronto — puoi uscire quando vuoi.",
         "appSettings.danger.heading": "Elimina account",
+        "appSettings.danger.note": "Elimina definitivamente il tuo account e tutte le conversazioni.",
         "appSettings.danger.cta": "Elimina account",
         "appSettings.danger.confirm": "Sei sicuro? Il tuo account e tutte le conversazioni saranno eliminati definitivamente.",
 
@@ -3334,7 +3346,9 @@ const TRANSLATIONS = {
         "appSettings.support.faq12Q": "Почему диалог был архивирован как истёкший?",
         "appSettings.support.faq12A": "Instagram разрешает отвечать только в течение 24 часов после последнего сообщения клиента, поэтому диалоги после этого срока архивируются автоматически.",
         "appSettings.logout.heading": "Выйти",
+        "appSettings.logout.note": "Всё готово — вы можете выйти в любой момент.",
         "appSettings.danger.heading": "Удалить аккаунт",
+        "appSettings.danger.note": "Навсегда удаляет ваш аккаунт и все разговоры.",
         "appSettings.danger.cta": "Удалить аккаунт",
         "appSettings.danger.confirm": "Вы уверены? Ваш аккаунт и все разговоры будут удалены навсегда.",
 
@@ -3834,7 +3848,9 @@ const TRANSLATIONS = {
         "appSettings.support.faq12Q": "Zašto je razgovor arhiviran kao istekao?",
         "appSettings.support.faq12A": "Instagram dozvoljava odgovor samo u roku od 24 sata od poslednje poruke mušterije, pa se razgovori posle tog roka automatski arhiviraju.",
         "appSettings.logout.heading": "Odjava",
+        "appSettings.logout.note": "Sve je spremno — možete se odjaviti u bilo kom trenutku.",
         "appSettings.danger.heading": "Obriši nalog",
+        "appSettings.danger.note": "Trajno briše vaš nalog i sve razgovore.",
         "appSettings.danger.cta": "Obriši nalog",
         "appSettings.danger.confirm": "Da li ste sigurni? Vaš nalog i svi razgovori biće trajno obrisani.",
 
@@ -4355,7 +4371,9 @@ const TRANSLATIONS = {
         "appSettings.support.faq12Q": "为什么一个对话被归档为已过期？",
         "appSettings.support.faq12A": "Instagram仅允许在客户最后一条消息发出后24小时内回复，超过此时限的对话会被自动归档。",
         "appSettings.logout.heading": "退出登录",
+        "appSettings.logout.note": "一切就绪——您可以随时退出登录。",
         "appSettings.danger.heading": "删除账户",
+        "appSettings.danger.note": "永久删除您的账户和所有对话。",
         "appSettings.danger.cta": "删除账户",
         "appSettings.danger.confirm": "您确定吗?您的账户和所有对话将被永久删除。",
 
@@ -4845,7 +4863,9 @@ const TRANSLATIONS = {
         "appSettings.support.faq12Q": "Bir konuşma neden süresi doldu diye arşivlendi?",
         "appSettings.support.faq12A": "Instagram, müşterinin son mesajından itibaren yalnızca 24 saat içinde yanıt vermeye izin verir, bu nedenle bu sürenin dışındaki konuşmalar otomatik olarak arşivlenir.",
         "appSettings.logout.heading": "Çıkış yap",
+        "appSettings.logout.note": "Her şey hazır — istediğiniz zaman çıkış yapabilirsiniz.",
         "appSettings.danger.heading": "Hesabı sil",
+        "appSettings.danger.note": "Hesabınızı ve tüm konuşmalarınızı kalıcı olarak siler.",
         "appSettings.danger.cta": "Hesabı sil",
         "appSettings.danger.confirm": "Emin misiniz? Hesabınız ve tüm konuşmalarınız kalıcı olarak silinecek.",
 

@@ -332,6 +332,7 @@
 
     <div class="card settings-card" style="margin-top:20px;">
         <h2 style="margin-top:0;" data-i18n="appSettings.logout.heading">Log out</h2>
+        <p class="note" data-i18n="appSettings.logout.note">All set &mdash; you can log out any time.</p>
         <a class="button button-secondary" id="logout-link" style="margin-top:14px;" href="{{ url_for('logout') }}" data-i18n="common.logOut">Log out</a>
     </div>
 
@@ -374,6 +375,7 @@
 
     <div class="danger-zone">
         <h2 data-i18n="appSettings.danger.heading">Delete account</h2>
+        <p data-i18n="appSettings.danger.note">Permanently deletes your account and all conversations.</p>
         <a class="button button-danger" href="{{ url_for('delete_account_step1') }}" data-i18n="appSettings.danger.cta">Delete account</a>
     </div>
 </div>
