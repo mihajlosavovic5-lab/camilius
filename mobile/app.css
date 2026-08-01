@@ -677,15 +677,35 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
 .reminder-lead-row .picker-btn { width: auto; min-width: 90px; }
 .reminder-lead-row .field-hint { margin: 0; }
 
-/* Instagram field row - field + Reconnect/Disconnect side by side, same position as the
-   website Profile page's .profile-instagram-row/.profile-instagram-actions (style.css),
-   instead of the actions sitting in their own row below the field like this used to.
-   min-width: 0 on the field lets it shrink below its content width (flex items default to
-   min-width: auto, which would otherwise force this row wider than the screen); actions
-   stay flex-shrink: 0 so Reconnect/Disconnect are never the thing that gives up space. */
-.instagram-field-row { display: flex; align-items: center; gap: 10px; margin-top: 14px; }
+/* Instagram field row - field + Reconnect/Disconnect side by side inside ONE bordered box,
+   same look as the website Profile page's .profile-instagram-field (style.css), instead of
+   the field and the actions reading as two separate things (actions in their own row below,
+   or - after that first pass - sitting outside the field's own border to its right). The
+   border/background that used to belong to the <input> itself now belongs to this row
+   instead, with the input's own border/background stripped below so there's only the one
+   box outline around the whole thing. min-width: 0 on the field lets it shrink below its
+   content width (flex items default to min-width: auto, which would otherwise force this
+   row wider than the screen); actions stay flex-shrink: 0 so Reconnect/Disconnect are
+   never the thing that gives up space. */
+.instagram-field-row {
+    /* align-items left at its default (stretch), not center - the divider below needs
+       .instagram-actions-row to actually stretch to the row's full height (driven by the
+       taller field/input beside it) rather than shrink-wrapping its own button text. */
+    display: flex; gap: 10px; margin-top: 14px;
+    border: 1px solid var(--border); border-radius: 10px; background: var(--background);
+    overflow: hidden;
+}
 .instagram-field-row .floating-field-instagram { flex: 1; min-width: 0; margin-top: 0; }
-.instagram-actions-row { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+/* Specificity beats input[readonly]'s own background rule and .floating-field
+   input[type="text"]'s own border/padding rule (two classes here vs. their one), so these
+   actually apply instead of losing to those - same tie-breaking reasoning as the copy
+   icon's own padding-right override below, just with room to spare here. */
+.instagram-field-row .floating-field-instagram input[readonly] { background: transparent; }
+.instagram-field-row .floating-field-instagram input[type="text"] { border: none; border-radius: 0; }
+.instagram-actions-row {
+    display: flex; align-items: center; gap: 10px; flex-shrink: 0;
+    padding: 0 14px 0 12px; border-left: 1px solid var(--border);
+}
 .instagram-actions-row .link-btn { font-size: 14px; white-space: nowrap; }
 #settings-instagram-reconnect-btn { color: var(--primary-ink); }
 .instagram-actions-row #settings-instagram-disconnect-btn { flex-shrink: 0; }
