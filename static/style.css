@@ -551,12 +551,6 @@ body.app .site-lang-select-btn { position: fixed; }
     padding: 14px 28px;
     display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
 }
-/* Reserve room for the fixed top-right language flag (.site-lang-select-btn, base.html)
-   so the nav links end to its left instead of wrapping under it. Only needed above the
-   640px breakpoint where that button is shown outside the landing page. */
-@media (min-width: 641px) {
-    .navbar-inner { padding-right: 88px; }
-}
 .nav-links { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
 .nav-links a {
     padding: 7px 13px; border-radius: 8px; color: var(--text-muted);
@@ -606,14 +600,15 @@ body.app .site-lang-select-btn { position: fixed; }
 .nav-link-with-badge { display: inline-flex !important; align-items: center; gap: 5px; }
 .nav-pro-badge { padding: 1px 7px; font-size: 11px; }
 
-/* Hamburger toggle for the logged-in nav - hidden on desktop, where .nav-links stays
-   inline; only takes over at the same 640px breakpoint the nav-links themselves start
-   wrapping at. Three-bar icon morphs into an X via the .open class (toggled by the
-   delegated click listener in base.html, not a per-page script, so it survives htmx
-   swapping the whole nav back in on every boosted navigation - see _nav.html). Bar
-   sizing (22x2, 5px gap, translateY(7px) rotate) matches the landing page's own
-   .lp-menu-btn span exactly, since the drawer this opens now reuses that same
-   "classic" design (see the max-width:640px rules below). */
+/* Hamburger toggle for the logged-in nav - opens the same slide-out drawer at every
+   viewport width now (see the layout rules below), so the top bar's own layout (a
+   centered brand with the hamburger at the far left) reads the same on desktop as it
+   does on phone, matching the login-boundary parity work above. Three-bar icon morphs
+   into an X via the .open class (toggled by the delegated click listener in base.html,
+   not a per-page script, so it survives htmx swapping the whole nav back in on every
+   boosted navigation - see _nav.html). Bar sizing (22x2, 5px gap, translateY(7px)
+   rotate) matches the landing page's own .lp-menu-btn span exactly, since the drawer
+   this opens reuses that same "classic" design (see the rules below). */
 .nav-menu-btn {
     display: none; background: none; border: none; cursor: pointer; padding: 0;
 }
@@ -625,113 +620,110 @@ body.app .site-lang-select-btn { position: fixed; }
 .nav-menu-btn.open .nav-menu-btn-bar:nth-child(2) { opacity: 0; }
 .nav-menu-btn.open .nav-menu-btn-bar:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
 
-@media (max-width: 640px) {
-    /* Reserve room for the fixed top-right language flag (.site-lang-select-btn,
-       base.html), same reason as the desktop padding-right above - without it the
-       hamburger button sits directly under the flag, in the same top-right corner. */
-    /* min-height: both .brand and .nav-menu-btn are pulled out of flow below (absolute/
-       fixed, for corner/center-pinning) leaving no in-flow content to size this row -
-       without it the sticky bar's own visible background collapsed to just its padding
-       (28px) while the 34px logo/hamburger floating above it stuck out past its bottom
-       edge into the page underneath. 62px = 34px (button/brand height) + 14px padding
-       top and bottom, matching .nav-menu-btn's own top offset below. */
-    .navbar-inner { flex-wrap: nowrap; justify-content: flex-start; position: relative; padding-right: 84px; min-height: 62px; }
-    /* Brand moves to dead-center of the screen and the hamburger takes the top-left
-       corner instead of sitting next to the brand on the left - the flag keeps its own
-       fixed top-right spot untouched. Absolute positioning (not order/margin tricks) so
-       the brand centers on the full-width bar regardless of the hamburger's width on one
-       side and the flag's reserved space on the other, which aren't equal. Once the
-       brand is out of flow, .nav-menu-btn is the only flow child left, so it lands at
-       the bar's start (left) on its own. */
-    .navbar-inner .brand { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); }
-    /* Same "classic" full-height slide-out side drawer as the logged-out landing
-       page's own hamburger menu (.lp-menu-btn/.lp-menu-modal-sheet) - sharp corners,
-       slides in from the left, sits above a dimming backdrop - instead of the small
-       rounded dropdown card reserved for the language picker. Fixed (not part of the
-       sticky navbar) so the button stays put at the top-left corner of the screen
-       regardless of scroll position, same as the landing page's version. 14px top
-       lines up with .navbar-inner's own 14px vertical padding, since this button is
-       the same 34px tall as the content that padding was sized around. */
-    .nav-menu-btn {
-        display: flex; flex-direction: column; align-items: center; justify-content: center;
-        gap: 5px; position: fixed; top: calc(14px + var(--install-banner-h)); left: 20px; z-index: 1003;
-        width: 34px; height: 34px; border-radius: 50%;
-        transition: transform .15s ease, background-color .2s ease, top .2s cubic-bezier(.16,1,.3,1);
-    }
-    @media (hover: hover) and (pointer: fine) {
-        .nav-menu-btn:hover { transform: scale(1.08); }
-        .nav-menu-btn:hover .nav-menu-btn-bar { background: var(--primary-ink); }
-    }
-    .nav-menu-btn:active { transform: scale(.92); }
-    /* Backdrop dims the page while the drawer is open - tapping it (or the delegated
-       listener's "outside the sheet" fallback in base.html) closes the drawer. */
-    .nav-menu-backdrop {
-        position: fixed; inset: 0; z-index: 1001; background: rgba(20,15,8,.42);
-        opacity: 0; pointer-events: none; transition: opacity .3s ease;
-    }
-    .nav-menu-backdrop.open { opacity: 1; pointer-events: auto; }
-    .nav-links {
-        position: fixed; left: 0; top: var(--install-banner-h); bottom: 0; z-index: 1002;
-        width: min(240px, 70vw);
-        background: var(--menu-sheet-bg);
-        box-shadow: var(--shadow-lg); overflow-y: auto;
-        display: flex; flex-direction: column; align-items: stretch; gap: 0;
-        padding: 84px 14px 24px;
-        transform-origin: left center;
-        transform: translateX(-100%) scale(.98);
-        transition: transform .4s cubic-bezier(.16,1,.3,1);
-    }
-    .nav-links.open { transform: translateX(0) scale(1); }
-    /* Brand accent spine down the open edge, same as the landing drawer's own
-       .lp-menu-modal-sheet::after. */
-    .nav-links::after {
-        content: ""; position: absolute; top: 0; right: 0; bottom: 0; width: 3px;
-        background: linear-gradient(180deg, var(--primary), var(--gold-dark));
-    }
-    /* Each link is its own opaque "chip" (--menu-row-bg/--menu-row-border, the same
-       tokens the landing drawer's rows use) instead of a bare text row, so they read
-       as solid, tappable buttons against the tinted drawer panel. Text color also
-       matches the landing drawer's rows (--primary-ink on every row, active or not -
-       that menu has no "current page" concept to distinguish) rather than the muted
-       .nav-links default further up, which only reads correctly on the desktop pill
-       row it was written for; muted next to three solid gold rows just looked broken
-       here. The active item still stands apart via its bolder weight + underline
-       (.nav-links a.active below), not color. */
-    .nav-links a {
-        padding: 13px 14px; margin: 3px 0; border-radius: 10px;
-        font-size: 17px; text-align: left; color: var(--primary-ink);
-        background: var(--menu-row-bg); border: 1px solid var(--menu-row-border);
-    }
-    /* The shared desktop pill nav's hover lift further up (.nav-links a:not(.button):
-       hover) is meant for a real mouse and isn't gated by input type - on a touchscreen,
-       :hover can stay visually "stuck" on a row after tapping it (darkened text, lifted
-       shadow) until the next stray touch lands elsewhere, since there's no pointer to
-       actually leave. Neutralized here, then reinstated only when a real mouse is
-       actually present - the exact same guard the landing drawer's own rows already use
-       (.lp-menu-modal.open .lp-menu-modal-sheet a:hover). */
-    .nav-links a:not(.button):hover {
-        color: var(--primary-ink); transform: none; box-shadow: none;
-    }
-    /* No underline for the active item here (unlike the desktop pill nav's
-       .nav-links a.active::after, which stays as-is) - the bold weight + gold color
-       already carry that on their own in the drawer's full-width chip rows. */
-    .nav-links a.active::after { content: none; }
+/* Unconditional now (used to be phone-only, max-width: 640px) - the hamburger+centered-
+   brand+slide-out-drawer layout is the logged-in nav's layout at every viewport width,
+   desktop included, so the top bar reads the same on PC as it does on phone instead of
+   only matching there. */
+/* padding-right: reserves room for the fixed top-right language flag (.site-lang-
+   select-btn, base.html) so nothing else in the bar sits underneath it.
+   min-height: both .brand and .nav-menu-btn are pulled out of flow below (absolute/
+   fixed, for corner/center-pinning) leaving no in-flow content to size this row -
+   without it the sticky bar's own visible background collapsed to just its padding
+   (28px) while the 34px logo/hamburger floating above it stuck out past its bottom
+   edge into the page underneath. 62px = 34px (button/brand height) + 14px padding
+   top and bottom, matching .nav-menu-btn's own top offset below. */
+.navbar-inner { flex-wrap: nowrap; justify-content: flex-start; position: relative; padding-right: 84px; min-height: 62px; }
+/* Brand moves to dead-center of the bar and the hamburger takes the left corner instead
+   of sitting next to the brand on the left - the flag keeps its own fixed top-right spot
+   untouched. Absolute positioning (not order/margin tricks) so the brand centers on the
+   full-width bar regardless of the hamburger's width on one side and the flag's reserved
+   space on the other, which aren't equal. Once the brand is out of flow, .nav-menu-btn is
+   the only flow child left, so it lands at the bar's start (left) on its own. */
+.navbar-inner .brand { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); }
+/* Same "classic" full-height slide-out side drawer as the logged-out landing page's own
+   hamburger menu (.lp-menu-btn/.lp-menu-modal-sheet) - sharp corners, slides in from the
+   left, sits above a dimming backdrop - instead of the small rounded dropdown card
+   reserved for the language picker. Fixed (not part of the sticky navbar) so the button
+   stays put at the top-left corner of the screen regardless of scroll position, same as
+   the landing page's version. 14px top lines up with .navbar-inner's own 14px vertical
+   padding, since this button is the same 34px tall as the content that padding was
+   sized around. */
+.nav-menu-btn {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 5px; position: fixed; top: calc(14px + var(--install-banner-h)); left: 20px; z-index: 1003;
+    width: 34px; height: 34px; border-radius: 50%;
+    transition: transform .15s ease, background-color .2s ease, top .2s cubic-bezier(.16,1,.3,1);
 }
-@media (max-width: 640px) and (hover: hover) and (pointer: fine) {
+@media (hover: hover) and (pointer: fine) {
+    .nav-menu-btn:hover { transform: scale(1.08); }
+    .nav-menu-btn:hover .nav-menu-btn-bar { background: var(--primary-ink); }
+}
+.nav-menu-btn:active { transform: scale(.92); }
+/* Backdrop dims the page while the drawer is open - tapping it (or the delegated
+   listener's "outside the sheet" fallback in base.html) closes the drawer. */
+.nav-menu-backdrop {
+    position: fixed; inset: 0; z-index: 1001; background: rgba(20,15,8,.42);
+    opacity: 0; pointer-events: none; transition: opacity .3s ease;
+}
+.nav-menu-backdrop.open { opacity: 1; pointer-events: auto; }
+.nav-links {
+    position: fixed; left: 0; top: var(--install-banner-h); bottom: 0; z-index: 1002;
+    width: min(240px, 70vw);
+    background: var(--menu-sheet-bg);
+    box-shadow: var(--shadow-lg); overflow-y: auto;
+    display: flex; flex-direction: column; align-items: stretch; gap: 0;
+    padding: 84px 14px 24px;
+    transform-origin: left center;
+    transform: translateX(-100%) scale(.98);
+    transition: transform .4s cubic-bezier(.16,1,.3,1);
+}
+.nav-links.open { transform: translateX(0) scale(1); }
+/* Brand accent spine down the open edge, same as the landing drawer's own
+   .lp-menu-modal-sheet::after. */
+.nav-links::after {
+    content: ""; position: absolute; top: 0; right: 0; bottom: 0; width: 3px;
+    background: linear-gradient(180deg, var(--primary), var(--gold-dark));
+}
+/* Each link is its own opaque "chip" (--menu-row-bg/--menu-row-border, the same tokens
+   the landing drawer's rows use) instead of a bare text row, so they read as solid,
+   tappable buttons against the tinted drawer panel. Text color also matches the landing
+   drawer's rows (--primary-ink on every row, active or not - that menu has no "current
+   page" concept to distinguish) rather than the muted default .nav-links a color further
+   up, which was written for the old always-visible desktop pill row this drawer has
+   fully replaced. The active item still stands apart via its bolder weight + underline
+   (.nav-links a.active below), not color. */
+.nav-links a {
+    padding: 13px 14px; margin: 3px 0; border-radius: 10px;
+    font-size: 17px; text-align: left; color: var(--primary-ink);
+    background: var(--menu-row-bg); border: 1px solid var(--menu-row-border);
+}
+/* The shared hover lift further up (.nav-links a:not(.button):hover) is meant for a
+   real mouse - on a touchscreen, :hover can stay visually "stuck" on a row after
+   tapping it (darkened text, lifted shadow) until the next stray touch lands elsewhere,
+   since there's no pointer to actually leave. Neutralized here, then reinstated only
+   when a real mouse is actually present (see the (hover: hover) block below) - the
+   exact same guard the landing drawer's own rows already use (.lp-menu-modal.open
+   .lp-menu-modal-sheet a:hover). */
+.nav-links a:not(.button):hover {
+    color: var(--primary-ink); transform: none; box-shadow: none;
+}
+/* No underline for the active item here (unlike the old desktop pill nav's .nav-links
+   a.active::after, now unused since every width uses this drawer) - the bold weight +
+   gold color already carry that on their own in the drawer's full-width chip rows. */
+.nav-links a.active::after { content: none; }
+@media (hover: hover) and (pointer: fine) {
     .nav-links a:not(.button):hover {
         transform: translateY(-2px) scale(1.03);
         box-shadow: 0 4px 10px -6px rgba(214, 148, 16, .35);
     }
 }
-@media (max-width: 640px) {
-    /* Scroll lock while the drawer is open - same pattern as body.lp-menu-open/
-       body.site-lang-open (JS sets body.style.top to the negative scroll position
-       being locked at, see base.html, so the page doesn't visually jump when
-       position flips to fixed here). Also dims the language flag, same as the
-       landing drawer, so it doesn't float above the backdrop untouched. */
-    body.nav-menu-open { position: fixed; left: 0; right: 0; width: 100%; overflow: hidden; }
-    body.nav-menu-open .site-lang-select-btn { opacity: .3; pointer-events: none; transition: opacity .25s ease; }
-}
+/* Scroll lock while the drawer is open - same pattern as body.lp-menu-open/
+   body.site-lang-open (JS sets body.style.top to the negative scroll position being
+   locked at, see base.html, so the page doesn't visually jump when position flips to
+   fixed here). Also dims the language flag, same as the landing drawer, so it doesn't
+   float above the backdrop untouched. */
+body.nav-menu-open { position: fixed; left: 0; right: 0; width: 100%; overflow: hidden; }
+body.nav-menu-open .site-lang-select-btn { opacity: .3; pointer-events: none; transition: opacity .25s ease; }
 
 /* --- Basic layout --- */
 .content { max-width: 960px; margin: 0 auto; padding: 40px 20px 72px; }
