@@ -975,7 +975,11 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
 .inbox-row-top { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; min-width: 0; }
 /* min-width:0 - as a flex child, .inbox-sender otherwise refuses to shrink below its
    text's full intrinsic width (flex items default to min-width:auto), which pushes the
-   whole row wider than the screen instead of letting text-overflow:ellipsis kick in. */
+   whole row wider than the screen instead of letting text-overflow:ellipsis kick in.
+   .inbox-sender-group (the WhatsApp badge's wrapper, see mobile/app.js's renderInboxList)
+   needs the same min-width:0 - it's now the direct flex child of .inbox-row-top instead
+   of .inbox-sender itself. */
+.inbox-sender-group { display: flex; align-items: baseline; gap: 6px; min-width: 0; }
 .inbox-sender { font-weight: 600; font-size: 15.5px; white-space: nowrap; overflow: hidden; min-width: 0; }
 .inbox-time { color: var(--text-muted); font-size: 12.5px; flex-shrink: 0; }
 .inbox-preview { color: var(--text-muted); font-size: 14.5px; white-space: nowrap; overflow: hidden; margin-top: 2px; min-width: 0; }
@@ -1123,6 +1127,16 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
    rather than warning-colored, so it doesn't read as something still needing action. */
 .badge-expired { background: var(--border); color: var(--text-muted); border: 1px solid var(--border); }
 .badge-pro { background: transparent; color: var(--primary-dark); border: 1.5px solid var(--primary); font-weight: 700; }
+
+/* Which channel a conversation came in on - shown only for WhatsApp (Instagram stays
+   the unbadged default), same reasoning as the website's own .channel-badge in style.css. */
+.channel-badge {
+    display: inline-flex; align-items: center; flex-shrink: 0;
+    padding: 1px 7px; border-radius: 99px; font-size: 10px; font-weight: 700;
+    letter-spacing: .2px; text-transform: uppercase;
+}
+.channel-badge-whatsapp { background: rgba(37, 211, 102, .16); color: #1a9950; border: 1px solid rgba(37, 211, 102, .4); }
+:root[data-theme="dark"] .channel-badge-whatsapp { color: #4ade80; }
 
 /* --- Schedule tab (Faza 12) - day/week calendar, native equivalent of the website's
    /schedule page (see templates/schedule.html for the layout this mirrors). --- */
@@ -1383,6 +1397,7 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
     /* Subtle warm glow instead of the light-mode near-white pill - see the comment on
        the base .filter-pill.active rule above. */
     .filter-pill.active { background: var(--primary-light); color: var(--primary-ink); border-color: var(--primary); }
+    .channel-badge-whatsapp { color: #4ade80; }
 }
 :root[data-theme="dark"] {
     --primary: #e8a416;

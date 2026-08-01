@@ -2476,7 +2476,10 @@ async function renderInboxList(conversations) {
         tapArea.insertAdjacentHTML("beforeend", `
             <span class="inbox-row-main">
                 <span class="inbox-row-top">
-                    <span class="inbox-sender">${escapeHtml(c.sender)}</span>
+                    <span class="inbox-sender-group">
+                        <span class="inbox-sender">${escapeHtml(c.sender)}</span>
+                        ${c.channel === "whatsapp" ? '<span class="channel-badge channel-badge-whatsapp">WhatsApp</span>' : ""}
+                    </span>
                     <span class="inbox-time">${timeAgo(c.created_at)}</span>
                 </span>
                 <span class="inbox-preview">${escapeHtml(c.question)}</span>
