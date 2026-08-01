@@ -1061,7 +1061,12 @@ input.search-input {
    .filters) never wrap - they scroll horizontally in one row - so match that here
    instead, without touching the desktop wrap behavior. */
 @media (max-width: 640px) {
-    .filters { flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    /* Scrollbar hidden - same treatment as the site's other horizontal touch-scroll
+       strips (.lp-slider-viewport/.pricing-cards-viewport) - a visible OS scrollbar
+       track here sat right under the pills and visually cut into their bottom edge/
+       border, on top of not being how a native chip row looks in the first place. */
+    .filters { flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+    .filters::-webkit-scrollbar { display: none; }
     .filters a { flex-shrink: 0; }
 }
 
