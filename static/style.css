@@ -935,6 +935,16 @@ input[readonly]:hover { border-color: var(--border); }
 }
 .donation-strip-text { font-size: 15px; color: var(--text); }
 .donation-strip-btn { padding: 6px 16px; font-size: 14.5px; flex-shrink: 0; }
+/* Phone-web only: with flex-shrink:0 and no width, the strip sized itself to its
+   one-line max-content width (the full donation sentence + button) instead of the
+   viewport - since .search-row's flex-wrap just dropped it onto its own row rather
+   than constraining it, that pushed the whole page into horizontal overflow on
+   narrow screens. Pinning it to the row's full width lets .donation-strip-text
+   (a normal flex child with default min-width:auto, i.e. its longest word) wrap
+   like any other text instead of forcing one unbroken line. */
+@media (max-width: 640px) {
+    .donation-strip { width: 100%; }
+}
 
 /* --- Search (dashboard) --- */
 .search-row {
