@@ -569,21 +569,20 @@ a:focus-visible, button:focus-visible, [tabindex]:focus-visible {
    inline; only takes over at the same 640px breakpoint the nav-links themselves start
    wrapping at. Three-bar icon morphs into an X via the .open class (toggled by the
    delegated click listener in base.html, not a per-page script, so it survives htmx
-   swapping the whole nav back in on every boosted navigation - see _nav.html). */
+   swapping the whole nav back in on every boosted navigation - see _nav.html). Bar
+   sizing (22x2, 5px gap, translateY(7px) rotate) matches the landing page's own
+   .lp-menu-btn span exactly, since the drawer this opens now reuses that same
+   "classic" design (see the max-width:640px rules below). */
 .nav-menu-btn {
-    display: none; flex-direction: column; align-items: center; justify-content: center;
-    gap: 4px; width: 36px; height: 36px; flex-shrink: 0;
-    border: 1px solid transparent; border-radius: 8px; background: none; cursor: pointer;
-    transition: transform .15s ease;
+    display: none; background: none; border: none; cursor: pointer; padding: 0;
 }
-.nav-menu-btn:hover { transform: scale(1.1); }
 .nav-menu-btn-bar {
-    width: 18px; height: 2px; border-radius: 1px; background: var(--text);
-    transition: transform .2s ease, opacity .2s ease;
+    display: block; width: 22px; height: 2px; border-radius: 2px; background: var(--text);
+    transition: transform .3s cubic-bezier(.16,1,.3,1), opacity .2s ease, background-color .2s ease;
 }
-.nav-menu-btn.open .nav-menu-btn-bar:nth-child(1) { transform: translateY(6px) rotate(45deg); }
+.nav-menu-btn.open .nav-menu-btn-bar:nth-child(1) { transform: translateY(7px) rotate(45deg); }
 .nav-menu-btn.open .nav-menu-btn-bar:nth-child(2) { opacity: 0; }
-.nav-menu-btn.open .nav-menu-btn-bar:nth-child(3) { transform: translateY(-6px) rotate(-45deg); }
+.nav-menu-btn.open .nav-menu-btn-bar:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
 
 @media (max-width: 640px) {
     /* Pinned to the top of the screen instead of scrolling away with the rest of
@@ -599,8 +598,13 @@ a:focus-visible, button:focus-visible, [tabindex]:focus-visible {
     /* Reserve room for the fixed top-right language flag (.site-lang-select-btn,
        base.html), same reason as the desktop padding-right above - without it the
        hamburger button sits directly under the flag, in the same top-right corner. */
-    .navbar-inner { flex-wrap: nowrap; justify-content: flex-start; position: relative; padding-right: 84px; }
-    .nav-menu-btn { display: flex; }
+    /* min-height: both .brand and .nav-menu-btn are pulled out of flow below (absolute/
+       fixed, for corner/center-pinning) leaving no in-flow content to size this row -
+       without it the sticky bar's own visible background collapsed to just its padding
+       (28px) while the 34px logo/hamburger floating above it stuck out past its bottom
+       edge into the page underneath. 62px = 34px (button/brand height) + 14px padding
+       top and bottom, matching .nav-menu-btn's own top offset below. */
+    .navbar-inner { flex-wrap: nowrap; justify-content: flex-start; position: relative; padding-right: 84px; min-height: 62px; }
     /* Brand moves to dead-center of the screen and the hamburger takes the top-left
        corner instead of sitting next to the brand on the left - the flag keeps its own
        fixed top-right spot untouched. Absolute positioning (not order/margin tricks) so
@@ -609,18 +613,65 @@ a:focus-visible, button:focus-visible, [tabindex]:focus-visible {
        brand is out of flow, .nav-menu-btn is the only flow child left, so it lands at
        the bar's start (left) on its own. */
     .navbar-inner .brand { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); }
-    /* Collapsed into a dropdown sheet anchored under the navbar instead of the plain
-       wrap-to-two-lines the shared .nav-links flex-wrap rule gives it above - that read
-       as unfinished/cluttered on a phone-width screen next to the desktop nav's tidy
-       single row. */
-    .nav-links {
-        display: none; flex-direction: column; align-items: stretch; gap: 2px;
-        position: absolute; top: calc(100% + 6px); left: 16px; right: 16px;
-        background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
-        padding: 8px; box-shadow: var(--shadow-lg); z-index: 999;
+    /* Same "classic" full-height slide-out side drawer as the logged-out landing
+       page's own hamburger menu (.lp-menu-btn/.lp-menu-modal-sheet) - sharp corners,
+       slides in from the left, sits above a dimming backdrop - instead of the small
+       rounded dropdown card reserved for the language picker. Fixed (not part of the
+       sticky navbar) so the button stays put at the top-left corner of the screen
+       regardless of scroll position, same as the landing page's version. 14px top
+       lines up with .navbar-inner's own 14px vertical padding, since this button is
+       the same 34px tall as the content that padding was sized around. */
+    .nav-menu-btn {
+        display: flex; flex-direction: column; align-items: center; justify-content: center;
+        gap: 5px; position: fixed; top: calc(14px + var(--install-banner-h)); left: 20px; z-index: 1003;
+        width: 34px; height: 34px; border-radius: 50%;
+        transition: transform .15s ease, background-color .2s ease, top .2s cubic-bezier(.16,1,.3,1);
     }
-    .nav-links.open { display: flex; }
-    .nav-links a { text-align: left; }
+    @media (hover: hover) and (pointer: fine) {
+        .nav-menu-btn:hover { transform: scale(1.08); }
+        .nav-menu-btn:hover .nav-menu-btn-bar { background: var(--primary-ink); }
+    }
+    .nav-menu-btn:active { transform: scale(.92); }
+    /* Backdrop dims the page while the drawer is open - tapping it (or the delegated
+       listener's "outside the sheet" fallback in base.html) closes the drawer. */
+    .nav-menu-backdrop {
+        position: fixed; inset: 0; z-index: 1001; background: rgba(20,15,8,.42);
+        opacity: 0; pointer-events: none; transition: opacity .3s ease;
+    }
+    .nav-menu-backdrop.open { opacity: 1; pointer-events: auto; }
+    .nav-links {
+        position: fixed; left: 0; top: var(--install-banner-h); bottom: 0; z-index: 1002;
+        width: min(240px, 70vw);
+        background: var(--menu-sheet-bg);
+        box-shadow: var(--shadow-lg); overflow-y: auto;
+        display: flex; flex-direction: column; align-items: stretch; gap: 0;
+        padding: 84px 14px 24px;
+        transform-origin: left center;
+        transform: translateX(-100%) scale(.98);
+        transition: transform .4s cubic-bezier(.16,1,.3,1);
+    }
+    .nav-links.open { transform: translateX(0) scale(1); }
+    /* Brand accent spine down the open edge, same as the landing drawer's own
+       .lp-menu-modal-sheet::after. */
+    .nav-links::after {
+        content: ""; position: absolute; top: 0; right: 0; bottom: 0; width: 3px;
+        background: linear-gradient(180deg, var(--primary), var(--gold-dark));
+    }
+    /* Each link is its own opaque "chip" (--menu-row-bg/--menu-row-border, the same
+       tokens the landing drawer's rows use) instead of a bare text row, so they read
+       as solid, tappable buttons against the tinted drawer panel. */
+    .nav-links a {
+        padding: 13px 14px; margin: 3px 0; border-radius: 10px;
+        font-size: 17px; text-align: left;
+        background: var(--menu-row-bg); border: 1px solid var(--menu-row-border);
+    }
+    /* Scroll lock while the drawer is open - same pattern as body.lp-menu-open/
+       body.site-lang-open (JS sets body.style.top to the negative scroll position
+       being locked at, see base.html, so the page doesn't visually jump when
+       position flips to fixed here). Also dims the language flag, same as the
+       landing drawer, so it doesn't float above the backdrop untouched. */
+    body.nav-menu-open { position: fixed; left: 0; right: 0; width: 100%; overflow: hidden; }
+    body.nav-menu-open .site-lang-select-btn { opacity: .3; pointer-events: none; transition: opacity .25s ease; }
 }
 
 /* --- Basic layout --- */

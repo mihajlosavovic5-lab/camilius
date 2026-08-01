@@ -78,22 +78,54 @@
          via delegation on document rather than the button itself, since htmx's boosted
          nav clicks (hx-boost on .nav-links) replace the whole <body>, including this
          button, on every navigation; a direct listener would go stale after the first
-         swap, but a delegated one on document keeps working. -->
+         swap, but a delegated one on document keeps working.
+         Same scroll-lock/restore pattern as the landing page's own drawer (see
+         landing.html's openMenu/closeMenu) - remembers the scroll position it opened
+         at, pins the body there via position:fixed (body.nav-menu-open in style.css)
+         so the page behind can't scroll while the drawer is open, then restores that
+         exact position on close instead of jumping to the top. lockedScrollY lives in
+         this script's own closure (not a per-swap DOM attribute) since this tag itself
+         never gets re-run by an htmx swap, only <body>'s content does. -->
     <script>
+        var navMenuLockedScrollY = 0;
+        function closeNavMenu() {
+            var navLinks = document.getElementById("nav-links");
+            var btn = document.getElementById("nav-menu-btn");
+            var backdrop = document.getElementById("nav-menu-backdrop");
+            if (navLinks) navLinks.classList.remove("open");
+            if (btn) { btn.classList.remove("open"); btn.setAttribute("aria-expanded", "false"); }
+            if (backdrop) backdrop.classList.remove("open");
+            document.body.classList.remove("nav-menu-open");
+            document.body.style.top = "";
+            window.scrollTo({ top: navMenuLockedScrollY, left: 0, behavior: "instant" });
+        }
+        function openNavMenu() {
+            var navLinks = document.getElementById("nav-links");
+            var btn = document.getElementById("nav-menu-btn");
+            var backdrop = document.getElementById("nav-menu-backdrop");
+            navMenuLockedScrollY = window.scrollY || document.documentElement.scrollTop;
+            document.body.style.top = (-navMenuLockedScrollY) + "px";
+            document.body.classList.add("nav-menu-open");
+            if (navLinks) navLinks.classList.add("open");
+            if (backdrop) backdrop.classList.add("open");
+            if (btn) { btn.classList.add("open"); btn.setAttribute("aria-expanded", "true"); }
+        }
         document.addEventListener("click", function (e) {
             var menuBtn = e.target.closest && e.target.closest("#nav-menu-btn");
             var navLinks = document.getElementById("nav-links");
             if (!navLinks) return;
             if (menuBtn) {
-                var open = navLinks.classList.toggle("open");
-                menuBtn.classList.toggle("open", open);
-                menuBtn.setAttribute("aria-expanded", open ? "true" : "false");
+                if (navLinks.classList.contains("open")) closeNavMenu(); else openNavMenu();
                 return;
             }
-            if (navLinks.classList.contains("open") && !navLinks.contains(e.target)) {
-                navLinks.classList.remove("open");
-                var btn = document.getElementById("nav-menu-btn");
-                if (btn) { btn.classList.remove("open"); btn.setAttribute("aria-expanded", "false"); }
+            if (!navLinks.classList.contains("open")) return;
+            // Closes on a tap on the dimming backdrop, on any link inside the drawer
+            // (letting its own hx-boost navigation proceed as normal), or anywhere else
+            // outside the sheet.
+            var backdropHit = e.target.closest && e.target.closest("#nav-menu-backdrop");
+            var linkHit = e.target.closest && e.target.closest("#nav-links a");
+            if (backdropHit || linkHit || !navLinks.contains(e.target)) {
+                closeNavMenu();
             }
         });
     </script>

@@ -8,12 +8,17 @@
         <!-- Hamburger toggle - only shown at phone widths (see .nav-menu-btn in
              style.css); on desktop .nav-links stays inline and this button is hidden.
              Toggling is handled by a delegated document click listener in base.html so
-             it keeps working after htmx swaps the nav back in on every boosted nav. -->
+             it keeps working after htmx swaps the nav back in on every boosted nav.
+             Same "classic" full-height slide-out drawer as the logged-out landing
+             page's own hamburger (.lp-menu-btn/.lp-menu-modal-sheet in style.css) -
+             a dimming backdrop behind it, closed by tapping the backdrop, a link, or
+             anywhere outside the sheet. -->
         <button type="button" class="nav-menu-btn" id="nav-menu-btn" aria-label="Menu" aria-expanded="false" aria-controls="nav-links">
             <span class="nav-menu-btn-bar"></span>
             <span class="nav-menu-btn-bar"></span>
             <span class="nav-menu-btn-bar"></span>
         </button>
+        <div class="nav-menu-backdrop" id="nav-menu-backdrop"></div>
         <!-- hx-boost: these links are fetched via AJAX and swapped into the current
              page's <body> instead of a full browser navigation (htmx handles history/
              back-forward transparently) - only the nav, deliberately, not every link or
