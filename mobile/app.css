@@ -489,29 +489,6 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
 .password-toggle.is-visible { color: var(--primary-ink); }
 .password-toggle.is-visible .password-toggle-slash { opacity: 0; }
 
-/* Copy-to-clipboard button inside the Instagram account field (Profile) - same inside-the-
-   field icon-button mechanic as .password-toggle above, just always the same icon (no
-   is-visible-style state swap) and triggering a clipboard write instead of a reveal.
-   Selector specificity deliberately matches (not just beats) .floating-field
-   input[type="text"] above (same reasoning noted on .floating-field-password's own
-   equivalent rule) - a plain element selector here loses that specificity tie regardless
-   of source order, leaving this input's real padding-right at the base rule's 13px, which
-   let the field's own text run behind the copy icon once the field got narrower (see
-   .instagram-field-row below). */
-.floating-field-instagram input[type="text"] { padding-right: 40px; }
-.floating-field-instagram label { right: 38px; }
-.instagram-copy-btn {
-    position: absolute; top: 0; right: 4px; height: 100%; width: 34px;
-    display: none; align-items: center; justify-content: center;
-    background: none; border: none; padding: 0; margin: 0; cursor: pointer;
-    color: var(--text-muted);
-}
-/* Hidden until there's a username to copy - toggled alongside the Disconnect button by
-   updateInstagramDisconnectVisibility in app.js (nothing to copy right after a failed/
-   cancelled connect, or right after disconnecting). */
-.instagram-copy-btn.has-value { display: flex; }
-.instagram-copy-btn:active { color: var(--primary-ink); }
-.instagram-copy-icon { width: 18px; height: 18px; }
 
 /* Business description (FAQ) field - same floating-label mechanic as the inputs above,
    but the label anchors to the top of the box instead of vertically centering, since a
@@ -698,15 +675,18 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
 .instagram-field-row .floating-field-instagram { flex: 1; min-width: 0; margin-top: 0; }
 /* Specificity beats input[readonly]'s own background rule and .floating-field
    input[type="text"]'s own border/padding rule (two classes here vs. their one), so these
-   actually apply instead of losing to those - same tie-breaking reasoning as the copy
-   icon's own padding-right override below, just with room to spare here. */
+   actually apply instead of losing to those. */
 .instagram-field-row .floating-field-instagram input[readonly] { background: transparent; }
 .instagram-field-row .floating-field-instagram input[type="text"] { border: none; border-radius: 0; }
 .instagram-actions-row {
     display: flex; align-items: center; gap: 10px; flex-shrink: 0;
-    padding: 0 14px 0 12px; border-left: 1px solid var(--border);
+    padding: 0 14px;
 }
 .instagram-actions-row .link-btn { font-size: 14px; white-space: nowrap; }
+/* Divider sits between Reconnect and Disconnect themselves, not between the field and the
+   actions as a group - Disconnect is the only one ever preceded by another .link-btn here,
+   so this only ever draws when both are actually shown side by side. */
+.instagram-actions-row .link-btn + .link-btn { border-left: 1px solid var(--border); padding-left: 10px; }
 #settings-instagram-reconnect-btn { color: var(--primary-ink); }
 .instagram-actions-row #settings-instagram-disconnect-btn { flex-shrink: 0; }
 

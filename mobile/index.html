@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
 <title>Camilius</title>
-<link rel="stylesheet" href="app.css?v=3c6682fae5cd">
+<link rel="stylesheet" href="app.css?v=8dcbdd8d07bd">
 </head>
 <body>
 
@@ -797,14 +797,9 @@
           <div class="floating-field floating-field-instagram">
             <input type="text" id="settings-instagram-account" placeholder=" " readonly>
             <label for="settings-instagram-account" data-i18n="settings.instagramAccount">Instagram account (read-only)</label>
-            <!-- Hidden until there's actually a username to copy - see
-                 updateInstagramDisconnectVisibility in app.js, which toggles this alongside
-                 the Disconnect button for the same reason (nothing to act on right after a
-                 failed/cancelled connect, or after disconnecting here). -->
-            <button type="button" class="instagram-copy-btn" id="settings-instagram-copy-btn" aria-label="Copy">
-              <svg class="instagram-copy-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
-            </button>
           </div>
+          <!-- Divider sits between Reconnect and Disconnect themselves (.link-btn +
+               .link-btn below), not between the field and the actions as a group. -->
           <div class="instagram-actions-row">
             <button type="button" class="link-btn" id="settings-instagram-reconnect-btn" data-i18n="settings.instagramReconnect">Reconnect</button>
             <button type="button" class="link-btn row-action-danger hidden" id="settings-instagram-disconnect-btn" data-i18n="settings.instagramDisconnect">Disconnect</button>
@@ -1331,7 +1326,7 @@
   </button>
 </nav>
 
-<script src="i18n.js?v=3c6682fae5cd"></script>
-<script src="app.js?v=3c6682fae5cd"></script>
+<script src="i18n.js?v=8dcbdd8d07bd"></script>
+<script src="app.js?v=8dcbdd8d07bd"></script>
 </body>
 </html>

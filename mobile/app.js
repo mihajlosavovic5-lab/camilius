@@ -2000,37 +2000,16 @@ async function openInstagramConnectBrowser(context, errorBoxId) {
     }
 }
 
-// Shows the "Disconnect" button, and the copy icon inside the field itself, only once an
-// account is actually connected - there's nothing to disconnect or copy right after a
-// failed/cancelled reconnect attempt, and Profile is unreachable before the very first
-// connection (see enterOrGateOnInstagram) so this only ever needs to react to a successful
-// reconnect or a disconnect happening here.
+// Shows the "Disconnect" button only once an account is actually connected - there's
+// nothing to disconnect right after a failed/cancelled reconnect attempt, and Profile is
+// unreachable before the very first connection (see enterOrGateOnInstagram) so this only
+// ever needs to react to a successful reconnect or a disconnect happening here.
 function updateInstagramDisconnectVisibility(instagramUsername) {
     el("settings-instagram-disconnect-btn").classList.toggle("hidden", !instagramUsername);
-    el("settings-instagram-copy-btn").classList.toggle("has-value", !!instagramUsername);
 }
 
 el("connect-instagram-btn").addEventListener("click", () => openInstagramConnectBrowser("gate", "connect-error"));
 el("settings-instagram-reconnect-btn").addEventListener("click", () => openInstagramConnectBrowser("profile", null));
-
-el("settings-instagram-copy-btn").addEventListener("click", async () => {
-    const value = el("settings-instagram-account").value;
-    if (!value) return;
-    try {
-        await navigator.clipboard.writeText(value);
-    } catch (e) {
-        // Clipboard API can be unavailable in some WebView configs - same manual
-        // select-all-and-copy fallback via a temporary input as help-copy-btn uses.
-        const temp = document.createElement("input");
-        temp.value = value;
-        document.body.appendChild(temp);
-        temp.select();
-        document.execCommand("copy");
-        document.body.removeChild(temp);
-    }
-    if (capacitorPlugins && capacitorPlugins.Haptics) capacitorPlugins.Haptics.impact({ style: "LIGHT" });
-    showToast(t("help.copied"));
-});
 
 // Tapping the (read-only) Instagram account field zooms its value from its own on-screen
 // position into a centered card - handy for reading a long username in full on a small
