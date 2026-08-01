@@ -33,16 +33,23 @@
              back N times to get past all of them before reaching anything new, which
              read as "back doesn't do anything." One entry for wherever you currently are
              in the app means one back press is enough to leave it entirely. -->
+        <!-- Each label is its own inner span (not just text straight in the <a>, matching
+             the Schedule badge's pre-existing pattern below) so the phone-web drawer's
+             active-page underline (.nav-link-label, style.css) can hug just the text
+             width - the <a> itself stays full-width for a large tap target, but a full-
+             width chip meant the shared desktop underline (sized to the <a>, compact
+             there since desktop pills already hug their own text) stretched all the way
+             across the row instead of sitting under the word like it does on desktop. -->
         <div class="nav-links" id="nav-links" hx-boost="true" hx-replace-url="true">
-            <a href="{{ url_for('home') }}" class="{{ 'active' if request.endpoint == 'home' }}" data-i18n="common.conversations">Conversations</a>
+            <a href="{{ url_for('home') }}" class="{{ 'active' if request.endpoint == 'home' }}"><span class="nav-link-label" data-i18n="common.conversations">Conversations</span></a>
             <a href="{{ url_for('schedule') }}" class="nav-link-with-badge {{ 'active' if request.endpoint == 'schedule' }}">
-                <span data-i18n="common.schedule">Schedule</span>
+                <span class="nav-link-label" data-i18n="common.schedule">Schedule</span>
             </a>
-            <a href="{{ url_for('settings') }}" class="{{ 'active' if request.endpoint == 'settings' }}" data-i18n="common.profile">Profile</a>
+            <a href="{{ url_for('settings') }}" class="{{ 'active' if request.endpoint == 'settings' }}"><span class="nav-link-label" data-i18n="common.profile">Profile</span></a>
             <!-- Subscription lives inside Settings now (Faza 5), same as the mobile app -
                  not its own top-level nav item anymore, but "active" still applies here
                  too so the Settings link stays highlighted while on /subscription. -->
-            <a href="{{ url_for('app_settings') }}" class="{{ 'active' if request.endpoint in ('app_settings', 'subscription') }}" data-i18n="common.settings">Settings</a>
+            <a href="{{ url_for('app_settings') }}" class="{{ 'active' if request.endpoint in ('app_settings', 'subscription') }}"><span class="nav-link-label" data-i18n="common.settings">Settings</span></a>
         </div>
         {% endif %}
     </div>
