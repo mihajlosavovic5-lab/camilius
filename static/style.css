@@ -1556,13 +1556,26 @@ body.auth {
     display: flex; align-items: center; gap: 12px;
     padding: 18px 12px 4px; line-height: normal;
 }
-.profile-instagram-value { font-size: 16px; color: var(--text); }
+/* flex: 1 + min-width: 0 lets this shrink below its content width (flex items default to
+   min-width: auto, which would otherwise force the row wider than the field and push
+   .profile-instagram-actions out past its right edge); the ellipsis then kicks in on long
+   usernames instead of the text running underneath the actions beside it. */
+.profile-instagram-value {
+    font-size: 16px; color: var(--text);
+    flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
 
-/* A pair of golden action links pinned to a field's right edge, centered on the field's
-   full height rather than following the field's text baseline (which sits low in
-   .floating-field/.profile-instagram-field to leave room for the label above it).
-   Currently only the Instagram field's "Reconnect" + "Disconnect" pair uses this. */
-.profile-instagram-actions { position: absolute; top: 50%; right: 12px; transform: translateY(-50%); display: flex; align-items: center; gap: 12px; }
+/* A pair of golden action links at the field's right edge. Used to be position: absolute
+   (pinned to the field regardless of the row's own layout) so it would stay centered on
+   the field's full height rather than follow .field-action-link's text baseline (which
+   sits low in .floating-field/.profile-instagram-field, to leave room for the label
+   above it) - but that let a long Instagram username (which has no length limit) run
+   underneath it instead of ever yielding space to it. .profile-instagram-row is already
+   a flex row with align-items: center, which centers this the same way without needing
+   position: absolute, so it's now a plain flex item that the value above truncates for
+   instead of colliding with. flex-shrink: 0 keeps it from being squeezed by its shorter
+   sibling in the same row. */
+.profile-instagram-actions { display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
 .field-action-link {
     font-size: 14.5px; display: inline-block;
     transition: transform .15s cubic-bezier(.2,.9,.3,1.3);
