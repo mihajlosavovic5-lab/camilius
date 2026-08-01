@@ -543,6 +543,9 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
    content, with the fields themselves sitting directly on the screen's own gradient
    background, same as every other screen in the app. */
 .register-card { padding: 0; }
+/* Nudges the back button down slightly from the very top edge - a small deliberate gap
+   from the status bar, not flush against it. */
+.screen-register.screen .topbar { padding-top: calc(34px + var(--safe-top)); }
 /* Persistent wizard heading, shown above every step (not just step 1) - same wording
    and role as the web register page's .register-wizard-heading (templates/
    register.html), which stays fixed across all three steps instead of being swapped
@@ -577,8 +580,8 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
    it degrades safely: a step tall enough to fill/overflow the screen just shrinks
    both spacers to 0 (their basis is already 0) and scrolls normally, instead of a
    centered flex line clipping its own top edge above the scroll container's reach. */
-.screen-register .detail-body::before { content: ''; flex: 0.9 0 0; }
-.screen-register .detail-body::after { content: ''; flex: 2.1 0 0; }
+.screen-register .detail-body::before { content: ''; flex: 0.65 0 0; }
+.screen-register .detail-body::after { content: ''; flex: 2.35 0 0; }
 .register-step-nav { display: flex; align-items: center; justify-content: space-between; }
 .register-step-dots { display: flex; gap: 6px; }
 .register-step-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--border); transition: background .2s ease, width .2s ease; }
