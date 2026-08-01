@@ -766,9 +766,12 @@ body.nav-menu-open .site-lang-select-btn { opacity: .3; pointer-events: none; tr
 .button-secondary { background: var(--surface); color: var(--text); border: 1px solid var(--border); }
 .button-secondary:hover { background: var(--background); }
 /* Outline + pill modifiers - same combo as the APK's "Create account" button on the
-   login screen (mobile/app.css .button-primary-outline / .button-pill). */
+   login screen (mobile/app.css .button-primary-outline / .button-pill). No hover
+   background tint of its own (used to fill with --primary-light on hover, which read as
+   a pink/rose wash against the amber palette) - falls back to .button-secondary:hover's
+   near-white background instead, keeping .button:hover's lift/shadow as the only real
+   hover cue. */
 .button-primary-outline { color: var(--primary); border-color: var(--primary); }
-.button-primary-outline:hover { background: var(--primary-light); }
 .button-pill { border-radius: 999px; }
 /* Help & support's "Email us" box and FAQ items - same look as the mobile app's
    .info-card/.block-label (mobile/app.css), reused here for parity. */
@@ -2075,7 +2078,9 @@ body.auth {
     background: var(--surface); color: var(--primary); cursor: pointer; font-size: 15px;
     display: flex; align-items: center; justify-content: center; transition: background .12s ease, border-color .12s ease, transform .12s ease;
 }
-.support-widget-send:hover { background: var(--primary-light); border-color: var(--primary-dark); color: var(--primary-dark); transform: scale(1.05); }
+/* No background tint on hover (used to fill with --primary-light, reading as a pink/rose
+   wash) - keeps the border/text darkening and the scale zoom, drops just the fill. */
+.support-widget-send:hover { border-color: var(--primary-dark); color: var(--primary-dark); transform: scale(1.05); }
 
 @media (max-width: 480px) {
     .support-widget { right: 14px; bottom: 14px; }
@@ -2769,7 +2774,9 @@ html { scroll-behavior: smooth; }
     color: var(--text); font-size: 21px; cursor: pointer;
     transition: transform .18s ease, background .18s ease, border-color .18s ease;
 }
-.lp-slider-arrow:hover { background: var(--primary-light); border-color: rgba(214, 148, 16, .35); }
+/* No background tint on hover (used to fill with --primary-light, reading as a pink/rose
+   wash) - keeps the border-color shift, drops just the fill. */
+.lp-slider-arrow:hover { border-color: rgba(214, 148, 16, .35); }
 .lp-slider-arrow:active { transform: translateY(-50%) scale(.92); }
 .lp-slider-prev { left: -21px; }
 .lp-slider-next { right: -21px; }
