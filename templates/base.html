@@ -310,6 +310,26 @@
             document.addEventListener("htmx:historyRestore", initInstallBanner);
         })();
     </script>
+    <!-- Logging out, then hitting the browser's back button, must not land back on an
+         authenticated page - the account/settings screen the visitor just left is still
+         sitting fully rendered in the browser's back/forward cache (bfcache), and a
+         plain back navigation can restore that memory snapshot directly with NO new
+         request to the server at all, so the now-cleared session is never re-checked;
+         it just shows the stale logged-in page as-is. pageshow's persisted flag is the
+         standard way to detect exactly that restore (false on a real/fresh load, true
+         when the browser pulled this document back out of bfcache instead of
+         re-fetching it) - forcing a real reload on it makes that reload hit the server
+         again, which @login_required now correctly bounces to /login since the session
+         is gone. Scoped to body.app (dashboard/schedule/profile/settings/subscription -
+         see their body_class blocks) since that's the only bfcache snapshot this could
+         ever apply to; the public pages have nothing to protect. -->
+    <script>
+        window.addEventListener("pageshow", function (event) {
+            if (event.persisted && document.body.classList.contains("app")) {
+                window.location.reload();
+            }
+        });
+    </script>
 </head>
 <body class="{% block body_class %}{% endblock %}">
 {% if request.endpoint != 'instagram_oauth_callback' %}
