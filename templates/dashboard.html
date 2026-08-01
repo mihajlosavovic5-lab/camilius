@@ -88,7 +88,7 @@
     </div>
 
     {% for c in conversations %}
-        {% set id, sender, subject, question, suggested_reply, final_reply, status, created_at, profile_pic_url, expired_at = c %}
+        {% set id, sender, subject, question, suggested_reply, final_reply, status, created_at, profile_pic_url, expired_at, channel = c %}
         <div class="card conversation dashboard-conversation{% if status != 'pending' or expired_at %} conv-read{% endif %}"
              data-search-text="{{ (sender ~ ' ' ~ question)|lower }}"
              {% if status == 'pending' and not expired_at %}data-created-at="{{ created_at.isoformat() if created_at else '' }}"{% endif %}>
@@ -112,7 +112,10 @@
                 <span class="avatar" style="display:none;">{{ sender[0] }}</span>
                 <span class="conv-row-main">
                     <span class="conv-row-top">
-                        <span class="conv-row-sender">{{ sender }}</span>
+                        <span class="conv-row-sender-group">
+                            <span class="conv-row-sender">{{ sender }}</span>
+                            {% if channel == 'whatsapp' %}<span class="channel-badge channel-badge-whatsapp">WhatsApp</span>{% endif %}
+                        </span>
                         <span class="conv-row-time">{{ created_at.strftime('%m/%d %H:%M') if created_at else '' }}</span>
                     </span>
                     <span class="conv-row-preview">{% if subject %}{{ subject }} &middot; {% endif %}{{ question|replace("\n", " ") }}</span>

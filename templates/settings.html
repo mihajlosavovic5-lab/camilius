@@ -114,6 +114,23 @@
                 </div>
             </div>
 
+            <div class="profile-instagram-field">
+                <label>WhatsApp number</label>
+                <div class="profile-instagram-row">
+                    <span class="profile-instagram-value">
+                        {% if business.whatsapp_display_number %}{{ business.whatsapp_display_number }}{% else %}Not connected{% endif %}
+                    </span>
+                    <div class="profile-instagram-actions">
+                        <a href="{{ url_for('connect_whatsapp') }}" class="field-action-link">{{ 'Reconnect' if business.whatsapp_display_number else 'Connect WhatsApp' }}</a>
+                        {% if business.whatsapp_display_number %}
+                            <!-- Same "separate <form> after #settings-form's closing tag" reason
+                                 as disconnect-instagram-form above. -->
+                            <button type="submit" form="disconnect-whatsapp-form" class="field-action-link field-action-link-danger">Disconnect</button>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
             <div class="floating-field">
                 <input type="email" id="settings-contact-email-input" name="contact_email" value="{{ business.contact_email }}" placeholder=" " required>
                 <label for="settings-contact-email-input" data-i18n="settings.contactEmail">Contact email</label>
@@ -208,6 +225,11 @@
         <form method="POST" action="{{ url_for('upgrade_to_pro_free') }}" id="upgrade-to-pro-free-form">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <input type="hidden" name="next" value="settings">
+        </form>
+    {% endif %}
+    {% if business.whatsapp_display_number %}
+        <form method="POST" action="{{ url_for('disconnect_whatsapp') }}" id="disconnect-whatsapp-form">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         </form>
     {% endif %}
     {% if business.instagram_username %}

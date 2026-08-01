@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block title %}Connect WhatsApp - Camilius{% endblock %}
+{% block body_class %}auth connect-instagram{% endblock %}
+
+{% block content %}
+<div class="auth-wrapper">
+    <div class="auth-brand">
+        <span class="brand">
+            <span class="brand-mark">C</span>
+            <span class="brand-name">Camilius</span>
+        </span>
+        <p class="auth-tagline">Connect a WhatsApp number</p>
+    </div>
+
+    <div class="auth-card auth-card-wide">
+        <div class="connect-instagram-center">
+            <h1>Connect your WhatsApp number</h1>
+            <p class="auth-subtitle">Camilius isn't a Meta-verified Tech Provider yet, so there's no one-click connect for WhatsApp - paste in values you generate yourself, directly in your own Meta Business Suite.</p>
+
+            {% if error %}
+                <div class="alert alert-error"><span class="alert-icon">&#9888;&#65039;</span><span>{{ error }}</span></div>
+            {% endif %}
+        </div>
+
+        <div class="alert alert-warning" style="margin-top: 8px;">
+            <span class="alert-icon">&#8505;&#65039;</span>
+            <span>Meta's own menu names for these change from time to time - if a label below doesn't quite match what you see, look for the nearest equivalent (System User / Access token / WhatsApp settings). In Meta Business Suite: create or open a WhatsApp Business Account, add a phone number, then generate a permanent System User access token with that number's messaging permission.</span>
+        </div>
+
+        <form method="POST" style="margin-top: 16px;">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+            <div class="floating-field">
+                <input type="text" id="wa-phone-number-id-input" name="phone_number_id" placeholder=" " required>
+                <label for="wa-phone-number-id-input">Phone Number ID</label>
+            </div>
+
+            <div class="floating-field">
+                <input type="text" id="wa-waba-id-input" name="waba_id" placeholder=" " required>
+                <label for="wa-waba-id-input">WhatsApp Business Account ID</label>
+            </div>
+
+            <div class="floating-field">
+                <input type="text" id="wa-display-number-input" name="display_number" placeholder=" " required>
+                <label for="wa-display-number-input">Phone number (for display)</label>
+            </div>
+
+            <div class="floating-field floating-field-password">
+                <input type="password" id="wa-access-token-input" name="access_token" placeholder=" " required>
+                <label for="wa-access-token-input">Access token</label>
+                {% include "_password_toggle.html" %}
+            </div>
+
+            <div class="form-actions" style="margin-top: 20px;">
+                <button type="submit" class="button button-full">Connect WhatsApp</button>
+            </div>
+        </form>
+
+        <div class="auth-links">
+            <a href="{{ url_for('settings') }}">Back to Profile</a>
+        </div>
+    </div>
+</div>
+{% endblock %}
