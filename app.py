@@ -979,7 +979,10 @@ def reset_password(token):
 @app.route("/logout")
 def logout():
     session.clear()
-    return redirect(url_for("login"))
+    # from_logout=1 tells login.html to arm the back-button trap below - only right
+    # after an actual logout, not on a normal visit to /login, where back should behave
+    # normally (e.g. returning to wherever "Log in" was clicked from).
+    return redirect(url_for("login", from_logout=1))
 
 
 @app.route("/profile", methods=["GET", "POST"])

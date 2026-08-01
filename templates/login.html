@@ -53,4 +53,32 @@
         <a href="{{ url_for('intro') }}" data-i18n="login.replayIntro" onclick="try { localStorage.removeItem('introSeen'); } catch (e) {}">Replay intro</a>
     </p>
 </div>
+{% if request.args.get('from_logout') %}
+<!-- Back-button trap, armed only right after an actual logout (see app.py's logout()
+     redirect) - not on a normal visit to /login, where back should behave normally
+     (e.g. returning to wherever "Log in" was clicked from).
+
+     The no-store/historyRestore/hx-replace-url work elsewhere stops the back button
+     from ever showing stale authenticated content again, but each of those stale
+     entries left behind by a session that visited several tabs before logging out
+     still consumes its own "back" press to correctly bounce past (each one reloads,
+     hits the server, and only THEN redirects here) - which reads as "back doesn't do
+     anything" for however many tabs were visited. This intercepts the very first back
+     attempt from here and sends it straight to the home page instead of letting it
+     fall through to the next stale entry underneath, so leaving the app is always
+     exactly one press, however deep that history got.
+
+     Standard trap pattern: push a duplicate entry on top of this one (page doesn't
+     change) so the very next "back" the visitor does is a popstate on THIS page,
+     which we catch and turn into a hard redirect before it can resolve to whatever
+     was really underneath. -->
+<script>
+    (function () {
+        history.pushState(null, "", location.href);
+        window.addEventListener("popstate", function () {
+            window.location.replace("{{ url_for('home') }}");
+        });
+    })();
+</script>
+{% endif %}
 {% endblock %}
