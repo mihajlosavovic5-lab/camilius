@@ -563,6 +563,12 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
 }
 .register-steps-track { display: flex; align-items: flex-start; transition: transform .22s ease; }
 .register-steps-track .register-step { flex: 0 0 100%; min-width: 0; }
+/* .field-hint's global 2px left margin (app.css above) is meant to roughly echo a
+   floating-field label's own inset - it does nothing useful next to a plain <label> and
+   <textarea>/toggle row here (step 3's FAQ hint and notifications hint), which both sit
+   flush left with no inset of their own, so the hint text alone ends up sitting 2px to
+   the right of the label/field it's paired with instead of lining up with them. */
+.register-step .field-hint { margin-left: 0; }
 /* Pinned at the true bottom of the screen (outside the scrollable .detail-body, and
    outside .register-card above) so the step arrow/submit button are always right at
    the user's thumb regardless of how much content a given step has or whether the
