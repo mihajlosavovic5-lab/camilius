@@ -588,8 +588,8 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
    it degrades safely: a step tall enough to fill/overflow the screen just shrinks
    both spacers to 0 (their basis is already 0) and scrolls normally, instead of a
    centered flex line clipping its own top edge above the scroll container's reach. */
-.screen-register .detail-body::before { content: ''; flex: 0.15 0 0; }
-.screen-register .detail-body::after { content: ''; flex: 2.85 0 0; }
+.screen-register .detail-body::before { content: ''; flex: 0.6 0 0; }
+.screen-register .detail-body::after { content: ''; flex: 2.4 0 0; }
 .register-step-nav { display: flex; align-items: center; justify-content: space-between; }
 .register-step-dots { display: flex; gap: 6px; }
 .register-step-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--border); transition: background .2s ease, width .2s ease; }
