@@ -1798,6 +1798,7 @@ el("login-signup-link").addEventListener("click", () => {
     el("register-push-toggle").checked = true;
     el("register-draft-mode-toggle").checked = false;
     el("register-new-booking-toggle").checked = true;
+    el("register-reminders-customer-toggle").checked = false;
     registerHoursPicker.reset();
     registerPricesPicker.setValue("");
     registerUsernameAvailability.reset();
@@ -1880,6 +1881,7 @@ el("register-form").addEventListener("submit", async (event) => {
                 // auto_send is its inverse, same as Settings' own save handler.
                 auto_send: !el("register-draft-mode-toggle").checked,
                 new_booking_notifications_enabled: el("register-new-booking-toggle").checked,
+                reminders_enabled: el("register-reminders-customer-toggle").checked,
             },
         });
         showVerifyPendingScreen(data.business_id, data.contact_email, data.wait_seconds);

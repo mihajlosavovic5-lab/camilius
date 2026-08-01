@@ -570,7 +570,7 @@ def _decrypt_row_token(row):
     return row[:7] + (token,) + row[8:]
 
 
-def add_business(name, username, password, contact_email, working_hours, price_list, faq, phone_number=None, initial_status="trialing", push_enabled=True, auto_send=True, new_booking_notifications_enabled=True):
+def add_business(name, username, password, contact_email, working_hours, price_list, faq, phone_number=None, initial_status="trialing", push_enabled=True, auto_send=True, new_booking_notifications_enabled=True, reminders_enabled=False):
     """Creates the account itself. Instagram isn't connected yet at this point - that
     happens afterward via link_instagram_account(), once the OAuth redirect completes.
     phone_number is optional - purely an extra way to log in later, not required.
@@ -593,18 +593,19 @@ def add_business(name, username, password, contact_email, working_hours, price_l
     was given: it isn't usable to log in until confirmed via save_phone_verify_token()/
     mark_phone_verified() below, triggered from the Profile screen, not automatically.
 
-    push_enabled/auto_send/new_booking_notifications_enabled all default to True (same as
-    each column's own default) but the mobile app's registration wizard asks up front and
-    passes the answer straight through, rather than always signing new accounts up for
-    them and making them opt out afterward in Settings."""
+    push_enabled/auto_send/new_booking_notifications_enabled/reminders_enabled default to
+    whatever each column itself defaults to (True/True/True/False respectively) but the
+    mobile app's registration wizard asks up front and passes the answer straight through,
+    rather than always signing new accounts up for them and making them opt out (or, for
+    reminders_enabled, opt in) afterward in Settings."""
     connection = connect()
     cursor = connection.cursor()
 
     _execute_or_raise_unique_violation(
         cursor,
-        """INSERT INTO businesses (name, username, password, contact_email, working_hours, price_list, faq, phone_number, subscription_status, email_verified, phone_verified, push_enabled, auto_send, new_booking_notifications_enabled)
-           VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, FALSE, FALSE, %s, %s, %s) RETURNING id""",
-        (name, username, generate_password_hash(password), contact_email, working_hours, price_list, faq, phone_number or None, initial_status, push_enabled, auto_send, new_booking_notifications_enabled),
+        """INSERT INTO businesses (name, username, password, contact_email, working_hours, price_list, faq, phone_number, subscription_status, email_verified, phone_verified, push_enabled, auto_send, new_booking_notifications_enabled, reminders_enabled)
+           VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, FALSE, FALSE, %s, %s, %s, %s) RETURNING id""",
+        (name, username, generate_password_hash(password), contact_email, working_hours, price_list, faq, phone_number or None, initial_status, push_enabled, auto_send, new_booking_notifications_enabled, reminders_enabled),
     )
 
     new_id = cursor.fetchone()[0]

@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
 <title>Camilius</title>
-<link rel="stylesheet" href="app.css?v=8a15207cf443">
+<link rel="stylesheet" href="app.css?v=6fabbd55346e">
 </head>
 <body>
 
@@ -456,12 +456,14 @@
               </div>
               <p class="field-hint" data-i18n="register.notificationsHint">You can turn this on or off anytime in Settings.</p>
 
-              <!-- Two more toggles from Settings that are just as relevant from day one
-                   (both already default to on server-side - see add_business in
-                   database.py - so leaving either checked here changes nothing; only
-                   unchecking one actually does something, same as the notify toggle
-                   above), grouped with it here in the same row+hint pattern instead of
-                   only ever being discoverable after the fact in Settings. -->
+              <!-- Three more toggles from Settings that are just as relevant from day
+                   one, grouped with the notify toggle above in the same row+hint
+                   pattern instead of only ever being discoverable after the fact in
+                   Settings. AI Draft Mode/New bookings both already default to on
+                   server-side (see add_business in database.py) - leaving either
+                   checked here changes nothing, only unchecking one actually does
+                   something. Remind the customer (further below) is the exception -
+                   see its own comment there. -->
               <div class="settings-row">
                 <span data-i18n="appSettings.autoSend">AI Draft Mode</span>
                 <label class="hours-day-toggle">
@@ -479,6 +481,22 @@
                 </label>
               </div>
               <p class="field-hint" data-i18n="appSettings.newBookingNote">Notifies you when a customer books an appointment.</p>
+
+              <!-- Unlike the two above, reminders_enabled defaults to FALSE at the
+                   column level and is Pro-gated in Settings (see applyProAccessLocks) -
+                   left unchecked here rather than pre-checking something that'd need a
+                   plan to actually take effect. No lead-time picker here (unlike
+                   Settings' own "Send [24h] before" row under this same toggle) - the
+                   column's own DEFAULT 1440 (24h) applies until changed in Settings,
+                   keeping this step to plain toggles only like the rest of it. -->
+              <div class="settings-row">
+                <span data-i18n="appSettings.remindersCustomerHeading">Remind the customer</span>
+                <label class="hours-day-toggle">
+                  <input type="checkbox" id="register-reminders-customer-toggle">
+                  <span class="hours-day-toggle-track"><span class="hours-day-toggle-thumb"></span></span>
+                </label>
+              </div>
+              <p class="field-hint" data-i18n="register.notificationsHint">You can turn this on or off anytime in Settings.</p>
 
               <label class="checkbox-row">
                 <input type="checkbox" id="register-terms" required>
@@ -1365,7 +1383,7 @@
   </button>
 </nav>
 
-<script src="i18n.js?v=8a15207cf443"></script>
-<script src="app.js?v=8a15207cf443"></script>
+<script src="i18n.js?v=6fabbd55346e"></script>
+<script src="app.js?v=6fabbd55346e"></script>
 </body>
 </html>

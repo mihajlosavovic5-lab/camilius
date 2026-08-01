@@ -319,6 +319,13 @@ def api_register():
             # below, also changeable later from Settings either way.
             auto_send=bool(data.get("auto_send", True)),
             new_booking_notifications_enabled=bool(data.get("new_booking_notifications_enabled", True)),
+            # Unlike the two above, defaults to False (matching the column's own
+            # default) and isn't Pro-gated here the way Settings' own save handler gates
+            # it (state.proAccess ? checked : undefined) - a fresh signup's pro status
+            # isn't known client-side yet, and reminders.py's actual send path already
+            # checks has_pro_access() independently before ever looking at this flag, so
+            # storing True for a non-pro account is inert rather than a real leak.
+            reminders_enabled=bool(data.get("reminders_enabled", False)),
         )
     except UniqueViolation:
         return jsonify(error="That username, contact email, or phone number is already taken."), 409
