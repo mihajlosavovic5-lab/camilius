@@ -175,6 +175,23 @@ def cache_static_assets(response):
     return response
 
 
+# Any response rendered for a signed-in visitor (session still has business_id at the
+# point this runs, i.e. after the view - a /logout response doesn't count, since that
+# view clears the session before returning) must never be storable anywhere - not the
+# browser's disk HTTP cache, and per Chrome's own bfcache eligibility rules, a
+# Cache-Control: no-store response is excluded from the back/forward cache entirely.
+# That's the real fix for "log out, hit back, land back on the account page still
+# logged in": the client-side pageshow/htmx:historyRestore handling in base.html reacts
+# to a stale page AFTER the browser already restored one from bfcache, but this stops
+# that page from ever being eligible for bfcache in the first place - belt and braces,
+# since bfcache exclusion behavior isn't identical/guaranteed across every browser.
+@app.after_request
+def no_store_authenticated_pages(response):
+    if session.get("business_id"):
+        response.headers["Cache-Control"] = "no-store, private, must-revalidate"
+    return response
+
+
 # Baseline security headers on every response. CSP allows 'unsafe-inline' for script/
 # style deliberately - the site relies on many small inline <script> blocks (support
 # widget, scroll-to-top, service worker registration, language picker...) throughout
