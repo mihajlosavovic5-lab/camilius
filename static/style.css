@@ -1575,6 +1575,78 @@ body.auth {
     -webkit-mask-image: linear-gradient(to right, #000 85%, transparent 100%);
     mask-image: linear-gradient(to right, #000 85%, transparent 100%);
 }
+/* Only present when an account is actually connected (see the Jinja condition in
+   settings.html) - "Not connected" has nothing to zoom into, so it stays inert. */
+.profile-instagram-value-clickable { cursor: pointer; transition: opacity .15s ease; }
+.profile-instagram-value-clickable:hover, .profile-instagram-value-clickable:focus-visible { opacity: .72; }
+
+/* --- Instagram handle zoom modal --- */
+/* Tapping the (possibly fade-truncated) @handle zooms it from right where it was tapped
+   into a full, centered card - initInstagramZoomModal (settings.html) sets --ig-zoom-x/-y
+   to the tapped element's own center and --ig-zoom-scale from its height ratio to the
+   card's, right before adding .open, so the card's transition animates from "roughly
+   overlapping the field, about text-sized" to "centered, full card size" instead of a
+   generic fade-in-place - it reads as the handle itself growing into the card rather than
+   an unrelated dialog appearing over it. Same overlay/backdrop structure as .confirm-modal
+   above, just with a position-aware transform instead of a fixed translateY.
+   Two classes, not one, because of that same position-aware transform: .visible alone
+   (added first, with --ig-zoom-x/-y/-scale already set to the tap's position) is what
+   makes the "from" pose actually paint - the card must be visible for one real frame at
+   its start position before .open's transform (added a frame later, via requestAnimationFrame
+   in the JS) flips the target to centered/full-size, or the two style changes coalesce into
+   a single frame and the card just appears already-open with no visible motion. Closing
+   reverses the order: .open comes off first (animating back down to the source), and
+   .visible only after that transition finishes (transitionend, in the JS), so the
+   shrink-back-into-the-field motion is seen too instead of an abrupt disappearance. */
+.ig-zoom-modal {
+    position: fixed; inset: 0; z-index: 1060;
+    display: flex; align-items: center; justify-content: center; padding: 24px;
+    visibility: hidden; pointer-events: none;
+}
+.ig-zoom-modal.visible { visibility: visible; pointer-events: auto; }
+.ig-zoom-modal-backdrop {
+    position: absolute; inset: 0; background: rgba(20,15,8,.46);
+    opacity: 0; transition: opacity .25s ease;
+}
+.ig-zoom-modal.open .ig-zoom-modal-backdrop { opacity: 1; }
+.ig-zoom-modal-card {
+    position: relative; background: var(--surface); border-radius: var(--radius); box-shadow: var(--shadow-lg);
+    padding: 30px 32px; max-width: 320px; width: 100%;
+    display: flex; flex-direction: column; align-items: center; gap: 14px; text-align: center;
+    /* Fallback is scale(1) - i.e. untransformed - not some placeholder shrink, because
+       initInstagramZoomModal (settings.html) reads this element's getBoundingClientRect()
+       *before* setting --ig-zoom-x/-y/-scale, to get its natural centered/full-size box as
+       the animation's target. A shrink-by-default fallback would get measured as already
+       shrunk (transforms apply before layout box queries), throwing off the ratio used to
+       compute how much the source element should be scaled up to reach it. */
+    transform: translate(var(--ig-zoom-x, 0), var(--ig-zoom-y, 0)) scale(var(--ig-zoom-scale, 1));
+    opacity: 0;
+    /* Smooth ease-out (no overshoot) rather than the confirm-modal-card bounce above - that
+       bounce suits a small near-1 scale nudge, but here the card is travelling a much
+       larger distance (from roughly text-sized, wherever the field is on screen, out to
+       centered/full-size), where a spring overshoot would read as a jarring wobble rather
+       than a clean zoom-to-center. Same curve as .lp-fade-up's landing feel. */
+    transition: transform .42s cubic-bezier(.16,1,.3,1), opacity .3s ease;
+}
+/* initInstagramZoomModal sets --ig-zoom-x/-y/-scale to the tap's position right before
+   showing the card - without this, that property write is itself a change to the
+   transform this element already has a transition on, so it would kick off its own
+   (unwanted) animation from centered/full-size down to the tap position, immediately
+   fighting the real open animation added a frame later. Added only for that one
+   synchronous write + forced reflow, then removed before .open goes on, so the "from"
+   pose is applied instantly and only the actual open/close is ever animated. */
+.ig-zoom-modal-card.no-transition { transition: none !important; }
+.ig-zoom-modal.open .ig-zoom-modal-card { transform: translate(0, 0) scale(1); opacity: 1; }
+.ig-zoom-modal-icon {
+    width: 52px; height: 52px; border-radius: 16px; flex-shrink: 0;
+    background: linear-gradient(135deg, #f9ce34, #ee2a7b 55%, #6228d7);
+    display: flex; align-items: center; justify-content: center; color: #fff;
+    /* Held back at 3/4 of the card's own scale-in while .open, so the badge finishes
+       growing a beat after the card settles instead of both landing in lockstep. */
+    transform: scale(.7); transition: transform .3s cubic-bezier(.22,.9,.28,1.2) .08s;
+}
+.ig-zoom-modal.open .ig-zoom-modal-icon { transform: scale(1); }
+.ig-zoom-modal-handle { font-size: 19px; font-weight: 700; color: var(--text); word-break: break-word; }
 
 /* A pair of golden action links at the field's right edge. Used to be position: absolute
    (pinned to the field regardless of the row's own layout) so it would stay centered on

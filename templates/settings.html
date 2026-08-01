@@ -92,7 +92,7 @@
             <div class="profile-instagram-field">
                 <label data-i18n="settings.instagramAccount">Instagram account</label>
                 <div class="profile-instagram-row">
-                    <span class="profile-instagram-value">
+                    <span class="profile-instagram-value{% if business.instagram_username %} profile-instagram-value-clickable{% endif %}" {% if business.instagram_username %}id="profile-instagram-value" role="button" tabindex="0"{% endif %}>
                         {% if business.instagram_username %}@{{ business.instagram_username }}{% else %}<span data-i18n="settings.instagramNotConnected">Not connected</span>{% endif %}
                     </span>
                     <div class="profile-instagram-actions">
@@ -224,6 +224,18 @@
                 </div>
             </div>
         </div>
+        <!-- Tapping the @handle in the Account card zooms it into this centered card (see
+             initInstagramZoomModal below) - mainly for the fade-truncated case, so a long
+             username that's clipped in the field can still be read in full. -->
+        <div class="ig-zoom-modal" id="ig-zoom-modal" role="dialog" aria-modal="true">
+            <div class="ig-zoom-modal-backdrop"></div>
+            <div class="ig-zoom-modal-card">
+                <div class="ig-zoom-modal-icon">
+                    <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5.5"/><circle cx="12" cy="12" r="4.5"/><circle cx="17.4" cy="6.6" r="1.1" fill="currentColor" stroke="none"/></svg>
+                </div>
+                <div class="ig-zoom-modal-handle" id="ig-zoom-modal-handle">@{{ business.instagram_username }}</div>
+            </div>
+        </div>
     {% endif %}
 </div>
 {% endblock %}
@@ -261,6 +273,7 @@ function initSettingsPickers() {
     safeInit(initSettingsPasswordValidation);
     safeInit(initDisconnectInstagramModal);
     safeInit(initInstagramValueTruncation);
+    safeInit(initInstagramZoomModal);
     safeInit(initScrollPreservation);
     // Runs last, once every picker above (including the collapseToSimple() call, which can
     // shorten Working hours a lot) has already settled the page's final height - restoring
@@ -347,6 +360,69 @@ function initInstagramValueTruncation() {
     const valueEl = document.querySelector(".profile-instagram-value");
     if (!valueEl) return;
     valueEl.classList.toggle("truncated", valueEl.scrollWidth > valueEl.clientWidth);
+}
+
+// Tapping the @handle (only rendered clickable when an account is actually connected -
+// see the Jinja condition around #profile-instagram-value) zooms it from its own on-screen
+// position into a centered card showing the full handle - mainly for the fade-truncated
+// case above, so a long username that's clipped in the field is still fully readable
+// somewhere. The zoom-from-source illusion (rather than a dialog that just fades in) is
+// computed here, not in CSS: right before adding .open, measure both the tapped element's
+// and the (already laid-out, just invisible) card's on-screen rects and set the card's
+// --ig-zoom-x/-y/-scale custom properties so its resting transform exactly overlaps the
+// source; the .open transition (style.css) then animates those back to identity.
+function initInstagramZoomModal() {
+    const valueEl = document.getElementById("profile-instagram-value");
+    const modal = document.getElementById("ig-zoom-modal");
+    if (!valueEl || !modal) return;
+    const card = modal.querySelector(".ig-zoom-modal-card");
+    const backdrop = modal.querySelector(".ig-zoom-modal-backdrop");
+
+    function open() {
+        const sourceRect = valueEl.getBoundingClientRect();
+        const cardRect = card.getBoundingClientRect();
+        const dx = (sourceRect.left + sourceRect.width / 2) - (cardRect.left + cardRect.width / 2);
+        const dy = (sourceRect.top + sourceRect.height / 2) - (cardRect.top + cardRect.height / 2);
+        // Clamped so a very short field (e.g. a single-line username) doesn't shrink the
+        // card down to an illegible sliver, and a freak huge field never overshoots 1.
+        const scale = Math.max(.22, Math.min(.55, sourceRect.height / cardRect.height));
+        // no-transition while these get set (and while .visible goes on) - see
+        // .ig-zoom-modal-card.no-transition in style.css for why: without it, this write
+        // is itself an animated change on an element that already has a transform
+        // transition, which would immediately fight the real open animation queued below.
+        card.classList.add("no-transition");
+        card.style.setProperty("--ig-zoom-x", `${dx}px`);
+        card.style.setProperty("--ig-zoom-y", `${dy}px`);
+        card.style.setProperty("--ig-zoom-scale", scale.toFixed(3));
+        modal.classList.add("visible");
+        void card.offsetWidth; // forces the "from" pose above to commit before it's un-frozen
+        card.classList.remove("no-transition");
+        // Only now, one real frame later, does adding .open (the actual, transitioned
+        // change to identity/full-opacity) have a committed "from" state to animate from.
+        requestAnimationFrame(() => modal.classList.add("open"));
+    }
+    function close() {
+        if (!modal.classList.contains("open")) return;
+        modal.classList.remove("open");
+        const onTransitionEnd = (e) => {
+            if (e.target !== card || e.propertyName !== "transform") return;
+            card.removeEventListener("transitionend", onTransitionEnd);
+            modal.classList.remove("visible");
+        };
+        card.addEventListener("transitionend", onTransitionEnd);
+    }
+
+    valueEl.addEventListener("click", open);
+    valueEl.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" || e.key === " ") { e.preventDefault(); open(); }
+    });
+    backdrop.addEventListener("click", close);
+    // Tapping the zoomed handle itself closes it too - same "tap to dismiss" reflex as a
+    // photo lightbox, and the card has nothing else in it to tap.
+    card.addEventListener("click", close);
+    document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape" && modal.classList.contains("open")) close();
+    });
 }
 
 // Live "is this username taken" check as the user types, same debounced
