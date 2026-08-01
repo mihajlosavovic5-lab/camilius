@@ -654,46 +654,51 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
 .reminder-lead-row .picker-btn { width: auto; min-width: 90px; }
 .reminder-lead-row .field-hint { margin: 0; }
 
-/* Instagram field row - field + Reconnect/Disconnect side by side inside ONE bordered box,
-   same look as the website Profile page's .profile-instagram-field (style.css), instead of
-   the field and the actions reading as two separate things (actions in their own row below,
-   or - after that first pass - sitting outside the field's own border to its right). The
-   border/background that used to belong to the <input> itself now belongs to this row
-   instead, with the input's own border/background stripped below so there's only the one
-   box outline around the whole thing. min-width: 0 on the field lets it shrink below its
-   content width (flex items default to min-width: auto, which would otherwise force this
-   row wider than the screen); actions stay flex-shrink: 0 so Reconnect/Disconnect are
-   never the thing that gives up space. */
-.instagram-field-row {
-    /* align-items left at its default (stretch), not center - the divider below needs
-       .instagram-actions-row to actually stretch to the row's full height (driven by the
-       taller field/input beside it) rather than shrink-wrapping its own button text.
-       No gap here (unlike a plain flex row elsewhere) - .instagram-actions-row's own left
-       padding already separates it from the field, and stacking a gap on top of that on
-       top of the field's own input padding was three separate spacers doing one job,
-       starving the username of width it could otherwise have. */
-    display: flex; margin-top: 14px;
-    border: 1px solid var(--border); border-radius: 10px; background: var(--background);
-    overflow: hidden;
+/* --- Instagram field (Profile) - ported class-for-class from the website Profile page's
+   own .profile-instagram-field/.profile-instagram-row/.profile-instagram-value/
+   .profile-instagram-actions/.field-action-link (style.css), instead of reusing this
+   screen's usual .floating-field <input> pattern. Same reasoning there applies here:
+   the label spans the field's full width on its own line (not squeezed down to just the
+   value's shrunk column, which used to truncate the label's own text early too), the
+   value is a plain non-editable <span> (it was always readonly anyway) that fade-
+   truncates instead of hard-clipping, and margin-top is 14px rather than the website's
+   16px only to match every other field's own vertical rhythm on this screen. */
+.profile-instagram-field {
+    position: relative; width: 100%; border: 1px solid var(--border); border-radius: 10px;
+    background: var(--background); margin-top: 14px;
 }
-.instagram-field-row .floating-field-instagram { flex: 1; min-width: 0; margin-top: 0; }
-/* Specificity beats input[readonly]'s own background rule and .floating-field
-   input[type="text"]'s own border/padding rule (two classes here vs. their one), so these
-   actually apply instead of losing to those. */
-.instagram-field-row .floating-field-instagram input[readonly] { background: transparent; }
-.instagram-field-row .floating-field-instagram input[type="text"] { border: none; border-radius: 0; }
-/* Slightly smaller than a plain .link-btn, and no flex gap (the divider below handles
-   Reconnect/Disconnect's own spacing) - both trimmed for the same reason as the row's own
-   gap above: every px not spent on chrome here is a px the username field gets instead. */
-.instagram-actions-row { display: flex; align-items: center; flex-shrink: 0; padding: 0 12px; }
-.instagram-actions-row .link-btn { font-size: 13.5px; white-space: nowrap; }
-/* Divider sits between Reconnect and Disconnect themselves, not between the field and the
-   actions as a group - Disconnect is the only one ever preceded by another .link-btn here,
-   so this only ever draws when both are actually shown side by side. Single spacer
-   (padding-left, no companion margin/gap) rather than stacking multiple. */
-.instagram-actions-row .link-btn + .link-btn { border-left: 1px solid var(--border); padding-left: 8px; }
-#settings-instagram-reconnect-btn { color: var(--primary-ink); }
-.instagram-actions-row #settings-instagram-disconnect-btn { flex-shrink: 0; }
+.profile-instagram-field label {
+    margin: 0; font-weight: 400; position: absolute; left: 12px; right: 12px; top: 0; height: 20px;
+    display: flex; align-items: center; font-size: 12px; color: var(--primary);
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.profile-instagram-row {
+    display: flex; align-items: center; gap: 10px;
+    padding: 17px 12px 5px; line-height: normal;
+}
+/* flex: 1 + min-width: 0 lets this shrink below its content width (flex items default to
+   min-width: auto, which would otherwise force the row wider than the field and push
+   .profile-instagram-actions out past its right edge). Clipped text then fades to
+   transparent at the edge (.truncated below, toggled by initInstagramValueTruncation in
+   app.js) instead of an abrupt cut or running underneath the actions beside it. */
+.profile-instagram-value {
+    font-size: 16px; color: var(--text);
+    flex: 1; min-width: 0; overflow: hidden; white-space: nowrap;
+}
+.profile-instagram-value.truncated {
+    -webkit-mask-image: linear-gradient(to right, #000 85%, transparent 100%);
+    mask-image: linear-gradient(to right, #000 85%, transparent 100%);
+}
+.profile-instagram-actions { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+.field-action-link {
+    background: none; border: none; padding: 0; margin: 0; font-family: inherit;
+    font-size: 14px; font-weight: 700; color: var(--primary-ink); cursor: pointer;
+}
+.field-action-link:active { opacity: .7; }
+/* Thin vertical rule between Reconnect and Disconnect when both are shown - same divider
+   treatment as the Saturday/Sunday hours summary lines. */
+.field-action-link + .field-action-link { padding-left: 10px; border-left: 1px solid var(--border); }
+.field-action-link-danger { color: var(--danger); }
 
 .theme-toggle { display: flex; background: var(--background); border-radius: 10px; padding: 3px; gap: 3px; }
 .theme-option {

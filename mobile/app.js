@@ -2000,6 +2000,17 @@ async function openInstagramConnectBrowser(context, errorBoxId) {
     }
 }
 
+// Sets the Instagram field's value (a plain <span>, not an <input> - see
+// .profile-instagram-value in app.css) and re-measures whether it's actually clipped, same
+// fade-truncation treatment as the website Profile page's own initInstagramValueTruncation
+// (settings.html). Needed here (and not just once at load, like the website's server-
+// rendered version) because this value changes live after a reconnect/disconnect.
+function setInstagramAccountValue(text) {
+    const valueEl = el("settings-instagram-account");
+    valueEl.textContent = text;
+    valueEl.classList.toggle("truncated", valueEl.scrollWidth > valueEl.clientWidth);
+}
+
 // Shows the "Disconnect" button only once an account is actually connected - there's
 // nothing to disconnect right after a failed/cancelled reconnect attempt, and Profile is
 // unreachable before the very first connection (see enterOrGateOnInstagram) so this only
@@ -2011,7 +2022,7 @@ function updateInstagramDisconnectVisibility(instagramUsername) {
 el("connect-instagram-btn").addEventListener("click", () => openInstagramConnectBrowser("gate", "connect-error"));
 el("settings-instagram-reconnect-btn").addEventListener("click", () => openInstagramConnectBrowser("profile", null));
 
-// Tapping the (read-only) Instagram account field zooms its value from its own on-screen
+// Tapping the (non-editable) Instagram account value zooms it from its own on-screen
 // position into a centered card - handy for reading a long username in full on a small
 // phone screen, same zoom-from-source treatment as the website's Profile page. Wired once
 // here at load, not per-navigation - unlike settings.html's htmx-reloaded version of this,
@@ -2024,7 +2035,7 @@ el("settings-instagram-reconnect-btn").addEventListener("click", () => openInsta
     const backdrop = el("ig-zoom-backdrop");
 
     function open() {
-        const value = valueEl.value;
+        const value = valueEl.textContent;
         if (!value) return;
         handleEl.textContent = value;
         const sourceRect = valueEl.getBoundingClientRect();
@@ -2080,7 +2091,7 @@ el("instagram-disconnect-confirm").addEventListener("click", async () => {
     closeInstagramDisconnectModal();
     try {
         await api("/api/instagram-disconnect", { method: "POST" });
-        el("settings-instagram-account").value = "";
+        setInstagramAccountValue("");
         updateInstagramDisconnectVisibility(null);
         showSaveSuccess(t("settings.saved"));
     } catch (err) {
@@ -2100,7 +2111,7 @@ if (capacitorPlugins && capacitorPlugins.Browser) {
         if (context === "profile") {
             try {
                 const data = await api("/api/settings");
-                el("settings-instagram-account").value = data.instagram_username ? "@" + data.instagram_username : "";
+                setInstagramAccountValue(data.instagram_username ? "@" + data.instagram_username : "");
                 updateInstagramDisconnectVisibility(data.instagram_username);
                 if (data.instagram_username) {
                     if (capacitorPlugins.Haptics) capacitorPlugins.Haptics.impact({ style: "LIGHT" });
@@ -2883,7 +2894,7 @@ async function loadSettingsIntoForm() {
         setProfilePhoneCountry(country);
         el("settings-phone").value = rest;
         updatePhoneVerifyStatus(data.phone_number, data.phone_verified);
-        el("settings-instagram-account").value = data.instagram_username ? "@" + data.instagram_username : "";
+        setInstagramAccountValue(data.instagram_username ? "@" + data.instagram_username : "");
         updateInstagramDisconnectVisibility(data.instagram_username);
         profileHoursPicker.setValue(data.working_hours);
         profilePricesPicker.setValue(data.price_list);
