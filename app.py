@@ -1667,7 +1667,10 @@ def admin_businesses():
     for business in all_businesses_unfiltered():
         # indices: 0 id, 1 name, 2 username, 4 contact_email, 6 instagram_username,
         # 11 phone_number, 12 email_verified, 13 phone_verified, 14 pending_contact_email,
-        # 15 subscription_status, 16 created_at
+        # 16 whatsapp_display_number, 18 subscription_status, 19 created_at (18/19 rather
+        # than 15/16 - _BUSINESS_COLUMNS grew by 3 WhatsApp columns, appended at the end,
+        # which pushed all_businesses_unfiltered()'s own two appended columns out by the
+        # same 3; see _BUSINESS_COLUMNS's own comment in database.py)
         instagram_username = (business[6] or "").lower()
         if search and search not in business[1].lower() and search not in business[2].lower() and search not in business[4].lower() and search not in instagram_username:
             continue
@@ -1677,11 +1680,12 @@ def admin_businesses():
             "username": business[2],
             "contact_email": business[4],
             "instagram_username": business[6],
+            "whatsapp_display_number": business[16],
             "phone_number": business[11],
             "email_verified": business[12],
             "phone_verified": business[13],
-            "subscription_status": business[15],
-            "created_at": business[16].isoformat() if business[16] else None,
+            "subscription_status": business[18],
+            "created_at": business[19].isoformat() if business[19] else None,
         })
     return jsonify(businesses=result)
 
