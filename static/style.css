@@ -671,6 +671,24 @@ a:focus-visible, button:focus-visible, [tabindex]:focus-visible {
         font-size: 17px; text-align: left; color: var(--primary-ink);
         background: var(--menu-row-bg); border: 1px solid var(--menu-row-border);
     }
+    /* The shared desktop pill nav's hover lift further up (.nav-links a:not(.button):
+       hover) is meant for a real mouse and isn't gated by input type - on a touchscreen,
+       :hover can stay visually "stuck" on a row after tapping it (darkened text, lifted
+       shadow) until the next stray touch lands elsewhere, since there's no pointer to
+       actually leave. Neutralized here, then reinstated only when a real mouse is
+       actually present - the exact same guard the landing drawer's own rows already use
+       (.lp-menu-modal.open .lp-menu-modal-sheet a:hover). */
+    .nav-links a:not(.button):hover {
+        color: var(--primary-ink); transform: none; box-shadow: none;
+    }
+}
+@media (max-width: 640px) and (hover: hover) and (pointer: fine) {
+    .nav-links a:not(.button):hover {
+        transform: translateY(-2px) scale(1.03);
+        box-shadow: 0 4px 10px -6px rgba(214, 148, 16, .35);
+    }
+}
+@media (max-width: 640px) {
     /* Scroll lock while the drawer is open - same pattern as body.lp-menu-open/
        body.site-lang-open (JS sets body.style.top to the negative scroll position
        being locked at, see base.html, so the page doesn't visually jump when
