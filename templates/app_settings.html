@@ -98,7 +98,7 @@
                         <span class="switch-row-label" data-i18n="appSettings.reminders.customerHeading">Remind the customer</span>
                     </div>
                     <label class="hours-day-toggle">
-                        <input type="checkbox" name="reminders_enabled" {% if reminders_enabled %}checked{% endif %} onchange="this.form.submit()">
+                        <input type="checkbox" name="reminders_enabled" {% if reminders_enabled %}checked{% endif %}>
                         <span class="hours-day-toggle-track"><span class="hours-day-toggle-thumb"></span></span>
                     </label>
                 </div>
@@ -128,7 +128,7 @@
                         <span class="switch-row-label" data-i18n="appSettings.reminders.ownerHeading">Remind me</span>
                     </div>
                     <label class="hours-day-toggle">
-                        <input type="checkbox" name="owner_reminders_enabled" {% if owner_reminders_enabled %}checked{% endif %} onchange="this.form.submit()">
+                        <input type="checkbox" name="owner_reminders_enabled" {% if owner_reminders_enabled %}checked{% endif %}>
                         <span class="hours-day-toggle-track"><span class="hours-day-toggle-thumb"></span></span>
                     </label>
                 </div>
@@ -152,6 +152,10 @@
                     </div>
                     <span class="note" data-i18n="appSettings.reminders.beforeSuffix">before the appointment</span>
                 </div>
+
+                <div class="form-actions" style="text-align:right;">
+                    <button class="button floating-save-btn hidden" type="submit" id="reminders-save-btn" data-i18n="settings.saveChanges">Save changes</button>
+                </div>
             </form>
             <script>
             (function () {
@@ -162,7 +166,11 @@
                 // below it, instead of a whole grid of pill buttons taking up the row.
                 // Closing one dropdown when the other (or anything else) is clicked is
                 // handled by the shared document-level listener below.
-                function initReminderPicker(form, prefix) {
+                // Nothing here submits the form directly anymore - toggling a switch or
+                // picking a lead time only stages the change locally (shows the floating
+                // Save button below, via initRemindersSaveButton's snapshot diff); only an
+                // explicit Save click actually persists any of it, same as Profile's form.
+                function initReminderPicker(prefix) {
                     var dd = document.getElementById(prefix + "-reminder-dd");
                     if (!dd) return;
                     var hiddenValue = document.getElementById(prefix + "-reminder-minutes-value");
@@ -170,6 +178,13 @@
                     var menu = dd.querySelector(".duration-dd-menu");
                     var customInput = dd.querySelector(".schedule-slot-duration-custom");
                     if (!hiddenValue || !trigger || !menu || !customInput) return;
+
+                    // Tracked so a blank custom field reverts to whatever preset was active
+                    // before "Custom" was clicked, not just to whatever the page happened to
+                    // load with - matters now that Custom sets hiddenValue immediately
+                    // instead of only on a since-removed auto-submit.
+                    var lastPresetValue = hiddenValue.value;
+                    var lastPresetLabel = trigger.textContent;
 
                     trigger.addEventListener("click", function (e) {
                         e.stopPropagation();
@@ -183,32 +198,40 @@
                         option.addEventListener("click", function () {
                             menu.classList.add("hidden");
                             if (option.dataset.value === "custom") {
+                                hiddenValue.value = "custom";
                                 trigger.classList.add("hidden");
                                 customInput.classList.remove("hidden");
                                 customInput.disabled = false;
                                 customInput.value = "";
                                 customInput.focus();
+                                // "change" (not "input") so the Save-button snapshot diff
+                                // below picks up the switch to custom mode right away, even
+                                // before the user types a single digit.
+                                dd.dispatchEvent(new Event("change", { bubbles: true }));
                                 return;
                             }
-                            hiddenValue.value = option.dataset.value;
-                            form.submit();
+                            lastPresetValue = option.dataset.value;
+                            lastPresetLabel = option.dataset.label;
+                            hiddenValue.value = lastPresetValue;
+                            trigger.textContent = lastPresetLabel;
+                            menu.querySelectorAll(".duration-dd-option").forEach(function (o) { o.classList.toggle("active", o === option); });
+                            dd.dispatchEvent(new Event("change", { bubbles: true }));
                         });
                     });
+                    // Enter just confirms/blurs - saving happens only via the Save button now.
                     customInput.addEventListener("keydown", function (e) {
-                        if (e.key !== "Enter") return;
-                        e.preventDefault();
-                        var minutes = parseInt(customInput.value, 10);
-                        if (!minutes || minutes < customInput.min || minutes > customInput.max) return;
-                        hiddenValue.value = "custom";
-                        form.submit();
+                        if (e.key === "Enter") { e.preventDefault(); customInput.blur(); }
                     });
-                    // Typing nothing and clicking away reverts to the dropdown trigger instead
-                    // of leaving an empty field with no way back.
+                    // Typing nothing and clicking away reverts to the dropdown trigger (at
+                    // whatever preset was chosen before "Custom") instead of leaving an
+                    // empty field with no way back.
                     customInput.addEventListener("blur", function () {
                         if (customInput.value.trim()) return;
+                        hiddenValue.value = lastPresetValue;
+                        trigger.textContent = lastPresetLabel;
+                        trigger.classList.remove("hidden");
                         customInput.classList.add("hidden");
                         customInput.disabled = true;
-                        trigger.classList.remove("hidden");
                     });
                 }
 
@@ -224,11 +247,35 @@
                     window.__reminderDurationMenuHandlerAdded = true;
                 }
 
-                var remindersForm = document.getElementById("reminders-form");
-                if (remindersForm) {
-                    initReminderPicker(remindersForm, "customer");
-                    initReminderPicker(remindersForm, "owner");
+                initReminderPicker("customer");
+                initReminderPicker("owner");
+
+                // Same staged-changes pattern as Profile's own Save button (settings.html's
+                // initSettingsSaveButton) - a snapshot of the form's serialized state taken
+                // on load, compared against its current state on every input/change/click,
+                // showing the floating Save button only once the two disagree. "click" is
+                // included (not just "change"/"input") so the dropdown's own custom
+                // buttons/options - which don't fire native form events on their own -
+                // still register through their dispatched "change" event bubbling up, same
+                // reasoning as Profile's own pickers.
+                function initRemindersSaveButton() {
+                    var form = document.getElementById("reminders-form");
+                    var saveButton = document.getElementById("reminders-save-btn");
+                    if (!form || !saveButton) return;
+
+                    function serialize() {
+                        var data = new FormData(form);
+                        data.delete("csrf_token");
+                        return new URLSearchParams(data).toString();
+                    }
+
+                    var snapshot = serialize();
+                    function updateVisibility() {
+                        saveButton.classList.toggle("hidden", serialize() === snapshot);
+                    }
+                    ["input", "change", "click"].forEach(function (evt) { form.addEventListener(evt, updateVisibility); });
                 }
+                initRemindersSaveButton();
             })();
             </script>
         {% else %}

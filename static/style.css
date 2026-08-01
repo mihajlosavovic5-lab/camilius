@@ -815,23 +815,25 @@ input[readonly]:hover { border-color: var(--border); }
 .form-actions { margin-top: 24px; }
 .hidden { display: none !important; }
 
-/* Profile page's Save button (#settings-save-btn) floats fixed once there are unsaved
-   changes (its "hidden" class, toggled by initSettingsSaveButton in settings.html, still
-   controls whether it shows at all) - same floating "Save changes" pill already used on
-   the app version of this screen (see .fab-save in mobile/app.css), so it stays in view
-   while editing fields near the top of this long form instead of requiring a scroll down
-   to the end of the AI upsell card.
+/* Floating "Save changes" button - shows up fixed once a form has unsaved changes (its
+   "hidden" class is toggled by each page's own initXSaveButton, a delegated snapshot-diff
+   listener - see settings.html's initSettingsSaveButton and app_settings.html's
+   initRemindersSaveButton). Shared by every form on the site that defers applying its
+   changes until Save is explicitly clicked, instead of each field submitting itself the
+   moment it changes - same floating "Save changes" pill already used on the app version
+   of Profile (see .fab-save in mobile/app.css), so it stays in view while editing fields
+   further up the page instead of requiring a scroll down to the form's own bottom.
    Below 1300px (see the media query further down) there isn't reliably enough margin
    beside the centered card to sit next to it without colliding with the floating support
    widget (#support-widget, also pinned bottom-right on every page), so it instead sits
    immediately left of that widget - same bottom offset, with enough of a right offset to
    clear the widget's own 58px width plus a gap. */
-#settings-save-btn.button {
+.floating-save-btn.button {
     position: fixed; right: 90px; bottom: 20px; z-index: 950;
     box-shadow: 0 8px 22px -4px rgba(214, 148, 16, .5);
 }
 @media (max-width: 480px) {
-    #settings-save-btn.button { right: 84px; bottom: 14px; }
+    .floating-save-btn.button { right: 84px; bottom: 14px; }
 }
 @media (min-width: 1300px) {
     /* Above 1300px there's enough margin beside the centered 640px-wide .content-narrow
@@ -844,7 +846,7 @@ input[readonly]:hover { border-color: var(--border); }
        card) plus a 20px gap - no translateX needed on this side, since left-aligning to
        that point already grows the button rightward into the open margin regardless of
        the button's own width (which varies by language). */
-    #settings-save-btn.button {
+    .floating-save-btn.button {
         left: calc(50% + 300px + 20px); right: auto; bottom: 24px;
     }
 }
