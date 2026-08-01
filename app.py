@@ -1142,6 +1142,8 @@ def _duration_choices_with_custom(choices, current_value, label_fn=str):
 def app_settings():
     business_id = session["business_id"]
     customer_minutes, owner_minutes = get_reminder_minutes(business_id)
+    customer_choices = _duration_choices_with_custom(REMINDER_LEAD_CHOICES, customer_minutes, lambda m: f"{m} min")
+    owner_choices = _duration_choices_with_custom(REMINDER_LEAD_CHOICES, owner_minutes, lambda m: f"{m} min")
     return render_template(
         "app_settings.html",
         auto_send=is_auto_send_enabled(business_id),
@@ -1150,8 +1152,10 @@ def app_settings():
         owner_reminders_enabled=is_owner_reminders_enabled(business_id),
         customer_reminder_minutes=customer_minutes,
         owner_reminder_minutes=owner_minutes,
-        customer_reminder_choices=_duration_choices_with_custom(REMINDER_LEAD_CHOICES, customer_minutes, lambda m: f"{m} min"),
-        owner_reminder_choices=_duration_choices_with_custom(REMINDER_LEAD_CHOICES, owner_minutes, lambda m: f"{m} min"),
+        customer_reminder_choices=customer_choices,
+        owner_reminder_choices=owner_choices,
+        customer_reminder_label=dict(customer_choices)[customer_minutes],
+        owner_reminder_label=dict(owner_choices)[owner_minutes],
         reminder_lead_minutes=[value for value, _ in REMINDER_LEAD_CHOICES],
         reminder_lead_max_minutes=REMINDER_LEAD_MAX_MINUTES,
         pro_access=BETA_FREE_MODE or has_pro_access(business_id),

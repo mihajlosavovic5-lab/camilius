@@ -1707,25 +1707,6 @@ body.auth {
    them doesn't visibly resize that spot in the pill row. Left-aligned text (not
    centered) on the input, matching the per-slot custom input below. */
 .duration-pill-custom, .duration-pill-custom-input { width: 88px; }
-/* Reminder lead-time pickers (app_settings.html's "Remind the customer"/"Remind me")
-   opt into a fixed 3-column grid instead of .duration-pills' plain flex-wrap - with
-   6-7 same-ish-width pills (15 min/30 min/1h/2h/24h/Custom, sometimes plus a saved
-   custom value) wrapping freely left a short, ragged last row (e.g. just "24h" and
-   "Custom" stranded on their own line with empty space beside them) instead of an
-   evenly filled block. 3 columns turns the common 6-pill case into two clean, equal
-   rows; the schedule page's own duration picker (right-aligned, fewer choices, a
-   different context) keeps the original flex behavior and is unaffected. */
-.duration-pills-grid {
-    display: grid; grid-template-columns: repeat(3, 1fr);
-}
-.duration-pills-grid .duration-pill,
-.duration-pills-grid .duration-pill-custom,
-.duration-pills-grid .duration-pill-custom-input { width: auto; text-align: center; }
-/* If the last row ends up with a single pill (item count not a multiple of 3), let it
-   span the full row instead of sitting alone in the first column with dead space
-   beside it - :nth-child(3n+1) picks out a row-starting item, :last-child narrows
-   that to only fire when that item is also the very last one, i.e. genuinely alone. */
-.duration-pills-grid > *:nth-child(3n+1):last-child { grid-column: 1 / -1; }
 .duration-pill-custom-input {
     margin: 0; padding: 7px 10px; border-radius: 99px; text-align: left;
     border: 1px solid var(--border); background: var(--surface); color: var(--text);

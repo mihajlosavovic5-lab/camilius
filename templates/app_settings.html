@@ -104,17 +104,20 @@
                 </div>
                 <div class="duration-picker" style="margin-top:12px;">
                     <label class="duration-picker-label" data-i18n="appSettings.reminders.leadTimeLabel">Send</label>
-                    <input type="hidden" name="customer_reminder_minutes" id="customer-reminder-minutes-value"
-                           value="{{ customer_reminder_minutes if customer_reminder_minutes in reminder_lead_minutes else 'custom' }}">
-                    <div class="duration-pills duration-pills-grid" id="customer-reminder-pills">
-                        {% for value, label in customer_reminder_choices %}
-                            <button type="button" class="duration-pill {{ 'active' if value == customer_reminder_minutes }}" data-duration-value="{{ value }}">{{ label }}</button>
-                        {% endfor %}
-                        <button type="button" class="duration-pill duration-pill-custom" id="customer-reminder-custom-btn" data-i18n="appSettings.reminders.custom">Custom</button>
+                    <div class="duration-dd" id="customer-reminder-dd">
+                        <input type="hidden" name="customer_reminder_minutes" id="customer-reminder-minutes-value"
+                               value="{{ customer_reminder_minutes if customer_reminder_minutes in reminder_lead_minutes else 'custom' }}">
+                        <button type="button" class="schedule-slot-duration-select duration-dd-trigger" aria-haspopup="listbox" aria-expanded="false">{{ customer_reminder_label }}</button>
+                        <div class="duration-dd-menu hidden" role="listbox">
+                            {% for value, label in customer_reminder_choices %}
+                                <button type="button" class="duration-dd-option {{ 'active' if value == customer_reminder_minutes }}" data-value="{{ value }}" data-label="{{ label }}">{{ label }}</button>
+                            {% endfor %}
+                            <button type="button" class="duration-dd-option duration-dd-option-custom" data-value="custom" data-label="Custom" data-i18n="appSettings.reminders.custom">Custom</button>
+                        </div>
                         <input type="number" min="1" max="{{ reminder_lead_max_minutes }}" step="1"
                                name="customer_reminder_minutes_custom"
                                value="{% if customer_reminder_minutes not in reminder_lead_minutes %}{{ customer_reminder_minutes }}{% endif %}"
-                               id="customer-reminder-custom-input" class="duration-pill-custom-input hidden"
+                               class="schedule-slot-duration-custom hidden" disabled
                                data-i18n-placeholder="appSettings.reminders.customPlaceholder" placeholder="Minutes">
                     </div>
                     <span class="note" data-i18n="appSettings.reminders.beforeSuffix">before the appointment</span>
@@ -131,17 +134,20 @@
                 </div>
                 <div class="duration-picker" style="margin-top:12px;">
                     <label class="duration-picker-label" data-i18n="appSettings.reminders.leadTimeLabel">Send</label>
-                    <input type="hidden" name="owner_reminder_minutes" id="owner-reminder-minutes-value"
-                           value="{{ owner_reminder_minutes if owner_reminder_minutes in reminder_lead_minutes else 'custom' }}">
-                    <div class="duration-pills duration-pills-grid" id="owner-reminder-pills">
-                        {% for value, label in owner_reminder_choices %}
-                            <button type="button" class="duration-pill {{ 'active' if value == owner_reminder_minutes }}" data-duration-value="{{ value }}">{{ label }}</button>
-                        {% endfor %}
-                        <button type="button" class="duration-pill duration-pill-custom" id="owner-reminder-custom-btn" data-i18n="appSettings.reminders.custom">Custom</button>
+                    <div class="duration-dd" id="owner-reminder-dd">
+                        <input type="hidden" name="owner_reminder_minutes" id="owner-reminder-minutes-value"
+                               value="{{ owner_reminder_minutes if owner_reminder_minutes in reminder_lead_minutes else 'custom' }}">
+                        <button type="button" class="schedule-slot-duration-select duration-dd-trigger" aria-haspopup="listbox" aria-expanded="false">{{ owner_reminder_label }}</button>
+                        <div class="duration-dd-menu hidden" role="listbox">
+                            {% for value, label in owner_reminder_choices %}
+                                <button type="button" class="duration-dd-option {{ 'active' if value == owner_reminder_minutes }}" data-value="{{ value }}" data-label="{{ label }}">{{ label }}</button>
+                            {% endfor %}
+                            <button type="button" class="duration-dd-option duration-dd-option-custom" data-value="custom" data-label="Custom" data-i18n="appSettings.reminders.custom">Custom</button>
+                        </div>
                         <input type="number" min="1" max="{{ reminder_lead_max_minutes }}" step="1"
                                name="owner_reminder_minutes_custom"
                                value="{% if owner_reminder_minutes not in reminder_lead_minutes %}{{ owner_reminder_minutes }}{% endif %}"
-                               id="owner-reminder-custom-input" class="duration-pill-custom-input hidden"
+                               class="schedule-slot-duration-custom hidden" disabled
                                data-i18n-placeholder="appSettings.reminders.customPlaceholder" placeholder="Minutes">
                     </div>
                     <span class="note" data-i18n="appSettings.reminders.beforeSuffix">before the appointment</span>
@@ -149,24 +155,44 @@
             </form>
             <script>
             (function () {
+                // Same anchored dropdown pattern as the Schedule page's per-slot duration
+                // field (.duration-dd, see schedule.html) and the mobile app's own
+                // reminder lead-time field (.picker-btn, mobile/index.html) - a compact
+                // trigger showing the current value that opens a small option list right
+                // below it, instead of a whole grid of pill buttons taking up the row.
+                // Closing one dropdown when the other (or anything else) is clicked is
+                // handled by the shared document-level listener below.
                 function initReminderPicker(form, prefix) {
+                    var dd = document.getElementById(prefix + "-reminder-dd");
+                    if (!dd) return;
                     var hiddenValue = document.getElementById(prefix + "-reminder-minutes-value");
-                    var pillsContainer = document.getElementById(prefix + "-reminder-pills");
-                    var customBtn = document.getElementById(prefix + "-reminder-custom-btn");
-                    var customInput = document.getElementById(prefix + "-reminder-custom-input");
-                    if (!hiddenValue || !pillsContainer || !customBtn || !customInput) return;
+                    var trigger = dd.querySelector(".duration-dd-trigger");
+                    var menu = dd.querySelector(".duration-dd-menu");
+                    var customInput = dd.querySelector(".schedule-slot-duration-custom");
+                    if (!hiddenValue || !trigger || !menu || !customInput) return;
 
-                    pillsContainer.querySelectorAll(".duration-pill:not(.duration-pill-custom)").forEach(function (pill) {
-                        pill.addEventListener("click", function () {
-                            hiddenValue.value = pill.dataset.durationValue;
+                    trigger.addEventListener("click", function (e) {
+                        e.stopPropagation();
+                        var willOpen = menu.classList.contains("hidden");
+                        document.querySelectorAll(".duration-dd-menu").forEach(function (m) { m.classList.add("hidden"); });
+                        menu.classList.toggle("hidden", !willOpen);
+                    });
+                    menu.addEventListener("click", function (e) { e.stopPropagation(); });
+
+                    menu.querySelectorAll(".duration-dd-option").forEach(function (option) {
+                        option.addEventListener("click", function () {
+                            menu.classList.add("hidden");
+                            if (option.dataset.value === "custom") {
+                                trigger.classList.add("hidden");
+                                customInput.classList.remove("hidden");
+                                customInput.disabled = false;
+                                customInput.value = "";
+                                customInput.focus();
+                                return;
+                            }
+                            hiddenValue.value = option.dataset.value;
                             form.submit();
                         });
-                    });
-                    customBtn.addEventListener("click", function () {
-                        customBtn.classList.add("hidden");
-                        customInput.classList.remove("hidden");
-                        customInput.value = "";
-                        customInput.focus();
                     });
                     customInput.addEventListener("keydown", function (e) {
                         if (e.key !== "Enter") return;
@@ -176,13 +202,26 @@
                         hiddenValue.value = "custom";
                         form.submit();
                     });
-                    // Typing nothing and clicking away reverts to the "Custom" pill instead of
-                    // leaving an empty field with no way back.
+                    // Typing nothing and clicking away reverts to the dropdown trigger instead
+                    // of leaving an empty field with no way back.
                     customInput.addEventListener("blur", function () {
                         if (customInput.value.trim()) return;
                         customInput.classList.add("hidden");
-                        customBtn.classList.remove("hidden");
+                        customInput.disabled = true;
+                        trigger.classList.remove("hidden");
                     });
+                }
+
+                // Closes any open reminder dropdown on a click anywhere else on the page -
+                // guarded against htmx re-running this whole script block on every boosted
+                // visit to Settings (see the hamburger toggle's own listener in base.html
+                // for the same pattern), which would otherwise stack a duplicate document
+                // listener per visit.
+                if (!window.__reminderDurationMenuHandlerAdded) {
+                    document.addEventListener("click", function () {
+                        document.querySelectorAll(".duration-dd-menu").forEach(function (m) { m.classList.add("hidden"); });
+                    });
+                    window.__reminderDurationMenuHandlerAdded = true;
                 }
 
                 var remindersForm = document.getElementById("reminders-form");
