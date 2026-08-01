@@ -539,15 +539,19 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
 /* No background/border/shadow of its own (tried the website register page's
    .auth-card/.auth-card-wide treatment here first - a white panel behind the heading
    and fields - but it read as a large, pointless "field" of its own sitting behind
-   the real ones). Purely a layout container now: groups the subtitle through the step
+   the real ones). Purely a layout container now: groups the heading through the step
    content, with the fields themselves sitting directly on the screen's own gradient
    background, same as every other screen in the app. */
 .register-card { padding: 0; }
-/* Persistent wizard subtitle, shown above every step (not just step 1) - same role as
-   the web register page's .register-wizard-heading subtitle (templates/register.html),
-   which stays fixed across all three steps instead of being swapped for step-specific
-   copy. The heading itself lives in .topbar-title above, not here. */
-.register-step-intro { margin-bottom: 18px; }
+/* Persistent wizard heading, shown above every step (not just step 1) - same wording
+   and role as the web register page's .register-wizard-heading (templates/
+   register.html), which stays fixed across all three steps instead of being swapped
+   for step-specific copy. Centered (not left-aligned) since it now sits on its own,
+   lower than - and independent of - the back button pinned in the topbar above,
+   rather than sharing a single row/vertical position with it. */
+.register-step-intro { text-align: center; margin-bottom: 22px; }
+.register-step-intro h1 { font-family: var(--font-serif); font-weight: 700; font-size: 22px; margin: 0 0 6px; color: var(--text); }
+.register-step-intro .screen-subtitle { margin: 0; }
 
 .register-steps-viewport {
     overflow: hidden; transition: height .22s ease;
@@ -573,8 +577,8 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
    it degrades safely: a step tall enough to fill/overflow the screen just shrinks
    both spacers to 0 (their basis is already 0) and scrolls normally, instead of a
    centered flex line clipping its own top edge above the scroll container's reach. */
-.screen-register .detail-body::before { content: ''; flex: 0.4 0 0; }
-.screen-register .detail-body::after { content: ''; flex: 2.6 0 0; }
+.screen-register .detail-body::before { content: ''; flex: 0.9 0 0; }
+.screen-register .detail-body::after { content: ''; flex: 2.1 0 0; }
 .register-step-nav { display: flex; align-items: center; justify-content: space-between; }
 .register-step-dots { display: flex; gap: 6px; }
 .register-step-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--border); transition: background .2s ease, width .2s ease; }
