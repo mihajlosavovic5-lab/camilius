@@ -22,8 +22,18 @@
         <!-- hx-boost: these links are fetched via AJAX and swapped into the current
              page's <body> instead of a full browser navigation (htmx handles history/
              back-forward transparently) - only the nav, deliberately, not every link or
-             form on the site; see base.html for the vendored htmx script. -->
-        <div class="nav-links" id="nav-links" hx-boost="true">
+             form on the site; see base.html for the vendored htmx script.
+             hx-replace-url (not the default push) - switching Conversations/Schedule/
+             Profile/Settings replaces the current history entry instead of stacking a
+             new one per tab, the same way tapping tabs in the native app itself doesn't
+             grow a back-stack. Without this, visiting N tabs before logging out meant N
+             stale history entries afterward - each one now correctly bounces back to
+             /login rather than showing the account again (see base.html/app.py's
+             no-store + historyRestore/pageshow handling), but the visitor had to press
+             back N times to get past all of them before reaching anything new, which
+             read as "back doesn't do anything." One entry for wherever you currently are
+             in the app means one back press is enough to leave it entirely. -->
+        <div class="nav-links" id="nav-links" hx-boost="true" hx-replace-url="true">
             <a href="{{ url_for('home') }}" class="{{ 'active' if request.endpoint == 'home' }}" data-i18n="common.conversations">Conversations</a>
             <a href="{{ url_for('schedule') }}" class="nav-link-with-badge {{ 'active' if request.endpoint == 'schedule' }}">
                 <span data-i18n="common.schedule">Schedule</span>
