@@ -591,9 +591,22 @@ a:focus-visible, button:focus-visible, [tabindex]:focus-visible {
        inbox or settings form, not disappear upward the moment you scroll down.
        Sticky (not fixed) so it still reserves its own space in normal flow -
        no separate spacer element needed, unlike the landing page's #lp-header. */
+    /* Starts fully transparent over the shared body gradient, same as the logged-out
+       landing page's #lp-header at rest, then picks up the identical frosted-glass
+       fill/blur/shadow once scrolled (.navbar-scrolled, toggled by base.html's scroll
+       listener) - so the top bar looks and behaves the same whether you're logged in
+       or not, instead of switching to a flat opaque bar the moment you log in. */
     .navbar {
         position: sticky; top: var(--install-banner-h); z-index: 900;
-        background: var(--surface); border-bottom: 1px solid var(--border); box-shadow: var(--shadow);
+        background: rgba(253, 252, 250, 0);
+        border-bottom: 1px solid rgba(236, 230, 218, 0);
+        transition: background .25s ease, border-color .25s ease, box-shadow .25s ease;
+    }
+    .navbar.navbar-scrolled {
+        background: rgba(255, 255, 255, .85);
+        backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+        border-bottom-color: var(--border);
+        box-shadow: 0 4px 20px rgba(38, 32, 20, .05);
     }
     /* Reserve room for the fixed top-right language flag (.site-lang-select-btn,
        base.html), same reason as the desktop padding-right above - without it the

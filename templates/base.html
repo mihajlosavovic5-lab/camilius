@@ -129,6 +129,37 @@
             }
         });
     </script>
+    <!-- Scroll-aware navbar background (logged-in app pages, phone width - see the
+         @media (max-width: 640px) .navbar rules in style.css) - mirrors the landing
+         page's own #lp-header.lp-scrolled treatment (landing.html) so the top bar keeps
+         the same look/feel across the login boundary: transparent over the shared body
+         gradient at the top of the page, then a frosted-glass fill once scrolled.
+         Reads .navbar fresh on every tick, not cached at load, since htmx swaps the
+         whole <body> - including it - on every boosted nav. Same scroll-lock guard as
+         landing.html's onScroll: opening the hamburger drawer (body.nav-menu-open) or
+         the language dropdown (body.site-lang-open) pins <body> via position: fixed,
+         which briefly reports scrollY as 0 and fires a real scroll event for that -
+         without the guard the navbar would flash back to transparent while either is
+         open. -->
+    <script>
+        (function () {
+            var navScrollTicking = false;
+            function onNavbarScroll() {
+                navScrollTicking = false;
+                if (document.body.classList.contains("nav-menu-open") || document.body.classList.contains("site-lang-open")) return;
+                var navbar = document.querySelector(".navbar");
+                if (!navbar) return;
+                var scrollTop = window.scrollY || document.documentElement.scrollTop;
+                navbar.classList.toggle("navbar-scrolled", scrollTop > 12);
+            }
+            window.addEventListener("scroll", function () {
+                if (!navScrollTicking) { window.requestAnimationFrame(onNavbarScroll); navScrollTicking = true; }
+            }, { passive: true });
+            document.addEventListener("htmx:afterSettle", onNavbarScroll);
+            document.addEventListener("htmx:historyRestore", onNavbarScroll);
+            onNavbarScroll();
+        })();
+    </script>
     <!-- Site-wide translation layer (static/site-i18n.js) - vanilla JS, same pattern as
          the mobile app's i18n.js. Lives in base.html so the picker button/modal and the
          translate-on-load call apply on every page automatically, without touching each
