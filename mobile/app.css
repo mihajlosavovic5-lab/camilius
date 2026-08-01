@@ -533,9 +533,8 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
    steps reads as the same motion as opening Create Account did in the first place. */
 /* Height is set inline by JS to match only the CURRENT step's own content (see
    showRegisterStep) - without that, a flex row of 3 side-by-side steps sizes itself to
-   the TALLEST of the three, leaving dead scrollable space below shorter steps (step 2's
-   working-hours list is noticeably shorter than steps 1/3) even though there's nothing
-   actually down there. */
+   the TALLEST of the three, leaving dead scrollable space below shorter steps even
+   though there's nothing actually down there. */
 /* No background/border/shadow of its own (tried the website register page's
    .auth-card/.auth-card-wide treatment here first - a white panel behind the heading
    and fields - but it read as a large, pointless "field" of its own sitting behind
@@ -576,9 +575,9 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
 }
 .screen-register .detail-body { padding-bottom: 18px; display: flex; flex-direction: column; }
 /* ::before is a fixed height, not a proportional flex-grow spacer - steps 1/2/3 have
-   very different content heights (step 1's six fields vs. step 2's short hours
-   picker), and a proportional spacer divides the SAME ratio of a different amount of
-   leftover space per step, landing the heading at a different height on each one. A
+   very different content heights, and a proportional spacer divides the SAME ratio of
+   a different amount of leftover space per step, landing the heading at a different
+   height on each one. A
    constant height keeps the heading (and so its distance from the back button, fixed
    in the topbar above) identical across all three steps regardless of content length.
    ::after stays a flexible spacer, growing to fill whatever's left below the content -

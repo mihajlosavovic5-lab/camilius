@@ -1604,7 +1604,7 @@ let registerStep = 1;
 
 // Keeps .register-steps-viewport's height matched to whichever step is currently
 // active even when that step's OWN content changes size afterward (e.g. adding/removing
-// a price row on step 3) - without this, the viewport's fixed height (set once in
+// a price row on step 2) - without this, the viewport's fixed height (set once in
 // showRegisterStep below) plus its overflow:hidden would silently clip any content that
 // grows past it.
 let registerStepResizeObserver = null;
@@ -1701,16 +1701,16 @@ function updateConfirmPasswordError() {
 
 // Working hours only ever holds valid times (it's all dropdowns/toggles), so the one way
 // it can still be wrong is a closing time not after its opening time on an open day.
+// Price list rows are optional, but a half-filled one (service typed, price left blank
+// or vice versa) used to just silently vanish on submit with no explanation - checked
+// here too since the price list now lives on this same step, alongside working hours.
 function registerStep2ValidationError() {
     if (!registerHoursPicker.validate()) return t("hoursPicker.errorOrder");
+    if (!registerPricesPicker.validate()) return t("pricePicker.errorIncomplete");
     return null;
 }
 
-// Price list rows are optional, but a half-filled one (service typed, price left blank
-// or vice versa) used to just silently vanish on submit with no explanation. Terms
-// acceptance is checked here too since it's on the same step.
 function registerStep3ValidationError() {
-    if (!registerPricesPicker.validate()) return t("pricePicker.errorIncomplete");
     if (!el("register-terms").checked) return t("register.errorTermsRequired");
     return null;
 }
@@ -1750,6 +1750,13 @@ el("register-password").addEventListener("input", updatePasswordLengthError);
 el("register-password").addEventListener("input", updateConfirmPasswordError);
 el("register-confirm-password").addEventListener("input", updateConfirmPasswordError);
 el("register-hours-picker").addEventListener("change", updateRegisterNextButtonValidity);
+// Price list moved onto this same step (alongside working hours) - live-dims the arrow
+// the same way typing into a step 1 field does, instead of only catching an incomplete
+// row once the user actually taps the arrow. Delegated on the container since rows are
+// created/removed dynamically (see createPricePicker) rather than being static inputs.
+el("register-prices-rows").addEventListener("input", updateRegisterNextButtonValidity);
+el("register-prices-rows").addEventListener("click", updateRegisterNextButtonValidity);
+el("register-prices-add").addEventListener("click", updateRegisterNextButtonValidity);
 
 el("register-next-btn").addEventListener("click", () => {
     const error = currentRegisterStepError();
