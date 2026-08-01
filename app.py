@@ -728,30 +728,40 @@ def _verification_email_html(heading, intro_html, link, footer_note):
 def send_verification_email(business_id, business_name, recipient):
     """Issues a fresh 24h single-use token and emails the confirmation link. Shared by the
     web /register route, the mobile /api/register endpoint, and both places that resend it
-    (login() below and /api/login) once an account already exists but hasn't confirmed yet."""
+    (login() below and /api/login) once an account already exists but hasn't confirmed yet.
+
+    The token is saved and the account already exists in the DB before this is ever called
+    - a broken send (Resend down, bad API key, network blip) must not turn into a 500 that
+    leaves the business stuck (account created, no session, nothing to resend from). Caught
+    and logged here instead: the caller's own redirect to verify_pending still happens, and
+    that page's own "Resend" button (see /verify-pending/resend) covers a retry once
+    whatever went wrong clears."""
     token = secrets.token_urlsafe(32)
     expires = datetime.now(timezone.utc).replace(tzinfo=None) + EMAIL_VERIFY_TOKEN_LIFETIME
     save_email_verify_token(business_id, token, expires)
 
     link = url_for("verify_email", token=token, _external=True)
-    send_email(
-        recipient=recipient,
-        subject="Confirm your email - Camilius",
-        body=(
-            f"Hi,\n\n"
-            f"Welcome to Camilius! Confirm '{business_name}'s email address to finish setting up your account.\n\n"
-            f"Click the link to confirm (valid for 24 hours):\n{link}\n\n"
-            f"If you didn't create a Camilius account, you can safely ignore this email."
-        ),
-        business_name="Camilius",
-        reply_to=os.getenv("ALERT_EMAIL") or recipient,
-        html=_verification_email_html(
-            heading="Confirm your email",
-            intro_html=f"Welcome to Camilius! Confirm <strong>{business_name}</strong>'s email address to finish setting up your account.",
-            link=link,
-            footer_note="If you didn't create a Camilius account, you can safely ignore this email.",
-        ),
-    )
+    try:
+        send_email(
+            recipient=recipient,
+            subject="Confirm your email - Camilius",
+            body=(
+                f"Hi,\n\n"
+                f"Welcome to Camilius! Confirm '{business_name}'s email address to finish setting up your account.\n\n"
+                f"Click the link to confirm (valid for 24 hours):\n{link}\n\n"
+                f"If you didn't create a Camilius account, you can safely ignore this email."
+            ),
+            business_name="Camilius",
+            reply_to=os.getenv("ALERT_EMAIL") or recipient,
+            html=_verification_email_html(
+                heading="Confirm your email",
+                intro_html=f"Welcome to Camilius! Confirm <strong>{business_name}</strong>'s email address to finish setting up your account.",
+                link=link,
+                footer_note="If you didn't create a Camilius account, you can safely ignore this email.",
+            ),
+        )
+    except Exception as error:
+        log_client_error(business_id, f"verification email send failed: {error}", "", "send-verification-email", "")
 
 
 def send_email_change_verification(business_id, business_name, new_email):
