@@ -821,14 +821,14 @@ def api_send_reply(conversation_id):
     if conversation is None:
         return jsonify(error="not found"), 404
 
-    _, business_id, sender, subject, question, suggested_reply, sender_igsid, channel, sender_wa_id = conversation
+    _, business_id, sender, subject, question, suggested_reply, sender_igsid, channel, sender_wa_id, sender_psid = conversation
     if business_id != request.business_id:
         return jsonify(error="forbidden"), 403
 
     from app import send_channel_reply  # deferred to avoid a circular import at module load
 
     business = business_by_id(business_id)
-    debug_context = f"reply-send-debug conversation_id={conversation_id} channel={channel} sender_igsid={sender_igsid} sender_wa_id={sender_wa_id}"
+    debug_context = f"reply-send-debug conversation_id={conversation_id} channel={channel} sender_igsid={sender_igsid} sender_wa_id={sender_wa_id} sender_psid={sender_psid}"
     try:
         result = send_channel_reply(conversation, business, final_reply)
         # Temporary diagnostic: the dashboard/app was showing "sent" (the platform's API
@@ -842,7 +842,7 @@ def api_send_reply(conversation_id):
         log_client_error(business_id, f"{channel} send FAILED: {error_body}", "", debug_context, "")
         # Most likely the platform's 24-hour reply window has passed - an expected
         # business outcome, not a bug, hence the specific message rather than a generic 500.
-        platform_name = "WhatsApp" if channel == "whatsapp" else "Instagram"
+        platform_name = {"whatsapp": "WhatsApp", "messenger": "Messenger"}.get(channel, "Instagram")
         return jsonify(error=f"Couldn't send - {platform_name} only allows replying within 24 hours of the customer's last message."), 400
 
     mark_sent(conversation_id, final_reply)

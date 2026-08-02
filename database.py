@@ -222,6 +222,21 @@ def create_database():
     cursor.execute("ALTER TABLE businesses ADD COLUMN IF NOT EXISTS whatsapp_access_token TEXT")
     cursor.execute("CREATE UNIQUE INDEX IF NOT EXISTS businesses_whatsapp_phone_number_id_idx ON businesses (whatsapp_phone_number_id)")
 
+    # Facebook Messenger connection - a third message channel. Unlike WhatsApp, this DOES
+    # use a real OAuth redirect (Facebook Login, not Instagram Login - see messenger_api.py's
+    # module docstring): Messenger messages are sent/received through a Facebook Page, not
+    # a personal account, and Page Access Tokens obtained from a long-lived user token are
+    # effectively non-expiring, so there's no per-business paste-a-token workaround needed
+    # the way WhatsApp's lack of Tech Provider status required. Same App Review/Business
+    # Verification wall as Instagram still applies for it to work for the general public -
+    # and critically, Messenger's Dev Mode tester gating is a SEPARATE list from Instagram
+    # Testers (the app's general App Roles > Roles, not the Instagram-specific sub-list) -
+    # see INSTAGRAM_TESTERS_ONLY's comment in app.py.
+    cursor.execute("ALTER TABLE businesses ADD COLUMN IF NOT EXISTS messenger_page_id TEXT")
+    cursor.execute("ALTER TABLE businesses ADD COLUMN IF NOT EXISTS messenger_page_name TEXT")
+    cursor.execute("ALTER TABLE businesses ADD COLUMN IF NOT EXISTS messenger_page_access_token TEXT")
+    cursor.execute("CREATE UNIQUE INDEX IF NOT EXISTS businesses_messenger_page_id_idx ON businesses (messenger_page_id)")
+
     # Lets the mobile app's Instagram-connect OAuth tab close itself proactively (see
     # mobile/app.js's pollForInstagramConnected and api.py's instagram_connect_state_is_done)
     # instead of depending only on that tab's own window.close(), which isn't reliable on
@@ -305,6 +320,9 @@ def create_database():
     # appointment too, since nothing there depends on which platform the id came from.
     cursor.execute("ALTER TABLE conversations ADD COLUMN IF NOT EXISTS channel TEXT NOT NULL DEFAULT 'instagram'")
     cursor.execute("ALTER TABLE conversations ADD COLUMN IF NOT EXISTS sender_wa_id TEXT")
+    # Messenger's equivalent of sender_igsid/sender_wa_id above - a PSID (Page-Scoped ID),
+    # the id Messenger's Send API needs to reply to a 'messenger' row.
+    cursor.execute("ALTER TABLE conversations ADD COLUMN IF NOT EXISTS sender_psid TEXT")
 
     # Sender's Instagram profile picture URL, resolved alongside `sender` at the same time
     # (see instagram_api.get_sender_info) - NULL when the platform has none on file, or the
@@ -600,25 +618,29 @@ def create_database():
 #   12 email_verified, 13 phone_verified, 14 pending_contact_email (None unless an email
 #   change confirmation is awaiting a click - see save_pending_email_change() below),
 #   15 whatsapp_phone_number_id, 16 whatsapp_display_number, 17 whatsapp_access_token
-#   (decrypted, None if not connected yet). The WhatsApp columns are appended at the END
-#   rather than grouped next to the Instagram ones above, deliberately - this tuple is
-#   indexed positionally (business[5], business[7], ...) in well over a hundred places
-#   across app.py/api.py/booking.py, so inserting them in the middle would silently shift
-#   every existing index instead of just adding new ones.
+#   (decrypted, None if not connected yet), 18 messenger_page_id, 19 messenger_page_name,
+#   20 messenger_page_access_token (decrypted, None if not connected yet). The WhatsApp
+#   and Messenger columns are appended at the END rather than grouped next to the
+#   Instagram ones above, deliberately - this tuple is indexed positionally (business[5],
+#   business[7], ...) in well over a hundred places across app.py/api.py/booking.py, so
+#   inserting them in the middle would silently shift every existing index instead of
+#   just adding new ones.
 
 _BUSINESS_COLUMNS = """id, name, username, password, contact_email, instagram_account_id,
                        instagram_username, instagram_access_token, working_hours, price_list, faq,
                        phone_number, email_verified, phone_verified, pending_contact_email,
-                       whatsapp_phone_number_id, whatsapp_display_number, whatsapp_access_token"""
+                       whatsapp_phone_number_id, whatsapp_display_number, whatsapp_access_token,
+                       messenger_page_id, messenger_page_name, messenger_page_access_token"""
 
 
 def _decrypt_row_token(row):
-    # instagram_access_token (index 7) and whatsapp_access_token (index 17) both need
-    # decrypting before use - either can be NULL (that channel not connected yet), not an
-    # encrypted empty string.
+    # instagram_access_token (index 7), whatsapp_access_token (index 17), and
+    # messenger_page_access_token (index 20) all need decrypting before use - any of the
+    # three can be NULL (that channel not connected yet), not an encrypted empty string.
     ig_token = decrypt(row[7]) if row[7] else None
     wa_token = decrypt(row[17]) if row[17] else None
-    return row[:7] + (ig_token,) + row[8:17] + (wa_token,)
+    fb_token = decrypt(row[20]) if row[20] else None
+    return row[:7] + (ig_token,) + row[8:17] + (wa_token,) + row[18:20] + (fb_token,)
 
 
 def add_business(name, username, password, contact_email, working_hours, price_list, faq, phone_number=None, initial_status="trialing", push_enabled=True, auto_send=True, new_booking_notifications_enabled=True, reminders_enabled=False):
@@ -744,6 +766,52 @@ def business_by_whatsapp_phone_number_id(phone_number_id):
     return _decrypt_row_token(row)
 
 
+def link_messenger_page(business_id, page_id, page_name, page_access_token):
+    """Saves the Facebook Page connected via OAuth (Facebook Login, see messenger_api.py) -
+    mirrors link_instagram_account. The Page Access Token here comes from /me/accounts
+    (exchanged from a long-lived user token), which is effectively non-expiring - no
+    refresh loop needed the way Instagram's 60-day token has one."""
+    connection = connect()
+    cursor = connection.cursor()
+    _execute_or_raise_unique_violation(
+        cursor,
+        """UPDATE businesses
+           SET messenger_page_id = %s, messenger_page_name = %s, messenger_page_access_token = %s
+           WHERE id = %s""",
+        (page_id, page_name, encrypt(page_access_token), business_id),
+    )
+    connection.commit()
+    connection.close()
+
+
+def unlink_messenger_account(business_id):
+    """Frees up this business's Messenger connection (messenger_page_id has a UNIQUE
+    index, same reasoning as unlink_instagram_account above)."""
+    connection = connect()
+    cursor = connection.cursor()
+    cursor.execute(
+        """UPDATE businesses
+           SET messenger_page_id = NULL, messenger_page_name = NULL, messenger_page_access_token = NULL
+           WHERE id = %s""",
+        (business_id,),
+    )
+    connection.commit()
+    connection.close()
+
+
+def business_by_messenger_page_id(page_id):
+    """Routes an incoming Messenger webhook payload (entry[].id is the Page id) to the
+    business that connected it - mirrors business_by_instagram_account_id below."""
+    connection = connect()
+    cursor = connection.cursor()
+    cursor.execute(f"SELECT {_BUSINESS_COLUMNS} FROM businesses WHERE messenger_page_id = %s", (page_id,))
+    row = cursor.fetchone()
+    connection.close()
+    if row is None:
+        return None
+    return _decrypt_row_token(row)
+
+
 def mark_instagram_connect_done(business_id, state):
     """Records that this business's Instagram OAuth round-trip (identified by its one-shot
     "state" token) finished - see instagram_connect_done_state's column comment in
@@ -780,7 +848,7 @@ def all_businesses():
     """)
     result = cursor.fetchall()
     connection.close()
-    return [_decrypt_row_token(row[:18]) + (row[18],) for row in result]
+    return [_decrypt_row_token(row[:21]) + (row[21],) for row in result]
 
 
 def all_businesses_unfiltered():
@@ -793,7 +861,7 @@ def all_businesses_unfiltered():
     cursor.execute(f"SELECT {_BUSINESS_COLUMNS}, subscription_status, created_at FROM businesses ORDER BY created_at DESC")
     result = cursor.fetchall()
     connection.close()
-    return [_decrypt_row_token(row[:18]) + (row[18], row[19]) for row in result]
+    return [_decrypt_row_token(row[:21]) + (row[21], row[22]) for row in result]
 
 
 def business_by_id(business_id):
@@ -879,7 +947,7 @@ def replies_today_count(business_id):
 
 
 def save_draft_reply(business_id, sender, question, suggested_reply, subject=None, sender_igsid=None,
-                      profile_pic_url=None, channel="instagram", sender_wa_id=None):
+                      profile_pic_url=None, channel="instagram", sender_wa_id=None, sender_psid=None):
     # subject only ever came from email (there's no such thing on an Instagram DM) - kept
     # as an optional column rather than dropped, since dashboard.html already guards its
     # display with {% if subject %} and removing the column outright isn't worth the churn.
@@ -887,9 +955,9 @@ def save_draft_reply(business_id, sender, question, suggested_reply, subject=Non
     cursor = connection.cursor()
 
     cursor.execute(
-        """INSERT INTO conversations (business_id, sender, subject, question, suggested_reply, sender_igsid, sender_profile_pic, channel, sender_wa_id)
-           VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s) RETURNING id""",
-        (business_id, sender, subject, question, suggested_reply, sender_igsid, profile_pic_url, channel, sender_wa_id),
+        """INSERT INTO conversations (business_id, sender, subject, question, suggested_reply, sender_igsid, sender_profile_pic, channel, sender_wa_id, sender_psid)
+           VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s) RETURNING id""",
+        (business_id, sender, subject, question, suggested_reply, sender_igsid, profile_pic_url, channel, sender_wa_id, sender_psid),
     )
 
     new_id = cursor.fetchone()[0]
@@ -940,14 +1008,15 @@ def mark_sent(conversation_id, final_reply):
 
 
 def get_conversation(conversation_id):
-    # channel/sender_wa_id appended at the end (indices 7, 8) rather than inserted next to
-    # sender_igsid - same reasoning as _BUSINESS_COLUMNS above, this tuple is unpacked
-    # positionally in app.py/api.py and this keeps every existing index unchanged.
+    # channel/sender_wa_id/sender_psid appended at the end (indices 7, 8, 9) rather than
+    # inserted next to sender_igsid - same reasoning as _BUSINESS_COLUMNS above, this
+    # tuple is unpacked positionally in app.py/api.py and this keeps every existing index
+    # unchanged.
     connection = connect()
     cursor = connection.cursor()
 
     cursor.execute(
-        "SELECT id, business_id, sender, subject, question, suggested_reply, sender_igsid, channel, sender_wa_id FROM conversations WHERE id = %s",
+        "SELECT id, business_id, sender, subject, question, suggested_reply, sender_igsid, channel, sender_wa_id, sender_psid FROM conversations WHERE id = %s",
         (conversation_id,),
     )
     row = cursor.fetchone()

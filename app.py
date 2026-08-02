@@ -23,6 +23,7 @@ from database import (
     add_tester_request, recent_tester_requests,
     link_instagram_account, unlink_instagram_account, business_by_instagram_account_id, already_processed_messages,
     link_whatsapp_account, unlink_whatsapp_account, business_by_whatsapp_phone_number_id,
+    link_messenger_page, unlink_messenger_account, business_by_messenger_page_id,
     mark_message_processed, save_draft_reply, previous_conversations_with,
     log_webhook_hit, recent_webhook_hits, raw_conversation_rows, is_auto_send_enabled,
     set_auto_send, business_by_username, business_by_phone_number,
@@ -57,6 +58,7 @@ from instagram_api import (
     get_webhook_subscription_status,
 )
 import whatsapp_api
+import messenger_api
 from database import all_businesses, all_businesses_unfiltered
 from api import api as api_blueprint, APK_VERSION
 from extensions import limiter
@@ -537,6 +539,93 @@ def request_tester_access():
         return render_template("request_tester_access.html", submitted=True)
 
     return render_template("request_tester_access.html", submitted=False, error=None, data={})
+
+
+@app.route("/connect-messenger")
+@login_required
+def connect_messenger():
+    business = business_by_id(session["business_id"])
+    if business[18]:  # messenger_page_id already set - nothing to do
+        return redirect(url_for("home"))
+    return render_template("connect_messenger.html", error=request.args.get("error"))
+
+
+@app.route("/connect-messenger/start")
+@login_required
+def connect_messenger_start():
+    redirect_uri = url_for("messenger_oauth_callback", _external=True)
+    return redirect(messenger_api.authorize_url(redirect_uri))
+
+
+@app.route("/messenger-oauth-callback")
+@login_required
+def messenger_oauth_callback():
+    """Web-only for now (unlike Instagram, no mobile "state" flow yet - a reasonable next
+    increment, not built this round). Has an extra step Instagram's callback doesn't need:
+    a business can manage more than one Facebook Page, so this branches three ways below
+    instead of connecting immediately."""
+    code = request.args.get("code")
+    if request.args.get("error") or not code:
+        return redirect(url_for("connect_messenger", error="Messenger connection was cancelled. Try again whenever you're ready."))
+
+    redirect_uri = url_for("messenger_oauth_callback", _external=True)
+    try:
+        short_lived = messenger_api.exchange_code_for_token(code, redirect_uri)
+        long_lived_token = messenger_api.exchange_for_long_lived_token(short_lived)
+        pages = messenger_api.get_pages(long_lived_token)
+    except requests.RequestException as error:
+        detail = error.response.text if getattr(error, "response", None) is not None else str(error)
+        log_client_error(session["business_id"], f"messenger connect failed: {detail}", "", "messenger-connect-debug", "")
+        return redirect(url_for("connect_messenger", error="Couldn't connect to Facebook - please try again."))
+
+    if not pages:
+        return redirect(url_for("connect_messenger", error="No Facebook Page found for your account - create one first, then try again."))
+
+    if len(pages) == 1:
+        return _finish_connecting_messenger_page(pages[0])
+
+    # More than one Page - ask which one. Stashed in the session (small, signed cookie;
+    # a small business realistically manages a handful of Pages at most) rather than a DB
+    # table, purely to bridge this callback and the picker's own POST below - nothing
+    # here needs to outlive that.
+    session["messenger_pending_pages"] = [{"id": p["id"], "name": p["name"], "access_token": p["access_token"]} for p in pages]
+    return render_template("select_messenger_page.html", pages=pages, error=None)
+
+
+@app.route("/connect-messenger/select-page", methods=["POST"])
+@login_required
+def connect_messenger_select_page():
+    pending_pages = session.get("messenger_pending_pages") or []
+    chosen_id = request.form.get("page_id")
+    chosen = next((p for p in pending_pages if p["id"] == chosen_id), None)
+    if not chosen:
+        return redirect(url_for("connect_messenger", error="That Page selection expired - please reconnect."))
+    return _finish_connecting_messenger_page(chosen)
+
+
+def _finish_connecting_messenger_page(page):
+    session.pop("messenger_pending_pages", None)
+    try:
+        messenger_api.subscribe_page_to_webhook(page["id"], page["access_token"])
+    except requests.RequestException as error:
+        detail = error.response.text if getattr(error, "response", None) is not None else str(error)
+        log_client_error(session["business_id"], f"messenger connect failed: {detail}", "", "messenger-connect-debug", "")
+        return redirect(url_for("connect_messenger", error="Couldn't connect to Facebook - please try again."))
+
+    try:
+        link_messenger_page(session["business_id"], page["id"], page["name"], page["access_token"])
+    except UniqueViolation:
+        return redirect(url_for("connect_messenger", error="This Facebook Page is already connected to another Camilius account."))
+
+    log_event("messenger_connected", business_id=session["business_id"])
+    return redirect(url_for("home"))
+
+
+@app.route("/disconnect-messenger", methods=["POST"])
+@login_required
+def disconnect_messenger():
+    unlink_messenger_account(session["business_id"])
+    return redirect(url_for("settings", message="Messenger disconnected."))
 
 
 @app.route("/instagram-oauth-callback")
@@ -1075,12 +1164,13 @@ def settings():
     business = business_by_id(business_id)
     # indices: 0 id, 1 name, 2 username, 4 contact_email, 5 instagram_account_id,
     # 6 instagram_username, 8 working_hours, 9 price_list, 10 faq, 11 phone_number,
-    # 14 pending_contact_email, 16 whatsapp_display_number
+    # 14 pending_contact_email, 16 whatsapp_display_number, 19 messenger_page_name
     username = business[2]
     contact_email = business[4]
     instagram_username = business[6]
     pending_contact_email = business[14]
     whatsapp_display_number = business[16]
+    messenger_page_name = business[19]
     pro_access = BETA_FREE_MODE or has_pro_access(business_id)
 
     if request.method == "POST":
@@ -1102,7 +1192,7 @@ def settings():
                 business={
                     "name": name, "username": username, "contact_email": contact_email,
                     "pending_contact_email": pending_contact_email, "instagram_username": instagram_username,
-                    "whatsapp_display_number": whatsapp_display_number,
+                    "whatsapp_display_number": whatsapp_display_number, "messenger_page_name": messenger_page_name,
                     "working_hours": working_hours, "price_list": price_list, "faq": faq,
                     "upsell_pairs": get_upsell_pairs(business_id),
                 },
@@ -1170,7 +1260,7 @@ def settings():
             business={
                 "name": name, "username": username, "contact_email": contact_email,
                 "pending_contact_email": pending_contact_email, "instagram_username": instagram_username,
-                "whatsapp_display_number": whatsapp_display_number,
+                "whatsapp_display_number": whatsapp_display_number, "messenger_page_name": messenger_page_name,
                 "working_hours": working_hours, "price_list": price_list, "faq": faq, "upsell_pairs": upsell_pairs,
             },
         )
@@ -1183,7 +1273,7 @@ def settings():
         business={
             "name": business[1], "username": username, "contact_email": contact_email,
             "pending_contact_email": pending_contact_email, "instagram_username": instagram_username,
-            "whatsapp_display_number": whatsapp_display_number,
+            "whatsapp_display_number": whatsapp_display_number, "messenger_page_name": messenger_page_name,
             "working_hours": business[8], "price_list": business[9], "faq": business[10],
             "upsell_pairs": get_upsell_pairs(business_id),
         },
@@ -1667,10 +1757,11 @@ def admin_businesses():
     for business in all_businesses_unfiltered():
         # indices: 0 id, 1 name, 2 username, 4 contact_email, 6 instagram_username,
         # 11 phone_number, 12 email_verified, 13 phone_verified, 14 pending_contact_email,
-        # 16 whatsapp_display_number, 18 subscription_status, 19 created_at (18/19 rather
-        # than 15/16 - _BUSINESS_COLUMNS grew by 3 WhatsApp columns, appended at the end,
-        # which pushed all_businesses_unfiltered()'s own two appended columns out by the
-        # same 3; see _BUSINESS_COLUMNS's own comment in database.py)
+        # 16 whatsapp_display_number, 19 messenger_page_name, 21 subscription_status,
+        # 22 created_at - these last two shift every time _BUSINESS_COLUMNS grows (21
+        # fields now, WhatsApp + Messenger both appended at the end - see that constant's
+        # own comment in database.py); double-check them here first if this route ever
+        # looks broken again after a future channel gets added the same way.
         instagram_username = (business[6] or "").lower()
         if search and search not in business[1].lower() and search not in business[2].lower() and search not in business[4].lower() and search not in instagram_username:
             continue
@@ -1681,11 +1772,12 @@ def admin_businesses():
             "contact_email": business[4],
             "instagram_username": business[6],
             "whatsapp_display_number": business[16],
+            "messenger_page_name": business[19],
             "phone_number": business[11],
             "email_verified": business[12],
             "phone_verified": business[13],
-            "subscription_status": business[18],
-            "created_at": business[19].isoformat() if business[19] else None,
+            "subscription_status": business[21],
+            "created_at": business[22].isoformat() if business[22] else None,
         })
     return jsonify(businesses=result)
 
@@ -1933,13 +2025,16 @@ def send_channel_reply(conversation, business, final_reply):
     """Sends final_reply through whichever channel `conversation` came in on - shared by
     the web send_reply route below and api.py's api_send_reply, so a manual send never
     needs its own per-channel branch anywhere else. conversation is a get_conversation()
-    row: index 6 sender_igsid, 7 channel, 8 sender_wa_id. Raises requests.RequestException
-    on failure exactly like calling send_instagram_message/whatsapp_api.send_message
-    directly would - callers already handle that (both channels fail the same way outside
-    their 24h customer-reply window, which is an expected business outcome, not a bug)."""
-    sender_igsid, channel, sender_wa_id = conversation[6], conversation[7], conversation[8]
+    row: index 6 sender_igsid, 7 channel, 8 sender_wa_id, 9 sender_psid. Raises
+    requests.RequestException on failure exactly like calling
+    send_instagram_message/whatsapp_api.send_message/messenger_api.send_message directly
+    would - callers already handle that (every channel fails the same way outside its 24h
+    customer-reply window, which is an expected business outcome, not a bug)."""
+    sender_igsid, channel, sender_wa_id, sender_psid = conversation[6], conversation[7], conversation[8], conversation[9]
     if channel == "whatsapp":
         return whatsapp_api.send_message(sender_wa_id, final_reply, business[17], business[15])
+    if channel == "messenger":
+        return messenger_api.send_message(sender_psid, final_reply, business[20])
     return send_instagram_message(sender_igsid, final_reply, business[7], business[5])
 
 
@@ -1949,7 +2044,7 @@ def send_reply(conversation_id):
     final_reply = request.form["reply"]
 
     conversation = get_conversation(conversation_id)
-    _, business_id, sender, subject, question, suggested_reply, sender_igsid, channel, sender_wa_id = conversation
+    _, business_id, sender, subject, question, suggested_reply, sender_igsid, channel, sender_wa_id, sender_psid = conversation
 
     # Security check: this conversation must belong to the logged-in business,
     # otherwise someone could guess other people's IDs in the URL and send replies on their behalf
@@ -1962,7 +2057,7 @@ def send_reply(conversation_id):
     # the request with 2xx) while the reply never reached the customer's real DM thread -
     # logging the platform's own response body here (viewable at /admin/client-errors) so
     # we can see exactly what it returned instead of guessing.
-    debug_context = f"web-reply-send-debug conversation_id={conversation_id} channel={channel} sender_igsid={sender_igsid} sender_wa_id={sender_wa_id} final_reply={final_reply!r}"
+    debug_context = f"web-reply-send-debug conversation_id={conversation_id} channel={channel} sender_igsid={sender_igsid} sender_wa_id={sender_wa_id} sender_psid={sender_psid} final_reply={final_reply!r}"
     try:
         result = send_channel_reply(conversation, business, final_reply)
         log_client_error(business_id, f"{channel} send OK: {result}", "", debug_context, "")
@@ -2777,6 +2872,145 @@ def _process_whatsapp_message(message):
         )
     except Exception as error:
         print(f"[whatsapp-webhook] Push notification failed: {error}", flush=True)
+
+
+@app.route("/messenger-webhook", methods=["GET", "POST"])
+@csrf.exempt  # external request from Meta, no session/CSRF token of ours - signed instead (checked below)
+def messenger_webhook():
+    """Mirrors whatsapp_webhook() above - same verify/signature/dedup/retry shape,
+    against messenger_api's functions and business_by_messenger_page_id instead."""
+    if request.method == "GET":
+        try:
+            log_webhook_hit("FB GET verify", str(dict(request.args)))
+        except Exception:
+            pass
+        challenge = messenger_api.verify_webhook_challenge(
+            request.args.get("hub.mode"),
+            request.args.get("hub.verify_token"),
+            request.args.get("hub.challenge"),
+        )
+        if challenge is None:
+            abort(403)
+        return challenge, 200
+
+    raw_body = request.get_data()
+
+    sig_ok = messenger_api.verify_webhook_signature(raw_body, request.headers.get("X-Hub-Signature-256", ""))
+    try:
+        log_webhook_hit(f"FB POST sig_ok={sig_ok}", raw_body.decode("utf-8", errors="replace"))
+    except Exception:
+        pass
+
+    if not sig_ok:
+        abort(403)
+
+    payload = request.get_json(silent=True) or {}
+    messages = messenger_api.parse_webhook_messages(payload)
+    for message in messages:
+        try:
+            _process_messenger_message(message)
+        except Exception as error:
+            print(f"[messenger-webhook] Error processing message: {error!r}", flush=True)
+
+    return "", 200
+
+
+def _process_messenger_message(message):
+    business = business_by_messenger_page_id(message["page_id"])
+    if business is None:
+        print(f"[messenger-webhook] No business found for page_id={message['page_id']!r} - ignoring", flush=True)
+        return
+
+    business_id = business[0]
+    print(f"[messenger-webhook] Matched business_id={business_id} name={business[1]!r}", flush=True)
+
+    if not BETA_FREE_MODE and not effective_subscription_active(business_id):
+        print(f"[messenger-webhook] business_id={business_id} subscription not active - skipping", flush=True)
+        return
+    if replies_today_count(business_id) >= DAILY_REPLY_LIMIT:
+        print(f"[messenger-webhook] business_id={business_id} daily limit reached - skipping", flush=True)
+        return
+
+    message_id = message["message_id"]
+    if message_id and already_processed_messages(business_id, [message_id]):
+        print(f"[messenger-webhook] message_id={message_id} already processed - skipping (dedup)", flush=True)
+        return
+
+    sender_psid = message["sender_psid"]
+    access_token = business[20]
+    # No sender-name/profile-pic resolution here, unlike Instagram's get_sender_info - the
+    # Messenger user-profile API has been heavily permission-gated since Meta's 2018
+    # privacy changes and isn't reliably available with just pages_messaging, so this
+    # falls back to the raw PSID as the display name, same as WhatsApp does when its own
+    # profile lookup has nothing to offer.
+    sender_display = sender_psid
+    business_info = {
+        "business_name": business[1],
+        "working_hours": business[8],
+        "price_list": business[9],
+        "faq": business[10],
+    }
+
+    print(f"[messenger-webhook] Generating AI reply for text={message['text']!r} from sender_psid={sender_psid}", flush=True)
+    history = previous_conversations_with(business_id, sender_display)
+
+    if BETA_FREE_MODE or has_pro_access(business_id):
+        slot_minutes = get_slot_duration(business_id)
+        upsell_pairs_text = get_upsell_pairs(business_id)
+        now_local_display = booking.now_local().strftime("%A, %Y-%m-%d %H:%M")
+
+        def book_tool(requested_datetime, service=None):
+            return booking.attempt_ai_booking(
+                business, business_id, slot_minutes, requested_datetime, sender_display, sender_psid, service, upsell_pairs_text,
+            )
+
+        def cancel_tool():
+            return booking.attempt_ai_cancel_or_reschedule(
+                business, business_id, slot_minutes, sender_psid, None, upsell_pairs_text,
+            )
+
+        def reschedule_tool(new_requested_datetime):
+            return booking.attempt_ai_cancel_or_reschedule(
+                business, business_id, slot_minutes, sender_psid, new_requested_datetime, upsell_pairs_text,
+            )
+
+        tool_impls = {
+            "check_and_book_appointment": book_tool,
+            "cancel_appointment": cancel_tool,
+            "reschedule_appointment": reschedule_tool,
+        }
+        suggested_reply = generate_reply_with_booking(message["text"], business_info, history, now_local_display, tool_impls)
+    else:
+        suggested_reply = generate_reply(message["text"], business_info, history=history)
+    print(f"[messenger-webhook] AI reply generated: {suggested_reply!r}", flush=True)
+
+    new_conversation_id = save_draft_reply(
+        business_id, sender_display, message["text"], suggested_reply,
+        channel="messenger", sender_psid=sender_psid,
+    )
+    print(f"[messenger-webhook] Draft saved as conversation_id={new_conversation_id}", flush=True)
+    if message_id:
+        mark_message_processed(business_id, message_id)
+
+    auto_sent = False
+    if is_auto_send_enabled(business_id):
+        try:
+            messenger_api.send_message(sender_psid, suggested_reply, access_token)
+            mark_sent(new_conversation_id, suggested_reply)
+            auto_sent = True
+            print(f"[messenger-webhook] Auto-sent reply for conversation_id={new_conversation_id}", flush=True)
+        except requests.RequestException as error:
+            print(f"[messenger-webhook] Auto-send failed for conversation_id={new_conversation_id}, left as pending: {error}", flush=True)
+
+    try:
+        send_push_to_business(
+            business_id,
+            title="Auto-replied to a customer" if auto_sent else "New customer question",
+            body=f"{sender_display}: {message['text'][:80]}",
+            data={"conversation_id": str(new_conversation_id)},
+        )
+    except Exception as error:
+        print(f"[messenger-webhook] Push notification failed: {error}", flush=True)
 
 
 if __name__ == "__main__":
