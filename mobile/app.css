@@ -1132,8 +1132,8 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
 .badge-expired { background: var(--border); color: var(--text-muted); border: 1px solid var(--border); }
 .badge-pro { background: transparent; color: var(--primary-dark); border: 1.5px solid var(--primary); font-weight: 700; }
 
-/* Which channel a conversation came in on - shown only for WhatsApp (Instagram stays
-   the unbadged default), same reasoning as the website's own .channel-badge in style.css. */
+/* Which channel a conversation came in on - shown only for WhatsApp/Messenger (Instagram
+   stays the unbadged default), same reasoning as the website's own .channel-badge in style.css. */
 .channel-badge {
     display: inline-flex; align-items: center; flex-shrink: 0;
     padding: 1px 7px; border-radius: 99px; font-size: 10px; font-weight: 700;
@@ -1141,6 +1141,8 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
 }
 .channel-badge-whatsapp { background: rgba(37, 211, 102, .16); color: #1a9950; border: 1px solid rgba(37, 211, 102, .4); }
 :root[data-theme="dark"] .channel-badge-whatsapp { color: #4ade80; }
+.channel-badge-messenger { background: rgba(0, 132, 255, .14); color: #0068cc; border: 1px solid rgba(0, 132, 255, .4); }
+:root[data-theme="dark"] .channel-badge-messenger { color: #5eb3ff; }
 
 /* --- Schedule tab (Faza 12) - day/week calendar, native equivalent of the website's
    /schedule page (see templates/schedule.html for the layout this mirrors). --- */
@@ -1402,6 +1404,7 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
        the base .filter-pill.active rule above. */
     .filter-pill.active { background: var(--primary-light); color: var(--primary-ink); border-color: var(--primary); }
     .channel-badge-whatsapp { color: #4ade80; }
+    .channel-badge-messenger { color: #5eb3ff; }
 }
 :root[data-theme="dark"] {
     --primary: #e8a416;

@@ -2478,7 +2478,7 @@ async function renderInboxList(conversations) {
                 <span class="inbox-row-top">
                     <span class="inbox-sender-group">
                         <span class="inbox-sender">${escapeHtml(c.sender)}</span>
-                        ${c.channel === "whatsapp" ? '<span class="channel-badge channel-badge-whatsapp" title="WhatsApp">WA</span>' : ""}
+                        ${c.channel === "whatsapp" ? '<span class="channel-badge channel-badge-whatsapp" title="WhatsApp">WA</span>' : c.channel === "messenger" ? '<span class="channel-badge channel-badge-messenger" title="Messenger">FB</span>' : ""}
                     </span>
                     <span class="inbox-time">${timeAgo(c.created_at)}</span>
                 </span>
