@@ -372,9 +372,11 @@ body.site-lang-open { position: fixed; left: 0; right: 0; width: 100%; overflow:
        read as near-illegible dark-on-dark once those backgrounds flip above. */
     :root:not([data-theme="light"]) .alert-error { color: #f2a89e; }
     :root:not([data-theme="light"]) .alert-success { color: #a8d194; }
-    /* .channel-badge-whatsapp's light-mode #1a9950 is likewise too dark to read against
-       its own translucent-green background once everything else flips dark. */
+    /* .channel-badge-whatsapp/.channel-badge-messenger's light-mode colors are likewise
+       too dark to read against their own translucent backgrounds once everything else
+       flips dark. */
     :root:not([data-theme="light"]) .channel-badge-whatsapp { color: #4ade80; }
+    :root:not([data-theme="light"]) .channel-badge-messenger { color: #5eb3ff; }
 }
 
 /* Explicit "Dark" choice - identical overrides to the block above, applied
@@ -940,6 +942,17 @@ input[readonly]:hover { border-color: var(--border); }
    box when checked (Faza 5 - matches the same fix already made in the mobile app). */
 .checkbox-row input { width: 17px; height: 17px; margin-top: 2px; flex-shrink: 0; accent-color: var(--text); }
 
+/* Messenger's "which Page is this?" picker (select_messenger_page.html) - a bordered row
+   per option, same rounded-pill look as .floating-field inputs, rather than plain
+   unstyled radio buttons. */
+.page-picker-row {
+    display: flex; align-items: center; gap: 10px;
+    padding: 14px 18px; margin-top: 12px; border: 1px solid var(--border); border-radius: 14px;
+    font-size: 15.5px; font-weight: 500; cursor: pointer;
+}
+.page-picker-row:has(input:checked) { border-color: var(--primary); background: var(--primary-light); }
+.page-picker-row input { width: 18px; height: 18px; flex-shrink: 0; accent-color: var(--primary); }
+
 /* --- Alerts --- */
 .alert {
     display: flex; gap: 10px; align-items: flex-start;
@@ -1028,9 +1041,9 @@ input[readonly]:hover { border-color: var(--border); }
 .badge-expired { background: var(--border); color: var(--text-muted); border: 1px solid var(--border); }
 .badge-dot { width: 6px; height: 6px; border-radius: 99px; background: currentColor; }
 
-/* Which channel a conversation came in on (Instagram vs WhatsApp) - shown only for
-   WhatsApp, deliberately: Instagram is still the default/common case, and a badge on
-   every single row would just be noise for it. */
+/* Which channel a conversation came in on (Instagram/WhatsApp/Messenger) - shown only
+   for the non-Instagram ones, deliberately: Instagram is still the default/common case,
+   and a badge on every single row would just be noise for it. */
 .channel-badge {
     display: inline-flex; align-items: center; flex-shrink: 0;
     padding: 1px 7px; border-radius: 99px; font-size: 10.5px; font-weight: 700;
@@ -1038,6 +1051,8 @@ input[readonly]:hover { border-color: var(--border); }
 }
 .channel-badge-whatsapp { background: rgba(37, 211, 102, .16); color: #1a9950; border: 1px solid rgba(37, 211, 102, .4); }
 :root[data-theme="dark"] .channel-badge-whatsapp { color: #4ade80; }
+.channel-badge-messenger { background: rgba(0, 132, 255, .14); color: #0068cc; border: 1px solid rgba(0, 132, 255, .4); }
+:root[data-theme="dark"] .channel-badge-messenger { color: #5eb3ff; }
 
 /* --- "Upgrade to Pro" badge / locked-feature notice (Faza 9/10) - shared component for
    any Pro-only feature shown to a Starter (or expired) business: a small pill badge next

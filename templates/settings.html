@@ -131,6 +131,23 @@
                 </div>
             </div>
 
+            <div class="profile-instagram-field">
+                <label>Facebook Page (Messenger)</label>
+                <div class="profile-instagram-row">
+                    <span class="profile-instagram-value">
+                        {% if business.messenger_page_name %}{{ business.messenger_page_name }}{% else %}Not connected{% endif %}
+                    </span>
+                    <div class="profile-instagram-actions">
+                        <a href="{{ url_for('connect_messenger') }}" class="field-action-link">{{ 'Reconnect' if business.messenger_page_name else 'Connect Messenger' }}</a>
+                        {% if business.messenger_page_name %}
+                            <!-- Same "separate <form> after #settings-form's closing tag" reason
+                                 as disconnect-instagram-form above. -->
+                            <button type="submit" form="disconnect-messenger-form" class="field-action-link field-action-link-danger">Disconnect</button>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
             <div class="floating-field">
                 <input type="email" id="settings-contact-email-input" name="contact_email" value="{{ business.contact_email }}" placeholder=" " required>
                 <label for="settings-contact-email-input" data-i18n="settings.contactEmail">Contact email</label>
@@ -229,6 +246,11 @@
     {% endif %}
     {% if business.whatsapp_display_number %}
         <form method="POST" action="{{ url_for('disconnect_whatsapp') }}" id="disconnect-whatsapp-form">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        </form>
+    {% endif %}
+    {% if business.messenger_page_name %}
+        <form method="POST" action="{{ url_for('disconnect_messenger') }}" id="disconnect-messenger-form">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         </form>
     {% endif %}
