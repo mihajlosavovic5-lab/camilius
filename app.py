@@ -41,12 +41,14 @@ from database import (
     notifications_for_business, unread_notification_count, mark_notifications_read,
     is_new_booking_notifications_enabled, set_new_booking_notifications_enabled,
     record_account_deletion, recent_account_deletions, ACCOUNT_DELETION_REASONS,
+    get_business_page, page_by_slug, upsert_business_page, published_page_slugs,
     UniqueViolation,
 )
 from send_email import send_email
 from support_assistant import answer_support_question
 import ai_replies
 import booking
+import pages
 import stripe_billing
 import paddle_billing
 from instagram_api import (
@@ -1209,6 +1211,15 @@ def settings():
     whatsapp_display_number = business[16]
     messenger_page_name = business[19]
     pro_access = BETA_FREE_MODE or has_pro_access(business_id)
+    # get_business_page returns a plain positional row (id, business_id, slug,
+    # published, tagline, about, created_at, updated_at) or None - turned into a dict
+    # here, same as `business` is built as a dict below, so settings.html can use
+    # page.slug/page.tagline/... instead of a second set of magic indices.
+    page_row = get_business_page(business_id)
+    business_page = None if page_row is None else {
+        "slug": page_row[2], "published": page_row[3], "tagline": page_row[4], "about": page_row[5],
+    }
+    page_error = request.args.get("page_error")
 
     if request.method == "POST":
         name = request.form["name"]
@@ -1226,6 +1237,9 @@ def settings():
                 error=error,
                 message=None,
                 pro_access=pro_access,
+                page=business_page,
+                page_error=None,
+                page_url_prefix=request.url_root + "p/",
                 business={
                     "name": name, "username": username, "contact_email": contact_email,
                     "pending_contact_email": pending_contact_email, "instagram_username": instagram_username,
@@ -1294,6 +1308,9 @@ def settings():
             error=None,
             message="Your details have been saved.",
             pro_access=pro_access,
+            page=business_page,
+            page_error=None,
+            page_url_prefix=request.url_root + "p/",
             business={
                 "name": name, "username": username, "contact_email": contact_email,
                 "pending_contact_email": pending_contact_email, "instagram_username": instagram_username,
@@ -1307,6 +1324,9 @@ def settings():
         error=None,
         message=request.args.get("message"),
         pro_access=pro_access,
+        page=business_page,
+        page_error=page_error,
+        page_url_prefix=request.url_root + "p/",
         business={
             "name": business[1], "username": username, "contact_email": contact_email,
             "pending_contact_email": pending_contact_email, "instagram_username": instagram_username,
@@ -1482,6 +1502,38 @@ def update_reminders():
             request.form.get("owner_reminder_minutes"), request.form.get("owner_reminder_minutes_custom"), 60)
         set_reminder_minutes(business_id, customer_minutes, owner_minutes)
     return redirect(url_for("app_settings"))
+
+
+# Saves the business's own hosted public page (/p/<slug>) - a separate, self-contained
+# <form> in settings.html rather than folded into the big #settings-form/settings() POST
+# above, on purpose: that form already handles account/hours/price/faq/password/upsell,
+# and this has its own distinct failure mode (slug taken/invalid) that doesn't fit its
+# _rerender(error) shape. Same "standalone <form> after #settings-form's closing tag,
+# posting to its own small dedicated route" pattern as update_auto_send/update_reminders
+# above and the disconnect-*/upgrade-to-pro-free forms in settings.html.
+@app.route("/profile/page", methods=["POST"])
+@login_required
+def save_business_page():
+    business_id = session["business_id"]
+    slug = pages.normalize_slug(request.form.get("slug", ""))
+    tagline = (request.form.get("tagline") or "").strip()[:200] or None
+    about = (request.form.get("about") or "").strip()[:2000] or None
+    published = bool(request.form.get("published"))
+
+    # A valid slug is required even to save a draft (published=False) - there is nothing
+    # useful to store without one, and requiring it up front means a business never ends
+    # up with a page row that publishing later would fail on for a reason it can't see
+    # from the publish toggle alone.
+    if not pages.is_valid_slug(slug):
+        return redirect(url_for("settings", page_error="Please choose a web address using only lowercase letters, numbers, and hyphens."))
+
+    try:
+        upsert_business_page(business_id, slug, published, tagline, about)
+    except UniqueViolation:
+        return redirect(url_for("settings", page_error="That web address is already taken - please choose another."))
+
+    log_event("business_page_saved", business_id=business_id)
+    return redirect(url_for("settings", message="Your page has been saved."))
 
 
 # Bell icon (base.html, shown on every logged-in page) - owner appointment reminders
@@ -1673,11 +1725,45 @@ def robots_txt():
     return Response(body, mimetype="text/plain")
 
 
+# Renders a business's own hosted public page - the delivery vehicle/SEO surface a
+# business gets automatically alongside the AI that answers their customers (see
+# save_business_page() above and pages.py). page_by_slug() returns an unpublished page
+# too (see its own docstring), so "no such slug" and "not published yet" 404 identically
+# here rather than leaking which one it was.
+@app.route("/p/<slug>")
+def public_page(slug):
+    page = page_by_slug(slug)
+    if page is None or not page[3]:
+        abort(404)
+    business = business_by_id(page[1])
+    if business is None:
+        abort(404)
+    return render_template(
+        "public_page.html",
+        business_name=business[1],
+        working_hours=business[8],
+        price_list=business[9],
+        faq=business[10],
+        tagline=page[4],
+        about=page[5],
+        opening_hours_schema=pages.opening_hours_schema(business[8]),
+        opening_hours_display=pages.opening_hours_display(business[8]),
+        page_url=url_for("public_page", slug=slug, _external=True),
+    )
+
+
 @app.route("/sitemap.xml")
 def sitemap_xml():
-    pages = ["home", "login", "register", "terms", "privacy", "download"]
-    urls = "".join(f"<url><loc>{url_for(page, _external=True)}</loc></url>" for page in pages)
-    xml = f'<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">{urls}</urlset>'
+    static_pages = ["home", "login", "register", "terms", "privacy", "download"]
+    urls = "".join(f"<url><loc>{url_for(page, _external=True)}</loc></url>" for page in static_pages)
+    # <lastmod> (absent from the static pages above - none of them track an edit
+    # timestamp) tells a crawler whether it's worth re-fetching a page it already has;
+    # a plain date is valid per the sitemap spec, no need for a full timestamp.
+    page_urls = "".join(
+        f"<url><loc>{url_for('public_page', slug=slug, _external=True)}</loc><lastmod>{updated_at.date().isoformat()}</lastmod></url>"
+        for slug, updated_at in published_page_slugs()
+    )
+    xml = f'<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">{urls}{page_urls}</urlset>'
     return Response(xml, mimetype="application/xml")
 
 

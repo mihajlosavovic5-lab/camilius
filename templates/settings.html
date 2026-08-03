@@ -281,6 +281,57 @@
             </div>
         </div>
     {% endif %}
+
+    <!-- Separate <form> (not folded into #settings-form above) - same reason as the
+         disconnect-*/upgrade-to-pro-free forms above it: this has its own save action
+         and its own distinct failure mode (web address taken/invalid) that doesn't fit
+         #settings-form's error handling. Hours/prices/FAQ shown here are read-only
+         (edited in the Business info card above) - this card only owns the page's own
+         presentation fields (web address, tagline, about) and whether it's published. -->
+    <form method="POST" action="{{ url_for('save_business_page') }}" class="card profile-section" style="margin-top: 20px;">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="profile-section-header">
+            <p class="profile-section-title">Your public page</p>
+            <p class="profile-section-subtitle">A hosted page customers can find - answers questions and books appointments on its own, using the same hours, prices, and FAQ as above.</p>
+        </div>
+
+        {% if page_error %}
+            <div class="alert alert-error"><span class="alert-icon">&#9888;&#65039;</span><span>{{ page_error }}</span></div>
+        {% endif %}
+
+        <div class="floating-field" style="margin-top: 0;">
+            <input type="text" id="settings-page-slug-input" name="slug" value="{{ page.slug if page else '' }}" placeholder=" " autocapitalize="off" autocorrect="off" pattern="[a-z0-9][a-z0-9-]{0,49}" maxlength="50">
+            <label for="settings-page-slug-input">Web address (e.g. your-business-name)</label>
+        </div>
+        {% if page %}
+            <p class="note">{{ page_url_prefix }}{{ page.slug }}</p>
+        {% endif %}
+
+        <div class="floating-field">
+            <input type="text" id="settings-page-tagline-input" name="tagline" value="{{ page.tagline if page else '' }}" placeholder=" " maxlength="200">
+            <label for="settings-page-tagline-input">Tagline (one short line)</label>
+        </div>
+
+        <div class="floating-field floating-field-textarea">
+            <textarea name="about" id="settings-page-about-input" placeholder=" " maxlength="2000">{{ page.about if page else '' }}</textarea>
+            <label for="settings-page-about-input">About (a few sentences)</label>
+        </div>
+
+        <div class="switch-row" style="margin-top: 16px;">
+            <div class="switch-row-text">
+                <span class="switch-row-label">Publish this page</span>
+                <span class="note">Off keeps your changes saved but not visible to customers yet.</span>
+            </div>
+            <label class="hours-day-toggle">
+                <input type="checkbox" name="published" {% if page and page.published %}checked{% endif %}>
+                <span class="hours-day-toggle-track"><span class="hours-day-toggle-thumb"></span></span>
+            </label>
+        </div>
+
+        <div class="form-actions" style="text-align: right;">
+            <button class="button" type="submit">Save page</button>
+        </div>
+    </form>
 </div>
 {% endblock %}
 

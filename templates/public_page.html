@@ -1,0 +1,166 @@
+<!doctype html>
+<!--
+    Deliberately standalone - does NOT extend base.html. base.html pulls in
+    site-i18n.js (~460KB) and style.css (~170KB) plus the whole logged-in nav and
+    support widget, none of which this page needs: its only job is to load fast, render
+    server-side with nothing else required, and rank. See pages.py/app.py's public_page()
+    for how this gets its data - everything here comes straight from the businesses row
+    (working_hours/price_list/faq/business_name) plus this business's own business_pages
+    row (tagline/about), so there is exactly one place a business edits this information
+    and it's the same place the AI answers questions from.
+-->
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ business_name }}{% if tagline %} - {{ tagline }}{% endif %}</title>
+<meta name="description" content="{{ tagline or (business_name ~ ' - hours, prices, and answers, any time.') }}">
+<link rel="canonical" href="{{ page_url }}">
+<meta property="og:type" content="business.business">
+<meta property="og:title" content="{{ business_name }}">
+<meta property="og:description" content="{{ tagline or about or '' }}">
+<meta property="og:url" content="{{ page_url }}">
+<meta name="robots" content="index, follow">
+<link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}" sizes="any">
+<link rel="theme-color" content="#d69410">
+<script type="application/ld+json">
+{
+    "@context": "https://schema.org",
+    "@type": "LocalBusiness",
+    "name": {{ business_name | tojson }},
+    "url": {{ page_url | tojson }}
+    {%- if tagline %},
+    "description": {{ tagline | tojson }}
+    {%- endif %}
+    {%- if opening_hours_schema %},
+    "openingHoursSpecification": {{ opening_hours_schema | tojson }}
+    {%- endif %}
+}
+</script>
+<style>
+    :root {
+        --primary: #d69410;
+        --gold: #ffd83d;
+        --background: #fdfcfa;
+        --surface: #ffffff;
+        --text: #2b2013;
+        --text-muted: #6b5d47;
+        --border: #eee3d0;
+    }
+    @media (prefers-color-scheme: dark) {
+        :root {
+            --primary: #ffd83d;
+            --gold: #ffd83d;
+            --background: #201a10;
+            --surface: #2a2216;
+            --text: #f5efe2;
+            --text-muted: #b8ab90;
+            --border: #43392a;
+        }
+    }
+    * { box-sizing: border-box; }
+    body {
+        margin: 0;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        background: var(--background);
+        color: var(--text);
+        line-height: 1.55;
+    }
+    .wrap {
+        max-width: 640px;
+        margin: 0 auto;
+        padding: 48px 20px 80px;
+    }
+    h1 {
+        font-size: 1.9rem;
+        margin: 0 0 4px;
+    }
+    .tagline {
+        font-size: 1.05rem;
+        color: var(--text-muted);
+        margin: 0 0 32px;
+    }
+    section {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 20px 22px;
+        margin-bottom: 18px;
+    }
+    section h2 {
+        font-size: 0.85rem;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--primary);
+        margin: 0 0 14px;
+    }
+    .about, .price-list, .faq {
+        white-space: pre-line;
+        margin: 0;
+    }
+    .hours-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    .hours-table td {
+        padding: 4px 0;
+        font-size: 0.95rem;
+    }
+    .hours-table td:last-child {
+        text-align: right;
+        color: var(--text-muted);
+    }
+    footer {
+        text-align: center;
+        margin-top: 40px;
+        font-size: 0.8rem;
+        color: var(--text-muted);
+    }
+    footer a {
+        color: inherit;
+    }
+</style>
+</head>
+<body>
+<div class="wrap">
+    <h1>{{ business_name }}</h1>
+    {% if tagline %}<p class="tagline">{{ tagline }}</p>{% endif %}
+
+    {% if about %}
+    <section>
+        <h2>About</h2>
+        <p class="about">{{ about }}</p>
+    </section>
+    {% endif %}
+
+    {% if opening_hours_display %}
+    <section>
+        <h2>Hours</h2>
+        <table class="hours-table">
+            {% for day, hours in opening_hours_display %}
+            <tr><td>{{ day }}</td><td>{{ hours }}</td></tr>
+            {% endfor %}
+        </table>
+    </section>
+    {% endif %}
+
+    {% if price_list %}
+    <section>
+        <h2>Prices</h2>
+        <p class="price-list">{{ price_list }}</p>
+    </section>
+    {% endif %}
+
+    {% if faq %}
+    <section>
+        <h2>Questions</h2>
+        <p class="faq">{{ faq }}</p>
+    </section>
+    {% endif %}
+
+    <footer>
+        <a href="{{ url_for('home', _external=True) }}">Powered by Camilius</a>
+    </footer>
+</div>
+</body>
+</html>

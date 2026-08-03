@@ -124,3 +124,26 @@ def test_delete_business_removes_its_page(client, unique_username, unique_email)
 
     database.delete_business(business_id)
     assert database.page_by_slug(slug) is None
+
+
+# --- pages.py: opening_hours_schema ---
+
+def test_opening_hours_schema_lists_open_days_only():
+    text = "Monday: 09:00-18:00\nTuesday: closed\nWednesday: 10:00-16:00"
+    result = pages.opening_hours_schema(text)
+    assert len(result) == 2
+    assert result[0] == {
+        "@type": "OpeningHoursSpecification",
+        "dayOfWeek": "https://schema.org/Monday",
+        "opens": "09:00",
+        "closes": "18:00",
+    }
+    assert result[1]["dayOfWeek"] == "https://schema.org/Wednesday"
+    assert result[1]["opens"] == "10:00"
+    assert result[1]["closes"] == "16:00"
+
+
+def test_opening_hours_schema_empty_for_fully_closed_or_unparseable():
+    assert pages.opening_hours_schema("") == []
+    assert pages.opening_hours_schema("garbage text") == []
+    assert pages.opening_hours_schema("Monday: closed\nTuesday: closed") == []
