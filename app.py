@@ -49,6 +49,7 @@ from support_assistant import answer_support_question
 import ai_replies
 import booking
 import pages
+from page_generator import generate_page_draft, format_working_hours, format_price_list, format_faq
 import stripe_billing
 import paddle_billing
 from instagram_api import (
@@ -1534,6 +1535,87 @@ def save_business_page():
 
     log_event("business_page_saved", business_id=business_id)
     return redirect(url_for("settings", message="Your page has been saved."))
+
+
+# Drafts tagline/about/hours/prices/faq from a short owner-written description
+# (page_generator.py) and re-renders settings.html with them pre-filled - same
+# "re-render the form with different values, don't redirect" shape as settings()'s own
+# _rerender(error). Deliberately does NOT call update_business()/upsert_business_page():
+# working_hours/price_list/faq are required fields at registration, so a business
+# already has real content in them the moment it exists - writing a draft straight to
+# the database here could silently change what the AI tells customers on other channels
+# before the owner has looked at a single word of it. The owner reviews the pre-filled
+# form and clicks the existing "Save changes"/"Save page" buttons themselves.
+@app.route("/profile/generate-page", methods=["POST"])
+@login_required
+@limiter.limit("10 per hour", methods=["POST"])
+def generate_business_page():
+    business_id = session["business_id"]
+    business = business_by_id(business_id)
+    username = business[2]
+    contact_email = business[4]
+    instagram_username = business[6]
+    pending_contact_email = business[14]
+    whatsapp_display_number = business[16]
+    messenger_page_name = business[19]
+    pro_access = BETA_FREE_MODE or has_pro_access(business_id)
+    page_row = get_business_page(business_id)
+    saved_page = None if page_row is None else {
+        "slug": page_row[2], "published": page_row[3], "tagline": page_row[4], "about": page_row[5],
+    }
+
+    description = (request.form.get("description") or "").strip()
+    draft = None
+    if not description:
+        generate_error = "Describe your business first so the AI has something to draft from."
+    else:
+        try:
+            draft = generate_page_draft(description)
+            generate_error = None
+        except ValueError:
+            generate_error = "Couldn't generate a draft from that - please try describing your business differently."
+
+    if draft is None:
+        business_view = {
+            "name": business[1], "username": username, "contact_email": contact_email,
+            "pending_contact_email": pending_contact_email, "instagram_username": instagram_username,
+            "whatsapp_display_number": whatsapp_display_number, "messenger_page_name": messenger_page_name,
+            "working_hours": business[8], "price_list": business[9], "faq": business[10],
+            "upsell_pairs": get_upsell_pairs(business_id),
+        }
+        page_view = saved_page
+    else:
+        business_view = {
+            "name": business[1], "username": username, "contact_email": contact_email,
+            "pending_contact_email": pending_contact_email, "instagram_username": instagram_username,
+            "whatsapp_display_number": whatsapp_display_number, "messenger_page_name": messenger_page_name,
+            "working_hours": format_working_hours(draft["hours"]),
+            "price_list": format_price_list(draft["services"]),
+            "faq": format_faq(draft["faq"]),
+            "upsell_pairs": get_upsell_pairs(business_id),
+        }
+        # Keeps whatever slug/published state is already saved (a generated draft has no
+        # opinion on the web address or whether it's live) and only overwrites the
+        # presentation fields the AI actually drafted.
+        page_view = {
+            "slug": saved_page["slug"] if saved_page else "",
+            "published": saved_page["published"] if saved_page else False,
+            "tagline": draft["tagline"],
+            "about": draft["about"],
+        }
+
+    return render_template(
+        "settings.html",
+        error=None,
+        message=None,
+        pro_access=pro_access,
+        page=page_view,
+        page_error=None,
+        generate_error=generate_error,
+        generate_description=description,
+        page_url_prefix=request.url_root + "p/",
+        business=business_view,
+    )
 
 
 # Bell icon (base.html, shown on every logged-in page) - owner appointment reminders

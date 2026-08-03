@@ -282,6 +282,34 @@
         </div>
     {% endif %}
 
+    <!-- Optional AI-drafted starting point for the business-info card above and the
+         page card below - never saves anything itself (see generate_business_page() in
+         app.py): it only re-renders this same form with generated values pre-filled,
+         so the Save buttons those cards already have are still the only way any of it
+         actually gets written to the database. -->
+    <form method="POST" action="{{ url_for('generate_business_page') }}" class="card profile-section" style="margin-top: 20px;">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="profile-section-header">
+            <p class="profile-section-title">Draft this with AI</p>
+            <p class="profile-section-subtitle">Describe your business in a sentence or two and the AI drafts a tagline, about text, hours, prices, and FAQ below for you to review and save.</p>
+        </div>
+
+        {% if generate_error %}
+            <div class="alert alert-error"><span class="alert-icon">&#9888;&#65039;</span><span>{{ generate_error }}</span></div>
+        {% elif generate_description %}
+            <div class="alert alert-success"><span>Draft ready below - review it, then save.</span></div>
+        {% endif %}
+
+        <div class="floating-field floating-field-textarea" style="margin-top: 0;">
+            <textarea name="description" id="settings-generate-description-input" placeholder=" " maxlength="1000">{{ generate_description or '' }}</textarea>
+            <label for="settings-generate-description-input">What does your business do?</label>
+        </div>
+
+        <div class="form-actions" style="text-align: right;">
+            <button class="button" type="submit">Generate draft</button>
+        </div>
+    </form>
+
     <!-- Separate <form> (not folded into #settings-form above) - same reason as the
          disconnect-*/upgrade-to-pro-free forms above it: this has its own save action
          and its own distinct failure mode (web address taken/invalid) that doesn't fit
