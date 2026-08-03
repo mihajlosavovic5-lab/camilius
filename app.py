@@ -21,10 +21,9 @@ from database import (
     effective_subscription_active, has_pro_access,
     business_stats, log_event, event_funnel, recent_client_errors, log_client_error,
     add_tester_request, recent_tester_requests,
-    link_instagram_account, unlink_instagram_account, business_by_instagram_account_id, already_processed_messages,
+    link_instagram_account, unlink_instagram_account, business_by_instagram_account_id,
     link_whatsapp_account, unlink_whatsapp_account, business_by_whatsapp_phone_number_id,
     link_messenger_page, unlink_messenger_account, business_by_messenger_page_id,
-    mark_message_processed, save_draft_reply, previous_conversations_with,
     log_webhook_hit, recent_webhook_hits, raw_conversation_rows, is_auto_send_enabled,
     set_auto_send, business_by_username, business_by_phone_number,
     username_taken, contact_email_taken, phone_number_taken,
@@ -45,12 +44,11 @@ from database import (
     UniqueViolation,
 )
 from send_email import send_email
-from generate_reply import generate_reply, generate_reply_with_booking
 from support_assistant import answer_support_question
+import ai_replies
 import booking
 import stripe_billing
 import paddle_billing
-from push_notifications import send_push_to_business
 from instagram_api import (
     authorize_url as instagram_authorize_url, exchange_code_for_token, exchange_for_long_lived_token,
     get_account_info, subscribe_account_to_webhook, send_message as send_instagram_message,
@@ -1897,7 +1895,7 @@ def android_asset_links():
     ])
 
 
-DAILY_REPLY_LIMIT = 50  # also enforced in the /instagram-webhook handler below
+DAILY_REPLY_LIMIT = ai_replies.DAILY_REPLY_LIMIT  # single source of truth is ai_replies.py, which actually enforces it
 
 
 @app.route("/")
@@ -2617,6 +2615,10 @@ def instagram_webhook():
 
 
 def _process_instagram_message(message):
+    """Channel-specific half of handling an inbound Instagram DM: look the business up
+    by its Instagram account id, and know how to resolve a sender's name/picture and
+    actually deliver a reply. Everything else (gating, history, the AI call, saving the
+    draft, auto-send, the owner push) is shared - see ai_replies.handle_incoming_message."""
     business = business_by_instagram_account_id(message["ig_account_id"])
     if business is None:
         print(f"[instagram-webhook] No business found for ig_account_id={message['ig_account_id']!r} - ignoring", flush=True)
@@ -2625,120 +2627,24 @@ def _process_instagram_message(message):
     business_id = business[0]
     print(f"[instagram-webhook] Matched business_id={business_id} name={business[1]!r}", flush=True)
 
-    # BETA_FREE_MODE means every registered business is processed regardless of billing
-    # status (same reasoning as the dashboard banner elsewhere). With it off, a business
-    # still gets processed through its own 14-day self-serve trial (subscription_status=
-    # 'trialing', set at registration - see add_business()) before needing a real Paddle
-    # subscription - see effective_subscription_active()/trial_expired() in database.py.
-    if not BETA_FREE_MODE and not effective_subscription_active(business_id):
-        print(f"[instagram-webhook] business_id={business_id} subscription not active - skipping", flush=True)
-        return
-    if replies_today_count(business_id) >= DAILY_REPLY_LIMIT:
-        print(f"[instagram-webhook] business_id={business_id} daily limit reached - skipping", flush=True)
-        return
-
-    message_id = message["message_id"]
-    if message_id and already_processed_messages(business_id, [message_id]):
-        print(f"[instagram-webhook] message_id={message_id} already processed - skipping (dedup, flush=True)")
-        return  # Meta redelivers on retry - this is what stops a duplicate reply
-
     sender_igsid = message["sender_igsid"]
     access_token = business[7]
-    business_info = {
-        "business_name": business[1],
-        "working_hours": business[8],
-        "price_list": business[9],
-        "faq": business[10],
-    }
-    # Resolved before generating the reply (rather than after, as before) - the AI
-    # booking tool below needs a customer name to attach to an appointment it books.
-    sender_info = get_sender_info(sender_igsid, access_token)
-    sender_display = sender_info["display_name"] or sender_igsid
-    profile_pic_url = sender_info["profile_pic_url"]
+    ig_account_id = business[5]
 
-    print(f"[instagram-webhook] Generating AI reply for text={message['text']!r} from sender_igsid={sender_igsid}", flush=True)
-    # sender_display, NOT sender_igsid: previous_conversations_with filters on the
-    # conversations.sender column, and save_draft_reply (below) writes sender_display
-    # into it. Passing the IGSID here matched nothing whenever get_sender_info actually
-    # resolved a username, so Instagram conversations silently had no memory at all -
-    # the bug hid because sender_display falls back to sender_igsid when the profile
-    # lookup fails, which is exactly the case that did work. The WhatsApp and Messenger
-    # processors below already pass sender_display.
-    history = previous_conversations_with(business_id, sender_display)
+    def resolve_sender():
+        # A real Instagram API call - deferred until ai_replies confirms the message
+        # passes every gate (subscription/daily-limit/dedup), so a skipped message never
+        # pays for it.
+        sender_info = get_sender_info(sender_igsid, access_token)
+        return sender_igsid, sender_info["display_name"] or sender_igsid, sender_info["profile_pic_url"]
 
-    # Faza 8/9: Pro-plan (or trialing) businesses get a smarter AI that can check the
-    # Schedule for a free slot and book, cancel, or reschedule an appointment directly
-    # during the DM conversation - see generate_reply.generate_reply_with_booking/booking.py.
-    if BETA_FREE_MODE or has_pro_access(business_id):
-        slot_minutes = get_slot_duration(business_id)
-        upsell_pairs_text = get_upsell_pairs(business_id)
-        # The business's own clock, not the server's - this string is what the model
-        # resolves "tomorrow" / "this Friday" against before calling a booking tool.
-        now_local_display = booking.now_local(booking.tz_for(business)).strftime("%A, %Y-%m-%d %H:%M")
+    def deliver(reply_text):
+        send_instagram_message(sender_igsid, reply_text, access_token, ig_account_id)
 
-        def book_tool(requested_datetime, service=None):
-            return booking.attempt_ai_booking(
-                business, business_id, slot_minutes, requested_datetime, sender_display, sender_igsid, service, upsell_pairs_text,
-            )
-
-        def cancel_tool():
-            return booking.attempt_ai_cancel_or_reschedule(
-                business, business_id, slot_minutes, sender_igsid, None, upsell_pairs_text,
-            )
-
-        def reschedule_tool(new_requested_datetime):
-            return booking.attempt_ai_cancel_or_reschedule(
-                business, business_id, slot_minutes, sender_igsid, new_requested_datetime, upsell_pairs_text,
-            )
-
-        tool_impls = {
-            "check_and_book_appointment": book_tool,
-            "cancel_appointment": cancel_tool,
-            "reschedule_appointment": reschedule_tool,
-        }
-        suggested_reply = generate_reply_with_booking(message["text"], business_info, history, now_local_display, tool_impls)
-    else:
-        suggested_reply = generate_reply(message["text"], business_info, history=history)
-    print(f"[instagram-webhook] AI reply generated: {suggested_reply!r}", flush=True)
-    # Temporary diagnostic (unconditional, not just on the fallback case) - Railway's own
-    # logs aren't reachable from here without the Railway CLI, which is blocked on this
-    # machine, but /admin/client-errors is, so mirror every generated reply there until
-    # the "None" reply bug is confirmed fixed.
-    log_client_error(business_id, f"AI reply generated: {suggested_reply!r} for text={message['text']!r}", "", "ai-reply-debug", "")
-
-    new_conversation_id = save_draft_reply(
-        business_id, sender_display, message["text"], suggested_reply, sender_igsid=sender_igsid,
-        profile_pic_url=profile_pic_url,
+    ai_replies.handle_incoming_message(
+        business, business_id, "instagram", message["message_id"], message["text"],
+        resolve_sender, deliver, log_prefix="[instagram-webhook]",
     )
-    print(f"[instagram-webhook] Draft saved as conversation_id={new_conversation_id}", flush=True)
-    if message_id:
-        mark_message_processed(business_id, message_id)
-
-    # Opt-out (default on, see database.py's businesses.auto_send migration) - the AI's
-    # draft goes straight out unless a business turns this off in Settings, in which
-    # case it waits for manual approval instead. Falls back to a normal pending draft
-    # if the send itself fails (most likely Instagram's 24h reply window), same as the
-    # dashboard's own manual send route.
-    auto_sent = False
-    if is_auto_send_enabled(business_id):
-        try:
-            send_instagram_message(sender_igsid, suggested_reply, access_token, business[5])
-            mark_sent(new_conversation_id, suggested_reply)
-            auto_sent = True
-            print(f"[instagram-webhook] Auto-sent reply for conversation_id={new_conversation_id}", flush=True)
-        except requests.RequestException as error:
-            print(f"[instagram-webhook] Auto-send failed for conversation_id={new_conversation_id}, left as pending: {error}", flush=True)
-
-    try:
-        send_push_to_business(
-            business_id,
-            title="Auto-replied to a customer" if auto_sent else "New customer question",
-            body=f"{sender_display}: {message['text'][:80]}",
-            data={"conversation_id": str(new_conversation_id)},
-        )
-    except Exception as error:
-        # A push failure must never block draft processing
-        print(f"[instagram-webhook] Push notification failed: {error}", flush=True)
 
 
 @app.route("/whatsapp-webhook", methods=["GET", "POST"])
@@ -2746,10 +2652,10 @@ def _process_instagram_message(message):
 def whatsapp_webhook():
     """Mirrors instagram_webhook() above - same verify/signature/dedup/retry shape, just
     against whatsapp_api's functions and business_by_whatsapp_phone_number_id instead of
-    the Instagram equivalents. Kept as its own separate route+handler rather than a shared
-    parameterized one - the two channels' underlying data (profile-pic lookup, sender-name
-    resolution) differ enough that a shared abstraction would need almost as many
-    channel-specific branches as just writing it twice plainly does."""
+    the Instagram equivalents. The route itself (webhook verification, signature check,
+    parsing) stays its own function per channel - that part genuinely doesn't share much.
+    What each processor does once it has a message is shared, though, via
+    ai_replies.handle_incoming_message; see _process_whatsapp_message."""
     if request.method == "GET":
         try:
             log_webhook_hit("WA GET verify", str(dict(request.args)))
@@ -2787,6 +2693,8 @@ def whatsapp_webhook():
 
 
 def _process_whatsapp_message(message):
+    """Channel-specific half of handling an inbound WhatsApp message - see
+    _process_instagram_message's docstring for the shared/channel-specific split."""
     business = business_by_whatsapp_phone_number_id(message["phone_number_id"])
     if business is None:
         print(f"[whatsapp-webhook] No business found for phone_number_id={message['phone_number_id']!r} - ignoring", flush=True)
@@ -2795,96 +2703,26 @@ def _process_whatsapp_message(message):
     business_id = business[0]
     print(f"[whatsapp-webhook] Matched business_id={business_id} name={business[1]!r}", flush=True)
 
-    if not BETA_FREE_MODE and not effective_subscription_active(business_id):
-        print(f"[whatsapp-webhook] business_id={business_id} subscription not active - skipping", flush=True)
-        return
-    if replies_today_count(business_id) >= DAILY_REPLY_LIMIT:
-        print(f"[whatsapp-webhook] business_id={business_id} daily limit reached - skipping", flush=True)
-        return
-
-    message_id = message["message_id"]
-    if message_id and already_processed_messages(business_id, [message_id]):
-        print(f"[whatsapp-webhook] message_id={message_id} already processed - skipping (dedup)", flush=True)
-        return
-
     sender_wa_id = message["sender_wa_id"]
     access_token = business[17]
-    # No profile-picture equivalent to Instagram's get_sender_info here - WhatsApp's Cloud
-    # API doesn't expose one - so profile_pic_url stays None and the dashboard/app fall
-    # back to the letter avatar for every WhatsApp conversation, same as any Instagram
-    # sender whose picture lookup fails. The display name, unlike Instagram, comes free
-    # with every message webhook payload (message["sender_name"]) - no extra API call
-    # needed for that part.
-    sender_display = message["sender_name"] or sender_wa_id
-    business_info = {
-        "business_name": business[1],
-        "working_hours": business[8],
-        "price_list": business[9],
-        "faq": business[10],
-    }
+    display_number = business[15]
 
-    print(f"[whatsapp-webhook] Generating AI reply for text={message['text']!r} from sender_wa_id={sender_wa_id}", flush=True)
-    history = previous_conversations_with(business_id, sender_display)
+    def resolve_sender():
+        # No profile-picture equivalent to Instagram's get_sender_info here - WhatsApp's
+        # Cloud API doesn't expose one - so profile_pic_url stays None and the
+        # dashboard/app fall back to the letter avatar, same as any Instagram sender
+        # whose picture lookup fails. The display name, unlike Instagram, comes free
+        # with every message webhook payload (message["sender_name"]) - no API call
+        # needed for it, so there's nothing to gain by deferring this further.
+        return sender_wa_id, message["sender_name"] or sender_wa_id, None
 
-    if BETA_FREE_MODE or has_pro_access(business_id):
-        slot_minutes = get_slot_duration(business_id)
-        upsell_pairs_text = get_upsell_pairs(business_id)
-        # The business's own clock, not the server's - this string is what the model
-        # resolves "tomorrow" / "this Friday" against before calling a booking tool.
-        now_local_display = booking.now_local(booking.tz_for(business)).strftime("%A, %Y-%m-%d %H:%M")
+    def deliver(reply_text):
+        whatsapp_api.send_message(sender_wa_id, reply_text, access_token, display_number)
 
-        def book_tool(requested_datetime, service=None):
-            return booking.attempt_ai_booking(
-                business, business_id, slot_minutes, requested_datetime, sender_display, sender_wa_id, service, upsell_pairs_text,
-            )
-
-        def cancel_tool():
-            return booking.attempt_ai_cancel_or_reschedule(
-                business, business_id, slot_minutes, sender_wa_id, None, upsell_pairs_text,
-            )
-
-        def reschedule_tool(new_requested_datetime):
-            return booking.attempt_ai_cancel_or_reschedule(
-                business, business_id, slot_minutes, sender_wa_id, new_requested_datetime, upsell_pairs_text,
-            )
-
-        tool_impls = {
-            "check_and_book_appointment": book_tool,
-            "cancel_appointment": cancel_tool,
-            "reschedule_appointment": reschedule_tool,
-        }
-        suggested_reply = generate_reply_with_booking(message["text"], business_info, history, now_local_display, tool_impls)
-    else:
-        suggested_reply = generate_reply(message["text"], business_info, history=history)
-    print(f"[whatsapp-webhook] AI reply generated: {suggested_reply!r}", flush=True)
-
-    new_conversation_id = save_draft_reply(
-        business_id, sender_display, message["text"], suggested_reply,
-        channel="whatsapp", sender_wa_id=sender_wa_id,
+    ai_replies.handle_incoming_message(
+        business, business_id, "whatsapp", message["message_id"], message["text"],
+        resolve_sender, deliver, log_prefix="[whatsapp-webhook]",
     )
-    print(f"[whatsapp-webhook] Draft saved as conversation_id={new_conversation_id}", flush=True)
-    if message_id:
-        mark_message_processed(business_id, message_id)
-
-    auto_sent = False
-    if is_auto_send_enabled(business_id):
-        try:
-            whatsapp_api.send_message(sender_wa_id, suggested_reply, access_token, business[15])
-            mark_sent(new_conversation_id, suggested_reply)
-            auto_sent = True
-            print(f"[whatsapp-webhook] Auto-sent reply for conversation_id={new_conversation_id}", flush=True)
-        except requests.RequestException as error:
-            print(f"[whatsapp-webhook] Auto-send failed for conversation_id={new_conversation_id}, left as pending: {error}", flush=True)
-
-    try:
-        send_push_to_business(
-            business_id,
-            title="Auto-replied to a customer" if auto_sent else "New customer question",
-            body=f"{sender_display}: {message['text'][:80]}",
-            data={"conversation_id": str(new_conversation_id)},
-        )
-    except Exception as error:
-        print(f"[whatsapp-webhook] Push notification failed: {error}", flush=True)
 
 
 @app.route("/messenger-webhook", methods=["GET", "POST"])
@@ -2929,6 +2767,8 @@ def messenger_webhook():
 
 
 def _process_messenger_message(message):
+    """Channel-specific half of handling an inbound Messenger message - see
+    _process_instagram_message's docstring for the shared/channel-specific split."""
     business = business_by_messenger_page_id(message["page_id"])
     if business is None:
         print(f"[messenger-webhook] No business found for page_id={message['page_id']!r} - ignoring", flush=True)
@@ -2937,95 +2777,25 @@ def _process_messenger_message(message):
     business_id = business[0]
     print(f"[messenger-webhook] Matched business_id={business_id} name={business[1]!r}", flush=True)
 
-    if not BETA_FREE_MODE and not effective_subscription_active(business_id):
-        print(f"[messenger-webhook] business_id={business_id} subscription not active - skipping", flush=True)
-        return
-    if replies_today_count(business_id) >= DAILY_REPLY_LIMIT:
-        print(f"[messenger-webhook] business_id={business_id} daily limit reached - skipping", flush=True)
-        return
-
-    message_id = message["message_id"]
-    if message_id and already_processed_messages(business_id, [message_id]):
-        print(f"[messenger-webhook] message_id={message_id} already processed - skipping (dedup)", flush=True)
-        return
-
     sender_psid = message["sender_psid"]
     access_token = business[20]
-    # No sender-name/profile-pic resolution here, unlike Instagram's get_sender_info - the
-    # Messenger user-profile API has been heavily permission-gated since Meta's 2018
-    # privacy changes and isn't reliably available with just pages_messaging, so this
-    # falls back to the raw PSID as the display name, same as WhatsApp does when its own
-    # profile lookup has nothing to offer.
-    sender_display = sender_psid
-    business_info = {
-        "business_name": business[1],
-        "working_hours": business[8],
-        "price_list": business[9],
-        "faq": business[10],
-    }
 
-    print(f"[messenger-webhook] Generating AI reply for text={message['text']!r} from sender_psid={sender_psid}", flush=True)
-    history = previous_conversations_with(business_id, sender_display)
+    def resolve_sender():
+        # No sender-name/profile-pic resolution here, unlike Instagram's get_sender_info -
+        # the Messenger user-profile API has been heavily permission-gated since Meta's
+        # 2018 privacy changes and isn't reliably available with just pages_messaging, so
+        # this falls back to the raw PSID as the display name, same as WhatsApp does when
+        # its own profile lookup has nothing to offer. No API call either way, so nothing
+        # to gain by deferring this further.
+        return sender_psid, sender_psid, None
 
-    if BETA_FREE_MODE or has_pro_access(business_id):
-        slot_minutes = get_slot_duration(business_id)
-        upsell_pairs_text = get_upsell_pairs(business_id)
-        # The business's own clock, not the server's - this string is what the model
-        # resolves "tomorrow" / "this Friday" against before calling a booking tool.
-        now_local_display = booking.now_local(booking.tz_for(business)).strftime("%A, %Y-%m-%d %H:%M")
+    def deliver(reply_text):
+        messenger_api.send_message(sender_psid, reply_text, access_token)
 
-        def book_tool(requested_datetime, service=None):
-            return booking.attempt_ai_booking(
-                business, business_id, slot_minutes, requested_datetime, sender_display, sender_psid, service, upsell_pairs_text,
-            )
-
-        def cancel_tool():
-            return booking.attempt_ai_cancel_or_reschedule(
-                business, business_id, slot_minutes, sender_psid, None, upsell_pairs_text,
-            )
-
-        def reschedule_tool(new_requested_datetime):
-            return booking.attempt_ai_cancel_or_reschedule(
-                business, business_id, slot_minutes, sender_psid, new_requested_datetime, upsell_pairs_text,
-            )
-
-        tool_impls = {
-            "check_and_book_appointment": book_tool,
-            "cancel_appointment": cancel_tool,
-            "reschedule_appointment": reschedule_tool,
-        }
-        suggested_reply = generate_reply_with_booking(message["text"], business_info, history, now_local_display, tool_impls)
-    else:
-        suggested_reply = generate_reply(message["text"], business_info, history=history)
-    print(f"[messenger-webhook] AI reply generated: {suggested_reply!r}", flush=True)
-
-    new_conversation_id = save_draft_reply(
-        business_id, sender_display, message["text"], suggested_reply,
-        channel="messenger", sender_psid=sender_psid,
+    ai_replies.handle_incoming_message(
+        business, business_id, "messenger", message["message_id"], message["text"],
+        resolve_sender, deliver, log_prefix="[messenger-webhook]",
     )
-    print(f"[messenger-webhook] Draft saved as conversation_id={new_conversation_id}", flush=True)
-    if message_id:
-        mark_message_processed(business_id, message_id)
-
-    auto_sent = False
-    if is_auto_send_enabled(business_id):
-        try:
-            messenger_api.send_message(sender_psid, suggested_reply, access_token)
-            mark_sent(new_conversation_id, suggested_reply)
-            auto_sent = True
-            print(f"[messenger-webhook] Auto-sent reply for conversation_id={new_conversation_id}", flush=True)
-        except requests.RequestException as error:
-            print(f"[messenger-webhook] Auto-send failed for conversation_id={new_conversation_id}, left as pending: {error}", flush=True)
-
-    try:
-        send_push_to_business(
-            business_id,
-            title="Auto-replied to a customer" if auto_sent else "New customer question",
-            body=f"{sender_display}: {message['text'][:80]}",
-            data={"conversation_id": str(new_conversation_id)},
-        )
-    except Exception as error:
-        print(f"[messenger-webhook] Push notification failed: {error}", flush=True)
 
 
 if __name__ == "__main__":
