@@ -265,9 +265,11 @@
     </section>
     {% endif %}
 
+    {% if show_badge %}
     <footer>
         <a href="{{ url_for('home', _external=True) }}">Powered by Camilius</a>
     </footer>
+    {% endif %}
 </div>
 
 <!-- Chat + booking - the actual product this page exists to deliver, not a website

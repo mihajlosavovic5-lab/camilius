@@ -96,13 +96,17 @@ app.register_blueprint(api_blueprint)
 # cookie + CSRF token pair used by browser form submissions, so these routes are exempt.
 csrf.exempt(api_blueprint)
 
-# Flipped back on (2026-07-26) - no registered business entity yet, so Meta's business
-# verification can't be completed and Paddle/Stripe checkout must stay dormant for now;
-# recruiting beta/test users instead. All billing code below (Paddle, Stripe) is left in
-# place untouched - only this flag changed - so flipping it back to False later (once
-# billing can go live for real) restores the exact pricing/checkout behavior described in
-# the comment this replaced, no further code changes needed.
-BETA_FREE_MODE = True
+# F4 (2026-08-03): flipped back off - a real, verified Paddle merchant account is now
+# in place, so billing goes live for real. Every business already gets a genuine 14-day
+# trial on signup regardless of this flag (add_business()'s own initial_status=
+# "trialing" default) - this flag only controlled whether that trial's expiry, and the
+# need for a paid plan after it, was actually enforced. Confirmed before flipping this
+# that no pre-existing beta business is old enough for its trial to already be expired,
+# so nobody's live service was cut off by this change. Left as a flag (not deleted)
+# rather than removing every BETA_FREE_MODE check outright, in case billing ever needs
+# to go dormant again (e.g. a Paddle account issue) - same "flag it, don't delete it"
+# shape as INSTAGRAM_TESTERS_ONLY/META_CHANNELS_ENABLED below.
+BETA_FREE_MODE = False
 
 # Same underlying cause as BETA_FREE_MODE above (no registered business entity yet), but
 # a separate flag because it clears on a different milestone: this one turns off the
@@ -1834,6 +1838,12 @@ def public_page(slug):
         page_url=url_for("public_page", slug=slug, _external=True),
         chat_url=url_for("public_page_chat", slug=slug),
         slug=slug,
+        # F4: the "Powered by Camilius" footer disappears once this business has any
+        # active access - including its own free trial, same as has_pro_access() already
+        # treats a self-serve trial as full access, not just a paid plan. One source of
+        # truth (effective_subscription_active) rather than a second "is this really
+        # paid, not just trialing" check that could quietly drift from it.
+        show_badge=not effective_subscription_active(page[1]),
     )
 
 

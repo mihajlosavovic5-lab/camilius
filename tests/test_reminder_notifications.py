@@ -56,6 +56,10 @@ def test_owner_reminder_fires_under_beta_free_mode_without_real_pro_access(clien
     # regardless of real subscription status (same as Schedule/upsell) - the send-time
     # re-check here must honor that too, not just has_pro_access() alone, or a
     # BETA_FREE_MODE business could turn the toggle on and never actually get a reminder.
+    # Explicitly pinned True (F4 flipped the module's own default to False for the real
+    # launch) - this still needs covering, since the flag stays in the code for if
+    # billing ever needs to go dormant again, same as its sibling test below pins False.
+    monkeypatch.setattr(app_module, "BETA_FREE_MODE", True)
     reg = register_business(client, unique_username, unique_email)
     business_id = reg.get_json()["business_id"]
     database.link_subscription(business_id, "cust", "sub", "active", plan="starter")

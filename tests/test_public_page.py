@@ -131,6 +131,48 @@ def test_public_page_renders_when_published(client, unique_username, unique_emai
     assert "https://schema.org/Monday" in html
 
 
+def test_public_page_hides_badge_during_active_trial(client, unique_username, unique_email):
+    """F4: every business gets a real 14-day trial on signup (add_business's own
+    initial_status="trialing" default) - the "Powered by Camilius" badge is gone from
+    day one, same as has_pro_access() already treats a self-serve trial as full access,
+    not just a paid plan."""
+    register_business_web(client, unique_username, unique_email)
+    business_id = database.business_by_username(unique_username)[0]
+    slug = f"trial-{uuid.uuid4().hex[:8]}"
+    database.upsert_business_page(business_id, slug, True, None, None)
+
+    response = client.get(f"/p/{slug}")
+    assert "Powered by Camilius" not in response.get_data(as_text=True)
+
+
+def test_public_page_shows_badge_once_trial_expired_with_no_paid_plan(client, unique_username, unique_email):
+    register_business_web(client, unique_username, unique_email)
+    business_id = database.business_by_username(unique_username)[0]
+    slug = f"expired-{uuid.uuid4().hex[:8]}"
+    database.upsert_business_page(business_id, slug, True, None, None)
+
+    connection = database.connect()
+    cursor = connection.cursor()
+    cursor.execute("UPDATE businesses SET created_at = created_at - INTERVAL '30 days' WHERE id = %s", (business_id,))
+    connection.commit()
+    connection.close()
+    assert database.effective_subscription_active(business_id) is False
+
+    response = client.get(f"/p/{slug}")
+    assert "Powered by Camilius" in response.get_data(as_text=True)
+
+
+def test_public_page_hides_badge_for_a_real_paid_subscription(client, unique_username, unique_email):
+    register_business_web(client, unique_username, unique_email)
+    business_id = database.business_by_username(unique_username)[0]
+    slug = f"paid-{uuid.uuid4().hex[:8]}"
+    database.upsert_business_page(business_id, slug, True, None, None)
+    database.link_subscription(business_id, "cust_1", "sub_1", "active", plan="pro")
+
+    response = client.get(f"/p/{slug}")
+    assert "Powered by Camilius" not in response.get_data(as_text=True)
+
+
 def test_public_page_is_reachable_by_anyone_without_a_session(client, unique_username, unique_email):
     """The whole point of the page - no login, no session, no cookie required."""
     register_business_web(client, unique_username, unique_email)
