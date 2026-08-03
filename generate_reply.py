@@ -19,16 +19,38 @@ DEMO_BUSINESS = {
 
 MAX_QUESTION_LENGTH = 3000
 
+# Every call below asks for a short, chat-style reply, but nothing until now actually
+# capped the output - a model that ignored the "never a wall of text" rule (or was
+# steered into ignoring it) billed for as many tokens as it felt like. That was
+# tolerable while the only way in was a DM from a customer of a registered business;
+# it isn't once a public web page lets anyone on the internet spend this money.
+MAX_REPLY_TOKENS = 400
 
-def build_system_prompt(business):
-    return f"""You are an assistant replying to customer Instagram DMs on behalf of the business "{business['business_name']}".
+MODEL = "gpt-4o-mini"
+
+# What the AI is told it's replying on. Only the noun changes - the reply-style rules
+# in build_system_prompt are deliberately identical for every channel (short, chat-like,
+# no email formality), so this exists purely to stop the model telling a visitor on the
+# business's own web page that it's answering their "Instagram DM".
+CHANNEL_DESCRIPTIONS = {
+    "instagram": "customer Instagram DMs",
+    "whatsapp": "customer WhatsApp messages",
+    "messenger": "customer Facebook Messenger messages",
+    "web": "customer messages in the chat widget on the business's own web page",
+}
+DEFAULT_CHANNEL = "instagram"
+
+
+def build_system_prompt(business, channel=DEFAULT_CHANNEL):
+    channel_description = CHANNEL_DESCRIPTIONS.get(channel, CHANNEL_DESCRIPTIONS[DEFAULT_CHANNEL])
+    return f"""You are an assistant replying to {channel_description} on behalf of the business "{business['business_name']}".
 
 Business info (use it to answer accurately and helpfully):
 {json.dumps(business, ensure_ascii=False, indent=2)}
 
 Rules:
 - Detect the language the customer's newest message is written in, and reply in that SAME language - never default to Serbian or any other fixed language. If they write in English, reply in English; if Serbian, reply in Serbian; and so on for any language.
-- Write like a real Instagram DM reply, not an email: no "Dear customer" greeting, no formal sign-off, no blank-line paragraph structure.
+- Write like a real chat reply, not an email: no "Dear customer" greeting, no formal sign-off, no blank-line paragraph structure.
 - Structure the reply so it's easy to scan: put each distinct sentence or fact on its own line, with a real line break between them, instead of merging everything into one run-on sentence or paragraph - e.g. a price on one line, hours or availability on the next, a caveat or next step after that. Start with a short, natural opening acknowledgment when it fits (skip it for a quick follow-up in an ongoing conversation), and end with a brief, warm closing inviting further questions when it fits (skip it on short follow-ups so it doesn't feel repetitive). Keep it tight - a handful of short lines, never a wall of text.
 - Always write clock times as HH:MM (e.g. "9:00", "16:00") - never a bare hour number like "9" or "16", and never 12-hour AM/PM notation like "9am"/"9 AM". Convert the business info's hours into this format even if it's written differently there.
 - Always write a price with the number first and the currency symbol/code right after it (e.g. "35$", "1500 din"), never currency-before-number like "$35".
@@ -39,8 +61,8 @@ Rules:
 """
 
 
-def generate_reply(customer_question, business, history=None):
-    system_prompt = build_system_prompt(business)
+def generate_reply(customer_question, business, history=None, channel=DEFAULT_CHANNEL):
+    system_prompt = build_system_prompt(business, channel)
     customer_question = customer_question[:MAX_QUESTION_LENGTH]
 
     messages = [{"role": "system", "content": system_prompt}]
@@ -50,8 +72,9 @@ def generate_reply(customer_question, business, history=None):
     messages.append({"role": "user", "content": customer_question})
 
     response = client.chat.completions.create(
-        model="gpt-4o-mini",
+        model=MODEL,
         messages=messages,
+        max_tokens=MAX_REPLY_TOKENS,
     )
     choice = response.choices[0]
     content = choice.message.content
@@ -149,8 +172,8 @@ BOOKING_TOOLS = [
 ]
 
 
-def build_booking_system_prompt(business, now_local_display):
-    return build_system_prompt(business) + f"""
+def build_booking_system_prompt(business, now_local_display, channel=DEFAULT_CHANNEL):
+    return build_system_prompt(business, channel) + f"""
 
 You can also check appointment availability, and book, cancel, or reschedule appointments directly, using the check_and_book_appointment, cancel_appointment, and reschedule_appointment tools.
 Right now it is {now_local_display} (the business's local time) - use this to resolve any relative date/time the customer mentions ("tomorrow", "this Friday", "in a couple hours", etc.) into an exact date and time before calling a tool.
@@ -162,13 +185,13 @@ Right now it is {now_local_display} (the business's local time) - use this to re
 """
 
 
-def generate_reply_with_booking(customer_question, business, history, now_local_display, tool_impls):
+def generate_reply_with_booking(customer_question, business, history, now_local_display, tool_impls, channel=DEFAULT_CHANNEL):
     """Same shape as generate_reply(), but also gives the model the booking tools above.
     tool_impls is {tool_name: callable(**kwargs) -> dict} for whichever of BOOKING_TOOLS
     the caller wants enabled - called locally with the model's parsed JSON arguments as
     keyword args whenever it invokes that tool; the return value is fed back to the
     model as the tool result before asking for the final customer-facing reply."""
-    system_prompt = build_booking_system_prompt(business, now_local_display)
+    system_prompt = build_booking_system_prompt(business, now_local_display, channel)
     customer_question = customer_question[:MAX_QUESTION_LENGTH]
 
     messages = [{"role": "system", "content": system_prompt}]
@@ -178,7 +201,8 @@ def generate_reply_with_booking(customer_question, business, history, now_local_
     messages.append({"role": "user", "content": customer_question})
 
     response = client.chat.completions.create(
-        model="gpt-4o-mini", messages=messages, tools=BOOKING_TOOLS, tool_choice="auto",
+        model=MODEL, messages=messages, tools=BOOKING_TOOLS, tool_choice="auto",
+        max_tokens=MAX_REPLY_TOKENS,
     )
     message = response.choices[0].message
 
@@ -203,7 +227,9 @@ def generate_reply_with_booking(customer_question, business, history, now_local_
                 "tool_call_id": call.id,
                 "content": json.dumps(result, ensure_ascii=False),
             })
-        follow_up = client.chat.completions.create(model="gpt-4o-mini", messages=messages)
+        follow_up = client.chat.completions.create(
+            model=MODEL, messages=messages, max_tokens=MAX_REPLY_TOKENS,
+        )
         content = follow_up.choices[0].message.content
     else:
         content = message.content

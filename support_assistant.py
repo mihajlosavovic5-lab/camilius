@@ -10,6 +10,11 @@ sys.stdout.reconfigure(encoding="utf-8")
 from dotenv import load_dotenv
 from openai import OpenAI
 
+# Only the model id and the output cap are shared with generate_reply.py - the personas
+# and prompts stay deliberately separate (see this module's docstring). Importing them
+# rather than repeating the literals is what keeps a model change to a one-line edit.
+from generate_reply import MODEL, MAX_REPLY_TOKENS
+
 load_dotenv()
 client = OpenAI()
 
@@ -114,7 +119,9 @@ def answer_support_question(message, history=None):
             messages.append({"role": role, "content": content})
     messages.append({"role": "user", "content": message})
 
-    response = client.chat.completions.create(model="gpt-4o-mini", messages=messages)
+    response = client.chat.completions.create(
+        model=MODEL, messages=messages, max_tokens=MAX_REPLY_TOKENS,
+    )
     content = response.choices[0].message.content
     if not content:
         return "Sorry, I couldn't come up with an answer to that - try rephrasing, or email support@ai-auto-reply-mail.com."

@@ -2655,7 +2655,14 @@ def _process_instagram_message(message):
     profile_pic_url = sender_info["profile_pic_url"]
 
     print(f"[instagram-webhook] Generating AI reply for text={message['text']!r} from sender_igsid={sender_igsid}", flush=True)
-    history = previous_conversations_with(business_id, sender_igsid)
+    # sender_display, NOT sender_igsid: previous_conversations_with filters on the
+    # conversations.sender column, and save_draft_reply (below) writes sender_display
+    # into it. Passing the IGSID here matched nothing whenever get_sender_info actually
+    # resolved a username, so Instagram conversations silently had no memory at all -
+    # the bug hid because sender_display falls back to sender_igsid when the profile
+    # lookup fails, which is exactly the case that did work. The WhatsApp and Messenger
+    # processors below already pass sender_display.
+    history = previous_conversations_with(business_id, sender_display)
 
     # Faza 8/9: Pro-plan (or trialing) businesses get a smarter AI that can check the
     # Schedule for a free slot and book, cancel, or reschedule an appointment directly
