@@ -612,6 +612,32 @@ def create_database():
     """)
     cursor.execute("CREATE INDEX IF NOT EXISTS account_deletions_created_idx ON account_deletions (created_at DESC)")
 
+    # The business's own hosted public page (camilius.com/p/<slug>) - see pages.py for
+    # slug validation/reserved words, which stays out of this module the same way
+    # booking.py owns calendar math on top of appointments rather than putting it here.
+    # Deliberately does NOT duplicate working_hours/price_list/faq/business_name - the
+    # page renders those straight off the businesses row, so there is exactly one
+    # knowledge base the AI answers from and the page displays, never two copies that
+    # can drift apart. tagline/about are presentation-only extras that have no other home.
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS business_pages (
+            id SERIAL PRIMARY KEY,
+            business_id INTEGER NOT NULL REFERENCES businesses(id),
+            slug TEXT NOT NULL,
+            published BOOLEAN NOT NULL DEFAULT FALSE,
+            tagline TEXT,
+            about TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+    # One page per business for now (the ON CONFLICT target upsert_business_page relies
+    # on) - a business wanting more than one page is a later, additive change, not a
+    # migration to undo. Slug gets its own unique index since it's looked up directly by
+    # /p/<slug> and must be globally unique across every business, not just per-owner.
+    cursor.execute("CREATE UNIQUE INDEX IF NOT EXISTS business_pages_business_id_idx ON business_pages (business_id)")
+    cursor.execute("CREATE UNIQUE INDEX IF NOT EXISTS business_pages_slug_idx ON business_pages (slug)")
+
     connection.commit()
     connection.close()
 
@@ -1513,6 +1539,7 @@ def delete_business(business_id):
     cursor.execute("DELETE FROM push_tokens WHERE business_id = %s", (business_id,))
     cursor.execute("DELETE FROM client_errors WHERE business_id = %s", (business_id,))
     cursor.execute("DELETE FROM appointments WHERE business_id = %s", (business_id,))
+    cursor.execute("DELETE FROM business_pages WHERE business_id = %s", (business_id,))
     cursor.execute("DELETE FROM businesses WHERE id = %s", (business_id,))
 
     connection.commit()
@@ -2396,6 +2423,73 @@ def recent_webhook_hits(limit=20):
         "SELECT id, note, body, created_at FROM webhook_hits ORDER BY created_at DESC LIMIT %s",
         (limit,),
     )
+    result = cursor.fetchall()
+    connection.close()
+    return result
+
+
+# --- Business public page ---
+
+def get_business_page(business_id):
+    """The owning business's own page row, regardless of published state - used by the
+    settings form (an unpublished page must still show its saved slug/tagline/about) and
+    by anything that needs to know whether one exists at all. Returns None if the
+    business has never saved one."""
+    connection = connect()
+    cursor = connection.cursor()
+    cursor.execute(
+        "SELECT id, business_id, slug, published, tagline, about, created_at, updated_at FROM business_pages WHERE business_id = %s",
+        (business_id,),
+    )
+    result = cursor.fetchone()
+    connection.close()
+    return result
+
+
+def page_by_slug(slug):
+    """Looked up by the public /p/<slug> route - deliberately returns an unpublished
+    page too rather than filtering here, so the route (not this function) decides what
+    "not available" means and can 404 identically for "no such slug" and "not published
+    yet", never leaking which one it was."""
+    connection = connect()
+    cursor = connection.cursor()
+    cursor.execute(
+        "SELECT id, business_id, slug, published, tagline, about, created_at, updated_at FROM business_pages WHERE slug = %s",
+        (slug,),
+    )
+    result = cursor.fetchone()
+    connection.close()
+    return result
+
+
+def upsert_business_page(business_id, slug, published, tagline, about):
+    """Creates the business's page on first save, updates it on every save after - one
+    row per business (business_pages_business_id_idx), so this is a plain upsert rather
+    than needing a separate create/update pair. Raises UniqueViolation if `slug` is
+    already taken by a DIFFERENT business's page (business_pages_slug_idx) - the ON
+    CONFLICT target below is business_id alone, so a slug collision can't silently
+    resolve as "this business's own page" the way it would if slug were also a conflict
+    target here."""
+    connection = connect()
+    cursor = connection.cursor()
+    _execute_or_raise_unique_violation(
+        cursor,
+        """INSERT INTO business_pages (business_id, slug, published, tagline, about, updated_at)
+           VALUES (%s, %s, %s, %s, %s, CURRENT_TIMESTAMP)
+           ON CONFLICT (business_id) DO UPDATE SET
+               slug = EXCLUDED.slug, published = EXCLUDED.published,
+               tagline = EXCLUDED.tagline, about = EXCLUDED.about, updated_at = CURRENT_TIMESTAMP""",
+        (business_id, slug, published, tagline, about),
+    )
+    connection.commit()
+    connection.close()
+
+
+def published_page_slugs():
+    """Every published page's (slug, updated_at) - feeds sitemap.xml's <url> entries."""
+    connection = connect()
+    cursor = connection.cursor()
+    cursor.execute("SELECT slug, updated_at FROM business_pages WHERE published = TRUE")
     result = cursor.fetchall()
     connection.close()
     return result
