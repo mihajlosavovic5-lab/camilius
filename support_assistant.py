@@ -1,9 +1,9 @@
 """Floating in-app Support AI assistant (Faza 8) - answers questions about USING
-Camilius itself (settings, pricing, connecting Instagram, the Schedule feature, etc.),
-for the business owner (or a prospective visitor), not their customers. Deliberately a
-separate module/persona from generate_reply.py, which answers a business's OWN
-customers on its behalf using that business's own hours/prices/FAQ - this one only ever
-talks about the product."""
+Camilius itself (settings, pricing, the hosted page/widget, connecting Instagram, the
+Schedule feature, etc.), for the business owner (or a prospective visitor), not their
+customers. Deliberately a separate module/persona from generate_reply.py, which answers
+a business's OWN customers on its behalf using that business's own hours/prices/FAQ -
+this one only ever talks about the product."""
 import sys
 sys.stdout.reconfigure(encoding="utf-8")
 
@@ -22,25 +22,35 @@ MAX_MESSAGE_LENGTH = 2000
 MAX_HISTORY_MESSAGES = 12  # bounds the size/cost of a long back-and-forth in the widget
 
 KNOWLEDGE_BASE = """
-What Camilius is: a SaaS product for small businesses. It reads new Instagram DMs sent
-to a business's Instagram account and drafts an AI reply grounded in that business's own
-working hours, price list, and FAQ. By default, the AI's draft is sent to the customer
+What Camilius is: an AI that answers a business's customers and books appointments for
+them, any time of day, grounded in that business's own working hours, price list, and
+FAQ. Every account gets a hosted public page (camilius.com/p/<your-slug>) with a chat +
+booking widget built in - that page is the free delivery vehicle, not a separate
+"website builder" product. From there a business can optionally also: embed that same
+chat widget on a site they already own, and/or connect Instagram, WhatsApp, or Messenger
+so the AI answers DMs on those platforms too. By default, the AI's draft is sent
 automatically, with no manual approval step - there's an optional "Auto-send" setting
-(on by default, in App Settings) that, when turned off, makes every draft wait for the
-owner to review and approve (or edit) it in the dashboard before it's sent.
+(on by default, in App Settings) that, when turned off, makes every Instagram/WhatsApp/
+Messenger draft wait for the owner to review and approve (or edit) it in the dashboard
+before it's sent. (The public page and embedded widget always reply immediately - a
+visitor mid-conversation can't wait for manual approval, so Auto-send doesn't apply to
+those two.)
 
-Getting started: register an account, then connect an Instagram professional account
-(Business or Creator - a personal Instagram account can't be connected) via OAuth on the
-Connect Instagram screen. Once connected, the AI starts drafting replies to new DMs
-automatically. If the connection fails, the most common cause is the Instagram account
-not being a Business/Creator account, or declining the permission prompt - trying again
-usually works.
+Getting started: register an account, add working hours/price list/FAQ (or use the "Draft
+this with AI" button in Profile - describe the business in a sentence or two and the AI
+fills in a first draft of the page's tagline, about text, hours, prices, and FAQ for
+review before saving), then publish the page from Profile. Connecting Instagram/WhatsApp/
+Messenger is entirely optional and can be done any time from Profile - it never requires
+setting up the hosted page first, and vice versa.
 
-Profile page (top nav "Profile"): Business name, Instagram connection status/reconnect
-link, Working hours (a day-by-day picker, not free text), Price list (service + price +
-currency), and a free-text field to describe the business further. All of this is what
-the AI reads to answer customers - keeping it accurate and up to date directly improves
-reply quality.
+Profile page (top nav "Profile"): Business name, Working hours (a day-by-day picker, not
+free text), Price list (service + price + currency), a free-text field to describe the
+business further, and the "Your public page" card (web address/slug, tagline, about text,
+a Publish toggle, and the domain field + embed <script> snippet for putting the same chat
+widget on the business's own site). If Instagram/WhatsApp/Messenger connections are
+enabled for this account, their connect/status/disconnect controls also live here. All of
+the hours/prices/FAQ is what the AI reads to answer customers on every channel at
+once - keeping it accurate and up to date directly improves every channel's replies.
 
 Settings page (top nav "Settings", called "App Settings" internally): the Auto-send
 toggle described above, links to the Terms of Service and Privacy Policy, a button to
@@ -48,16 +58,17 @@ export all of a business's own data as a JSON file, and a "Delete account" actio
 (permanent, deletes the account and its conversation history).
 
 Dashboard (top nav "Conversations"): shows every customer question with its AI-drafted
-reply. Filters: All / Pending (awaiting approval) / Sent / Archived / Trash. Trash is
+reply, across every channel (the page, the embedded widget, Instagram, WhatsApp,
+Messenger). Filters: All / Pending (awaiting approval) / Sent / Archived / Trash. Trash is
 auto-purged after 30 days. A daily quota bar at the top shows how many messages have
-been processed today out of the daily limit (50/day).
+been processed today out of the daily limit (50/day, shared across every channel).
 
 Subscription & pricing: every new account gets a 14-day free trial with full access
 including Pro features. Starting the trial means picking a plan and adding a card via
 Paddle Checkout - nothing is charged during the trial, and we email a heads-up a few
 days before it ends. Cancel any time before then and nothing is charged at all.
 - Starter: $29/month or $290/year (2 months free on yearly) - basic AI replies to
-  Instagram DMs, up to 300 conversations per month.
+  customer messages on every connected channel, up to 300 conversations per month.
 - Pro: $59/month or $590/year (2 months free on yearly) - everything in Starter,
   plus: smart appointment scheduling via the Schedule page, automatic reminders,
   appointment cancellation, and this support assistant.
@@ -66,11 +77,19 @@ calculated automatically at checkout.
 
 Schedule page (top nav "Schedule", called "Raspored"): every business, regardless of
 plan, can view a day or week calendar and manually add or cancel appointments there.
-What's Pro-exclusive is the AI actually booking appointments BY ITSELF during an
-Instagram DM conversation: checking the calendar for a free slot, booking it
-automatically if it's open, or - if the requested time is taken - offering the customer
-the next 2 closest available times instead. Starter-plan businesses (after their trial
-ends) keep the manual calendar but the AI won't auto-book from a DM.
+What's Pro-exclusive is the AI actually booking appointments BY ITSELF during a
+conversation on any channel (the page, the embedded widget, Instagram, WhatsApp,
+Messenger): checking the calendar for a free slot, booking it automatically if it's
+open, or - if the requested time is taken - offering the customer the next 2 closest
+available times instead. Starter-plan businesses (after their trial ends) keep the
+manual calendar but the AI won't auto-book from a conversation.
+
+Connecting Instagram/WhatsApp/Messenger: entirely optional, and only available if
+enabled for this account (Profile shows connect buttons for whichever ones are). To
+connect Instagram, it must be a professional account (Business or Creator - a personal
+Instagram account can't be connected). If a connection fails, the most common cause is
+the account not being the right type, or declining the permission prompt - trying again
+usually works.
 
 Mobile app: a native Android app is available to download from the Download page -
 it mirrors the website and stays in sync automatically (there is no separate account or
@@ -90,8 +109,9 @@ SYSTEM_PROMPT = f"""You are the in-app support assistant for Camilius.
 
 You are talking to the person who owns/runs (or is considering signing up for) a
 Camilius account - NOT one of their customers. Help them understand and use Camilius
-itself: settings, pricing, connecting Instagram, and how the product works. Never
-roleplay as their business or answer on behalf of their business.
+itself: settings, pricing, the hosted page and widget, connecting Instagram/WhatsApp/
+Messenger, and how the product works. Never roleplay as their business or answer on
+behalf of their business.
 
 Knowledge base:
 {KNOWLEDGE_BASE}

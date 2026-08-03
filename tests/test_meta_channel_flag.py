@@ -6,7 +6,7 @@ something, on one representative route per shape: a login-gated connect route, a
 unauthenticated OAuth callback, and an external webhook.
 """
 import app as app_module
-from conftest import register_and_login
+from conftest import register_and_login, register_business_web
 
 
 def test_meta_channels_enabled_by_default():
@@ -52,3 +52,25 @@ def test_meta_channels_enabled_injected_into_templates(client):
     with app_module.app.test_request_context("/"):
         context = app_module.inject_meta_channels_enabled()
     assert context == {"meta_channels_enabled": True}
+
+
+def test_settings_shows_meta_connect_rows_by_default(client, unique_username, unique_email):
+    register_business_web(client, unique_username, unique_email)
+    html = client.get("/profile").get_data(as_text=True)
+    assert "Connect Instagram" in html
+    assert "Connect WhatsApp" in html
+    assert "Connect Messenger" in html
+
+
+def test_settings_hides_meta_connect_rows_when_disabled(client, unique_username, unique_email, monkeypatch):
+    # Repositioning: once META_CHANNELS_ENABLED is off, the routes these link to all
+    # 404 (see the connect/oauth/webhook tests above) - showing "Connect Instagram" etc.
+    # would just be dead links, so settings.html hides the whole row instead.
+    register_business_web(client, unique_username, unique_email)
+    monkeypatch.setattr(app_module, "META_CHANNELS_ENABLED", False)
+    html = client.get("/profile").get_data(as_text=True)
+    assert "Connect Instagram" not in html
+    assert "Connect WhatsApp" not in html
+    assert "Connect Messenger" not in html
+    # Everything else on the page must still render normally.
+    assert "Business details" in html or "Working hours" in html

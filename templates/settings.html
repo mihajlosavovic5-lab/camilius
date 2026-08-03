@@ -89,6 +89,7 @@
             </div>
             <p class="field-error hidden" id="settings-username-error"></p>
 
+            {% if meta_channels_enabled %}
             <div class="profile-instagram-field">
                 <label data-i18n="settings.instagramAccount">Instagram account</label>
                 <div class="profile-instagram-row">
@@ -147,6 +148,7 @@
                     </div>
                 </div>
             </div>
+            {% endif %}
 
             <div class="floating-field">
                 <input type="email" id="settings-contact-email-input" name="contact_email" value="{{ business.contact_email }}" placeholder=" " required>
@@ -244,6 +246,7 @@
             <input type="hidden" name="next" value="settings">
         </form>
     {% endif %}
+    {% if meta_channels_enabled %}
     {% if business.whatsapp_display_number %}
         <form method="POST" action="{{ url_for('disconnect_whatsapp') }}" id="disconnect-whatsapp-form">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
@@ -280,6 +283,7 @@
                 <div class="ig-zoom-modal-handle" id="ig-zoom-modal-handle">@{{ business.instagram_username }}</div>
             </div>
         </div>
+    {% endif %}
     {% endif %}
 
     <!-- Optional AI-drafted starting point for the business-info card above and the

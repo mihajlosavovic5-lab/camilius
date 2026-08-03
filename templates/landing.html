@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Camilius — AI replies to your business's Instagram messages{% endblock %}
+{% block title %}Camilius — AI that answers your customers and books appointments{% endblock %}
 {% block body_class %}auth landing{% endblock %}
 
 {% block structured_data %}
@@ -18,7 +18,7 @@
             "name": "Camilius AI",
             "applicationCategory": "BusinessApplication",
             "operatingSystem": "Web, Android",
-            "description": "Camilius AI reads a business's Instagram messages, drafts AI-suggested replies based on its working hours, price list, and FAQ, and can book the appointment straight into the business's schedule and notify the owner, so the owner can just review, send, or let it run on its own.",
+            "description": "Camilius AI reads a business's incoming customer messages - on its hosted page, Instagram, or WhatsApp - drafts AI-suggested replies based on its working hours, price list, and FAQ, and can book the appointment straight into the business's schedule and notify the owner, so the owner can just review, send, or let it run on its own.",
             "url": "{{ url_for('home', _external=True) }}",
             "offers": {
                 "@type": "Offer",
@@ -88,8 +88,8 @@
 <div class="content">
     <!-- Hero -->
     <section class="hero lp-hero">
-        <h1 class="lp-enter lp-enter-1"><span data-i18n="landing.hero.title1">A customer messages your business on Instagram.</span><br><span class="lp-accent" data-i18n="landing.hero.title2">Camilius already answered.</span></h1>
-        <p class="hero-subtitle lp-enter lp-enter-2"><span data-i18n="landing.hero.subtitle1">Camilius reads every Instagram message instantly, drafts a reply from your hours, prices, and FAQ, and books the appointment when needed.</span><br><span data-i18n="landing.hero.subtitle2">Sent in seconds, day or night — no customer ever waits.</span></p>
+        <h1 class="lp-enter lp-enter-1"><span data-i18n="landing.hero.title1">A customer messages your business at midnight.</span><br><span class="lp-accent" data-i18n="landing.hero.title2">Camilius already answered — and booked them for Tuesday.</span></h1>
+        <p class="hero-subtitle lp-enter lp-enter-2"><span data-i18n="landing.hero.subtitle1">Camilius reads every message instantly — on your page, Instagram, WhatsApp, or wherever your customers reach you — drafts a reply from your hours, prices, and FAQ, and books the appointment when needed.</span><br><span data-i18n="landing.hero.subtitle2">Sent in seconds, day or night — no customer ever waits.</span></p>
         <div class="hero-actions lp-enter lp-enter-3">
             {% if beta_free_mode %}
             <a href="{{ url_for('register') }}" class="button lp-shine" style="font-size: 16px; padding: 13px 28px;" data-i18n="landing.hero.ctaFree">Get started for free</a>
@@ -294,7 +294,7 @@
     <!-- Who it's for -->
     <section class="section lp-scroll-anchor" id="lp-who-for">
         <h2 class="section-title lp-reveal" data-i18n="landing.whoFor.title">Built for every business that lives in its inbox</h2>
-        <p class="lp-who-subtitle lp-reveal"><span data-i18n="landing.whoFor.subtitle1">Salons, clinics, tradespeople, vacation rentals, consultants, boutiques.</span><br><span data-i18n="landing.whoFor.subtitle2">If customers reach you on Instagram, Camilius already speaks your business.</span></p>
+        <p class="lp-who-subtitle lp-reveal"><span data-i18n="landing.whoFor.subtitle1">Salons, clinics, tradespeople, vacation rentals, consultants, boutiques.</span><br><span data-i18n="landing.whoFor.subtitle2">However customers reach you — your page, Instagram, WhatsApp — Camilius already speaks your business.</span></p>
 
         <div class="lp-who-grid lp-reveal-group">
             <div class="card lp-who-tile lp-card-hover lp-reveal">
@@ -337,13 +337,13 @@
             <div class="card step lp-card-hover lp-reveal">
                 <div class="lp-step-copy">
                     <div class="step-number lp-step-number">1</div>
-                    <h3 data-i18n="landing.howItWorks.step1.title">Connect your Instagram</h3>
+                    <h3 data-i18n="landing.howItWorks.step1.title">Set up your business</h3>
                     <p class="lp-step-desc-main" data-i18n="landing.howItWorks.step1.desc">Add your hours, prices, and FAQ.</p>
-                    <p class="lp-step-desc-sub"><span data-i18n="landing.howItWorks.step1.descSub1">Connects to Instagram Business in one click.</span> <span data-i18n="landing.howItWorks.step1.descSub2">Secure — no passwords shared.</span></p>
+                    <p class="lp-step-desc-sub"><span data-i18n="landing.howItWorks.step1.descSub1">Get a hosted page and AI chat in minutes.</span> <span data-i18n="landing.howItWorks.step1.descSub2">Secure — no passwords shared.</span></p>
                 </div>
                 <div class="lp-step-visual">
                     <span class="lp-step-visual-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg></span>
-                    <span data-i18n="landing.howItWorks.step1.visual">@yourbusiness connected</span>
+                    <span data-i18n="landing.howItWorks.step1.visual">Your page & AI are live</span>
                     <span class="lp-step-visual-check" aria-hidden="true">&#10003;</span>
                 </div>
             </div>
@@ -351,7 +351,7 @@
                 <div class="lp-step-copy">
                     <div class="step-number lp-step-number">2</div>
                     <h3 data-i18n="landing.howItWorks.step2.title">AI drafts replies</h3>
-                    <p class="lp-step-desc-main" data-i18n="landing.howItWorks.step2.desc">Reads every new DM instantly.</p>
+                    <p class="lp-step-desc-main" data-i18n="landing.howItWorks.step2.desc">Reads every new message instantly.</p>
                     <p class="lp-step-desc-sub" data-i18n="landing.howItWorks.step2.descSub">Drafts an accurate reply in the customer's language.</p>
                 </div>
                 <div class="lp-step-visual lp-step-visual-typing">
@@ -423,7 +423,7 @@
                 <p class="note pricing-yearly-total hidden" data-i18n="subscription.savedYearlyStarter">Save 58$</p>
                 <span class="trial-info" data-i18n="landing.pricing.trialInfo">14-day free trial</span>
                 <ul class="benefits">
-                    <li><span class="checkmark">&#10003;</span> <span data-i18n="subscription.starter.benefit1">Basic AI replies to Instagram DMs</span></li>
+                    <li><span class="checkmark">&#10003;</span> <span data-i18n="subscription.starter.benefit1">Basic AI replies to customer messages</span></li>
                     <li><span class="checkmark">&#10003;</span> <span data-i18n="subscription.starter.benefit2">Up to 300 conversations / month</span></li>
                     <li><span class="checkmark">&#10003;</span> <span data-i18n="landing.pricing.benefit3">Cancel anytime</span></li>
                     <li><span class="crossmark">&#10007;</span> <span class="benefit-missing" data-i18n="subscription.pro.benefit2">Smart appointment scheduling to calendar</span></li>
@@ -468,7 +468,7 @@
                     <span class="brand-mark">C</span>
                     <span class="brand-name">Camilius</span>
                 </span>
-                <p data-i18n="landing.footer.tagline">AI reads your customers' Instagram messages, replies automatically, and books appointments when needed.</p>
+                <p data-i18n="landing.footer.tagline">AI answers your customers and books appointments automatically — with a hosted page included.</p>
             </div>
             <div class="lp-footer-cols">
                 <div class="lp-footer-col">
