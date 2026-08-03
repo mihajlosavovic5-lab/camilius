@@ -638,6 +638,17 @@ def create_database():
     cursor.execute("CREATE UNIQUE INDEX IF NOT EXISTS business_pages_business_id_idx ON business_pages (business_id)")
     cursor.execute("CREATE UNIQUE INDEX IF NOT EXISTS business_pages_slug_idx ON business_pages (slug)")
 
+    # F5: the one external origin (scheme + host[:port], e.g. "https://example.com", no
+    # path) this business has authorized to iframe their /w/<slug> embeddable widget -
+    # see pages.py's normalize_widget_domain/app.py's set_security_headers. NULL means
+    # "no domain approved yet": /w/<slug> still renders (a business can preview it by
+    # navigating there directly), but the CSP frame-ancestors app.py sends for that
+    # route falls back to 'none', so no site anywhere can actually embed it in an
+    # iframe until this is set. A single origin, not a list, for the same "ship the
+    # simple version first" reason business_pages is one page per business - broaden to
+    # a list later if a business ever actually asks to embed on more than one site.
+    cursor.execute("ALTER TABLE business_pages ADD COLUMN IF NOT EXISTS widget_domain TEXT")
+
     connection.commit()
     connection.close()
 
@@ -2461,7 +2472,7 @@ def get_business_page(business_id):
     connection = connect()
     cursor = connection.cursor()
     cursor.execute(
-        "SELECT id, business_id, slug, published, tagline, about, created_at, updated_at FROM business_pages WHERE business_id = %s",
+        "SELECT id, business_id, slug, published, tagline, about, created_at, updated_at, widget_domain FROM business_pages WHERE business_id = %s",
         (business_id,),
     )
     result = cursor.fetchone()
@@ -2470,14 +2481,14 @@ def get_business_page(business_id):
 
 
 def page_by_slug(slug):
-    """Looked up by the public /p/<slug> route - deliberately returns an unpublished
-    page too rather than filtering here, so the route (not this function) decides what
-    "not available" means and can 404 identically for "no such slug" and "not published
-    yet", never leaking which one it was."""
+    """Looked up by the public /p/<slug> and /w/<slug> routes - deliberately returns an
+    unpublished page too rather than filtering here, so the route (not this function)
+    decides what "not available" means and can 404 identically for "no such slug" and
+    "not published yet", never leaking which one it was."""
     connection = connect()
     cursor = connection.cursor()
     cursor.execute(
-        "SELECT id, business_id, slug, published, tagline, about, created_at, updated_at FROM business_pages WHERE slug = %s",
+        "SELECT id, business_id, slug, published, tagline, about, created_at, updated_at, widget_domain FROM business_pages WHERE slug = %s",
         (slug,),
     )
     result = cursor.fetchone()
@@ -2485,7 +2496,7 @@ def page_by_slug(slug):
     return result
 
 
-def upsert_business_page(business_id, slug, published, tagline, about):
+def upsert_business_page(business_id, slug, published, tagline, about, widget_domain=None):
     """Creates the business's page on first save, updates it on every save after - one
     row per business (business_pages_business_id_idx), so this is a plain upsert rather
     than needing a separate create/update pair. Raises UniqueViolation if `slug` is
@@ -2497,12 +2508,13 @@ def upsert_business_page(business_id, slug, published, tagline, about):
     cursor = connection.cursor()
     _execute_or_raise_unique_violation(
         cursor,
-        """INSERT INTO business_pages (business_id, slug, published, tagline, about, updated_at)
-           VALUES (%s, %s, %s, %s, %s, CURRENT_TIMESTAMP)
+        """INSERT INTO business_pages (business_id, slug, published, tagline, about, widget_domain, updated_at)
+           VALUES (%s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP)
            ON CONFLICT (business_id) DO UPDATE SET
                slug = EXCLUDED.slug, published = EXCLUDED.published,
-               tagline = EXCLUDED.tagline, about = EXCLUDED.about, updated_at = CURRENT_TIMESTAMP""",
-        (business_id, slug, published, tagline, about),
+               tagline = EXCLUDED.tagline, about = EXCLUDED.about, widget_domain = EXCLUDED.widget_domain,
+               updated_at = CURRENT_TIMESTAMP""",
+        (business_id, slug, published, tagline, about, widget_domain),
     )
     connection.commit()
     connection.close()

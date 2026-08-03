@@ -4,6 +4,7 @@ reserved-word denylist. Actual persistence lives in database.py
 non-database rules on top of it, same separation booking.py has for calendar math.
 """
 import re
+from urllib.parse import urlparse
 
 import booking
 
@@ -87,3 +88,28 @@ def opening_hours_display(working_hours_text):
         )
         for weekday, hours in sorted(parsed.items())
     ]
+
+
+def normalize_widget_domain(raw):
+    """Turns whatever a business types into settings.html's widget-domain field ("
+    example.com", "https://www.example.com/", "http://example.com") into a bare
+    "https://host[:port]" origin - the exact form app.py's set_security_headers needs to
+    drop straight into a CSP frame-ancestors source list. Always forces https: regardless
+    of what (or whether) a scheme was typed, since a plaintext-http parent page embedding
+    an https iframe is either already broken (mixed content) or a business's mistake, not
+    a scheme this product should offer to serve over. Returns None for anything that
+    doesn't resolve to a usable host (empty input, a bare path, a scheme with no host) -
+    callers treat that as "leave widget_domain unset", the same "no domain approved yet"
+    state a business that has never touched this field is already in, rather than saving
+    a value that would just make every embed attempt fail against a NULL match anyway."""
+    raw = (raw or "").strip()
+    if not raw:
+        return None
+    parsed = urlparse(raw if "://" in raw else f"https://{raw}")
+    host = parsed.hostname
+    if not host:
+        return None
+    origin = f"https://{host}"
+    if parsed.port:
+        origin += f":{parsed.port}"
+    return origin

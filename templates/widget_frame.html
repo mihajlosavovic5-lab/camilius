@@ -1,0 +1,273 @@
+<!doctype html>
+<!--
+    F5: the embeddable widget's own iframe content, served at GET /w/<slug> and loaded
+    by the small loader script at GET /widget.js on a business's OWN external site. Not
+    the same template as public_page.html's inline widget markup, even though the UI is
+    nearly identical - this one fills 100% of a small resizable iframe rather than
+    floating fixed over a whole viewport (the *parent* page owns that positioning, via
+    widget.js resizing the <iframe> element itself), and it postMessages its open/closed
+    state back to the parent so widget.js knows how big to make the iframe. See app.py's
+    widget_frame()/set_security_headers - the CSP frame-ancestors this page is served
+    with is the actual security boundary controlling who's allowed to embed it at all;
+    this template has no opinion on that.
+-->
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Chat</title>
+<meta name="robots" content="noindex, nofollow">
+<style>
+    :root {
+        --primary: #d69410;
+        --surface: #ffffff;
+        --text: #2b2013;
+        --text-muted: #6b5d47;
+        --border: #eee3d0;
+        --background: #fdfcfa;
+    }
+    @media (prefers-color-scheme: dark) {
+        :root {
+            --primary: #ffd83d;
+            --surface: #2a2216;
+            --text: #f5efe2;
+            --text-muted: #b8ab90;
+            --border: #43392a;
+            --background: #201a10;
+        }
+    }
+    * { box-sizing: border-box; }
+    html, body {
+        margin: 0;
+        height: 100%;
+        background: transparent;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        color: var(--text);
+        overflow: hidden;
+    }
+    .widget-fab {
+        position: absolute;
+        right: 0;
+        bottom: 0;
+        width: 64px;
+        height: 64px;
+        border-radius: 50%;
+        border: none;
+        background: var(--primary);
+        color: #201a10;
+        cursor: pointer;
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .widget-fab svg {
+        width: 26px;
+        height: 26px;
+    }
+    .widget-panel {
+        position: absolute;
+        inset: 0;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3);
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+    }
+    .widget-panel.hidden {
+        display: none;
+    }
+    .widget-header {
+        padding: 14px 16px;
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+    }
+    .widget-header p {
+        margin: 0;
+        font-weight: 600;
+    }
+    .widget-header span {
+        font-size: 0.8rem;
+        color: var(--text-muted);
+    }
+    .widget-close {
+        border: none;
+        background: none;
+        font-size: 1.3rem;
+        line-height: 1;
+        cursor: pointer;
+        color: var(--text-muted);
+        padding: 4px;
+    }
+    .widget-messages {
+        flex: 1;
+        overflow-y: auto;
+        padding: 14px 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+    .widget-msg {
+        max-width: 85%;
+        padding: 9px 12px;
+        border-radius: 12px;
+        font-size: 0.92rem;
+        line-height: 1.4;
+        white-space: pre-line;
+        overflow-wrap: break-word;
+    }
+    .widget-msg-user {
+        align-self: flex-end;
+        background: var(--primary);
+        color: #201a10;
+        border-bottom-right-radius: 4px;
+    }
+    .widget-msg-bot {
+        align-self: flex-start;
+        background: var(--background);
+        border: 1px solid var(--border);
+        border-bottom-left-radius: 4px;
+    }
+    .widget-msg-typing {
+        opacity: 0.6;
+    }
+    .widget-form {
+        display: flex;
+        gap: 8px;
+        padding: 12px;
+        border-top: 1px solid var(--border);
+    }
+    .widget-form input {
+        flex: 1;
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 10px 12px;
+        font-size: 0.92rem;
+        background: var(--background);
+        color: var(--text);
+        min-width: 0;
+    }
+    .widget-form button {
+        border: none;
+        border-radius: 10px;
+        background: var(--primary);
+        color: #201a10;
+        padding: 0 16px;
+        font-weight: 600;
+        cursor: pointer;
+    }
+</style>
+</head>
+<body>
+<button type="button" class="widget-fab" id="widget-fab" aria-label="Chat with {{ business_name }}">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+        <path d="M4 5.5a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H9l-4 3.5v-3.5H6a2 2 0 0 1-2-2z" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+</button>
+<div class="widget-panel hidden" id="widget-panel">
+    <div class="widget-header">
+        <div>
+            <p>{{ business_name }}</p>
+            <span>Usually replies in seconds</span>
+        </div>
+        <button type="button" class="widget-close" id="widget-close" aria-label="Close">&times;</button>
+    </div>
+    <div class="widget-messages" id="widget-messages"></div>
+    <form class="widget-form" id="widget-form">
+        <input type="text" id="widget-input" placeholder="Ask a question or book a time..." autocomplete="off">
+        <button type="submit">Send</button>
+    </form>
+</div>
+<script>
+(function () {
+    var fab = document.getElementById("widget-fab");
+    var panel = document.getElementById("widget-panel");
+    var closeBtn = document.getElementById("widget-close");
+    var messagesEl = document.getElementById("widget-messages");
+    var form = document.getElementById("widget-form");
+    var input = document.getElementById("widget-input");
+    var chatUrl = {{ chat_url | tojson }};
+    // The exact origin widget.js's loader script was fetched from on the business's own
+    // site - this page is only ever meant to run inside an iframe there (see
+    // app.py's widget_frame()/set_security_headers, which is the actual boundary
+    // enforcing that), so targeting postMessage at "*" would just be needless - "*"
+    // only kicks in for the harmless case of someone opening /w/<slug> directly, where
+    // window.parent === window and this message never leaves the page anyway.
+    var parentOrigin = {{ widget_domain | tojson }} || "*";
+    var open = false;
+    var greeted = false;
+
+    var SESSION_KEY = "camilius_widget_chat_" + {{ slug | tojson }};
+    var sessionId;
+    try {
+        sessionId = localStorage.getItem(SESSION_KEY);
+        if (!sessionId) {
+            sessionId = "web:" + (window.crypto && crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2) + Date.now());
+            localStorage.setItem(SESSION_KEY, sessionId);
+        }
+    } catch (e) {
+        sessionId = "web:" + Date.now() + Math.random().toString(36).slice(2);
+    }
+
+    function addMessage(role, text) {
+        var el = document.createElement("div");
+        el.className = "widget-msg widget-msg-" + (role === "user" ? "user" : "bot");
+        el.textContent = text;
+        messagesEl.appendChild(el);
+        messagesEl.scrollTop = messagesEl.scrollHeight;
+        return el;
+    }
+
+    function setOpen(value) {
+        open = value;
+        fab.classList.toggle("hidden", open);
+        panel.classList.toggle("hidden", !open);
+        try { window.parent.postMessage({ source: "camilius-widget", open: open }, parentOrigin); } catch (e) {}
+        if (open && !greeted) {
+            greeted = true;
+            addMessage("bot", "Hi! Ask me anything about {{ business_name }}, or book a time that works for you.");
+            input.focus();
+        }
+    }
+
+    fab.addEventListener("click", function () { setOpen(true); });
+    closeBtn.addEventListener("click", function () { setOpen(false); });
+
+    form.addEventListener("submit", function (event) {
+        event.preventDefault();
+        var text = input.value.trim();
+        if (!text) return;
+        input.value = "";
+        input.disabled = true;
+        addMessage("user", text);
+        var typingEl = addMessage("bot", "...");
+        typingEl.classList.add("widget-msg-typing");
+
+        fetch(chatUrl, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ message: text, session_id: sessionId }),
+        })
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+                typingEl.remove();
+                addMessage("bot", data.reply || "Sorry, something went wrong - please try again.");
+            })
+            .catch(function () {
+                typingEl.remove();
+                addMessage("bot", "Sorry, something went wrong - please try again.");
+            })
+            .finally(function () {
+                input.disabled = false;
+                input.focus();
+            });
+    });
+})();
+</script>
+</body>
+</html>

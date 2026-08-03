@@ -356,6 +356,23 @@
             </label>
         </div>
 
+        <!-- F5: already have your own site? Embed the same chat + booking widget there
+             instead of (or alongside) this hosted page - one approved domain, checked
+             server-side (app.py's set_security_headers) against whatever's saved here
+             before that domain is allowed to iframe /w/<slug> at all. -->
+        <div class="floating-field" style="margin-top: 16px;">
+            <input type="text" id="settings-page-widget-domain-input" name="widget_domain" value="{{ page.widget_domain if page else '' }}" placeholder=" " autocapitalize="off" autocorrect="off" maxlength="255">
+            <label for="settings-page-widget-domain-input">Embed on your own site (domain, e.g. yoursite.com)</label>
+        </div>
+        <p class="note">Allow this one website to embed your chat widget in an iframe. Leave blank to keep it off other sites.</p>
+
+        {% if page and page.published and page.widget_domain %}
+        <div class="note" style="margin-top: 8px;">
+            <p style="margin: 0 0 6px;">Paste this where you want the chat bubble to appear on {{ page.widget_domain }}:</p>
+            <code style="display: block; padding: 10px; background: var(--background); border: 1px solid var(--border); border-radius: 8px; overflow-x: auto; white-space: pre;">&lt;script src="{{ url_for('widget_loader_js', _external=True) }}?slug={{ page.slug }}" async&gt;&lt;/script&gt;</code>
+        </div>
+        {% endif %}
+
         <div class="form-actions" style="text-align: right;">
             <button class="button" type="submit">Save page</button>
         </div>

@@ -7,7 +7,7 @@ from functools import wraps
 
 import requests
 from dotenv import load_dotenv
-from flask import Flask, render_template, request, redirect, url_for, session, abort, jsonify, send_from_directory, Response
+from flask import Flask, render_template, request, redirect, url_for, session, abort, jsonify, send_from_directory, Response, g
 from flask_wtf import CSRFProtect
 from werkzeug.middleware.proxy_fix import ProxyFix
 from werkzeug.security import check_password_hash
@@ -267,7 +267,11 @@ def no_store_authenticated_pages(response):
 # site blocked automated fetches while building this; if checkout fails to open once real
 # PADDLE_PRICE_*/PADDLE_CLIENT_TOKEN are set, check the browser console for a CSP
 # violation first and tighten/adjust this list from whatever it names.)
-_CSP = (
+# {frame_ancestors} is filled in by set_security_headers below - 'self' for every normal
+# response, but the one exception (GET /w/<slug>, the F5 embeddable widget - see
+# widget_frame()) needs a per-business external origin instead, since that response is
+# supposed to be framed by someone else's page.
+_CSP_TEMPLATE = (
     "default-src 'self'; "
     "script-src 'self' 'unsafe-inline' https://cdn.paddle.com; "
     "style-src 'self' 'unsafe-inline'; "
@@ -278,16 +282,33 @@ _CSP = (
     # feature never actually worked (caught testing this, not by design).
     "connect-src 'self' https://*.paddle.com https://ipapi.co; "
     "frame-src https://*.paddle.com; "
-    "frame-ancestors 'self'; "
+    "frame-ancestors {frame_ancestors}; "
     "base-uri 'self'; "
     "object-src 'none'"
 )
+_CSP = _CSP_TEMPLATE.format(frame_ancestors="'self'")
 
 
 @app.after_request
 def set_security_headers(response):
-    response.headers["Content-Security-Policy"] = _CSP
-    response.headers["X-Frame-Options"] = "SAMEORIGIN"
+    if request.path.startswith("/w/"):
+        # The embeddable widget iframe (widget_frame() above) - the one response on this
+        # whole site that's SUPPOSED to be framed by someone else's page. It stashes the
+        # business's own approved embed origin on flask.g while rendering (no extra DB
+        # lookup here); nothing set (no domain approved yet, or the route 404'd before
+        # reaching that line) falls back to 'none' - deny framing entirely, the same safe
+        # default a business that's never touched the widget-domain field is already in.
+        # X-Frame-Options has no syntax for "this one specific external origin" (only
+        # SAMEORIGIN/DENY/the dead ALLOW-FROM), so it's omitted entirely here rather than
+        # set to something that would just contradict the CSP frame-ancestors below,
+        # which is what every modern browser actually honors for this.
+        ancestor = getattr(g, "widget_frame_ancestor", None)
+        response.headers["Content-Security-Policy"] = _CSP_TEMPLATE.format(
+            frame_ancestors=f"'self' {ancestor}" if ancestor else "'none'"
+        )
+    else:
+        response.headers["Content-Security-Policy"] = _CSP
+        response.headers["X-Frame-Options"] = "SAMEORIGIN"
     response.headers["X-Content-Type-Options"] = "nosniff"
     response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
     if not app.debug:
@@ -1218,12 +1239,13 @@ def settings():
     messenger_page_name = business[19]
     pro_access = BETA_FREE_MODE or has_pro_access(business_id)
     # get_business_page returns a plain positional row (id, business_id, slug,
-    # published, tagline, about, created_at, updated_at) or None - turned into a dict
-    # here, same as `business` is built as a dict below, so settings.html can use
-    # page.slug/page.tagline/... instead of a second set of magic indices.
+    # published, tagline, about, created_at, updated_at, widget_domain) or None - turned
+    # into a dict here, same as `business` is built as a dict below, so settings.html
+    # can use page.slug/page.tagline/... instead of a second set of magic indices.
     page_row = get_business_page(business_id)
     business_page = None if page_row is None else {
         "slug": page_row[2], "published": page_row[3], "tagline": page_row[4], "about": page_row[5],
+        "widget_domain": page_row[8],
     }
     page_error = request.args.get("page_error")
 
@@ -1525,6 +1547,12 @@ def save_business_page():
     tagline = (request.form.get("tagline") or "").strip()[:200] or None
     about = (request.form.get("about") or "").strip()[:2000] or None
     published = bool(request.form.get("published"))
+    # F5: the one external origin allowed to embed this business's /w/<slug> widget in
+    # an iframe elsewhere (see pages.normalize_widget_domain/app.py's
+    # set_security_headers) - None if the field was left blank or didn't parse to a
+    # usable host, same "no domain approved yet" state a business that's never touched
+    # this field is already in.
+    widget_domain = pages.normalize_widget_domain(request.form.get("widget_domain"))
 
     # A valid slug is required even to save a draft (published=False) - there is nothing
     # useful to store without one, and requiring it up front means a business never ends
@@ -1534,7 +1562,7 @@ def save_business_page():
         return redirect(url_for("settings", page_error="Please choose a web address using only lowercase letters, numbers, and hyphens."))
 
     try:
-        upsert_business_page(business_id, slug, published, tagline, about)
+        upsert_business_page(business_id, slug, published, tagline, about, widget_domain)
     except UniqueViolation:
         return redirect(url_for("settings", page_error="That web address is already taken - please choose another."))
 
@@ -1567,6 +1595,7 @@ def generate_business_page():
     page_row = get_business_page(business_id)
     saved_page = None if page_row is None else {
         "slug": page_row[2], "published": page_row[3], "tagline": page_row[4], "about": page_row[5],
+        "widget_domain": page_row[8],
     }
 
     description = (request.form.get("description") or "").strip()
@@ -1599,12 +1628,13 @@ def generate_business_page():
             "faq": format_faq(draft["faq"]),
             "upsell_pairs": get_upsell_pairs(business_id),
         }
-        # Keeps whatever slug/published state is already saved (a generated draft has no
-        # opinion on the web address or whether it's live) and only overwrites the
-        # presentation fields the AI actually drafted.
+        # Keeps whatever slug/published/widget_domain state is already saved (a
+        # generated draft has no opinion on the web address, whether it's live, or the
+        # widget) and only overwrites the presentation fields the AI actually drafted.
         page_view = {
             "slug": saved_page["slug"] if saved_page else "",
             "published": saved_page["published"] if saved_page else False,
+            "widget_domain": saved_page["widget_domain"] if saved_page else None,
             "tagline": draft["tagline"],
             "about": draft["about"],
         }
@@ -1912,6 +1942,79 @@ def public_page_chat(slug):
         # far as the widget is concerned, not an error it needs to handle specially.
         return jsonify(reply="I'm not able to answer right now - please try again later or contact us directly.")
     return jsonify(reply=result["reply_text"])
+
+
+# F5: the embeddable widget for a business that already has its own site - a small
+# <iframe> (see widget_frame.html) loaded by the equally small loader script at
+# GET /widget.js below, both reusing the exact same /p/<slug>/chat backend the hosted
+# page's own inline widget already calls (see public_page_chat above - it doesn't care
+# whether the request came from our own page or someone else's iframe). page_by_slug()
+# returns an unpublished page too, same "no such slug" and "not published yet" 404
+# identically" reasoning as public_page() above.
+@app.route("/w/<slug>")
+def widget_frame(slug):
+    page = page_by_slug(slug)
+    if page is None or not page[3]:
+        abort(404)
+    business = business_by_id(page[1])
+    if business is None:
+        abort(404)
+    # Read by set_security_headers below (via flask.g, not a second DB lookup) to build
+    # this response's own CSP frame-ancestors - the actual mechanism that decides
+    # whether any site is allowed to embed this in an iframe at all. None (no domain
+    # approved yet) still renders fine on a direct visit; it just can't be embedded
+    # anywhere until the business sets one in Settings.
+    g.widget_frame_ancestor = page[8]
+    return render_template(
+        "widget_frame.html",
+        business_name=business[1],
+        chat_url=url_for("public_page_chat", slug=slug),
+        slug=slug,
+        widget_domain=page[8],
+    )
+
+
+# The tiny script a business pastes onto their OWN site's HTML to get the widget:
+# <script src=".../widget.js?slug=their-slug" async></script>. Reads its own slug back
+# off document.currentScript's URL (no server-side templating needed - one identical
+# script works for every business), creates one small fixed-position iframe pointing at
+# /w/<slug> above, and resizes that iframe between a small closed "bubble" footprint and
+# a larger open "panel" footprint on postMessage from inside it - the parent page's own
+# layout is never touched beyond that one positioned element.
+_WIDGET_LOADER_JS = """
+(function () {
+    var script = document.currentScript;
+    if (!script) return;
+    var src = new URL(script.src, window.location.href);
+    var slug = src.searchParams.get("slug");
+    if (!slug) return;
+    var origin = src.origin;
+
+    var iframe = document.createElement("iframe");
+    iframe.src = origin + "/w/" + encodeURIComponent(slug);
+    iframe.title = "Chat";
+    iframe.style.cssText = "position:fixed;bottom:20px;right:20px;width:84px;height:84px;"
+        + "border:none;z-index:2147483000;background:transparent;"
+        + "transition:width .2s ease,height .2s ease;colorScheme:light dark;";
+    document.body.appendChild(iframe);
+
+    window.addEventListener("message", function (event) {
+        if (event.origin !== origin || !event.data || event.data.source !== "camilius-widget") return;
+        if (event.data.open) {
+            iframe.style.width = Math.min(380, window.innerWidth - 32) + "px";
+            iframe.style.height = Math.min(620, window.innerHeight - 32) + "px";
+        } else {
+            iframe.style.width = "84px";
+            iframe.style.height = "84px";
+        }
+    });
+})();
+"""
+
+
+@app.route("/widget.js")
+def widget_loader_js():
+    return Response(_WIDGET_LOADER_JS, mimetype="application/javascript")
 
 
 @app.route("/sitemap.xml")
