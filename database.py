@@ -994,6 +994,29 @@ def replies_today_count(business_id):
     return count
 
 
+def page_chat_session_messages_today(business_id, session_key):
+    """How many public-page chat messages this one anonymous visitor session has sent
+    today - the per-session leg of public_page_chat()'s (app.py) cost protection,
+    alongside the per-IP/per-slug Flask-Limiter throttle and replies_today_count()'s
+    existing business-wide daily cap above. Must live in the database, not the in-memory
+    limiter: a visitor's session token survives in their browser's localStorage across a
+    Railway redeploy, so a limiter reset must not reset this too. Scoped to sender_igsid
+    (see ai_replies.py's _SENDER_KEY_KWARG - 'web' reuses the same column Instagram's
+    IGSID lives in, there being no reason for a fourth per-channel sender-id column)."""
+    connection = connect()
+    cursor = connection.cursor()
+
+    cursor.execute(
+        "SELECT COUNT(*) FROM conversations WHERE business_id = %s AND channel = 'web' "
+        "AND sender_igsid = %s AND created_at::date = CURRENT_DATE",
+        (business_id, session_key),
+    )
+    count = cursor.fetchone()[0]
+
+    connection.close()
+    return count
+
+
 def save_draft_reply(business_id, sender, question, suggested_reply, subject=None, sender_igsid=None,
                       profile_pic_url=None, channel="instagram", sender_wa_id=None, sender_psid=None):
     # subject only ever came from email (there's no such thing on an Instagram DM) - kept

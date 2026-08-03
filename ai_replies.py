@@ -30,9 +30,13 @@ DAILY_REPLY_LIMIT = 50
 # save_draft_reply stores each channel's sender id under its own column/kwarg
 # (sender_igsid/sender_wa_id/sender_psid) rather than one generic one - see
 # database.py's own comment on conversations.channel for why. This maps the channel
-# string to that kwarg so callers don't each have to know it. A channel not listed here
-# (e.g. "web", added later) simply gets no sender-id kwarg passed.
-_SENDER_KEY_KWARG = {"instagram": "sender_igsid", "whatsapp": "sender_wa_id", "messenger": "sender_psid"}
+# string to that kwarg so callers don't each have to know it. "web" (the public page's
+# chat) reuses sender_igsid rather than getting a fourth column of its own - nothing
+# reads that column as "must be an Instagram id" (send_channel_reply in app.py switches
+# on the channel column first, not on which sender-id column is populated), and reusing
+# it is what lets database.page_chat_session_messages_today() count a visitor session's
+# own messages without a schema change.
+_SENDER_KEY_KWARG = {"instagram": "sender_igsid", "whatsapp": "sender_wa_id", "messenger": "sender_psid", "web": "sender_igsid"}
 
 
 def handle_incoming_message(business, business_id, channel, message_id, text, resolve_sender, deliver, log_prefix=None):
@@ -53,7 +57,8 @@ def handle_incoming_message(business, business_id, channel, message_id, text, re
         sender_key itself when no display name is available - not this function's
         concern, each resolve_sender already handles its own fallback).
     deliver: callable(reply_text) -> None, called only when auto-send is on for this
-        business. Must raise on failure - caught broadly here (not narrowed to e.g.
+        business (always true for channel == "web" - see the auto_sent block below).
+        Must raise on failure - caught broadly here (not narrowed to e.g.
         requests.RequestException, since a future channel's deliver won't necessarily
         raise that) and treated as "leave the draft pending", never as a reason to
         abort the rest of this function.
@@ -61,7 +66,8 @@ def handle_incoming_message(business, business_id, channel, message_id, text, re
     Returns None if the message was skipped for a gating reason (inactive subscription,
     daily limit, already processed) - callers that need to distinguish "skipped" from
     "handled" check for that. Otherwise a dict with new_conversation_id, sender_display,
-    and auto_sent, for anything the caller wants beyond the owner push already sent here.
+    auto_sent, and reply_text, for anything the caller wants beyond the owner push
+    already sent here.
     """
     from app import BETA_FREE_MODE  # deferred: avoid a circular import at module load, same as reminders.py
 
@@ -146,8 +152,15 @@ def handle_incoming_message(business, business_id, channel, message_id, text, re
     # case it waits for manual approval instead. Falls back to a normal pending draft if
     # delivery itself fails (most likely Meta's 24h reply window), same as the
     # dashboard's own manual send route.
+    #
+    # Web chat always bypasses that setting: a page visitor is watching a live spinner
+    # for `deliver`'s return value (see public_page_chat() in app.py, whose `deliver` is
+    # a no-op - the HTTP response itself is the delivery), and there's no such thing as
+    # "leave it pending for manual approval" for someone who is mid-conversation right
+    # now. auto_send off only ever meant "don't auto-reply on Instagram/WhatsApp/
+    # Messenger without a human checking first" - it was never a statement about the page.
     auto_sent = False
-    if is_auto_send_enabled(business_id):
+    if channel == "web" or is_auto_send_enabled(business_id):
         try:
             deliver(suggested_reply)
             mark_sent(new_conversation_id, suggested_reply)
@@ -167,4 +180,10 @@ def handle_incoming_message(business, business_id, channel, message_id, text, re
         # A push failure must never block draft processing
         print(f"{prefix} Push notification failed: {error}", flush=True)
 
-    return {"new_conversation_id": new_conversation_id, "sender_display": sender_display, "auto_sent": auto_sent}
+    return {
+        "new_conversation_id": new_conversation_id, "sender_display": sender_display, "auto_sent": auto_sent,
+        # Meta channels' `deliver` already sent this through their own API - only
+        # public_page_chat() (app.py) needs the text itself back, to put in its HTTP
+        # response for the widget to show.
+        "reply_text": suggested_reply,
+    }

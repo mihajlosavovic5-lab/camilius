@@ -42,6 +42,7 @@ from database import (
     is_new_booking_notifications_enabled, set_new_booking_notifications_enabled,
     record_account_deletion, recent_account_deletions, ACCOUNT_DELETION_REASONS,
     get_business_page, page_by_slug, upsert_business_page, published_page_slugs,
+    page_chat_session_messages_today,
     UniqueViolation,
 )
 from send_email import send_email
@@ -1831,7 +1832,76 @@ def public_page(slug):
         opening_hours_schema=pages.opening_hours_schema(business[8]),
         opening_hours_display=pages.opening_hours_display(business[8]),
         page_url=url_for("public_page", slug=slug, _external=True),
+        chat_url=url_for("public_page_chat", slug=slug),
+        slug=slug,
     )
+
+
+# How many page-chat messages one anonymous visitor session (the browser's own
+# localStorage token - see public_page.html's script block - not an IP, which a visitor
+# on mobile data can change mid-conversation) may send in a day. This is one of three
+# cost-protection layers on public_page_chat() below, the first surface reachable by
+# anyone on the internet without an account: Flask-Limiter's per-IP and per-slug limits
+# just below throttle bursts but reset on every deploy (extensions.py's limiter has no
+# storage_uri - in-memory only); replies_today_count()'s existing business-wide daily cap
+# (still enforced inside ai_replies.handle_incoming_message for every channel, web
+# included) bounds the aggregate worst case; this bounds what a single token can do
+# regardless of either, and - being a database count, not a limiter count - survives a
+# redeploy exactly like the visitor's own localStorage token does. Generous enough for a
+# real multi-message booking conversation, bounded against a replayed/scripted token.
+PAGE_CHAT_SESSION_DAILY_LIMIT = 40
+
+# session_id is never trusted for anything but keying its own rate limit/history/booking
+# lookups (see ai_replies._SENDER_KEY_KWARG's "web" entry) - this only rejects obviously
+# wrong input (missing, empty, absurdly long), not full UUID validation.
+def _valid_page_chat_session_id(value):
+    return isinstance(value, str) and 8 <= len(value) <= 128
+
+
+@app.route("/p/<slug>/chat", methods=["POST"])
+@csrf.exempt  # anonymous page visitor, no session/CSRF token of ours - rate-limited below instead
+@limiter.limit("20 per hour")  # per IP (Flask-Limiter's default key)
+@limiter.limit("300 per hour", key_func=lambda: request.view_args.get("slug", ""))  # per business page, across all visitors
+def public_page_chat(slug):
+    page = page_by_slug(slug)
+    if page is None or not page[3]:
+        abort(404)
+    business_id = page[1]
+    business = business_by_id(business_id)
+    if business is None:
+        abort(404)
+
+    data = request.get_json(silent=True) or {}
+    message = (data.get("message") or "").strip()[:2000]
+    session_id = data.get("session_id")
+    if not message or not _valid_page_chat_session_id(session_id):
+        abort(400)
+
+    if page_chat_session_messages_today(business_id, session_id) >= PAGE_CHAT_SESSION_DAILY_LIMIT:
+        return jsonify(reply="I've answered a lot of questions today - please contact us directly for anything else.")
+
+    def resolve_sender():
+        # No real name to resolve (unlike Instagram/WhatsApp) - sender_display only
+        # needs to be unique per session, since previous_conversations_with() (this
+        # visitor's own chat memory) matches on it exactly. The session token's own tail
+        # already guarantees that; a human-readable label is just for the dashboard.
+        return session_id, f"Web visitor #{session_id[-6:]}", None
+
+    def deliver(reply_text):
+        # "Delivering" a page-chat reply IS this request's own HTTP response (see
+        # reply_text pulled off the result below) - there's no separate channel API to
+        # push it through, so this has nothing to do.
+        pass
+
+    result = ai_replies.handle_incoming_message(
+        business, business_id, "web", None, message, resolve_sender, deliver, log_prefix="[page-chat]",
+    )
+    if result is None:
+        # Gated (subscription inactive, or replies_today_count's business-wide daily cap
+        # already reached by this or any other channel) - still a normal chat reply as
+        # far as the widget is concerned, not an error it needs to handle specially.
+        return jsonify(reply="I'm not able to answer right now - please try again later or contact us directly.")
+    return jsonify(reply=result["reply_text"])
 
 
 @app.route("/sitemap.xml")
@@ -2243,6 +2313,16 @@ def send_channel_reply(conversation, business, final_reply):
         return whatsapp_api.send_message(sender_wa_id, final_reply, business[17], business[15])
     if channel == "messenger":
         return messenger_api.send_message(sender_psid, final_reply, business[20])
+    if channel == "web":
+        # A page-chat conversation always reaches sent status the moment it's created -
+        # ai_replies.handle_incoming_message forces auto-send for "web" (there's no
+        # concept of a pending draft awaiting manual approval when the visitor was
+        # already shown the reply live) - so a manual /send here should never actually
+        # fire for one. A no-op rather than falling through to send_instagram_message
+        # below, which would otherwise misfire an Instagram DM using sender_igsid's
+        # value for this row (the page-chat session key, reused from that same column -
+        # see ai_replies.py's _SENDER_KEY_KWARG - not a real Instagram-scoped id).
+        return None
     return send_instagram_message(sender_igsid, final_reply, business[7], business[5])
 
 
