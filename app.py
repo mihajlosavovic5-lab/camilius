@@ -112,6 +112,31 @@ BETA_FREE_MODE = True
 # people find out the hard way. Flip to False once App Review is approved.
 INSTAGRAM_TESTERS_ONLY = True
 
+# Camilius is moving off depending on Meta App Review to exist at all - see the pivot
+# notes in the repo's own planning doc - toward a self-serve hosted page/widget that
+# needs nobody's approval to launch. This is the reversal switch for that, same
+# "flag it, don't delete it" shape as BETA_FREE_MODE above: defaults to True so nothing
+# changes for the Instagram testers already connected today, and every Instagram/
+# WhatsApp/Messenger module, column, and route stays in place, untouched, ready to come
+# back the moment a registered business wants Meta as an ADDITIONAL channel rather than
+# the only one. Set META_CHANNELS_ENABLED=false on Railway to retire the OAuth/connect/
+# disconnect/webhook routes below (they 404 instead of 500ing on a route that no longer
+# makes sense) once the new product no longer depends on them at all.
+META_CHANNELS_ENABLED = os.getenv("META_CHANNELS_ENABLED", "true").strip().lower() == "true"
+
+
+def meta_channel_required(function):
+    """Route decorator for every Instagram/WhatsApp/Messenger connect, disconnect, OAuth
+    callback, and webhook route - see META_CHANNELS_ENABLED above. A plain 404 (not a
+    redirect) since these aren't pages a signed-in user would otherwise reach; Meta's own
+    webhook retries also handle a 404 the same way they'd handle any other failure."""
+    @wraps(function)
+    def wrapped_function(*args, **kwargs):
+        if not META_CHANNELS_ENABLED:
+            abort(404)
+        return function(*args, **kwargs)
+    return wrapped_function
+
 
 @app.context_processor
 def inject_beta_free_mode():
@@ -121,6 +146,11 @@ def inject_beta_free_mode():
 @app.context_processor
 def inject_instagram_testers_only():
     return {"instagram_testers_only": INSTAGRAM_TESTERS_ONLY}
+
+
+@app.context_processor
+def inject_meta_channels_enabled():
+    return {"meta_channels_enabled": META_CHANNELS_ENABLED}
 
 
 # Voluntary "support the project" donation link (PayPal.me or similar), shown on the
@@ -476,6 +506,7 @@ def verify_phone(token):
 
 @app.route("/connect-instagram")
 @login_required
+@meta_channel_required
 def connect_instagram():
     business = business_by_id(session["business_id"])
     if business[5]:  # instagram_account_id already set - nothing to do
@@ -485,6 +516,7 @@ def connect_instagram():
 
 @app.route("/connect-instagram/start")
 @login_required
+@meta_channel_required
 def connect_instagram_start():
     redirect_uri = url_for("instagram_oauth_callback", _external=True)
     return redirect(instagram_authorize_url(redirect_uri))
@@ -498,6 +530,7 @@ def connect_instagram_start():
 # connectInstagram.testerNote's "haven't been invited yet?" line.
 @app.route("/request-tester-access", methods=["GET", "POST"])
 @limiter.limit("10 per hour", methods=["POST"])
+@meta_channel_required
 def request_tester_access():
     if request.method == "POST":
         instagram_username = request.form.get("instagram_username", "").strip().lstrip("@")
@@ -541,6 +574,7 @@ def request_tester_access():
 
 @app.route("/connect-messenger")
 @login_required
+@meta_channel_required
 def connect_messenger():
     business = business_by_id(session["business_id"])
     if business[18]:  # messenger_page_id already set - nothing to do
@@ -550,6 +584,7 @@ def connect_messenger():
 
 @app.route("/connect-messenger/start")
 @login_required
+@meta_channel_required
 def connect_messenger_start():
     redirect_uri = url_for("messenger_oauth_callback", _external=True)
     return redirect(messenger_api.authorize_url(redirect_uri))
@@ -557,6 +592,7 @@ def connect_messenger_start():
 
 @app.route("/messenger-oauth-callback")
 @login_required
+@meta_channel_required
 def messenger_oauth_callback():
     """Web-only for now (unlike Instagram, no mobile "state" flow yet - a reasonable next
     increment, not built this round). Has an extra step Instagram's callback doesn't need:
@@ -592,6 +628,7 @@ def messenger_oauth_callback():
 
 @app.route("/connect-messenger/select-page", methods=["POST"])
 @login_required
+@meta_channel_required
 def connect_messenger_select_page():
     pending_pages = session.get("messenger_pending_pages") or []
     chosen_id = request.form.get("page_id")
@@ -621,12 +658,14 @@ def _finish_connecting_messenger_page(page):
 
 @app.route("/disconnect-messenger", methods=["POST"])
 @login_required
+@meta_channel_required
 def disconnect_messenger():
     unlink_messenger_account(session["business_id"])
     return redirect(url_for("settings", message="Messenger disconnected."))
 
 
 @app.route("/instagram-oauth-callback")
+@meta_channel_required
 def instagram_oauth_callback():
     # Two ways to reach this route: the website flow (logged-in session cookie), and the
     # mobile app flow (no cookie at all - the app only ever holds a Bearer token, never a
@@ -1280,6 +1319,7 @@ def settings():
 
 @app.route("/disconnect-instagram", methods=["POST"])
 @login_required
+@meta_channel_required
 def disconnect_instagram():
     # Frees up instagram_account_id's UNIQUE index (see database.py) so the account can
     # be reconnected here or linked to a different business - see instagram_oauth_callback's
@@ -1290,6 +1330,7 @@ def disconnect_instagram():
 
 @app.route("/connect-whatsapp", methods=["GET", "POST"])
 @login_required
+@meta_channel_required
 def connect_whatsapp():
     """No OAuth redirect here, unlike Instagram - see whatsapp_api.py's module docstring
     for why. The business pastes in values it generated itself, directly in its own Meta
@@ -1330,6 +1371,7 @@ def connect_whatsapp():
 
 @app.route("/disconnect-whatsapp", methods=["POST"])
 @login_required
+@meta_channel_required
 def disconnect_whatsapp():
     unlink_whatsapp_account(session["business_id"])
     return redirect(url_for("settings", message="WhatsApp disconnected."))
@@ -2566,6 +2608,7 @@ def paddle_webhook():
 
 @app.route("/instagram-webhook", methods=["GET", "POST"])
 @csrf.exempt  # external request from Meta, no session/CSRF token of ours - signed instead (checked below)
+@meta_channel_required
 def instagram_webhook():
     if request.method == "GET":
         # One-time check Meta does when you first save the webhook URL in the App
@@ -2649,6 +2692,7 @@ def _process_instagram_message(message):
 
 @app.route("/whatsapp-webhook", methods=["GET", "POST"])
 @csrf.exempt  # external request from Meta, no session/CSRF token of ours - signed instead (checked below)
+@meta_channel_required
 def whatsapp_webhook():
     """Mirrors instagram_webhook() above - same verify/signature/dedup/retry shape, just
     against whatsapp_api's functions and business_by_whatsapp_phone_number_id instead of
@@ -2727,6 +2771,7 @@ def _process_whatsapp_message(message):
 
 @app.route("/messenger-webhook", methods=["GET", "POST"])
 @csrf.exempt  # external request from Meta, no session/CSRF token of ours - signed instead (checked below)
+@meta_channel_required
 def messenger_webhook():
     """Mirrors whatsapp_webhook() above - same verify/signature/dedup/retry shape,
     against messenger_api's functions and business_by_messenger_page_id instead."""
