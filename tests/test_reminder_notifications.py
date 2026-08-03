@@ -8,7 +8,7 @@ import app as app_module
 import database
 import reminders as reminders_module
 import booking
-from booking import BUSINESS_TZ, now_local
+from booking import DEFAULT_TZ, now_local
 from conftest import register_business
 
 
@@ -19,7 +19,7 @@ def test_owner_reminder_creates_notification_and_attempts_push_instead_of_email(
     database.set_owner_reminders_enabled(business_id, True)
     database.set_reminder_minutes(business_id, 1440, 60)  # customer 24h, owner 1h
 
-    start = (now_local() + timedelta(minutes=60)).astimezone(BUSINESS_TZ)
+    start = (now_local() + timedelta(minutes=60)).astimezone(DEFAULT_TZ)
     end = start + timedelta(minutes=30)
     database.create_appointment(business_id, "Ana", start, end, service="Haircut")
 
@@ -63,7 +63,7 @@ def test_owner_reminder_fires_under_beta_free_mode_without_real_pro_access(clien
 
     database.set_owner_reminders_enabled(business_id, True)
     database.set_reminder_minutes(business_id, 1440, 60)
-    start = (now_local() + timedelta(minutes=60)).astimezone(BUSINESS_TZ)
+    start = (now_local() + timedelta(minutes=60)).astimezone(DEFAULT_TZ)
     database.create_appointment(business_id, "Bob", start, start + timedelta(minutes=30))
 
     monkeypatch.setattr(reminders_module, "send_push_to_business", lambda *args, **kwargs: None)
@@ -82,7 +82,7 @@ def test_owner_reminder_skipped_without_pro_access_when_beta_free_mode_is_off(cl
 
     database.set_owner_reminders_enabled(business_id, True)
     database.set_reminder_minutes(business_id, 1440, 60)
-    start = (now_local() + timedelta(minutes=60)).astimezone(BUSINESS_TZ)
+    start = (now_local() + timedelta(minutes=60)).astimezone(DEFAULT_TZ)
     database.create_appointment(business_id, "Cara", start, start + timedelta(minutes=30))
 
     reminders_module.send_appointment_reminders_if_needed()
@@ -100,7 +100,7 @@ def _safe_future_slot():
     `now_local() + timedelta(hours=2)` (used below), which spills past the current day's
     23:59 close time - and so gets rejected as unavailable - whenever the suite happens to
     run in the last ~2.5 hours before local midnight."""
-    tomorrow = (now_local() + timedelta(days=1)).astimezone(BUSINESS_TZ)
+    tomorrow = (now_local() + timedelta(days=1)).astimezone(DEFAULT_TZ)
     return tomorrow.replace(hour=10, minute=0, second=0, microsecond=0)
 
 

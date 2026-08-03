@@ -3,12 +3,17 @@ availability logic for the Schedule page and the AI's Instagram-DM booking tool 
 generate_reply.py's generate_reply_with_booking). All actual reads/writes go through
 database.py; this module owns the calendar math on top of it.
 
-Camilius is a single-market (Serbia) product as of this writing, so appointment times
-use one fixed business timezone rather than a per-business setting - see BUSINESS_TZ.
+Appointment times are resolved in each business's OWN timezone, passed in as `tz` by
+every caller that has a business in hand (see tz_for()). This used to be a single fixed
+module-level ZoneInfo("Europe/Belgrade") back when the product was Serbia-only; it is a
+parameter now because a business in another country would otherwise have every slot,
+every "is this in the past" check, and every "tomorrow at 14:00" resolved against
+Belgrade's clock. DEFAULT_TZ remains only as the fallback for a business row that
+predates the timezone column, and as the column's own default.
 """
 import re
 from datetime import datetime, timedelta, time as dtime
-from zoneinfo import ZoneInfo
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from database import (
     appointments_in_range, create_appointment, cancel_appointment,
@@ -17,16 +22,37 @@ from database import (
 )
 from push_notifications import send_push_to_business
 
-BUSINESS_TZ = ZoneInfo("Europe/Belgrade")
+DEFAULT_TZ = ZoneInfo("Europe/Belgrade")
+
+# Index 21 of the business row (see database.py's canonical row-shape comment). This is
+# deliberately the ONLY place that index is read: the row is indexed positionally in
+# well over a hundred places, and concentrating this one read means a future column
+# reshuffle breaks in a single spot instead of silently booking everyone in the wrong
+# country. Falls back rather than raising - a business row from before the column
+# existed, or with a name no longer in the tz database, must still be able to book.
+_BUSINESS_TIMEZONE_INDEX = 21
+
+
+def tz_for(business):
+    """The ZoneInfo for a business row from database.business_by_id() and friends."""
+    name = business[_BUSINESS_TIMEZONE_INDEX] if len(business) > _BUSINESS_TIMEZONE_INDEX else None
+    if not name:
+        return DEFAULT_TZ
+    try:
+        return ZoneInfo(name)
+    except (ZoneInfoNotFoundError, ValueError):
+        print(f"[booking] Unknown timezone {name!r} on business row - falling back to {DEFAULT_TZ}", flush=True)
+        return DEFAULT_TZ
+
 
 _WEEKDAY_NAMES = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
 
 
-def now_local():
-    return datetime.now(BUSINESS_TZ)
+def now_local(tz=DEFAULT_TZ):
+    return datetime.now(tz)
 
 
-def relative_when(start_local):
+def relative_when(start_local, tz=DEFAULT_TZ):
     """"at HH:MM" for a same-day appointment (no date - it's implied by "today" already
     being the day this is about), "tomorrow at HH:MM" for the day after (relative to the
     business's own local "now", not the server's, in case they ever differ), and a full
@@ -34,7 +60,7 @@ def relative_when(start_local):
     accurate. Shared by reminders.py's reminder texts and the new-booking notification
     below - any message that needs to say when an appointment is."""
     time_str = start_local.strftime("%H:%M")
-    delta_days = (start_local.date() - now_local().date()).days
+    delta_days = (start_local.date() - now_local(tz).date()).days
     if delta_days == 0:
         return f"at {time_str}"
     if delta_days == 1:
@@ -92,16 +118,16 @@ def is_open_on(working_hours_text, local_date):
     return parse_working_hours(working_hours_text).get(local_date.weekday()) is not None
 
 
-def day_slots(working_hours_text, slot_minutes, local_date):
-    """Every slot start time (aware, BUSINESS_TZ) within business hours on local_date,
-    whether free or already booked - the fixed grid every booking (manual or AI) is
-    aligned to."""
+def day_slots(working_hours_text, slot_minutes, local_date, tz=DEFAULT_TZ):
+    """Every slot start time (aware, in the business's tz) within business hours on
+    local_date, whether free or already booked - the fixed grid every booking (manual or
+    AI) is aligned to."""
     open_close = parse_working_hours(working_hours_text).get(local_date.weekday())
     if not open_close:
         return []
     open_t, close_t = open_close
-    cursor = datetime.combine(local_date, open_t, tzinfo=BUSINESS_TZ)
-    day_end = datetime.combine(local_date, close_t, tzinfo=BUSINESS_TZ)
+    cursor = datetime.combine(local_date, open_t, tzinfo=tz)
+    day_end = datetime.combine(local_date, close_t, tzinfo=tz)
     delta = timedelta(minutes=slot_minutes)
     slots = []
     while cursor + delta <= day_end:
@@ -110,15 +136,15 @@ def day_slots(working_hours_text, slot_minutes, local_date):
     return slots
 
 
-def local_day_bounds(local_date):
-    start = datetime.combine(local_date, dtime.min, tzinfo=BUSINESS_TZ)
+def local_day_bounds(local_date, tz=DEFAULT_TZ):
+    start = datetime.combine(local_date, dtime.min, tzinfo=tz)
     return start, start + timedelta(days=1)
 
 
-def appointments_for_local_day(business_id, local_date):
-    """Confirmed appointments on local_date, as dicts with BUSINESS_TZ-local start/end -
-    used by both the Schedule page's day/week views."""
-    start, end = local_day_bounds(local_date)
+def appointments_for_local_day(business_id, local_date, tz=DEFAULT_TZ):
+    """Confirmed appointments on local_date, as dicts with start/end in the business's
+    own timezone - used by both the Schedule page's day/week views."""
+    start, end = local_day_bounds(local_date, tz)
     rows = appointments_in_range(business_id, start, end)
     result = []
     for (appt_id, customer_name, sender_igsid, service, start_time, end_time, status, source, notes) in rows:
@@ -127,29 +153,29 @@ def appointments_for_local_day(business_id, local_date):
             "customer_name": customer_name,
             "service": service,
             "source": source,
-            "start_local": start_time.astimezone(BUSINESS_TZ),
-            "end_local": end_time.astimezone(BUSINESS_TZ),
+            "start_local": start_time.astimezone(tz),
+            "end_local": end_time.astimezone(tz),
         })
     return result
 
 
-def appointments_by_local_day(business_id, start_date, end_date):
+def appointments_by_local_day(business_id, start_date, end_date, tz=DEFAULT_TZ):
     """Confirmed appointments across [start_date, end_date) as {local_date: [dicts]} -
     the week view's version of appointments_for_local_day. One query covering the whole
     range instead of one round trip per day (used to be a 7-query loop for a week)."""
-    start, _ = local_day_bounds(start_date)
-    _, end = local_day_bounds(end_date - timedelta(days=1))
+    start, _ = local_day_bounds(start_date, tz)
+    _, end = local_day_bounds(end_date - timedelta(days=1), tz)
     rows = appointments_in_range(business_id, start, end)
     result = {}
     for (appt_id, customer_name, sender_igsid, service, start_time, end_time, status, source, notes) in rows:
-        start_local = start_time.astimezone(BUSINESS_TZ)
+        start_local = start_time.astimezone(tz)
         result.setdefault(start_local.date(), []).append({
             "id": appt_id,
             "customer_name": customer_name,
             "service": service,
             "source": source,
             "start_local": start_local,
-            "end_local": end_time.astimezone(BUSINESS_TZ),
+            "end_local": end_time.astimezone(tz),
         })
     return result
 
@@ -158,8 +184,8 @@ def is_slot_free(business_id, start_dt, end_dt):
     return len(appointments_in_range(business_id, start_dt, end_dt)) == 0
 
 
-def free_slots_for_day(business_id, working_hours_text, slot_minutes, local_date):
-    slots = day_slots(working_hours_text, slot_minutes, local_date)
+def free_slots_for_day(business_id, working_hours_text, slot_minutes, local_date, tz=DEFAULT_TZ):
+    slots = day_slots(working_hours_text, slot_minutes, local_date, tz)
     if not slots:
         return []
     booked_rows = appointments_in_range(business_id, slots[0], slots[-1] + timedelta(minutes=slot_minutes))
@@ -172,16 +198,16 @@ def free_slots_for_day(business_id, working_hours_text, slot_minutes, local_date
     return free
 
 
-def find_next_free_slots(business_id, working_hours_text, slot_minutes, after_dt, count=2, search_days=21):
+def find_next_free_slots(business_id, working_hours_text, slot_minutes, after_dt, count=2, search_days=21, tz=DEFAULT_TZ):
     """The next `count` free slot start times at/after after_dt, searching forward day by
     day - used both by the AI's booking tool (offer the next 2 openings when the
     requested time is taken) and could be reused anywhere else "what's free next" is
     needed. search_days caps the search so a business with no open days configured
     (unparseable working hours) can't spin forever."""
     results = []
-    d = after_dt.astimezone(BUSINESS_TZ).date()
+    d = after_dt.astimezone(tz).date()
     for _ in range(search_days):
-        for s in free_slots_for_day(business_id, working_hours_text, slot_minutes, d):
+        for s in free_slots_for_day(business_id, working_hours_text, slot_minutes, d, tz):
             if s >= after_dt:
                 results.append(s)
                 if len(results) >= count:
@@ -190,14 +216,14 @@ def find_next_free_slots(business_id, working_hours_text, slot_minutes, after_dt
     return results
 
 
-def slot_within_business_hours(working_hours_text, start_dt, end_dt):
-    local_date = start_dt.astimezone(BUSINESS_TZ).date()
+def slot_within_business_hours(working_hours_text, start_dt, end_dt, tz=DEFAULT_TZ):
+    local_date = start_dt.astimezone(tz).date()
     open_close = parse_working_hours(working_hours_text).get(local_date.weekday())
     if not open_close:
         return False
     open_t, close_t = open_close
-    day_start = datetime.combine(local_date, open_t, tzinfo=BUSINESS_TZ)
-    day_end = datetime.combine(local_date, close_t, tzinfo=BUSINESS_TZ)
+    day_start = datetime.combine(local_date, open_t, tzinfo=tz)
+    day_end = datetime.combine(local_date, close_t, tzinfo=tz)
     return start_dt >= day_start and end_dt <= day_end
 
 
@@ -227,9 +253,9 @@ def upsell_suggestion_for(upsell_pairs_text, service):
     return parse_upsell_pairs(upsell_pairs_text).get(service.strip().lower())
 
 
-def notify_owner_of_new_booking(business_id, customer_name, service, start_local):
+def notify_owner_of_new_booking(business_id, customer_name, service, start_local, tz=DEFAULT_TZ):
     """In-app notification (+ best-effort push) telling the owner a customer just booked
-    themselves in over Instagram DM - separate from, and not gated by, the "Remind me"
+    themselves in - separate from, and not gated by, the "Remind me"
     reminder toggle (reminders.py) since this fires once at booking time regardless of
     whether owner reminders are even turned on. Gated by its own "New bookings" toggle
     (new_booking_notifications_enabled). Never allowed to fail the booking itself if
@@ -238,7 +264,7 @@ def notify_owner_of_new_booking(business_id, customer_name, service, start_local
     if not is_new_booking_notifications_enabled(business_id):
         return
     title = "New appointment booked"
-    when = relative_when(start_local)
+    when = relative_when(start_local, tz)
     if service:
         body = f"{customer_name} booked {service} for {when}."
     else:
@@ -255,29 +281,32 @@ def attempt_ai_booking(business, business_id, slot_minutes, requested_dt_str, cu
     source of truth for what the AI is allowed to tell a customer, since the model only
     ever sees this function's return value and never touches the database itself.
 
-    business = a business_by_id()-shaped tuple (index 8 is working_hours)."""
+    business = a business_by_id()-shaped tuple (index 8 is working_hours, and tz_for()
+    reads the timezone off it - the model's "tomorrow at 14:00" means 14:00 where the
+    business is, not where the server is)."""
     working_hours_text = business[8]
+    tz = tz_for(business)
     try:
         requested = datetime.fromisoformat(requested_dt_str)
     except (ValueError, TypeError):
         return {"status": "error", "message": "Could not understand that date/time - ask the customer for a clear date and time and try again."}
 
-    requested = requested.replace(tzinfo=BUSINESS_TZ) if requested.tzinfo is None else requested.astimezone(BUSINESS_TZ)
+    requested = requested.replace(tzinfo=tz) if requested.tzinfo is None else requested.astimezone(tz)
 
-    if requested < now_local():
+    if requested < now_local(tz):
         # Already in the past (customer/model confusion, e.g. a weekday that already
         # passed this week) - treat exactly like any other unavailable time.
-        alternatives = find_next_free_slots(business_id, working_hours_text, slot_minutes, now_local(), count=2)
+        alternatives = find_next_free_slots(business_id, working_hours_text, slot_minutes, now_local(tz), count=2, tz=tz)
         return {"status": "unavailable", "alternatives": [a.strftime("%A %Y-%m-%d %H:%M") for a in alternatives]}
 
     end = requested + timedelta(minutes=slot_minutes)
 
-    if not slot_within_business_hours(working_hours_text, requested, end) or not is_slot_free(business_id, requested, end):
-        alternatives = find_next_free_slots(business_id, working_hours_text, slot_minutes, requested, count=2)
+    if not slot_within_business_hours(working_hours_text, requested, end, tz) or not is_slot_free(business_id, requested, end):
+        alternatives = find_next_free_slots(business_id, working_hours_text, slot_minutes, requested, count=2, tz=tz)
         return {"status": "unavailable", "alternatives": [a.strftime("%A %Y-%m-%d %H:%M") for a in alternatives]}
 
     create_appointment(business_id, customer_name, requested, end, sender_igsid=sender_igsid, service=service, source="ai")
-    notify_owner_of_new_booking(business_id, customer_name, service, requested)
+    notify_owner_of_new_booking(business_id, customer_name, service, requested, tz)
     result = {
         "status": "booked",
         "start_time": requested.strftime("%A %Y-%m-%d %H:%M"),
@@ -295,6 +324,7 @@ def attempt_ai_cancel_or_reschedule(business, business_id, slot_minutes, sender_
     an appointment ID - the Instagram thread it's already in IS the identifier). A
     reschedule verifies the NEW slot works BEFORE canceling the old one, so a failed
     reschedule never leaves the customer with nothing booked."""
+    tz = tz_for(business)
     existing = next_upcoming_appointment_for_sender(business_id, sender_igsid)
     if existing is None:
         return {"status": "not_found"}
@@ -302,34 +332,34 @@ def attempt_ai_cancel_or_reschedule(business, business_id, slot_minutes, sender_
 
     if not new_requested_datetime:
         cancel_appointment(existing_id)
-        return {"status": "canceled", "canceled_start_time": existing_start.astimezone(BUSINESS_TZ).strftime("%A %Y-%m-%d %H:%M")}
+        return {"status": "canceled", "canceled_start_time": existing_start.astimezone(tz).strftime("%A %Y-%m-%d %H:%M")}
 
     working_hours_text = business[8]
     try:
         requested = datetime.fromisoformat(new_requested_datetime)
     except (ValueError, TypeError):
         return {"status": "error", "message": "Could not understand that date/time - ask the customer for a clear date and time and try again."}
-    requested = requested.replace(tzinfo=BUSINESS_TZ) if requested.tzinfo is None else requested.astimezone(BUSINESS_TZ)
+    requested = requested.replace(tzinfo=tz) if requested.tzinfo is None else requested.astimezone(tz)
     new_end = requested + timedelta(minutes=slot_minutes)
 
     # The customer's own about-to-be-canceled appointment would otherwise look like a
     # conflict against itself (e.g. shifting a booking 15 minutes later overlaps the old
     # slot) - explicitly excluded from the availability check for that reason.
-    overlaps_own_existing_slot = requested < existing_end.astimezone(BUSINESS_TZ) and new_end > existing_start.astimezone(BUSINESS_TZ)
+    overlaps_own_existing_slot = requested < existing_end.astimezone(tz) and new_end > existing_start.astimezone(tz)
     is_available = (
-        requested >= now_local()
-        and slot_within_business_hours(working_hours_text, requested, new_end)
+        requested >= now_local(tz)
+        and slot_within_business_hours(working_hours_text, requested, new_end, tz)
         and (is_slot_free(business_id, requested, new_end) or overlaps_own_existing_slot)
     )
     if not is_available:
-        alternatives = find_next_free_slots(business_id, working_hours_text, slot_minutes, max(requested, now_local()), count=2)
+        alternatives = find_next_free_slots(business_id, working_hours_text, slot_minutes, max(requested, now_local(tz)), count=2, tz=tz)
         return {"status": "unavailable", "alternatives": [a.strftime("%A %Y-%m-%d %H:%M") for a in alternatives]}
 
     cancel_appointment(existing_id)
     create_appointment(business_id, existing_customer_name, requested, new_end, sender_igsid=sender_igsid, service=existing_service, source="ai")
     result = {
         "status": "rescheduled",
-        "old_start_time": existing_start.astimezone(BUSINESS_TZ).strftime("%A %Y-%m-%d %H:%M"),
+        "old_start_time": existing_start.astimezone(tz).strftime("%A %Y-%m-%d %H:%M"),
         "new_start_time": requested.strftime("%A %Y-%m-%d %H:%M"),
         "new_end_time": new_end.strftime("%H:%M"),
     }

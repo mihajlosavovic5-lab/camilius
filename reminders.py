@@ -35,7 +35,7 @@ from database import (
     businesses_needing_trial_warning, mark_trial_warning_sent,
     expire_stale_pending_conversations,
 )
-from booking import BUSINESS_TZ, now_local, relative_when
+from booking import DEFAULT_TZ, tz_for, now_local, relative_when
 from instagram_api import send_message as send_instagram_message
 from send_email import send_email
 from push_notifications import send_push_to_business
@@ -56,13 +56,13 @@ def _format_lead_time(minutes):
     return f"{minutes} minute" + ("s" if minutes != 1 else "")
 
 
-def _customer_reminder_text(business_name, start_local, minutes):
-    when = relative_when(start_local)
+def _customer_reminder_text(business_name, start_local, minutes, tz=DEFAULT_TZ):
+    when = relative_when(start_local, tz)
     return f"Reminder: you have an appointment with {business_name} in {_format_lead_time(minutes)} ({when}). See you then!"
 
 
-def _owner_reminder_notification_body(customer_name, service, start_local, minutes):
-    when = relative_when(start_local)
+def _owner_reminder_notification_body(customer_name, service, start_local, minutes, tz=DEFAULT_TZ):
+    when = relative_when(start_local, tz)
     service_part = f" for {service}" if service else ""
     return (
         f"You have an appointment with {customer_name}{service_part} in "
@@ -97,16 +97,21 @@ def send_appointment_reminders_if_needed():
 
         # Aware-datetime subtraction is instant-based regardless of each side's specific
         # tzinfo representation, so start_time (whatever offset the DB driver returned it
-        # in) minus now (BUSINESS_TZ) needs no extra conversion to be correct.
+        # in) minus now needs no extra conversion to be correct - which is also why `now`
+        # above can stay a single value rather than being recomputed per business.
+        # start_local does need each business's own zone, though: it's what the reminder
+        # text actually shows the customer, and "tomorrow at 09:00" is only true in the
+        # business's own timezone.
+        tz = tz_for(business)
         time_until = start_time - now
-        start_local = start_time.astimezone(BUSINESS_TZ)
+        start_local = start_time.astimezone(tz)
         business_name, ig_account_id, access_token = business[1], business[5], business[7]
         customer_minutes, owner_minutes = get_reminder_minutes(business_id)
 
         if (reminder_customer_sent_at is None and is_reminders_enabled(business_id)
                 and sender_igsid and ig_account_id and access_token
                 and abs(time_until - timedelta(minutes=customer_minutes)) <= REMINDER_TOLERANCE):
-            text = _customer_reminder_text(business_name, start_local, customer_minutes)
+            text = _customer_reminder_text(business_name, start_local, customer_minutes, tz)
             try:
                 send_instagram_message(sender_igsid, text, access_token, ig_account_id)
                 print(f"[reminders] Sent customer reminder for appointment_id={appointment_id} business_id={business_id}", flush=True)
@@ -122,7 +127,7 @@ def send_appointment_reminders_if_needed():
         if (reminder_owner_sent_at is None and is_owner_reminders_enabled(business_id)
                 and abs(time_until - timedelta(minutes=owner_minutes)) <= REMINDER_TOLERANCE):
             title = "Upcoming appointment reminder"
-            body = _owner_reminder_notification_body(customer_name, service, start_local, owner_minutes)
+            body = _owner_reminder_notification_body(customer_name, service, start_local, owner_minutes, tz)
             try:
                 # In-app (bell icon on web, notifications screen on mobile) so this always
                 # shows up somewhere regardless of push setup, plus a real OS push

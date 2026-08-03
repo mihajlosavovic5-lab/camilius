@@ -1757,11 +1757,11 @@ def admin_businesses():
     for business in all_businesses_unfiltered():
         # indices: 0 id, 1 name, 2 username, 4 contact_email, 6 instagram_username,
         # 11 phone_number, 12 email_verified, 13 phone_verified, 14 pending_contact_email,
-        # 16 whatsapp_display_number, 19 messenger_page_name, 21 subscription_status,
-        # 22 created_at - these last two shift every time _BUSINESS_COLUMNS grows (21
-        # fields now, WhatsApp + Messenger both appended at the end - see that constant's
-        # own comment in database.py); double-check them here first if this route ever
-        # looks broken again after a future channel gets added the same way.
+        # 16 whatsapp_display_number, 19 messenger_page_name. subscription_status and
+        # created_at are the two extras all_businesses_unfiltered() appends AFTER the
+        # business columns, so they're read from the END (-2, -1) rather than by absolute
+        # index: every time _BUSINESS_COLUMNS grows, an absolute index here silently
+        # points at the wrong column, which is exactly how this route broke once before.
         instagram_username = (business[6] or "").lower()
         if search and search not in business[1].lower() and search not in business[2].lower() and search not in business[4].lower() and search not in instagram_username:
             continue
@@ -1776,8 +1776,8 @@ def admin_businesses():
             "phone_number": business[11],
             "email_verified": business[12],
             "phone_verified": business[13],
-            "subscription_status": business[21],
-            "created_at": business[22].isoformat() if business[22] else None,
+            "subscription_status": business[-2],
+            "created_at": business[-1].isoformat() if business[-1] else None,
         })
     return jsonify(businesses=result)
 
@@ -2105,6 +2105,7 @@ def schedule():
 
     business = business_by_id(business_id)
     working_hours = business[8]
+    tz = booking.tz_for(business)
     slot_minutes = get_slot_duration(business_id)
 
     view = request.args.get("view", "day")
@@ -2113,13 +2114,13 @@ def schedule():
     try:
         selected_date = date_type.fromisoformat(request.args.get("date", ""))
     except ValueError:
-        selected_date = booking.now_local().date()
+        selected_date = booking.now_local(tz).date()
 
     context = dict(
         locked=False,
         view=view,
         selected_date=selected_date,
-        today=booking.now_local().date(),
+        today=booking.now_local(tz).date(),
         slot_minutes=slot_minutes,
         slot_duration_choices=_duration_choices_with_custom(
             [(c, str(c)) for c in SLOT_DURATION_CHOICES], slot_minutes),
@@ -2139,14 +2140,14 @@ def schedule():
                 "iso": d.isoformat(),
                 "is_today": d == context["today"],
                 "closed": not booking.is_open_on(working_hours, d),
-                "appointments": sorted(booking.appointments_for_local_day(business_id, d), key=lambda a: a["start_local"]),
+                "appointments": sorted(booking.appointments_for_local_day(business_id, d, tz), key=lambda a: a["start_local"]),
             })
         context["days"] = days
         context["prev_date"] = (week_start - timedelta(days=7)).isoformat()
         context["next_date"] = (week_start + timedelta(days=7)).isoformat()
     else:
-        slots = booking.day_slots(working_hours, slot_minutes, selected_date)
-        day_appointments = booking.appointments_for_local_day(business_id, selected_date)
+        slots = booking.day_slots(working_hours, slot_minutes, selected_date, tz)
+        day_appointments = booking.appointments_for_local_day(business_id, selected_date, tz)
         appts_by_start = {a["start_local"].strftime("%H:%M"): a for a in day_appointments}
         rows = []
         for s in slots:
@@ -2164,7 +2165,7 @@ def schedule():
                 "end_time": (s + timedelta(minutes=slot_minutes)).strftime("%H:%M"),
                 "appointment": appt,
                 "covered_by": covered_by,
-                "is_past": s < booking.now_local(),
+                "is_past": s < booking.now_local(tz),
             })
         context["slot_rows"] = rows
         context["prev_date"] = (selected_date - timedelta(days=1)).isoformat()
@@ -2206,8 +2207,9 @@ def create_appointment_route():
     customer_name = (request.form.get("customer_name") or "").strip()
     service = (request.form.get("service") or "").strip() or None
 
+    tz = booking.tz_for(business)
     try:
-        local_dt = datetime.combine(date_type.fromisoformat(date_str), datetime.strptime(time_str, "%H:%M").time(), tzinfo=booking.BUSINESS_TZ)
+        local_dt = datetime.combine(date_type.fromisoformat(date_str), datetime.strptime(time_str, "%H:%M").time(), tzinfo=tz)
     except ValueError:
         return redirect(url_for("schedule", date=date_str))
 
@@ -2229,8 +2231,8 @@ def create_appointment_route():
             duration_minutes = get_slot_duration(business_id)
         end_dt = local_dt + timedelta(minutes=duration_minutes)
         is_bookable = (
-            local_dt >= booking.now_local()
-            and booking.slot_within_business_hours(business[8], local_dt, end_dt)
+            local_dt >= booking.now_local(tz)
+            and booking.slot_within_business_hours(business[8], local_dt, end_dt, tz)
             and booking.is_slot_free(business_id, local_dt, end_dt)
         )
         if is_bookable:
@@ -2670,7 +2672,9 @@ def _process_instagram_message(message):
     if BETA_FREE_MODE or has_pro_access(business_id):
         slot_minutes = get_slot_duration(business_id)
         upsell_pairs_text = get_upsell_pairs(business_id)
-        now_local_display = booking.now_local().strftime("%A, %Y-%m-%d %H:%M")
+        # The business's own clock, not the server's - this string is what the model
+        # resolves "tomorrow" / "this Friday" against before calling a booking tool.
+        now_local_display = booking.now_local(booking.tz_for(business)).strftime("%A, %Y-%m-%d %H:%M")
 
         def book_tool(requested_datetime, service=None):
             return booking.attempt_ai_booking(
@@ -2825,7 +2829,9 @@ def _process_whatsapp_message(message):
     if BETA_FREE_MODE or has_pro_access(business_id):
         slot_minutes = get_slot_duration(business_id)
         upsell_pairs_text = get_upsell_pairs(business_id)
-        now_local_display = booking.now_local().strftime("%A, %Y-%m-%d %H:%M")
+        # The business's own clock, not the server's - this string is what the model
+        # resolves "tomorrow" / "this Friday" against before calling a booking tool.
+        now_local_display = booking.now_local(booking.tz_for(business)).strftime("%A, %Y-%m-%d %H:%M")
 
         def book_tool(requested_datetime, service=None):
             return booking.attempt_ai_booking(
@@ -2964,7 +2970,9 @@ def _process_messenger_message(message):
     if BETA_FREE_MODE or has_pro_access(business_id):
         slot_minutes = get_slot_duration(business_id)
         upsell_pairs_text = get_upsell_pairs(business_id)
-        now_local_display = booking.now_local().strftime("%A, %Y-%m-%d %H:%M")
+        # The business's own clock, not the server's - this string is what the model
+        # resolves "tomorrow" / "this Friday" against before calling a booking tool.
+        now_local_display = booking.now_local(booking.tz_for(business)).strftime("%A, %Y-%m-%d %H:%M")
 
         def book_tool(requested_datetime, service=None):
             return booking.attempt_ai_booking(

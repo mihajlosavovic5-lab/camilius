@@ -74,7 +74,7 @@ def test_day_slots_respects_a_different_slot_duration():
 
 def test_slot_within_business_hours():
     monday = date(2026, 7, 27)
-    tz = booking.BUSINESS_TZ
+    tz = booking.DEFAULT_TZ
     start = datetime.combine(monday, booking.dtime(10, 0), tzinfo=tz)
     end = start + timedelta(minutes=30)
     assert booking.slot_within_business_hours(WORKING_HOURS, start, end) is True

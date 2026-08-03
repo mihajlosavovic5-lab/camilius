@@ -526,8 +526,9 @@ def api_schedule():
 
     business = request.business
     working_hours = business[8]
+    tz = booking.tz_for(business)
     slot_minutes = get_slot_duration(business_id)
-    today = booking.now_local().date()
+    today = booking.now_local(tz).date()
 
     view = request.args.get("view", "day")
     if view not in ("day", "week"):
@@ -551,7 +552,7 @@ def api_schedule():
 
     if view == "week":
         week_start = selected_date - timedelta(days=selected_date.weekday())
-        appts_by_day = booking.appointments_by_local_day(business_id, week_start, week_start + timedelta(days=7))
+        appts_by_day = booking.appointments_by_local_day(business_id, week_start, week_start + timedelta(days=7), tz)
         days = []
         for i in range(7):
             d = week_start + timedelta(days=i)
@@ -569,8 +570,8 @@ def api_schedule():
         result["prev_date"] = (week_start - timedelta(days=7)).isoformat()
         result["next_date"] = (week_start + timedelta(days=7)).isoformat()
     else:
-        slots = booking.day_slots(working_hours, slot_minutes, selected_date)
-        day_appointments = booking.appointments_for_local_day(business_id, selected_date)
+        slots = booking.day_slots(working_hours, slot_minutes, selected_date, tz)
+        day_appointments = booking.appointments_for_local_day(business_id, selected_date, tz)
         appts_by_start = {a["start_local"].strftime("%H:%M"): a for a in day_appointments}
         rows = []
         for s in slots:
@@ -598,7 +599,7 @@ def api_schedule():
                     "customer_name": covered_by["customer_name"],
                     "service": covered_by["service"],
                 } if covered_by else None,
-                "is_past": s < booking.now_local(),
+                "is_past": s < booking.now_local(tz),
             })
         result["slot_rows"] = rows
         result["prev_date"] = (selected_date - timedelta(days=1)).isoformat()
@@ -624,8 +625,9 @@ def api_create_appointment():
     if not customer_name:
         return jsonify(error="Customer name is required."), 400
 
+    tz = booking.tz_for(business)
     try:
-        local_dt = datetime.combine(date_type.fromisoformat(data.get("date", "")), datetime.strptime(data.get("time", ""), "%H:%M").time(), tzinfo=booking.BUSINESS_TZ)
+        local_dt = datetime.combine(date_type.fromisoformat(data.get("date", "")), datetime.strptime(data.get("time", ""), "%H:%M").time(), tzinfo=tz)
     except ValueError:
         return jsonify(error="Invalid date or time."), 400
 
@@ -640,8 +642,8 @@ def api_create_appointment():
         duration_minutes = get_slot_duration(business_id)
     end_dt = local_dt + timedelta(minutes=duration_minutes)
     is_bookable = (
-        local_dt >= booking.now_local()
-        and booking.slot_within_business_hours(business[8], local_dt, end_dt)
+        local_dt >= booking.now_local(tz)
+        and booking.slot_within_business_hours(business[8], local_dt, end_dt, tz)
         and booking.is_slot_free(business_id, local_dt, end_dt)
     )
     if not is_bookable:

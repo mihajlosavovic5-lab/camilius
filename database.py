@@ -284,6 +284,14 @@ def create_database():
         cursor.execute("UPDATE businesses SET auto_send = TRUE")
         cursor.execute("INSERT INTO schema_flags (key) VALUES ('auto_send_default_on_2026_07_25')")
 
+    # The business's own IANA timezone, used for every appointment time (see booking.py,
+    # which until now had one fixed ZoneInfo("Europe/Belgrade") module-wide because the
+    # product was Serbia-only). Defaults to Europe/Belgrade precisely so this migration
+    # is a no-op for every existing row - their appointments keep resolving to exactly
+    # the same instants they did before. Only businesses that pick something else, and
+    # new signups outside Serbia, get different behavior.
+    cursor.execute("ALTER TABLE businesses ADD COLUMN IF NOT EXISTS timezone TEXT NOT NULL DEFAULT 'Europe/Belgrade'")
+
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS conversations (
             id SERIAL PRIMARY KEY,
@@ -619,28 +627,42 @@ def create_database():
 #   change confirmation is awaiting a click - see save_pending_email_change() below),
 #   15 whatsapp_phone_number_id, 16 whatsapp_display_number, 17 whatsapp_access_token
 #   (decrypted, None if not connected yet), 18 messenger_page_id, 19 messenger_page_name,
-#   20 messenger_page_access_token (decrypted, None if not connected yet). The WhatsApp
-#   and Messenger columns are appended at the END rather than grouped next to the
-#   Instagram ones above, deliberately - this tuple is indexed positionally (business[5],
+#   20 messenger_page_access_token (decrypted, None if not connected yet), 21 timezone
+#   (IANA name, never NULL - see the column's DEFAULT). The WhatsApp, Messenger and
+#   timezone columns are appended at the END rather than grouped next to the related
+#   ones above, deliberately - this tuple is indexed positionally (business[5],
 #   business[7], ...) in well over a hundred places across app.py/api.py/booking.py, so
 #   inserting them in the middle would silently shift every existing index instead of
-#   just adding new ones.
+#   just adding new ones. Read index 21 through booking.tz_for(business) rather than
+#   directly, so there is exactly one place to fix if the shape ever does change.
 
 _BUSINESS_COLUMNS = """id, name, username, password, contact_email, instagram_account_id,
                        instagram_username, instagram_access_token, working_hours, price_list, faq,
                        phone_number, email_verified, phone_verified, pending_contact_email,
                        whatsapp_phone_number_id, whatsapp_display_number, whatsapp_access_token,
-                       messenger_page_id, messenger_page_name, messenger_page_access_token"""
+                       messenger_page_id, messenger_page_name, messenger_page_access_token,
+                       timezone"""
+
+# How many columns _BUSINESS_COLUMNS actually selects. Derived rather than written as a
+# literal because all_businesses()/all_businesses_unfiltered() below select extra
+# non-business columns after it and have to split the row at exactly this boundary -
+# a hardcoded 21 there is what silently mis-sliced /admin/businesses the last time this
+# constant grew.
+_BUSINESS_COLUMN_COUNT = len(_BUSINESS_COLUMNS.split(","))
 
 
 def _decrypt_row_token(row):
     # instagram_access_token (index 7), whatsapp_access_token (index 17), and
     # messenger_page_access_token (index 20) all need decrypting before use - any of the
     # three can be NULL (that channel not connected yet), not an encrypted empty string.
+    # The trailing row[21:] keeps everything appended after the tokens (timezone, and
+    # whatever comes next) instead of truncating the tuple at 21 the way an explicit
+    # slice would - that truncation is exactly how a newly added column silently goes
+    # missing from every business_by_* caller.
     ig_token = decrypt(row[7]) if row[7] else None
     wa_token = decrypt(row[17]) if row[17] else None
     fb_token = decrypt(row[20]) if row[20] else None
-    return row[:7] + (ig_token,) + row[8:17] + (wa_token,) + row[18:20] + (fb_token,)
+    return row[:7] + (ig_token,) + row[8:17] + (wa_token,) + row[18:20] + (fb_token,) + row[21:]
 
 
 def add_business(name, username, password, contact_email, working_hours, price_list, faq, phone_number=None, initial_status="trialing", push_enabled=True, auto_send=True, new_booking_notifications_enabled=True, reminders_enabled=False):
@@ -848,7 +870,7 @@ def all_businesses():
     """)
     result = cursor.fetchall()
     connection.close()
-    return [_decrypt_row_token(row[:21]) + (row[21],) for row in result]
+    return [_decrypt_row_token(row[:_BUSINESS_COLUMN_COUNT]) + row[_BUSINESS_COLUMN_COUNT:] for row in result]
 
 
 def all_businesses_unfiltered():
@@ -861,7 +883,7 @@ def all_businesses_unfiltered():
     cursor.execute(f"SELECT {_BUSINESS_COLUMNS}, subscription_status, created_at FROM businesses ORDER BY created_at DESC")
     result = cursor.fetchall()
     connection.close()
-    return [_decrypt_row_token(row[:21]) + (row[21], row[22]) for row in result]
+    return [_decrypt_row_token(row[:_BUSINESS_COLUMN_COUNT]) + row[_BUSINESS_COLUMN_COUNT:] for row in result]
 
 
 def business_by_id(business_id):
