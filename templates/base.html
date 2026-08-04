@@ -19,14 +19,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{% block title %}Camilius{% endblock %}</title>
-    <meta name="description" content="{% block description %}Camilius reads your business's Instagram messages and drafts AI-suggested replies based on your working hours, price list, and FAQ - you just review and send.{% endblock %}">
+    <meta name="description" content="{% block description %}Camilius answers your customers and books appointments automatically - on your hosted page, or on Instagram/WhatsApp if you connect them - based on your working hours, price list, and FAQ.{% endblock %}">
     <link rel="canonical" href="{{ request.base_url }}">
     <!-- Open Graph / Twitter Card - reuses the title/description blocks above so link
          previews (and search engines) always match what's actually on the page, no
          separate copy to keep in sync. Also gives search engines/AI overviews an
          explicit, unambiguous signal about what this product is and does - helps
-         distinguish "Camilius AI" (this product, Instagram DM auto-replies) from
-         unrelated same-ish-sounding products indexed elsewhere. -->
+         distinguish "Camilius AI" (this product, an AI that answers customers and
+         books appointments) from unrelated same-ish-sounding products indexed
+         elsewhere. -->
     <meta property="og:type" content="website">
     <meta property="og:site_name" content="Camilius AI">
     <meta property="og:title" content="{{ self.title() }}">
@@ -459,7 +460,7 @@
             <span class="brand-mark support-widget-header-icon"></span>
             <div>
                 <p class="support-widget-title" data-i18n="supportWidget.title">Camilius Assistant</p>
-                <p class="support-widget-subtitle" data-i18n="supportWidget.subtitle">Ask about settings, pricing, Instagram &amp; more</p>
+                <p class="support-widget-subtitle" data-i18n="supportWidget.subtitle">Ask about settings, pricing, your page &amp; more</p>
             </div>
             <button type="button" id="support-widget-close" class="support-widget-close" aria-label="Close">&times;</button>
         </div>

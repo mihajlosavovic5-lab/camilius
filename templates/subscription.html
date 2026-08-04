@@ -16,7 +16,7 @@
     {% if trial_ended %}
         <div class="alert alert-warning">
             <span class="alert-icon">&#9888;</span>
-            <span data-i18n="subscription.trialEnded">Your 14-day free trial has ended. Choose a plan below to keep the AI processing your Instagram messages.</span>
+            <span data-i18n="subscription.trialEnded">Your 14-day free trial has ended. Choose a plan below to keep the AI answering your customers.</span>
         </div>
     {% endif %}
     {% if request.args.get('checkout_error') %}
@@ -28,7 +28,7 @@
             <span class="badge badge-sent"><span class="badge-dot"></span><span data-i18n="subscription.beta.badge">Free during beta</span></span>
             <p style="margin: 12px 0 0;" data-i18n="subscription.beta.body">Camilius is completely free while it's in beta &mdash; no card required, nothing to cancel. Paid plans are coming once beta wraps up; you'll get plenty of notice before anything changes.</p>
             <ul class="benefits" style="margin-top: 16px;">
-                <li><span class="checkmark">&#10003;</span> <span data-i18n="subscription.beta.benefit1">AI automatically reads new Instagram messages and prepares suggested replies</span></li>
+                <li><span class="checkmark">&#10003;</span> <span data-i18n="subscription.beta.benefit1">AI automatically reads new customer messages and prepares suggested replies</span></li>
                 <li><span class="checkmark">&#10003;</span> <span data-i18n="subscription.beta.benefit2">You just approve and send from the dashboard</span></li>
                 <li><span class="checkmark">&#10003;</span> <span data-i18n="subscription.beta.benefit3">Up to 50 replies per day</span></li>
                 <li><span class="checkmark">&#10003;</span> <span data-i18n="subscription.beta.benefit4">Replies learn from your conversation history with each customer</span></li>
@@ -77,7 +77,7 @@
                 <p class="note pricing-yearly-total hidden" data-i18n="subscription.savedYearlyStarter">Save 58$</p>
 
                 <ul class="benefits">
-                    <li><span class="checkmark">&#10003;</span> <span data-i18n="subscription.starter.benefit1">Basic AI replies to Instagram DMs</span></li>
+                    <li><span class="checkmark">&#10003;</span> <span data-i18n="subscription.starter.benefit1">Basic AI replies to customer messages</span></li>
                     <li><span class="checkmark">&#10003;</span> <span data-i18n="subscription.starter.benefit2">Up to 300 conversations / month</span></li>
                     <li><span class="crossmark">&#10007;</span> <span class="benefit-missing" data-i18n="subscription.pro.benefit2">Smart appointment scheduling to calendar</span></li>
                     <li><span class="crossmark">&#10007;</span> <span class="benefit-missing" data-i18n="subscription.pro.benefit3">Automatic no-show reminders</span></li>
