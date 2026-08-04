@@ -45,7 +45,59 @@ def test_normalize_widget_domain_returns_none_for_unusable_input():
     assert pages.normalize_widget_domain("https://") is None
 
 
+# Regression coverage for a real bug found in review: urlparse() alone is far more
+# permissive than a CSP frame-ancestors source-list token can safely be - a stray ';'
+# or ' ' in the "hostname" starts a second directive/source, and a malformed port
+# (e.g. a value with trailing junk after a colon) makes urlparse's own .port property
+# raise ValueError instead of returning None, which crashed save_business_page() with
+# an unhandled 500 before _HOSTNAME_RE was added. None of this is exploitable
+# cross-tenant (only an authenticated business can set its own widget_domain), but a
+# malformed value here would either 500 the request or quietly widen that business's
+# own frame-ancestors beyond the single origin the UI implies it's approving.
+def test_normalize_widget_domain_rejects_csp_injection_attempts():
+    assert pages.normalize_widget_domain("evil.com;frame-ancestors *") is None
+    assert pages.normalize_widget_domain("evil.com evil2.com") is None
+    assert pages.normalize_widget_domain('evil.com"; script-src *; "') is None
+
+
+def test_normalize_widget_domain_never_raises_on_malformed_port():
+    # urlparse(...).port raises ValueError here rather than returning None - this used
+    # to propagate straight out of normalize_widget_domain and 500 the request.
+    assert pages.normalize_widget_domain("evil.com:80\r\nX-Foo:1") is None
+    assert pages.normalize_widget_domain("evil.com:notaport") is None
+
+
+def test_normalize_widget_domain_rejects_control_characters():
+    assert pages.normalize_widget_domain("evil.com\r\nSet-Cookie: x=y") is None
+    assert pages.normalize_widget_domain("evil.com\nX-Injected: 1") is None
+
+
+def test_normalize_widget_domain_rejects_a_bare_hostname_with_no_dot():
+    assert pages.normalize_widget_domain("localhost") is None
+
+
+def test_normalize_widget_domain_caps_length_instead_of_storing_unbounded_input():
+    huge = "a" * 5000
+    assert pages.normalize_widget_domain(huge) is None
+
+
 # --- POST /profile/page saves widget_domain ---
+
+def test_save_business_page_does_not_500_on_malformed_widget_domain(client, unique_username, unique_email):
+    """Route-level regression test for the same bug the unit tests above cover directly
+    - this is what actually failed (a raw 500) before normalize_widget_domain stopped
+    letting urlparse's ValueError escape."""
+    register_business_web(client, unique_username, unique_email)
+    business_id = database.business_by_username(unique_username)[0]
+    slug = f"slug-{uuid.uuid4().hex[:8]}"
+    csrf_token = get_csrf_token(client, "/profile")
+
+    response = web_post(client, "/profile/page", {
+        "csrf_token": csrf_token, "slug": slug, "widget_domain": "evil.com:80\r\nX-Foo:1",
+    })
+    assert response.status_code == 302  # normal save-success redirect, not a 500
+    assert database.get_business_page(business_id)[8] is None
+
 
 def test_save_business_page_persists_normalized_widget_domain(client, unique_username, unique_email):
     register_business_web(client, unique_username, unique_email)

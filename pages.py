@@ -90,6 +90,20 @@ def opening_hours_display(working_hours_text):
     ]
 
 
+# A conservative hostname allowlist (ASCII letters/digits/hyphens, dot-separated
+# labels, at least one dot) for normalize_widget_domain below - deliberately stricter
+# than what urlparse itself accepts. This value gets dropped straight into a
+# Content-Security-Policy header (set_security_headers in app.py) as a bare, unquoted
+# source-list token, where a stray ';' starts a new directive and a stray ' ' starts a
+# second source - either would let a business (accidentally or not) widen their own
+# frame-ancestors beyond the one origin the UI implies they're approving. Requiring a
+# real dotted hostname (not just "localhost") is a deliberate simplification, same
+# "ship what a real deployed site needs first" scope call as business_pages being one
+# page per business - IDN/unicode domains aren't accepted either; a business with one
+# can still use its ASCII punycode form.
+_HOSTNAME_RE = re.compile(r"^(?!-)[a-zA-Z0-9-]{1,63}(?<!-)(\.(?!-)[a-zA-Z0-9-]{1,63}(?<!-))+$")
+
+
 def normalize_widget_domain(raw):
     """Turns whatever a business types into settings.html's widget-domain field ("
     example.com", "https://www.example.com/", "http://example.com") into a bare
@@ -98,18 +112,25 @@ def normalize_widget_domain(raw):
     of what (or whether) a scheme was typed, since a plaintext-http parent page embedding
     an https iframe is either already broken (mixed content) or a business's mistake, not
     a scheme this product should offer to serve over. Returns None for anything that
-    doesn't resolve to a usable host (empty input, a bare path, a scheme with no host) -
-    callers treat that as "leave widget_domain unset", the same "no domain approved yet"
-    state a business that has never touched this field is already in, rather than saving
-    a value that would just make every embed attempt fail against a NULL match anyway."""
-    raw = (raw or "").strip()
+    doesn't resolve to a usable, safe host (empty input, too long, a bare path, a scheme
+    with no host, a host containing anything outside _HOSTNAME_RE, or an unparseable
+    port - urlparse raises ValueError on some malformed input instead of just leaving
+    .port empty) - callers treat that as "leave widget_domain unset", the same "no
+    domain approved yet" state a business that has never touched this field is already
+    in, rather than saving a value that would either 500 this request or break every
+    embed attempt against a NULL match anyway."""
+    raw = (raw or "").strip()[:255]
     if not raw:
         return None
     parsed = urlparse(raw if "://" in raw else f"https://{raw}")
-    host = parsed.hostname
-    if not host:
+    host = (parsed.hostname or "").lower()
+    if not _HOSTNAME_RE.match(host):
+        return None
+    try:
+        port = parsed.port
+    except ValueError:
         return None
     origin = f"https://{host}"
-    if parsed.port:
-        origin += f":{parsed.port}"
+    if port:
+        origin += f":{port}"
     return origin

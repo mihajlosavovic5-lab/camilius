@@ -1938,11 +1938,12 @@ el("verify-pending-back").addEventListener("click", () => {
 // requiring the user to tell us - we just check /api/settings for the now-connected
 // Instagram username right after.
 //
-// Two entry points share this same OAuth round-trip: the mandatory gate screen below
-// (a business with no Instagram account connected yet has nowhere else to go) and the
-// "Reconnect" link on the Profile screen (see settings-instagram-reconnect-btn below),
-// for a business that's already connected but wants to fix a broken connection - same
-// as the website's own Settings page.
+// Two entry points share this same OAuth round-trip: the "gate" context, which
+// enterOrGateOnInstagram() no longer actually routes into since removing the app-entry
+// gate (that screen and this context are now unreachable dead code - see that
+// function's own comment), and the "Reconnect"/"Connect" link on the Profile screen
+// (see settings-instagram-reconnect-btn below) for a business connecting or fixing a
+// broken connection - same as the website's own Settings page.
 // instagramConnectContext records which one is in flight so the shared browserFinished
 // listener knows whether to route into the app or just refresh Profile's read-only field. ---
 
