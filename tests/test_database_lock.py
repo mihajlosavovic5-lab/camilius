@@ -37,6 +37,54 @@ def test_release_db_lock_is_safe_when_not_held():
     database.release_db_lock()
 
 
+def test_connection_close_releases_the_lock_immediately():
+    """The bug this guards against: an earlier version of this lock only released on
+    app.py's teardown_request (once per whole HTTP request), not on each individual
+    connection.close() - which meant a request doing DB work, then a slow unrelated
+    call (the OpenAI request in ai_replies.handle_incoming_message, for instance), then
+    more DB work would hold the lock hostage across that entire wait. A second thread's
+    connect() must succeed as soon as the first thread's own connection.close() runs,
+    without needing release_db_lock() (the once-per-request teardown safety net) at all."""
+    connection = database.connect()
+    connection.close()
+
+    second_connected = threading.Event()
+
+    def second():
+        database.connect()
+        second_connected.set()
+        database.release_db_lock()
+
+    t = threading.Thread(target=second)
+    t.start()
+    assert second_connected.wait(timeout=2), "second thread's connect() blocked after the first thread's own close()"
+    t.join(timeout=5)
+
+
+def test_nested_connect_calls_only_release_after_the_outer_close():
+    """A route calling one DB helper from inside another before the outer one's own
+    connection.close() - the lock must stay held for a second (inner) thread until BOTH
+    connections belonging to the first thread are closed, not just the inner one."""
+    outer = database.connect()
+    inner = database.connect()  # nested - same thread, must not deadlock (depth 2)
+    inner.close()  # inner span done, but outer's is not - lock must still be held
+
+    second_connected = threading.Event()
+
+    def second():
+        database.connect()
+        second_connected.set()
+        database.release_db_lock()
+
+    t = threading.Thread(target=second)
+    t.start()
+    assert not second_connected.wait(timeout=0.3), "lock released after only the inner close(), before the outer's"
+
+    outer.close()  # depth back to 0 - now it should release
+    assert second_connected.wait(timeout=2), "lock never released after the outer close()"
+    t.join(timeout=5)
+
+
 def test_connect_serializes_across_threads():
     order = []
     first_connected = threading.Event()

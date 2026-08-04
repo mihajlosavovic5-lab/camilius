@@ -106,6 +106,7 @@ class _ReusableConnection:
         except pg8000.dbapi.Error:
             pass  # a broken connection here just means the next connect() call's probe
             # will detect it and open a fresh one instead
+        _release_one_db_lock()
 
 
 _shared_connection = None
@@ -123,34 +124,53 @@ _shared_connection = None
 # onboarding_design.html), not a response to an observed single-worker production
 # incident.
 _db_access_lock = threading.Lock()
-# Per-thread "do I already hold _db_access_lock" flag, so a thread that calls connect()
-# again before its first call's connection.close() (a route calling one DB helper
-# function from inside another, or simply calling two DB functions in a row within one
-# request) doesn't block on a lock it's already holding. release_db_lock() below - not
-# each call site's own connection.close() - is what actually releases it once per
-# request; see that function's own docstring for why.
+# Per-thread nesting depth for _db_access_lock above - a route routinely calls one DB
+# helper function from inside another before the outer one's own connection.close() (or
+# simply calls several DB functions in a row within one request), so the underlying lock
+# is only actually acquired on a thread's first connect() (depth 0->1) and only actually
+# released once every matching connection.close() has run (depth back down to 0) -
+# _ReusableConnection.close() above calls _release_one_db_lock() for exactly that. This
+# releases the lock as soon as each individual DB span finishes, NOT held for a whole
+# request's duration - a request that does DB work, then a slow non-DB call (the OpenAI
+# request in ai_replies.handle_incoming_message, for instance), then more DB work must
+# not hold this lock hostage across that unrelated wait, or concurrent requests would
+# serialize on each other's full response time instead of just their actual DB use.
 _db_lock_state = threading.local()
 
 
 def _acquire_db_lock():
-    if not getattr(_db_lock_state, "held", False):
+    depth = getattr(_db_lock_state, "depth", 0)
+    if depth == 0:
         _db_access_lock.acquire()
-        _db_lock_state.held = True
+    _db_lock_state.depth = depth + 1
+
+
+def _release_one_db_lock():
+    depth = getattr(_db_lock_state, "depth", 0)
+    if depth <= 0:
+        return
+    depth -= 1
+    _db_lock_state.depth = depth
+    if depth == 0:
+        _db_access_lock.release()
 
 
 def release_db_lock():
-    """Releases the lock connect() below takes, if this thread is holding it - called
-    once, unconditionally, from app.py's teardown_request so every request releases it
-    on the way out regardless of how it ended (normal return, an uncaught exception, or
-    a route that caught an error and skipped its own connection.close() - see connect()'s
-    own SELECT 1 probe/reconnect logic for the same "one bad request can't wedge
-    everything" property one layer up). A script that never runs inside a Flask request
-    (reminders.py's own process, obradi_email.py, migrate_to_english.py, ...) never calls
-    this and so just holds the lock for that process's own lifetime once it first
-    connects - harmless, since there's no second thread in that process to ever block on
-    it."""
-    if getattr(_db_lock_state, "held", False):
-        _db_lock_state.held = False
+    """Unconditionally drops this thread's hold on _db_access_lock, regardless of
+    remaining nesting depth - called once from app.py's teardown_request so every
+    request releases it on the way out no matter how it ended, closing the one gap
+    _release_one_db_lock() above can't cover on its own: a route that caught an error
+    and skipped its own connection.close() (see connect()'s own SELECT 1 probe/reconnect
+    logic for the same "one bad request can't wedge everything" property one layer up).
+    Without this, that single skipped close() would leave the lock permanently held for
+    every request after it on whichever thread picks them up. A script that never runs
+    inside a Flask request (reminders.py's own process, obradi_email.py,
+    migrate_to_english.py, ...) never calls this - any such gap there just holds the lock
+    for that process's own remaining lifetime, harmless since there's no second thread in
+    that process to ever block on it."""
+    depth = getattr(_db_lock_state, "depth", 0)
+    if depth > 0:
+        _db_lock_state.depth = 0
         _db_access_lock.release()
 
 

@@ -78,14 +78,6 @@ app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
 app.config["SESSION_COOKIE_SECURE"] = os.getenv("FLASK_DEBUG", "false").lower() != "true"
 
 create_database()
-# create_database() runs here at module import time, outside any Flask request - so
-# there's no later teardown_request (see _release_database_lock below) to release the
-# per-thread DB lock its own connect() call took. Releasing it explicitly here treats
-# startup as its own self-contained "connect, do work, release" unit; without this, a
-# multi-threaded deployment's first request on any OTHER thread than whichever one ran
-# this import would block forever waiting for a lock the import thread will now never
-# release (it isn't about to run inside another Flask request/teardown cycle either).
-release_db_lock()
 
 limiter.init_app(app)
 csrf = CSRFProtect(app)
