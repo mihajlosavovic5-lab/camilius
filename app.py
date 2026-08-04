@@ -1746,6 +1746,23 @@ def admin_delete_business(business_id):
     return jsonify(deleted=True, business_id=business_id, name=business[1])
 
 
+# Founder-only manual comp: flips a business straight to an active Pro plan without a
+# checkout, for cases (support, testing, the founder's own account) that shouldn't have
+# to go through real billing. Same token gating as every other /admin route above.
+@app.route("/admin/businesses/<int:business_id>/grant-pro", methods=["POST"])
+@csrf.exempt  # admin tooling authenticated by token (below), not a browser session
+def admin_grant_pro(business_id):
+    token = os.getenv("ADMIN_TOKEN")
+    if not token or request.args.get("token") != token:
+        abort(404)
+
+    business = business_by_id(business_id)
+    if business is None:
+        abort(404)
+    grant_free_pro_access(business_id)
+    return jsonify(granted=True, business_id=business_id, name=business[1])
+
+
 # Private funnel dashboard for the founder only - gated by a secret token rather than a
 # real login, since the app has no concept of an "admin" account separate from a business.
 @app.route("/admin/analytics")
