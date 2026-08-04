@@ -65,6 +65,8 @@ const TRANSLATIONS = {
         "login.registerLink": "Register your business",
         "login.forgotLink": "Forgot your password?",
         "login.replayIntro": "Replay intro",
+        "login.accountDeletedMessage": "Your account has been permanently deleted. We're sorry to see you go.",
+        "login.backToHome": "Back to home page",
 
         "register.tagline": "Set up in minutes — your AI starts answering customers right away.",
         "register.title": "Register your business",
@@ -642,6 +644,8 @@ const TRANSLATIONS = {
         "login.registerLink": "Registra tu negocio",
         "login.forgotLink": "¿Olvidaste tu contraseña?",
         "login.replayIntro": "Repetir introducción",
+        "login.accountDeletedMessage": "Tu cuenta ha sido eliminada permanentemente. Lamentamos que te vayas.",
+        "login.backToHome": "Volver a la página de inicio",
 
         "register.tagline": "Configúralo en minutos — tu IA empieza a responder a los clientes de inmediato.",
         "register.title": "Registra tu negocio",
@@ -1113,6 +1117,8 @@ const TRANSLATIONS = {
         "login.registerLink": "Cadastre seu negócio",
         "login.forgotLink": "Esqueceu sua senha?",
         "login.replayIntro": "Rever introdução",
+        "login.accountDeletedMessage": "Sua conta foi excluída permanentemente. Sentimos muito por você partir.",
+        "login.backToHome": "Voltar à página inicial",
 
         "register.tagline": "Configure em minutos — sua IA já começa a responder aos clientes.",
         "register.title": "Cadastre seu negócio",
@@ -1584,6 +1590,8 @@ const TRANSLATIONS = {
         "login.registerLink": "Inscrivez votre entreprise",
         "login.forgotLink": "Mot de passe oublié ?",
         "login.replayIntro": "Revoir l'introduction",
+        "login.accountDeletedMessage": "Votre compte a été définitivement supprimé. Nous sommes désolés de vous voir partir.",
+        "login.backToHome": "Retour à la page d'accueil",
 
         "register.tagline": "Configurez-le en quelques minutes — votre IA commence aussitôt à répondre à vos clients.",
         "register.title": "Inscrivez votre entreprise",
@@ -2055,6 +2063,8 @@ const TRANSLATIONS = {
         "login.registerLink": "Registriere dein Unternehmen",
         "login.forgotLink": "Passwort vergessen?",
         "login.replayIntro": "Einführung erneut ansehen",
+        "login.accountDeletedMessage": "Ihr Konto wurde dauerhaft gelöscht. Es tut uns leid, dass Sie gehen.",
+        "login.backToHome": "Zurück zur Startseite",
 
         "register.tagline": "In wenigen Minuten eingerichtet — deine KI beantwortet Kunden sofort.",
         "register.title": "Registriere dein Unternehmen",
@@ -2526,6 +2536,8 @@ const TRANSLATIONS = {
         "login.registerLink": "Registra la tua attività",
         "login.forgotLink": "Hai dimenticato la password?",
         "login.replayIntro": "Rivedi l'introduzione",
+        "login.accountDeletedMessage": "Il tuo account è stato eliminato definitivamente. Ci dispiace vederti andare via.",
+        "login.backToHome": "Torna alla home page",
 
         "register.tagline": "Configuralo in pochi minuti — la tua IA inizia subito a rispondere ai clienti.",
         "register.title": "Registra la tua attività",
@@ -2997,6 +3009,8 @@ const TRANSLATIONS = {
         "login.registerLink": "Зарегистрируйте свой бизнес",
         "login.forgotLink": "Забыли пароль?",
         "login.replayIntro": "Повторить введение",
+        "login.accountDeletedMessage": "Ваш аккаунт был безвозвратно удалён. Нам жаль, что вы уходите.",
+        "login.backToHome": "Вернуться на главную страницу",
 
         "register.tagline": "Настройка за пару минут — ваш ИИ сразу начнёт отвечать клиентам.",
         "register.title": "Зарегистрируйте свой бизнес",
@@ -3468,6 +3482,8 @@ const TRANSLATIONS = {
         "login.registerLink": "Registrujte svoj biznis",
         "login.forgotLink": "Zaboravili ste lozinku?",
         "login.replayIntro": "Prikaži uvodni vodič ponovo",
+        "login.accountDeletedMessage": "Vaš nalog je trajno obrisan. Žao nam je što odlazite.",
+        "login.backToHome": "Nazad na početnu stranicu",
 
         "register.tagline": "Podesite za par minuta — vaš AI odmah počinje da odgovara mušterijama.",
         "register.title": "Registrujte svoj biznis",
@@ -4025,6 +4041,8 @@ const TRANSLATIONS = {
         "login.registerLink": "注册您的商家",
         "login.forgotLink": "忘记密码了吗?",
         "login.replayIntro": "重新观看介绍",
+        "login.accountDeletedMessage": "您的账户已被永久删除。很遗憾看到您离开。",
+        "login.backToHome": "返回首页",
 
         "register.tagline": "几分钟内完成设置——您的AI立即开始回复顾客。",
         "register.title": "注册您的商家",
@@ -4496,6 +4514,8 @@ const TRANSLATIONS = {
         "login.registerLink": "İşletmenizi kaydedin",
         "login.forgotLink": "Şifrenizi mi unuttunuz?",
         "login.replayIntro": "Tanıtımı tekrar oynat",
+        "login.accountDeletedMessage": "Hesabınız kalıcı olarak silindi. Ayrıldığınız için üzgünüz.",
+        "login.backToHome": "Ana sayfaya dön",
 
         "register.tagline": "Birkaç dakikada kurulur — yapay zekânız hemen müşterilere yanıt vermeye başlar.",
         "register.title": "İşletmenizi kaydedin",

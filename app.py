@@ -368,7 +368,10 @@ def login():
 
         return render_template("login.html", error="Wrong username or password.", message=None)
 
-    return render_template("login.html", error=None, message=request.args.get("message"))
+    return render_template(
+        "login.html", error=None, message=request.args.get("message"),
+        account_deleted=request.args.get("account_deleted") == "1",
+    )
 
 
 @app.route("/register", methods=["GET", "POST"])
@@ -1765,7 +1768,7 @@ def delete_account():
     record_account_deletion(business_id, reason_category, reason_details, source="web")
     delete_business(business_id)
     session.clear()
-    return redirect(url_for("login", message="Your account has been permanently deleted. We're sorry to see you go."))
+    return redirect(url_for("login", account_deleted=1))
 
 
 def business_export_data(business_id):

@@ -53,6 +53,17 @@
         <a href="{{ url_for('intro') }}" data-i18n="login.replayIntro" onclick="try { localStorage.removeItem('introSeen'); } catch (e) {}">Replay intro</a>
     </p>
 </div>
+{% if account_deleted %}
+<div class="confirm-modal open" id="account-deleted-modal" role="alertdialog" aria-modal="true" aria-describedby="account-deleted-modal-message">
+    <div class="confirm-modal-backdrop"></div>
+    <div class="confirm-modal-card">
+        <p class="confirm-modal-message" id="account-deleted-modal-message" data-i18n="login.accountDeletedMessage">Your account has been permanently deleted. We're sorry to see you go.</p>
+        <div class="confirm-modal-actions">
+            <a class="button" href="{{ url_for('home') }}" data-i18n="login.backToHome">Back to home page</a>
+        </div>
+    </div>
+</div>
+{% endif %}
 {% if request.args.get('from_logout') %}
 <!-- Back-button trap, armed only right after an actual logout (see app.py's logout()
      redirect) - not on a normal visit to /login, where back should behave normally
