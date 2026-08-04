@@ -75,14 +75,20 @@ def test_wizard_happy_path_publishes_a_page_and_completes_onboarding(client, uni
     assert response.status_code == 302
     assert response.headers["Location"] == "/onboarding/website/address"
 
-    # Step 3: pick a web address, redirects to review.
+    # Step 3: pick a web address, redirects to the media step.
     slug = f"salon-{uuid.uuid4().hex[:8]}"
     csrf_token = get_csrf_token(client, "/onboarding/website/address")
     response = web_post(client, "/onboarding/website/address", {"csrf_token": csrf_token, "slug": slug})
     assert response.status_code == 302
+    assert response.headers["Location"] == "/onboarding/website/media"
+
+    # Step 4: photos/video is optional - Continue always proceeds to review.
+    csrf_token = get_csrf_token(client, "/onboarding/website/media")
+    response = web_post(client, "/onboarding/website/media", {"csrf_token": csrf_token})
+    assert response.status_code == 302
     assert response.headers["Location"] == "/onboarding/website/review"
 
-    # Step 4: review shows the chosen slug, then publishing completes onboarding.
+    # Step 5: review shows the chosen slug, then publishing completes onboarding.
     review_html = client.get("/onboarding/website/review").get_data(as_text=True)
     assert slug in review_html
 
@@ -154,7 +160,7 @@ def test_onboarding_steps_bounce_back_when_the_draft_is_missing(client, unique_u
 
     # Jumping straight to a later step without the earlier one's session state redirects
     # back to the start, rather than 500ing on a missing session key.
-    for path in ("/onboarding/website/design", "/onboarding/website/address", "/onboarding/website/review"):
+    for path in ("/onboarding/website/design", "/onboarding/website/address", "/onboarding/website/media", "/onboarding/website/review"):
         response = client.get(path)
         assert response.status_code == 302
         assert response.headers["Location"] == "/onboarding/website"

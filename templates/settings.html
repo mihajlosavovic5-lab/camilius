@@ -287,6 +287,35 @@
             <button class="button" type="submit">Save page</button>
         </div>
     </form>
+
+    <!-- Photos & video for the page above - separate card, own upload/delete calls
+         against /api/onboarding/media (same route the onboarding wizard's media step
+         uses, see onboarding_media.html and business_media.py), rather than a third
+         thing this page's Save button has to know how to submit. Each item uploads
+         immediately on selection, so there's nothing here for that button to save. -->
+    <div class="card profile-section" style="margin-top: 20px;" id="settings-media-card">
+        <div class="profile-section-header">
+            <p class="profile-section-title" data-i18n="onboarding.media.title">Photos &amp; video</p>
+            <p class="profile-section-subtitle" data-i18n="onboarding.media.intro">Add a logo, a few photos of your space or products, and an optional short video for the top of your page.</p>
+        </div>
+        <p class="onboarding-media-error hidden" id="settings-media-error"></p>
+
+        <div class="onboarding-media-section">
+            <p class="onboarding-media-label" data-i18n="onboarding.media.logo">Logo</p>
+            <div class="onboarding-media-grid" id="settings-media-logo-grid" data-role="logo" data-max="1"></div>
+        </div>
+
+        <div class="onboarding-media-section">
+            <p class="onboarding-media-label" data-i18n="onboarding.media.gallery">Photos</p>
+            <p class="onboarding-media-hint">Up to {{ max_gallery_images }} photos of your products, space, or work.</p>
+            <div class="onboarding-media-grid" id="settings-media-gallery-grid" data-role="gallery" data-max="{{ max_gallery_images }}"></div>
+        </div>
+
+        <div class="onboarding-media-section" style="margin-bottom: 0;">
+            <p class="onboarding-media-label" data-i18n="onboarding.media.video">Video</p>
+            <div class="onboarding-media-grid" id="settings-media-video-grid" data-role="hero_video" data-max="1"></div>
+        </div>
+    </div>
 </div>
 {% endblock %}
 
@@ -562,5 +591,101 @@ if (document.readyState === "loading") {
 } else {
     initSettingsPickers();
 }
+
+// Photos & video card - same immediate-upload-on-select pattern as the onboarding
+// wizard's media step (see onboarding_media.html, which this is intentionally a near
+// copy of - same /api/onboarding/media endpoint, same markup classes).
+(function () {
+    const card = document.getElementById("settings-media-card");
+    if (!card) return;
+    const csrfToken = document.querySelector('#settings-form input[name="csrf_token"]').value;
+    const errorBox = document.getElementById("settings-media-error");
+    const existing = {{ media | tojson }};
+    const uploadUrl = "{{ url_for('onboarding_media') }}";
+    const grids = Array.prototype.slice.call(card.querySelectorAll(".onboarding-media-grid"));
+
+    function showError(message) {
+        errorBox.textContent = message;
+        errorBox.classList.remove("hidden");
+    }
+    function clearError() {
+        errorBox.classList.add("hidden");
+    }
+    function acceptFor(role) {
+        return role === "hero_video" ? "video/mp4,video/quicktime" : "image/jpeg,image/png,image/webp";
+    }
+    function refreshAddButton(grid) {
+        const max = parseInt(grid.dataset.max, 10);
+        const count = grid.querySelectorAll(".onboarding-media-thumb").length;
+        const addBtn = grid.querySelector(".onboarding-media-add");
+        if (addBtn) addBtn.classList.toggle("hidden", count >= max);
+    }
+    function makeThumb(grid, item) {
+        const thumb = document.createElement("div");
+        thumb.className = "onboarding-media-thumb";
+        thumb.dataset.id = item.id;
+        const media = item.type === "video"
+            ? Object.assign(document.createElement("video"), { src: item.url, muted: true, playsInline: true })
+            : Object.assign(document.createElement("img"), { src: item.url, alt: "" });
+        thumb.appendChild(media);
+        const removeBtn = document.createElement("button");
+        removeBtn.type = "button";
+        removeBtn.className = "onboarding-media-remove";
+        removeBtn.setAttribute("aria-label", "Remove");
+        removeBtn.textContent = "×";
+        removeBtn.addEventListener("click", () => removeItem(grid, item.id, thumb));
+        thumb.appendChild(removeBtn);
+        grid.insertBefore(thumb, grid.querySelector(".onboarding-media-add"));
+        refreshAddButton(grid);
+    }
+    function makeAddButton(grid) {
+        const role = grid.dataset.role;
+        const label = document.createElement("label");
+        label.className = "onboarding-media-add";
+        label.textContent = "+";
+        const input = document.createElement("input");
+        input.type = "file";
+        input.accept = acceptFor(role);
+        input.multiple = grid.dataset.max !== "1";
+        input.addEventListener("change", () => {
+            const files = Array.prototype.slice.call(input.files || []);
+            input.value = "";
+            files.forEach((file) => uploadFile(grid, role, file));
+        });
+        label.appendChild(input);
+        grid.appendChild(label);
+    }
+    function uploadFile(grid, role, file) {
+        const max = parseInt(grid.dataset.max, 10);
+        if (grid.querySelectorAll(".onboarding-media-thumb").length >= max) return;
+        clearError();
+        const placeholder = document.createElement("div");
+        placeholder.className = "onboarding-media-thumb uploading";
+        grid.insertBefore(placeholder, grid.querySelector(".onboarding-media-add"));
+        const formData = new FormData();
+        formData.append("role", role);
+        formData.append("file", file);
+        fetch(uploadUrl, { method: "POST", headers: { "X-CSRFToken": csrfToken }, body: formData })
+            .then((response) => response.json().then((data) => ({ ok: response.ok, data })))
+            .then(({ ok, data }) => {
+                placeholder.remove();
+                if (!ok) { showError(data.error || "Couldn't upload that file."); return; }
+                if (max === 1) grid.querySelectorAll(".onboarding-media-thumb").forEach((el) => el.remove());
+                makeThumb(grid, data);
+            })
+            .catch(() => { placeholder.remove(); showError("Couldn't upload that file - check your connection and try again."); });
+    }
+    function removeItem(grid, id, thumb) {
+        thumb.classList.add("uploading");
+        fetch(uploadUrl + "/" + id, { method: "DELETE", headers: { "X-CSRFToken": csrfToken } })
+            .then((response) => { if (!response.ok) throw new Error(); thumb.remove(); refreshAddButton(grid); })
+            .catch(() => { thumb.classList.remove("uploading"); showError("Couldn't remove that file - please try again."); });
+    }
+
+    grids.forEach((grid) => {
+        makeAddButton(grid);
+        existing.filter((item) => item.role === grid.dataset.role).forEach((item) => makeThumb(grid, item));
+    });
+})();
 </script>
 {% endblock %}

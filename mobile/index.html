@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
 <title>Camilius</title>
-<link rel="stylesheet" href="app.css?v=40a2494f3249">
+<link rel="stylesheet" href="app.css?v=dc5b7f909443">
 </head>
 <body>
 
@@ -819,6 +819,29 @@
         <p class="field-hint" data-i18n="settings.faqHint">The more you share, the more questions Camilius can answer for your customers.</p>
       </div>
 
+      <!-- Website photos & video (Faza 14) - logo, gallery photos, one hero video for the
+           business's own public page (camilius.com/p/<slug>, see templates/public_page.html).
+           Each item uploads immediately on selection (calls /api/media, see api.py), so this
+           list always reflects what's actually saved - there's no separate "Save" step for it,
+           unlike the rest of this screen's fields. -->
+      <div class="profile-section">
+        <div class="profile-section-header">
+          <p class="profile-section-title" data-i18n="settings.media.heading">Website photos &amp; video</p>
+          <p class="profile-section-subtitle" data-i18n="settings.media.subtitle">Shown on your public page - logo in the header, photos in a gallery, one video up top.</p>
+        </div>
+        <div id="media-error" class="alert alert-error hidden"></div>
+
+        <p class="media-label" data-i18n="settings.media.logo">Logo</p>
+        <div class="media-grid" id="media-logo-grid" data-role="logo" data-max="1"></div>
+
+        <p class="media-label" data-i18n="settings.media.gallery">Photos</p>
+        <p class="field-hint" data-i18n="settings.media.galleryHint">Up to 12 photos of your products, space, or work.</p>
+        <div class="media-grid" id="media-gallery-grid" data-role="gallery" data-max="12"></div>
+
+        <p class="media-label" data-i18n="settings.media.video">Video</p>
+        <div class="media-grid" id="media-video-grid" data-role="hero_video" data-max="1"></div>
+      </div>
+
       <div class="profile-section">
         <div class="profile-section-header">
           <p class="profile-section-title"><span data-i18n="settings.upsell.heading">AI upsell</span></p>
@@ -1248,7 +1271,7 @@
   </button>
 </nav>
 
-<script src="i18n.js?v=40a2494f3249"></script>
-<script src="app.js?v=40a2494f3249"></script>
+<script src="i18n.js?v=dc5b7f909443"></script>
+<script src="app.js?v=dc5b7f909443"></script>
 </body>
 </html>

@@ -1,0 +1,187 @@
+{% extends "base.html" %}
+{% block title %}Add photos & video - Camilius{% endblock %}
+{% block body_class %}app{% endblock %}
+
+{% block content %}
+{% include "_nav.html" %}
+
+<div class="content content-narrow">
+    <div class="page-header">
+        <div>
+            <h1 data-i18n="onboarding.media.title">Add photos &amp; video</h1>
+            <p class="subtitle" data-i18n="onboarding.step4of5">Step 4 of 5 &mdash; optional, but a picture says a lot</p>
+        </div>
+    </div>
+
+    <div class="register-step-dots" style="justify-content:center; margin-bottom:22px;">
+        <span class="register-step-dot active"></span>
+        <span class="register-step-dot active"></span>
+        <span class="register-step-dot active"></span>
+        <span class="register-step-dot active"></span>
+        <span class="register-step-dot"></span>
+    </div>
+
+    <div class="card" style="padding: 32px;">
+        <p class="note" style="display:block; margin-bottom:20px;" data-i18n="onboarding.media.intro">Add a logo, a few photos of your space or products, and an optional short video for the top of your page. You can skip this and add photos later from Settings.</p>
+
+        <div class="onboarding-media-section">
+            <p class="onboarding-media-label" data-i18n="onboarding.media.logo">Logo</p>
+            <p class="onboarding-media-hint" data-i18n="onboarding.media.logoHint">Shown at the top of your page. Square images work best.</p>
+            <div class="onboarding-media-grid" id="media-logo-grid" data-role="logo" data-max="1"></div>
+        </div>
+
+        <div class="onboarding-media-section">
+            <p class="onboarding-media-label" data-i18n="onboarding.media.gallery">Photos</p>
+            <p class="onboarding-media-hint" id="media-gallery-hint">Up to {{ max_gallery_images }} photos of your products, space, or work.</p>
+            <div class="onboarding-media-grid" id="media-gallery-grid" data-role="gallery" data-max="{{ max_gallery_images }}"></div>
+        </div>
+
+        <div class="onboarding-media-section">
+            <p class="onboarding-media-label" data-i18n="onboarding.media.video">Video</p>
+            <p class="onboarding-media-hint" data-i18n="onboarding.media.videoHint">One short video for the top of your page (optional).</p>
+            <div class="onboarding-media-grid" id="media-video-grid" data-role="hero_video" data-max="1"></div>
+        </div>
+
+        <p class="onboarding-media-error hidden" id="media-error"></p>
+
+        <form method="POST" id="onboarding-media-form">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="form-actions" style="display:flex; justify-content:space-between; gap:12px;">
+                <a class="button button-secondary" href="{{ url_for('onboarding_website_address') }}" data-i18n="onboarding.back">Back</a>
+                <button class="button" type="submit" data-i18n="onboarding.continue">Continue</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+    var csrfToken = document.querySelector('#onboarding-media-form input[name="csrf_token"]').value;
+    var errorBox = document.getElementById("media-error");
+    var existing = {{ media | tojson }};
+    var uploadUrl = "{{ url_for('onboarding_media') }}";
+
+    var grids = Array.prototype.slice.call(document.querySelectorAll(".onboarding-media-grid"));
+
+    function showError(message) {
+        errorBox.textContent = message;
+        errorBox.classList.remove("hidden");
+    }
+    function clearError() {
+        errorBox.classList.add("hidden");
+    }
+
+    function acceptFor(role) {
+        return role === "hero_video" ? "video/mp4,video/quicktime" : "image/jpeg,image/png,image/webp";
+    }
+
+    function makeThumb(grid, item) {
+        var thumb = document.createElement("div");
+        thumb.className = "onboarding-media-thumb";
+        thumb.dataset.id = item.id;
+
+        var media = item.type === "video"
+            ? Object.assign(document.createElement("video"), { src: item.url, muted: true, playsInline: true })
+            : Object.assign(document.createElement("img"), { src: item.url, alt: "" });
+        thumb.appendChild(media);
+
+        var removeBtn = document.createElement("button");
+        removeBtn.type = "button";
+        removeBtn.className = "onboarding-media-remove";
+        removeBtn.setAttribute("aria-label", "Remove");
+        removeBtn.textContent = "×";
+        removeBtn.addEventListener("click", function () { removeItem(grid, item.id, thumb); });
+        thumb.appendChild(removeBtn);
+
+        grid.insertBefore(thumb, grid.querySelector(".onboarding-media-add"));
+        refreshAddButton(grid);
+    }
+
+    function refreshAddButton(grid) {
+        var max = parseInt(grid.dataset.max, 10);
+        var count = grid.querySelectorAll(".onboarding-media-thumb").length;
+        var addBtn = grid.querySelector(".onboarding-media-add");
+        if (addBtn) addBtn.classList.toggle("hidden", count >= max);
+    }
+
+    function makeAddButton(grid) {
+        var role = grid.dataset.role;
+        var label = document.createElement("label");
+        label.className = "onboarding-media-add";
+        label.innerHTML = "+";
+        var input = document.createElement("input");
+        input.type = "file";
+        input.accept = acceptFor(role);
+        input.multiple = grid.dataset.max !== "1";
+        input.addEventListener("change", function () {
+            var files = Array.prototype.slice.call(input.files || []);
+            input.value = "";
+            files.forEach(function (file) { uploadFile(grid, role, file); });
+        });
+        label.appendChild(input);
+        grid.appendChild(label);
+    }
+
+    function uploadFile(grid, role, file) {
+        var max = parseInt(grid.dataset.max, 10);
+        var count = grid.querySelectorAll(".onboarding-media-thumb").length;
+        if (count >= max) return;
+        clearError();
+
+        var placeholder = document.createElement("div");
+        placeholder.className = "onboarding-media-thumb uploading";
+        grid.insertBefore(placeholder, grid.querySelector(".onboarding-media-add"));
+
+        var formData = new FormData();
+        formData.append("role", role);
+        formData.append("file", file);
+
+        fetch(uploadUrl, {
+            method: "POST",
+            headers: { "X-CSRFToken": csrfToken },
+            body: formData,
+        }).then(function (response) {
+            return response.json().then(function (data) { return { ok: response.ok, data: data }; });
+        }).then(function (result) {
+            placeholder.remove();
+            if (!result.ok) {
+                showError(result.data.error || "Couldn't upload that file.");
+                return;
+            }
+            // logo/hero_video replace whatever was there - drop any existing thumb in
+            // this grid before adding the new one, mirroring what the server just did.
+            if (max === 1) {
+                grid.querySelectorAll(".onboarding-media-thumb").forEach(function (el) { el.remove(); });
+            }
+            makeThumb(grid, result.data);
+        }).catch(function () {
+            placeholder.remove();
+            showError("Couldn't upload that file - check your connection and try again.");
+        });
+    }
+
+    function removeItem(grid, id, thumb) {
+        thumb.classList.add("uploading");
+        fetch(uploadUrl + "/" + id, {
+            method: "DELETE",
+            headers: { "X-CSRFToken": csrfToken },
+        }).then(function (response) {
+            if (!response.ok) throw new Error();
+            thumb.remove();
+            refreshAddButton(grid);
+        }).catch(function () {
+            thumb.classList.remove("uploading");
+            showError("Couldn't remove that file - please try again.");
+        });
+    }
+
+    grids.forEach(function (grid) {
+        makeAddButton(grid);
+        existing.filter(function (item) { return item.role === grid.dataset.role; })
+            .forEach(function (item) { makeThumb(grid, item); });
+    });
+})();
+</script>
+{% endblock %}

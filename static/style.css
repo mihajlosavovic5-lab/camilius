@@ -2851,6 +2851,48 @@ html { scroll-behavior: smooth; }
 }
 .onboarding-review-preview iframe { width: 100%; height: 100%; border: none; display: block; }
 
+/* Media step (logo/gallery/hero video) - each thumb uploads immediately on selection
+   (see onboarding_media.html), so this grid always reflects what's actually saved
+   server-side rather than a pending client-side batch. */
+.onboarding-media-section { margin: 0 0 28px; }
+.onboarding-media-label { font-weight: 700; margin: 0 0 4px; color: var(--text); }
+.onboarding-media-hint { font-size: 13px; color: var(--text-muted); margin: 0 0 12px; line-height: 1.4; }
+.onboarding-media-grid { display: flex; flex-wrap: wrap; gap: 12px; }
+.onboarding-media-thumb {
+    position: relative;
+    width: 96px; height: 96px;
+    border-radius: var(--radius);
+    overflow: hidden;
+    border: 1px solid var(--border);
+    background: var(--background);
+}
+.onboarding-media-thumb img, .onboarding-media-thumb video { width: 100%; height: 100%; object-fit: cover; display: block; }
+.onboarding-media-thumb.uploading { opacity: .5; }
+.onboarding-media-remove {
+    position: absolute; top: 4px; right: 4px;
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(0, 0, 0, .6);
+    color: #fff;
+    font-size: 14px; line-height: 1;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+}
+.onboarding-media-add {
+    width: 96px; height: 96px;
+    border-radius: var(--radius);
+    border: 2px dashed var(--border);
+    background: transparent;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 28px;
+    color: var(--text-muted);
+    cursor: pointer;
+}
+.onboarding-media-add:hover { border-color: var(--primary); color: var(--primary); }
+.onboarding-media-add input { display: none; }
+.onboarding-media-error { color: #c0392b; font-size: 13px; margin: 8px 0 0; }
+
 /* --- Respect reduced motion: kill all decorative animation --- */
 @media (prefers-reduced-motion: reduce) {
     .lp-shine::after, .lp-typing-dots span, .lp-reply-cursor { animation: none !important; }

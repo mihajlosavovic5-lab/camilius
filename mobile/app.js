@@ -1915,6 +1915,7 @@ function enterApp() {
     setActiveTab("inbox");
     loadDashboard();
     loadSettingsIntoForm();
+    loadBusinessMedia();
     startAutoRefresh();
     // Fire-and-forget: warms state.scheduleCache in the background so the Schedule tab
     // is usually already populated (same "was loaded before you tapped it" feel as
@@ -2622,6 +2623,141 @@ async function loadSettingsIntoForm() {
         if (err.status === 401) logout();
     }
 }
+
+// --- Website photos & video (Profile screen, Faza 14) - logo/gallery/hero video for
+// the business's own public page (see api.py's /api/media, business_media.py). Each
+// item uploads immediately on selection rather than being staged for the Save button
+// above - a business_media row is harmless the moment it exists, unlike the profile
+// fields Save actually writes, so there's no reason to hold uploads back behind a
+// second explicit save step. Bypasses the JSON-only api() helper (see its own docstring
+// above) since this needs a multipart/form-data body, not JSON. ---
+
+const mediaGrids = Array.prototype.slice.call(document.querySelectorAll("#screen-profile .media-grid"));
+const mediaErrorBox = el("media-error");
+
+function mediaAcceptFor(role) {
+    return role === "hero_video" ? "video/mp4,video/quicktime" : "image/jpeg,image/png,image/webp";
+}
+
+function mediaShowError(message) {
+    mediaErrorBox.textContent = message;
+    mediaErrorBox.classList.remove("hidden");
+}
+
+function mediaRefreshAddButton(grid) {
+    const max = parseInt(grid.dataset.max, 10);
+    const count = grid.querySelectorAll(".media-thumb").length;
+    const addBtn = grid.querySelector(".media-add");
+    if (addBtn) addBtn.classList.toggle("hidden", count >= max);
+}
+
+function mediaMakeThumb(grid, item) {
+    const thumb = document.createElement("div");
+    thumb.className = "media-thumb";
+    thumb.dataset.id = item.id;
+
+    const media = item.type === "video"
+        ? Object.assign(document.createElement("video"), { src: item.url, muted: true, playsInline: true })
+        : Object.assign(document.createElement("img"), { src: item.url, alt: "" });
+    thumb.appendChild(media);
+
+    const removeBtn = document.createElement("button");
+    removeBtn.type = "button";
+    removeBtn.className = "media-remove";
+    removeBtn.setAttribute("aria-label", "Remove");
+    removeBtn.textContent = "×";
+    removeBtn.addEventListener("click", () => mediaRemoveItem(grid, item.id, thumb));
+    thumb.appendChild(removeBtn);
+
+    grid.insertBefore(thumb, grid.querySelector(".media-add"));
+    mediaRefreshAddButton(grid);
+}
+
+function mediaUploadFile(grid, role, file) {
+    const max = parseInt(grid.dataset.max, 10);
+    if (grid.querySelectorAll(".media-thumb").length >= max) return;
+    mediaErrorBox.classList.add("hidden");
+
+    const placeholder = document.createElement("div");
+    placeholder.className = "media-thumb uploading";
+    grid.insertBefore(placeholder, grid.querySelector(".media-add"));
+
+    const formData = new FormData();
+    formData.append("role", role);
+    formData.append("file", file);
+
+    fetch(API_BASE + "/api/media", {
+        method: "POST",
+        headers: state.token ? { Authorization: "Bearer " + state.token } : {},
+        body: formData,
+    }).then((response) => response.json().catch(() => ({})).then((data) => ({ ok: response.ok, data })))
+        .then(({ ok, data }) => {
+            placeholder.remove();
+            if (!ok) {
+                mediaShowError(data.error || t("settings.media.error"));
+                return;
+            }
+            // logo/hero_video replace whatever was there - drop any existing thumb in
+            // this grid before adding the new one, mirroring what the server just did.
+            if (max === 1) {
+                grid.querySelectorAll(".media-thumb").forEach((node) => node.remove());
+            }
+            mediaMakeThumb(grid, data);
+        }).catch(() => {
+            placeholder.remove();
+            mediaShowError(t("settings.media.error"));
+        });
+}
+
+function mediaRemoveItem(grid, id, thumb) {
+    thumb.classList.add("uploading");
+    fetch(API_BASE + "/api/media/" + id, {
+        method: "DELETE",
+        headers: state.token ? { Authorization: "Bearer " + state.token } : {},
+    }).then((response) => {
+        if (!response.ok) throw new Error();
+        thumb.remove();
+        mediaRefreshAddButton(grid);
+    }).catch(() => {
+        thumb.classList.remove("uploading");
+        mediaShowError(t("settings.media.removeError"));
+    });
+}
+
+function mediaInitGrid(grid) {
+    const role = grid.dataset.role;
+    const label = document.createElement("label");
+    label.className = "media-add";
+    label.textContent = "+";
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = mediaAcceptFor(role);
+    input.multiple = grid.dataset.max !== "1";
+    input.addEventListener("change", () => {
+        const files = Array.prototype.slice.call(input.files || []);
+        input.value = "";
+        files.forEach((file) => mediaUploadFile(grid, role, file));
+    });
+    label.appendChild(input);
+    grid.appendChild(label);
+}
+
+async function loadBusinessMedia() {
+    mediaGrids.forEach((grid) => {
+        grid.querySelectorAll(".media-thumb").forEach((node) => node.remove());
+    });
+    try {
+        const data = await api("/api/media");
+        (data.media || []).forEach((item) => {
+            const grid = mediaGrids.find((g) => g.dataset.role === item.role);
+            if (grid) mediaMakeThumb(grid, item);
+        });
+    } catch (err) {
+        if (err.status === 401) logout();
+    }
+}
+
+mediaGrids.forEach(mediaInitGrid);
 
 el("settings-save").addEventListener("click", async () => {
     const button = el("settings-save");

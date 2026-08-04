@@ -38,6 +38,15 @@ export default defineRailway(() => {
       PADDLE_PRICE_PRO_YEARLY: "pri_01ky9jwbhs6gnqx4jt8t4g2esz",
       PADDLE_CLIENT_TOKEN: preserve(),
       PADDLE_WEBHOOK_SECRET: preserve(),
+      // Cloudinary (storage.py) - object storage/CDN for business-uploaded website
+      // media (logo/gallery/hero video, see business_media.py). Deliberately NOT the
+      // /data volume above: the app service already runs a plain `gunicorn app:app`
+      // process (no multi-instance/replica setup here), but disk written outside that
+      // volume still doesn't survive a redeploy, and uploaded files need to be served
+      // by URL from day one anyway - a CDN was the right call regardless of the volume.
+      // preserve()d: set once directly in Railway from Cloudinary dashboard > Account
+      // Details > "API Environment variable".
+      CLOUDINARY_URL: preserve(),
       // Firebase Cloud Messaging (push_notifications.py) - owner appointment reminders
       // and new-message alerts push to the Android app through these. Both preserve()d:
       // set once directly in Railway from the Firebase console (Project settings ->

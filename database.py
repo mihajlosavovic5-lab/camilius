@@ -718,6 +718,29 @@ def create_database():
     # rendering pixel-identical instead of silently changing color scheme on deploy.
     cursor.execute("ALTER TABLE business_pages ADD COLUMN IF NOT EXISTS theme TEXT NOT NULL DEFAULT 'warm'")
 
+    # Photos/video a business uploads for its own public page (logo in the header, a
+    # gallery of shots of the product/space, one hero video) - see storage.py for the
+    # actual Cloudinary upload/delete, this table just links the resulting URL back to
+    # the business. storage_key is Cloudinary's public_id, kept alongside the URL so a
+    # replace/delete can remove the asset from Cloudinary too instead of only forgetting
+    # the row and leaving the file (and its storage cost) behind forever. role is
+    # 'logo'/'hero_video' (at most one row each - the app enforces that by deleting the
+    # existing row before inserting a replacement, same "one row per business" spirit as
+    # business_pages above) or 'gallery' (many rows, ordered by position).
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS business_media (
+            id SERIAL PRIMARY KEY,
+            business_id INTEGER NOT NULL REFERENCES businesses(id),
+            url TEXT NOT NULL,
+            storage_key TEXT NOT NULL,
+            media_type TEXT NOT NULL,
+            role TEXT NOT NULL,
+            position INTEGER NOT NULL DEFAULT 0,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+    cursor.execute("CREATE INDEX IF NOT EXISTS business_media_business_id_idx ON business_media (business_id)")
+
     connection.commit()
     connection.close()
 
@@ -2359,6 +2382,77 @@ def published_page_slugs():
     result = cursor.fetchall()
     connection.close()
     return result
+
+
+# --- Business media (website photos/video - logo, gallery, hero video) ---
+# See business_media's own CREATE TABLE comment in create_database() for the shape.
+# Row: 0 id, 1 business_id, 2 url, 3 storage_key, 4 media_type, 5 role, 6 position, 7 created_at
+
+def add_business_media(business_id, url, storage_key, media_type, role, position=0):
+    connection = connect()
+    cursor = connection.cursor()
+    cursor.execute(
+        """INSERT INTO business_media (business_id, url, storage_key, media_type, role, position)
+           VALUES (%s, %s, %s, %s, %s, %s) RETURNING id""",
+        (business_id, url, storage_key, media_type, role, position),
+    )
+    new_id = cursor.fetchone()[0]
+    connection.commit()
+    connection.close()
+    return new_id
+
+
+def business_media_for_business(business_id):
+    """Every media row for this business, gallery images ordered the way they were
+    added (position, then insertion order) - used both to render the public page and to
+    let the owner see/manage what they've uploaded so far."""
+    connection = connect()
+    cursor = connection.cursor()
+    cursor.execute(
+        """SELECT id, business_id, url, storage_key, media_type, role, position, created_at
+           FROM business_media WHERE business_id = %s ORDER BY role, position, id""",
+        (business_id,),
+    )
+    result = cursor.fetchall()
+    connection.close()
+    return result
+
+
+def business_media_by_role(business_id, role):
+    """Existing row(s) for one role (e.g. the current logo) - callers use this before
+    replacing a single-slot role (logo/hero_video) to find what needs deleting from
+    Cloudinary first, and before adding to the gallery to enforce the count cap."""
+    connection = connect()
+    cursor = connection.cursor()
+    cursor.execute(
+        """SELECT id, business_id, url, storage_key, media_type, role, position, created_at
+           FROM business_media WHERE business_id = %s AND role = %s ORDER BY position, id""",
+        (business_id, role),
+    )
+    result = cursor.fetchall()
+    connection.close()
+    return result
+
+
+def business_media_by_id(media_id):
+    connection = connect()
+    cursor = connection.cursor()
+    cursor.execute(
+        """SELECT id, business_id, url, storage_key, media_type, role, position, created_at
+           FROM business_media WHERE id = %s""",
+        (media_id,),
+    )
+    result = cursor.fetchone()
+    connection.close()
+    return result
+
+
+def delete_business_media(media_id):
+    connection = connect()
+    cursor = connection.cursor()
+    cursor.execute("DELETE FROM business_media WHERE id = %s", (media_id,))
+    connection.commit()
+    connection.close()
 
 
 if __name__ == "__main__":

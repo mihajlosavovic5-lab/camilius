@@ -28,6 +28,7 @@ from database import (
 from extensions import limiter
 import booking
 import paddle_billing
+import business_media
 
 api = Blueprint("api", __name__, url_prefix="/api")
 
@@ -796,6 +797,40 @@ def api_update_settings():
         working_hours=working_hours, price_list=price_list, faq=faq,
         upsell_pairs=upsell_pairs,
     )
+
+
+# Website media (logo/gallery photos/hero video) - mobile app's Bearer-authed equivalent
+# of app.py's session-authed /api/onboarding/media, calling the exact same
+# business_media.py rules so a photo uploaded from the app and one uploaded from the web
+# onboarding wizard behave identically (same limits, same replace-on-upload for logo/
+# hero_video, same Cloudinary cleanup on delete).
+@api.route("/media", methods=["GET"])
+@require_api_auth
+def api_list_media():
+    return jsonify(media=business_media.list_media(request.business_id))
+
+
+@api.route("/media", methods=["POST"])
+@require_api_auth
+@limiter.limit("60 per hour")
+def api_upload_media():
+    role = request.form.get("role", "")
+    file_storage = request.files.get("file")
+    try:
+        item = business_media.upload_media(request.business_id, role, file_storage)
+    except business_media.MediaError as error:
+        return jsonify(error=str(error)), error.status
+    return jsonify(**item)
+
+
+@api.route("/media/<int:media_id>", methods=["DELETE"])
+@require_api_auth
+def api_delete_media(media_id):
+    try:
+        business_media.delete_media(request.business_id, media_id)
+    except business_media.MediaError as error:
+        return jsonify(error=str(error)), error.status
+    return jsonify(deleted=True)
 
 
 # Triggered by the "Verify phone number" button on the Profile screen - unlike email

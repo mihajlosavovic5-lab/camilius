@@ -55,6 +55,7 @@ from page_generator import (
 )
 import stripe_billing
 import paddle_billing
+import business_media
 from database import all_businesses_unfiltered
 from api import api as api_blueprint, APK_VERSION
 from extensions import limiter
@@ -1027,6 +1028,8 @@ def settings():
                 page_error=None,
                 page_url_prefix=request.url_root + "p/",
                 theme_choices=list(themes.THEMES.items()),
+                media=business_media.list_media(business_id),
+                max_gallery_images=business_media.MAX_GALLERY_IMAGES,
                 business={
                     "name": name, "username": username, "contact_email": contact_email,
                     "pending_contact_email": pending_contact_email,
@@ -1098,6 +1101,8 @@ def settings():
             page_error=None,
             page_url_prefix=request.url_root + "p/",
             theme_choices=list(themes.THEMES.items()),
+            media=business_media.list_media(business_id),
+            max_gallery_images=business_media.MAX_GALLERY_IMAGES,
             business={
                 "name": name, "username": username, "contact_email": contact_email,
                 "pending_contact_email": pending_contact_email,
@@ -1114,6 +1119,8 @@ def settings():
         page_error=page_error,
         page_url_prefix=request.url_root + "p/",
         theme_choices=list(themes.THEMES.items()),
+        media=business_media.list_media(business_id),
+        max_gallery_images=business_media.MAX_GALLERY_IMAGES,
         business={
             "name": business[1], "username": username, "contact_email": contact_email,
             "pending_contact_email": pending_contact_email,
@@ -1328,18 +1335,22 @@ def generate_business_page():
         generate_description=description,
         page_url_prefix=request.url_root + "p/",
         theme_choices=list(themes.THEMES.items()),
+        media=business_media.list_media(business_id),
+        max_gallery_images=business_media.MAX_GALLERY_IMAGES,
         business=business_view,
     )
 
 
 # --- Onboarding wizard (Faza 13) - the mandatory "build your website" flow a business is
 # sent through right after email verification (see onboarding_required above), before it
-# can reach the dashboard at all. Four steps, each its own route/template, state carried
+# can reach the dashboard at all. Five steps, each its own route/template, state carried
 # forward in session[_ONBOARDING_SESSION_KEY] between them rather than as hidden form
 # fields (unlike the delete-account wizard's own three steps) - the AI draft this stashes
 # (tagline/about/hours/prices/faq) is too much to round-trip through hidden inputs on
-# every step cleanly. Cleared the moment step 4 actually publishes (or never populated at
-# all for a grandfathered pre-existing business - see onboarding_completed).
+# every step cleanly. The media step (Faza 14) is the one exception - uploads go straight
+# to business_media via this business's real business_id, nothing about them is staged in
+# the draft. Cleared the moment step 5 actually publishes (or never populated at all for a
+# grandfathered pre-existing business - see onboarding_completed).
 _ONBOARDING_SESSION_KEY = "onboarding_draft"
 
 
@@ -1424,6 +1435,41 @@ def onboarding_voice_transcribe():
     return jsonify(text=text)
 
 
+# Website media (logo/gallery photos/hero video) - see business_media.py for the actual
+# upload/replace/delete rules and storage.py for the underlying Cloudinary calls. Used
+# by both the onboarding wizard's media step (onboarding_media.html) and settings.html
+# afterward, so a business can keep managing photos once onboarding is done - unlike the
+# rest of onboarding_website_*, this isn't gated behind onboarding_completed().
+@app.route("/api/onboarding/media", methods=["GET", "POST"])
+@login_required
+@limiter.limit("60 per hour")
+def onboarding_media():
+    business_id = session["business_id"]
+    if request.method == "GET":
+        return jsonify(media=business_media.list_media(business_id))
+
+    role = request.form.get("role", "")
+    file_storage = request.files.get("file")
+    try:
+        item = business_media.upload_media(business_id, role, file_storage)
+    except business_media.MediaError as error:
+        return jsonify(error=str(error)), error.status
+
+    log_event("onboarding_media_uploaded", business_id=business_id)
+    return jsonify(**item)
+
+
+@app.route("/api/onboarding/media/<int:media_id>", methods=["DELETE"])
+@login_required
+def onboarding_media_delete(media_id):
+    business_id = session["business_id"]
+    try:
+        business_media.delete_media(business_id, media_id)
+    except business_media.MediaError as error:
+        return jsonify(error=str(error)), error.status
+    return jsonify(deleted=True)
+
+
 @app.route("/onboarding/website/design", methods=["GET", "POST"])
 @login_required
 def onboarding_website_design():
@@ -1476,13 +1522,41 @@ def onboarding_website_address():
         else:
             draft["slug"] = slug_value
             session[_ONBOARDING_SESSION_KEY] = draft
-            return redirect(url_for("onboarding_website_review"))
+            return redirect(url_for("onboarding_website_media"))
 
     return render_template(
         "onboarding_address.html",
         slug_value=slug_value,
         page_url_prefix=request.url_root + "p/",
         error=error,
+    )
+
+
+# Photos/video step - logo, a gallery of shots of the product/space, one hero video (see
+# business_media.py). Uploads happen immediately against this business's real business_id
+# via /api/onboarding/media (AJAX, see onboarding_media.html), not staged in the session
+# draft the way the earlier text steps are - a business_media row is harmless to have
+# even if the wizard is abandoned before Publish, unlike the businesses-table edits the
+# review step's own POST makes. This step is entirely optional: Continue always proceeds,
+# whether or not anything was uploaded.
+@app.route("/onboarding/website/media", methods=["GET", "POST"])
+@login_required
+def onboarding_website_media():
+    business_id = session["business_id"]
+    if onboarding_completed(business_id):
+        return redirect(url_for("home"))
+    draft = session.get(_ONBOARDING_SESSION_KEY)
+    if draft is None or "slug" not in draft:
+        return redirect(url_for("onboarding_website_describe"))
+
+    if request.method == "POST":
+        return redirect(url_for("onboarding_website_review"))
+
+    return render_template(
+        "onboarding_media.html",
+        draft=draft,
+        media=business_media.list_media(business_id),
+        max_gallery_images=business_media.MAX_GALLERY_IMAGES,
     )
 
 
@@ -1541,6 +1615,7 @@ def onboarding_website_preview():
         abort(404)
     business = business_by_id(business_id)
     theme = themes.theme_or_default(request.args.get("theme") or draft.get("theme"))
+    media = business_media.media_for_page(business_id)
     return render_template(
         "public_page.html",
         business_name=business[1],
@@ -1557,6 +1632,9 @@ def onboarding_website_preview():
         theme=theme,
         preview=True,
         show_badge=False,
+        logo_url=media["logo_url"],
+        gallery_urls=media["gallery_urls"],
+        hero_video_url=media["hero_video_url"],
     )
 
 
@@ -1768,6 +1846,7 @@ def public_page(slug):
         (BETA_FREE_MODE or has_pro_access(page[1]))
         and any(booking.parse_working_hours(business[8]).values())
     )
+    media = business_media.media_for_page(page[1])
     return render_template(
         "public_page.html",
         business_name=business[1],
@@ -1791,6 +1870,9 @@ def public_page(slug):
         # truth (effective_subscription_active) rather than a second "is this really
         # paid, not just trialing" check that could quietly drift from it.
         show_badge=not effective_subscription_active(page[1]),
+        logo_url=media["logo_url"],
+        gallery_urls=media["gallery_urls"],
+        hero_video_url=media["hero_video_url"],
     )
 
 
