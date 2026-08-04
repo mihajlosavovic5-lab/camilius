@@ -1,5 +1,5 @@
 """Smart Booking / Schedule (Faza 8) - slot generation, business-hours parsing, and
-availability logic for the Schedule page and the AI's Instagram-DM booking tool (see
+availability logic for the Schedule page and the AI's chat booking tool (see
 generate_reply.py's generate_reply_with_booking). All actual reads/writes go through
 database.py; this module owns the calendar math on top of it.
 
@@ -321,7 +321,7 @@ def attempt_ai_booking(business, business_id, slot_minutes, requested_dt_str, cu
 def attempt_ai_cancel_or_reschedule(business, business_id, slot_minutes, sender_igsid, new_requested_datetime=None, upsell_pairs_text=None):
     """Tool executor for generate_reply.py's cancel_or_reschedule_appointment tool. Looks
     up the customer's own next upcoming appointment by sender_igsid (the model never has
-    an appointment ID - the Instagram thread it's already in IS the identifier). A
+    an appointment ID - the chat session it's already in IS the identifier). A
     reschedule verifies the NEW slot works BEFORE canceling the old one, so a failed
     reschedule never leaves the customer with nothing booked."""
     tz = tz_for(business)

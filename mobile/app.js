@@ -100,7 +100,6 @@ const screens = {
     forgotPassword: el("screen-forgot-password"),
     register: el("screen-register"),
     verifyPending: el("screen-verify-pending"),
-    connectInstagram: el("screen-connect-instagram"),
     inbox: el("screen-inbox"),
     detail: el("screen-detail"),
     schedule: el("screen-schedule"),
@@ -126,8 +125,8 @@ function showTabbar(show) {
     tabbar.classList.toggle("hidden", !show);
 }
 
-// Register / Forgot password / Connect Instagram are a small, fixed, entirely linear
-// flow (Login -> Register -> Connect Instagram -> Inbox, or Login -> Forgot password ->
+// Register / Forgot password are a small, fixed, entirely linear
+// flow (Login -> Register -> Inbox, or Login -> Forgot password ->
 // Login) - their slide-in transition comes purely from the default .screen CSS (same
 // mechanism Detail uses), but unlike Detail they don't need real browser-history
 // push/pop plumbing to get the Android back button right: a plain showScreen() plus a
@@ -204,10 +203,6 @@ if (capacitorPlugins) {
             showScreen("login");
         } else if (screens.verifyPending.classList.contains("active")) {
             showScreen("login");
-        } else if (screens.connectInstagram.classList.contains("active")) {
-            // Deliberately swallowed - the only ways out are finishing the connection or
-            // the explicit "Log out" link. Falling through to canGoBack/exitApp here would
-            // let one back-press quit the app mid-setup, right after creating an account.
         } else if (screens.terms.classList.contains("active") || screens.privacy.classList.contains("active")) {
             showScreen(legalReturnTo);
         } else if (screens.help.classList.contains("active") || screens.subscription.classList.contains("active")) {
@@ -225,15 +220,6 @@ if (capacitorPlugins) {
         }
     });
 
-    // "camilius://" deep link (see AndroidManifest.xml's second intent-filter) -
-    // currently only used by instagram_connect_mobile.html's "Back to Camilius" button to
-    // bring this already-running app to the foreground from its own OAuth tab, a plain
-    // Android scheme handoff every browser resolves via the OS itself rather than a
-    // browser-specific trick. Nothing to route on here: the intent-filter's
-    // launchMode="singleTask" already did the actual work (foregrounding the app) before
-    // this ever fires - a listener still has to be registered for Capacitor to process
-    // the deep link at all, even one that (for now) doesn't need to act on the URL itself.
-    capacitorPlugins.App.addListener("appUrlOpen", () => {});
 
     // Self-hosted OTA updates: the app ships with the mobile/ shell baked in at build
     // time, but small changes to it can be pushed live afterward without a new signed
@@ -1483,7 +1469,7 @@ el("login-form").addEventListener("submit", async (event) => {
         state.businessName = data.business_name;
         await storageSet("token", data.token);
         await storageSet("businessName", data.business_name);
-        enterOrGateOnInstagram();
+        enterApp();
     } catch (err) {
         if (err.data && err.data.pending_verification) {
             showVerifyPendingScreen(err.data.business_id, "", err.data.wait_seconds);
@@ -1583,8 +1569,9 @@ el("forgot-phone-form").addEventListener("submit", async (event) => {
 
 // --- Create account (its own native screen - full registration form, pushed on top of
 // Login. Terms of Service/Privacy Policy are native screens too - see showLegalScreen
-// below. On success, replaces itself with the Connect Instagram screen (not pushed - the
-// account already exists at that point, so the back button shouldn't return here). ---
+// below. On success, replaces itself with the "check your email" verify-pending screen
+// (not pushed - the account already exists at that point, so the back button shouldn't
+// return here). ---
 
 // --- Create Account is a 3-step wizard (Account -> Working hours -> Prices/FAQ/Terms)
 // instead of one long scrolling form: step-dots + a bottom-right arrow that only lights
@@ -1790,9 +1777,7 @@ el("login-signup-link").addEventListener("click", () => {
     });
     el("register-terms").checked = false;
     el("register-push-toggle").checked = true;
-    el("register-draft-mode-toggle").checked = false;
     el("register-new-booking-toggle").checked = true;
-    el("register-reminders-customer-toggle").checked = false;
     registerHoursPicker.reset();
     registerPricesPicker.setValue("");
     registerUsernameAvailability.reset();
@@ -1871,11 +1856,7 @@ el("register-form").addEventListener("submit", async (event) => {
                 faq: el("register-faq").value,
                 accept_terms: el("register-terms").checked,
                 push_enabled: el("register-push-toggle").checked,
-                // Draft Mode is the toggle's own sense (checked = review before sending);
-                // auto_send is its inverse, same as Settings' own save handler.
-                auto_send: !el("register-draft-mode-toggle").checked,
                 new_booking_notifications_enabled: el("register-new-booking-toggle").checked,
-                reminders_enabled: el("register-reminders-customer-toggle").checked,
             },
         });
         showVerifyPendingScreen(data.business_id, data.contact_email, data.wait_seconds);
@@ -1928,279 +1909,6 @@ el("verify-pending-back").addEventListener("click", () => {
     state.pendingVerifyBusinessId = null;
     showScreen("login");
 });
-
-// --- Connect Instagram - the one unavoidable step that has to leave native UI, since
-// Meta's own OAuth consent screen must run in a real browser context (no way around
-// that for any app, native or not). Opened as an in-app browser tab so it still feels
-// like part of the app rather than switching to a separate browser app. Completion is
-// detected via the Browser plugin's own "browserFinished" event (fires when the user
-// closes the tab, whether by finishing the OAuth flow or bailing out) rather than
-// requiring the user to tell us - we just check /api/settings for the now-connected
-// Instagram username right after.
-//
-// Two entry points share this same OAuth round-trip: the "gate" context, which
-// enterOrGateOnInstagram() no longer actually routes into since removing the app-entry
-// gate (that screen and this context are now unreachable dead code - see that
-// function's own comment), and the "Reconnect"/"Connect" link on the Profile screen
-// (see settings-instagram-reconnect-btn below) for a business connecting or fixing a
-// broken connection - same as the website's own Settings page.
-// instagramConnectContext records which one is in flight so the shared browserFinished
-// listener knows whether to route into the app or just refresh Profile's read-only field. ---
-
-let awaitingInstagramConnect = false;
-let instagramConnectContext = null; // "gate" | "profile"
-let instagramConnectPollTimer = null;
-
-// Backup for the OAuth landing page's own window.close() (instagram_connect_mobile.html)
-// - that only works if the Custom Tabs provider honors a script-initiated close, which
-// isn't every OEM browser, and isn't something the app can detect or retry from the
-// outside. Browser.close() is a first-class native call instead of a cross-context script
-// permission, so it doesn't have that problem - polling /api/instagram-connect-status
-// (keyed by this attempt's own state token, see api.py) here means the app itself can
-// call it the moment the backend confirms THIS round-trip finished, tab-closing quirks or
-// not. Deliberately not just re-checking /api/settings' instagram_username here - on a
-// RE-connect (context "profile") that field is already truthy before the user does
-// anything, and stays exactly as truthy after reconnecting the same account, so it can't
-// tell "just finished" apart from "already connected when this attempt started". The
-// state token can. browserFinished (the existing listener below) still does the actual
-// success UI work once the tab visibly closes, whichever side triggered that.
-function stopInstagramConnectPoll() {
-    if (instagramConnectPollTimer) {
-        clearTimeout(instagramConnectPollTimer);
-        instagramConnectPollTimer = null;
-    }
-}
-
-function pollForInstagramConnected(oauthState, attemptsLeft) {
-    if (!awaitingInstagramConnect) return;
-    if (attemptsLeft <= 0) {
-        // Logged (not just silently dropped) so a run that never saw "done" - vs. one
-        // that saw it but Browser.close() itself failed below - are told apart later,
-        // instead of both looking identical from the outside (tab still sitting open).
-        reportClientError("instagram connect poll exhausted without done=true", "", "instagram-connect-poll");
-        return;
-    }
-    api("/api/instagram-connect-status?state=" + encodeURIComponent(oauthState))
-        .then((data) => {
-            if (!awaitingInstagramConnect) return;
-            if (data.done) {
-                if (capacitorPlugins.Browser) {
-                    capacitorPlugins.Browser.close().catch((err) => {
-                        reportClientError("Browser.close() failed: " + err.message, err.stack, "instagram-connect-poll");
-                    });
-                }
-                return;
-            }
-            instagramConnectPollTimer = setTimeout(() => pollForInstagramConnected(oauthState, attemptsLeft - 1), 1800);
-        })
-        .catch((err) => {
-            if (!awaitingInstagramConnect) return;
-            if (err.status === 401) return;
-            instagramConnectPollTimer = setTimeout(() => pollForInstagramConnected(oauthState, attemptsLeft - 1), 1800);
-        });
-}
-
-async function openInstagramConnectBrowser(context, errorBoxId) {
-    const errorBox = el(errorBoxId);
-    if (errorBox) errorBox.classList.add("hidden");
-    try {
-        const data = await api("/api/instagram-connect-url");
-        instagramConnectContext = context;
-        if (capacitorPlugins && capacitorPlugins.Browser) {
-            awaitingInstagramConnect = true;
-            await capacitorPlugins.Browser.open({ url: data.url });
-            // ~90s of polling (50 x 1.8s) - comfortably covers a slow Instagram login/
-            // consent flow without polling indefinitely if the user abandons it instead.
-            pollForInstagramConnected(data.state, 50);
-        } else {
-            window.open(data.url, "_blank");
-        }
-    } catch (err) {
-        reportClientError(err.message, err.stack, "instagram-connect-url");
-        if (errorBox) {
-            errorBox.textContent = err.message || t("connect.notYetBody");
-            errorBox.classList.remove("hidden");
-        } else {
-            showToast(err.message || t("connect.notYetBody"));
-        }
-    }
-}
-
-// Sets the Instagram field's value (a plain <span>, not an <input> - see
-// .profile-instagram-value in app.css) and re-measures whether it's actually clipped, same
-// fade-truncation treatment as the website Profile page's own initInstagramValueTruncation
-// (settings.html). Needed here (and not just once at load, like the website's server-
-// rendered version) because this value changes live after a reconnect/disconnect.
-function setInstagramAccountValue(text) {
-    const valueEl = el("settings-instagram-account");
-    valueEl.textContent = text;
-    valueEl.classList.toggle("truncated", valueEl.scrollWidth > valueEl.clientWidth);
-}
-
-// Shows the "Disconnect" button only once an account is actually connected - there's
-// nothing to disconnect right after a failed/cancelled reconnect attempt, and Profile is
-// unreachable before the very first connection (see enterOrGateOnInstagram) so this only
-// ever needs to react to a successful reconnect or a disconnect happening here.
-function updateInstagramDisconnectVisibility(instagramUsername) {
-    el("settings-instagram-disconnect-btn").classList.toggle("hidden", !instagramUsername);
-}
-
-el("connect-instagram-btn").addEventListener("click", () => openInstagramConnectBrowser("gate", "connect-error"));
-el("settings-instagram-reconnect-btn").addEventListener("click", () => openInstagramConnectBrowser("profile", null));
-
-// Tapping the (non-editable) Instagram account value zooms it from its own on-screen
-// position into a centered card - handy for reading a long username in full on a small
-// phone screen, same zoom-from-source treatment as the website's Profile page. Wired once
-// here at load, not per-navigation - unlike settings.html's htmx-reloaded version of this,
-// this whole app is a single page, so the field and modal elements never get replaced.
-(function initInstagramZoomModal() {
-    const valueEl = el("settings-instagram-account");
-    const modal = el("ig-zoom-modal");
-    const sheet = el("ig-zoom-sheet");
-    const handleEl = el("ig-zoom-handle");
-    const backdrop = el("ig-zoom-backdrop");
-
-    function open() {
-        const value = valueEl.textContent;
-        if (!value) return;
-        handleEl.textContent = value;
-        const sourceRect = valueEl.getBoundingClientRect();
-        const sheetRect = sheet.getBoundingClientRect();
-        const dx = (sourceRect.left + sourceRect.width / 2) - (sheetRect.left + sheetRect.width / 2);
-        const dy = (sourceRect.top + sourceRect.height / 2) - (sheetRect.top + sheetRect.height / 2);
-        // Clamped so a very short field doesn't shrink the sheet to an illegible sliver,
-        // and a freak huge field never overshoots 1.
-        const scale = Math.max(.22, Math.min(.55, sourceRect.height / sheetRect.height));
-        // no-transition while these get set (and while .visible goes on) - see
-        // .ig-zoom-sheet.no-transition in app.css for why: without it, this write is
-        // itself an animated change on an element that already has a transform
-        // transition, which would immediately fight the real open animation queued below.
-        sheet.classList.add("no-transition");
-        sheet.style.setProperty("--ig-zoom-x", `${dx}px`);
-        sheet.style.setProperty("--ig-zoom-y", `${dy}px`);
-        sheet.style.setProperty("--ig-zoom-scale", scale.toFixed(3));
-        modal.classList.add("visible");
-        void sheet.offsetWidth; // forces the "from" pose above to commit before it's un-frozen
-        sheet.classList.remove("no-transition");
-        // Only now, one real frame later, does adding .open (the actual, transitioned
-        // change to identity/full-opacity) have a committed "from" state to animate from.
-        requestAnimationFrame(() => modal.classList.add("open"));
-    }
-    function close() {
-        if (!modal.classList.contains("open")) return;
-        modal.classList.remove("open");
-        const onTransitionEnd = (e) => {
-            if (e.target !== sheet || e.propertyName !== "transform") return;
-            sheet.removeEventListener("transitionend", onTransitionEnd);
-            modal.classList.remove("visible");
-        };
-        sheet.addEventListener("transitionend", onTransitionEnd);
-    }
-
-    valueEl.addEventListener("click", open);
-    backdrop.addEventListener("click", close);
-    // Tapping the zoomed handle itself closes it too - same "tap to dismiss" reflex as a
-    // photo lightbox, and the sheet has nothing else in it to tap.
-    sheet.addEventListener("click", close);
-})();
-
-function closeInstagramDisconnectModal() {
-    el("instagram-disconnect-modal").classList.remove("open");
-}
-
-el("settings-instagram-disconnect-btn").addEventListener("click", () => {
-    el("instagram-disconnect-modal").classList.add("open");
-});
-el("instagram-disconnect-backdrop").addEventListener("click", closeInstagramDisconnectModal);
-el("instagram-disconnect-cancel").addEventListener("click", closeInstagramDisconnectModal);
-el("instagram-disconnect-confirm").addEventListener("click", async () => {
-    closeInstagramDisconnectModal();
-    try {
-        await api("/api/instagram-disconnect", { method: "POST" });
-        setInstagramAccountValue("");
-        updateInstagramDisconnectVisibility(null);
-        showSaveSuccess(t("settings.saved"));
-    } catch (err) {
-        if (err.status === 401) { logout(); return; }
-        showToast(err.message || t("connect.notYetBody"));
-    }
-});
-
-if (capacitorPlugins && capacitorPlugins.Browser) {
-    capacitorPlugins.Browser.addListener("browserFinished", async () => {
-        if (!awaitingInstagramConnect) return;
-        awaitingInstagramConnect = false;
-        stopInstagramConnectPoll();
-        const context = instagramConnectContext;
-        instagramConnectContext = null;
-
-        if (context === "profile") {
-            try {
-                const data = await api("/api/settings");
-                setInstagramAccountValue(data.instagram_username ? "@" + data.instagram_username : "");
-                updateInstagramDisconnectVisibility(data.instagram_username);
-                if (data.instagram_username) {
-                    if (capacitorPlugins.Haptics) capacitorPlugins.Haptics.impact({ style: "LIGHT" });
-                    showSaveSuccess(t("settings.saved"));
-                }
-            } catch (err) {
-                if (err.status === 401) logout();
-            }
-            return;
-        }
-
-        if (context !== "gate") return;
-        el("connect-waiting").classList.remove("hidden");
-        try {
-            const data = await api("/api/settings");
-            if (data.instagram_username) {
-                if (capacitorPlugins.Haptics) capacitorPlugins.Haptics.impact({ style: "LIGHT" });
-                enterApp();
-            } else {
-                el("connect-error").textContent = t("connect.notYetBody");
-                el("connect-error").classList.remove("hidden");
-            }
-        } catch (err) {
-            if (err.status === 401) { logout(); return; }
-            el("connect-error").textContent = err.message || t("connect.notYetBody");
-            el("connect-error").classList.remove("hidden");
-        } finally {
-            el("connect-waiting").classList.add("hidden");
-        }
-    });
-}
-
-// Connect Instagram is a mandatory gate with nowhere else to "go back" to (it replaces
-// the register screen rather than being pushed on top of it, and a logged-in-but-not-
-// yet-connected business lands here straight from login too - see
-// enterOrGateOnInstagram() below) - the back arrow's only sensible action is the same
-// one the old "Log out" link performed, just presented as standard back-navigation
-// chrome instead of an explicit logout affordance.
-el("connect-instagram-back").addEventListener("click", logout);
-
-el("connect-request-tester-access-btn").addEventListener("click", async () => {
-    const url = API_BASE + "/request-tester-access";
-    if (capacitorPlugins && capacitorPlugins.Browser) {
-        await capacitorPlugins.Browser.open({ url });
-    } else {
-        window.open(url, "_blank");
-    }
-});
-
-// Used to gate entry into the app on Instagram actually being connected, mirroring the
-// website's own home route - which had the same gate (see app.py's home(), fixed
-// separately). Since the pivot to the hosted page/widget (F1-F5), a business runs fully
-// without ever touching Instagram, so this no longer checks anything before entering:
-// loadSettingsIntoForm() (called from enterApp() below) already fetches /api/settings
-// and populates the Instagram field on its own. The "screen-connect-instagram" full-
-// screen intro this used to route to when nothing was connected is unreachable from
-// here now - connecting/reconnecting Instagram still works via the ordinary "Connect"/
-// "Reconnect" button on the Profile screen (settings-instagram-reconnect-btn below),
-// same as the website's own Profile page never needed a full-screen takeover for it
-// either.
-function enterOrGateOnInstagram() {
-    enterApp();
-}
 
 function enterApp() {
     showTabbar(true);
@@ -2467,7 +2175,6 @@ async function renderInboxList(conversations) {
                 <span class="inbox-row-top">
                     <span class="inbox-sender-group">
                         <span class="inbox-sender">${escapeHtml(c.sender)}</span>
-                        ${c.channel === "whatsapp" ? '<span class="channel-badge channel-badge-whatsapp" title="WhatsApp">WA</span>' : c.channel === "messenger" ? '<span class="channel-badge channel-badge-messenger" title="Messenger">FB</span>' : ""}
                     </span>
                     <span class="inbox-time">${timeAgo(c.created_at)}</span>
                 </span>
@@ -2570,19 +2277,9 @@ function preloadImage(url, timeoutMs = 3000) {
     });
 }
 
-// Resolves to the real Instagram profile picture URL once it's actually confirmed
-// loadable, or null (meaning "use the letter avatar" - see buildAvatarElement below).
-//
-// c.profile_pic_url is a signed Meta CDN link captured once when the message arrived
-// (see save_draft_reply/profile_pic_url) - it expires after a while, so it can easily
-// 403 by the time someone actually opens the inbox even though the sender still has a
-// picture. It can also be missing entirely - the initial Graph API lookup can fail, or
-// the sender simply had no picture yet at message-receipt time and has since added or
-// changed one - in which case there's nothing to even try loading yet. Either way, a
-// failed (or skipped) load falls through to a live re-resolve via the server (GET
-// /api/conversations/<id>/avatar can't be a plain <img src> since it needs the app's
-// Bearer auth header, which a bare <img> tag can't send); only if that also comes up
-// empty does it resolve to null.
+// Resolves to a usable profile picture URL, or null (meaning "use the letter avatar" -
+// see buildAvatarElement below). c.profile_pic_url can be missing entirely (a page-chat
+// visitor has no profile picture), in which case there's nothing to try loading.
 //
 // Cached per conversation+URL so repeat calls (a poll refresh, typing in the search box
 // - both re-render the whole list) don't re-fetch/re-preload an avatar already resolved.
@@ -2591,17 +2288,7 @@ async function resolveAvatarUrl(c) {
     const cacheKey = `${c.id}:${c.profile_pic_url || ""}`;
     if (avatarUrlCache.has(cacheKey)) return avatarUrlCache.get(cacheKey);
 
-    let resolved = null;
-    if (c.profile_pic_url && await preloadImage(c.profile_pic_url)) {
-        resolved = c.profile_pic_url;
-    } else {
-        try {
-            const data = await api(`/api/conversations/${c.id}/avatar`);
-            if (data.profile_pic_url && await preloadImage(data.profile_pic_url)) resolved = data.profile_pic_url;
-        } catch (err) {
-            // Falls through to null (letter avatar).
-        }
-    }
+    const resolved = (c.profile_pic_url && await preloadImage(c.profile_pic_url)) ? c.profile_pic_url : null;
     avatarUrlCache.set(cacheKey, resolved);
     return resolved;
 }
@@ -2755,10 +2442,10 @@ function openDetail(conversation) {
     el("detail-pending-block").classList.toggle("hidden", !canReply);
     el("detail-sent-block").classList.toggle("hidden", canReply);
 
-    // Proactive heads-up for a still-pending reply whose 24h Instagram reply window has
-    // already quietly passed but the background sweep (reminders.expire_stale_pending_
-    // conversations_if_needed) hasn't caught up yet - it runs every few minutes, not
-    // instantly - so this warns before the tap instead of only after a failed send.
+    // Proactive heads-up for a still-pending reply whose 24h window has already quietly
+    // passed but the background sweep (reminders.expire_stale_pending_conversations_if_
+    // needed) hasn't caught up yet - it runs every few minutes, not instantly - so this
+    // warns before the tap instead of only after a failed send.
     const HOURS_24_MS = 24 * 60 * 60 * 1000;
     const createdAtMs = conversation.created_at ? new Date(conversation.created_at).getTime() : NaN;
     const windowPassed = !isNaN(createdAtMs) && Date.now() - createdAtMs > HOURS_24_MS;
@@ -2922,8 +2609,6 @@ async function loadSettingsIntoForm() {
         setProfilePhoneCountry(country);
         el("settings-phone").value = rest;
         updatePhoneVerifyStatus(data.phone_number, data.phone_verified);
-        setInstagramAccountValue(data.instagram_username ? "@" + data.instagram_username : "");
-        updateInstagramDisconnectVisibility(data.instagram_username);
         profileHoursPicker.setValue(data.working_hours);
         profilePricesPicker.setValue(data.price_list);
         el("settings-faq").value = data.faq;
@@ -3115,9 +2800,9 @@ el("delete-confirm-submit").addEventListener("click", async () => {
     }
 });
 
-// Confirm modal (same .lang-modal pattern as Instagram disconnect above) instead of
-// logging out immediately on tap - a real tap-target for something this hard to undo
-// mid-session shouldn't fire on the first touch.
+// Confirm modal (same .lang-modal pattern used elsewhere) instead of logging out
+// immediately on tap - a real tap-target for something this hard to undo mid-session
+// shouldn't fire on the first touch.
 function closeLogoutConfirmModal() {
     el("logout-confirm-modal").classList.remove("open");
 }
@@ -3168,9 +2853,8 @@ function renderSubscriptionScreen() {
 }
 
 // "Choose a plan" opens the website's own Starter/Pro pricing page (built for the web,
-// not duplicated natively) in the in-app browser - same short-lived-signed-link bridge
-// already used for Connect Instagram, since the mobile app's Bearer token can't be
-// attached to a request the Browser plugin opens.
+// not duplicated natively) in the in-app browser - a short-lived signed link, since the
+// mobile app's Bearer token can't be attached to a request the Browser plugin opens.
 async function openChoosePlan() {
     try {
         const data = await api("/api/subscription-link");
@@ -3738,24 +3422,16 @@ function reminderLeadLabel(minutes) {
     return `${minutes} min`;
 }
 
-// Loads the current push/auto-send/reminder preferences into the toggles - purely local
-// UI state until the user taps "Save changes" below (Faza 4: these used to POST instantly
-// on every toggle flip; now nothing is sent to the server until Save is tapped, same as
-// the Profile screen's own Save button). Customer and owner reminders (Faza 9/12/13) are
-// independent, each with its own lead time - see api.py's /api/notification-preferences.
+// Loads the current push/reminder preferences into the toggles - purely local UI state
+// until the user taps "Save changes" below (Faza 4: these used to POST instantly on
+// every toggle flip; now nothing is sent to the server until Save is tapped, same as the
+// Profile screen's own Save button). See api.py's /api/notification-preferences.
 async function loadNotificationPreferences() {
     try {
         const data = await api("/api/notification-preferences");
         el("settings-new-booking-toggle").checked = !!data.new_booking_notifications_enabled;
-        // Inverted from the server's auto_send - the toggle reads as "AI Draft Mode"
-        // (review before sending), same field/polarity as the website's own draft_mode
-        // checkbox (see update_auto_send() in api.py): draft mode ON means auto_send OFF.
-        el("settings-draft-mode-toggle").checked = !data.auto_send;
-        el("settings-reminders-customer-toggle").checked = !!data.reminders_enabled;
         el("settings-reminders-owner-toggle").checked = !!data.owner_reminders_enabled;
-        state.reminderCustomerMinutes = data.customer_reminder_minutes || 1440;
         state.reminderOwnerMinutes = data.owner_reminder_minutes || 60;
-        el("settings-reminders-customer-lead-label").textContent = reminderLeadLabel(state.reminderCustomerMinutes);
         el("settings-reminders-owner-lead-label").textContent = reminderLeadLabel(state.reminderOwnerMinutes);
         applyProAccessLocks();
         appSettingsSnapshot = serializeAppSettingsForm();
@@ -3773,10 +3449,7 @@ let appSettingsSnapshot = null;
 function serializeAppSettingsForm() {
     return JSON.stringify({
         newBooking: el("settings-new-booking-toggle").checked,
-        draftMode: el("settings-draft-mode-toggle").checked,
-        remindersCustomer: el("settings-reminders-customer-toggle").checked,
         remindersOwner: el("settings-reminders-owner-toggle").checked,
-        customerMinutes: state.reminderCustomerMinutes,
         ownerMinutes: state.reminderOwnerMinutes,
     });
 }
@@ -3787,23 +3460,21 @@ function updateAppSettingsSaveState() {
     el("screen-settings").classList.toggle("has-unsaved", dirty);
 }
 
-["settings-new-booking-toggle", "settings-draft-mode-toggle", "settings-reminders-customer-toggle", "settings-reminders-owner-toggle"].forEach((id) => {
+["settings-new-booking-toggle", "settings-reminders-owner-toggle"].forEach((id) => {
     el(id).addEventListener("change", updateAppSettingsSaveState);
 });
 
 // Re-asks for OS notification permission the moment either of the two owner-facing push
 // toggles is switched on - covers the case where permission was declined (or never
 // asked) at first launch and the user only decides they want it later, instead of
-// leaving them stuck with a toggle that looks on but was never actually granted. Not
-// wired to "Remind the customer" - that one sends an Instagram DM to the customer, not
-// a push to the owner's own device.
+// leaving them stuck with a toggle that looks on but was never actually granted.
 ["settings-new-booking-toggle", "settings-reminders-owner-toggle"].forEach((id) => {
     el(id).addEventListener("change", (event) => {
         if (event.target.checked) requestPushPermissionAndRegister();
     });
 });
 
-// Reminder lead-time pickers - same anchored optionPicker + "Custom" -> duration-modal
+// Reminder lead-time picker - same anchored optionPicker + "Custom" -> duration-modal
 // pattern as the Schedule tab's own duration buttons above, just with the reminder
 // presets instead of slot-duration ones.
 function wireReminderLeadPicker(buttonId, labelId, getMinutes, setMinutes) {
@@ -3828,31 +3499,16 @@ function wireReminderLeadPicker(buttonId, labelId, getMinutes, setMinutes) {
     });
 }
 wireReminderLeadPicker(
-    "settings-reminders-customer-lead-btn", "settings-reminders-customer-lead-label",
-    () => state.reminderCustomerMinutes, (m) => { state.reminderCustomerMinutes = m; },
-);
-wireReminderLeadPicker(
     "settings-reminders-owner-lead-btn", "settings-reminders-owner-lead-label",
     () => state.reminderOwnerMinutes, (m) => { state.reminderOwnerMinutes = m; },
 );
 
-// Faza 11/13: locks the No-show reminders toggles/lead-time pickers and AI upsell field
+// Faza 11/13: locks the No-show reminders toggle/lead-time picker and AI upsell field
 // for a Starter-plan (or lapsed) business - mirrors the website's .pro-locked treatment.
 // state.proAccess comes from /api/dashboard's response (see loadInbox), so this is
 // called both there and after loadNotificationPreferences/loadSettingsIntoForm in case
 // Settings/Profile is opened before the Inbox tab has ever loaded once.
 function applyProAccessLocks() {
-    const customerToggle = el("settings-reminders-customer-toggle");
-    const customerRow = el("settings-reminders-customer-row");
-    const customerLeadRow = el("settings-reminders-customer-lead-row");
-    const customerLeadBtn = el("settings-reminders-customer-lead-btn");
-    if (customerToggle && customerRow) {
-        customerToggle.disabled = !state.proAccess;
-        customerRow.classList.toggle("pro-locked", !state.proAccess);
-        if (customerLeadRow) customerLeadRow.classList.toggle("pro-locked", !state.proAccess);
-        if (customerLeadBtn) customerLeadBtn.disabled = !state.proAccess;
-        if (!state.proAccess) customerToggle.checked = false;
-    }
     const ownerToggle = el("settings-reminders-owner-toggle");
     const ownerRow = el("settings-reminders-owner-row");
     const ownerLeadRow = el("settings-reminders-owner-lead-row");
@@ -3890,10 +3546,7 @@ el("settings-app-save").addEventListener("click", async () => {
             method: "POST",
             body: {
                 new_booking_notifications_enabled: el("settings-new-booking-toggle").checked,
-                auto_send: !el("settings-draft-mode-toggle").checked,
-                reminders_enabled: state.proAccess ? el("settings-reminders-customer-toggle").checked : undefined,
                 owner_reminders_enabled: state.proAccess ? el("settings-reminders-owner-toggle").checked : undefined,
-                customer_reminder_minutes: state.proAccess ? state.reminderCustomerMinutes : undefined,
                 owner_reminder_minutes: state.proAccess ? state.reminderOwnerMinutes : undefined,
             },
         });
@@ -4067,7 +3720,7 @@ updateOfflineBanner();
     if (donationLink) el("donation-strip-link").href = donationLink;
 
     if (state.token) {
-        enterOrGateOnInstagram();
+        enterApp();
     } else if (isNative && !onboardingSeen) {
         showScreen("onboarding");
     } else {

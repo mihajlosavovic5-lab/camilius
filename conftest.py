@@ -1,5 +1,5 @@
 """Test environment setup - must run before `app` (and its import chain: database,
-send_email, generate_reply, instagram_api, extensions) is imported anywhere, since
+send_email, generate_reply, extensions) is imported anywhere, since
 several of those read required env vars at MODULE LOAD time and raise immediately if
 missing (FLASK_SECRET_KEY, DATABASE_URL, ENCRYPTION_KEY, OPENAI_API_KEY). CI provides a
 real Postgres service container for DATABASE_URL - see .github/workflows/tests.yml; run
@@ -18,11 +18,6 @@ os.environ.setdefault("ENCRYPTION_KEY", "lq6DN50PbDefktBQDzopjb_x9c2Ry7lxHtn3o3q
 # openai.OpenAI() validates this is non-empty at construction time (generate_reply.py,
 # module load) - never actually called by this suite, no real API calls are made.
 os.environ.setdefault("OPENAI_API_KEY", "sk-test-dummy-not-real")
-os.environ.setdefault("INSTAGRAM_APP_SECRET", "test-instagram-app-secret")
-os.environ.setdefault("WHATSAPP_APP_SECRET", "test-whatsapp-app-secret")
-os.environ.setdefault("WHATSAPP_WEBHOOK_VERIFY_TOKEN", "test-whatsapp-verify-token")
-os.environ.setdefault("MESSENGER_APP_SECRET", "test-messenger-app-secret")
-os.environ.setdefault("MESSENGER_WEBHOOK_VERIFY_TOKEN", "test-messenger-verify-token")
 os.environ.setdefault("FLASK_DEBUG", "true")  # test client uses plain http - avoids SESSION_COOKIE_SECURE dropping the session cookie
 
 import re

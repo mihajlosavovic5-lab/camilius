@@ -28,7 +28,7 @@
                 <span data-i18n="verifyEmail.successBody">Your account is now active. If you're using the Camilius app, you can go back there and log in.</span>
             </div>
             <div class="form-actions">
-                <a class="button button-full" href="{{ url_for('connect_instagram') }}" data-i18n="verifyEmail.continue">Continue</a>
+                <a class="button button-full" href="{{ url_for('home') }}" data-i18n="verifyEmail.continue">Continue</a>
             </div>
         {% elif email_taken %}
             <h1 data-i18n="verifyEmail.emailTakenTitle">That email is already in use</h1>

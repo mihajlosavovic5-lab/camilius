@@ -1,7 +1,7 @@
 {
     "name": "Camilius",
     "short_name": "Camilius",
-    "description": "Camilius reads your business's Instagram messages and drafts AI-suggested replies based on your working hours, price list, and FAQ.",
+    "description": "Camilius builds your business a hosted page with an AI chat that answers customers and books appointments based on your working hours, price list, and FAQ.",
     "start_url": "/",
     "scope": "/",
     "display": "standalone",

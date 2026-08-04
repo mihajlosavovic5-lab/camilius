@@ -89,67 +89,6 @@
             </div>
             <p class="field-error hidden" id="settings-username-error"></p>
 
-            {% if meta_channels_enabled %}
-            <div class="profile-instagram-field">
-                <label data-i18n="settings.instagramAccount">Instagram account</label>
-                <div class="profile-instagram-row">
-                    <span class="profile-instagram-value{% if business.instagram_username %} profile-instagram-value-clickable{% endif %}" {% if business.instagram_username %}id="profile-instagram-value" role="button" tabindex="0"{% endif %}>
-                        {% if business.instagram_username %}@{{ business.instagram_username }}{% else %}<span data-i18n="settings.instagramNotConnected">Not connected</span>{% endif %}
-                    </span>
-                    <div class="profile-instagram-actions">
-                        <a href="{{ url_for('connect_instagram_start') }}" class="field-action-link"><span data-i18n="{{ 'settings.instagramReconnect' if business.instagram_username else 'connectInstagram.cta' }}">{{ 'Reconnect' if business.instagram_username else 'Connect Instagram' }}</span></a>
-                        {% if business.instagram_username %}
-                            <!-- form="disconnect-instagram-form" (not a nested <form> here) -
-                                 a <form> can't be nested inside #settings-form below; browsers
-                                 silently close #settings-form early at this </form>, which used
-                                 to knock Working hours/Price list/FAQ/AI upsell/the Save button
-                                 itself clean out of the real form (they render after this point
-                                 in the template), so none of those fields were ever submitted and
-                                 the Save button never received their bubbled change events. The
-                                 actual <form id="disconnect-instagram-form"> now lives after
-                                 #settings-form's closing tag instead - this button just points to
-                                 it by id, which HTML allows regardless of DOM position. -->
-                            <button type="submit" form="disconnect-instagram-form" class="field-action-link field-action-link-danger" data-i18n="settings.instagramDisconnect">Disconnect</button>
-                        {% endif %}
-                    </div>
-                </div>
-            </div>
-
-            <div class="profile-instagram-field">
-                <label>WhatsApp number</label>
-                <div class="profile-instagram-row">
-                    <span class="profile-instagram-value">
-                        {% if business.whatsapp_display_number %}{{ business.whatsapp_display_number }}{% else %}Not connected{% endif %}
-                    </span>
-                    <div class="profile-instagram-actions">
-                        <a href="{{ url_for('connect_whatsapp') }}" class="field-action-link">{{ 'Reconnect' if business.whatsapp_display_number else 'Connect WhatsApp' }}</a>
-                        {% if business.whatsapp_display_number %}
-                            <!-- Same "separate <form> after #settings-form's closing tag" reason
-                                 as disconnect-instagram-form above. -->
-                            <button type="submit" form="disconnect-whatsapp-form" class="field-action-link field-action-link-danger">Disconnect</button>
-                        {% endif %}
-                    </div>
-                </div>
-            </div>
-
-            <div class="profile-instagram-field">
-                <label>Facebook Page (Messenger)</label>
-                <div class="profile-instagram-row">
-                    <span class="profile-instagram-value">
-                        {% if business.messenger_page_name %}{{ business.messenger_page_name }}{% else %}Not connected{% endif %}
-                    </span>
-                    <div class="profile-instagram-actions">
-                        <a href="{{ url_for('connect_messenger') }}" class="field-action-link">{{ 'Reconnect' if business.messenger_page_name else 'Connect Messenger' }}</a>
-                        {% if business.messenger_page_name %}
-                            <!-- Same "separate <form> after #settings-form's closing tag" reason
-                                 as disconnect-instagram-form above. -->
-                            <button type="submit" form="disconnect-messenger-form" class="field-action-link field-action-link-danger">Disconnect</button>
-                        {% endif %}
-                    </div>
-                </div>
-            </div>
-            {% endif %}
-
             <div class="floating-field">
                 <input type="email" id="settings-contact-email-input" name="contact_email" value="{{ business.contact_email }}" placeholder=" " required>
                 <label for="settings-contact-email-input" data-i18n="settings.contactEmail">Contact email</label>
@@ -204,8 +143,7 @@
                     <div class="upsell-row-picker"><input type="text" data-i18n-placeholder="settings.upsell.examplePlaceholder1" placeholder="Haircut" disabled><span class="upsell-arrow">&rarr;</span><input type="text" data-i18n-placeholder="settings.upsell.examplePlaceholder2" placeholder="Treatment" disabled></div>
                 </div>
                 <p class="pro-locked-note">&#10024; <a href="{{ url_for('subscription') }}" data-i18n="appSettings.reminders.upgradeCta">Upgrade to Pro</a> <span data-i18n="settings.upsell.upgradeSuffix">to let the AI suggest complementary services.</span>
-                    <!-- form="upgrade-to-pro-free-form" (not a nested <form> here) - same fix,
-                         same reason, as settings-instagram-disconnect-btn below: a <form>
+                    <!-- form="upgrade-to-pro-free-form" (not a nested <form> here) - a <form>
                          can't be nested inside #settings-form, which wraps this whole card.
                          Browsers silently close #settings-form at this inner form's own
                          </form>, which knocked the Save button (rendered further down, inside
@@ -245,45 +183,6 @@
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <input type="hidden" name="next" value="settings">
         </form>
-    {% endif %}
-    {% if meta_channels_enabled %}
-    {% if business.whatsapp_display_number %}
-        <form method="POST" action="{{ url_for('disconnect_whatsapp') }}" id="disconnect-whatsapp-form">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        </form>
-    {% endif %}
-    {% if business.messenger_page_name %}
-        <form method="POST" action="{{ url_for('disconnect_messenger') }}" id="disconnect-messenger-form">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        </form>
-    {% endif %}
-    {% if business.instagram_username %}
-        <form method="POST" action="{{ url_for('disconnect_instagram') }}" id="disconnect-instagram-form">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        </form>
-        <div class="confirm-modal" id="disconnect-instagram-modal" role="alertdialog" aria-modal="true" aria-describedby="disconnect-instagram-modal-message">
-            <div class="confirm-modal-backdrop"></div>
-            <div class="confirm-modal-card">
-                <p class="confirm-modal-message" id="disconnect-instagram-modal-message" data-i18n="settings.instagramDisconnectConfirm">Are you sure? You'll need to reconnect Instagram before Camilius can read or send messages again.</p>
-                <div class="confirm-modal-actions">
-                    <button type="button" class="button button-secondary" id="disconnect-instagram-cancel" data-i18n="settings.cancel">Cancel</button>
-                    <button type="button" class="button button-danger" id="disconnect-instagram-confirm" data-i18n="settings.instagramDisconnect">Disconnect</button>
-                </div>
-            </div>
-        </div>
-        <!-- Tapping the @handle in the Account card zooms it into this centered card (see
-             initInstagramZoomModal below) - mainly for the fade-truncated case, so a long
-             username that's clipped in the field can still be read in full. -->
-        <div class="ig-zoom-modal" id="ig-zoom-modal" role="dialog" aria-modal="true">
-            <div class="ig-zoom-modal-backdrop"></div>
-            <div class="ig-zoom-modal-card">
-                <div class="ig-zoom-modal-icon">
-                    <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5.5"/><circle cx="12" cy="12" r="4.5"/><circle cx="17.4" cy="6.6" r="1.1" fill="currentColor" stroke="none"/></svg>
-                </div>
-                <div class="ig-zoom-modal-handle" id="ig-zoom-modal-handle">@{{ business.instagram_username }}</div>
-            </div>
-        </div>
-    {% endif %}
     {% endif %}
 
     <!-- Optional AI-drafted starting point for the business-info card above and the
@@ -398,9 +297,9 @@
 function initSettingsPickers() {
     const hoursPicker = safeInit(() => createHoursPicker("settings-hours-picker-mount", "settings-working-hours"));
     // This exact message is only ever rendered on the response to a successful profile
-    // save POST (app.py's settings() view) - other messages reaching this page (e.g.
-    // "Instagram disconnected." via query string after a redirect) shouldn't trigger this,
-    // since nothing about the working hours actually changed on those. Collapses the hours
+    // save POST (app.py's settings() view) - other messages reaching this page shouldn't
+    // trigger this, since nothing about the working hours actually changed on those.
+    // Collapses the hours
     // section back to its "Working days" summary, same as the mobile app does after Save,
     // regardless of whether the saved days actually share one set of hours.
     {% if message == "Your details have been saved." %}
@@ -415,9 +314,6 @@ function initSettingsPickers() {
     safeInit(initSaveSuccessOverlay);
     safeInit(initSettingsUsernameAvailability);
     safeInit(initSettingsPasswordValidation);
-    safeInit(initDisconnectInstagramModal);
-    safeInit(initInstagramValueTruncation);
-    safeInit(initInstagramZoomModal);
     safeInit(initScrollPreservation);
     // Runs last, once every picker above (including the collapseToSimple() call, which can
     // shorten Working hours a lot) has already settled the page's final height - restoring
@@ -462,110 +358,6 @@ function initScrollPreservation() {
         window.__profileScrollY = window.scrollY;
         document.body.style.minHeight = document.body.scrollHeight + "px";
         window.__profileMinHeightLocked = true;
-    });
-}
-
-// Replaces the native confirm() that used to gate this submit (bare browser/OS popup,
-// styled nothing like the rest of the site) with .confirm-modal, matching the
-// save-success overlay's own look. "confirmed" lets requestSubmit() below re-enter this
-// same submit handler without reopening the modal a second time.
-function initDisconnectInstagramModal() {
-    const form = document.getElementById("disconnect-instagram-form");
-    const modal = document.getElementById("disconnect-instagram-modal");
-    if (!form || !modal) return;
-
-    const cancelBtn = document.getElementById("disconnect-instagram-cancel");
-    const confirmBtn = document.getElementById("disconnect-instagram-confirm");
-    let confirmed = false;
-
-    function close() { modal.classList.remove("open"); }
-
-    form.addEventListener("submit", (e) => {
-        if (confirmed) return;
-        e.preventDefault();
-        modal.classList.add("open");
-    });
-    cancelBtn.addEventListener("click", close);
-    modal.querySelector(".confirm-modal-backdrop").addEventListener("click", close);
-    confirmBtn.addEventListener("click", () => {
-        confirmed = true;
-        close();
-        form.requestSubmit();
-    });
-}
-
-// Fades the Instagram username's clipped edge to transparent instead of leaving it to
-// overflow: hidden's hard cut - same measure-then-mark approach as the mobile app's
-// .inbox-sender.truncated (mobile/app.js), so only a username that's actually wider than
-// the field gets the mask (see .profile-instagram-value.truncated in style.css). The
-// username's length is fixed once this page has rendered (it doesn't change without a
-// reload), so a one-time measurement here is enough - no resize listener needed.
-function initInstagramValueTruncation() {
-    const valueEl = document.querySelector(".profile-instagram-value");
-    if (!valueEl) return;
-    valueEl.classList.toggle("truncated", valueEl.scrollWidth > valueEl.clientWidth);
-}
-
-// Tapping the @handle (only rendered clickable when an account is actually connected -
-// see the Jinja condition around #profile-instagram-value) zooms it from its own on-screen
-// position into a centered card showing the full handle - mainly for the fade-truncated
-// case above, so a long username that's clipped in the field is still fully readable
-// somewhere. The zoom-from-source illusion (rather than a dialog that just fades in) is
-// computed here, not in CSS: right before adding .open, measure both the tapped element's
-// and the (already laid-out, just invisible) card's on-screen rects and set the card's
-// --ig-zoom-x/-y/-scale custom properties so its resting transform exactly overlaps the
-// source; the .open transition (style.css) then animates those back to identity.
-function initInstagramZoomModal() {
-    const valueEl = document.getElementById("profile-instagram-value");
-    const modal = document.getElementById("ig-zoom-modal");
-    if (!valueEl || !modal) return;
-    const card = modal.querySelector(".ig-zoom-modal-card");
-    const backdrop = modal.querySelector(".ig-zoom-modal-backdrop");
-
-    function open() {
-        const sourceRect = valueEl.getBoundingClientRect();
-        const cardRect = card.getBoundingClientRect();
-        const dx = (sourceRect.left + sourceRect.width / 2) - (cardRect.left + cardRect.width / 2);
-        const dy = (sourceRect.top + sourceRect.height / 2) - (cardRect.top + cardRect.height / 2);
-        // Clamped so a very short field (e.g. a single-line username) doesn't shrink the
-        // card down to an illegible sliver, and a freak huge field never overshoots 1.
-        const scale = Math.max(.22, Math.min(.55, sourceRect.height / cardRect.height));
-        // no-transition while these get set (and while .visible goes on) - see
-        // .ig-zoom-modal-card.no-transition in style.css for why: without it, this write
-        // is itself an animated change on an element that already has a transform
-        // transition, which would immediately fight the real open animation queued below.
-        card.classList.add("no-transition");
-        card.style.setProperty("--ig-zoom-x", `${dx}px`);
-        card.style.setProperty("--ig-zoom-y", `${dy}px`);
-        card.style.setProperty("--ig-zoom-scale", scale.toFixed(3));
-        modal.classList.add("visible");
-        void card.offsetWidth; // forces the "from" pose above to commit before it's un-frozen
-        card.classList.remove("no-transition");
-        // Only now, one real frame later, does adding .open (the actual, transitioned
-        // change to identity/full-opacity) have a committed "from" state to animate from.
-        requestAnimationFrame(() => modal.classList.add("open"));
-    }
-    function close() {
-        if (!modal.classList.contains("open")) return;
-        modal.classList.remove("open");
-        const onTransitionEnd = (e) => {
-            if (e.target !== card || e.propertyName !== "transform") return;
-            card.removeEventListener("transitionend", onTransitionEnd);
-            modal.classList.remove("visible");
-        };
-        card.addEventListener("transitionend", onTransitionEnd);
-    }
-
-    valueEl.addEventListener("click", open);
-    valueEl.addEventListener("keydown", (e) => {
-        if (e.key === "Enter" || e.key === " ") { e.preventDefault(); open(); }
-    });
-    backdrop.addEventListener("click", close);
-    // Tapping the zoomed handle itself closes it too - same "tap to dismiss" reflex as a
-    // photo lightbox, and the card has nothing else in it to tap.
-    card.addEventListener("click", close);
-    document.addEventListener("keydown", (e) => {
-        if (e.key === "Escape" && modal.classList.contains("open")) close();
     });
 }
 

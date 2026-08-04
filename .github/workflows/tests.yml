@@ -34,7 +34,6 @@ jobs:
       # test-only placeholder, not a real secret.
       ENCRYPTION_KEY: lq6DN50PbDefktBQDzopjb_x9c2Ry7lxHtn3o3q69dU=
       OPENAI_API_KEY: sk-test-dummy-not-real
-      INSTAGRAM_APP_SECRET: test-instagram-app-secret
       FLASK_DEBUG: "true"
     steps:
       - uses: actions/checkout@v4

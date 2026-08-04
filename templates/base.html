@@ -19,7 +19,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{% block title %}Camilius{% endblock %}</title>
-    <meta name="description" content="{% block description %}Camilius answers your customers and books appointments automatically - on your hosted page, or on Instagram/WhatsApp if you connect them - based on your working hours, price list, and FAQ.{% endblock %}">
+    <meta name="description" content="{% block description %}Camilius builds your business a hosted page with an AI chat that answers customers and books appointments automatically, based on your working hours, price list, and FAQ.{% endblock %}">
     <link rel="canonical" href="{{ request.base_url }}">
     <!-- Open Graph / Twitter Card - reuses the title/description blocks above so link
          previews (and search engines) always match what's actually on the page, no
@@ -244,12 +244,6 @@
                 if (isStandalone) return;
                 if (!/Android/i.test(navigator.userAgent)) return;
                 if (window.location.pathname === "/download" || window.location.pathname === "/intro") return;
-                // The Instagram OAuth callback page (instagram_connect_mobile.html) is a
-                // transitional "returning you to Camilius..." screen shown inside the app's
-                // own in-app browser tab mid-flow - the visitor already has the app open, so
-                // "get the app" is nonsensical here, and the banner's height was throwing
-                // off that page's otherwise-centered layout (see .auth-wrapper in style.css).
-                if (window.location.pathname === "/instagram-oauth-callback") return;
 
                 var banner = document.getElementById("mobile-install-banner");
                 if (!banner) return;
@@ -380,15 +374,11 @@
     </script>
 </head>
 <body class="{% block body_class %}{% endblock %}">
-{% if request.endpoint != 'instagram_oauth_callback' %}
 <!-- Language picker - fixed top-right on every page (same widget as the mobile app's
      login screen, but shown as a flag instead of the language name: a flag+chevron
      button that opens a dropdown of the same 10 languages, each shown with its own flag).
      Lives outside any page-specific header markup so it works identically whether the
-     page uses _nav.html (logged-in) or its own public-header/auth-wrapper. Skipped on the
-     Instagram OAuth callback page (instagram_connect_mobile.html) - that screen is a
-     brief "returning you to Camilius..." handoff shown inside the app's own in-app
-     browser tab, not a page anyone reads or needs to change language on. -->
+     page uses _nav.html (logged-in) or its own public-header/auth-wrapper. -->
 <button type="button" id="site-lang-select-btn" class="site-lang-select-btn" title="English" aria-label="Change language (current: English)">
     <img id="site-lang-select-flag" class="site-lang-flag" src="{{ url_for('static', filename='flags/gb.svg') }}" alt="">
     <span class="site-lang-chevron">&#8964;</span>
@@ -399,7 +389,6 @@
         <div id="site-lang-modal-list" class="site-lang-modal-list"></div>
     </div>
 </div>
-{% endif %}
 
 <!-- Smart install banner (Faza 5, extended Faza 7 with a real beforeinstallprompt
      PWA install) - a subtle top banner offering to install Camilius, shown only when:
@@ -435,7 +424,7 @@
         }
     })();
 </script>
-{% if request.endpoint not in ('intro', 'instagram_oauth_callback', 'terms', 'privacy') %}
+{% if request.endpoint not in ('intro', 'terms', 'privacy') %}
 <!-- Floating Support AI widget (Faza 8) - bottom-right on every page (logged in or not,
      since the knowledge base covers pricing/how-it-works questions a visitor might have
      before signing up too). Talks about USING Camilius itself, not a business's own

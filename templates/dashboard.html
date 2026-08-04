@@ -17,7 +17,7 @@
         <div class="alert alert-success"><span class="alert-icon">&#10003;</span><span data-i18n="dashboard.sentSuccess">The reply has been sent to the customer.</span></div>
     {% endif %}
     {% if send_error %}
-        <div class="alert alert-error"><span class="alert-icon">&#9888;&#65039;</span><span data-i18n="dashboard.sendError">Couldn't send that reply - Instagram only allows replying within 24 hours of the customer's last message.</span></div>
+        <div class="alert alert-error"><span class="alert-icon">&#9888;&#65039;</span><span data-i18n="dashboard.sendError">Couldn't send that reply.</span></div>
     {% endif %}
 
     <div class="stats-row">
@@ -69,11 +69,7 @@
             <div class="empty-icon">&#128235;</div>
             {% if filter_status == 'all' %}
                 <p class="title" data-i18n="dashboard.empty.title">Camilius is watching your inbox</p>
-                {% if auto_send %}
-                    <p data-i18n="dashboard.empty.body">No new messages yet.</p>
-                {% else %}
-                    <p data-i18n="dashboard.empty.bodyDraft">No new messages yet.</p>
-                {% endif %}
+                <p data-i18n="dashboard.empty.body">No new messages yet.</p>
             {% else %}
                 <p class="title" data-i18n="dashboard.emptyFilter.title">No conversations in this filter</p>
                 <p data-i18n="dashboard.emptyFilter.body">Try a different filter above.</p>
@@ -98,23 +94,17 @@
                  separate screen the way the app does (there's no page-stack on the web
                  dashboard to navigate within). -->
             <button type="button" class="conv-row" aria-expanded="false">
-                {#  The stored profile_pic_url is a signed Meta CDN link that expires after a
-                    while, so it can easily 403 by the time the dashboard is actually opened
-                    even though the sender still has a picture - and a conversation can have
-                    no stored URL at all if the initial Graph API lookup failed, or the
-                    sender simply had no picture yet at message-receipt time and has since
-                    added/changed one. Either way, a failure to load retries once via
-                    /avatar/<id>, which re-resolves a fresh URL live; only a second failure
-                    (or no picture there either) falls back to the letter avatar. #}
-                <img class="avatar avatar-img"
-                     src="{{ profile_pic_url or url_for('conversation_avatar', conversation_id=id) }}" alt=""
-                     onerror="if ({{ 'true' if profile_pic_url else 'false' }} && !this.dataset.retried) { this.dataset.retried = '1'; this.src = '{{ url_for('conversation_avatar', conversation_id=id) }}'; } else { this.style.display='none'; this.nextElementSibling.style.display='inline-flex'; }">
+                {% if profile_pic_url %}
+                <img class="avatar avatar-img" src="{{ profile_pic_url }}" alt=""
+                     onerror="this.style.display='none'; this.nextElementSibling.style.display='inline-flex';">
                 <span class="avatar" style="display:none;">{{ sender[0] }}</span>
+                {% else %}
+                <span class="avatar">{{ sender[0] }}</span>
+                {% endif %}
                 <span class="conv-row-main">
                     <span class="conv-row-top">
                         <span class="conv-row-sender-group">
                             <span class="conv-row-sender">{{ sender }}</span>
-                            {% if channel == 'whatsapp' %}<span class="channel-badge channel-badge-whatsapp" title="WhatsApp">WA</span>{% elif channel == 'messenger' %}<span class="channel-badge channel-badge-messenger" title="Messenger">FB</span>{% endif %}
                         </span>
                         <span class="conv-row-time">{{ created_at.strftime('%m/%d %H:%M') if created_at else '' }}</span>
                     </span>
@@ -149,7 +139,7 @@
                          server-side. Covers the gap between the window actually closing and the
                          background worker's own periodic sweep (reminders.expire_stale_pending_
                          conversations_if_needed) auto-archiving it - up to a few minutes. -->
-                    <div class="alert alert-warning hidden" data-expiry-warning data-i18n="dashboard.expiryWarning">Heads up: it's been over 24 hours since this customer's message - Instagram will likely reject the send.</div>
+                    <div class="alert alert-warning hidden" data-expiry-warning data-i18n="dashboard.expiryWarning">Heads up: it's been over 24 hours since this customer's message - the reply may no longer go through.</div>
                     <!-- onsubmit disables the button so a double-click can't send the reply twice -->
                     <form method="POST" action="{{ url_for('send_reply', conversation_id=id) }}"
                           onsubmit="var d = this.querySelector('button'); d.disabled = true; d.textContent = t('dashboard.sending');">
@@ -168,7 +158,7 @@
                     <p class="reply">{{ suggested_reply }}</p>
                 </div>
                 {% if expired_at %}
-                    <div class="alert alert-warning" data-i18n="dashboard.expiredNote">This conversation expired - Instagram only allows replying within 24 hours, so it was archived automatically.</div>
+                    <div class="alert alert-warning" data-i18n="dashboard.expiredNote">This conversation expired after 24 hours with no reply, so it was archived automatically.</div>
                 {% endif %}
             {% else %}
                 <div class="conversation-block">
@@ -251,9 +241,8 @@ document.querySelectorAll(".dashboard-conversation .conv-row").forEach((row) => 
 });
 
 // Proactively flags a still-pending card whose customer message is already over 24h
-// old - Instagram's send API rejects a reply that late no matter what (same policy
-// dashboard.sendError already reports after a failed attempt), so this warns before the
-// click instead of only after. Only covers the gap up to the background worker's own
+// old, so this warns before the click instead of only after. Only covers the gap up to
+// the background worker's own
 // sweep auto-archiving it (reminders.expire_stale_pending_conversations_if_needed) -
 // that's why data-created-at is only rendered for cards not already expired server-side.
 (function () {

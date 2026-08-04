@@ -28,17 +28,11 @@ MAX_REPLY_TOKENS = 400
 
 MODEL = "gpt-4o-mini"
 
-# What the AI is told it's replying on. Only the noun changes - the reply-style rules
-# in build_system_prompt are deliberately identical for every channel (short, chat-like,
-# no email formality), so this exists purely to stop the model telling a visitor on the
-# business's own web page that it's answering their "Instagram DM".
+# What the AI is told it's replying on.
 CHANNEL_DESCRIPTIONS = {
-    "instagram": "customer Instagram DMs",
-    "whatsapp": "customer WhatsApp messages",
-    "messenger": "customer Facebook Messenger messages",
     "web": "customer messages in the chat widget on the business's own web page",
 }
-DEFAULT_CHANNEL = "instagram"
+DEFAULT_CHANNEL = "web"
 
 
 def build_system_prompt(business, channel=DEFAULT_CHANNEL):

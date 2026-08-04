@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
 <title>Camilius</title>
-<link rel="stylesheet" href="app.css?v=95a9047d952a">
+<link rel="stylesheet" href="app.css?v=10209e46a08a">
 </head>
 <body>
 
@@ -143,40 +143,9 @@
   </div>
 </div>
 
-<!-- Instagram disconnect confirm (Profile tab) - same .lang-modal overlay machinery as
-     every sheet above, replacing a bare native confirm() with something that actually
-     matches the app. See settings-instagram-disconnect-btn's click handler in app.js. -->
-<div id="instagram-disconnect-modal" class="lang-modal">
-  <div class="lang-modal-backdrop" id="instagram-disconnect-backdrop"></div>
-  <div class="lang-modal-sheet confirm-modal-sheet">
-    <p class="confirm-modal-message" data-i18n="settings.instagramDisconnectConfirm">Are you sure? You'll need to reconnect Instagram before Camilius can read or send messages again.</p>
-    <div class="confirm-modal-actions">
-      <button type="button" class="button button-secondary" id="instagram-disconnect-cancel" data-i18n="settings.cancel">Cancel</button>
-      <button type="button" class="button button-danger" id="instagram-disconnect-confirm" data-i18n="settings.instagramDisconnect">Disconnect</button>
-    </div>
-  </div>
-</div>
-
-<!-- Instagram handle zoom (Profile tab) - tapping the read-only Instagram account field
-     zooms its value from its own on-screen position into this centered card, same
-     zoom-from-source treatment (and the same reasons for needing it - see
-     initInstagramZoomModal in app.js) as the website's Profile page. Not the shared
-     .lang-modal.open visibility toggle other sheets use - #ig-zoom-modal needs its own
-     .visible step decoupled from .open so the JS can paint the tap-position "from" pose
-     for one real frame before the transform animates away from it. -->
-<div id="ig-zoom-modal" class="lang-modal">
-  <div class="lang-modal-backdrop" id="ig-zoom-backdrop"></div>
-  <div class="lang-modal-sheet ig-zoom-sheet" id="ig-zoom-sheet">
-    <div class="ig-zoom-icon">
-      <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5.5"/><circle cx="12" cy="12" r="4.5"/><circle cx="17.4" cy="6.6" r="1.1" fill="currentColor" stroke="none"/></svg>
-    </div>
-    <div class="ig-zoom-handle" id="ig-zoom-handle"></div>
-  </div>
-</div>
-
-<!-- Log out confirm (Settings tab) - same .lang-modal overlay machinery as the
-     Instagram disconnect confirm above, instead of a bare native confirm(). See
-     settings-logout's click handler in app.js. -->
+<!-- Log out confirm (Settings tab) - same .lang-modal overlay machinery as every sheet
+     above, replacing a bare native confirm() with something that actually matches the
+     app. See settings-logout's click handler in app.js. -->
 <div id="logout-confirm-modal" class="lang-modal">
   <div class="lang-modal-backdrop" id="logout-confirm-backdrop"></div>
   <div class="lang-modal-sheet confirm-modal-sheet">
@@ -241,7 +210,7 @@
           <span class="onboarding-badge onboarding-badge-pulse">💬</span>
         </div>
         <h1 data-i18n="onboarding.slide2.title">Reads messages for you</h1>
-        <p data-i18n="onboarding.slide2.body">When a customer messages your business - on your page, Instagram, or WhatsApp - Camilius reads it right away — day or night.</p>
+        <p data-i18n="onboarding.slide2.body">When a customer messages your business on your page, Camilius reads it right away — day or night.</p>
       </div>
 
       <div class="onboarding-slide" data-accent="3">
@@ -456,23 +425,9 @@
               </div>
               <p class="field-hint" data-i18n="register.notificationsHint">You can turn this on or off anytime in Settings.</p>
 
-              <!-- Three more toggles from Settings that are just as relevant from day
-                   one, grouped with the notify toggle above in the same row+hint
-                   pattern instead of only ever being discoverable after the fact in
-                   Settings. AI Draft Mode/New bookings both already default to on
-                   server-side (see add_business in database.py) - leaving either
-                   checked here changes nothing, only unchecking one actually does
-                   something. Remind the customer (further below) is the exception -
-                   see its own comment there. -->
-              <div class="settings-row">
-                <span data-i18n="appSettings.autoSend">AI Draft Mode</span>
-                <label class="hours-day-toggle">
-                  <input type="checkbox" id="register-draft-mode-toggle">
-                  <span class="hours-day-toggle-track"><span class="hours-day-toggle-thumb"></span></span>
-                </label>
-              </div>
-              <p class="field-hint" data-i18n="appSettings.autoSendHint">Review each AI reply before it's sent.</p>
-
+              <!-- New bookings already defaults to on server-side (see add_business in
+                   database.py) - leaving it checked here changes nothing, only
+                   unchecking it actually does something. -->
               <div class="settings-row">
                 <span data-i18n="appSettings.newBookingHeading">New bookings</span>
                 <label class="hours-day-toggle">
@@ -481,22 +436,6 @@
                 </label>
               </div>
               <p class="field-hint" data-i18n="appSettings.newBookingNote">Notifies you when a customer books an appointment.</p>
-
-              <!-- Unlike the two above, reminders_enabled defaults to FALSE at the
-                   column level and is Pro-gated in Settings (see applyProAccessLocks) -
-                   left unchecked here rather than pre-checking something that'd need a
-                   plan to actually take effect. No lead-time picker here (unlike
-                   Settings' own "Send [24h] before" row under this same toggle) - the
-                   column's own DEFAULT 1440 (24h) applies until changed in Settings,
-                   keeping this step to plain toggles only like the rest of it. -->
-              <div class="settings-row">
-                <span data-i18n="appSettings.remindersCustomerHeading">Remind the customer</span>
-                <label class="hours-day-toggle">
-                  <input type="checkbox" id="register-reminders-customer-toggle">
-                  <span class="hours-day-toggle-track"><span class="hours-day-toggle-thumb"></span></span>
-                </label>
-              </div>
-              <p class="field-hint" data-i18n="register.notificationsHint">You can turn this on or off anytime in Settings.</p>
 
               <label class="checkbox-row">
                 <input type="checkbox" id="register-terms" required>
@@ -624,25 +563,6 @@
     </div>
   </section>
 
-  <!-- CONNECT INSTAGRAM -->
-  <section id="screen-connect-instagram" class="screen screen-connect-instagram">
-    <header class="topbar">
-      <button class="back-btn" id="connect-instagram-back" aria-label="Back">‹</button>
-    </header>
-    <div class="detail-body connect-instagram-body">
-      <div class="connect-instagram-center">
-        <h1 data-i18n="connect.title">Connect Instagram</h1>
-        <p class="screen-subtitle" data-i18n="connect.body">Camilius reads new direct messages sent to this account and drafts replies - they're sent automatically by default, with an optional manual-review step in Settings.</p>
-        <div id="connect-error" class="alert alert-error hidden" data-i18n="connect.notYetBody">Looks like the connection wasn't completed. Tap below to try again.</div>
-        <div id="connect-waiting" class="screen-subtitle hidden" data-i18n="connect.connecting">Waiting for you to finish connecting…</div>
-        <div id="connect-tester-note" class="alert alert-warning hidden" data-i18n="connect.testerNote">Still in Meta's review — only invited testers can connect for now. Invited? In Instagram: Profile → menu → Settings → Apps and websites → Tester invites → Accept, then tap Connect below.</div>
-        <button type="button" id="connect-request-tester-access-btn" class="link-btn hidden" data-i18n="connect.requestTesterAccess">Haven't been invited yet? Request access</button>
-      </div>
-
-      <button class="button button-full button-pill" id="connect-instagram-btn" data-i18n="connect.button">Connect Instagram</button>
-    </div>
-  </section>
-
   <!-- INBOX -->
   <section id="screen-inbox" class="screen screen-inbox">
     <!-- Everything from the title down through the filters is now plain scrollable
@@ -747,7 +667,7 @@
     <div id="schedule-locked" class="empty hidden">
       <div class="empty-icon">✨</div>
       <p class="empty-title" data-i18n="schedule.locked.title">Schedule is a Pro plan feature</p>
-      <p data-i18n="schedule.locked.body">View and manage a day/week calendar, and let the AI book, remind, and reschedule appointments straight from a conversation on your page, Instagram, or WhatsApp.</p>
+      <p data-i18n="schedule.locked.body">View and manage a day/week calendar, and let the AI book, remind, and reschedule appointments straight from a chat conversation on your page.</p>
       <button type="button" class="button" id="schedule-upgrade-btn" data-i18n="schedule.upgradeCta">Upgrade to Pro</button>
     </div>
 
@@ -847,23 +767,6 @@
           <label for="settings-username" data-i18n="settings.username">Username</label>
         </div>
         <p class="field-error hidden" id="settings-username-error"></p>
-
-        <!-- Same markup/class names as the website Profile page's Instagram field
-             (.profile-instagram-field etc. in templates/settings.html + style.css) -
-             one bordered box, label spanning the full width on its own line, then a row
-             with the value (fade-truncated if clipped, see initInstagramValueTruncation
-             in app.js) and Reconnect/Disconnect. A plain <span>, not an <input>, matching
-             the website exactly - it was never actually editable anyway (readonly). -->
-        <div class="profile-instagram-field">
-          <label data-i18n="settings.instagramAccount">Instagram account</label>
-          <div class="profile-instagram-row">
-            <span class="profile-instagram-value" id="settings-instagram-account"></span>
-            <div class="profile-instagram-actions">
-              <button type="button" class="field-action-link" id="settings-instagram-reconnect-btn" data-i18n="settings.instagramReconnect">Reconnect</button>
-              <button type="button" class="field-action-link field-action-link-danger hidden" id="settings-instagram-disconnect-btn" data-i18n="settings.instagramDisconnect">Disconnect</button>
-            </div>
-          </div>
-        </div>
 
         <div class="floating-field">
           <input type="email" id="settings-contact-email" placeholder=" " autocapitalize="off" autocorrect="off">
@@ -1000,23 +903,6 @@
       </div>
       <p class="field-hint" data-i18n="appSettings.newBookingNote">Notifies you when a customer books an appointment.</p>
 
-      <div class="settings-row" id="settings-reminders-customer-row">
-        <span data-i18n="appSettings.remindersCustomerHeading">Remind the customer</span>
-        <label class="hours-day-toggle">
-          <input type="checkbox" id="settings-reminders-customer-toggle">
-          <span class="hours-day-toggle-track"><span class="hours-day-toggle-thumb"></span></span>
-        </label>
-      </div>
-      <div class="settings-row settings-row-stack reminder-lead-row" id="settings-reminders-customer-lead-row">
-        <div class="reminder-lead-inline">
-          <span data-i18n="appSettings.remindersLeadLabel">Send</span>
-          <button type="button" class="picker-btn" id="settings-reminders-customer-lead-btn">
-            <span id="settings-reminders-customer-lead-label">24h</span><span class="picker-chevron">⌄</span>
-          </button>
-          <span class="field-hint" data-i18n="appSettings.remindersBeforeSuffix">before the appointment</span>
-        </div>
-      </div>
-
       <div class="settings-row" id="settings-reminders-owner-row">
         <span data-i18n="appSettings.remindersOwnerHeading">Remind me</span>
         <label class="hours-day-toggle">
@@ -1033,16 +919,6 @@
           <span class="field-hint" data-i18n="appSettings.remindersBeforeSuffix">before the appointment</span>
         </div>
       </div>
-
-      <div class="block-label" data-i18n="appSettings.automation">Automation</div>
-      <div class="settings-row">
-        <span data-i18n="appSettings.autoSend">AI Draft Mode</span>
-        <label class="hours-day-toggle">
-          <input type="checkbox" id="settings-draft-mode-toggle">
-          <span class="hours-day-toggle-track"><span class="hours-day-toggle-thumb"></span></span>
-        </label>
-      </div>
-      <p class="field-hint" data-i18n="appSettings.autoSendHint">Review each AI reply before it's sent.</p>
 
       <div class="block-label" data-i18n="appSettings.billing">Billing</div>
       <div class="settings-row" id="settings-subscription-row">
@@ -1098,7 +974,7 @@
         <p class="field-hint" style="margin: 0 0 8px;" data-i18n="deleteWizard.step1.intro">Deleting your account permanently removes:</p>
         <ul class="delete-wizard-list">
           <li data-i18n="deleteWizard.step1.item1">Your business profile (name, contact info, working hours, prices, FAQ)</li>
-          <li data-i18n="deleteWizard.step1.item2">Your connected Instagram account</li>
+          <li data-i18n="deleteWizard.step1.item2">Your hosted page and any embedded widget</li>
           <li data-i18n="deleteWizard.step1.item3">All conversations and messages with customers</li>
           <li data-i18n="deleteWizard.step1.item4">Appointments and other account data</li>
         </ul>
@@ -1199,31 +1075,23 @@
       <div class="faq-scroll">
         <div class="info-card">
           <strong data-i18n="help.faq1Q">Why didn't a customer message show up?</strong><br>
-          <span data-i18n="help.faq1A">Make sure your Instagram account is still connected in Profile, and that it's a Professional (Business or Creator) account - that's required for Camilius to read its messages.</span>
+          <span data-i18n="help.faq1A">Make sure your page is published in Profile, and that your daily reply limit hasn't been reached.</span>
         </div>
         <div class="info-card">
-          <strong data-i18n="help.faq2Q">Can I edit a reply before sending?</strong><br>
-          <span data-i18n="help.faq2A">Yes - every AI-drafted reply is just a suggestion. Open it from the inbox, edit the text if you like, then send.</span>
+          <strong data-i18n="help.faq2Q">Can I see what the AI told a customer?</strong><br>
+          <span data-i18n="help.faq2A">Yes - every reply is sent instantly since the customer is chatting live, and you can review the full conversation anytime in Inbox.</span>
         </div>
         <div class="info-card">
           <strong data-i18n="help.faq3Q">How does the AI know what to reply with?</strong><br>
           <span data-i18n="help.faq3A">It uses the working hours, price list, and FAQ answers saved in your Profile, plus OpenAI, to draft a reply suited to each customer message.</span>
         </div>
         <div class="info-card">
-          <strong data-i18n="help.faq4Q">Do I need a Professional Instagram account?</strong><br>
-          <span data-i18n="help.faq4A">Yes - a Business or Creator account is required. Personal accounts can't grant the access Camilius needs to read and send messages.</span>
-        </div>
-        <div class="info-card">
           <strong data-i18n="help.faq5Q">Can Camilius book appointments automatically?</strong><br>
           <span data-i18n="help.faq5A">Yes - when a customer asks for a time that fits your working hours, it can book the appointment directly and let you know.</span>
         </div>
         <div class="info-card">
-          <strong data-i18n="help.faq6Q">What does AI Draft Mode do?</strong><br>
-          <span data-i18n="help.faq6A">When it's on, every AI-suggested reply waits in your inbox for you to review, edit, and send yourself instead of sending automatically.</span>
-        </div>
-        <div class="info-card">
           <strong data-i18n="help.faq7Q">How do no-show reminders work?</strong><br>
-          <span data-i18n="help.faq7A">Turn them on in Settings to notify the customer, yourself, or both before an appointment. Customer reminders go by Instagram DM; yours arrive as an app notification.</span>
+          <span data-i18n="help.faq7A">Turn them on in Settings to get an app notification a set amount of time before each upcoming appointment.</span>
         </div>
         <div class="info-card">
           <strong data-i18n="help.faq8Q">Can I change my working hours or prices later?</strong><br>
@@ -1241,10 +1109,6 @@
           <strong data-i18n="help.faq11Q">Can I delete my account and data?</strong><br>
           <span data-i18n="help.faq11A">Yes - go to Settings and choose Delete account. This permanently removes your account and conversations and can't be undone.</span>
         </div>
-        <div class="info-card">
-          <strong data-i18n="help.faq12Q">Why did a conversation get archived as expired?</strong><br>
-          <span data-i18n="help.faq12A">Instagram only allows replying within 24 hours of the customer's last message, so conversations past that window are archived automatically.</span>
-        </div>
       </div>
     </div>
   </section>
@@ -1259,13 +1123,13 @@
       <p class="legal-updated">Last updated: July 25, 2026.</p>
       <p>By registering and using Camilius you accept these terms. The service is currently operated by Mihajlo Savovic as an individual. Questions: <strong>support@ai-auto-reply-mail.com</strong></p>
       <h2>What the service does</h2>
-      <p>Camilius reads customer messages sent to your business - on your hosted public page (and, optionally, the same chat widget embedded on your own site), or on Instagram, WhatsApp, or Messenger if you connect them - and automatically generates a <strong>suggested</strong> reply using artificial intelligence, based on the business data you've entered. Replies on your page and any embedded widget are always sent immediately, since a visitor is waiting live for an answer. For Instagram, WhatsApp, and Messenger, the suggestion is sent to the customer automatically by default, without manual review; you may optionally turn on manual review in Settings, in which case each suggestion waits for you to review it, edit it if needed, and approve sending through the dashboard. You are solely responsible for the content of every reply sent from your account, whether it was sent automatically or you manually approved it.</p>
+      <p>Camilius builds your business a hosted public page with a built-in AI chat and booking widget (and, optionally, the same widget embedded on your own site). When a customer chats there, the AI automatically generates and sends a reply based on the business data you've entered, and can book, cancel, or reschedule an appointment directly in the conversation. Replies are sent immediately, since a visitor is waiting live for an answer - there is no manual review or approval step. You are solely responsible for the content of every reply sent from your account.</p>
       <h2>Your responsibilities</h2>
       <ul>
         <li>You're responsible for the accuracy of the data you enter (working hours, price list, FAQ) - AI replies rely on that data.</li>
-        <li>You're responsible for checking that AI-generated content is accurate and appropriate - we don't guarantee its accuracy. Replies are sent automatically by default, without a manual review step; you may turn on manual review in Settings if you'd rather approve each one first (Instagram/WhatsApp/Messenger only - see "What the service does" above).</li>
+        <li>You're responsible for checking that AI-generated content is accurate and appropriate - we don't guarantee its accuracy. Replies are sent automatically and immediately, with no manual review step.</li>
         <li>You agree not to use the service to send inappropriate, misleading, or unlawful content.</li>
-        <li>You're responsible for the security of your credentials (username, password) and for keeping any connected channel account (Instagram, WhatsApp, Messenger) secure.</li>
+        <li>You're responsible for the security of your account credentials (username, password).</li>
       </ul>
       <h2>Limitation of liability</h2>
       <p>The service is provided "as is", without a guarantee of uninterrupted operation or freedom from errors. We are not liable for damages arising from an inaccurate AI reply that you approved and sent, service downtime, or data loss. You use the service at your own risk.</p>
@@ -1298,21 +1162,19 @@
         <li>A contact email address, used only for account recovery (password resets) and important account notices</li>
         <li>The working hours, price list, and FAQ you enter</li>
       </ul>
-      <p>If you connect Instagram, WhatsApp, or Messenger, we receive and store an access token (via each platform's own official Business Login/OAuth flow) that lets the service read and reply to messages sent to your connected account on your behalf. As part of providing the service, the system also reads the content of incoming messages on that channel (your customers' questions) in order to generate suggested replies, and stores the sender's platform-scoped identifier and (where available) name so replies can be sent back to the right person. Connecting any of these channels is entirely optional.</p>
       <p>Every account also gets a hosted public page with a built-in chat and booking widget (and, optionally, the same widget embedded on a business's own site). When a visitor chats there, we store the message content and a random, anonymous session identifier generated by their own browser - not tied to any account of theirs - so the conversation has memory and, if they book an appointment, so it can be found again later. We don't require or collect a visitor's name, email, or phone number to use the chat.</p>
       <h2>Why we collect this data</h2>
-      <p>Solely to provide the service's function: automatically reading customer inquiries - sent via your hosted page, an embedded widget, Instagram, WhatsApp, or Messenger - and suggesting replies based on your business's data. Page and embedded-widget replies are always sent immediately, since a visitor is waiting live for an answer. For Instagram, WhatsApp, and Messenger, replies are sent automatically by default without manual review; you may optionally turn on manual review in Settings, in which case you review and approve each reply before it's sent.</p>
+      <p>Solely to provide the service's function: automatically reading customer inquiries sent via your hosted page or an embedded widget, and generating and sending replies based on your business's data. Replies are always sent immediately, since a visitor is waiting live for an answer - there is no manual review step.</p>
       <h2>Who we share data with</h2>
       <p>We don't sell your data. To provide the service, certain data is processed through the following external services (data processors):</p>
       <ul>
         <li><strong>OpenAI</strong> - the text of your customer's question and your business data (working hours, price list, FAQ) are sent to OpenAI to generate suggested replies.</li>
-        <li><strong>Meta (Instagram, WhatsApp, Messenger)</strong> - if you connect any of these, the system connects to that account via the platform's own official Messaging API, using the access token you granted, to read incoming messages and send your approved replies.</li>
         <li><strong>Paddle</strong> - used to process subscription payments; Paddle acts as merchant of record for all paid plans and handles your payment details directly - we never receive or store your card information.</li>
         <li><strong>Resend</strong> - used to send account-related emails (e.g. password resets); processes your contact email address.</li>
         <li><strong>Railway</strong> - our hosting provider; all data is physically stored on their servers (outside Serbia).</li>
       </ul>
       <h2>How we store data</h2>
-      <p>Dashboard login passwords are stored hashed (irreversibly). Any Instagram/WhatsApp/Messenger access token is stored encrypted in the database. All communication with the site goes over HTTPS. That said, no system is 100% secure, and we can't guarantee absolute security.</p>
+      <p>Dashboard login passwords are stored hashed (irreversibly). All communication with the site goes over HTTPS. That said, no system is 100% secure, and we can't guarantee absolute security.</p>
       <h2>How long we keep data</h2>
       <p>We keep your data for as long as your account exists. If you'd like your account and all associated data deleted, use the "Delete account" option in Settings, or send a request to the contact email above.</p>
       <h2>Cookies</h2>
@@ -1332,8 +1194,7 @@
        /api/dashboard - no separate fetch needed. The full two-plan Starter/Pro pricing
        + Monthly/Yearly toggle only exists on the website (static/style.css's
        .pricing-plans etc.) - "Subscribe" below opens that same page in the in-app
-       browser via a short-lived signed link (/api/subscription-link), the same bridge
-       pattern already used for Connect Instagram. -->
+       browser via a short-lived signed link (/api/subscription-link). -->
   <section id="screen-subscription" class="screen screen-legal">
     <header class="topbar">
       <button class="back-btn" id="subscription-back" aria-label="Back">‹</button>
@@ -1387,7 +1248,7 @@
   </button>
 </nav>
 
-<script src="i18n.js?v=95a9047d952a"></script>
-<script src="app.js?v=95a9047d952a"></script>
+<script src="i18n.js?v=10209e46a08a"></script>
+<script src="app.js?v=10209e46a08a"></script>
 </body>
 </html>

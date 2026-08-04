@@ -17,7 +17,7 @@ def test_owner_reminder_creates_notification_and_attempts_push_instead_of_email(
     business_id = reg.get_json()["business_id"]
 
     database.set_owner_reminders_enabled(business_id, True)
-    database.set_reminder_minutes(business_id, 1440, 60)  # customer 24h, owner 1h
+    database.set_owner_reminder_minutes(business_id, 60)
 
     start = (now_local() + timedelta(minutes=60)).astimezone(DEFAULT_TZ)
     end = start + timedelta(minutes=30)
@@ -66,7 +66,7 @@ def test_owner_reminder_fires_under_beta_free_mode_without_real_pro_access(clien
     assert database.has_pro_access(business_id) is False
 
     database.set_owner_reminders_enabled(business_id, True)
-    database.set_reminder_minutes(business_id, 1440, 60)
+    database.set_owner_reminder_minutes(business_id, 60)
     start = (now_local() + timedelta(minutes=60)).astimezone(DEFAULT_TZ)
     database.create_appointment(business_id, "Bob", start, start + timedelta(minutes=30))
 
@@ -85,7 +85,7 @@ def test_owner_reminder_skipped_without_pro_access_when_beta_free_mode_is_off(cl
     database.link_subscription(business_id, "cust", "sub", "active", plan="starter")
 
     database.set_owner_reminders_enabled(business_id, True)
-    database.set_reminder_minutes(business_id, 1440, 60)
+    database.set_owner_reminder_minutes(business_id, 60)
     start = (now_local() + timedelta(minutes=60)).astimezone(DEFAULT_TZ)
     database.create_appointment(business_id, "Cara", start, start + timedelta(minutes=30))
 
@@ -109,7 +109,7 @@ def _safe_future_slot():
 
 
 def test_ai_booking_notifies_owner_of_new_appointment(client, unique_username, unique_email, monkeypatch):
-    # A customer booking themselves in over Instagram DM (booking.attempt_ai_booking,
+    # A customer booking themselves in via the AI chat (booking.attempt_ai_booking,
     # the AI's tool executor) should tell the owner right away - independent of the
     # "Remind me" reminder toggle/lead time, which is a separate, later notification.
     reg = register_business(client, unique_username, unique_email, working_hours=_ALL_DAYS_OPEN)

@@ -144,22 +144,18 @@ def test_page_chat_books_an_appointment_with_session_id_as_sender_key(client, un
     assert appointments[0][0] == f"Web visitor #{session_id[-6:]}"
 
 
-def test_send_channel_reply_is_a_noop_for_web_channel(client, unique_username, unique_email, monkeypatch):
-    """Traps app.py's send_channel_reply falling through to send_instagram_message for
-    any unrecognized channel - 'web' must short-circuit before that fallback, since
-    sender_igsid on a web row is a page-chat session key, not a real Instagram id."""
+def test_send_channel_reply_is_a_noop_for_web_channel(client, unique_username, unique_email):
+    """A page-chat conversation always reaches sent status the moment it's created (see
+    ai_replies.handle_incoming_message) - a manual /send should never actually need to
+    deliver anything, so send_channel_reply is unconditionally a no-op."""
     import app as app_module
 
     register_business_web(client, unique_username, unique_email)
     business_id = database.business_by_username(unique_username)[0]
     business = database.business_by_id(business_id)
 
-    called = []
-    monkeypatch.setattr(app_module, "send_instagram_message", lambda *a, **k: called.append(a))
-
     # get_conversation()'s own row shape: id, business_id, sender, subject, question,
     # suggested_reply, sender_igsid, channel, sender_wa_id, sender_psid.
     conversation = (1, business_id, "Web visitor #abc123", None, "hi", "hello", "web-session-key", "web", None, None)
     result = app_module.send_channel_reply(conversation, business, "hello")
     assert result is None
-    assert called == []

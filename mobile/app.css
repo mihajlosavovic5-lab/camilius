@@ -609,7 +609,7 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
    (a truly disabled button fires no click event at all, giving zero feedback). */
 .register-next-btn-dim { background: var(--border); color: var(--text-muted); box-shadow: none; }
 
-/* --- Auth sub-screens (Register / Forgot password / Connect Instagram) - pushed on
+/* --- Auth sub-screens (Register / Forgot password) - pushed on
    top of Login with the same slide-in transition as the conversation detail screen --- */
 .screen-subtitle { color: var(--text-muted); font-size: 15px; margin: 2px 0 18px; line-height: 1.5; }
 .info-card {
@@ -621,21 +621,8 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
 .delete-wizard-list li { margin-bottom: 8px; }
 .delete-wizard-list li:last-child { margin-bottom: 0; }
 
-/* Connect Instagram - centered description with the Connect button pinned to the
-   bottom of the screen (same flex-column + flex:1-spacer pattern as .login-wrap's
-   Sign Up button), instead of everything stacked at the top. */
-.connect-instagram-body { display: flex; flex-direction: column; height: 100%; }
-.connect-instagram-center {
-    flex: 1; display: flex; flex-direction: column; align-items: center;
-    justify-content: center; text-align: center; gap: 4px;
-}
-.connect-instagram-center .screen-subtitle { margin: 6px 0 0; }
-.connect-instagram-center .alert,
-.connect-instagram-center #connect-waiting { margin-top: 14px; width: 100%; }
-.connect-instagram-center #connect-request-tester-access-btn { margin-top: 10px; font-size: 14px; }
-
 /* Verify-pending - reuses .login-wrap's layout (see .screen-login above) but with plain
-   centered text/buttons instead of a form, same idea as .connect-instagram-center. */
+   centered text/buttons instead of a form. */
 .screen-verify-pending .login-wrap { text-align: center; align-items: center; }
 .screen-verify-pending h1 { margin: 0 0 4px; }
 .screen-verify-pending .screen-subtitle { margin: 2px 0 20px; }
@@ -672,57 +659,11 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
    would otherwise cut a line straight through the middle of that single group instead
    of just closing it off before the next one (which the lead-row's own border-bottom
    already does). */
-#settings-reminders-customer-row, #settings-reminders-owner-row { border-bottom: none; }
+#settings-reminders-owner-row { border-bottom: none; }
 .reminder-lead-row { padding-top: 4px; padding-bottom: 16px; }
 .reminder-lead-inline { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; }
 .reminder-lead-row .picker-btn { width: auto; min-width: 90px; }
 .reminder-lead-row .field-hint { margin: 0; }
-
-/* --- Instagram field (Profile) - ported class-for-class from the website Profile page's
-   own .profile-instagram-field/.profile-instagram-row/.profile-instagram-value/
-   .profile-instagram-actions/.field-action-link (style.css), instead of reusing this
-   screen's usual .floating-field <input> pattern. Same reasoning there applies here:
-   the label spans the field's full width on its own line (not squeezed down to just the
-   value's shrunk column, which used to truncate the label's own text early too), the
-   value is a plain non-editable <span> (it was always readonly anyway) that fade-
-   truncates instead of hard-clipping, and margin-top is 14px rather than the website's
-   16px only to match every other field's own vertical rhythm on this screen. */
-.profile-instagram-field {
-    position: relative; width: 100%; border: 1px solid var(--border); border-radius: 10px;
-    background: var(--background); margin-top: 14px;
-}
-.profile-instagram-field label {
-    margin: 0; font-weight: 400; position: absolute; left: 12px; right: 12px; top: 0; height: 20px;
-    display: flex; align-items: center; font-size: 12px; color: var(--primary);
-    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-}
-.profile-instagram-row {
-    display: flex; align-items: center; gap: 10px;
-    padding: 17px 12px 5px; line-height: normal;
-}
-/* flex: 1 + min-width: 0 lets this shrink below its content width (flex items default to
-   min-width: auto, which would otherwise force the row wider than the field and push
-   .profile-instagram-actions out past its right edge). Clipped text then fades to
-   transparent at the edge (.truncated below, toggled by initInstagramValueTruncation in
-   app.js) instead of an abrupt cut or running underneath the actions beside it. */
-.profile-instagram-value {
-    font-size: 16px; color: var(--text);
-    flex: 1; min-width: 0; overflow: hidden; white-space: nowrap;
-}
-.profile-instagram-value.truncated {
-    -webkit-mask-image: linear-gradient(to right, #000 85%, transparent 100%);
-    mask-image: linear-gradient(to right, #000 85%, transparent 100%);
-}
-.profile-instagram-actions { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
-.field-action-link {
-    background: none; border: none; padding: 0; margin: 0; font-family: inherit;
-    font-size: 14px; font-weight: 700; color: var(--primary-ink); cursor: pointer;
-}
-.field-action-link:active { opacity: .7; }
-/* Thin vertical rule between Reconnect and Disconnect when both are shown - same divider
-   treatment as the Saturday/Sunday hours summary lines. */
-.field-action-link + .field-action-link { padding-left: 10px; border-left: 1px solid var(--border); }
-.field-action-link-danger { color: var(--danger); }
 
 .theme-toggle { display: flex; background: var(--background); border-radius: 10px; padding: 3px; gap: 3px; }
 .theme-option {
@@ -976,14 +917,12 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
 /* min-width:0 - as a flex child, .inbox-sender otherwise refuses to shrink below its
    text's full intrinsic width (flex items default to min-width:auto), which pushes the
    whole row wider than the screen instead of letting text-overflow:ellipsis kick in.
-   .inbox-sender-group (the WhatsApp badge's wrapper, see mobile/app.js's renderInboxList)
-   needs the same min-width:0 - it's now the direct flex child of .inbox-row-top instead
-   of .inbox-sender itself. */
+   .inbox-sender-group needs the same min-width:0 - it's now the direct flex child of
+   .inbox-row-top instead of .inbox-sender itself. */
 .inbox-sender-group { display: flex; align-items: baseline; gap: 6px; min-width: 0; }
 /* min-width: 3em (not 0) - same reasoning as the website's .conv-row-sender: shrinks to
-   fit next to the WhatsApp badge/timestamp, but keeps a readable few-characters-plus-
-   ellipsis floor instead of a long name being squeezed to a sliver by the badge
-   (flex-shrink: 0, never gives up space) competing for room in the same row. */
+   fit next to the timestamp, but keeps a readable few-characters-plus-ellipsis floor
+   instead of a long name being squeezed to a sliver. */
 .inbox-sender { font-weight: 600; font-size: 15.5px; white-space: nowrap; overflow: hidden; min-width: 3em; }
 .inbox-time { color: var(--text-muted); font-size: 12.5px; flex-shrink: 0; }
 .inbox-preview { color: var(--text-muted); font-size: 14.5px; white-space: nowrap; overflow: hidden; margin-top: 2px; min-width: 0; }
@@ -1132,18 +1071,6 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
 .badge-expired { background: var(--border); color: var(--text-muted); border: 1px solid var(--border); }
 .badge-pro { background: transparent; color: var(--primary-dark); border: 1.5px solid var(--primary); font-weight: 700; }
 
-/* Which channel a conversation came in on - shown only for WhatsApp/Messenger (Instagram
-   stays the unbadged default), same reasoning as the website's own .channel-badge in style.css. */
-.channel-badge {
-    display: inline-flex; align-items: center; flex-shrink: 0;
-    padding: 1px 7px; border-radius: 99px; font-size: 10px; font-weight: 700;
-    letter-spacing: .2px; text-transform: uppercase;
-}
-.channel-badge-whatsapp { background: rgba(37, 211, 102, .16); color: #1a9950; border: 1px solid rgba(37, 211, 102, .4); }
-:root[data-theme="dark"] .channel-badge-whatsapp { color: #4ade80; }
-.channel-badge-messenger { background: rgba(0, 132, 255, .14); color: #0068cc; border: 1px solid rgba(0, 132, 255, .4); }
-:root[data-theme="dark"] .channel-badge-messenger { color: #5eb3ff; }
-
 /* --- Schedule tab (Faza 12) - day/week calendar, native equivalent of the website's
    /schedule page (see templates/schedule.html for the layout this mirrors). --- */
 .schedule-body { display: flex; flex-direction: column; padding-left: 0; padding-right: 0; }
@@ -1289,7 +1216,7 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
 .book-modal-sheet .alert { margin: 14px 0 0; }
 .book-modal-sheet .row-action-cancel { margin-top: 6px; }
 
-/* --- Confirm modal (e.g. Instagram disconnect) - centered like .book-modal-sheet, just a
+/* --- Confirm modal (e.g. logout, delete account) - centered like .book-modal-sheet, just a
    message plus two actions instead of a form. --- */
 .confirm-modal-sheet {
     left: 50%; right: auto; top: 50%; bottom: auto;
@@ -1301,53 +1228,6 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
 .lang-modal.open .confirm-modal-sheet { transform: translate(-50%, -50%) scale(1); }
 .confirm-modal-message { margin: 0 0 20px; color: var(--text); font-size: 15px; line-height: 1.5; }
 .confirm-modal-actions { display: flex; justify-content: flex-end; gap: 10px; }
-
-/* --- Instagram handle zoom (Profile) - centered like .confirm-modal-sheet, but its
-   resting (pre-open) transform is driven by --ig-zoom-x/-y/-scale (set from JS just
-   before it's shown) instead of a fixed small offset, so the open animation actually
-   travels from the tapped field's on-screen position instead of just fading in in place.
-   The custom properties default to "no offset, full size" (0px, 0px, 1) rather than some
-   placeholder shrink - initInstagramZoomModal (app.js) reads this element's
-   getBoundingClientRect() *before* setting them, to get its natural centered/full-size
-   box as the animation's target, and a shrink-by-default fallback would get measured
-   already shrunk (transforms apply before layout box queries), throwing off the ratio
-   used to compute how much the source field should scale up to reach it. */
-.ig-zoom-sheet {
-    left: 50%; right: auto; top: 50%; bottom: auto;
-    width: min(300px, calc(100% - 56px)); max-height: 70vh;
-    padding: 28px 24px; display: flex; flex-direction: column; align-items: center; gap: 12px; text-align: center;
-    transform-origin: center;
-    transform: translate(calc(-50% + var(--ig-zoom-x, 0px)), calc(-50% + var(--ig-zoom-y, 0px))) scale(var(--ig-zoom-scale, 1));
-    /* Smooth ease-out (no overshoot) rather than the bounce every other .lang-modal-sheet
-       uses - that bounce suits a small near-1 scale nudge, but this sheet travels a much
-       larger distance (from wherever the field sits on screen out to centered/full-size),
-       where a spring overshoot would read as a jarring wobble instead of a clean
-       zoom-to-center. */
-    transition: transform .42s cubic-bezier(.16,1,.3,1), opacity .3s ease;
-}
-.lang-modal.open .ig-zoom-sheet { transform: translate(-50%, -50%) scale(1); }
-/* Applied only for the JS's synchronous "measure source, set the from-pose" step, then
-   removed before .open goes on - see initInstagramZoomModal. Without it, setting
-   --ig-zoom-x/-y/-scale would itself be an animated change (this element already has a
-   transition on transform), immediately fighting the real open animation queued a frame
-   later. */
-.ig-zoom-sheet.no-transition { transition: none !important; }
-/* Decoupled from the shared .lang-modal.open visibility toggle (which every other sheet
-   uses directly) - this needs its own "visible" step so the from-pose above gets one real
-   frame to paint before .open (added a frame later, by JS) starts the actual transition;
-   otherwise both style changes land in the same frame and the sheet just appears already
-   open with no visible motion. */
-#ig-zoom-modal.visible { visibility: visible; pointer-events: auto; }
-.ig-zoom-icon {
-    width: 52px; height: 52px; border-radius: 16px; flex-shrink: 0;
-    background: linear-gradient(135deg, #f9ce34, #ee2a7b 55%, #6228d7);
-    display: flex; align-items: center; justify-content: center; color: #fff;
-    /* Held back at .7 while the sheet itself is mid-open, so the badge finishes growing a
-       beat after the sheet settles instead of both landing in lockstep. */
-    transform: scale(.7); transition: transform .3s cubic-bezier(.22,.9,.28,1.2) .08s;
-}
-.lang-modal.open .ig-zoom-icon { transform: scale(1); }
-.ig-zoom-handle { font-size: 18px; font-weight: 700; color: var(--text); word-break: break-word; }
 
 /* Per-appointment duration picker inside the Book sheet - lets a single booking run
    longer or shorter than the business's default slot length (e.g. a 90-minute color
@@ -1403,8 +1283,6 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
     /* Subtle warm glow instead of the light-mode near-white pill - see the comment on
        the base .filter-pill.active rule above. */
     .filter-pill.active { background: var(--primary-light); color: var(--primary-ink); border-color: var(--primary); }
-    .channel-badge-whatsapp { color: #4ade80; }
-    .channel-badge-messenger { color: #5eb3ff; }
 }
 :root[data-theme="dark"] {
     --primary: #e8a416;

@@ -30,9 +30,8 @@ def test_new_conversation_defaults_to_pending_status(client, unique_username, un
 
 
 def test_expire_stale_pending_conversations_archives_only_conversations_past_24h(client, unique_username, unique_email):
-    """Instagram rejects a reply sent more than 24h after the customer's own last
-    message no matter what (see instagram_api.send_message) - a conversation still
-    'pending' past that point can never actually be replied to, so it should get swept
+    """A conversation still 'pending' more than 24h after the customer's own last
+    message is treated as unreplyable, so it should get swept
     out of the main Inbox automatically rather than sitting there forever. Checks both
     sides: a conversation older than 24h gets archived_at/expired_at set and disappears
     from conversations_for_business, while one still inside the window is untouched."""
@@ -71,8 +70,8 @@ def test_expire_stale_pending_conversations_backfills_manually_archived_ones(cli
     pending (e.g. before this expiry feature existed) used to be excluded forever by the
     sweep's old `archived_at IS NULL` condition - already archived, so it never matched,
     so expired_at stayed NULL and the dashboard kept showing "Awaiting approval" on it
-    indefinitely even though Instagram had long since rejected any reply past 24h. The
-    sweep must catch it too, without moving its original archived_at timestamp."""
+    indefinitely even though the 24h reply window had long since passed. The sweep must
+    catch it too, without moving its original archived_at timestamp."""
     reg = register_business(client, unique_username, unique_email)
     business_id = reg.get_json()["business_id"]
 

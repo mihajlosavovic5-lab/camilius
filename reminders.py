@@ -1,42 +1,23 @@
-"""Scheduled email/DM/notification jobs run from process_emails.py's background loop
+"""Scheduled email/notification jobs run from process_emails.py's background loop
 rather than inline with request handling, since neither has anything to do with any
-single incoming webhook call:
+single incoming request:
 
-- Appointment reminders (Faza 9/12, Pro plan) - two independent, independently-timed
-  reminders per appointment: a customer-facing Instagram DM, and an owner-facing in-app
-  notification + push (send_appointment_reminders_if_needed). Each has its own on/off
-  toggle and its own single configurable lead time (business.customer_reminder_minutes /
-  owner_reminder_minutes) rather than the old fixed 24h-and-2h pair.
+- Appointment reminders (Faza 9/12, Pro plan) - an owner-facing in-app notification +
+  push, sent a configurable lead time before the appointment
+  (send_appointment_reminders_if_needed).
 - Trial-ending warning emails - see send_trial_ending_warnings_if_needed below.
-
-The customer DM can only go out for appointments booked BY THE AI over Instagram DM
-(source has a real sender_igsid - see database.appointments_needing_reminders); a
-manually-entered appointment has no Instagram thread to send to. The owner notification
-has no such restriction - it's checked independently of sender_igsid.
-
-Known platform limitation, accepted rather than worked around (same as the existing
-manual "Send reply" flow's 24h-window handling): Instagram only allows a business to
-message a customer within 24 hours of that customer's OWN last message, unless using a
-Meta-approved message tag this app doesn't have. A customer reminder lead time longer
-than that (the 24h default included) will frequently fail to send for an appointment
-booked further in advance than its own lead time - Instagram rejects the send, we log it
-and move on, exactly like a manual reply sent outside the window already does elsewhere
-in this app.
 """
 import os
 from datetime import timedelta
 
-import requests
-
 from database import (
     appointments_needing_reminders, mark_reminder_sent, business_by_id,
-    is_reminders_enabled, is_owner_reminders_enabled, get_reminder_minutes,
+    is_owner_reminders_enabled, get_owner_reminder_minutes,
     has_pro_access, log_client_error, create_notification,
     businesses_needing_trial_warning, mark_trial_warning_sent,
     expire_stale_pending_conversations,
 )
 from booking import DEFAULT_TZ, tz_for, now_local, relative_when
-from instagram_api import send_message as send_instagram_message
 from send_email import send_email
 from push_notifications import send_push_to_business
 
@@ -56,11 +37,6 @@ def _format_lead_time(minutes):
     return f"{minutes} minute" + ("s" if minutes != 1 else "")
 
 
-def _customer_reminder_text(business_name, start_local, minutes, tz=DEFAULT_TZ):
-    when = relative_when(start_local, tz)
-    return f"Reminder: you have an appointment with {business_name} in {_format_lead_time(minutes)} ({when}). See you then!"
-
-
 def _owner_reminder_notification_body(customer_name, service, start_local, minutes, tz=DEFAULT_TZ):
     when = relative_when(start_local, tz)
     service_part = f" for {service}" if service else ""
@@ -77,8 +53,8 @@ def send_appointment_reminders_if_needed():
     business_cache = {}
 
     for row in appointments_needing_reminders():
-        (appointment_id, business_id, customer_name, sender_igsid, service, start_time,
-         reminder_customer_sent_at, reminder_owner_sent_at) = row
+        (appointment_id, business_id, customer_name, _sender_igsid, service, start_time,
+         _reminder_customer_sent_at, reminder_owner_sent_at) = row
 
         if business_id not in business_cache:
             business_cache[business_id] = business_by_id(business_id)
@@ -105,24 +81,7 @@ def send_appointment_reminders_if_needed():
         tz = tz_for(business)
         time_until = start_time - now
         start_local = start_time.astimezone(tz)
-        business_name, ig_account_id, access_token = business[1], business[5], business[7]
-        customer_minutes, owner_minutes = get_reminder_minutes(business_id)
-
-        if (reminder_customer_sent_at is None and is_reminders_enabled(business_id)
-                and sender_igsid and ig_account_id and access_token
-                and abs(time_until - timedelta(minutes=customer_minutes)) <= REMINDER_TOLERANCE):
-            text = _customer_reminder_text(business_name, start_local, customer_minutes, tz)
-            try:
-                send_instagram_message(sender_igsid, text, access_token, ig_account_id)
-                print(f"[reminders] Sent customer reminder for appointment_id={appointment_id} business_id={business_id}", flush=True)
-            except requests.RequestException as error:
-                # Most commonly Instagram's 24h messaging-window policy (see module
-                # docstring) - not a bug, but still marked sent below so we don't retry
-                # this exact window forever for the same appointment.
-                error_body = error.response.text if getattr(error, "response", None) is not None else str(error)
-                print(f"[reminders] Failed to send customer reminder for appointment_id={appointment_id}: {error_body}", flush=True)
-                log_client_error(business_id, f"reminder send failed (customer): {error_body}", "", f"reminder-debug appointment_id={appointment_id}", "")
-            mark_reminder_sent(appointment_id, "customer")
+        owner_minutes = get_owner_reminder_minutes(business_id)
 
         if (reminder_owner_sent_at is None and is_owner_reminders_enabled(business_id)
                 and abs(time_until - timedelta(minutes=owner_minutes)) <= REMINDER_TOLERANCE):
@@ -149,7 +108,7 @@ def _trial_ending_email_body(business_name, trial_ends_at):
     return (
         f"Hi {business_name},\n\n"
         f"Your 14-day free trial ends on {when}. After that, we'll charge the card on "
-        f"file to keep the AI processing your Instagram messages without interruption.\n\n"
+        f"file to keep your AI page and chat running without interruption.\n\n"
         f"Nothing to do if you want to continue - it's automatic. If you'd rather not "
         f"continue, cancel any time before then from Subscription in your dashboard, "
         f"and you won't be charged anything.\n\n"
@@ -184,8 +143,8 @@ def send_trial_ending_warnings_if_needed():
 def expire_stale_pending_conversations_if_needed():
     """Checked every tick (cheap - a single indexed-by-status UPDATE, matching the other
     every-tick jobs above): sweeps up any conversation that's been sitting 'pending' for
-    over 24h and auto-archives it, since Instagram will no longer let a reply through to
-    it either way. See database.expire_stale_pending_conversations for the actual query."""
+    over 24h and auto-archives it. See database.expire_stale_pending_conversations for
+    the actual query."""
     count = expire_stale_pending_conversations()
     if count:
-        print(f"[reminders] Auto-archived {count} conversation(s) past Instagram's 24h reply window", flush=True)
+        print(f"[reminders] Auto-archived {count} stale pending conversation(s)", flush=True)

@@ -81,24 +81,13 @@ def test_upsell_pairs_round_trip(client, unique_username, unique_email):
     assert database.get_upsell_pairs(business_id) == "Haircut -> Treatment"
 
 
-def test_reminders_enabled_defaults_off_and_round_trips(client, unique_username, unique_email):
-    reg = register_business(client, unique_username, unique_email)
-    business_id = reg.get_json()["business_id"]
-
-    assert database.is_reminders_enabled(business_id) is False
-    database.set_reminders_enabled(business_id, True)
-    assert database.is_reminders_enabled(business_id) is True
-
-
-def test_owner_reminders_enabled_defaults_off_and_round_trips_independently(client, unique_username, unique_email):
+def test_owner_reminders_enabled_defaults_off_and_round_trips(client, unique_username, unique_email):
     reg = register_business(client, unique_username, unique_email)
     business_id = reg.get_json()["business_id"]
 
     assert database.is_owner_reminders_enabled(business_id) is False
     database.set_owner_reminders_enabled(business_id, True)
     assert database.is_owner_reminders_enabled(business_id) is True
-    # Independent from the customer-facing toggle - flipping one must not affect the other.
-    assert database.is_reminders_enabled(business_id) is False
 
 
 def test_new_booking_notifications_enabled_defaults_on_and_round_trips(client, unique_username, unique_email):
@@ -112,13 +101,13 @@ def test_new_booking_notifications_enabled_defaults_on_and_round_trips(client, u
     assert database.is_new_booking_notifications_enabled(business_id) is False
 
 
-def test_reminder_minutes_default_and_round_trip(client, unique_username, unique_email):
+def test_owner_reminder_minutes_default_and_round_trip(client, unique_username, unique_email):
     reg = register_business(client, unique_username, unique_email)
     business_id = reg.get_json()["business_id"]
 
-    assert database.get_reminder_minutes(business_id) == (1440, 60)  # column defaults: 24h, 1h
-    database.set_reminder_minutes(business_id, 120, 45)
-    assert database.get_reminder_minutes(business_id) == (120, 45)
+    assert database.get_owner_reminder_minutes(business_id) == 60  # column default: 1h
+    database.set_owner_reminder_minutes(business_id, 45)
+    assert database.get_owner_reminder_minutes(business_id) == 45
 
 
 def test_has_pro_access_during_self_serve_trial(client, unique_username, unique_email):

@@ -51,23 +51,6 @@
     })();
     </script>
 
-    <div class="card settings-card" style="margin-top:20px;">
-        <h2 style="margin-top:0;" data-i18n="appSettings.automation.heading">Automation</h2>
-        <form method="POST" action="{{ url_for('update_auto_send') }}">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <div class="switch-row" style="margin-top: 10px;">
-                <div class="switch-row-text">
-                    <span class="switch-row-label">
-                        <span data-i18n="appSettings.automation.draftLabel">AI Draft Mode</span>
-                    </span>
-                    <span class="note" data-i18n="appSettings.automation.note">Review each AI reply before it's sent.</span>
-                </div>
-                <label class="hours-day-toggle">
-                    <input type="checkbox" name="draft_mode" {% if not auto_send %}checked{% endif %} onchange="this.form.submit()">
-                    <span class="hours-day-toggle-track"><span class="hours-day-toggle-thumb"></span></span>
-                </label>
-            </div>
-        </form>
     </div>
 
     <div class="card settings-card" style="margin-top:20px;">
@@ -94,36 +77,6 @@
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
                 <div class="switch-row" style="margin-top:16px;">
-                    <div class="switch-row-text">
-                        <span class="switch-row-label" data-i18n="appSettings.reminders.customerHeading">Remind the customer</span>
-                    </div>
-                    <label class="hours-day-toggle">
-                        <input type="checkbox" name="reminders_enabled" {% if reminders_enabled %}checked{% endif %}>
-                        <span class="hours-day-toggle-track"><span class="hours-day-toggle-thumb"></span></span>
-                    </label>
-                </div>
-                <div class="duration-picker" style="margin-top:12px;">
-                    <label class="duration-picker-label" data-i18n="appSettings.reminders.leadTimeLabel">Send</label>
-                    <div class="duration-dd" id="customer-reminder-dd">
-                        <input type="hidden" name="customer_reminder_minutes" id="customer-reminder-minutes-value"
-                               value="{{ customer_reminder_minutes if customer_reminder_minutes in reminder_lead_minutes else 'custom' }}">
-                        <button type="button" class="schedule-slot-duration-select duration-dd-trigger" aria-haspopup="listbox" aria-expanded="false">{{ customer_reminder_label }}</button>
-                        <div class="duration-dd-menu hidden" role="listbox">
-                            {% for value, label in customer_reminder_choices %}
-                                <button type="button" class="duration-dd-option {{ 'active' if value == customer_reminder_minutes }}" data-value="{{ value }}" data-label="{{ label }}">{{ label }}</button>
-                            {% endfor %}
-                            <button type="button" class="duration-dd-option duration-dd-option-custom" data-value="custom" data-label="Custom" data-i18n="appSettings.reminders.custom">Custom</button>
-                        </div>
-                        <input type="number" min="1" max="{{ reminder_lead_max_minutes }}" step="1"
-                               name="customer_reminder_minutes_custom"
-                               value="{% if customer_reminder_minutes not in reminder_lead_minutes %}{{ customer_reminder_minutes }}{% endif %}"
-                               class="schedule-slot-duration-custom hidden" disabled
-                               data-i18n-placeholder="appSettings.reminders.customPlaceholder" placeholder="Minutes">
-                    </div>
-                    <span class="note" data-i18n="appSettings.reminders.beforeSuffix">before the appointment</span>
-                </div>
-
-                <div class="switch-row" style="margin-top:24px; padding-top:20px; border-top:1px solid var(--border);">
                     <div class="switch-row-text">
                         <span class="switch-row-label" data-i18n="appSettings.reminders.ownerHeading">Remind me</span>
                     </div>
@@ -247,7 +200,6 @@
                     window.__reminderDurationMenuHandlerAdded = true;
                 }
 
-                initReminderPicker("customer");
                 initReminderPicker("owner");
 
                 // Same staged-changes pattern as Profile's own Save button (settings.html's
@@ -280,15 +232,6 @@
             </script>
         {% else %}
             <div class="pro-locked">
-                <div class="switch-row" style="margin-top:16px;">
-                    <div class="switch-row-text">
-                        <span class="switch-row-label" data-i18n="appSettings.reminders.customerHeading">Remind the customer</span>
-                    </div>
-                    <label class="hours-day-toggle">
-                        <input type="checkbox" disabled>
-                        <span class="hours-day-toggle-track"><span class="hours-day-toggle-thumb"></span></span>
-                    </label>
-                </div>
                 <div class="switch-row" style="margin-top:16px;">
                     <div class="switch-row-text">
                         <span class="switch-row-label" data-i18n="appSettings.reminders.ownerHeading">Remind me</span>
@@ -345,31 +288,23 @@
         <div class="faq-scroll">
             <div class="info-card">
                 <strong data-i18n="appSettings.support.faq1Q">Why didn't a customer message show up?</strong><br>
-                <span data-i18n="appSettings.support.faq1A">Make sure your Instagram account is still connected in Profile, and that it's a Professional (Business or Creator) account - that's required for Camilius to read its messages.</span>
+                <span data-i18n="appSettings.support.faq1A">Make sure your page is published in Profile, and that your daily reply limit hasn't been reached.</span>
             </div>
             <div class="info-card">
-                <strong data-i18n="appSettings.support.faq2Q">Can I edit a reply before sending?</strong><br>
-                <span data-i18n="appSettings.support.faq2A">Yes - every AI-drafted reply is just a suggestion. Open it from the inbox, edit the text if you like, then send.</span>
+                <strong data-i18n="appSettings.support.faq2Q">Can I see what the AI told a customer?</strong><br>
+                <span data-i18n="appSettings.support.faq2A">Yes - every reply is sent instantly since the customer is chatting live, and you can review the full conversation anytime in Conversations.</span>
             </div>
             <div class="info-card">
                 <strong data-i18n="appSettings.support.faq3Q">How does the AI know what to reply with?</strong><br>
                 <span data-i18n="appSettings.support.faq3A">It uses the working hours, price list, and FAQ answers saved in your Profile, plus OpenAI, to draft a reply suited to each customer message.</span>
             </div>
             <div class="info-card">
-                <strong data-i18n="appSettings.support.faq4Q">Do I need a Professional Instagram account?</strong><br>
-                <span data-i18n="appSettings.support.faq4A">Yes - a Business or Creator account is required. Personal accounts can't grant the access Camilius needs to read and send messages.</span>
-            </div>
-            <div class="info-card">
                 <strong data-i18n="appSettings.support.faq5Q">Can Camilius book appointments automatically?</strong><br>
                 <span data-i18n="appSettings.support.faq5A">Yes - when a customer asks for a time that fits your working hours, it can book the appointment directly and let you know.</span>
             </div>
             <div class="info-card">
-                <strong data-i18n="appSettings.support.faq6Q">What does AI Draft Mode do?</strong><br>
-                <span data-i18n="appSettings.support.faq6A">When it's on, every AI-suggested reply waits in your inbox for you to review, edit, and send yourself instead of sending automatically.</span>
-            </div>
-            <div class="info-card">
                 <strong data-i18n="appSettings.support.faq7Q">How do no-show reminders work?</strong><br>
-                <span data-i18n="appSettings.support.faq7A">Turn them on in Settings to notify the customer, yourself, or both before an appointment. Customer reminders go by Instagram DM; yours arrive as an app notification.</span>
+                <span data-i18n="appSettings.support.faq7A">Turn them on in Settings to get an app notification a set amount of time before each upcoming appointment.</span>
             </div>
             <div class="info-card">
                 <strong data-i18n="appSettings.support.faq8Q">Can I change my working hours or prices later?</strong><br>
@@ -386,10 +321,6 @@
             <div class="info-card">
                 <strong data-i18n="appSettings.support.faq11Q">Can I delete my account and data?</strong><br>
                 <span data-i18n="appSettings.support.faq11A">Yes - go to Settings and choose Delete account. This permanently removes your account and conversations and can't be undone.</span>
-            </div>
-            <div class="info-card">
-                <strong data-i18n="appSettings.support.faq12Q">Why did a conversation get archived as expired?</strong><br>
-                <span data-i18n="appSettings.support.faq12A">Instagram only allows replying within 24 hours of the customer's last message, so conversations past that window are archived automatically.</span>
             </div>
         </div>
     </div>

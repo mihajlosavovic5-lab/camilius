@@ -12,26 +12,22 @@ from database import (
     business_by_id, business_by_contact_email, replies_today_count, update_business, get_subscription_status,
     effective_subscription_active, has_pro_access, business_stats, log_event, save_push_token, log_client_error,
     add_business, delete_business, set_new_password, is_push_enabled, set_push_enabled,
-    is_auto_send_enabled, set_auto_send, unlink_instagram_account,
     username_taken, contact_email_taken, phone_number_taken,
     archived_conversations_for_business, trashed_conversations_for_business,
     archive_conversation, unarchive_conversation, soft_delete_conversation, restore_conversation,
-    is_reminders_enabled, set_reminders_enabled, get_upsell_pairs, set_upsell_pairs,
-    is_owner_reminders_enabled, set_owner_reminders_enabled, get_reminder_minutes, set_reminder_minutes,
+    get_upsell_pairs, set_upsell_pairs,
+    is_owner_reminders_enabled, set_owner_reminders_enabled, get_owner_reminder_minutes, set_owner_reminder_minutes,
     email_verify_sent_recently, phone_verify_sent_recently,
     email_verify_resend_wait_seconds, phone_verify_resend_wait_seconds,
     get_slot_duration, set_slot_duration, create_appointment, get_appointment, cancel_appointment,
     notifications_for_business, unread_notification_count, mark_notifications_read,
     is_new_booking_notifications_enabled, set_new_booking_notifications_enabled,
     record_account_deletion, ACCOUNT_DELETION_REASONS,
-    mark_instagram_connect_done, instagram_connect_done_state,
     UniqueViolation,
 )
-from instagram_api import authorize_url as instagram_authorize_url, get_sender_info
 from extensions import limiter
 import booking
 import paddle_billing
-import requests
 
 api = Blueprint("api", __name__, url_prefix="/api")
 
@@ -77,59 +73,10 @@ def _business_id_from_token(token):
     return data.get("business_id")
 
 
-# Separate short-lived signed token (distinct salt, 10-minute expiry) used ONLY to carry
-# a business_id through the Instagram OAuth round-trip for the mobile app, which never
-# holds a website session cookie. Passed as the OAuth "state" param - see instagram_api.py's
-# authorize_url and app.py's instagram_oauth_callback.
-INSTAGRAM_CONNECT_STATE_MAX_AGE = 60 * 10
-
-
-def _instagram_connect_state_serializer():
-    return URLSafeTimedSerializer(os.environ["FLASK_SECRET_KEY"], salt="mobile-instagram-connect-state")
-
-
-def make_instagram_connect_state(business_id):
-    return _instagram_connect_state_serializer().dumps({"business_id": business_id})
-
-
-def business_id_from_instagram_connect_state(state):
-    if not state:
-        return None
-    try:
-        data = _instagram_connect_state_serializer().loads(state, max_age=INSTAGRAM_CONNECT_STATE_MAX_AGE)
-    except (BadSignature, SignatureExpired):
-        return None
-    return data.get("business_id")
-
-
-# Lets the mobile app close its own Instagram OAuth tab proactively (see mobile/app.js's
-# pollForInstagramConnected) instead of depending only on that tab's own window.close(),
-# which isn't reliable on every Custom Tabs provider. Polling /api/settings for
-# instagram_username alone can't tell "just finished" apart from "already connected
-# before this attempt started" on a RE-connect, where the username may end up unchanged -
-# this is keyed by the same one-shot state token instead, so it answers "did THIS
-# specific round-trip finish" regardless of whether the linked account changed.
-# Persisted on the businesses row (database.mark_instagram_connect_done/
-# instagram_connect_done_state) rather than kept in an in-process dict - this app only
-# runs one gunicorn worker today, but an in-memory flag would silently go missing across
-# a worker restart or a multi-instance deploy, leaving the app polling forever for
-# something the server already forgot happened.
-def mark_instagram_connect_state_done(state, business_id):
-    if not state:
-        return
-    mark_instagram_connect_done(business_id, state)
-
-
-def instagram_connect_state_is_done(state, business_id):
-    if not state or business_id_from_instagram_connect_state(state) != business_id:
-        return False
-    return instagram_connect_done_state(business_id) == state
-
-
-# Same bridge pattern as the Instagram-connect state token above, for the same reason:
-# the mobile app can't attach its Bearer token to a request opened via Capacitor's
-# Browser plugin, so /api/export-data-link hands out one of these short-lived signed
-# tokens instead, which app.py's /export-data/<token> accepts in place of a session.
+# Short-lived signed token (10-minute expiry) used to bridge a business_id across a
+# request the mobile app opens in Capacitor's Browser plugin, which can't attach its
+# Bearer token to that request - so /api/export-data-link hands out one of these tokens
+# instead, which app.py's /export-data/<token> accepts in place of a session.
 EXPORT_LINK_MAX_AGE = 60 * 10
 
 
@@ -265,8 +212,7 @@ def api_login():
 # in an in-app browser tab). Mirrors app.py's web /register route's validation exactly,
 # but responds with JSON instead of redirecting. Unlike before, success no longer hands
 # back a token - the account can't log in until its email is confirmed (see api_login
-# above), so the app shows a "check your email" screen instead of the Instagram-connect
-# screen until that happens.
+# above), so the app shows a "check your email" screen until that happens.
 @api.route("/register", methods=["POST"])
 @limiter.limit("5 per hour")
 def api_register():
@@ -314,11 +260,6 @@ def api_register():
             # user picked there is the account's starting push_enabled value, changeable
             # later from Settings (see /api/notification-preferences) either way.
             push_enabled=bool(data.get("push_enabled", True)),
-            # Same deal for the wizard's AI Draft Mode / New bookings toggles, added
-            # alongside it - the mobile app already negates Draft Mode into auto_send
-            # before sending it here, same as it does for /api/notification-preferences
-            # below, also changeable later from Settings either way.
-            auto_send=bool(data.get("auto_send", True)),
             new_booking_notifications_enabled=bool(data.get("new_booking_notifications_enabled", True)),
             # Unlike the two above, defaults to False (matching the column's own
             # default) and isn't Pro-gated here the way Settings' own save handler gates
@@ -442,45 +383,6 @@ def api_check_availability():
         return jsonify(taken=bool(existing and existing[12]))
 
     return jsonify(taken=check(value, exclude_business_id=exclude_id))
-
-
-# Returns the Instagram OAuth authorize URL for the mobile app to open in its in-app
-# browser - the app can't use the website's session-cookie-based /connect-instagram/start
-# (it never has a session cookie, only this endpoint's Bearer token), so business identity
-# is carried through the OAuth round-trip via the "state" param instead. See
-# make_instagram_connect_state and app.py's instagram_oauth_callback.
-@api.route("/instagram-connect-url")
-@require_api_auth
-def api_instagram_connect_url():
-    redirect_uri = url_for("instagram_oauth_callback", _external=True)
-    state = make_instagram_connect_state(request.business_id)
-    # "state" is returned alongside the URL (not just embedded in it) so the app can pass
-    # it straight to /api/instagram-connect-status afterwards without parsing it back out
-    # of the authorize URL's query string.
-    return jsonify(url=instagram_authorize_url(redirect_uri, state=state), state=state)
-
-
-# Polled by the app while its Instagram OAuth tab is open (see mobile/app.js's
-# pollForInstagramConnected) so it can close that tab itself the moment this specific
-# round-trip finishes, instead of depending only on the tab's own window.close() - see
-# instagram_connect_state_is_done above for why this needs its own signal rather than
-# just re-checking /api/settings.
-@api.route("/instagram-connect-status")
-@require_api_auth
-def api_instagram_connect_status():
-    return jsonify(done=instagram_connect_state_is_done(request.args.get("state", ""), request.business_id))
-
-
-# Frees up instagram_account_id's UNIQUE index (see database.py's create_database) so
-# this account can be reconnected here or linked to a different business - same action
-# as the website Settings page's "Disconnect" button. Mirrors app.py's
-# instagram_oauth_callback UniqueViolation handling, which is the failure this exists to
-# let a business route around without needing direct DB access.
-@api.route("/instagram-disconnect", methods=["POST"])
-@require_api_auth
-def api_instagram_disconnect():
-    unlink_instagram_account(request.business_id)
-    return jsonify(message="disconnected")
 
 
 # Returns a short-lived link the mobile app opens via its in-app browser (same mechanism
@@ -791,28 +693,6 @@ def api_restore_conversation(conversation_id):
     return jsonify(message="restored")
 
 
-@api.route("/conversations/<int:conversation_id>/avatar")
-@require_api_auth
-def api_conversation_avatar(conversation_id):
-    """Live re-resolve of the sender's Instagram profile picture, called by the app's
-    avatar <img onerror> handler. The URL stored on the conversation at message-receipt
-    time (see save_draft_reply/profile_pic_url) is a signed Meta CDN link that expires
-    after a while, so by the time someone actually opens the inbox it can easily 403 even
-    though the sender still has a picture - re-fetching it here on demand keeps the real
-    avatar showing instead of permanently regressing to the letter fallback."""
-    conversation, error = _owned_conversation(conversation_id)
-    if error:
-        return error
-    sender_igsid = conversation[6]
-    if not sender_igsid:
-        return jsonify(error="not found"), 404
-    business = business_by_id(conversation[1])
-    profile_pic_url = get_sender_info(sender_igsid, business[7])["profile_pic_url"]
-    if not profile_pic_url:
-        return jsonify(error="not found"), 404
-    return jsonify(profile_pic_url=profile_pic_url)
-
-
 @api.route("/conversations/<int:conversation_id>/send", methods=["POST"])
 @require_api_auth
 def api_send_reply(conversation_id):
@@ -831,21 +711,8 @@ def api_send_reply(conversation_id):
 
     business = business_by_id(business_id)
     debug_context = f"reply-send-debug conversation_id={conversation_id} channel={channel} sender_igsid={sender_igsid} sender_wa_id={sender_wa_id} sender_psid={sender_psid}"
-    try:
-        result = send_channel_reply(conversation, business, final_reply)
-        # Temporary diagnostic: the dashboard/app was showing "sent" (the platform's API
-        # accepted the request with 2xx) while the reply never actually reached the
-        # customer's real DM thread - logging the platform's own response body here
-        # (viewable at /admin/client-errors) so we can see exactly what it returned
-        # (message id, recipient id echoed back, etc.) instead of guessing blind.
-        log_client_error(business_id, f"{channel} send OK: {result}", "", debug_context, "")
-    except requests.RequestException as e:
-        error_body = e.response.text if getattr(e, "response", None) is not None else str(e)
-        log_client_error(business_id, f"{channel} send FAILED: {error_body}", "", debug_context, "")
-        # Most likely the platform's 24-hour reply window has passed - an expected
-        # business outcome, not a bug, hence the specific message rather than a generic 500.
-        platform_name = {"whatsapp": "WhatsApp", "messenger": "Messenger"}.get(channel, "Instagram")
-        return jsonify(error=f"Couldn't send - {platform_name} only allows replying within 24 hours of the customer's last message."), 400
+    result = send_channel_reply(conversation, business, final_reply)
+    log_client_error(business_id, f"{channel} send OK: {result}", "", debug_context, "")
 
     mark_sent(conversation_id, final_reply)
 
@@ -858,24 +725,17 @@ def api_send_reply(conversation_id):
 @api.route("/settings", methods=["GET"])
 @require_api_auth
 def api_get_settings():
-    from app import INSTAGRAM_TESTERS_ONLY  # deferred to avoid a circular import at module load
-
     business = business_by_id(request.business_id)
     return jsonify(
         name=business[1],
         username=business[2],
         contact_email=business[4],
-        instagram_username=business[6],
         working_hours=business[8],
         price_list=business[9],
         faq=business[10],
         phone_number=business[11] or "",
         phone_verified=business[13],
         upsell_pairs=get_upsell_pairs(request.business_id) or "",
-        # Read by the app's connect-Instagram gate screen (enterOrGateOnInstagram in
-        # mobile/app.js) to show/hide the "only invited testers can connect" note - see
-        # INSTAGRAM_TESTERS_ONLY's own comment in app.py for why this exists.
-        instagram_testers_only=INSTAGRAM_TESTERS_ONLY,
     )
 
 
@@ -1003,24 +863,16 @@ def api_mark_notifications_read():
 # bulk "Save changes" form) - each one is its own small GET/POST pair, same pattern as
 # language/theme (except those are local-only, these need the server to actually know).
 #
-# reminders_enabled/owner_reminders_enabled/*_reminder_minutes mirror the website's
-# /settings (see app_settings.html + app.py's update_reminders) - customer and owner
-# reminders are independently toggled, each with its own configurable lead time, not a
-# single combined on/off switch. reminders_enabled itself is the pre-existing "customer
-# reminders" column (see database.py's Faza 9/12 comment), kept under its original name
-# here since api_update_settings-adjacent callers already depend on it.
+# owner_reminders_enabled/owner_reminder_minutes mirror the website's /settings (see
+# app_settings.html + app.py's update_reminders).
 @api.route("/notification-preferences", methods=["GET"])
 @require_api_auth
 def api_get_notification_preferences():
-    customer_minutes, owner_minutes = get_reminder_minutes(request.business_id)
     return jsonify(
         push_enabled=is_push_enabled(request.business_id),
-        auto_send=is_auto_send_enabled(request.business_id),
         new_booking_notifications_enabled=is_new_booking_notifications_enabled(request.business_id),
-        reminders_enabled=is_reminders_enabled(request.business_id),
         owner_reminders_enabled=is_owner_reminders_enabled(request.business_id),
-        customer_reminder_minutes=customer_minutes,
-        owner_reminder_minutes=owner_minutes,
+        owner_reminder_minutes=get_owner_reminder_minutes(request.business_id),
     )
 
 
@@ -1033,23 +885,18 @@ def api_update_notification_preferences():
     business_id = request.business_id
     if "push_enabled" in data:
         set_push_enabled(business_id, bool(data["push_enabled"]))
-    if "auto_send" in data:
-        set_auto_send(business_id, bool(data["auto_send"]))
     if "new_booking_notifications_enabled" in data:
         set_new_booking_notifications_enabled(business_id, bool(data["new_booking_notifications_enabled"]))
     # No-show reminders (Faza 9/11/12) are Pro-only - same server-side gate as the
-    # website's /settings/reminders, so a Starter-plan app user can't flip these on
-    # (or change their lead time) either.
+    # website's /settings/reminders, so a Starter-plan app user can't flip this on
+    # (or change its lead time) either.
     if (BETA_FREE_MODE or has_pro_access(business_id)) and (
-        "reminders_enabled" in data or "owner_reminders_enabled" in data
-        or "customer_reminder_minutes" in data or "owner_reminder_minutes" in data
+        "owner_reminders_enabled" in data or "owner_reminder_minutes" in data
     ):
-        if "reminders_enabled" in data:
-            set_reminders_enabled(business_id, bool(data["reminders_enabled"]))
         if "owner_reminders_enabled" in data:
             set_owner_reminders_enabled(business_id, bool(data["owner_reminders_enabled"]))
-        if "customer_reminder_minutes" in data or "owner_reminder_minutes" in data:
-            current_customer_minutes, current_owner_minutes = get_reminder_minutes(business_id)
+        if "owner_reminder_minutes" in data:
+            current_owner_minutes = get_owner_reminder_minutes(business_id)
 
             def _clean_minutes(value, fallback):
                 try:
@@ -1058,22 +905,14 @@ def api_update_notification_preferences():
                     return fallback
                 return minutes if 1 <= minutes <= REMINDER_LEAD_MAX_MINUTES else fallback
 
-            set_reminder_minutes(
-                business_id,
-                _clean_minutes(data.get("customer_reminder_minutes"), current_customer_minutes),
-                _clean_minutes(data.get("owner_reminder_minutes"), current_owner_minutes),
-            )
+            set_owner_reminder_minutes(business_id, _clean_minutes(data.get("owner_reminder_minutes"), current_owner_minutes))
 
-    customer_minutes, owner_minutes = get_reminder_minutes(business_id)
     return jsonify(
         message="saved",
         push_enabled=is_push_enabled(business_id),
-        auto_send=is_auto_send_enabled(business_id),
         new_booking_notifications_enabled=is_new_booking_notifications_enabled(business_id),
-        reminders_enabled=is_reminders_enabled(business_id),
         owner_reminders_enabled=is_owner_reminders_enabled(business_id),
-        customer_reminder_minutes=customer_minutes,
-        owner_reminder_minutes=owner_minutes,
+        owner_reminder_minutes=get_owner_reminder_minutes(business_id),
     )
 
 

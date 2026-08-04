@@ -22,21 +22,6 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
-            <!-- Custom URL scheme ("camilius://") for returning to the app from the
-                 Instagram OAuth landing page (see templates/instagram_connect_mobile.html
-                 and mobile/app.js's appUrlOpen listener) - a plain, standard Android
-                 scheme handoff every browser resolves via the OS itself, unlike the
-                 Chrome-specific "intent://" trick tried before this, which turned out not
-                 to be supported by whatever's rendering the Custom Tab on at least one
-                 real device. launchMode="singleTask" above brings the already-running
-                 app to the foreground instead of starting a new instance. -->
-            <intent-filter>
-                <action android:name="android.intent.action.VIEW" />
-                <category android:name="android.intent.category.DEFAULT" />
-                <category android:name="android.intent.category.BROWSABLE" />
-                <data android:scheme="camilius" />
-            </intent-filter>
-
         </activity>
 
         <provider

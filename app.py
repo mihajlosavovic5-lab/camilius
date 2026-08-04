@@ -20,18 +20,14 @@ from database import (
     link_stripe_subscription, update_stripe_subscription_status, business_by_stripe_subscription_id,
     effective_subscription_active, has_pro_access,
     business_stats, log_event, event_funnel, recent_client_errors, log_client_error,
-    add_tester_request, recent_tester_requests,
-    link_instagram_account, unlink_instagram_account, business_by_instagram_account_id,
-    link_whatsapp_account, unlink_whatsapp_account, business_by_whatsapp_phone_number_id,
-    link_messenger_page, unlink_messenger_account, business_by_messenger_page_id,
-    log_webhook_hit, recent_webhook_hits, raw_conversation_rows, is_auto_send_enabled,
-    set_auto_send, business_by_username, business_by_phone_number,
+    raw_conversation_rows,
+    business_by_username, business_by_phone_number,
     username_taken, contact_email_taken, phone_number_taken,
     archived_conversations_for_business, trashed_conversations_for_business,
     archive_conversation, unarchive_conversation, soft_delete_conversation, restore_conversation,
     get_slot_duration, set_slot_duration, create_appointment, get_appointment, cancel_appointment,
-    is_reminders_enabled, set_reminders_enabled, get_upsell_pairs, set_upsell_pairs,
-    is_owner_reminders_enabled, set_owner_reminders_enabled, get_reminder_minutes, set_reminder_minutes,
+    get_upsell_pairs, set_upsell_pairs,
+    is_owner_reminders_enabled, set_owner_reminders_enabled, get_owner_reminder_minutes, set_owner_reminder_minutes,
     all_appointments_for_business, get_stripe_customer_id, get_paddle_customer_id,
     save_email_verify_token, business_by_email_verify_token, mark_email_verified, email_verify_sent_recently,
     email_verify_resend_wait_seconds, save_pending_email_change, confirm_pending_email_change,
@@ -53,15 +49,7 @@ import pages
 from page_generator import generate_page_draft, format_working_hours, format_price_list, format_faq
 import stripe_billing
 import paddle_billing
-from instagram_api import (
-    authorize_url as instagram_authorize_url, exchange_code_for_token, exchange_for_long_lived_token,
-    get_account_info, subscribe_account_to_webhook, send_message as send_instagram_message,
-    verify_webhook_challenge, verify_webhook_signature, parse_webhook_messages, get_sender_info,
-    get_webhook_subscription_status,
-)
-import whatsapp_api
-import messenger_api
-from database import all_businesses, all_businesses_unfiltered
+from database import all_businesses_unfiltered
 from api import api as api_blueprint, APK_VERSION
 from extensions import limiter
 
@@ -104,61 +92,13 @@ csrf.exempt(api_blueprint)
 # that no pre-existing beta business is old enough for its trial to already be expired,
 # so nobody's live service was cut off by this change. Left as a flag (not deleted)
 # rather than removing every BETA_FREE_MODE check outright, in case billing ever needs
-# to go dormant again (e.g. a Paddle account issue) - same "flag it, don't delete it"
-# shape as INSTAGRAM_TESTERS_ONLY/META_CHANNELS_ENABLED below.
+# to go dormant again (e.g. a Paddle account issue).
 BETA_FREE_MODE = False
-
-# Same underlying cause as BETA_FREE_MODE above (no registered business entity yet), but
-# a separate flag because it clears on a different milestone: this one turns off the
-# moment the Meta app passes App Review, which can happen well before real billing goes
-# live. Until then, "Instagram API with Instagram Login" is in Development Mode, where
-# only accounts added as Instagram Testers in the Meta App dashboard (App roles > Roles)
-# - and who've accepted that invite in Instagram itself (Profile > menu > Settings >
-# Apps and websites > Tester invites) - can complete the OAuth screen at all. No API
-# exists to add testers or check invite status programmatically, so the only thing this
-# flag does is show that requirement on the connect-Instagram screen instead of letting
-# people find out the hard way. Flip to False once App Review is approved.
-INSTAGRAM_TESTERS_ONLY = True
-
-# Camilius is moving off depending on Meta App Review to exist at all - see the pivot
-# notes in the repo's own planning doc - toward a self-serve hosted page/widget that
-# needs nobody's approval to launch. This is the reversal switch for that, same
-# "flag it, don't delete it" shape as BETA_FREE_MODE above: defaults to True so nothing
-# changes for the Instagram testers already connected today, and every Instagram/
-# WhatsApp/Messenger module, column, and route stays in place, untouched, ready to come
-# back the moment a registered business wants Meta as an ADDITIONAL channel rather than
-# the only one. Set META_CHANNELS_ENABLED=false on Railway to retire the OAuth/connect/
-# disconnect/webhook routes below (they 404 instead of 500ing on a route that no longer
-# makes sense) once the new product no longer depends on them at all.
-META_CHANNELS_ENABLED = os.getenv("META_CHANNELS_ENABLED", "true").strip().lower() == "true"
-
-
-def meta_channel_required(function):
-    """Route decorator for every Instagram/WhatsApp/Messenger connect, disconnect, OAuth
-    callback, and webhook route - see META_CHANNELS_ENABLED above. A plain 404 (not a
-    redirect) since these aren't pages a signed-in user would otherwise reach; Meta's own
-    webhook retries also handle a 404 the same way they'd handle any other failure."""
-    @wraps(function)
-    def wrapped_function(*args, **kwargs):
-        if not META_CHANNELS_ENABLED:
-            abort(404)
-        return function(*args, **kwargs)
-    return wrapped_function
 
 
 @app.context_processor
 def inject_beta_free_mode():
     return {"beta_free_mode": BETA_FREE_MODE}
-
-
-@app.context_processor
-def inject_instagram_testers_only():
-    return {"instagram_testers_only": INSTAGRAM_TESTERS_ONLY}
-
-
-@app.context_processor
-def inject_meta_channels_enabled():
-    return {"meta_channels_enabled": META_CHANNELS_ENABLED}
 
 
 # Voluntary "support the project" donation link (PayPal.me or similar), shown on the
@@ -451,7 +391,7 @@ def register():
         log_event("register_completed", business_id=new_id)
         send_verification_email(new_id, request.form["name"], request.form["contact_email"])
         # Not logged in yet - the account must confirm its email first (see verify_pending()
-        # /verify_email() below). connect_instagram() only becomes reachable once that's done.
+        # /verify_email() below).
         session["pending_verify_business_id"] = new_id
         return redirect(url_for("verify_pending"))
 
@@ -531,242 +471,6 @@ def verify_phone(token):
     # ever confirms the phone number itself, it isn't a login credential and shouldn't act
     # like one. Whoever's logged in on this device (if anyone) stays exactly as they were.
     return render_template("verify_phone.html", success=True)
-
-
-@app.route("/connect-instagram")
-@login_required
-@meta_channel_required
-def connect_instagram():
-    business = business_by_id(session["business_id"])
-    if business[5]:  # instagram_account_id already set - nothing to do
-        return redirect(url_for("home"))
-    return render_template("connect_instagram.html", error=request.args.get("error"))
-
-
-@app.route("/connect-instagram/start")
-@login_required
-@meta_channel_required
-def connect_instagram_start():
-    redirect_uri = url_for("instagram_oauth_callback", _external=True)
-    return redirect(instagram_authorize_url(redirect_uri))
-
-
-# Public (no login required - someone requesting access may not have a Camilius account
-# yet, or may have one but obviously can't get past the tester gate to reach a logged-in
-# page) hand-off for the INSTAGRAM_TESTERS_ONLY period: collects an Instagram username so
-# the founder can add it in the Meta App dashboard (App roles > Roles > Instagram
-# Testers) without having to chase people down for it over DM. Linked from
-# connectInstagram.testerNote's "haven't been invited yet?" line.
-@app.route("/request-tester-access", methods=["GET", "POST"])
-@limiter.limit("10 per hour", methods=["POST"])
-@meta_channel_required
-def request_tester_access():
-    if request.method == "POST":
-        instagram_username = request.form.get("instagram_username", "").strip().lstrip("@")
-        email = request.form.get("email", "").strip()
-        note = request.form.get("note", "").strip() or None
-
-        if not instagram_username or not email:
-            return render_template(
-                "request_tester_access.html", submitted=False,
-                error="Please fill in your Instagram username and email.", data=request.form,
-            )
-
-        add_tester_request(instagram_username, email, note)
-        log_event("tester_access_requested")
-
-        # Best-effort only, same as every other notification-style send in this file - a
-        # failure here must not lose the request itself, which is already safely in the
-        # DB by this point (visible at /admin/tester-requests regardless).
-        alert_email = os.getenv("ALERT_EMAIL")
-        if alert_email:
-            try:
-                send_email(
-                    recipient=alert_email,
-                    subject=f"New tester request: @{instagram_username}",
-                    body=(
-                        f"Instagram: @{instagram_username}\n"
-                        f"Email: {email}\n"
-                        f"Note: {note or '(none)'}\n\n"
-                        f"Add them: Meta App dashboard > App roles > Roles > Instagram Testers."
-                    ),
-                    business_name="Camilius",
-                    reply_to=email,
-                )
-            except Exception as error:
-                log_client_error(None, f"tester request notification email failed: {error}", "", "tester-request-notify", "")
-
-        return render_template("request_tester_access.html", submitted=True)
-
-    return render_template("request_tester_access.html", submitted=False, error=None, data={})
-
-
-@app.route("/connect-messenger")
-@login_required
-@meta_channel_required
-def connect_messenger():
-    business = business_by_id(session["business_id"])
-    if business[18]:  # messenger_page_id already set - nothing to do
-        return redirect(url_for("home"))
-    return render_template("connect_messenger.html", error=request.args.get("error"))
-
-
-@app.route("/connect-messenger/start")
-@login_required
-@meta_channel_required
-def connect_messenger_start():
-    redirect_uri = url_for("messenger_oauth_callback", _external=True)
-    return redirect(messenger_api.authorize_url(redirect_uri))
-
-
-@app.route("/messenger-oauth-callback")
-@login_required
-@meta_channel_required
-def messenger_oauth_callback():
-    """Web-only for now (unlike Instagram, no mobile "state" flow yet - a reasonable next
-    increment, not built this round). Has an extra step Instagram's callback doesn't need:
-    a business can manage more than one Facebook Page, so this branches three ways below
-    instead of connecting immediately."""
-    code = request.args.get("code")
-    if request.args.get("error") or not code:
-        return redirect(url_for("connect_messenger", error="Messenger connection was cancelled. Try again whenever you're ready."))
-
-    redirect_uri = url_for("messenger_oauth_callback", _external=True)
-    try:
-        short_lived = messenger_api.exchange_code_for_token(code, redirect_uri)
-        long_lived_token = messenger_api.exchange_for_long_lived_token(short_lived)
-        pages = messenger_api.get_pages(long_lived_token)
-    except requests.RequestException as error:
-        detail = error.response.text if getattr(error, "response", None) is not None else str(error)
-        log_client_error(session["business_id"], f"messenger connect failed: {detail}", "", "messenger-connect-debug", "")
-        return redirect(url_for("connect_messenger", error="Couldn't connect to Facebook - please try again."))
-
-    if not pages:
-        return redirect(url_for("connect_messenger", error="No Facebook Page found for your account - create one first, then try again."))
-
-    if len(pages) == 1:
-        return _finish_connecting_messenger_page(pages[0])
-
-    # More than one Page - ask which one. Stashed in the session (small, signed cookie;
-    # a small business realistically manages a handful of Pages at most) rather than a DB
-    # table, purely to bridge this callback and the picker's own POST below - nothing
-    # here needs to outlive that.
-    session["messenger_pending_pages"] = [{"id": p["id"], "name": p["name"], "access_token": p["access_token"]} for p in pages]
-    return render_template("select_messenger_page.html", pages=pages, error=None)
-
-
-@app.route("/connect-messenger/select-page", methods=["POST"])
-@login_required
-@meta_channel_required
-def connect_messenger_select_page():
-    pending_pages = session.get("messenger_pending_pages") or []
-    chosen_id = request.form.get("page_id")
-    chosen = next((p for p in pending_pages if p["id"] == chosen_id), None)
-    if not chosen:
-        return redirect(url_for("connect_messenger", error="That Page selection expired - please reconnect."))
-    return _finish_connecting_messenger_page(chosen)
-
-
-def _finish_connecting_messenger_page(page):
-    session.pop("messenger_pending_pages", None)
-    try:
-        messenger_api.subscribe_page_to_webhook(page["id"], page["access_token"])
-    except requests.RequestException as error:
-        detail = error.response.text if getattr(error, "response", None) is not None else str(error)
-        log_client_error(session["business_id"], f"messenger connect failed: {detail}", "", "messenger-connect-debug", "")
-        return redirect(url_for("connect_messenger", error="Couldn't connect to Facebook - please try again."))
-
-    try:
-        link_messenger_page(session["business_id"], page["id"], page["name"], page["access_token"])
-    except UniqueViolation:
-        return redirect(url_for("connect_messenger", error="This Facebook Page is already connected to another Camilius account."))
-
-    log_event("messenger_connected", business_id=session["business_id"])
-    return redirect(url_for("home"))
-
-
-@app.route("/disconnect-messenger", methods=["POST"])
-@login_required
-@meta_channel_required
-def disconnect_messenger():
-    unlink_messenger_account(session["business_id"])
-    return redirect(url_for("settings", message="Messenger disconnected."))
-
-
-@app.route("/instagram-oauth-callback")
-@meta_channel_required
-def instagram_oauth_callback():
-    # Two ways to reach this route: the website flow (logged-in session cookie), and the
-    # mobile app flow (no cookie at all - the app only ever holds a Bearer token, never a
-    # website session). The mobile app instead identifies itself via the OAuth "state"
-    # param, set to a short-lived signed token when it requested the authorize URL from
-    # /api/instagram-connect-url - Meta echoes "state" back unmodified on this callback,
-    # which is exactly what that parameter is for.
-    from api import business_id_from_instagram_connect_state, mark_instagram_connect_state_done  # deferred: avoid circular import at module load
-
-    state = request.args.get("state")
-    mobile_business_id = business_id_from_instagram_connect_state(state)
-    is_mobile_flow = mobile_business_id is not None
-
-    if is_mobile_flow:
-        business_id = mobile_business_id
-    elif session.get("business_id"):
-        business_id = session["business_id"]
-    else:
-        return redirect(url_for("login"))
-
-    code = request.args.get("code")
-    if request.args.get("error") or not code:
-        # User declined the Instagram permission prompt, or it otherwise failed before
-        # ever giving us a code - not our error, just let them try again.
-        if is_mobile_flow:
-            mark_instagram_connect_state_done(state, business_id)
-            return render_template("instagram_connect_mobile.html", success=False)
-        return redirect(url_for("connect_instagram", error="Instagram connection was cancelled. Try again whenever you're ready."))
-
-    redirect_uri = url_for("instagram_oauth_callback", _external=True)
-    try:
-        short_lived = exchange_code_for_token(code, redirect_uri)
-        long_lived_token = exchange_for_long_lived_token(short_lived["access_token"])
-        account_info = get_account_info(long_lived_token)
-        subscribe_account_to_webhook(long_lived_token)
-        link_instagram_account(
-            business_id,
-            str(account_info["user_id"]),
-            account_info.get("username"),
-            long_lived_token,
-        )
-    except requests.RequestException as error:
-        # The user only ever sees the generic message below (Meta's actual error detail
-        # isn't something a business owner can act on) - logged here instead so it's
-        # visible in /admin/client-errors, since this was previously a total black box
-        # when a business hit it more than once in a row.
-        detail = error.response.text if getattr(error, "response", None) is not None else str(error)
-        log_client_error(business_id, f"instagram connect failed: {detail}", "", "instagram-connect-debug", "")
-        if is_mobile_flow:
-            mark_instagram_connect_state_done(state, business_id)
-            return render_template("instagram_connect_mobile.html", success=False)
-        return redirect(url_for("connect_instagram", error="Couldn't connect to Instagram - please try again."))
-    except UniqueViolation:
-        # businesses.instagram_account_id has a UNIQUE index (see database.py) - this
-        # Instagram account is already linked to a different Camilius business (e.g. an
-        # older test/registration of the same person's account), so the UPDATE inside
-        # link_instagram_account() was rejected at the DB level rather than raising a
-        # requests.RequestException like every other failure above. Previously uncaught,
-        # this fell straight through to the generic Flask 500 page instead of telling the
-        # business owner what actually went wrong.
-        log_client_error(business_id, "instagram connect failed: instagram_account_id already linked to another business", "", "instagram-connect-debug", "")
-        if is_mobile_flow:
-            mark_instagram_connect_state_done(state, business_id)
-            return render_template("instagram_connect_mobile.html", success=False)
-        message = "This Instagram account is already connected to another Camilius account. Disconnect it there first, or use a different Instagram account."
-        return redirect(url_for("connect_instagram", error=message))
-
-    log_event("instagram_connected", business_id=business_id)
-    if is_mobile_flow:
-        mark_instagram_connect_state_done(state, business_id)
-        return render_template("instagram_connect_mobile.html", success=True)
-    return redirect(url_for("home"))
 
 
 def _password_reset_email_html(business_name, username, link):
@@ -1228,15 +932,11 @@ def logout():
 def settings():
     business_id = session["business_id"]
     business = business_by_id(business_id)
-    # indices: 0 id, 1 name, 2 username, 4 contact_email, 5 instagram_account_id,
-    # 6 instagram_username, 8 working_hours, 9 price_list, 10 faq, 11 phone_number,
-    # 14 pending_contact_email, 16 whatsapp_display_number, 19 messenger_page_name
+    # indices: 0 id, 1 name, 2 username, 4 contact_email, 8 working_hours, 9 price_list,
+    # 10 faq, 11 phone_number, 14 pending_contact_email
     username = business[2]
     contact_email = business[4]
-    instagram_username = business[6]
     pending_contact_email = business[14]
-    whatsapp_display_number = business[16]
-    messenger_page_name = business[19]
     pro_access = BETA_FREE_MODE or has_pro_access(business_id)
     # get_business_page returns a plain positional row (id, business_id, slug,
     # published, tagline, about, created_at, updated_at, widget_domain) or None - turned
@@ -1270,9 +970,8 @@ def settings():
                 page_url_prefix=request.url_root + "p/",
                 business={
                     "name": name, "username": username, "contact_email": contact_email,
-                    "pending_contact_email": pending_contact_email, "instagram_username": instagram_username,
-                    "whatsapp_display_number": whatsapp_display_number, "messenger_page_name": messenger_page_name,
-                    "working_hours": working_hours, "price_list": price_list, "faq": faq,
+                    "pending_contact_email": pending_contact_email,
+                                        "working_hours": working_hours, "price_list": price_list, "faq": faq,
                     "upsell_pairs": get_upsell_pairs(business_id),
                 },
             )
@@ -1341,9 +1040,8 @@ def settings():
             page_url_prefix=request.url_root + "p/",
             business={
                 "name": name, "username": username, "contact_email": contact_email,
-                "pending_contact_email": pending_contact_email, "instagram_username": instagram_username,
-                "whatsapp_display_number": whatsapp_display_number, "messenger_page_name": messenger_page_name,
-                "working_hours": working_hours, "price_list": price_list, "faq": faq, "upsell_pairs": upsell_pairs,
+                "pending_contact_email": pending_contact_email,
+                                "working_hours": working_hours, "price_list": price_list, "faq": faq, "upsell_pairs": upsell_pairs,
             },
         )
 
@@ -1357,72 +1055,11 @@ def settings():
         page_url_prefix=request.url_root + "p/",
         business={
             "name": business[1], "username": username, "contact_email": contact_email,
-            "pending_contact_email": pending_contact_email, "instagram_username": instagram_username,
-            "whatsapp_display_number": whatsapp_display_number, "messenger_page_name": messenger_page_name,
-            "working_hours": business[8], "price_list": business[9], "faq": business[10],
+            "pending_contact_email": pending_contact_email,
+                        "working_hours": business[8], "price_list": business[9], "faq": business[10],
             "upsell_pairs": get_upsell_pairs(business_id),
         },
     )
-
-
-@app.route("/disconnect-instagram", methods=["POST"])
-@login_required
-@meta_channel_required
-def disconnect_instagram():
-    # Frees up instagram_account_id's UNIQUE index (see database.py) so the account can
-    # be reconnected here or linked to a different business - see instagram_oauth_callback's
-    # UniqueViolation handling above for the failure this exists to avoid.
-    unlink_instagram_account(session["business_id"])
-    return redirect(url_for("settings", message="Instagram disconnected."))
-
-
-@app.route("/connect-whatsapp", methods=["GET", "POST"])
-@login_required
-@meta_channel_required
-def connect_whatsapp():
-    """No OAuth redirect here, unlike Instagram - see whatsapp_api.py's module docstring
-    for why. The business pastes in values it generated itself, directly in its own Meta
-    Business Suite: a Phone Number ID and WhatsApp Business Account (WABA) ID (both shown
-    on the WABA's own dashboard page), a display number (just a label, doesn't need to be
-    exact), and a permanent access token (System User > Generate token, with that WABA's
-    messaging permission, scoped to Camilius's Meta App as a partner)."""
-    if request.method == "POST":
-        phone_number_id = request.form.get("phone_number_id", "").strip()
-        waba_id = request.form.get("waba_id", "").strip()
-        display_number = request.form.get("display_number", "").strip()
-        access_token = request.form.get("access_token", "").strip()
-
-        if not phone_number_id or not waba_id or not display_number or not access_token:
-            return render_template("connect_whatsapp.html", error="Please fill in every field.")
-
-        # Subscribing the WABA to Camilius's webhook doubles as validating the pasted
-        # token actually works - saving unusable credentials (typo'd token, wrong
-        # permission scope) would otherwise look "connected" while silently never
-        # receiving a single message.
-        try:
-            whatsapp_api.subscribe_account_to_webhook(waba_id, access_token)
-        except requests.RequestException as error:
-            detail = error.response.text if getattr(error, "response", None) is not None else str(error)
-            log_client_error(session["business_id"], f"whatsapp connect failed: {detail}", "", "whatsapp-connect-debug", "")
-            return render_template("connect_whatsapp.html", error="Couldn't verify that - double check the IDs and token, then try again.")
-
-        try:
-            link_whatsapp_account(session["business_id"], phone_number_id, display_number, access_token)
-        except UniqueViolation:
-            return render_template("connect_whatsapp.html", error="This WhatsApp number is already connected to another Camilius account.")
-
-        log_event("whatsapp_connected", business_id=session["business_id"])
-        return redirect(url_for("settings", message="WhatsApp connected."))
-
-    return render_template("connect_whatsapp.html", error=None)
-
-
-@app.route("/disconnect-whatsapp", methods=["POST"])
-@login_required
-@meta_channel_required
-def disconnect_whatsapp():
-    unlink_whatsapp_account(session["business_id"])
-    return redirect(url_for("settings", message="WhatsApp disconnected."))
 
 
 # Distinct from /settings above (renamed "Profile" in the nav - business info the AI
@@ -1453,20 +1090,14 @@ def _duration_choices_with_custom(choices, current_value, label_fn=str):
 @login_required
 def app_settings():
     business_id = session["business_id"]
-    customer_minutes, owner_minutes = get_reminder_minutes(business_id)
-    customer_choices = _duration_choices_with_custom(REMINDER_LEAD_CHOICES, customer_minutes, lambda m: f"{m} min")
+    owner_minutes = get_owner_reminder_minutes(business_id)
     owner_choices = _duration_choices_with_custom(REMINDER_LEAD_CHOICES, owner_minutes, lambda m: f"{m} min")
     return render_template(
         "app_settings.html",
-        auto_send=is_auto_send_enabled(business_id),
         new_booking_notifications_enabled=is_new_booking_notifications_enabled(business_id),
-        reminders_enabled=is_reminders_enabled(business_id),
         owner_reminders_enabled=is_owner_reminders_enabled(business_id),
-        customer_reminder_minutes=customer_minutes,
         owner_reminder_minutes=owner_minutes,
-        customer_reminder_choices=customer_choices,
         owner_reminder_choices=owner_choices,
-        customer_reminder_label=dict(customer_choices)[customer_minutes],
         owner_reminder_label=dict(owner_choices)[owner_minutes],
         reminder_lead_minutes=[value for value, _ in REMINDER_LEAD_CHOICES],
         reminder_lead_max_minutes=REMINDER_LEAD_MAX_MINUTES,
@@ -1487,17 +1118,6 @@ def update_notifications():
     return redirect(url_for("app_settings"))
 
 
-# Website equivalent of the mobile app's Auto-send toggle (see api.py's
-# /api/notification-preferences) - same underlying businesses.auto_send column, just
-# session-authenticated instead of Bearer-token, since the website never had a way to
-# change this at all before now. The checkbox itself is framed as opt-in "AI Draft Mode"
-# (auto-send is already the default), so it posts the inverse of the stored column.
-@app.route("/settings/auto-send", methods=["POST"])
-@login_required
-def update_auto_send():
-    set_auto_send(session["business_id"], not bool(request.form.get("draft_mode")))
-    return redirect(url_for("app_settings"))
-
 
 def _parse_reminder_minutes(picker_value, custom_value, default):
     """picker_value is either one of REMINDER_LEAD_CHOICES' minute values (as a string)
@@ -1513,22 +1133,17 @@ def _parse_reminder_minutes(picker_value, custom_value, default):
     return minutes if 1 <= minutes <= REMINDER_LEAD_MAX_MINUTES else default
 
 
-# Appointment reminders toggle (Faza 9/12, Pro-only) - Starter-plan businesses can't turn
-# either one on even via a raw POST; both toggles are locked/hidden for them in
-# app_settings.html. Customer and owner reminders are independent: either, both, or
-# neither can be on, each with its own lead time.
+# Appointment reminder toggle (Faza 9/12, Pro-only) - Starter-plan businesses can't turn
+# it on even via a raw POST; the toggle is locked/hidden for them in app_settings.html.
 @app.route("/settings/reminders", methods=["POST"])
 @login_required
 def update_reminders():
     business_id = session["business_id"]
     if BETA_FREE_MODE or has_pro_access(business_id):
-        set_reminders_enabled(business_id, bool(request.form.get("reminders_enabled")))
         set_owner_reminders_enabled(business_id, bool(request.form.get("owner_reminders_enabled")))
-        customer_minutes = _parse_reminder_minutes(
-            request.form.get("customer_reminder_minutes"), request.form.get("customer_reminder_minutes_custom"), 1440)
         owner_minutes = _parse_reminder_minutes(
             request.form.get("owner_reminder_minutes"), request.form.get("owner_reminder_minutes_custom"), 60)
-        set_reminder_minutes(business_id, customer_minutes, owner_minutes)
+        set_owner_reminder_minutes(business_id, owner_minutes)
     return redirect(url_for("app_settings"))
 
 
@@ -1537,8 +1152,8 @@ def update_reminders():
 # above, on purpose: that form already handles account/hours/price/faq/password/upsell,
 # and this has its own distinct failure mode (slug taken/invalid) that doesn't fit its
 # _rerender(error) shape. Same "standalone <form> after #settings-form's closing tag,
-# posting to its own small dedicated route" pattern as update_auto_send/update_reminders
-# above and the disconnect-*/upgrade-to-pro-free forms in settings.html.
+# posting to its own small dedicated route" pattern as update_reminders above and the
+# upgrade-to-pro-free form in settings.html.
 @app.route("/profile/page", methods=["POST"])
 @login_required
 def save_business_page():
@@ -1587,10 +1202,7 @@ def generate_business_page():
     business = business_by_id(business_id)
     username = business[2]
     contact_email = business[4]
-    instagram_username = business[6]
     pending_contact_email = business[14]
-    whatsapp_display_number = business[16]
-    messenger_page_name = business[19]
     pro_access = BETA_FREE_MODE or has_pro_access(business_id)
     page_row = get_business_page(business_id)
     saved_page = None if page_row is None else {
@@ -1612,18 +1224,16 @@ def generate_business_page():
     if draft is None:
         business_view = {
             "name": business[1], "username": username, "contact_email": contact_email,
-            "pending_contact_email": pending_contact_email, "instagram_username": instagram_username,
-            "whatsapp_display_number": whatsapp_display_number, "messenger_page_name": messenger_page_name,
-            "working_hours": business[8], "price_list": business[9], "faq": business[10],
+            "pending_contact_email": pending_contact_email,
+                        "working_hours": business[8], "price_list": business[9], "faq": business[10],
             "upsell_pairs": get_upsell_pairs(business_id),
         }
         page_view = saved_page
     else:
         business_view = {
             "name": business[1], "username": username, "contact_email": contact_email,
-            "pending_contact_email": pending_contact_email, "instagram_username": instagram_username,
-            "whatsapp_display_number": whatsapp_display_number, "messenger_page_name": messenger_page_name,
-            "working_hours": format_working_hours(draft["hours"]),
+            "pending_contact_email": pending_contact_email,
+                        "working_hours": format_working_hours(draft["hours"]),
             "price_list": format_price_list(draft["services"]),
             "faq": format_faq(draft["faq"]),
             "upsell_pairs": get_upsell_pairs(business_id),
@@ -1748,8 +1358,8 @@ def business_export_data(business_id):
     """Shared by the web /export-data route (session auth) and the mobile app's
     token-gated /export-data/<token> (see api.py's /api/export-data-link) - a
     self-serve GDPR-style export of a business's own data. Deliberately excludes
-    secrets (password hash, encrypted Instagram access token) even though those
-    fields aren't otherwise sensitive to the business itself, since there's no
+    secrets (password hash) even though those fields aren't otherwise sensitive
+    to the business itself, since there's no
     reason to ever put them in a downloadable file."""
     business = business_by_id(business_id)
     conversations = conversations_for_business(business_id)
@@ -1758,7 +1368,6 @@ def business_export_data(business_id):
             "name": business[1],
             "username": business[2],
             "contact_email": business[4],
-            "instagram_username": business[6],
             "working_hours": business[8],
             "price_list": business[9],
             "faq": business[10],
@@ -1807,8 +1416,7 @@ def export_data():
 # (Bearer token only, see api.py), and Capacitor's Browser plugin (used to trigger the
 # actual download, same as the APK-update flow) can't attach an Authorization header to
 # the request it opens - so business identity is carried via a short-lived signed token
-# instead, requested first through /api/export-data-link. Same bridge pattern as the
-# Instagram-connect OAuth "state" token, see api.py's make_instagram_connect_state.
+# instead, requested first through /api/export-data-link.
 @app.route("/export-data/<token>")
 def export_data_mobile(token):
     from api import business_id_from_export_link_token  # deferred: avoid circular import at module load
@@ -1830,8 +1438,7 @@ def server_error(e):
 
 
 # robots.txt/sitemap.xml - helps search engines find and re-crawl the public marketing
-# pages (esp. after content changes like the Gmail->Instagram DM pivot) instead of
-# relying only on their own crawl schedule against stale cached copies.
+# pages instead of relying only on their own crawl schedule against stale cached copies.
 @app.route("/robots.txt")
 def robots_txt():
     body = "\n".join([
@@ -1921,7 +1528,7 @@ def public_page_chat(slug):
         return jsonify(reply="I've answered a lot of questions today - please contact us directly for anything else.")
 
     def resolve_sender():
-        # No real name to resolve (unlike Instagram/WhatsApp) - sender_display only
+        # No real name to resolve - sender_display only
         # needs to be unique per session, since previous_conversations_with() (this
         # visitor's own chat memory) matches on it exactly. The session token's own tail
         # already guarantees that; a human-readable label is just for the dashboard.
@@ -2091,52 +1698,9 @@ def download_apk():
     )
 
 
-# Founder-only diagnostic: shows the state of every connected Instagram account and,
-# crucially, whether it's actually subscribed to the messages webhook (the #1 reason a
-# connected account's DMs silently never arrive). `?resubscribe=1` also re-runs the
-# subscribe call and reports the result. Gated by the same secret token as the other
-# /admin routes. Safe to leave in - read-only unless resubscribe is explicitly passed.
-@app.route("/admin/instagram-debug")
-def admin_instagram_debug():
-    token = os.getenv("ADMIN_TOKEN")
-    if not token or request.args.get("token") != token:
-        abort(404)
-
-    resubscribe = request.args.get("resubscribe") == "1"
-    result = []
-    for business in all_businesses():
-        # indices: 0 id, 1 name, 5 instagram_account_id, 6 instagram_username, 7 access_token
-        access_token = business[7]
-        entry = {
-            "business_id": business[0],
-            "name": business[1],
-            "instagram_account_id": business[5],
-            "instagram_username": business[6],
-            "has_token": bool(access_token),
-        }
-        if access_token:
-            try:
-                entry["current_subscription"] = get_webhook_subscription_status(access_token)
-            except Exception as e:
-                entry["current_subscription_error"] = repr(e)
-            if resubscribe:
-                try:
-                    entry["resubscribe_result"] = subscribe_account_to_webhook(access_token)
-                except Exception as e:
-                    entry["resubscribe_error"] = repr(e)
-        result.append(entry)
-
-    hits = [
-        {"id": h[0], "note": h[1], "body": h[2], "created_at": h[3].isoformat() if h[3] else None}
-        for h in recent_webhook_hits(20)
-    ]
-    return jsonify(businesses=result, recent_webhook_hits=hits)
-
-
-# Founder-only lookup/cleanup tool - unlike /admin/instagram-debug (which only lists
-# businesses that finished connecting Instagram), this finds EVERY business, including
-# abandoned test/onboarding-incomplete accounts, and can delete one by id. Same secret-
-# token gating as every other /admin route.
+# Founder-only lookup/cleanup tool - finds EVERY business, including abandoned
+# test/onboarding-incomplete accounts, and can delete one by id. Same secret-token
+# gating as every other /admin route.
 @app.route("/admin/businesses")
 def admin_businesses():
     token = os.getenv("ADMIN_TOKEN")
@@ -2146,24 +1710,19 @@ def admin_businesses():
     search = (request.args.get("q") or "").strip().lower()
     result = []
     for business in all_businesses_unfiltered():
-        # indices: 0 id, 1 name, 2 username, 4 contact_email, 6 instagram_username,
-        # 11 phone_number, 12 email_verified, 13 phone_verified, 14 pending_contact_email,
-        # 16 whatsapp_display_number, 19 messenger_page_name. subscription_status and
-        # created_at are the two extras all_businesses_unfiltered() appends AFTER the
+        # indices: 0 id, 1 name, 2 username, 4 contact_email, 11 phone_number,
+        # 12 email_verified, 13 phone_verified, 14 pending_contact_email. subscription_status
+        # and created_at are the two extras all_businesses_unfiltered() appends AFTER the
         # business columns, so they're read from the END (-2, -1) rather than by absolute
         # index: every time _BUSINESS_COLUMNS grows, an absolute index here silently
         # points at the wrong column, which is exactly how this route broke once before.
-        instagram_username = (business[6] or "").lower()
-        if search and search not in business[1].lower() and search not in business[2].lower() and search not in business[4].lower() and search not in instagram_username:
+        if search and search not in business[1].lower() and search not in business[2].lower() and search not in business[4].lower():
             continue
         result.append({
             "id": business[0],
             "name": business[1],
             "username": business[2],
             "contact_email": business[4],
-            "instagram_username": business[6],
-            "whatsapp_display_number": business[16],
-            "messenger_page_name": business[19],
             "phone_number": business[11],
             "email_verified": business[12],
             "phone_verified": business[13],
@@ -2215,20 +1774,6 @@ def admin_client_errors():
 
     errors = recent_client_errors(limit=100)
     return render_template("admin_client_errors.html", errors=errors)
-
-
-# Founder-only view of /request-tester-access submissions - same secret-token gating as
-# every other /admin route. Each row still needs a manual step in the Meta App dashboard
-# (App roles > Roles > Instagram Testers) - nothing here does that automatically, there's
-# no API for it.
-@app.route("/admin/tester-requests")
-def admin_tester_requests():
-    token = os.getenv("ADMIN_TOKEN")
-    if not token or request.args.get("token") != token:
-        abort(404)
-
-    requests_list = recent_tester_requests(limit=200)
-    return render_template("admin_tester_requests.html", requests=requests_list)
 
 
 # Founder-only view of the delete-account wizard's exit survey (web + mobile) - same
@@ -2342,7 +1887,6 @@ def home():
         send_error=request.args.get("send_error"),
         subscription_active_flag=effective_subscription_active(session["business_id"]),
         stats=stats,
-        auto_send=is_auto_send_enabled(session["business_id"]),
     )
 
 
@@ -2386,54 +1930,14 @@ def restore_conversation_route(conversation_id):
     return redirect(url_for("home", filter=request.form.get("from_filter", "trash")))
 
 
-@app.route("/avatar/<int:conversation_id>")
-@login_required
-def conversation_avatar(conversation_id):
-    """Live re-resolve of the sender's Instagram profile picture, used as the retry step
-    in dashboard.html's avatar <img onerror> chain. The URL stored on the conversation at
-    message-receipt time (see save_draft_reply/profile_pic_url) is a signed Meta CDN link
-    that expires after a while, so by the time the dashboard is actually opened it can
-    easily 403 even though the sender still has a picture - re-fetching it here on demand
-    and redirecting to the fresh link keeps the real avatar showing instead of permanently
-    regressing to the letter fallback."""
-    conversation = get_conversation(conversation_id)
-    if conversation is None or conversation[1] != session["business_id"]:
-        abort(404)
-    sender_igsid = conversation[6]
-    if not sender_igsid:
-        abort(404)
-    business = business_by_id(session["business_id"])
-    profile_pic_url = get_sender_info(sender_igsid, business[7])["profile_pic_url"]
-    if not profile_pic_url:
-        abort(404)
-    return redirect(profile_pic_url)
-
-
 def send_channel_reply(conversation, business, final_reply):
-    """Sends final_reply through whichever channel `conversation` came in on - shared by
-    the web send_reply route below and api.py's api_send_reply, so a manual send never
-    needs its own per-channel branch anywhere else. conversation is a get_conversation()
-    row: index 6 sender_igsid, 7 channel, 8 sender_wa_id, 9 sender_psid. Raises
-    requests.RequestException on failure exactly like calling
-    send_instagram_message/whatsapp_api.send_message/messenger_api.send_message directly
-    would - callers already handle that (every channel fails the same way outside its 24h
-    customer-reply window, which is an expected business outcome, not a bug)."""
-    sender_igsid, channel, sender_wa_id, sender_psid = conversation[6], conversation[7], conversation[8], conversation[9]
-    if channel == "whatsapp":
-        return whatsapp_api.send_message(sender_wa_id, final_reply, business[17], business[15])
-    if channel == "messenger":
-        return messenger_api.send_message(sender_psid, final_reply, business[20])
-    if channel == "web":
-        # A page-chat conversation always reaches sent status the moment it's created -
-        # ai_replies.handle_incoming_message forces auto-send for "web" (there's no
-        # concept of a pending draft awaiting manual approval when the visitor was
-        # already shown the reply live) - so a manual /send here should never actually
-        # fire for one. A no-op rather than falling through to send_instagram_message
-        # below, which would otherwise misfire an Instagram DM using sender_igsid's
-        # value for this row (the page-chat session key, reused from that same column -
-        # see ai_replies.py's _SENDER_KEY_KWARG - not a real Instagram-scoped id).
-        return None
-    return send_instagram_message(sender_igsid, final_reply, business[7], business[5])
+    """Shared by the web send_reply route below and api.py's api_send_reply. A page-chat
+    conversation always reaches sent status the moment it's created -
+    ai_replies.handle_incoming_message forces auto-send for "web" (there's no concept of
+    a pending draft awaiting manual approval when the visitor was already shown the reply
+    live) - so a manual /send here should never actually need to deliver anything; it's a
+    no-op that exists so mark_sent() below still has something to call."""
+    return None
 
 
 @app.route("/send/<int:conversation_id>", methods=["POST"])
@@ -2478,8 +1982,8 @@ def send_reply(conversation_id):
 #
 # The calendar itself (view/manually add/cancel appointments) is available to every
 # business regardless of plan - it's what the AI booking tool below writes into. Only
-# the AI auto-booking a slot directly from an Instagram DM (see _process_instagram_
-# message) is Pro-plan-exclusive; see has_pro_access() in database.py.
+# the AI auto-booking a slot directly from a chat conversation is Pro-plan-exclusive;
+# see has_pro_access() in database.py.
 
 SLOT_DURATION_CHOICES = (15, 30, 45, 60, 90, 120)
 # Bounds for the "Custom" duration pill (both the business-wide default on the Schedule
@@ -2878,8 +2382,8 @@ def stripe_webhook():
                 body=(
                     f"Hi {business[1]},\n\n"
                     f"Your 14-day free trial ends on {trial_end_text}. After that, we'll "
-                    f"charge the card on file to keep the AI processing your Instagram "
-                    f"messages without interruption.\n\n"
+                    f"charge the card on file to keep your AI page and chat running "
+                    f"without interruption.\n\n"
                     f"Nothing to do if you want to continue - it's automatic. If you'd "
                     f"rather not continue, you can cancel any time before then from "
                     f"Subscription > Manage billing in your dashboard, and you won't be "
@@ -2959,246 +2463,6 @@ def paddle_webhook():
 
     # Paddle expects a 2xx to consider the webhook delivered; otherwise it retries
     return "", 200
-
-
-# --- Instagram DM webhook (replaces the old IMAP polling loop as the message-ingestion
-# path - Instagram pushes new messages to us instead of us checking every 60s) ---
-
-@app.route("/instagram-webhook", methods=["GET", "POST"])
-@csrf.exempt  # external request from Meta, no session/CSRF token of ours - signed instead (checked below)
-@meta_channel_required
-def instagram_webhook():
-    if request.method == "GET":
-        # One-time check Meta does when you first save the webhook URL in the App
-        # dashboard - must echo back hub.challenge if hub.verify_token matches.
-        try:
-            log_webhook_hit("GET verify", str(dict(request.args)))
-        except Exception:
-            pass
-        challenge = verify_webhook_challenge(
-            request.args.get("hub.mode"),
-            request.args.get("hub.verify_token"),
-            request.args.get("hub.challenge"),
-        )
-        if challenge is None:
-            abort(403)
-        return challenge, 200
-
-    raw_body = request.get_data()
-
-    # Record the hit into the DB immediately, before anything can fail - this is the
-    # ground-truth "did Meta actually call us" signal that doesn't depend on Railway's
-    # (unreliable) log viewer. Wrapped so a logging failure can never break the webhook.
-    sig_ok = verify_webhook_signature(raw_body, request.headers.get("X-Hub-Signature-256", ""))
-    try:
-        log_webhook_hit(f"POST sig_ok={sig_ok}", raw_body.decode("utf-8", errors="replace"))
-    except Exception:
-        pass
-
-    if not sig_ok:
-        abort(403)
-
-    payload = request.get_json(silent=True) or {}
-    messages = parse_webhook_messages(payload)
-    for message in messages:
-        try:
-            _process_instagram_message(message)
-        except Exception as error:
-            # One bad message must never break Meta's delivery of the rest of the batch,
-            # or cause Meta to keep retrying the whole payload forever.
-            print(f"[instagram-webhook] Error processing message: {error!r}", flush=True)
-
-    # Meta expects a fast 2xx - it retries (and can eventually pause the subscription) if
-    # this hangs or errors. Processing inline is fine at our current volume (a handful of
-    # businesses, and every reply is human-approved anyway, so there's no burst of AI
-    # calls to worry about pacing).
-    return "", 200
-
-
-def _process_instagram_message(message):
-    """Channel-specific half of handling an inbound Instagram DM: look the business up
-    by its Instagram account id, and know how to resolve a sender's name/picture and
-    actually deliver a reply. Everything else (gating, history, the AI call, saving the
-    draft, auto-send, the owner push) is shared - see ai_replies.handle_incoming_message."""
-    business = business_by_instagram_account_id(message["ig_account_id"])
-    if business is None:
-        print(f"[instagram-webhook] No business found for ig_account_id={message['ig_account_id']!r} - ignoring", flush=True)
-        return  # webhook for an Instagram account we don't have on file - shouldn't happen
-
-    business_id = business[0]
-    print(f"[instagram-webhook] Matched business_id={business_id} name={business[1]!r}", flush=True)
-
-    sender_igsid = message["sender_igsid"]
-    access_token = business[7]
-    ig_account_id = business[5]
-
-    def resolve_sender():
-        # A real Instagram API call - deferred until ai_replies confirms the message
-        # passes every gate (subscription/daily-limit/dedup), so a skipped message never
-        # pays for it.
-        sender_info = get_sender_info(sender_igsid, access_token)
-        return sender_igsid, sender_info["display_name"] or sender_igsid, sender_info["profile_pic_url"]
-
-    def deliver(reply_text):
-        send_instagram_message(sender_igsid, reply_text, access_token, ig_account_id)
-
-    ai_replies.handle_incoming_message(
-        business, business_id, "instagram", message["message_id"], message["text"],
-        resolve_sender, deliver, log_prefix="[instagram-webhook]",
-    )
-
-
-@app.route("/whatsapp-webhook", methods=["GET", "POST"])
-@csrf.exempt  # external request from Meta, no session/CSRF token of ours - signed instead (checked below)
-@meta_channel_required
-def whatsapp_webhook():
-    """Mirrors instagram_webhook() above - same verify/signature/dedup/retry shape, just
-    against whatsapp_api's functions and business_by_whatsapp_phone_number_id instead of
-    the Instagram equivalents. The route itself (webhook verification, signature check,
-    parsing) stays its own function per channel - that part genuinely doesn't share much.
-    What each processor does once it has a message is shared, though, via
-    ai_replies.handle_incoming_message; see _process_whatsapp_message."""
-    if request.method == "GET":
-        try:
-            log_webhook_hit("WA GET verify", str(dict(request.args)))
-        except Exception:
-            pass
-        challenge = whatsapp_api.verify_webhook_challenge(
-            request.args.get("hub.mode"),
-            request.args.get("hub.verify_token"),
-            request.args.get("hub.challenge"),
-        )
-        if challenge is None:
-            abort(403)
-        return challenge, 200
-
-    raw_body = request.get_data()
-
-    sig_ok = whatsapp_api.verify_webhook_signature(raw_body, request.headers.get("X-Hub-Signature-256", ""))
-    try:
-        log_webhook_hit(f"WA POST sig_ok={sig_ok}", raw_body.decode("utf-8", errors="replace"))
-    except Exception:
-        pass
-
-    if not sig_ok:
-        abort(403)
-
-    payload = request.get_json(silent=True) or {}
-    messages = whatsapp_api.parse_webhook_messages(payload)
-    for message in messages:
-        try:
-            _process_whatsapp_message(message)
-        except Exception as error:
-            print(f"[whatsapp-webhook] Error processing message: {error!r}", flush=True)
-
-    return "", 200
-
-
-def _process_whatsapp_message(message):
-    """Channel-specific half of handling an inbound WhatsApp message - see
-    _process_instagram_message's docstring for the shared/channel-specific split."""
-    business = business_by_whatsapp_phone_number_id(message["phone_number_id"])
-    if business is None:
-        print(f"[whatsapp-webhook] No business found for phone_number_id={message['phone_number_id']!r} - ignoring", flush=True)
-        return
-
-    business_id = business[0]
-    print(f"[whatsapp-webhook] Matched business_id={business_id} name={business[1]!r}", flush=True)
-
-    sender_wa_id = message["sender_wa_id"]
-    access_token = business[17]
-    display_number = business[15]
-
-    def resolve_sender():
-        # No profile-picture equivalent to Instagram's get_sender_info here - WhatsApp's
-        # Cloud API doesn't expose one - so profile_pic_url stays None and the
-        # dashboard/app fall back to the letter avatar, same as any Instagram sender
-        # whose picture lookup fails. The display name, unlike Instagram, comes free
-        # with every message webhook payload (message["sender_name"]) - no API call
-        # needed for it, so there's nothing to gain by deferring this further.
-        return sender_wa_id, message["sender_name"] or sender_wa_id, None
-
-    def deliver(reply_text):
-        whatsapp_api.send_message(sender_wa_id, reply_text, access_token, display_number)
-
-    ai_replies.handle_incoming_message(
-        business, business_id, "whatsapp", message["message_id"], message["text"],
-        resolve_sender, deliver, log_prefix="[whatsapp-webhook]",
-    )
-
-
-@app.route("/messenger-webhook", methods=["GET", "POST"])
-@csrf.exempt  # external request from Meta, no session/CSRF token of ours - signed instead (checked below)
-@meta_channel_required
-def messenger_webhook():
-    """Mirrors whatsapp_webhook() above - same verify/signature/dedup/retry shape,
-    against messenger_api's functions and business_by_messenger_page_id instead."""
-    if request.method == "GET":
-        try:
-            log_webhook_hit("FB GET verify", str(dict(request.args)))
-        except Exception:
-            pass
-        challenge = messenger_api.verify_webhook_challenge(
-            request.args.get("hub.mode"),
-            request.args.get("hub.verify_token"),
-            request.args.get("hub.challenge"),
-        )
-        if challenge is None:
-            abort(403)
-        return challenge, 200
-
-    raw_body = request.get_data()
-
-    sig_ok = messenger_api.verify_webhook_signature(raw_body, request.headers.get("X-Hub-Signature-256", ""))
-    try:
-        log_webhook_hit(f"FB POST sig_ok={sig_ok}", raw_body.decode("utf-8", errors="replace"))
-    except Exception:
-        pass
-
-    if not sig_ok:
-        abort(403)
-
-    payload = request.get_json(silent=True) or {}
-    messages = messenger_api.parse_webhook_messages(payload)
-    for message in messages:
-        try:
-            _process_messenger_message(message)
-        except Exception as error:
-            print(f"[messenger-webhook] Error processing message: {error!r}", flush=True)
-
-    return "", 200
-
-
-def _process_messenger_message(message):
-    """Channel-specific half of handling an inbound Messenger message - see
-    _process_instagram_message's docstring for the shared/channel-specific split."""
-    business = business_by_messenger_page_id(message["page_id"])
-    if business is None:
-        print(f"[messenger-webhook] No business found for page_id={message['page_id']!r} - ignoring", flush=True)
-        return
-
-    business_id = business[0]
-    print(f"[messenger-webhook] Matched business_id={business_id} name={business[1]!r}", flush=True)
-
-    sender_psid = message["sender_psid"]
-    access_token = business[20]
-
-    def resolve_sender():
-        # No sender-name/profile-pic resolution here, unlike Instagram's get_sender_info -
-        # the Messenger user-profile API has been heavily permission-gated since Meta's
-        # 2018 privacy changes and isn't reliably available with just pages_messaging, so
-        # this falls back to the raw PSID as the display name, same as WhatsApp does when
-        # its own profile lookup has nothing to offer. No API call either way, so nothing
-        # to gain by deferring this further.
-        return sender_psid, sender_psid, None
-
-    def deliver(reply_text):
-        messenger_api.send_message(sender_psid, reply_text, access_token)
-
-    ai_replies.handle_incoming_message(
-        business, business_id, "messenger", message["message_id"], message["text"],
-        resolve_sender, deliver, log_prefix="[messenger-webhook]",
-    )
 
 
 if __name__ == "__main__":

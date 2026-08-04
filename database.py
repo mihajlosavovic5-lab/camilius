@@ -201,37 +201,24 @@ def create_database():
     if cursor.fetchone() is None:
         cursor.execute("CREATE UNIQUE INDEX IF NOT EXISTS businesses_contact_email_idx ON businesses (contact_email)")
     cursor.execute("ALTER TABLE businesses DROP COLUMN IF EXISTS email_app_password")
+    # Instagram/WhatsApp/Messenger DM channels (and their columns below) were retired from
+    # the product - the hosted page/widget chat is the only channel now. Columns are left
+    # in place rather than dropped (harmless unused data, avoids a destructive migration);
+    # nothing reads or writes them anymore.
     cursor.execute("ALTER TABLE businesses ADD COLUMN IF NOT EXISTS instagram_account_id TEXT")
     cursor.execute("ALTER TABLE businesses ADD COLUMN IF NOT EXISTS instagram_username TEXT")
     cursor.execute("ALTER TABLE businesses ADD COLUMN IF NOT EXISTS instagram_access_token TEXT")
     # A plain UNIQUE column constraint can only be declared inline at CREATE TABLE time;
     # a unique index gives the same guarantee and works identically whether the table was
     # just created above or already existed from before this migration. Multiple NULLs
-    # (businesses that haven't connected Instagram yet) are allowed under UNIQUE in Postgres.
+    # are allowed under UNIQUE in Postgres.
     cursor.execute("CREATE UNIQUE INDEX IF NOT EXISTS businesses_instagram_account_id_idx ON businesses (instagram_account_id)")
 
-    # WhatsApp Cloud API connection - a second, independent message channel alongside
-    # Instagram (see conversations.channel below). Unlike Instagram, there's no OAuth
-    # redirect here: Camilius isn't a Meta-verified "Tech Provider" (that itself needs
-    # business verification, same wall as Instagram App Review - see whatsapp_api.py's
-    # module docstring), so a business generates its own permanent access token directly
-    # in its own Meta Business Suite and pastes it in via Settings (app.py's
-    # connect_whatsapp route) instead of Camilius ever requesting access to it.
     cursor.execute("ALTER TABLE businesses ADD COLUMN IF NOT EXISTS whatsapp_phone_number_id TEXT")
     cursor.execute("ALTER TABLE businesses ADD COLUMN IF NOT EXISTS whatsapp_display_number TEXT")
     cursor.execute("ALTER TABLE businesses ADD COLUMN IF NOT EXISTS whatsapp_access_token TEXT")
     cursor.execute("CREATE UNIQUE INDEX IF NOT EXISTS businesses_whatsapp_phone_number_id_idx ON businesses (whatsapp_phone_number_id)")
 
-    # Facebook Messenger connection - a third message channel. Unlike WhatsApp, this DOES
-    # use a real OAuth redirect (Facebook Login, not Instagram Login - see messenger_api.py's
-    # module docstring): Messenger messages are sent/received through a Facebook Page, not
-    # a personal account, and Page Access Tokens obtained from a long-lived user token are
-    # effectively non-expiring, so there's no per-business paste-a-token workaround needed
-    # the way WhatsApp's lack of Tech Provider status required. Same App Review/Business
-    # Verification wall as Instagram still applies for it to work for the general public -
-    # and critically, Messenger's Dev Mode tester gating is a SEPARATE list from Instagram
-    # Testers (the app's general App Roles > Roles, not the Instagram-specific sub-list) -
-    # see INSTAGRAM_TESTERS_ONLY's comment in app.py.
     cursor.execute("ALTER TABLE businesses ADD COLUMN IF NOT EXISTS messenger_page_id TEXT")
     cursor.execute("ALTER TABLE businesses ADD COLUMN IF NOT EXISTS messenger_page_name TEXT")
     cursor.execute("ALTER TABLE businesses ADD COLUMN IF NOT EXISTS messenger_page_access_token TEXT")
@@ -470,11 +457,9 @@ def create_database():
         )
     """)
 
-    # "Request tester access" submissions (see /request-tester-access in app.py) - lets
-    # someone who wants to try the app during the INSTAGRAM_TESTERS_ONLY period hand over
-    # their Instagram username instead of the founder having to chase people down for it.
-    # No FK to businesses - this is filled out by people who may not have (or ever get) a
-    # Camilius account at all, it's purely "please add me as a Meta Instagram tester".
+    # Both tables below belonged to the retired Instagram/WhatsApp/Messenger channels
+    # (tester-access requests and webhook-delivery diagnostics) - left in place rather
+    # than dropped, but nothing reads or writes them anymore.
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS tester_requests (
             id SERIAL PRIMARY KEY,
@@ -485,9 +470,6 @@ def create_database():
         )
     """)
 
-    # Every raw hit on /instagram-webhook is recorded here, purely for diagnosing delivery
-    # (does Meta actually call us?) independently of Railway's log viewer, which has been
-    # unreliable. Kept small by the trim in log_webhook_hit. Temporary diagnostic aid.
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS webhook_hits (
             id SERIAL PRIMARY KEY,
@@ -703,9 +685,8 @@ def _decrypt_row_token(row):
 
 
 def add_business(name, username, password, contact_email, working_hours, price_list, faq, phone_number=None, initial_status="trialing", push_enabled=True, auto_send=True, new_booking_notifications_enabled=True, reminders_enabled=False):
-    """Creates the account itself. Instagram isn't connected yet at this point - that
-    happens afterward via link_instagram_account(), once the OAuth redirect completes.
-    phone_number is optional - purely an extra way to log in later, not required.
+    """Creates the account itself. phone_number is optional - purely an extra way to log
+    in later, not required.
 
     subscription_status starts at 'trialing' (not the column's own 'none' default) by
     default - every new account gets our own self-serve 14-day trial immediately, see
@@ -746,175 +727,9 @@ def add_business(name, username, password, contact_email, working_hours, price_l
     return new_id
 
 
-def link_instagram_account(business_id, instagram_account_id, instagram_username, access_token):
-    """Saves the Instagram Business account connected via OAuth - the access token is what
-    the webhook handler and send-reply code use afterward. Called from the OAuth callback."""
-    connection = connect()
-    cursor = connection.cursor()
-    _execute_or_raise_unique_violation(
-        cursor,
-        """UPDATE businesses
-           SET instagram_account_id = %s, instagram_username = %s, instagram_access_token = %s
-           WHERE id = %s""",
-        (instagram_account_id, instagram_username, encrypt(access_token), business_id),
-    )
-    connection.commit()
-    connection.close()
-
-
-def unlink_instagram_account(business_id):
-    """Frees up this business's Instagram connection (instagram_account_id has a UNIQUE
-    index - see create_database - so a previously-connected account has to be unlinked
-    here before it can be linked to a different business). Called from the web Settings
-    page and the mobile app's Profile screen."""
-    connection = connect()
-    cursor = connection.cursor()
-    cursor.execute(
-        """UPDATE businesses
-           SET instagram_account_id = NULL, instagram_username = NULL, instagram_access_token = NULL
-           WHERE id = %s""",
-        (business_id,),
-    )
-    connection.commit()
-    connection.close()
-
-
-def link_whatsapp_account(business_id, phone_number_id, display_number, access_token):
-    """Saves a WhatsApp Business phone number the business connected by pasting its own
-    access token in Settings (see connect_whatsapp() in app.py) - no OAuth round-trip like
-    Instagram's, see whatsapp_phone_number_id's own comment in create_database for why."""
-    connection = connect()
-    cursor = connection.cursor()
-    _execute_or_raise_unique_violation(
-        cursor,
-        """UPDATE businesses
-           SET whatsapp_phone_number_id = %s, whatsapp_display_number = %s, whatsapp_access_token = %s
-           WHERE id = %s""",
-        (phone_number_id, display_number, encrypt(access_token), business_id),
-    )
-    connection.commit()
-    connection.close()
-
-
-def unlink_whatsapp_account(business_id):
-    """Frees up this business's WhatsApp connection (whatsapp_phone_number_id has a UNIQUE
-    index, same reasoning as unlink_instagram_account above)."""
-    connection = connect()
-    cursor = connection.cursor()
-    cursor.execute(
-        """UPDATE businesses
-           SET whatsapp_phone_number_id = NULL, whatsapp_display_number = NULL, whatsapp_access_token = NULL
-           WHERE id = %s""",
-        (business_id,),
-    )
-    connection.commit()
-    connection.close()
-
-
-def business_by_whatsapp_phone_number_id(phone_number_id):
-    """Routes an incoming WhatsApp webhook payload (which identifies the recipient by
-    phone_number_id, not a business id) to the business that connected it - mirrors
-    business_by_instagram_account_id below."""
-    connection = connect()
-    cursor = connection.cursor()
-    cursor.execute(f"SELECT {_BUSINESS_COLUMNS} FROM businesses WHERE whatsapp_phone_number_id = %s", (phone_number_id,))
-    row = cursor.fetchone()
-    connection.close()
-    if row is None:
-        return None
-    return _decrypt_row_token(row)
-
-
-def link_messenger_page(business_id, page_id, page_name, page_access_token):
-    """Saves the Facebook Page connected via OAuth (Facebook Login, see messenger_api.py) -
-    mirrors link_instagram_account. The Page Access Token here comes from /me/accounts
-    (exchanged from a long-lived user token), which is effectively non-expiring - no
-    refresh loop needed the way Instagram's 60-day token has one."""
-    connection = connect()
-    cursor = connection.cursor()
-    _execute_or_raise_unique_violation(
-        cursor,
-        """UPDATE businesses
-           SET messenger_page_id = %s, messenger_page_name = %s, messenger_page_access_token = %s
-           WHERE id = %s""",
-        (page_id, page_name, encrypt(page_access_token), business_id),
-    )
-    connection.commit()
-    connection.close()
-
-
-def unlink_messenger_account(business_id):
-    """Frees up this business's Messenger connection (messenger_page_id has a UNIQUE
-    index, same reasoning as unlink_instagram_account above)."""
-    connection = connect()
-    cursor = connection.cursor()
-    cursor.execute(
-        """UPDATE businesses
-           SET messenger_page_id = NULL, messenger_page_name = NULL, messenger_page_access_token = NULL
-           WHERE id = %s""",
-        (business_id,),
-    )
-    connection.commit()
-    connection.close()
-
-
-def business_by_messenger_page_id(page_id):
-    """Routes an incoming Messenger webhook payload (entry[].id is the Page id) to the
-    business that connected it - mirrors business_by_instagram_account_id below."""
-    connection = connect()
-    cursor = connection.cursor()
-    cursor.execute(f"SELECT {_BUSINESS_COLUMNS} FROM businesses WHERE messenger_page_id = %s", (page_id,))
-    row = cursor.fetchone()
-    connection.close()
-    if row is None:
-        return None
-    return _decrypt_row_token(row)
-
-
-def mark_instagram_connect_done(business_id, state):
-    """Records that this business's Instagram OAuth round-trip (identified by its one-shot
-    "state" token) finished - see instagram_connect_done_state's column comment in
-    create_database. Called from app.py's instagram_oauth_callback on every mobile-flow
-    exit path, success or failure alike."""
-    connection = connect()
-    cursor = connection.cursor()
-    cursor.execute("UPDATE businesses SET instagram_connect_done_state = %s WHERE id = %s", (state, business_id))
-    connection.commit()
-    connection.close()
-
-
-def instagram_connect_done_state(business_id):
-    """The most recent OAuth state token this business finished, if any - see
-    mark_instagram_connect_done above. Polled by api.py's instagram_connect_state_is_done."""
-    connection = connect()
-    cursor = connection.cursor()
-    cursor.execute("SELECT instagram_connect_done_state FROM businesses WHERE id = %s", (business_id,))
-    row = cursor.fetchone()
-    connection.close()
-    return row[0] if row else None
-
-
-def all_businesses():
-    """Only businesses that have actually connected an Instagram account - used by the
-    periodic worker (token-refresh checks, backups), not message ingestion, which is the
-    webhook's job now."""
-    connection = connect()
-    cursor = connection.cursor()
-    cursor.execute(f"""
-        SELECT {_BUSINESS_COLUMNS}, subscription_status
-        FROM businesses
-        WHERE instagram_access_token IS NOT NULL
-    """)
-    result = cursor.fetchall()
-    connection.close()
-    return [_decrypt_row_token(row[:_BUSINESS_COLUMN_COUNT]) + row[_BUSINESS_COLUMN_COUNT:] for row in result]
-
-
 def all_businesses_unfiltered():
-    """Every business regardless of Instagram connection state - unlike all_businesses()
-    above, includes accounts that never finished onboarding. Used by /admin/businesses
-    for support/cleanup lookups (all_businesses() alone can't find a test/abandoned
-    account that never connected Instagram)."""
+    """Every business, including accounts that never finished onboarding. Used by
+    /admin/businesses for support/cleanup lookups."""
     connection = connect()
     cursor = connection.cursor()
     cursor.execute(f"SELECT {_BUSINESS_COLUMNS}, subscription_status, created_at FROM businesses ORDER BY created_at DESC")
@@ -927,20 +742,6 @@ def business_by_id(business_id):
     connection = connect()
     cursor = connection.cursor()
     cursor.execute(f"SELECT {_BUSINESS_COLUMNS} FROM businesses WHERE id = %s", (business_id,))
-    row = cursor.fetchone()
-    connection.close()
-
-    if row is None:
-        return None
-    return _decrypt_row_token(row)
-
-
-def business_by_instagram_account_id(instagram_account_id):
-    """Looks up which business a webhook event belongs to - Instagram identifies the
-    message recipient by ITS OWN account id, not any id of ours."""
-    connection = connect()
-    cursor = connection.cursor()
-    cursor.execute(f"SELECT {_BUSINESS_COLUMNS} FROM businesses WHERE instagram_account_id = %s", (instagram_account_id,))
     row = cursor.fetchone()
     connection.close()
 
@@ -2066,23 +1867,6 @@ def next_upcoming_appointment_for_sender(business_id, sender_igsid):
 
 # --- No-show reminders / AI upsell (Faza 9) ---
 
-def is_reminders_enabled(business_id):
-    connection = connect()
-    cursor = connection.cursor()
-    cursor.execute("SELECT reminders_enabled FROM businesses WHERE id = %s", (business_id,))
-    row = cursor.fetchone()
-    connection.close()
-    return bool(row[0]) if row else False
-
-
-def set_reminders_enabled(business_id, enabled):
-    connection = connect()
-    cursor = connection.cursor()
-    cursor.execute("UPDATE businesses SET reminders_enabled = %s WHERE id = %s", (enabled, business_id))
-    connection.commit()
-    connection.close()
-
-
 def is_owner_reminders_enabled(business_id):
     connection = connect()
     cursor = connection.cursor()
@@ -2100,28 +1884,22 @@ def set_owner_reminders_enabled(business_id, enabled):
     connection.close()
 
 
-def get_reminder_minutes(business_id):
-    """Returns (customer_minutes, owner_minutes) - how long before the appointment each
-    channel's single reminder goes out. Falls back to the column defaults (24h/1h) if the
-    business row is somehow missing, same as the other reminder getters above."""
+def get_owner_reminder_minutes(business_id):
+    """How long before the appointment the owner's reminder notification goes out. Falls
+    back to the column's own default (1h) if the business row is somehow missing, same as
+    the other reminder getters above."""
     connection = connect()
     cursor = connection.cursor()
-    cursor.execute(
-        "SELECT customer_reminder_minutes, owner_reminder_minutes FROM businesses WHERE id = %s",
-        (business_id,),
-    )
+    cursor.execute("SELECT owner_reminder_minutes FROM businesses WHERE id = %s", (business_id,))
     row = cursor.fetchone()
     connection.close()
-    return (row[0], row[1]) if row else (1440, 60)
+    return row[0] if row else 60
 
 
-def set_reminder_minutes(business_id, customer_minutes, owner_minutes):
+def set_owner_reminder_minutes(business_id, owner_minutes):
     connection = connect()
     cursor = connection.cursor()
-    cursor.execute(
-        "UPDATE businesses SET customer_reminder_minutes = %s, owner_reminder_minutes = %s WHERE id = %s",
-        (customer_minutes, owner_minutes, business_id),
-    )
+    cursor.execute("UPDATE businesses SET owner_reminder_minutes = %s WHERE id = %s", (owner_minutes, business_id))
     connection.commit()
     connection.close()
 
@@ -2204,23 +1982,6 @@ def set_new_booking_notifications_enabled(business_id, enabled):
     connection = connect()
     cursor = connection.cursor()
     cursor.execute("UPDATE businesses SET new_booking_notifications_enabled = %s WHERE id = %s", (enabled, business_id))
-    connection.commit()
-    connection.close()
-
-
-def is_auto_send_enabled(business_id):
-    connection = connect()
-    cursor = connection.cursor()
-    cursor.execute("SELECT auto_send FROM businesses WHERE id = %s", (business_id,))
-    row = cursor.fetchone()
-    connection.close()
-    return bool(row[0]) if row else False
-
-
-def set_auto_send(business_id, enabled):
-    connection = connect()
-    cursor = connection.cursor()
-    cursor.execute("UPDATE businesses SET auto_send = %s WHERE id = %s", (enabled, business_id))
     connection.commit()
     connection.close()
 
@@ -2404,59 +2165,6 @@ def recent_client_errors(limit=100):
         SELECT id, business_id, message, stack, context, app_version, created_at
         FROM client_errors ORDER BY created_at DESC LIMIT %s
     """, (limit,))
-    result = cursor.fetchall()
-    connection.close()
-    return result
-
-
-# --- "Request tester access" submissions ---
-
-def add_tester_request(instagram_username, email, note):
-    connection = connect()
-    cursor = connection.cursor()
-    cursor.execute(
-        "INSERT INTO tester_requests (instagram_username, email, note) VALUES (%s, %s, %s)",
-        (instagram_username, email, note),
-    )
-    connection.commit()
-    connection.close()
-
-
-def recent_tester_requests(limit=200):
-    connection = connect()
-    cursor = connection.cursor()
-    cursor.execute("""
-        SELECT id, instagram_username, email, note, created_at
-        FROM tester_requests ORDER BY created_at DESC LIMIT %s
-    """, (limit,))
-    result = cursor.fetchall()
-    connection.close()
-    return result
-
-
-# --- Webhook hit logging (temporary diagnostic) ---
-
-def log_webhook_hit(note, body):
-    connection = connect()
-    cursor = connection.cursor()
-    cursor.execute("INSERT INTO webhook_hits (note, body) VALUES (%s, %s)", (note, body[:5000]))
-    # Keep only the most recent 50 so this diagnostic table can't grow unbounded
-    cursor.execute("""
-        DELETE FROM webhook_hits WHERE id NOT IN (
-            SELECT id FROM webhook_hits ORDER BY created_at DESC LIMIT 50
-        )
-    """)
-    connection.commit()
-    connection.close()
-
-
-def recent_webhook_hits(limit=20):
-    connection = connect()
-    cursor = connection.cursor()
-    cursor.execute(
-        "SELECT id, note, body, created_at FROM webhook_hits ORDER BY created_at DESC LIMIT %s",
-        (limit,),
-    )
     result = cursor.fetchall()
     connection.close()
     return result
