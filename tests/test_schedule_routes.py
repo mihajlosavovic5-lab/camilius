@@ -17,7 +17,7 @@ def test_schedule_requires_login(client):
 
 def test_schedule_unlocked_during_trial(client, unique_username, unique_email):
     reg = register_business_web(client, unique_username, unique_email)
-    assert reg.status_code == 302  # -> /connect-instagram, but the session is now logged in
+    assert reg.status_code == 302  # -> /verify-pending, but the session is now logged in
 
     response = client.get("/schedule")
     assert response.status_code == 200

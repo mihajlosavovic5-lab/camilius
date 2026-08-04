@@ -2307,9 +2307,6 @@ def home():
             log_event("landing_view")
         return render_template("landing.html")
 
-    if not business[5]:  # instagram_account_id not set - can't do anything without it
-        return redirect(url_for("connect_instagram"))
-
     conversations = conversations_for_business(session["business_id"])
     archived = archived_conversations_for_business(session["business_id"])
     trashed = trashed_conversations_for_business(session["business_id"])
