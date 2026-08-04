@@ -1,5 +1,6 @@
 import os
 import ssl
+import threading
 from datetime import datetime, timedelta, timezone
 from urllib.parse import parse_qs, urlparse
 
@@ -109,6 +110,49 @@ class _ReusableConnection:
 
 _shared_connection = None
 
+# Guards _shared_connection above against two threads touching it at the same time -
+# two concurrent queries interleaving on the same wire connection corrupts pg8000's
+# protocol state (portal/prepared-statement mismatches, "attempting to use unexecuted
+# cursor") instead of just erroring cleanly, and can silently hand one caller another
+# caller's row data. Currently a no-op in practice - the Procfile runs gunicorn with its
+# default single sync worker/thread, so requests are already fully serialized before
+# this ever runs - but that's an assumption living one file away (Procfile) with nothing
+# enforcing it here; this is a safety net for if that assumption ever changes (more
+# gunicorn workers/threads, a future async caller, a page that fires several concurrent
+# sub-requests the way the onboarding wizard's 5 theme-preview iframes do - see
+# onboarding_design.html), not a response to an observed single-worker production
+# incident.
+_db_access_lock = threading.Lock()
+# Per-thread "do I already hold _db_access_lock" flag, so a thread that calls connect()
+# again before its first call's connection.close() (a route calling one DB helper
+# function from inside another, or simply calling two DB functions in a row within one
+# request) doesn't block on a lock it's already holding. release_db_lock() below - not
+# each call site's own connection.close() - is what actually releases it once per
+# request; see that function's own docstring for why.
+_db_lock_state = threading.local()
+
+
+def _acquire_db_lock():
+    if not getattr(_db_lock_state, "held", False):
+        _db_access_lock.acquire()
+        _db_lock_state.held = True
+
+
+def release_db_lock():
+    """Releases the lock connect() below takes, if this thread is holding it - called
+    once, unconditionally, from app.py's teardown_request so every request releases it
+    on the way out regardless of how it ended (normal return, an uncaught exception, or
+    a route that caught an error and skipped its own connection.close() - see connect()'s
+    own SELECT 1 probe/reconnect logic for the same "one bad request can't wedge
+    everything" property one layer up). A script that never runs inside a Flask request
+    (reminders.py's own process, obradi_email.py, migrate_to_english.py, ...) never calls
+    this and so just holds the lock for that process's own lifetime once it first
+    connects - harmless, since there's no second thread in that process to ever block on
+    it."""
+    if getattr(_db_lock_state, "held", False):
+        _db_lock_state.held = False
+        _db_access_lock.release()
+
 
 def connect():
     """Returns a shared, reused Postgres connection instead of opening a brand new one
@@ -129,6 +173,7 @@ def connect():
     aborted-transaction state by some earlier error (e.g. a caught UniqueViolation that
     skipped straight past its own .commit()/.close()) and transparently reconnects, so
     one bad request can't wedge every request after it."""
+    _acquire_db_lock()
     global _shared_connection
     if _shared_connection is not None and _shared_connection.closed == 0:
         try:
