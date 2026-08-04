@@ -69,6 +69,7 @@
     }
     {% endif %}
     * { box-sizing: border-box; }
+    .hidden { display: none; }
     body {
         margin: 0;
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
@@ -130,6 +131,80 @@
     }
     footer a {
         color: inherit;
+    }
+    .book-cta {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        border: none;
+        border-radius: var(--radius);
+        background: var(--primary);
+        color: var(--on-primary);
+        font-size: 0.95rem;
+        font-weight: 600;
+        padding: 11px 18px;
+        margin: 0 0 28px;
+        cursor: pointer;
+    }
+    .book-days {
+        display: flex;
+        gap: 8px;
+        overflow-x: auto;
+        padding-bottom: 4px;
+        margin-bottom: 14px;
+        /* Trailing space so the last day/slot can be scrolled clear of the fixed
+           chat-fab, which floats in the same bottom-right corner this section's own
+           horizontal scrollers naturally end up under once scrolled into view. */
+        scroll-padding-right: 76px;
+    }
+    .book-days::after {
+        content: "";
+        flex: 0 0 auto;
+        width: 60px;
+    }
+    .book-day {
+        flex: 0 0 auto;
+        border: 1px solid var(--border);
+        background: var(--background);
+        color: var(--text);
+        border-radius: calc(var(--radius) * 0.6);
+        padding: 8px 12px;
+        font-size: 0.85rem;
+        cursor: pointer;
+        white-space: nowrap;
+    }
+    .book-day.selected {
+        background: var(--primary);
+        border-color: var(--primary);
+        color: var(--on-primary);
+    }
+    .book-slots {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+    .book-slot {
+        border: 1px solid var(--border);
+        background: var(--background);
+        color: var(--text);
+        border-radius: calc(var(--radius) * 0.6);
+        padding: 8px 14px;
+        font-size: 0.88rem;
+        cursor: pointer;
+    }
+    .book-slot:hover {
+        border-color: var(--primary);
+        color: var(--primary);
+    }
+    .book-empty, .book-loading {
+        color: var(--text-muted);
+        font-size: 0.9rem;
+        margin: 0;
+    }
+    .book-confirm {
+        margin: 12px 0 0;
+        font-size: 0.88rem;
+        color: var(--text-muted);
     }
     .chat-fab {
         position: fixed;
@@ -245,6 +320,15 @@
     <h1>{{ business_name }}</h1>
     {% if tagline %}<p class="tagline">{{ tagline }}</p>{% endif %}
 
+    {% if booking_enabled %}
+    <button type="button" class="book-cta" id="book-cta">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4" stroke-linecap="round"/>
+        </svg>
+        Book an appointment
+    </button>
+    {% endif %}
+
     {% if about %}
     <section>
         <h2>About</h2>
@@ -260,6 +344,16 @@
             <tr><td>{{ day }}</td><td>{{ hours }}</td></tr>
             {% endfor %}
         </table>
+    </section>
+    {% endif %}
+
+    {% if booking_enabled %}
+    <section id="book-section">
+        <h2>Book an appointment</h2>
+        <p class="book-loading" id="book-loading">Loading open times...</p>
+        <div class="book-days hidden" id="book-days"></div>
+        <div class="book-slots hidden" id="book-slots"></div>
+        <p class="book-confirm hidden" id="book-confirm"></p>
     </section>
     {% endif %}
 
@@ -360,15 +454,11 @@
 
     fab.addEventListener("click", function () { setOpen(!open); });
 
-    form.addEventListener("submit", function (event) {
-        event.preventDefault();
-        var text = input.value.trim();
-        if (!text) return;
-        input.value = "";
-        input.disabled = true;
+    function sendMessage(text) {
         addMessage("user", text);
         var typingEl = addMessage("bot", "...");
         typingEl.classList.add("chat-msg-typing");
+        input.disabled = true;
 
         fetch(chatUrl, {
             method: "POST",
@@ -388,7 +478,92 @@
                 input.disabled = false;
                 input.focus();
             });
+    }
+
+    form.addEventListener("submit", function (event) {
+        event.preventDefault();
+        var text = input.value.trim();
+        if (!text) return;
+        input.value = "";
+        sendMessage(text);
     });
+
+    {% if booking_enabled %}
+    // "Book an appointment" section - see app.py's public_page_availability for what
+    // this fetches. Deliberately does not book anything itself: tapping a slot just
+    // opens the chat panel and sends the exact same request a typed message would, so
+    // the real booking transaction (name, notifications, upsell, double-book
+    // protection) only ever happens once, inside the AI chat pipeline.
+    var bookCta = document.getElementById("book-cta");
+    var bookSection = document.getElementById("book-section");
+    var bookLoading = document.getElementById("book-loading");
+    var bookDaysEl = document.getElementById("book-days");
+    var bookSlotsEl = document.getElementById("book-slots");
+    var bookConfirmEl = document.getElementById("book-confirm");
+    var availabilityUrl = {{ availability_url | tojson }};
+    var availableDays = [];
+    var selectedDayIndex = 0;
+
+    function renderDays() {
+        bookDaysEl.innerHTML = "";
+        availableDays.forEach(function (day, index) {
+            var btn = document.createElement("button");
+            btn.type = "button";
+            btn.className = "book-day" + (index === selectedDayIndex ? " selected" : "");
+            btn.textContent = day.label;
+            btn.addEventListener("click", function () {
+                selectedDayIndex = index;
+                renderDays();
+                renderSlots();
+            });
+            bookDaysEl.appendChild(btn);
+        });
+    }
+
+    function renderSlots() {
+        bookSlotsEl.innerHTML = "";
+        var day = availableDays[selectedDayIndex];
+        if (!day) return;
+        day.slots.forEach(function (time) {
+            var btn = document.createElement("button");
+            btn.type = "button";
+            btn.className = "book-slot";
+            btn.textContent = time;
+            btn.addEventListener("click", function () {
+                setOpen(true);
+                sendMessage("I'd like to book an appointment on " + day.label + " at " + time + ".");
+                bookConfirmEl.textContent = "Requested " + day.label + " at " + time + " - continue in the chat to confirm.";
+                bookConfirmEl.classList.remove("hidden");
+            });
+            bookSlotsEl.appendChild(btn);
+        });
+    }
+
+    fetch(availabilityUrl)
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+            availableDays = data.days || [];
+            bookLoading.classList.add("hidden");
+            if (availableDays.length === 0) {
+                bookLoading.textContent = "No upcoming openings right now - message us in chat to check.";
+                bookLoading.classList.remove("hidden");
+                return;
+            }
+            bookDaysEl.classList.remove("hidden");
+            bookSlotsEl.classList.remove("hidden");
+            renderDays();
+            renderSlots();
+        })
+        .catch(function () {
+            bookLoading.textContent = "Couldn't load open times - please try again shortly.";
+        });
+
+    if (bookCta) {
+        bookCta.addEventListener("click", function () {
+            bookSection.scrollIntoView({ behavior: "smooth", block: "start" });
+        });
+    }
+    {% endif %}
 })();
 </script>
 {% endif %}

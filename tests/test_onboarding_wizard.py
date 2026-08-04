@@ -174,11 +174,26 @@ def test_onboarding_preview_renders_the_chosen_theme_without_chat(client, unique
     assert themes.THEMES["luxury"]["base"]["primary"] in html
     assert "Fresh cuts, fair prices" in html
     assert 'id="chat-fab"' not in html  # preview mode hides the (not-yet-real) chat widget
+    assert "Book an appointment" not in html  # and the booking section that depends on it
 
     # ?theme= overrides the draft's own saved theme, for the design step's per-card preview.
     response = client.get("/onboarding/website/preview?theme=nature")
     html = response.get_data(as_text=True)
     assert themes.THEMES["nature"]["base"]["primary"] in html
+
+
+def test_onboarding_design_csp_allows_its_own_preview_iframes(client, unique_username, unique_email, monkeypatch):
+    """The design step embeds this site's own /onboarding/website/preview in an
+    <iframe> per theme card (see onboarding_design.html). A CSP frame-src without
+    'self' silently blocks that same-origin iframe in a real browser (chrome-error://
+    chromewebdata) even though a plain GET/fetch of the same URL succeeds fine - only
+    caught visually, not by response.status_code, so this pins the header directly."""
+    register_business_web(client, unique_username, unique_email)
+    _run_describe_step(client, monkeypatch)
+
+    response = client.get("/onboarding/website/design")
+    csp = response.headers["Content-Security-Policy"]
+    assert "frame-src 'self'" in csp
 
 
 def test_onboarding_wizard_requires_login(client):

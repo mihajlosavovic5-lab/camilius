@@ -31,7 +31,7 @@
             <label class="onboarding-theme-card">
                 <input type="radio" name="theme" value="{{ theme_id }}" {% if selected_theme == theme_id or (not selected_theme and loop.first) %}checked{% endif %} required>
                 <div class="onboarding-theme-preview">
-                    <iframe src="{{ url_for('onboarding_website_preview', theme=theme_id) }}" loading="lazy" tabindex="-1" title="{{ theme.label }} preview"></iframe>
+                    <iframe data-src="{{ url_for('onboarding_website_preview', theme=theme_id) }}" tabindex="-1" title="{{ theme.label }} preview"></iframe>
                 </div>
                 <div class="onboarding-theme-info">
                     <p class="onboarding-theme-label">{{ theme.label }}</p>
@@ -50,4 +50,29 @@
         </div>
     </form>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Loads each theme card's preview iframe one at a time (next one starts once the
+// previous fires its "load" event), rather than all 5 firing at once on page load.
+// The whole app shares a single pooled Postgres connection (see database.py's
+// _shared_connection - "a single process only ever needs one open connection at a
+// time"), which is only ever safe under Gunicorn's default single sync worker/thread;
+// 5 simultaneous requests hitting it at once corrupts that shared connection and
+// cascades into 500s for every page, not just this one - caught by loading this step
+// in a real browser, not by the route/template tests (which only ever issue one
+// request at a time). Sequencing the loads here keeps this page from ever being the
+// thing that triggers it.
+document.addEventListener("DOMContentLoaded", function () {
+    var iframes = Array.prototype.slice.call(document.querySelectorAll(".onboarding-theme-preview iframe[data-src]"));
+    function loadNext(index) {
+        if (index >= iframes.length) return;
+        var frame = iframes[index];
+        frame.addEventListener("load", function () { loadNext(index + 1); }, { once: true });
+        frame.src = frame.dataset.src;
+    }
+    loadNext(0);
+});
+</script>
 {% endblock %}

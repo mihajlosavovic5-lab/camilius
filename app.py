@@ -210,6 +210,12 @@ def no_store_authenticated_pages(response):
 # site blocked automated fetches while building this; if checkout fails to open once real
 # PADDLE_PRICE_*/PADDLE_CLIENT_TOKEN are set, check the browser console for a CSP
 # violation first and tighten/adjust this list from whatever it names.)
+# frame-src also needs 'self' - the onboarding design step (onboarding_design.html)
+# embeds this site's own /onboarding/website/preview in an <iframe> for each theme card's
+# live thumbnail. Without it every one of those 5 previews silently renders as
+# chrome-error://chromewebdata (CSP blocks the frame navigation itself, not the route -
+# a plain fetch() of the same URL succeeds fine, since that's governed by connect-src,
+# not frame-src) - caught visually in a real browser, not by the route/template tests.
 # {frame_ancestors} is filled in by set_security_headers below - 'self' for every normal
 # response, but the one exception (GET /w/<slug>, the F5 embeddable widget - see
 # widget_frame()) needs a per-business external origin instead, since that response is
@@ -224,7 +230,7 @@ _CSP_TEMPLATE = (
     # - without this allowance every one of those requests was silently CSP-blocked, so the
     # feature never actually worked (caught testing this, not by design).
     "connect-src 'self' https://*.paddle.com https://ipapi.co; "
-    "frame-src https://*.paddle.com; "
+    "frame-src 'self' https://*.paddle.com; "
     "frame-ancestors {frame_ancestors}; "
     "base-uri 'self'; "
     "object-src 'none'"
@@ -1706,6 +1712,15 @@ def public_page(slug):
     business = business_by_id(page[1])
     if business is None:
         abort(404)
+    # Booking is only ever offered where the AI chat tool itself is allowed to actually
+    # book (see ai_replies.handle_incoming_message's identical has_pro_access/
+    # BETA_FREE_MODE check) and where there's at least one open day to show a slot for -
+    # a visible "Book an appointment" section that leads to a chat reply of "sorry, I
+    # can't book that" would be worse than no section at all.
+    booking_enabled = (
+        (BETA_FREE_MODE or has_pro_access(page[1]))
+        and any(booking.parse_working_hours(business[8]).values())
+    )
     return render_template(
         "public_page.html",
         business_name=business[1],
@@ -1721,6 +1736,8 @@ def public_page(slug):
         slug=slug,
         theme=themes.theme_or_default(page[9]),
         preview=False,
+        booking_enabled=booking_enabled,
+        availability_url=url_for("public_page_availability", slug=slug) if booking_enabled else None,
         # F4: the "Powered by Camilius" footer disappears once this business has any
         # active access - including its own free trial, same as has_pro_access() already
         # treats a self-serve trial as full access, not just a paid plan. One source of
@@ -1728,6 +1745,54 @@ def public_page(slug):
         # paid, not just trialing" check that could quietly drift from it.
         show_badge=not effective_subscription_active(page[1]),
     )
+
+
+# How many upcoming days public_page_availability looks across for a free slot - a
+# visitor scanning for "any time this week/next" needs more runway than the AI chat's own
+# find_next_free_slots (which stops as soon as it has 2 alternatives to offer), but this
+# is still a bounded read, same spirit as that function's own search_days cap.
+PAGE_AVAILABILITY_DAYS = 14
+
+
+# Read-only free/busy for the public page's own "Book an appointment" calendar (see
+# public_page.html) - deliberately NOT a booking endpoint itself. The actual booking
+# transaction (name, notifications, upsell, double-book protection) stays entirely inside
+# the AI chat pipeline (booking.attempt_ai_booking via ai_replies/public_page_chat) - this
+# just lets a visitor see open times before they ever open the chat panel, and tapping one
+# hands the exact same request to that same chat pipeline as a plain typed message. Same
+# has_pro_access/BETA_FREE_MODE gate as the chat tool itself, so this never advertises
+# slots the business can't actually have the AI book.
+@app.route("/p/<slug>/availability")
+@limiter.limit("30 per minute")
+def public_page_availability(slug):
+    page = page_by_slug(slug)
+    if page is None or not page[3]:
+        abort(404)
+    business_id = page[1]
+    business = business_by_id(business_id)
+    if business is None or not (BETA_FREE_MODE or has_pro_access(business_id)):
+        abort(404)
+
+    working_hours = business[8]
+    tz = booking.tz_for(business)
+    slot_minutes = get_slot_duration(business_id)
+    now = booking.now_local(tz)
+
+    days = []
+    for offset in range(PAGE_AVAILABILITY_DAYS):
+        d = now.date() + timedelta(days=offset)
+        if not booking.is_open_on(working_hours, d):
+            continue
+        free = [s for s in booking.free_slots_for_day(business_id, working_hours, slot_minutes, d, tz) if s >= now]
+        if not free:
+            continue
+        days.append({
+            "date": d.isoformat(),
+            "label": d.strftime("%a, %b %d"),
+            "slots": [s.strftime("%H:%M") for s in free],
+        })
+
+    return jsonify(days=days)
 
 
 # How many page-chat messages one anonymous visitor session (the browser's own
