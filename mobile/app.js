@@ -2186,31 +2186,19 @@ el("connect-request-tester-access-btn").addEventListener("click", async () => {
     }
 });
 
-// Gates entry into the app on Instagram actually being connected - mirrors the
-// website's own home route, which redirects to /connect-instagram whenever
-// instagram_account_id isn't set yet (see app.py). Called after login and on a
-// cold start with an already-stored token, so a business that verified its email and
-// logged back in without ever finishing Instagram OAuth lands on the gate screen
-// instead of an empty Inbox with no way back to it.
-async function enterOrGateOnInstagram() {
-    try {
-        const data = await api("/api/settings");
-        if (data.instagram_username) {
-            enterApp();
-        } else {
-            showTabbar(false);
-            el("connect-error").classList.add("hidden");
-            el("connect-tester-note").classList.toggle("hidden", !data.instagram_testers_only);
-            el("connect-request-tester-access-btn").classList.toggle("hidden", !data.instagram_testers_only);
-            showScreen("connectInstagram");
-        }
-    } catch (err) {
-        if (err.status === 401) { logout(); return; }
-        // Network hiccup checking connection status shouldn't strand the user on a blank
-        // screen - fall back to entering the app; loadSettingsIntoForm/loadDashboard will
-        // surface any real, ongoing error of their own right after.
-        enterApp();
-    }
+// Used to gate entry into the app on Instagram actually being connected, mirroring the
+// website's own home route - which had the same gate (see app.py's home(), fixed
+// separately). Since the pivot to the hosted page/widget (F1-F5), a business runs fully
+// without ever touching Instagram, so this no longer checks anything before entering:
+// loadSettingsIntoForm() (called from enterApp() below) already fetches /api/settings
+// and populates the Instagram field on its own. The "screen-connect-instagram" full-
+// screen intro this used to route to when nothing was connected is unreachable from
+// here now - connecting/reconnecting Instagram still works via the ordinary "Connect"/
+// "Reconnect" button on the Profile screen (settings-instagram-reconnect-btn below),
+// same as the website's own Profile page never needed a full-screen takeover for it
+// either.
+function enterOrGateOnInstagram() {
+    enterApp();
 }
 
 function enterApp() {

@@ -29,9 +29,9 @@ const TRANSLATIONS = {
     en: {
         "onboarding.skip": "Skip",
         "onboarding.slide1.title": "Welcome to Camilius",
-        "onboarding.slide1.body": "Your AI assistant for customer Instagram messages.",
-        "onboarding.slide2.title": "Reads DMs for you",
-        "onboarding.slide2.body": "When a customer messages your business on Instagram, Camilius reads it right away — day or night.",
+        "onboarding.slide1.body": "Your AI assistant for customer messages and bookings.",
+        "onboarding.slide2.title": "Reads messages for you",
+        "onboarding.slide2.body": "When a customer messages your business - on your page, Instagram, or WhatsApp - Camilius reads it right away — day or night.",
         "onboarding.slide3.title": "Writes a reply for you",
         "onboarding.slide3.body": "The AI drafts a reply based on your working hours, price list, and FAQ.",
         "onboarding.slide4.title": "Sent for you, instantly",
@@ -40,7 +40,7 @@ const TRANSLATIONS = {
         "onboarding.slide5.body": "When a customer wants to schedule, Camilius checks your calendar, books the slot, and notifies you the moment it's done.",
         "onboarding.getStarted": "Get started",
 
-        "login.tagline": "AI replies for your Instagram DMs",
+        "login.tagline": "AI replies for your customers, any channel",
         "login.username": "Username, email, or phone",
         "login.password": "Password",
         "login.submit": "Log in",
@@ -168,7 +168,7 @@ const TRANSLATIONS = {
 
         "schedule.appointmentLength": "Appointment length",
         "schedule.locked.title": "Schedule is a Pro plan feature",
-        "schedule.locked.body": "View and manage a day/week calendar, and let the AI book, remind, and reschedule appointments straight from Instagram DMs.",
+        "schedule.locked.body": "View and manage a day/week calendar, and let the AI book, remind, and reschedule appointments straight from a conversation on your page, Instagram, or WhatsApp.",
         "schedule.upgradeCta": "Upgrade to Pro",
         "schedule.noWorkingHours": "We couldn't read your working hours, so no time slots are available yet. Please check your working hours on the",
         "schedule.pageSuffix": "page.",
@@ -306,7 +306,7 @@ const TRANSLATIONS = {
 
         "subscription.betaBadge": "Free during beta",
         "subscription.betaBody": "Camilius is free during beta - no card needed, nothing to cancel.",
-        "subscription.benefit1": "AI drafts replies to new Instagram messages",
+        "subscription.benefit1": "AI drafts replies to new customer messages",
         "subscription.benefit2": "You approve and send",
         "subscription.benefit3": "Up to 50 replies a day",
         "subscription.benefit4": "Learns from each customer's history",
@@ -385,9 +385,9 @@ const TRANSLATIONS = {
     sr: {
         "onboarding.skip": "Preskoči",
         "onboarding.slide1.title": "Dobrodošli u Camilius",
-        "onboarding.slide1.body": "Vaš AI asistent za Instagram poruke kupaca.",
-        "onboarding.slide2.title": "Čita DM poruke umesto vas",
-        "onboarding.slide2.body": "Kada kupac pošalje poruku vašoj firmi na Instagramu, Camilius je odmah pročita — danju ili noću.",
+        "onboarding.slide1.body": "Vaš AI asistent za poruke i zakazivanja mušterija.",
+        "onboarding.slide2.title": "Čita poruke umesto vas",
+        "onboarding.slide2.body": "Kada mušterija pošalje poruku vašoj firmi - na vašoj stranici, Instagramu ili WhatsApp-u - Camilius je odmah pročita — danju ili noću.",
         "onboarding.slide3.title": "Piše odgovor umesto vas",
         "onboarding.slide3.body": "AI piše odgovor na osnovu vašeg radnog vremena, cenovnika i čestih pitanja.",
         "onboarding.slide4.title": "Šalje se umesto vas, odmah",
@@ -396,7 +396,7 @@ const TRANSLATIONS = {
         "onboarding.slide5.body": "Kada mušterija želi da zakaže, Camilius proverava vaš raspored, rezerviše termin i odmah vas obaveštava kad je gotovo.",
         "onboarding.getStarted": "Počnimo",
 
-        "login.tagline": "AI odgovori za vaše Instagram poruke",
+        "login.tagline": "AI odgovori vašim mušterijama, na svakom kanalu",
         "login.username": "Korisničko ime, email ili telefon",
         "login.password": "Lozinka",
         "login.submit": "Prijavi se",
@@ -524,7 +524,7 @@ const TRANSLATIONS = {
 
         "schedule.appointmentLength": "Trajanje termina",
         "schedule.locked.title": "Raspored je funkcija Pro plana",
-        "schedule.locked.body": "Pregledajte i upravljajte dnevnim/nedeljnim kalendarom, i dozvolite AI-ju da zakazuje, podseća i premešta termine direktno iz Instagram poruka.",
+        "schedule.locked.body": "Pregledajte i upravljajte dnevnim/nedeljnim kalendarom, i dozvolite AI-ju da zakazuje, podseća i premešta termine direktno iz razgovora na vašoj stranici, Instagramu ili WhatsApp-u.",
         "schedule.upgradeCta": "Pređi na Pro",
         "schedule.noWorkingHours": "Nismo mogli da pročitamo vaše radno vreme, pa za sada nema dostupnih termina. Molimo proverite radno vreme na stranici",
         "schedule.pageSuffix": "Profil.",
@@ -657,7 +657,7 @@ const TRANSLATIONS = {
 
         "subscription.betaBadge": "Besplatno tokom bete",
         "subscription.betaBody": "Camilius je besplatan tokom bete - nije potrebna kartica, ništa se ne otkazuje.",
-        "subscription.benefit1": "AI priprema odgovore na nove Instagram poruke",
+        "subscription.benefit1": "AI priprema odgovore na nove poruke mušterija",
         "subscription.benefit2": "Vi samo odobravate i šaljete",
         "subscription.benefit3": "Do 50 odgovora dnevno",
         "subscription.benefit4": "Uči iz istorije razgovora sa svakim kupcem",
@@ -736,9 +736,9 @@ const TRANSLATIONS = {
     es: {
         "onboarding.skip": "Omitir",
         "onboarding.slide1.title": "Bienvenido a Camilius",
-        "onboarding.slide1.body": "Tu asistente de IA para los mensajes de Instagram de tus clientes.",
-        "onboarding.slide2.title": "Lee los DM por ti",
-        "onboarding.slide2.body": "Cuando un cliente escribe a tu negocio por Instagram, Camilius lo lee al instante — de día o de noche.",
+        "onboarding.slide1.body": "Tu asistente de IA para mensajes y reservas de clientes.",
+        "onboarding.slide2.title": "Lee los mensajes por ti",
+        "onboarding.slide2.body": "Cuando un cliente escribe a tu negocio - en tu página, Instagram o WhatsApp - Camilius lo lee al instante — de día o de noche.",
         "onboarding.slide3.title": "Redacta una respuesta por ti",
         "onboarding.slide3.body": "La IA redacta una respuesta según tu horario, tu lista de precios y tus preguntas frecuentes.",
         "onboarding.slide4.title": "Enviado por ti, al instante",
@@ -747,7 +747,7 @@ const TRANSLATIONS = {
         "onboarding.slide5.body": "Cuando un cliente quiere reservar, Camilius revisa tu agenda, reserva el horario y te avisa en cuanto queda hecho.",
         "onboarding.getStarted": "Empezar",
 
-        "login.tagline": "Respuestas con IA para tus DM de Instagram",
+        "login.tagline": "Respuestas con IA para tus clientes, en cualquier canal",
         "login.username": "Usuario, email o teléfono",
         "login.password": "Contraseña",
         "login.submit": "Iniciar sesión",
@@ -873,7 +873,7 @@ const TRANSLATIONS = {
 
         "schedule.appointmentLength": "Duración de la cita",
         "schedule.locked.title": "La Agenda es una función del plan Pro",
-        "schedule.locked.body": "Consulta y gestiona un calendario diario/semanal, y deja que la IA reserve, recuerde y reprograme citas directamente desde los DM de Instagram.",
+        "schedule.locked.body": "Consulta y gestiona un calendario diario/semanal, y deja que la IA reserve, recuerde y reprograme citas directamente desde una conversación en tu página, Instagram o WhatsApp.",
         "schedule.upgradeCta": "Mejora a Pro",
         "schedule.noWorkingHours": "No pudimos leer tu horario de trabajo, así que aún no hay horarios disponibles. Por favor revisa tu horario de trabajo en la página de",
         "schedule.pageSuffix": "Perfil.",
@@ -973,7 +973,7 @@ const TRANSLATIONS = {
 
         "subscription.betaBadge": "Gratis durante la beta",
         "subscription.betaBody": "Camilius es gratis durante la beta - no se necesita tarjeta, nada que cancelar.",
-        "subscription.benefit1": "La IA prepara respuestas a los nuevos mensajes de Instagram",
+        "subscription.benefit1": "La IA prepara respuestas a los nuevos mensajes de clientes",
         "subscription.benefit2": "Tú solo apruebas y envías",
         "subscription.benefit3": "Hasta 50 respuestas al día",
         "subscription.benefit4": "Aprende del historial de cada cliente",
@@ -1052,9 +1052,9 @@ const TRANSLATIONS = {
     pt: {
         "onboarding.skip": "Pular",
         "onboarding.slide1.title": "Bem-vindo ao Camilius",
-        "onboarding.slide1.body": "Seu assistente de IA para as mensagens do Instagram dos seus clientes.",
-        "onboarding.slide2.title": "Lê as DMs por você",
-        "onboarding.slide2.body": "Quando um cliente envia uma mensagem para sua empresa no Instagram, o Camilius a lê na hora — de dia ou de noite.",
+        "onboarding.slide1.body": "Seu assistente de IA para mensagens e agendamentos de clientes.",
+        "onboarding.slide2.title": "Lê as mensagens por você",
+        "onboarding.slide2.body": "Quando um cliente envia uma mensagem para sua empresa - na sua página, Instagram ou WhatsApp - o Camilius a lê na hora — de dia ou de noite.",
         "onboarding.slide3.title": "Escreve uma resposta por você",
         "onboarding.slide3.body": "A IA redige uma resposta com base no seu horário de funcionamento, tabela de preços e perguntas frequentes.",
         "onboarding.slide4.title": "Enviado para você, na hora",
@@ -1063,7 +1063,7 @@ const TRANSLATIONS = {
         "onboarding.slide5.body": "Quando um cliente quer agendar, o Camilius verifica sua agenda, reserva o horário e te avisa assim que estiver feito.",
         "onboarding.getStarted": "Começar",
 
-        "login.tagline": "Respostas com IA para seus DMs do Instagram",
+        "login.tagline": "Respostas com IA para seus clientes, em qualquer canal",
         "login.username": "Usuário, email ou telefone",
         "login.password": "Senha",
         "login.submit": "Entrar",
@@ -1189,7 +1189,7 @@ const TRANSLATIONS = {
 
         "schedule.appointmentLength": "Duração do compromisso",
         "schedule.locked.title": "A Agenda é um recurso do plano Pro",
-        "schedule.locked.body": "Veja e gerencie um calendário diário/semanal, e deixe a IA agendar, lembrar e reagendar compromissos diretamente pelos DMs do Instagram.",
+        "schedule.locked.body": "Veja e gerencie um calendário diário/semanal, e deixe a IA agendar, lembrar e reagendar compromissos diretamente por uma conversa na sua página, Instagram ou WhatsApp.",
         "schedule.upgradeCta": "Faça upgrade para o Pro",
         "schedule.noWorkingHours": "Não conseguimos ler seu horário de funcionamento, então ainda não há horários disponíveis. Por favor, confira seu horário de funcionamento na página de",
         "schedule.pageSuffix": "Perfil.",
@@ -1289,7 +1289,7 @@ const TRANSLATIONS = {
 
         "subscription.betaBadge": "Grátis durante a beta",
         "subscription.betaBody": "O Camilius é gratuito durante a beta - sem cartão, nada para cancelar.",
-        "subscription.benefit1": "A IA prepara respostas para novas mensagens do Instagram",
+        "subscription.benefit1": "A IA prepara respostas para novas mensagens de clientes",
         "subscription.benefit2": "Você só aprova e envia",
         "subscription.benefit3": "Até 50 respostas por dia",
         "subscription.benefit4": "Aprende com o histórico de cada cliente",
@@ -1368,9 +1368,9 @@ const TRANSLATIONS = {
     fr: {
         "onboarding.skip": "Passer",
         "onboarding.slide1.title": "Bienvenue sur Camilius",
-        "onboarding.slide1.body": "Votre assistant IA pour les messages Instagram de vos clients.",
-        "onboarding.slide2.title": "Lit les DM à votre place",
-        "onboarding.slide2.body": "Quand un client écrit à votre entreprise sur Instagram, Camilius le lit aussitôt — de jour comme de nuit.",
+        "onboarding.slide1.body": "Votre assistant IA pour les messages et réservations de vos clients.",
+        "onboarding.slide2.title": "Lit les messages à votre place",
+        "onboarding.slide2.body": "Quand un client écrit à votre entreprise - sur votre page, Instagram ou WhatsApp - Camilius le lit aussitôt — de jour comme de nuit.",
         "onboarding.slide3.title": "Rédige une réponse à votre place",
         "onboarding.slide3.body": "L'IA rédige une réponse selon vos horaires, votre grille tarifaire et votre FAQ.",
         "onboarding.slide4.title": "Envoyé pour vous, instantanément",
@@ -1379,7 +1379,7 @@ const TRANSLATIONS = {
         "onboarding.slide5.body": "Quand un client veut réserver, Camilius consulte votre agenda, réserve le créneau et vous prévient dès que c'est fait.",
         "onboarding.getStarted": "Commencer",
 
-        "login.tagline": "Réponses IA pour vos DM Instagram",
+        "login.tagline": "Réponses IA pour vos clients, tous canaux confondus",
         "login.username": "Nom d'utilisateur, email ou téléphone",
         "login.password": "Mot de passe",
         "login.submit": "Se connecter",
@@ -1505,7 +1505,7 @@ const TRANSLATIONS = {
 
         "schedule.appointmentLength": "Durée du rendez-vous",
         "schedule.locked.title": "L'agenda est une fonctionnalité du forfait Pro",
-        "schedule.locked.body": "Consultez et gérez un calendrier journalier/hebdomadaire, et laissez l'IA prendre, rappeler et reprogrammer les rendez-vous directement depuis les DM Instagram.",
+        "schedule.locked.body": "Consultez et gérez un calendrier journalier/hebdomadaire, et laissez l'IA prendre, rappeler et reprogrammer les rendez-vous directement depuis une conversation sur votre page, Instagram ou WhatsApp.",
         "schedule.upgradeCta": "Passer à Pro",
         "schedule.noWorkingHours": "Nous n'avons pas pu lire vos horaires d'ouverture, donc aucun créneau n'est encore disponible. Veuillez vérifier vos horaires sur la page",
         "schedule.pageSuffix": "Profil.",
@@ -1605,7 +1605,7 @@ const TRANSLATIONS = {
 
         "subscription.betaBadge": "Gratuit pendant la bêta",
         "subscription.betaBody": "Camilius est gratuit pendant la bêta - aucune carte requise, rien à annuler.",
-        "subscription.benefit1": "L'IA prépare des réponses aux nouveaux messages Instagram",
+        "subscription.benefit1": "L'IA prépare des réponses aux nouveaux messages de clients",
         "subscription.benefit2": "Vous n'avez qu'à approuver et envoyer",
         "subscription.benefit3": "Jusqu'à 50 réponses par jour",
         "subscription.benefit4": "Apprend de l'historique de chaque client",
@@ -1684,9 +1684,9 @@ const TRANSLATIONS = {
     de: {
         "onboarding.skip": "Überspringen",
         "onboarding.slide1.title": "Willkommen bei Camilius",
-        "onboarding.slide1.body": "Dein KI-Assistent für die Instagram-Nachrichten deiner Kunden.",
-        "onboarding.slide2.title": "Liest DMs für dich",
-        "onboarding.slide2.body": "Wenn ein Kunde deinem Unternehmen auf Instagram schreibt, liest Camilius die Nachricht sofort — Tag und Nacht.",
+        "onboarding.slide1.body": "Dein KI-Assistent für Kundennachrichten und Terminbuchungen.",
+        "onboarding.slide2.title": "Liest Nachrichten für dich",
+        "onboarding.slide2.body": "Wenn ein Kunde deinem Unternehmen schreibt - auf deiner Seite, Instagram oder WhatsApp - liest Camilius die Nachricht sofort — Tag und Nacht.",
         "onboarding.slide3.title": "Schreibt eine Antwort für dich",
         "onboarding.slide3.body": "Die KI verfasst eine Antwort auf Basis deiner Öffnungszeiten, Preisliste und FAQ.",
         "onboarding.slide4.title": "Sofort für dich gesendet",
@@ -1695,7 +1695,7 @@ const TRANSLATIONS = {
         "onboarding.slide5.body": "Wenn ein Kunde einen Termin möchte, prüft Camilius deinen Kalender, bucht den Termin und benachrichtigt dich, sobald es erledigt ist.",
         "onboarding.getStarted": "Los geht's",
 
-        "login.tagline": "KI-Antworten für deine Instagram-DMs",
+        "login.tagline": "KI-Antworten für deine Kunden, auf jedem Kanal",
         "login.username": "Benutzername, E-Mail oder Telefon",
         "login.password": "Passwort",
         "login.submit": "Anmelden",
@@ -1821,7 +1821,7 @@ const TRANSLATIONS = {
 
         "schedule.appointmentLength": "Termindauer",
         "schedule.locked.title": "Der Terminkalender ist eine Pro-Plan-Funktion",
-        "schedule.locked.body": "Sieh dir einen Tages-/Wochenkalender an und verwalte ihn, und lass die KI Termine direkt aus Instagram-DMs buchen, erinnern und umbuchen.",
+        "schedule.locked.body": "Sieh dir einen Tages-/Wochenkalender an und verwalte ihn, und lass die KI Termine direkt aus einer Unterhaltung auf deiner Seite, Instagram oder WhatsApp buchen, erinnern und umbuchen.",
         "schedule.upgradeCta": "Auf Pro upgraden",
         "schedule.noWorkingHours": "Wir konnten deine Öffnungszeiten nicht lesen, daher sind noch keine Zeitfenster verfügbar. Bitte überprüfe deine Öffnungszeiten auf der Seite",
         "schedule.pageSuffix": "Profil.",
@@ -1921,7 +1921,7 @@ const TRANSLATIONS = {
 
         "subscription.betaBadge": "Kostenlos während der Beta",
         "subscription.betaBody": "Camilius ist während der Beta kostenlos - keine Kreditkarte nötig, nichts zu kündigen.",
-        "subscription.benefit1": "KI bereitet Antworten auf neue Instagram-Nachrichten vor",
+        "subscription.benefit1": "KI bereitet Antworten auf neue Kundennachrichten vor",
         "subscription.benefit2": "Du bestätigst und sendest nur",
         "subscription.benefit3": "Bis zu 50 Antworten pro Tag",
         "subscription.benefit4": "Lernt aus dem Verlauf jedes Kunden",
@@ -2000,9 +2000,9 @@ const TRANSLATIONS = {
     it: {
         "onboarding.skip": "Salta",
         "onboarding.slide1.title": "Benvenuto su Camilius",
-        "onboarding.slide1.body": "Il tuo assistente IA per i messaggi Instagram dei clienti.",
-        "onboarding.slide2.title": "Legge i DM al posto tuo",
-        "onboarding.slide2.body": "Quando un cliente scrive alla tua attività su Instagram, Camilius lo legge subito — giorno e notte.",
+        "onboarding.slide1.body": "Il tuo assistente IA per messaggi e prenotazioni dei clienti.",
+        "onboarding.slide2.title": "Legge i messaggi al posto tuo",
+        "onboarding.slide2.body": "Quando un cliente scrive alla tua attività - sulla tua pagina, Instagram o WhatsApp - Camilius lo legge subito — giorno e notte.",
         "onboarding.slide3.title": "Scrive una risposta al posto tuo",
         "onboarding.slide3.body": "L'IA redige una risposta in base ai tuoi orari, al listino prezzi e alle domande frequenti.",
         "onboarding.slide4.title": "Inviato per te, all'istante",
@@ -2011,7 +2011,7 @@ const TRANSLATIONS = {
         "onboarding.slide5.body": "Quando un cliente vuole prenotare, Camilius controlla la tua agenda, prenota lo slot e ti avvisa non appena è fatto.",
         "onboarding.getStarted": "Inizia",
 
-        "login.tagline": "Risposte IA per i tuoi DM di Instagram",
+        "login.tagline": "Risposte IA per i tuoi clienti, su ogni canale",
         "login.username": "Nome utente, email o telefono",
         "login.password": "Password",
         "login.submit": "Accedi",
@@ -2137,7 +2137,7 @@ const TRANSLATIONS = {
 
         "schedule.appointmentLength": "Durata dell'appuntamento",
         "schedule.locked.title": "L'Agenda è una funzione del piano Pro",
-        "schedule.locked.body": "Visualizza e gestisci un calendario giornaliero/settimanale, e lascia che l'IA prenoti, ricordi e riprogrammi gli appuntamenti direttamente dai DM Instagram.",
+        "schedule.locked.body": "Visualizza e gestisci un calendario giornaliero/settimanale, e lascia che l'IA prenoti, ricordi e riprogrammi gli appuntamenti direttamente da una conversazione sulla tua pagina, Instagram o WhatsApp.",
         "schedule.upgradeCta": "Passa a Pro",
         "schedule.noWorkingHours": "Non siamo riusciti a leggere i tuoi orari di lavoro, quindi non ci sono ancora fasce orarie disponibili. Controlla i tuoi orari di lavoro nella pagina",
         "schedule.pageSuffix": "Profilo.",
@@ -2237,7 +2237,7 @@ const TRANSLATIONS = {
 
         "subscription.betaBadge": "Gratis durante la beta",
         "subscription.betaBody": "Camilius è gratuito durante la beta - nessuna carta richiesta, niente da annullare.",
-        "subscription.benefit1": "L'IA prepara risposte ai nuovi messaggi Instagram",
+        "subscription.benefit1": "L'IA prepara risposte ai nuovi messaggi dei clienti",
         "subscription.benefit2": "Tu approvi e invii soltanto",
         "subscription.benefit3": "Fino a 50 risposte al giorno",
         "subscription.benefit4": "Impara dalla cronologia di ogni cliente",
@@ -2316,9 +2316,9 @@ const TRANSLATIONS = {
     ru: {
         "onboarding.skip": "Пропустить",
         "onboarding.slide1.title": "Добро пожаловать в Camilius",
-        "onboarding.slide1.body": "Ваш ИИ-помощник для Instagram-сообщений от клиентов.",
+        "onboarding.slide1.body": "Ваш ИИ-помощник для сообщений и записей клиентов.",
         "onboarding.slide2.title": "Читает сообщения за вас",
-        "onboarding.slide2.body": "Когда клиент пишет вашей компании в Instagram, Camilius сразу же читает сообщение — днём и ночью.",
+        "onboarding.slide2.body": "Когда клиент пишет вашей компании - на вашей странице, в Instagram или WhatsApp - Camilius сразу же читает сообщение — днём и ночью.",
         "onboarding.slide3.title": "Пишет ответ за вас",
         "onboarding.slide3.body": "ИИ составляет ответ на основе вашего графика работы, прайс-листа и частых вопросов.",
         "onboarding.slide4.title": "Отправляется за вас, мгновенно",
@@ -2327,7 +2327,7 @@ const TRANSLATIONS = {
         "onboarding.slide5.body": "Когда клиент хочет записаться, Camilius проверяет ваше расписание, бронирует время и уведомляет вас, как только всё готово.",
         "onboarding.getStarted": "Начать",
 
-        "login.tagline": "ИИ-ответы для ваших Instagram-сообщений",
+        "login.tagline": "ИИ-ответы вашим клиентам на любом канале",
         "login.username": "Имя пользователя, email или телефон",
         "login.password": "Пароль",
         "login.submit": "Войти",
@@ -2453,7 +2453,7 @@ const TRANSLATIONS = {
 
         "schedule.appointmentLength": "Длительность записи",
         "schedule.locked.title": "Расписание - функция плана Pro",
-        "schedule.locked.body": "Просматривайте и управляйте дневным/недельным календарём, и позвольте ИИ записывать, напоминать и переносить записи прямо из директ-сообщений Instagram.",
+        "schedule.locked.body": "Просматривайте и управляйте дневным/недельным календарём, и позвольте ИИ записывать, напоминать и переносить записи прямо из разговора на вашей странице, в Instagram или WhatsApp.",
         "schedule.upgradeCta": "Перейти на Pro",
         "schedule.noWorkingHours": "Нам не удалось прочитать ваши часы работы, поэтому пока нет доступных временных слотов. Пожалуйста, проверьте часы работы на странице",
         "schedule.pageSuffix": "Профиль.",
@@ -2553,7 +2553,7 @@ const TRANSLATIONS = {
 
         "subscription.betaBadge": "Бесплатно во время беты",
         "subscription.betaBody": "Camilius бесплатен во время беты - карта не нужна, отменять нечего.",
-        "subscription.benefit1": "ИИ готовит ответы на новые сообщения в Instagram",
+        "subscription.benefit1": "ИИ готовит ответы на новые сообщения клиентов",
         "subscription.benefit2": "Вы просто одобряете и отправляете",
         "subscription.benefit3": "До 50 ответов в день",
         "subscription.benefit4": "Учитывает историю каждого клиента",
@@ -2632,9 +2632,9 @@ const TRANSLATIONS = {
     zh: {
         "onboarding.skip": "跳过",
         "onboarding.slide1.title": "欢迎使用 Camilius",
-        "onboarding.slide1.body": "您的客户 Instagram 私信人工智能助手。",
-        "onboarding.slide2.title": "自动帮您阅读私信",
-        "onboarding.slide2.body": "客户在 Instagram 上给您的企业发私信时，Camilius 会立即读取——不分白天黑夜。",
+        "onboarding.slide1.body": "处理客户消息和预约的人工智能助手。",
+        "onboarding.slide2.title": "自动帮您阅读消息",
+        "onboarding.slide2.body": "客户通过您的主页、Instagram 或 WhatsApp 给您的企业发消息时，Camilius 会立即读取——不分白天黑夜。",
         "onboarding.slide3.title": "自动帮您写回复",
         "onboarding.slide3.body": "AI 会根据您的营业时间、价目表和常见问题起草回复。",
         "onboarding.slide4.title": "即时为您发送",
@@ -2643,7 +2643,7 @@ const TRANSLATIONS = {
         "onboarding.slide5.body": "当顾客想要预约时，Camilius会查看您的日程表，预订时段，并在完成后立即通知您。",
         "onboarding.getStarted": "开始使用",
 
-        "login.tagline": "为您的 Instagram 私信提供 AI 回复",
+        "login.tagline": "在任何渠道为您的顾客提供 AI 回复",
         "login.username": "用户名、邮箱或电话",
         "login.password": "密码",
         "login.submit": "登录",
@@ -2769,7 +2769,7 @@ const TRANSLATIONS = {
 
         "schedule.appointmentLength": "预约时长",
         "schedule.locked.title": "日程安排是Pro套餐功能",
-        "schedule.locked.body": "查看并管理日/周日历,让AI直接通过Instagram私信预约、提醒和改期。",
+        "schedule.locked.body": "查看并管理日/周日历,让AI直接通过您的主页、Instagram或WhatsApp上的对话预约、提醒和改期。",
         "schedule.upgradeCta": "升级到Pro",
         "schedule.noWorkingHours": "我们无法读取您的营业时间,因此暂无可用时段。请在以下页面检查您的营业时间:",
         "schedule.pageSuffix": "个人资料页面。",
@@ -2869,7 +2869,7 @@ const TRANSLATIONS = {
 
         "subscription.betaBadge": "测试期间免费",
         "subscription.betaBody": "Camilius 测试期间完全免费——无需信用卡，无需取消。",
-        "subscription.benefit1": "AI 为新私信准备回复",
+        "subscription.benefit1": "AI 为新的顾客消息准备回复",
         "subscription.benefit2": "您只需批准并发送",
         "subscription.benefit3": "每天最多 50 条回复",
         "subscription.benefit4": "根据每位客户的历史学习",
@@ -2948,9 +2948,9 @@ const TRANSLATIONS = {
     tr: {
         "onboarding.skip": "Geç",
         "onboarding.slide1.title": "Camilius'a Hoş Geldiniz",
-        "onboarding.slide1.body": "Müşterilerinizin Instagram mesajları için yapay zeka asistanınız.",
-        "onboarding.slide2.title": "DM'leri sizin için okur",
-        "onboarding.slide2.body": "Bir müşteri işletmenize Instagram'dan mesaj gönderdiğinde, Camilius onu hemen okur — gece gündüz.",
+        "onboarding.slide1.body": "Müşteri mesajları ve randevuları için yapay zeka asistanınız.",
+        "onboarding.slide2.title": "Mesajları sizin için okur",
+        "onboarding.slide2.body": "Bir müşteri işletmenize sayfanızdan, Instagram'dan veya WhatsApp'tan mesaj gönderdiğinde, Camilius onu hemen okur — gece gündüz.",
         "onboarding.slide3.title": "Sizin için bir yanıt yazar",
         "onboarding.slide3.body": "Yapay zeka, çalışma saatlerinize, fiyat listenize ve sık sorulan sorularınıza göre bir yanıt hazırlar.",
         "onboarding.slide4.title": "Sizin için anında gönderilir",
@@ -2959,7 +2959,7 @@ const TRANSLATIONS = {
         "onboarding.slide5.body": "Bir müşteri randevu almak istediğinde Camilius takviminizi kontrol eder, saati ayırır ve işlem tamamlanır tamamlanmaz size bildirim gönderir.",
         "onboarding.getStarted": "Başla",
 
-        "login.tagline": "Instagram DM'leriniz için yapay zeka yanıtları",
+        "login.tagline": "Her kanalda müşterileriniz için yapay zeka yanıtları",
         "login.username": "Kullanıcı adı, e-posta veya telefon",
         "login.password": "Şifre",
         "login.submit": "Giriş yap",
@@ -3085,7 +3085,7 @@ const TRANSLATIONS = {
 
         "schedule.appointmentLength": "Randevu süresi",
         "schedule.locked.title": "Program bir Pro plan özelliğidir",
-        "schedule.locked.body": "Günlük/haftalık bir takvimi görüntüleyin ve yönetin, yapay zekânın randevuları doğrudan Instagram DM'lerinden almasına, hatırlatmasına ve yeniden planlamasına izin verin.",
+        "schedule.locked.body": "Günlük/haftalık bir takvimi görüntüleyin ve yönetin, yapay zekânın randevuları doğrudan sayfanızdaki, Instagram'daki veya WhatsApp'taki bir görüşmeden almasına, hatırlatmasına ve yeniden planlamasına izin verin.",
         "schedule.upgradeCta": "Pro'ya yükseltin",
         "schedule.noWorkingHours": "Çalışma saatlerinizi okuyamadık, bu yüzden henüz uygun zaman aralığı yok. Lütfen çalışma saatlerinizi şu sayfadan kontrol edin:",
         "schedule.pageSuffix": "Profil.",
@@ -3185,7 +3185,7 @@ const TRANSLATIONS = {
 
         "subscription.betaBadge": "Beta sürecinde ücretsiz",
         "subscription.betaBody": "Camilius beta sürecinde ücretsizdir - kart gerekmez, iptal edilecek bir şey yoktur.",
-        "subscription.benefit1": "Yapay zeka yeni mesajlara yanıt hazırlar",
+        "subscription.benefit1": "Yapay zeka yeni müşteri mesajlarına yanıt hazırlar",
         "subscription.benefit2": "Siz sadece onaylayıp gönderirsiniz",
         "subscription.benefit3": "Günde 50 yanıta kadar",
         "subscription.benefit4": "Her müşterinin geçmişinden öğrenir",
