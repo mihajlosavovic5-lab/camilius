@@ -897,7 +897,7 @@ def page_chat_session_messages_today(business_id, session_key):
 
 
 def save_draft_reply(business_id, sender, question, suggested_reply, subject=None, sender_igsid=None,
-                      profile_pic_url=None, channel="instagram", sender_wa_id=None, sender_psid=None):
+                      profile_pic_url=None, channel="web", sender_wa_id=None, sender_psid=None):
     # subject only ever came from email (there's no such thing on an Instagram DM) - kept
     # as an optional column rather than dropped, since dashboard.html already guards its
     # display with {% if subject %} and removing the column outright isn't worth the churn.
