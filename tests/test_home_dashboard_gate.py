@@ -15,4 +15,4 @@ def test_dashboard_reachable_for_a_fresh_business(client, unique_username, uniqu
     response = client.get("/")
     assert response.status_code == 200
     html = response.get_data(as_text=True)
-    assert "Camilius is watching your inbox" in html  # dashboard's own empty state, not a redirect
+    assert "Camilius is ready to chat with your visitors" in html  # dashboard's own empty state, not a redirect
