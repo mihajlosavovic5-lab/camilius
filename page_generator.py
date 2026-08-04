@@ -25,6 +25,11 @@ client = OpenAI()
 
 MAX_DESCRIPTION_LENGTH = 1000
 
+# Second line of defense on top of document_extract.MAX_EXTRACTED_TEXT_LENGTH (which
+# already caps what gets stored per document) - bounds what a single generate_page_draft()
+# call sends even if a caller hands this multiple documents' text concatenated together.
+MAX_DOCUMENT_TEXT_LENGTH = 8000
+
 # Caps how large an uploaded voice recording this will bother sending to Whisper -
 # app.py's own upload route enforces the same ceiling before this is ever called (so a
 # huge file never even reaches here), this is a second line of defense for any other
@@ -111,21 +116,40 @@ Rules:
 """
 
 
-def generate_page_draft(description):
+def generate_page_draft(description, document_text=None):
     """description: the owner's own short text (what the business does, hours, prices,
-    anything else worth mentioning). Returns a dict matching PAGE_SCHEMA - raises
-    ValueError if the model's response can't be parsed (caller decides how to surface
-    that; this module has no opinion on retries or user-facing error text)."""
+    anything else worth mentioning). document_text: optional text already extracted from
+    an uploaded document (PDF/Word - e.g. a menu or price list, see document_extract.py) -
+    sent as a second, clearly-labeled source the model must treat as ground truth rather
+    than blend or override with guesswork, on top of (not instead of) description. Returns
+    a dict matching PAGE_SCHEMA - raises ValueError if the model's response can't be
+    parsed (caller decides how to surface that; this module has no opinion on retries or
+    user-facing error text)."""
     description = (description or "").strip()[:MAX_DESCRIPTION_LENGTH]
     if not description:
         raise ValueError("description is required")
 
+    messages = [
+        {"role": "system", "content": SYSTEM_PROMPT},
+        {"role": "user", "content": description},
+    ]
+
+    document_text = (document_text or "").strip()[:MAX_DOCUMENT_TEXT_LENGTH]
+    if document_text:
+        messages.append({
+            "role": "user",
+            "content": (
+                "Reference material extracted from a document the owner uploaded (e.g. a "
+                "menu, price list, or brochure). Treat every price, hour, and service in "
+                "it as ground truth - never alter or invent figures that contradict it, "
+                "and prefer it over guesswork whenever the description above doesn't "
+                "cover something it does:\n\n" + document_text
+            ),
+        })
+
     response = client.chat.completions.create(
         model=MODEL,
-        messages=[
-            {"role": "system", "content": SYSTEM_PROMPT},
-            {"role": "user", "content": description},
-        ],
+        messages=messages,
         max_tokens=MAX_GENERATION_TOKENS,
         response_format={
             "type": "json_schema",

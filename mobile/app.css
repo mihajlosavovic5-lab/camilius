@@ -1088,6 +1088,29 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
 .media-add input { display: none; }
 .media-add.hidden { display: none; }
 
+/* Business documents (inside the Profile screen's own .profile-section) - a flat list of
+   uploaded filenames (no thumbnail, PDFs/Word docs have no useful inline preview) plus a
+   trailing "+ Add document" button, same "uploads immediately" shape as .media-grid. */
+.document-list { display: flex; flex-direction: column; gap: 8px; margin: 8px 0 12px; }
+.document-row {
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    padding: 10px 12px; border-radius: var(--radius); border: 1px solid var(--border);
+    background: var(--background);
+}
+.document-row.uploading { opacity: .5; }
+.document-row-name { font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.document-row-remove {
+    flex-shrink: 0; width: 22px; height: 22px; border-radius: 50%; border: none;
+    background: rgba(0, 0, 0, .1); color: var(--text-muted); font-size: 14px; line-height: 1;
+    display: flex; align-items: center; justify-content: center; padding: 0;
+}
+.document-add-btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+    padding: 10px 14px; border-radius: var(--radius); border: 2px dashed var(--border);
+    font-size: 14px; font-weight: 600; color: var(--text-muted); cursor: pointer;
+}
+.document-add-btn input { display: none; }
+
 .badge { padding: 4px 11px; border-radius: 99px; font-size: 13px; font-weight: 600; flex-shrink: 0; }
 .badge-pending { background: var(--warning-bg); color: var(--warning); border: 1px solid var(--warning-border); }
 .badge-sent { background: var(--success-bg); color: var(--success); border: 1px solid var(--success-border); }

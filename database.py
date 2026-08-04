@@ -741,6 +741,28 @@ def create_database():
     """)
     cursor.execute("CREATE INDEX IF NOT EXISTS business_media_business_id_idx ON business_media (business_id)")
 
+    # A business's uploaded source documents (PDF/Word - e.g. a restaurant's menu, a
+    # price list, an existing brochure) used as extra factual context for AI page
+    # generation - see page_generator.py's generate_page_draft(document_text=...) and
+    # business_documents.py/document_extract.py for the upload/extract glue. Text is
+    # extracted once at upload time and cached in extracted_text (already capped to
+    # document_extract.MAX_EXTRACTED_TEXT_LENGTH) rather than re-parsing the file from
+    # Cloudinary on every page-draft generation. storage_key is Cloudinary's public_id
+    # (uploaded as resource_type="raw"), same reason as business_media.storage_key above.
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS business_documents (
+            id SERIAL PRIMARY KEY,
+            business_id INTEGER NOT NULL REFERENCES businesses(id),
+            url TEXT NOT NULL,
+            storage_key TEXT NOT NULL,
+            document_type TEXT NOT NULL,
+            filename TEXT NOT NULL,
+            extracted_text TEXT NOT NULL DEFAULT '',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+    cursor.execute("CREATE INDEX IF NOT EXISTS business_documents_business_id_idx ON business_documents (business_id)")
+
     connection.commit()
     connection.close()
 
@@ -2451,6 +2473,58 @@ def delete_business_media(media_id):
     connection = connect()
     cursor = connection.cursor()
     cursor.execute("DELETE FROM business_media WHERE id = %s", (media_id,))
+    connection.commit()
+    connection.close()
+
+
+# --- Business documents (PDF/Word source material for AI page generation) ---
+# See business_documents's own CREATE TABLE comment in create_database() for the shape.
+# Row: 0 id, 1 business_id, 2 url, 3 storage_key, 4 document_type, 5 filename, 6 extracted_text, 7 created_at
+
+def add_business_document(business_id, url, storage_key, document_type, filename, extracted_text):
+    connection = connect()
+    cursor = connection.cursor()
+    cursor.execute(
+        """INSERT INTO business_documents (business_id, url, storage_key, document_type, filename, extracted_text)
+           VALUES (%s, %s, %s, %s, %s, %s) RETURNING id""",
+        (business_id, url, storage_key, document_type, filename, extracted_text),
+    )
+    new_id = cursor.fetchone()[0]
+    connection.commit()
+    connection.close()
+    return new_id
+
+
+def business_documents_for_business(business_id):
+    connection = connect()
+    cursor = connection.cursor()
+    cursor.execute(
+        """SELECT id, business_id, url, storage_key, document_type, filename, extracted_text, created_at
+           FROM business_documents WHERE business_id = %s ORDER BY id""",
+        (business_id,),
+    )
+    result = cursor.fetchall()
+    connection.close()
+    return result
+
+
+def business_document_by_id(document_id):
+    connection = connect()
+    cursor = connection.cursor()
+    cursor.execute(
+        """SELECT id, business_id, url, storage_key, document_type, filename, extracted_text, created_at
+           FROM business_documents WHERE id = %s""",
+        (document_id,),
+    )
+    result = cursor.fetchone()
+    connection.close()
+    return result
+
+
+def delete_business_document(document_id):
+    connection = connect()
+    cursor = connection.cursor()
+    cursor.execute("DELETE FROM business_documents WHERE id = %s", (document_id,))
     connection.commit()
     connection.close()
 

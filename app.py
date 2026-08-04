@@ -56,6 +56,7 @@ from page_generator import (
 import stripe_billing
 import paddle_billing
 import business_media
+import business_documents
 from database import all_businesses_unfiltered
 from api import api as api_blueprint, APK_VERSION
 from extensions import limiter
@@ -1290,7 +1291,7 @@ def generate_business_page():
         generate_error = "Describe your business first so the AI has something to draft from."
     else:
         try:
-            draft = generate_page_draft(description)
+            draft = generate_page_draft(description, document_text=business_documents.combined_document_text(business_id))
             generate_error = None
         except ValueError:
             generate_error = "Couldn't generate a draft from that - please try describing your business differently."
@@ -1382,7 +1383,8 @@ def onboarding_website_describe():
             error = "Describe your business first so the AI has something to draft from."
         else:
             try:
-                generated = generate_page_draft(description)
+                document_text = business_documents.combined_document_text(business_id)
+                generated = generate_page_draft(description, document_text=document_text)
             except ValueError:
                 error = "Couldn't generate a draft from that - please try describing your business differently."
             else:
@@ -1397,7 +1399,10 @@ def onboarding_website_describe():
                 log_event("onboarding_draft_generated", business_id=business_id)
                 return redirect(url_for("onboarding_website_design"))
 
-    return render_template("onboarding_describe.html", description=description, error=error)
+    return render_template(
+        "onboarding_describe.html", description=description, error=error,
+        documents=business_documents.list_documents(business_id),
+    )
 
 
 # Voice input for the step above: an owner records a short spoken description instead of
@@ -1466,6 +1471,40 @@ def onboarding_media_delete(media_id):
     try:
         business_media.delete_media(business_id, media_id)
     except business_media.MediaError as error:
+        return jsonify(error=str(error)), error.status
+    return jsonify(deleted=True)
+
+
+# Source documents (PDF/Word - e.g. a menu, price list, or brochure) uploaded alongside
+# the typed description, so generate_page_draft() has real facts to draw prices/services
+# from instead of the owner retyping everything - see business_documents.py for the
+# upload/extract rules and document_extract.py for the text extraction itself. Same
+# "reachable outside onboarding too" shape as /api/onboarding/media above.
+@app.route("/api/onboarding/document", methods=["GET", "POST"])
+@login_required
+@limiter.limit("20 per hour")
+def onboarding_document():
+    business_id = session["business_id"]
+    if request.method == "GET":
+        return jsonify(documents=business_documents.list_documents(business_id))
+
+    file_storage = request.files.get("file")
+    try:
+        item = business_documents.upload_document(business_id, file_storage)
+    except business_documents.DocumentError as error:
+        return jsonify(error=str(error)), error.status
+
+    log_event("onboarding_document_uploaded", business_id=business_id)
+    return jsonify(**item)
+
+
+@app.route("/api/onboarding/document/<int:document_id>", methods=["DELETE"])
+@login_required
+def onboarding_document_delete(document_id):
+    business_id = session["business_id"]
+    try:
+        business_documents.delete_document(business_id, document_id)
+    except business_documents.DocumentError as error:
         return jsonify(error=str(error)), error.status
     return jsonify(deleted=True)
 

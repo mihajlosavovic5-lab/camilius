@@ -29,6 +29,7 @@ from extensions import limiter
 import booking
 import paddle_billing
 import business_media
+import business_documents
 
 api = Blueprint("api", __name__, url_prefix="/api")
 
@@ -829,6 +830,37 @@ def api_delete_media(media_id):
     try:
         business_media.delete_media(request.business_id, media_id)
     except business_media.MediaError as error:
+        return jsonify(error=str(error)), error.status
+    return jsonify(deleted=True)
+
+
+# Source documents (PDF/Word) uploaded as extra factual context for AI page generation -
+# mobile app's Bearer-authed equivalent of app.py's session-authed
+# /api/onboarding/document, calling the exact same business_documents.py rules.
+@api.route("/documents", methods=["GET"])
+@require_api_auth
+def api_list_documents():
+    return jsonify(documents=business_documents.list_documents(request.business_id))
+
+
+@api.route("/documents", methods=["POST"])
+@require_api_auth
+@limiter.limit("20 per hour")
+def api_upload_document():
+    file_storage = request.files.get("file")
+    try:
+        item = business_documents.upload_document(request.business_id, file_storage)
+    except business_documents.DocumentError as error:
+        return jsonify(error=str(error)), error.status
+    return jsonify(**item)
+
+
+@api.route("/documents/<int:document_id>", methods=["DELETE"])
+@require_api_auth
+def api_delete_document(document_id):
+    try:
+        business_documents.delete_document(request.business_id, document_id)
+    except business_documents.DocumentError as error:
         return jsonify(error=str(error)), error.status
     return jsonify(deleted=True)
 

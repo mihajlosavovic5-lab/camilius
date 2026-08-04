@@ -1916,6 +1916,7 @@ function enterApp() {
     loadDashboard();
     loadSettingsIntoForm();
     loadBusinessMedia();
+    loadBusinessDocuments();
     startAutoRefresh();
     // Fire-and-forget: warms state.scheduleCache in the background so the Schedule tab
     // is usually already populated (same "was loaded before you tapped it" feel as
@@ -2758,6 +2759,102 @@ async function loadBusinessMedia() {
 }
 
 mediaGrids.forEach(mediaInitGrid);
+
+// --- Business documents (Profile screen) - PDF/Word source material uploaded alongside
+// the typed description ("Tell us more about your business" field above), see api.py's
+// /api/documents and business_documents.py. Same "uploads immediately, no separate Save
+// step, bypasses the JSON-only api() helper for the multipart body" reasoning as the
+// media section above - just a flat list of filenames instead of a thumbnail grid,
+// since a PDF/Word file has no useful inline preview. ---
+
+const documentList = el("document-list");
+const documentErrorBox = el("document-error");
+const documentFileInput = el("document-file-input");
+
+function documentShowError(message) {
+    documentErrorBox.textContent = message;
+    documentErrorBox.classList.remove("hidden");
+}
+
+function documentMakeRow(item) {
+    const row = document.createElement("div");
+    row.className = "document-row";
+    row.dataset.id = item.id;
+
+    const name = document.createElement("span");
+    name.className = "document-row-name";
+    name.textContent = item.filename;
+    row.appendChild(name);
+
+    const removeBtn = document.createElement("button");
+    removeBtn.type = "button";
+    removeBtn.className = "document-row-remove";
+    removeBtn.setAttribute("aria-label", "Remove");
+    removeBtn.textContent = "×";
+    removeBtn.addEventListener("click", () => documentRemoveItem(item.id, row));
+    row.appendChild(removeBtn);
+
+    documentList.appendChild(row);
+}
+
+function documentUploadFile(file) {
+    documentErrorBox.classList.add("hidden");
+
+    const placeholder = document.createElement("div");
+    placeholder.className = "document-row uploading";
+    placeholder.textContent = file.name;
+    documentList.appendChild(placeholder);
+
+    const formData = new FormData();
+    formData.append("file", file);
+
+    fetch(API_BASE + "/api/documents", {
+        method: "POST",
+        headers: state.token ? { Authorization: "Bearer " + state.token } : {},
+        body: formData,
+    }).then((response) => response.json().catch(() => ({})).then((data) => ({ ok: response.ok, data })))
+        .then(({ ok, data }) => {
+            placeholder.remove();
+            if (!ok) {
+                documentShowError(data.error || t("settings.documents.error"));
+                return;
+            }
+            documentMakeRow(data);
+        }).catch(() => {
+            placeholder.remove();
+            documentShowError(t("settings.documents.error"));
+        });
+}
+
+function documentRemoveItem(id, row) {
+    row.classList.add("uploading");
+    fetch(API_BASE + "/api/documents/" + id, {
+        method: "DELETE",
+        headers: state.token ? { Authorization: "Bearer " + state.token } : {},
+    }).then((response) => {
+        if (!response.ok) throw new Error();
+        row.remove();
+    }).catch(() => {
+        row.classList.remove("uploading");
+        documentShowError(t("settings.documents.removeError"));
+    });
+}
+
+documentFileInput.addEventListener("change", () => {
+    const files = Array.prototype.slice.call(documentFileInput.files || []);
+    documentFileInput.value = "";
+    files.forEach(documentUploadFile);
+});
+
+async function loadBusinessDocuments() {
+    documentList.innerHTML = "";
+    try {
+        const data = await api("/api/documents");
+        (data.documents || []).forEach(documentMakeRow);
+    } catch (err) {
+        if (err.status === 401) logout();
+    }
+}
 
 el("settings-save").addEventListener("click", async () => {
     const button = el("settings-save");

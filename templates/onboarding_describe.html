@@ -44,6 +44,17 @@
                 <span class="voice-status" id="onboarding-voice-status" aria-live="polite"></span>
             </div>
 
+            <div class="onboarding-media-section" id="onboarding-document-section">
+                <p class="onboarding-media-label" data-i18n="onboarding.describe.documentsLabel">Or add a document (PDF/Word)</p>
+                <p class="onboarding-media-hint" data-i18n="onboarding.describe.documentsHint">A menu, price list, or brochure - in addition to the description above, not instead of it. The AI treats it as a source of facts (exact prices, hours, services).</p>
+                <div class="onboarding-document-list" id="onboarding-document-list"></div>
+                <label class="onboarding-document-add" id="onboarding-document-add">
+                    <span data-i18n="onboarding.describe.documentsAdd">+ Add document</span>
+                    <input type="file" id="onboarding-document-input" accept="application/pdf,.pdf,.docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document">
+                </label>
+                <p class="onboarding-media-error hidden" id="onboarding-document-error"></p>
+            </div>
+
             <div class="form-actions" style="text-align: right;">
                 <button class="button" type="submit" id="onboarding-describe-submit" data-i18n="onboarding.generateCta">Generate my website</button>
             </div>
@@ -206,6 +217,102 @@
     });
 
     window.addEventListener("beforeunload", stopStream);
+})();
+
+// Document upload: an addition to the typed/spoken description above, not a replacement -
+// uploads immediately (mirrors onboarding_media.html's own "uploads immediately, review on
+// the next step" shape) via /api/onboarding/document (see business_documents.py). The
+// extracted text is combined server-side into the next "Generate my website" submit, so
+// there's nothing else for this script to wire into the form itself.
+(function () {
+    var csrfInput = document.querySelector('#onboarding-describe-form input[name="csrf_token"]');
+    var list = document.getElementById("onboarding-document-list");
+    var input = document.getElementById("onboarding-document-input");
+    var errorBox = document.getElementById("onboarding-document-error");
+    if (!csrfInput || !list || !input || !errorBox) return;
+
+    var uploadUrl = "{{ url_for('onboarding_document') }}";
+    var existing = {{ documents | tojson }};
+
+    function showError(message) {
+        errorBox.textContent = message;
+        errorBox.classList.remove("hidden");
+    }
+    function clearError() {
+        errorBox.classList.add("hidden");
+    }
+
+    function makeRow(item) {
+        var row = document.createElement("div");
+        row.className = "onboarding-document-row";
+        row.dataset.id = item.id;
+
+        var name = document.createElement("span");
+        name.className = "onboarding-document-row-name";
+        name.textContent = item.filename;
+        row.appendChild(name);
+
+        var removeBtn = document.createElement("button");
+        removeBtn.type = "button";
+        removeBtn.className = "onboarding-document-row-remove";
+        removeBtn.setAttribute("aria-label", "Remove");
+        removeBtn.textContent = "×";
+        removeBtn.addEventListener("click", function () { removeItem(item.id, row); });
+        row.appendChild(removeBtn);
+
+        list.appendChild(row);
+    }
+
+    function uploadFile(file) {
+        clearError();
+        var placeholder = document.createElement("div");
+        placeholder.className = "onboarding-document-row uploading";
+        placeholder.textContent = file.name;
+        list.appendChild(placeholder);
+
+        var formData = new FormData();
+        formData.append("file", file);
+
+        fetch(uploadUrl, {
+            method: "POST",
+            headers: { "X-CSRFToken": csrfInput.value },
+            body: formData,
+        }).then(function (response) {
+            return response.json().then(function (data) { return { ok: response.ok, data: data }; });
+        }).then(function (result) {
+            placeholder.remove();
+            if (!result.ok) {
+                showError(result.data.error || "Couldn't upload that file.");
+                return;
+            }
+            makeRow(result.data);
+        }).catch(function () {
+            placeholder.remove();
+            showError("Couldn't upload that file - check your connection and try again.");
+        });
+    }
+
+    function removeItem(id, row) {
+        row.classList.add("uploading");
+        fetch(uploadUrl + "/" + id, {
+            method: "DELETE",
+            headers: { "X-CSRFToken": csrfInput.value },
+        }).then(function (response) {
+            if (!response.ok) throw new Error();
+            row.remove();
+        }).catch(function () {
+            row.classList.remove("uploading");
+            showError("Couldn't remove that file - please try again.");
+        });
+    }
+
+    input.addEventListener("change", function () {
+        var files = Array.prototype.slice.call(input.files || []);
+        input.value = "";
+        files.forEach(uploadFile);
+    });
+
+    existing.forEach(makeRow);
 })();
 </script>
 {% endblock %}

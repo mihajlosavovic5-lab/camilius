@@ -1,9 +1,10 @@
 """Reusable object-storage helper backed by Cloudinary - business-uploaded files never
 touch local disk (Railway/Heroku-style deploys have an ephemeral filesystem, so anything
 written there vanishes on the next deploy/restart). Shared by the website media upload
-(app.py's /api/onboarding/media, api.py's /api/media) and meant to be reused by any later
-upload feature (e.g. document upload) rather than duplicating the upload/validate/delete
-logic against a second Cloudinary integration.
+(app.py's /api/onboarding/media, api.py's /api/media) and the source-document upload
+(app.py's /api/onboarding/document, api.py's /api/documents, see business_documents.py)
+rather than duplicating the upload/validate/delete logic against a second Cloudinary
+integration.
 
 DB-agnostic like generate_reply.py/page_generator.py - this module never touches the
 database; callers persist whatever (url, storage_key) it hands back.
@@ -17,12 +18,17 @@ import cloudinary.uploader
 
 MAX_IMAGE_BYTES = 10 * 1024 * 1024
 MAX_VIDEO_BYTES = 100 * 1024 * 1024
+MAX_DOCUMENT_BYTES = 20 * 1024 * 1024
 
 # Cloudinary's own resource_type ("image"/"video") is derived from these, not from the
 # uploaded filename - keeps validation and the actual upload call from ever disagreeing
 # about what kind of file this is.
 ALLOWED_IMAGE_CONTENT_TYPES = {"image/jpeg", "image/png", "image/webp"}
 ALLOWED_VIDEO_CONTENT_TYPES = {"video/mp4", "video/quicktime"}
+ALLOWED_DOCUMENT_CONTENT_TYPES = {
+    "application/pdf",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",  # .docx
+}
 
 
 class StorageError(Exception):
@@ -100,6 +106,16 @@ def upload_video(file_storage, folder):
     return _upload(
         file_storage, folder=folder, resource_type="video",
         max_bytes=MAX_VIDEO_BYTES, allowed_content_types=ALLOWED_VIDEO_CONTENT_TYPES,
+    )
+
+
+def upload_document(file_storage, folder):
+    """Same as upload_image but for a PDF/Word source document (up to MAX_DOCUMENT_BYTES),
+    uploaded as Cloudinary's "raw" resource type since it's neither an image nor a video.
+    Callers must pass resource_type="raw" to delete_file() to remove it again."""
+    return _upload(
+        file_storage, folder=folder, resource_type="raw",
+        max_bytes=MAX_DOCUMENT_BYTES, allowed_content_types=ALLOWED_DOCUMENT_CONTENT_TYPES,
     )
 
 

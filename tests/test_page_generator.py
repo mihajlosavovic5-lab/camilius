@@ -98,6 +98,70 @@ def test_generate_page_draft_truncates_long_description(monkeypatch):
     assert len(sent) == page_generator.MAX_DESCRIPTION_LENGTH
 
 
+# --- generate_page_draft: document_text ---
+
+def test_generate_page_draft_without_document_text_matches_old_behavior(monkeypatch):
+    """The text-only flow (no document uploaded) must keep working exactly as before -
+    omitting document_text (or passing None) sends the same two messages as always."""
+    captured = {}
+
+    def fake_create(**kwargs):
+        captured.update(kwargs)
+        return _FakeResponse(json.dumps(VALID_DRAFT))
+
+    monkeypatch.setattr(page_generator.client.chat.completions, "create", fake_create)
+    page_generator.generate_page_draft("A barbershop.", document_text=None)
+    assert captured["messages"] == [
+        {"role": "system", "content": page_generator.SYSTEM_PROMPT},
+        {"role": "user", "content": "A barbershop."},
+    ]
+
+
+def test_generate_page_draft_appends_document_text_as_extra_message(monkeypatch):
+    captured = {}
+
+    def fake_create(**kwargs):
+        captured.update(kwargs)
+        return _FakeResponse(json.dumps(VALID_DRAFT))
+
+    monkeypatch.setattr(page_generator.client.chat.completions, "create", fake_create)
+    page_generator.generate_page_draft("A barbershop.", document_text="Haircut: 20 EUR\nBeard trim: 10 EUR")
+    assert len(captured["messages"]) == 3
+    assert captured["messages"][1] == {"role": "user", "content": "A barbershop."}
+    document_message = captured["messages"][2]
+    assert document_message["role"] == "user"
+    assert "Haircut: 20 EUR\nBeard trim: 10 EUR" in document_message["content"]
+    # The model must be told to treat this as fact, not something it's free to rewrite.
+    assert "ground truth" in document_message["content"].lower()
+
+
+def test_generate_page_draft_ignores_blank_document_text(monkeypatch):
+    captured = {}
+
+    def fake_create(**kwargs):
+        captured.update(kwargs)
+        return _FakeResponse(json.dumps(VALID_DRAFT))
+
+    monkeypatch.setattr(page_generator.client.chat.completions, "create", fake_create)
+    page_generator.generate_page_draft("A barbershop.", document_text="   ")
+    assert len(captured["messages"]) == 2
+
+
+def test_generate_page_draft_truncates_long_document_text(monkeypatch):
+    captured = {}
+
+    def fake_create(**kwargs):
+        captured.update(kwargs)
+        return _FakeResponse(json.dumps(VALID_DRAFT))
+
+    monkeypatch.setattr(page_generator.client.chat.completions, "create", fake_create)
+    page_generator.generate_page_draft("A barbershop.", document_text="y" * 20000)
+    document_message = captured["messages"][2]["content"]
+    # The document text itself (not the surrounding instruction) is capped.
+    assert document_message.endswith("y" * page_generator.MAX_DOCUMENT_TEXT_LENGTH)
+    assert not document_message.endswith("y" * (page_generator.MAX_DOCUMENT_TEXT_LENGTH + 1))
+
+
 # --- format_working_hours ---
 
 def test_format_working_hours_matches_picker_wire_format():

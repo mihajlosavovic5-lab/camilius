@@ -44,6 +44,31 @@ def test_upload_video_rejects_oversized_file():
         storage.upload_video(file_storage, "business/1/hero_video")
 
 
+def test_upload_document_rejects_unsupported_content_type():
+    file_storage = _FakeFileStorage(b"not really a document", "image/jpeg")
+    with pytest.raises(storage.UnsupportedFileType):
+        storage.upload_document(file_storage, "business/1/documents")
+
+
+def test_upload_document_rejects_oversized_file():
+    file_storage = _FakeFileStorage(b"x" * (storage.MAX_DOCUMENT_BYTES + 1), "application/pdf")
+    with pytest.raises(storage.FileTooLarge):
+        storage.upload_document(file_storage, "business/1/documents")
+
+
+def test_upload_document_accepts_docx_content_type(monkeypatch):
+    monkeypatch.delenv("CLOUDINARY_URL", raising=False)
+    storage._configured = False
+    file_storage = _FakeFileStorage(
+        b"a real-looking docx",
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    )
+    # No CLOUDINARY_URL in tests - this should get past content-type/size validation and
+    # fail on StorageNotConfigured, not UnsupportedFileType, proving .docx is accepted.
+    with pytest.raises(storage.StorageNotConfigured):
+        storage.upload_document(file_storage, "business/1/documents")
+
+
 def test_upload_raises_when_not_configured(monkeypatch):
     monkeypatch.delenv("CLOUDINARY_URL", raising=False)
     storage._configured = False

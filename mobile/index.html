@@ -842,6 +842,24 @@
         <div class="media-grid" id="media-video-grid" data-role="hero_video" data-max="1"></div>
       </div>
 
+      <!-- Business documents (menu, price list, brochure) - extra source material for AI
+           page generation, in addition to (not instead of) the "Tell us more about your
+           business" field above. Uploaded immediately like the media section, see
+           api.py's /api/documents, business_documents.py, document_extract.py. -->
+      <div class="profile-section">
+        <div class="profile-section-header">
+          <p class="profile-section-title" data-i18n="settings.documents.heading">Business documents</p>
+          <p class="profile-section-subtitle" data-i18n="settings.documents.subtitle">Upload a menu, price list, or brochure (PDF or Word) and the AI will pull details from it too.</p>
+        </div>
+        <div id="document-error" class="alert alert-error hidden"></div>
+        <div class="document-list" id="document-list"></div>
+        <label class="document-add-btn" id="document-add-btn">
+          <span data-i18n="settings.documents.add">+ Add document</span>
+          <input type="file" id="document-file-input" accept="application/pdf,.pdf,.docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document">
+        </label>
+        <p class="field-hint" data-i18n="settings.documents.hint">PDF or Word, up to 20MB, up to 5 documents.</p>
+      </div>
+
       <div class="profile-section">
         <div class="profile-section-header">
           <p class="profile-section-title"><span data-i18n="settings.upsell.heading">AI upsell</span></p>

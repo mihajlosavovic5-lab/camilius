@@ -2893,6 +2893,30 @@ html { scroll-behavior: smooth; }
 .onboarding-media-add input { display: none; }
 .onboarding-media-error { color: #c0392b; font-size: 13px; margin: 8px 0 0; }
 
+/* Document upload (onboarding_describe.html) - a flat list of uploaded filenames (no
+   thumbnail; PDFs/Word docs have no useful inline preview) plus an "+ Add document"
+   button below it, same "uploads immediately" shape as .onboarding-media-grid above. */
+.onboarding-document-list { display: flex; flex-direction: column; gap: 8px; margin: 0 0 10px; }
+.onboarding-document-row {
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    padding: 10px 14px; border-radius: var(--radius); border: 1px solid var(--border);
+    background: var(--background);
+}
+.onboarding-document-row.uploading { opacity: .5; }
+.onboarding-document-row-name { font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.onboarding-document-row-remove {
+    flex-shrink: 0; width: 22px; height: 22px; border-radius: 50%; border: none;
+    background: rgba(0, 0, 0, .1); color: var(--text-muted); font-size: 14px; line-height: 1;
+    cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0;
+}
+.onboarding-document-add {
+    display: inline-flex; align-items: center; justify-content: center;
+    padding: 10px 16px; border-radius: var(--radius); border: 2px dashed var(--border);
+    font-size: 14px; font-weight: 600; color: var(--text-muted); cursor: pointer;
+}
+.onboarding-document-add:hover { border-color: var(--primary); color: var(--primary); }
+.onboarding-document-add input { display: none; }
+
 /* --- Respect reduced motion: kill all decorative animation --- */
 @media (prefers-reduced-motion: reduce) {
     .lp-shine::after, .lp-typing-dots span, .lp-reply-cursor { animation: none !important; }
