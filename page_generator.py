@@ -10,6 +10,7 @@ product - a business editing it later (in the existing Profile form) updates bot
 the AI answers with and what the public page shows, in one place, never two copies that
 can silently drift apart.
 """
+import io
 import json
 import sys
 sys.stdout.reconfigure(encoding="utf-8")
@@ -23,6 +24,14 @@ load_dotenv()
 client = OpenAI()
 
 MAX_DESCRIPTION_LENGTH = 1000
+
+# Caps how large an uploaded voice recording this will bother sending to Whisper -
+# app.py's own upload route enforces the same ceiling before this is ever called (so a
+# huge file never even reaches here), this is a second line of defense for any other
+# caller. ~6MB comfortably covers a 60-90s compressed recording (webm/opus, m4a, etc.)
+# with room to spare, while keeping a single voice note's OpenAI cost bounded.
+MAX_VOICE_AUDIO_BYTES = 6 * 1024 * 1024
+
 # A whole page (tagline + about + 7 days of hours + several services + a few FAQ pairs)
 # needs more room than generate_reply.py's MAX_REPLY_TOKENS (400, tuned for one short
 # chat reply) - this is a one-time generation, not a per-message cost, so the larger
@@ -130,6 +139,36 @@ def generate_page_draft(description):
         return json.loads(content)
     except json.JSONDecodeError as error:
         raise ValueError(f"model returned invalid JSON: {error}") from error
+
+
+def transcribe_voice_description(audio_bytes, filename, content_type=None):
+    """Speech-to-text for the onboarding "describe your business" step, via the same
+    OpenAI client as generate_page_draft() above - lets an owner speak their description
+    instead of typing it, transcribed text then flows through the exact same
+    generate_page_draft() call (this function has no opinion on that, it only turns audio
+    into text). audio_bytes is held in memory for the duration of this call only - never
+    written to disk or persisted anywhere; the caller (app.py) discards it right after
+    this returns and keeps only the resulting text, same as it would for typed input.
+
+    Raises ValueError if the recording is missing/too large/unintelligible - caller
+    decides how to surface that, same contract as generate_page_draft()."""
+    if not audio_bytes:
+        raise ValueError("audio is required")
+    if len(audio_bytes) > MAX_VOICE_AUDIO_BYTES:
+        raise ValueError("audio file is too large")
+
+    try:
+        transcript = client.audio.transcriptions.create(
+            model="whisper-1",
+            file=(filename or "recording.webm", io.BytesIO(audio_bytes), content_type or "application/octet-stream"),
+        )
+    except Exception as error:
+        raise ValueError(f"transcription failed: {error}") from error
+
+    text = (transcript.text or "").strip()
+    if not text:
+        raise ValueError("couldn't make out any speech in that recording")
+    return text[:MAX_DESCRIPTION_LENGTH]
 
 
 def format_working_hours(hours):

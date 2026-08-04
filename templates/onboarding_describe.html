@@ -34,6 +34,15 @@
                 <label for="onboarding-description-input" data-i18n="onboarding.describe.label">What does your business do? Hours, prices, anything worth mentioning.</label>
             </div>
 
+            <div class="voice-input-row" id="onboarding-voice-row" hidden>
+                <button type="button" class="button button-secondary voice-record-btn" id="onboarding-voice-btn">
+                    <span class="voice-record-dot" aria-hidden="true"></span>
+                    <span class="voice-record-icon" aria-hidden="true">&#127908;</span>
+                    <span id="onboarding-voice-btn-label" data-i18n="onboarding.describe.recordStart">Record instead of typing</span>
+                </button>
+                <span class="voice-status" id="onboarding-voice-status" aria-live="polite"></span>
+            </div>
+
             <div class="form-actions" style="text-align: right;">
                 <button class="button" type="submit" id="onboarding-describe-submit" data-i18n="onboarding.generateCta">Generate my website</button>
             </div>
@@ -55,6 +64,147 @@
         btn.disabled = true;
         btn.textContent = typeof t === "function" ? t("onboarding.generating") : "Generating...";
     });
+})();
+
+// Voice input: an alternative to typing the description, not a replacement - recording
+// only ever fills the same textarea below, the owner still reviews/edits it and clicks
+// "Generate my website" themselves, exactly like typed input. The audio never leaves this
+// request/response round trip to the server; nothing about it is stored client-side either.
+(function () {
+    var row = document.getElementById("onboarding-voice-row");
+    var recordBtn = document.getElementById("onboarding-voice-btn");
+    var btnLabel = document.getElementById("onboarding-voice-btn-label");
+    var status = document.getElementById("onboarding-voice-status");
+    var textarea = document.getElementById("onboarding-description-input");
+    var csrfInput = document.querySelector('#onboarding-describe-form input[name="csrf_token"]');
+    if (!row || !recordBtn || !textarea || !csrfInput) return;
+
+    // Feature-detect rather than show a button that fails on first tap - older iOS
+    // Safari and some in-app WebViews don't support MediaRecorder at all.
+    var supported = !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia && window.MediaRecorder);
+    if (!supported) return;
+    row.hidden = false;
+
+    var translate = function (key, fallback) { return typeof t === "function" ? t(key) : fallback; };
+    var setStatus = function (key, fallback, isError) {
+        status.textContent = key ? translate(key, fallback) : "";
+        status.classList.toggle("voice-status-error", !!isError);
+    };
+
+    // Hard ceiling on recording length - keeps a single voice note's upload size and
+    // Whisper cost bounded, mirrors the MAX_VOICE_AUDIO_BYTES cap the server enforces
+    // independently (this just avoids the user recording something doomed to be rejected).
+    var MAX_RECORD_MS = 90 * 1000;
+
+    var mediaRecorder = null;
+    var mediaStream = null;
+    var chunks = [];
+    var maxLengthTimer = null;
+    var busy = false; // true while a mic permission prompt or an upload is in flight
+
+    function stopStream() {
+        if (mediaStream) {
+            mediaStream.getTracks().forEach(function (track) { track.stop(); });
+            mediaStream = null;
+        }
+    }
+
+    function setRecordingUI(isRecording) {
+        recordBtn.classList.toggle("recording", isRecording);
+        btnLabel.textContent = isRecording
+            ? translate("onboarding.describe.recordStop", "Stop recording")
+            : translate("onboarding.describe.recordStart", "Record instead of typing");
+    }
+
+    function startRecording() {
+        busy = true;
+        recordBtn.disabled = true;
+        setStatus(null);
+
+        navigator.mediaDevices.getUserMedia({ audio: true }).then(function (stream) {
+            mediaStream = stream;
+            chunks = [];
+            var options = MediaRecorder.isTypeSupported("audio/webm") ? { mimeType: "audio/webm" } : undefined;
+            mediaRecorder = new MediaRecorder(stream, options);
+
+            mediaRecorder.addEventListener("dataavailable", function (event) {
+                if (event.data && event.data.size > 0) chunks.push(event.data);
+            });
+            mediaRecorder.addEventListener("stop", function () {
+                stopStream();
+                clearTimeout(maxLengthTimer);
+                setRecordingUI(false);
+                if (chunks.length === 0) {
+                    busy = false;
+                    recordBtn.disabled = false;
+                    return;
+                }
+                uploadRecording(new Blob(chunks, { type: mediaRecorder.mimeType || "audio/webm" }));
+            });
+
+            mediaRecorder.start();
+            busy = false;
+            recordBtn.disabled = false;
+            setRecordingUI(true);
+            setStatus("onboarding.describe.recording", "Listening... tap to stop");
+            maxLengthTimer = setTimeout(function () {
+                if (mediaRecorder && mediaRecorder.state === "recording") mediaRecorder.stop();
+            }, MAX_RECORD_MS);
+        }).catch(function () {
+            busy = false;
+            recordBtn.disabled = false;
+            setStatus("onboarding.describe.micError", "Couldn't access the microphone - check your browser/app permissions and try again.", true);
+        });
+    }
+
+    function stopRecording() {
+        if (mediaRecorder && mediaRecorder.state === "recording") mediaRecorder.stop();
+    }
+
+    function uploadRecording(blob) {
+        busy = true;
+        recordBtn.disabled = true;
+        setStatus("onboarding.describe.transcribing", "Transcribing...");
+
+        var extension = (blob.type || "").indexOf("mp4") !== -1 ? "m4a" : "webm";
+        var formData = new FormData();
+        formData.append("audio", blob, "onboarding-description." + extension);
+
+        fetch("/api/onboarding/voice-transcribe", {
+            method: "POST",
+            headers: { "X-CSRFToken": csrfInput.value },
+            body: formData,
+        }).then(function (response) {
+            return response.json().then(function (data) { return { ok: response.ok, data: data }; });
+        }).then(function (result) {
+            busy = false;
+            recordBtn.disabled = false;
+            if (!result.ok) {
+                setStatus(null);
+                status.textContent = result.data.error || translate("onboarding.describe.transcribeError", "Couldn't understand that recording - please try again or type your description instead.");
+                status.classList.add("voice-status-error");
+                return;
+            }
+            textarea.value = result.data.text || "";
+            textarea.focus();
+            setStatus("onboarding.describe.reviewHint", "Have a look and fix anything the transcription got wrong before generating your website.");
+        }).catch(function () {
+            busy = false;
+            recordBtn.disabled = false;
+            setStatus("onboarding.describe.transcribeError", "Couldn't understand that recording - please try again or type your description instead.", true);
+        });
+    }
+
+    recordBtn.addEventListener("click", function () {
+        if (busy) return;
+        if (mediaRecorder && mediaRecorder.state === "recording") {
+            stopRecording();
+        } else {
+            startRecording();
+        }
+    });
+
+    window.addEventListener("beforeunload", stopStream);
 })();
 </script>
 {% endblock %}

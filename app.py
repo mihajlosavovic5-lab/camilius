@@ -49,7 +49,10 @@ import ai_replies
 import booking
 import pages
 import themes
-from page_generator import generate_page_draft, format_working_hours, format_price_list, format_faq
+from page_generator import (
+    generate_page_draft, format_working_hours, format_price_list, format_faq,
+    transcribe_voice_description, MAX_VOICE_AUDIO_BYTES,
+)
 import stripe_billing
 import paddle_billing
 from database import all_businesses_unfiltered
@@ -1384,6 +1387,41 @@ def onboarding_website_describe():
                 return redirect(url_for("onboarding_website_design"))
 
     return render_template("onboarding_describe.html", description=description, error=error)
+
+
+# Voice input for the step above: an owner records a short spoken description instead of
+# typing one, this transcribes it (OpenAI Whisper) and hands the text back to the browser
+# to drop into the same textarea onboarding_website_describe() reads - never generates a
+# page draft directly, so the owner always reviews/edits the transcript before it's used,
+# same as anything they'd typed themselves (speech-to-text can mishear things). Read
+# fully into memory and never written to disk or the database - only the resulting text
+# is ever kept, exactly like the typed description already is.
+@app.route("/api/onboarding/voice-transcribe", methods=["POST"])
+@login_required
+@limiter.limit("20 per hour")
+def onboarding_voice_transcribe():
+    audio = request.files.get("audio")
+    if audio is None or not audio.filename:
+        return jsonify(error="No recording received."), 400
+
+    # Read one byte past the cap so an oversized upload is caught here instead of being
+    # silently truncated mid-audio and sent to Whisper as a corrupt/partial file.
+    audio_bytes = audio.read(MAX_VOICE_AUDIO_BYTES + 1)
+    if len(audio_bytes) > MAX_VOICE_AUDIO_BYTES:
+        return jsonify(error="That recording is too long - keep it under a minute or so."), 400
+
+    try:
+        text = transcribe_voice_description(audio_bytes, audio.filename, audio.mimetype)
+    except ValueError:
+        return jsonify(error="Couldn't make sense of that recording - please try again or type your description instead."), 400
+    finally:
+        # Drop the only in-process reference so the raw audio bytes are eligible for
+        # garbage collection immediately, rather than lingering for the rest of the
+        # request - belt-and-suspenders alongside "never written to disk" above.
+        del audio_bytes
+
+    log_event("onboarding_voice_transcribed", business_id=session["business_id"])
+    return jsonify(text=text)
 
 
 @app.route("/onboarding/website/design", methods=["GET", "POST"])
