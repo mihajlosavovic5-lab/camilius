@@ -238,6 +238,13 @@
             <p class="note">{{ page_url_prefix }}{{ page.slug }}</p>
         {% endif %}
 
+        <label data-i18n="settings.page.design">Design</label>
+        <select name="theme" id="settings-page-theme-input">
+            {% for theme_id, theme_choice in theme_choices %}
+            <option value="{{ theme_id }}" {% if (page.theme if page else 'warm') == theme_id %}selected{% endif %}>{{ theme_choice.label }}</option>
+            {% endfor %}
+        </select>
+
         <div class="floating-field">
             <input type="text" id="settings-page-tagline-input" name="tagline" value="{{ page.tagline if page else '' }}" placeholder=" " maxlength="200">
             <label for="settings-page-tagline-input">Tagline (one short line)</label>

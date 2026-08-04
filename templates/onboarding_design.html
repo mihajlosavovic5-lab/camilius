@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block title %}Choose a design - Camilius{% endblock %}
+{% block body_class %}app{% endblock %}
+
+{% block content %}
+{% include "_nav.html" %}
+
+<div class="content content-narrow">
+    <div class="page-header">
+        <div>
+            <h1 data-i18n="onboarding.design.title">Choose a design</h1>
+            <p class="subtitle" data-i18n="onboarding.step2of4">Step 2 of 4 &mdash; pick the look for your page</p>
+        </div>
+    </div>
+
+    <div class="register-step-dots" style="justify-content:center; margin-bottom:22px;">
+        <span class="register-step-dot active"></span>
+        <span class="register-step-dot active"></span>
+        <span class="register-step-dot"></span>
+        <span class="register-step-dot"></span>
+    </div>
+
+    {% if error %}
+        <div class="alert alert-error"><span class="alert-icon">&#9888;&#65039;</span><span>{{ error }}</span></div>
+    {% endif %}
+
+    <form method="POST">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="onboarding-theme-grid">
+            {% for theme_id, theme in theme_choices %}
+            <label class="onboarding-theme-card">
+                <input type="radio" name="theme" value="{{ theme_id }}" {% if selected_theme == theme_id or (not selected_theme and loop.first) %}checked{% endif %} required>
+                <div class="onboarding-theme-preview">
+                    <iframe src="{{ url_for('onboarding_website_preview', theme=theme_id) }}" loading="lazy" tabindex="-1" title="{{ theme.label }} preview"></iframe>
+                </div>
+                <div class="onboarding-theme-info">
+                    <p class="onboarding-theme-label">{{ theme.label }}</p>
+                    <p class="onboarding-theme-blurb">{{ theme.blurb }}</p>
+                    <div class="onboarding-theme-swatches">
+                        {% for color in theme.swatch %}<span style="background: {{ color }}"></span>{% endfor %}
+                    </div>
+                </div>
+            </label>
+            {% endfor %}
+        </div>
+
+        <div class="form-actions" style="display:flex; justify-content:space-between; gap:12px;">
+            <a class="button button-secondary" href="{{ url_for('onboarding_website_describe') }}" data-i18n="onboarding.back">Back</a>
+            <button class="button" type="submit" data-i18n="onboarding.continue">Continue</button>
+        </div>
+    </form>
+</div>
+{% endblock %}

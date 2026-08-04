@@ -27,7 +27,7 @@ RESERVED_SLUGS = frozenset({
     "disconnect-instagram", "disconnect-messenger", "disconnect-whatsapp", "download",
     "export-data", "forgot-password", "googlea7b8cc332250151e", "help",
     "instagram-oauth-callback", "instagram-webhook", "intro", "login", "logout", "mail",
-    "messenger-oauth-callback", "messenger-webhook", "notifications", "p",
+    "messenger-oauth-callback", "messenger-webhook", "notifications", "onboarding", "p",
     "paddle-webhook", "privacy", "profile", "register", "request-tester-access",
     "reset-password", "robots", "schedule", "send", "settings", "sitemap", "static",
     "stripe-webhook", "subscription", "support", "support-chat", "terms",

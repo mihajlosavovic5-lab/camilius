@@ -571,6 +571,19 @@ def create_database():
     cursor.execute("ALTER TABLE businesses ADD COLUMN IF NOT EXISTS phone_verify_expires TIMESTAMP")
     cursor.execute("ALTER TABLE businesses ADD COLUMN IF NOT EXISTS phone_verify_sent_at TIMESTAMP")
 
+    # Faza 13: mandatory "build your website" wizard right after email verification (see
+    # app.py's onboarding_required/onboarding_website_*). NULL means the wizard hasn't
+    # been completed yet. Every business that existed before this column was added is
+    # grandfathered in (backfilled to its own created_at below, schema_flags-guarded so
+    # it only ever runs once) - they already reached the app through the old flow and
+    # should never be retroactively forced through the new wizard, same reasoning as
+    # email_verified's DEFAULT TRUE grandfathering above.
+    cursor.execute("ALTER TABLE businesses ADD COLUMN IF NOT EXISTS onboarding_completed_at TIMESTAMP")
+    cursor.execute("SELECT 1 FROM schema_flags WHERE key = 'onboarding_backfill_2026_08_04'")
+    if not cursor.fetchone():
+        cursor.execute("UPDATE businesses SET onboarding_completed_at = created_at WHERE onboarding_completed_at IS NULL")
+        cursor.execute("INSERT INTO schema_flags (key) VALUES ('onboarding_backfill_2026_08_04')")
+
     # Account-deletion exit survey (web + mobile "Delete account" wizard) - a snapshot of
     # the business's own identifying fields plus why they left, kept AFTER delete_business()
     # removes the business row itself, so the founder still has something to look at in
@@ -630,6 +643,15 @@ def create_database():
     # simple version first" reason business_pages is one page per business - broaden to
     # a list later if a business ever actually asks to embed on more than one site.
     cursor.execute("ALTER TABLE business_pages ADD COLUMN IF NOT EXISTS widget_domain TEXT")
+
+    # Faza 13: which of themes.THEMES' presets this page (and its /w/<slug> widget) is
+    # styled with - picked during the onboarding wizard's design step, editable
+    # afterward from Settings. Defaults to 'warm' (not the wizard's first-listed option)
+    # deliberately - that preset reproduces the exact gold/cream palette
+    # public_page.html/widget_frame.html were hardcoded to before this column existed
+    # (see themes.py's THEMES['warm']), so every page saved before this migration keeps
+    # rendering pixel-identical instead of silently changing color scheme on deploy.
+    cursor.execute("ALTER TABLE business_pages ADD COLUMN IF NOT EXISTS theme TEXT NOT NULL DEFAULT 'warm'")
 
     connection.commit()
     connection.close()
@@ -1199,6 +1221,30 @@ def mark_email_verified(business_id):
     cursor = connection.cursor()
     cursor.execute(
         "UPDATE businesses SET email_verified = TRUE, email_verify_token = NULL, email_verify_expires = NULL WHERE id = %s",
+        (business_id,),
+    )
+    connection.commit()
+    connection.close()
+
+
+def onboarding_completed(business_id):
+    """Whether this business has finished the mandatory "build your website" wizard
+    (app.py's onboarding_required/onboarding_website_*) - a plain existence check on
+    onboarding_completed_at rather than pulling the full business row (business_by_id),
+    since this runs on every request to a gated route (see onboarding_required)."""
+    connection = connect()
+    cursor = connection.cursor()
+    cursor.execute("SELECT onboarding_completed_at FROM businesses WHERE id = %s", (business_id,))
+    row = cursor.fetchone()
+    connection.close()
+    return row is not None and row[0] is not None
+
+
+def mark_onboarding_completed(business_id):
+    connection = connect()
+    cursor = connection.cursor()
+    cursor.execute(
+        "UPDATE businesses SET onboarding_completed_at = COALESCE(onboarding_completed_at, NOW()) WHERE id = %s",
         (business_id,),
     )
     connection.commit()
@@ -2180,7 +2226,7 @@ def get_business_page(business_id):
     connection = connect()
     cursor = connection.cursor()
     cursor.execute(
-        "SELECT id, business_id, slug, published, tagline, about, created_at, updated_at, widget_domain FROM business_pages WHERE business_id = %s",
+        "SELECT id, business_id, slug, published, tagline, about, created_at, updated_at, widget_domain, theme FROM business_pages WHERE business_id = %s",
         (business_id,),
     )
     result = cursor.fetchone()
@@ -2196,7 +2242,7 @@ def page_by_slug(slug):
     connection = connect()
     cursor = connection.cursor()
     cursor.execute(
-        "SELECT id, business_id, slug, published, tagline, about, created_at, updated_at, widget_domain FROM business_pages WHERE slug = %s",
+        "SELECT id, business_id, slug, published, tagline, about, created_at, updated_at, widget_domain, theme FROM business_pages WHERE slug = %s",
         (slug,),
     )
     result = cursor.fetchone()
@@ -2204,25 +2250,37 @@ def page_by_slug(slug):
     return result
 
 
-def upsert_business_page(business_id, slug, published, tagline, about, widget_domain=None):
+def upsert_business_page(business_id, slug, published, tagline, about, widget_domain=None, theme=None):
     """Creates the business's page on first save, updates it on every save after - one
     row per business (business_pages_business_id_idx), so this is a plain upsert rather
     than needing a separate create/update pair. Raises UniqueViolation if `slug` is
     already taken by a DIFFERENT business's page (business_pages_slug_idx) - the ON
     CONFLICT target below is business_id alone, so a slug collision can't silently
     resolve as "this business's own page" the way it would if slug were also a conflict
-    target here."""
+    target here.
+
+    theme=None keeps whatever theme is already saved (falling back to the column's own
+    'warm' default only if this business has never saved a page at all) - the
+    settings.html profile form saves tagline/about/slug with no theme field at all; only
+    the onboarding wizard and settings.html's own theme picker ever pass one explicitly.
+    The COALESCE's middle argument is a subquery against this same business_id's
+    pre-statement row, evaluated once as part of the INSERT's VALUES list before any
+    ON CONFLICT branch runs, so it resolves correctly whether this call ends up doing the
+    INSERT or the UPDATE."""
     connection = connect()
     cursor = connection.cursor()
     _execute_or_raise_unique_violation(
         cursor,
-        """INSERT INTO business_pages (business_id, slug, published, tagline, about, widget_domain, updated_at)
-           VALUES (%s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP)
+        """INSERT INTO business_pages (business_id, slug, published, tagline, about, widget_domain, theme, updated_at)
+           VALUES (%s, %s, %s, %s, %s, %s,
+                   COALESCE(%s, (SELECT theme FROM business_pages WHERE business_id = %s), 'warm'),
+                   CURRENT_TIMESTAMP)
            ON CONFLICT (business_id) DO UPDATE SET
                slug = EXCLUDED.slug, published = EXCLUDED.published,
                tagline = EXCLUDED.tagline, about = EXCLUDED.about, widget_domain = EXCLUDED.widget_domain,
+               theme = EXCLUDED.theme,
                updated_at = CURRENT_TIMESTAMP""",
-        (business_id, slug, published, tagline, about, widget_domain),
+        (business_id, slug, published, tagline, about, widget_domain, theme, business_id),
     )
     connection.commit()
     connection.close()

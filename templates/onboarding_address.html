@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+{% block title %}Choose your web address - Camilius{% endblock %}
+{% block body_class %}app{% endblock %}
+
+{% block content %}
+{% include "_nav.html" %}
+
+<div class="content content-narrow">
+    <div class="page-header">
+        <div>
+            <h1 data-i18n="onboarding.address.title">Choose your web address</h1>
+            <p class="subtitle" data-i18n="onboarding.step3of4">Step 3 of 4 &mdash; this is where customers will find you</p>
+        </div>
+    </div>
+
+    <div class="register-step-dots" style="justify-content:center; margin-bottom:22px;">
+        <span class="register-step-dot active"></span>
+        <span class="register-step-dot active"></span>
+        <span class="register-step-dot active"></span>
+        <span class="register-step-dot"></span>
+    </div>
+
+    <div class="card" style="padding: 32px;">
+        {% if error %}
+            <div class="alert alert-error"><span class="alert-icon">&#9888;&#65039;</span><span>{{ error }}</span></div>
+        {% endif %}
+
+        <form method="POST" id="onboarding-address-form">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="floating-field" style="margin-top: 0;">
+                <input type="text" id="onboarding-slug-input" name="slug" value="{{ slug_value }}" placeholder=" " autocapitalize="off" autocorrect="off" pattern="[a-z0-9][a-z0-9-]{0,49}" maxlength="50" required>
+                <label for="onboarding-slug-input" data-i18n="onboarding.address.label">Web address</label>
+            </div>
+            <p class="note" id="onboarding-slug-preview">{{ page_url_prefix }}{{ slug_value }}</p>
+            <p class="field-error hidden" id="onboarding-slug-taken" data-i18n="onboarding.address.taken">That web address is already taken.</p>
+            <p class="field-success hidden" id="onboarding-slug-available" data-i18n="onboarding.address.available">Available!</p>
+
+            <div class="form-actions" style="display:flex; justify-content:space-between; gap:12px;">
+                <a class="button button-secondary" href="{{ url_for('onboarding_website_design') }}" data-i18n="onboarding.back">Back</a>
+                <button class="button" type="submit" id="onboarding-address-submit" data-i18n="onboarding.continue">Continue</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+    var input = document.getElementById("onboarding-slug-input");
+    var previewEl = document.getElementById("onboarding-slug-preview");
+    var takenEl = document.getElementById("onboarding-slug-taken");
+    var availableEl = document.getElementById("onboarding-slug-available");
+    var submitBtn = document.getElementById("onboarding-address-submit");
+    var form = document.getElementById("onboarding-address-form");
+    if (!input || !form) return;
+
+    var prefix = {{ page_url_prefix | tojson }};
+    var csrfToken = form.querySelector('input[name="csrf_token"]').value;
+    var timer = null;
+    var status = "unknown"; // unknown | checking | available | taken
+
+    // Same debounced /check-availability pattern as settings.html's username field
+    // (see app.py's _slug_taken/_AVAILABILITY_CHECKS) - live feedback as the owner types
+    // instead of only finding out "taken" after clicking Continue.
+    function runCheck(value) {
+        return fetch("{{ url_for('check_availability') }}", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "X-CSRFToken": csrfToken },
+            body: JSON.stringify({ field: "slug", value: value }),
+        })
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+                if (input.value.trim().toLowerCase() !== value) return; // superseded by a newer edit
+                status = data.taken ? "taken" : "available";
+                takenEl.classList.toggle("hidden", !data.taken);
+                availableEl.classList.toggle("hidden", data.taken);
+            });
+    }
+
+    function onInput() {
+        var value = input.value.trim().toLowerCase();
+        previewEl.textContent = prefix + value;
+        takenEl.classList.add("hidden");
+        availableEl.classList.add("hidden");
+        status = "unknown";
+        if (timer) clearTimeout(timer);
+        if (!value) return;
+        timer = setTimeout(function () { runCheck(value); }, 400);
+    }
+
+    input.addEventListener("input", onInput);
+
+    form.addEventListener("submit", function (event) {
+        // A pending/never-run check shouldn't block submission - the server re-validates
+        // authoritatively either way (see onboarding_website_address's own POST handler),
+        // this is purely to stop an obvious double-submit on an already-known-taken value.
+        if (status === "taken") {
+            event.preventDefault();
+            return;
+        }
+        submitBtn.disabled = true;
+    });
+})();
+</script>
+{% endblock %}

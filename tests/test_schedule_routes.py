@@ -178,6 +178,10 @@ def test_home_redirects_to_subscription_once_access_lapses(client, unique_userna
     monkeypatch.setattr(app_module, "BETA_FREE_MODE", False)
     register_business_web(client, unique_username, unique_email)
     business_id = database.business_by_username(unique_username)[0]
+    # This test is about the subscription gate, not the (Faza 13) onboarding one that
+    # now also sits in front of home() - complete it here so home()'s redirect below is
+    # unambiguously the subscription gate firing, not the wizard.
+    database.mark_onboarding_completed(business_id)
 
     # Still trialing - the core pages must NOT redirect away.
     assert client.get("/schedule").status_code == 200

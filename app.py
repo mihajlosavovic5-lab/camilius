@@ -1,4 +1,5 @@
 import os
+import re
 import hmac
 import hashlib
 import secrets
@@ -39,6 +40,7 @@ from database import (
     record_account_deletion, recent_account_deletions, ACCOUNT_DELETION_REASONS,
     get_business_page, page_by_slug, upsert_business_page, published_page_slugs,
     page_chat_session_messages_today,
+    onboarding_completed, mark_onboarding_completed,
     UniqueViolation,
 )
 from send_email import send_email
@@ -46,6 +48,7 @@ from support_assistant import answer_support_question
 import ai_replies
 import booking
 import pages
+import themes
 from page_generator import generate_page_draft, format_working_hours, format_price_list, format_faq
 import stripe_billing
 import paddle_billing
@@ -291,6 +294,24 @@ def subscription_required(function):
             # trial/subscription to lapse from.
             never_started = get_subscription_status(business_id) == "none"
             return redirect(url_for("subscription")) if never_started else redirect(url_for("subscription", trial_ended=1))
+        return function(*args, **kwargs)
+    return wrapped_function
+
+
+# Faza 13: sends a logged-in business straight into the mandatory "build your website"
+# wizard (onboarding_website_describe and the steps after it) until it's done - see
+# database.onboarding_completed/mark_onboarding_completed. Stacked on home() only, the
+# same single-choke-point reasoning as verify_email()/login() both already redirecting
+# there on success: every path into the logged-in app passes through home() first, so
+# gating it here is enough without touching every other @login_required route. A
+# business that existed before this wizard shipped is grandfathered in (see
+# create_database's onboarding_backfill migration) and never hits this redirect.
+def onboarding_required(function):
+    @wraps(function)
+    def wrapped_function(*args, **kwargs):
+        business_id = session.get("business_id")
+        if business_id and not onboarding_completed(business_id):
+            return redirect(url_for("onboarding_website_describe"))
         return function(*args, **kwargs)
     return wrapped_function
 
@@ -868,10 +889,28 @@ def forgot_password_phone():
 # show an inline "already taken" error as the user types, instead of only finding out from
 # a UniqueViolation after submitting. Session-aware: a logged-in caller's OWN current
 # value is excluded so editing a field without changing it never flags itself as taken.
+def _slug_taken(value, exclude_business_id=None):
+    """Same (value, exclude_business_id=...) -> bool shape as username_taken/
+    contact_email_taken/phone_number_taken above, so it slots into
+    _AVAILABILITY_CHECKS unchanged - backs both the onboarding wizard's live web-address
+    check (onboarding_website_address) and settings.html's own page-address field. An
+    invalid format (or a reserved word - see pages.RESERVED_SLUGS) counts as "taken" too:
+    the caller only needs a single yes/no on "can I use this", and the slug input's own
+    pattern attribute already stops most invalid input from reaching here at all."""
+    slug = pages.normalize_slug(value)
+    if not pages.is_valid_slug(slug):
+        return True
+    existing = page_by_slug(slug)
+    if existing is None:
+        return False
+    return exclude_business_id is None or existing[1] != exclude_business_id
+
+
 _AVAILABILITY_CHECKS = {
     "username": username_taken,
     "contact_email": contact_email_taken,
     "phone_number": phone_number_taken,
+    "slug": _slug_taken,
 }
 
 
@@ -939,13 +978,14 @@ def settings():
     pending_contact_email = business[14]
     pro_access = BETA_FREE_MODE or has_pro_access(business_id)
     # get_business_page returns a plain positional row (id, business_id, slug,
-    # published, tagline, about, created_at, updated_at, widget_domain) or None - turned
-    # into a dict here, same as `business` is built as a dict below, so settings.html
-    # can use page.slug/page.tagline/... instead of a second set of magic indices.
+    # published, tagline, about, created_at, updated_at, widget_domain, theme) or None -
+    # turned into a dict here, same as `business` is built as a dict below, so
+    # settings.html can use page.slug/page.tagline/... instead of a second set of magic
+    # indices.
     page_row = get_business_page(business_id)
     business_page = None if page_row is None else {
         "slug": page_row[2], "published": page_row[3], "tagline": page_row[4], "about": page_row[5],
-        "widget_domain": page_row[8],
+        "widget_domain": page_row[8], "theme": page_row[9],
     }
     page_error = request.args.get("page_error")
 
@@ -968,6 +1008,7 @@ def settings():
                 page=business_page,
                 page_error=None,
                 page_url_prefix=request.url_root + "p/",
+                theme_choices=list(themes.THEMES.items()),
                 business={
                     "name": name, "username": username, "contact_email": contact_email,
                     "pending_contact_email": pending_contact_email,
@@ -1038,6 +1079,7 @@ def settings():
             page=business_page,
             page_error=None,
             page_url_prefix=request.url_root + "p/",
+            theme_choices=list(themes.THEMES.items()),
             business={
                 "name": name, "username": username, "contact_email": contact_email,
                 "pending_contact_email": pending_contact_email,
@@ -1053,6 +1095,7 @@ def settings():
         page=business_page,
         page_error=page_error,
         page_url_prefix=request.url_root + "p/",
+        theme_choices=list(themes.THEMES.items()),
         business={
             "name": business[1], "username": username, "contact_email": contact_email,
             "pending_contact_email": pending_contact_email,
@@ -1168,6 +1211,12 @@ def save_business_page():
     # usable host, same "no domain approved yet" state a business that's never touched
     # this field is already in.
     widget_domain = pages.normalize_widget_domain(request.form.get("widget_domain"))
+    # None (rather than themes.DEFAULT_THEME_ID) for anything not a recognized theme id -
+    # upsert_business_page() treats None as "leave whatever theme is already saved
+    # alone", which matters for a raw/malformed POST to this route (no known theme <select>
+    # options are ever anything else, but this is the boundary that actually enforces it).
+    theme = request.form.get("theme")
+    theme = theme if theme in themes.THEMES else None
 
     # A valid slug is required even to save a draft (published=False) - there is nothing
     # useful to store without one, and requiring it up front means a business never ends
@@ -1177,7 +1226,7 @@ def save_business_page():
         return redirect(url_for("settings", page_error="Please choose a web address using only lowercase letters, numbers, and hyphens."))
 
     try:
-        upsert_business_page(business_id, slug, published, tagline, about, widget_domain)
+        upsert_business_page(business_id, slug, published, tagline, about, widget_domain, theme)
     except UniqueViolation:
         return redirect(url_for("settings", page_error="That web address is already taken - please choose another."))
 
@@ -1207,7 +1256,7 @@ def generate_business_page():
     page_row = get_business_page(business_id)
     saved_page = None if page_row is None else {
         "slug": page_row[2], "published": page_row[3], "tagline": page_row[4], "about": page_row[5],
-        "widget_domain": page_row[8],
+        "widget_domain": page_row[8], "theme": page_row[9],
     }
 
     description = (request.form.get("description") or "").strip()
@@ -1245,6 +1294,7 @@ def generate_business_page():
             "slug": saved_page["slug"] if saved_page else "",
             "published": saved_page["published"] if saved_page else False,
             "widget_domain": saved_page["widget_domain"] if saved_page else None,
+            "theme": saved_page["theme"] if saved_page else themes.DEFAULT_THEME_ID,
             "tagline": draft["tagline"],
             "about": draft["about"],
         }
@@ -1259,7 +1309,201 @@ def generate_business_page():
         generate_error=generate_error,
         generate_description=description,
         page_url_prefix=request.url_root + "p/",
+        theme_choices=list(themes.THEMES.items()),
         business=business_view,
+    )
+
+
+# --- Onboarding wizard (Faza 13) - the mandatory "build your website" flow a business is
+# sent through right after email verification (see onboarding_required above), before it
+# can reach the dashboard at all. Four steps, each its own route/template, state carried
+# forward in session[_ONBOARDING_SESSION_KEY] between them rather than as hidden form
+# fields (unlike the delete-account wizard's own three steps) - the AI draft this stashes
+# (tagline/about/hours/prices/faq) is too much to round-trip through hidden inputs on
+# every step cleanly. Cleared the moment step 4 actually publishes (or never populated at
+# all for a grandfathered pre-existing business - see onboarding_completed).
+_ONBOARDING_SESSION_KEY = "onboarding_draft"
+
+
+def _slugify_business_name(name):
+    """A starting suggestion for onboarding_website_address's slug field, not a
+    validated result on its own - the caller still runs this through
+    pages.is_valid_slug/page_by_slug before trusting it, same as any other slug. Lowercases,
+    collapses anything that isn't a-z0-9 into single hyphens, and trims to the same
+    50-char ceiling pages._SLUG_RE enforces. Falls back to "my-business" if the name has
+    no ASCII letters/digits at all (e.g. a name written entirely in Cyrillic)."""
+    slug = re.sub(r"[^a-z0-9]+", "-", (name or "").lower()).strip("-")[:50].strip("-")
+    return slug or "my-business"
+
+
+@app.route("/onboarding/website", methods=["GET", "POST"])
+@login_required
+def onboarding_website_describe():
+    business_id = session["business_id"]
+    if onboarding_completed(business_id):
+        return redirect(url_for("home"))
+
+    draft = session.get(_ONBOARDING_SESSION_KEY) or {}
+    description = draft.get("description", "")
+    error = None
+
+    if request.method == "POST":
+        description = (request.form.get("description") or "").strip()
+        if not description:
+            error = "Describe your business first so the AI has something to draft from."
+        else:
+            try:
+                generated = generate_page_draft(description)
+            except ValueError:
+                error = "Couldn't generate a draft from that - please try describing your business differently."
+            else:
+                session[_ONBOARDING_SESSION_KEY] = {
+                    "description": description,
+                    "tagline": generated["tagline"],
+                    "about": generated["about"],
+                    "working_hours": format_working_hours(generated["hours"]),
+                    "price_list": format_price_list(generated["services"]),
+                    "faq": format_faq(generated["faq"]),
+                }
+                log_event("onboarding_draft_generated", business_id=business_id)
+                return redirect(url_for("onboarding_website_design"))
+
+    return render_template("onboarding_describe.html", description=description, error=error)
+
+
+@app.route("/onboarding/website/design", methods=["GET", "POST"])
+@login_required
+def onboarding_website_design():
+    business_id = session["business_id"]
+    if onboarding_completed(business_id):
+        return redirect(url_for("home"))
+    draft = session.get(_ONBOARDING_SESSION_KEY)
+    if draft is None:
+        return redirect(url_for("onboarding_website_describe"))
+
+    error = None
+    if request.method == "POST":
+        theme_id = request.form.get("theme")
+        if theme_id not in themes.THEMES:
+            error = "Please choose a design."
+        else:
+            draft["theme"] = theme_id
+            session[_ONBOARDING_SESSION_KEY] = draft
+            return redirect(url_for("onboarding_website_address"))
+
+    return render_template(
+        "onboarding_design.html",
+        draft=draft,
+        theme_choices=list(themes.THEMES.items()),
+        selected_theme=draft.get("theme"),
+        error=error,
+    )
+
+
+@app.route("/onboarding/website/address", methods=["GET", "POST"])
+@login_required
+def onboarding_website_address():
+    business_id = session["business_id"]
+    if onboarding_completed(business_id):
+        return redirect(url_for("home"))
+    draft = session.get(_ONBOARDING_SESSION_KEY)
+    if draft is None or "theme" not in draft:
+        return redirect(url_for("onboarding_website_describe"))
+
+    business = business_by_id(business_id)
+    slug_value = draft.get("slug") or _slugify_business_name(business[1])
+    error = None
+
+    if request.method == "POST":
+        slug_value = pages.normalize_slug(request.form.get("slug", ""))
+        if not pages.is_valid_slug(slug_value):
+            error = "Please choose a web address using only lowercase letters, numbers, and hyphens."
+        elif page_by_slug(slug_value) is not None:
+            error = "That web address is already taken - please choose another."
+        else:
+            draft["slug"] = slug_value
+            session[_ONBOARDING_SESSION_KEY] = draft
+            return redirect(url_for("onboarding_website_review"))
+
+    return render_template(
+        "onboarding_address.html",
+        slug_value=slug_value,
+        page_url_prefix=request.url_root + "p/",
+        error=error,
+    )
+
+
+@app.route("/onboarding/website/review", methods=["GET", "POST"])
+@login_required
+def onboarding_website_review():
+    business_id = session["business_id"]
+    if onboarding_completed(business_id):
+        return redirect(url_for("home"))
+    draft = session.get(_ONBOARDING_SESSION_KEY)
+    if draft is None or "slug" not in draft:
+        return redirect(url_for("onboarding_website_describe"))
+
+    if request.method == "POST":
+        business = business_by_id(business_id)
+        # phone_number (business[11]) carried through unchanged, same as settings()'s
+        # own update_business() call - this step never touches it.
+        update_business(
+            business_id, business[1], business[2], business[4], business[11],
+            draft["working_hours"], draft["price_list"], draft["faq"],
+        )
+        try:
+            upsert_business_page(
+                business_id, draft["slug"], True, draft["tagline"], draft["about"],
+                None, draft["theme"],
+            )
+        except UniqueViolation:
+            # Someone else grabbed this slug in the gap between step 3's check and this
+            # submit - bounce back to re-pick rather than 500ing on Publish.
+            return redirect(url_for("onboarding_website_address"))
+        mark_onboarding_completed(business_id)
+        log_event("onboarding_completed", business_id=business_id)
+        session.pop(_ONBOARDING_SESSION_KEY, None)
+        return redirect(url_for("home", onboarding_done=1))
+
+    return render_template(
+        "onboarding_review.html",
+        draft=draft,
+        theme=themes.theme_or_default(draft.get("theme")),
+        page_url_prefix=request.url_root + "p/",
+    )
+
+
+# Live preview iframe backing both onboarding_website_design (swaps ?theme= per card the
+# visitor is looking at) and onboarding_website_review (the chosen theme, final check
+# before Publish) - renders the exact same public_page.html a real visitor would see,
+# fed from the in-session draft instead of the database since nothing is saved yet at
+# either step. 404s (rather than rendering something empty/broken) once there's no draft
+# to preview - matches how every other onboarding_website_* route treats a missing one.
+@app.route("/onboarding/website/preview")
+@login_required
+def onboarding_website_preview():
+    business_id = session["business_id"]
+    draft = session.get(_ONBOARDING_SESSION_KEY)
+    if draft is None:
+        abort(404)
+    business = business_by_id(business_id)
+    theme = themes.theme_or_default(request.args.get("theme") or draft.get("theme"))
+    return render_template(
+        "public_page.html",
+        business_name=business[1],
+        working_hours=draft["working_hours"],
+        price_list=draft["price_list"],
+        faq=draft["faq"],
+        tagline=draft["tagline"],
+        about=draft["about"],
+        opening_hours_schema=[],
+        opening_hours_display=pages.opening_hours_display(draft["working_hours"]),
+        page_url="",
+        chat_url="",
+        slug="preview",
+        theme=theme,
+        preview=True,
+        show_badge=False,
     )
 
 
@@ -1475,6 +1719,8 @@ def public_page(slug):
         page_url=url_for("public_page", slug=slug, _external=True),
         chat_url=url_for("public_page_chat", slug=slug),
         slug=slug,
+        theme=themes.theme_or_default(page[9]),
+        preview=False,
         # F4: the "Powered by Camilius" footer disappears once this business has any
         # active access - including its own free trial, same as has_pro_access() already
         # treats a self-serve trial as full access, not just a paid plan. One source of
@@ -1578,6 +1824,7 @@ def widget_frame(slug):
         chat_url=url_for("public_page_chat", slug=slug),
         slug=slug,
         widget_domain=page[8],
+        theme=themes.theme_or_default(page[9]),
     )
 
 
@@ -1854,6 +2101,7 @@ DAILY_REPLY_LIMIT = ai_replies.DAILY_REPLY_LIMIT  # single source of truth is ai
 
 
 @app.route("/")
+@onboarding_required
 @subscription_required
 def home():
     # Logged-out visitors see the public landing page (marketing + call to register)

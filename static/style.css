@@ -903,6 +903,7 @@ input[readonly]:hover { border-color: var(--border); }
    types (see register.html's script block) - deliberately not reusing .alert, which is
    too heavy (border/background/icon) for a single small per-field message. */
 .field-error { color: var(--danger); font-size: 13.5px; margin: 5px 0 0; }
+.field-success { color: #2e7d32; font-size: 13.5px; margin: 5px 0 0; }
 
 /* Live country-code hint shown next to the phone field once enough digits have been
    typed to recognize a calling code (e.g. "+381" -> Serbia) - see register.html. */
@@ -2761,6 +2762,70 @@ html { scroll-behavior: smooth; }
     .lp-footer-brand p { margin-left: auto; margin-right: auto; }
     .lp-footer-cols { gap: 32px; justify-content: center; text-align: center; }
 }
+
+/* --- Onboarding wizard (Faza 13): "build your website" design-step cards and the live
+   preview iframes both that step and the final review step embed (see
+   onboarding_website_preview in app.py, which renders public_page.html straight from
+   the in-session draft). The iframe itself is scaled down with a CSS transform rather
+   than sized to fit - it still renders the real page at its real (readable) width, just
+   shrunk visually, so text/spacing in the thumbnail looks exactly like the real page
+   instead of a cramped, re-wrapped mess. --- */
+.onboarding-theme-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 16px;
+    margin: 20px 0;
+}
+.onboarding-theme-card {
+    display: block;
+    position: relative;
+    cursor: pointer;
+    border: 2px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    background: var(--surface);
+    transition: border-color .15s ease, box-shadow .15s ease;
+}
+.onboarding-theme-card:hover { border-color: var(--primary); }
+.onboarding-theme-card input { position: absolute; opacity: 0; pointer-events: none; }
+.onboarding-theme-card:has(input:checked) {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(214, 148, 16, .25);
+}
+.onboarding-theme-preview {
+    position: relative;
+    height: 160px;
+    overflow: hidden;
+    background: var(--background);
+    border-bottom: 1px solid var(--border);
+}
+.onboarding-theme-preview iframe {
+    position: absolute;
+    top: 0; left: 0;
+    width: 400%;
+    height: 400%;
+    border: none;
+    pointer-events: none;
+    transform: scale(.25);
+    transform-origin: top left;
+}
+.onboarding-theme-info { padding: 14px 16px; }
+.onboarding-theme-label { font-weight: 700; margin: 0 0 4px; color: var(--text); }
+.onboarding-theme-blurb { font-size: 13px; color: var(--text-muted); margin: 0 0 10px; line-height: 1.4; }
+.onboarding-theme-swatches { display: flex; gap: 6px; }
+.onboarding-theme-swatches span {
+    width: 18px; height: 18px; border-radius: 50%;
+    border: 1px solid rgba(0, 0, 0, .1);
+    display: inline-block;
+}
+.onboarding-review-preview {
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    height: 520px;
+    margin: 20px 0;
+}
+.onboarding-review-preview iframe { width: 100%; height: 100%; border: none; display: block; }
 
 /* --- Respect reduced motion: kill all decorative animation --- */
 @media (prefers-reduced-motion: reduce) {

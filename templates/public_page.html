@@ -15,14 +15,15 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{{ business_name }}{% if tagline %} - {{ tagline }}{% endif %}</title>
 <meta name="description" content="{{ tagline or (business_name ~ ' - hours, prices, and answers, any time.') }}">
+{% if preview %}
+<meta name="robots" content="noindex, nofollow">
+{% else %}
 <link rel="canonical" href="{{ page_url }}">
 <meta property="og:type" content="business.business">
 <meta property="og:title" content="{{ business_name }}">
 <meta property="og:description" content="{{ tagline or about or '' }}">
 <meta property="og:url" content="{{ page_url }}">
 <meta name="robots" content="index, follow">
-<link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}" sizes="any">
-<link rel="theme-color" content="#d69410">
 <script type="application/ld+json">
 {
     "@context": "https://schema.org",
@@ -37,27 +38,36 @@
     {%- endif %}
 }
 </script>
+{% endif %}
+<link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}" sizes="any">
+<link rel="theme-color" content="{{ theme.base.primary }}">
 <style>
     :root {
-        --primary: #d69410;
-        --gold: #ffd83d;
-        --background: #fdfcfa;
-        --surface: #ffffff;
-        --text: #2b2013;
-        --text-muted: #6b5d47;
-        --border: #eee3d0;
+        --primary: {{ theme.base.primary }};
+        --on-primary: {{ theme.base.on_primary }};
+        --gold: {{ theme.base.gold }};
+        --background: {{ theme.base.background }};
+        --surface: {{ theme.base.surface }};
+        --text: {{ theme.base.text }};
+        --text-muted: {{ theme.base.text_muted }};
+        --border: {{ theme.base.border }};
+        --radius: {{ theme.radius }};
+        --heading-font: {{ theme.heading_font or "inherit" }};
     }
+    {% if theme.dark %}
     @media (prefers-color-scheme: dark) {
         :root {
-            --primary: #ffd83d;
-            --gold: #ffd83d;
-            --background: #201a10;
-            --surface: #2a2216;
-            --text: #f5efe2;
-            --text-muted: #b8ab90;
-            --border: #43392a;
+            --primary: {{ theme.dark.primary }};
+            --on-primary: {{ theme.dark.on_primary }};
+            --gold: {{ theme.dark.gold }};
+            --background: {{ theme.dark.background }};
+            --surface: {{ theme.dark.surface }};
+            --text: {{ theme.dark.text }};
+            --text-muted: {{ theme.dark.text_muted }};
+            --border: {{ theme.dark.border }};
         }
     }
+    {% endif %}
     * { box-sizing: border-box; }
     body {
         margin: 0;
@@ -72,6 +82,7 @@
         padding: 48px 20px 80px;
     }
     h1 {
+        font-family: var(--heading-font);
         font-size: 1.9rem;
         margin: 0 0 4px;
     }
@@ -83,11 +94,12 @@
     section {
         background: var(--surface);
         border: 1px solid var(--border);
-        border-radius: 14px;
+        border-radius: var(--radius);
         padding: 20px 22px;
         margin-bottom: 18px;
     }
     section h2 {
+        font-family: var(--heading-font);
         font-size: 0.85rem;
         text-transform: uppercase;
         letter-spacing: 0.06em;
@@ -128,7 +140,7 @@
         border-radius: 50%;
         border: none;
         background: var(--primary);
-        color: #201a10;
+        color: var(--on-primary);
         cursor: pointer;
         box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
         display: flex;
@@ -148,7 +160,7 @@
         height: min(520px, calc(100vh - 140px));
         background: var(--surface);
         border: 1px solid var(--border);
-        border-radius: 16px;
+        border-radius: calc(var(--radius) + 2px);
         box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3);
         display: flex;
         flex-direction: column;
@@ -181,7 +193,7 @@
     .chat-msg {
         max-width: 85%;
         padding: 9px 12px;
-        border-radius: 12px;
+        border-radius: calc(var(--radius) * 0.7);
         font-size: 0.92rem;
         line-height: 1.4;
         white-space: pre-line;
@@ -190,7 +202,7 @@
     .chat-msg-user {
         align-self: flex-end;
         background: var(--primary);
-        color: #201a10;
+        color: var(--on-primary);
         border-bottom-right-radius: 4px;
     }
     .chat-msg-bot {
@@ -211,7 +223,7 @@
     .chat-form input {
         flex: 1;
         border: 1px solid var(--border);
-        border-radius: 10px;
+        border-radius: calc(var(--radius) * 0.6);
         padding: 10px 12px;
         font-size: 0.92rem;
         background: var(--background);
@@ -219,9 +231,9 @@
     }
     .chat-form button {
         border: none;
-        border-radius: 10px;
+        border-radius: calc(var(--radius) * 0.6);
         background: var(--primary);
-        color: #201a10;
+        color: var(--on-primary);
         padding: 0 16px;
         font-weight: 600;
         cursor: pointer;
@@ -272,9 +284,13 @@
     {% endif %}
 </div>
 
+{% if not preview %}
 <!-- Chat + booking - the actual product this page exists to deliver, not a website
      builder add-on (see the AI answering questions/hours/prices/faq above, and booking
-     an appointment directly - see public_page_chat() in app.py). -->
+     an appointment directly - see public_page_chat() in app.py). Skipped entirely in
+     preview mode (see app.py's onboarding_website_preview) - a business previewing an
+     unsaved draft during the onboarding wizard has no real slug/chat_url yet for this
+     to talk to. -->
 <button type="button" class="chat-fab" id="chat-fab" aria-label="Chat with {{ business_name }}">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
         <path d="M4 5.5a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H9l-4 3.5v-3.5H6a2 2 0 0 1-2-2z" stroke-linecap="round" stroke-linejoin="round"/>
@@ -375,5 +391,6 @@
     });
 })();
 </script>
+{% endif %}
 </body>
 </html>

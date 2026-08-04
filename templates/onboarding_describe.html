@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block title %}Build your website - Camilius{% endblock %}
+{% block body_class %}app{% endblock %}
+
+{% block content %}
+{% include "_nav.html" %}
+
+<div class="content content-narrow">
+    <div class="page-header">
+        <div>
+            <h1 data-i18n="onboarding.describe.title">Let's build your website</h1>
+            <p class="subtitle" data-i18n="onboarding.step1of4">Step 1 of 4 &mdash; tell us about your business</p>
+        </div>
+    </div>
+
+    <div class="register-step-dots" style="justify-content:center; margin-bottom:22px;">
+        <span class="register-step-dot active"></span>
+        <span class="register-step-dot"></span>
+        <span class="register-step-dot"></span>
+        <span class="register-step-dot"></span>
+    </div>
+
+    <div class="card" style="padding: 32px;">
+        <p class="note" style="display:block; margin-bottom:16px;" data-i18n="onboarding.describe.intro">Describe your business in your own words - the AI turns it into a tagline, an about section, your hours, prices, and FAQ, all ready to review on the next steps.</p>
+
+        {% if error %}
+            <div class="alert alert-error"><span class="alert-icon">&#9888;&#65039;</span><span>{{ error }}</span></div>
+        {% endif %}
+
+        <form method="POST" id="onboarding-describe-form">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="floating-field floating-field-textarea" style="margin-top: 0;">
+                <textarea name="description" id="onboarding-description-input" placeholder=" " maxlength="1000" required>{{ description or '' }}</textarea>
+                <label for="onboarding-description-input" data-i18n="onboarding.describe.label">What does your business do? Hours, prices, anything worth mentioning.</label>
+            </div>
+
+            <div class="form-actions" style="text-align: right;">
+                <button class="button" type="submit" id="onboarding-describe-submit" data-i18n="onboarding.generateCta">Generate my website</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+    var form = document.getElementById("onboarding-describe-form");
+    var btn = document.getElementById("onboarding-describe-submit");
+    if (!form || !btn) return;
+    // The AI draft call this kicks off can take a few seconds - a disabled/"working"
+    // button stops an impatient second click from firing a second generation (and a
+    // second OpenAI call) while the first is still in flight.
+    form.addEventListener("submit", function () {
+        btn.disabled = true;
+        btn.textContent = typeof t === "function" ? t("onboarding.generating") : "Generating...";
+    });
+})();
+</script>
+{% endblock %}

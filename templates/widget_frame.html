@@ -19,23 +19,28 @@
 <meta name="robots" content="noindex, nofollow">
 <style>
     :root {
-        --primary: #d69410;
-        --surface: #ffffff;
-        --text: #2b2013;
-        --text-muted: #6b5d47;
-        --border: #eee3d0;
-        --background: #fdfcfa;
+        --primary: {{ theme.base.primary }};
+        --on-primary: {{ theme.base.on_primary }};
+        --surface: {{ theme.base.surface }};
+        --text: {{ theme.base.text }};
+        --text-muted: {{ theme.base.text_muted }};
+        --border: {{ theme.base.border }};
+        --background: {{ theme.base.background }};
+        --radius: {{ theme.radius }};
     }
+    {% if theme.dark %}
     @media (prefers-color-scheme: dark) {
         :root {
-            --primary: #ffd83d;
-            --surface: #2a2216;
-            --text: #f5efe2;
-            --text-muted: #b8ab90;
-            --border: #43392a;
-            --background: #201a10;
+            --primary: {{ theme.dark.primary }};
+            --on-primary: {{ theme.dark.on_primary }};
+            --surface: {{ theme.dark.surface }};
+            --text: {{ theme.dark.text }};
+            --text-muted: {{ theme.dark.text_muted }};
+            --border: {{ theme.dark.border }};
+            --background: {{ theme.dark.background }};
         }
     }
+    {% endif %}
     * { box-sizing: border-box; }
     html, body {
         margin: 0;
@@ -54,7 +59,7 @@
         border-radius: 50%;
         border: none;
         background: var(--primary);
-        color: #201a10;
+        color: var(--on-primary);
         cursor: pointer;
         box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
         display: flex;
@@ -70,7 +75,7 @@
         inset: 0;
         background: var(--surface);
         border: 1px solid var(--border);
-        border-radius: 14px;
+        border-radius: calc(var(--radius) + 2px);
         box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3);
         display: flex;
         flex-direction: column;
@@ -115,7 +120,7 @@
     .widget-msg {
         max-width: 85%;
         padding: 9px 12px;
-        border-radius: 12px;
+        border-radius: calc(var(--radius) * 0.7);
         font-size: 0.92rem;
         line-height: 1.4;
         white-space: pre-line;
@@ -124,7 +129,7 @@
     .widget-msg-user {
         align-self: flex-end;
         background: var(--primary);
-        color: #201a10;
+        color: var(--on-primary);
         border-bottom-right-radius: 4px;
     }
     .widget-msg-bot {
@@ -145,7 +150,7 @@
     .widget-form input {
         flex: 1;
         border: 1px solid var(--border);
-        border-radius: 10px;
+        border-radius: calc(var(--radius) * 0.6);
         padding: 10px 12px;
         font-size: 0.92rem;
         background: var(--background);
@@ -154,9 +159,9 @@
     }
     .widget-form button {
         border: none;
-        border-radius: 10px;
+        border-radius: calc(var(--radius) * 0.6);
         background: var(--primary);
-        color: #201a10;
+        color: var(--on-primary);
         padding: 0 16px;
         font-weight: 600;
         cursor: pointer;
