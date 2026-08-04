@@ -995,6 +995,11 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
 .empty::after { content: ''; flex: 1 0 0; }
 .empty-icon { font-size: 41px; margin-bottom: 10px; }
 .empty-title { font-weight: 600; color: var(--text); font-size: 16.5px; margin: 4px 0; }
+/* Schedule's Pro upsell is the only content #schedule-locked ever shows - no drift risk
+   from varying detail length - so unlike the shared .empty rule above, split the leftover
+   space evenly and center the icon/title/body/CTA in the full screen instead of sitting a
+   fixed 16% down from the top. */
+#schedule-locked.empty::before, #schedule-locked.empty::after { flex: 1 0 0; }
 .loading { text-align: center; padding: 30px; color: var(--text-muted); font-size: 15px; flex: 1; display: flex; align-items: center; justify-content: center; }
 .spinner {
     width: 26px; height: 26px; border-radius: 50%;
