@@ -48,6 +48,26 @@ def test_delete_account_removes_the_business(client, unique_username, unique_ema
     assert dashboard.status_code == 401
 
 
+def test_delete_account_removes_business_with_notifications_media_and_documents(client, unique_username, unique_email):
+    # Regression test: delete_business() previously only cleaned up a subset of the
+    # tables with a business_id foreign key, so any account that had so much as one
+    # notification, uploaded page photo, or uploaded document would hit a foreign-key
+    # violation on DELETE FROM businesses and the request would 500.
+    token, business_id = register_and_login(client, unique_username, unique_email)
+
+    database.create_notification(business_id, "Reminder", "You have an appointment soon")
+    database.add_business_media(business_id, "https://example.com/logo.png", "logo-key", "image", "logo")
+    database.add_business_document(business_id, "https://example.com/menu.pdf", "menu-key", "pdf", "menu.pdf", "menu text")
+
+    response = client.post(
+        "/api/delete-account",
+        json={"password": "TestPassword123", "reason_category": "not_using", "reason_details": "Just testing"},
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert response.status_code == 200
+    assert database.business_by_id(business_id) is None
+
+
 def test_delete_account_records_the_reason(client, unique_username, unique_email):
     token, business_id = register_and_login(client, unique_username, unique_email)
 

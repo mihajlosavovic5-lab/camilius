@@ -1530,6 +1530,9 @@ def delete_business(business_id):
     cursor.execute("DELETE FROM push_tokens WHERE business_id = %s", (business_id,))
     cursor.execute("DELETE FROM client_errors WHERE business_id = %s", (business_id,))
     cursor.execute("DELETE FROM appointments WHERE business_id = %s", (business_id,))
+    cursor.execute("DELETE FROM notifications WHERE business_id = %s", (business_id,))
+    cursor.execute("DELETE FROM business_media WHERE business_id = %s", (business_id,))
+    cursor.execute("DELETE FROM business_documents WHERE business_id = %s", (business_id,))
     cursor.execute("DELETE FROM business_pages WHERE business_id = %s", (business_id,))
     cursor.execute("DELETE FROM businesses WHERE id = %s", (business_id,))
 
