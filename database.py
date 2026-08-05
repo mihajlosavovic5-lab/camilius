@@ -679,6 +679,15 @@ def create_database():
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     """)
+    # A Google identity nobody's seen before doesn't get an account created on the spot
+    # (see app.py's auth_google_callback/_google_login_existing) - it's handed to the
+    # sign-up form as a name/email starting point instead, status='needs_signup' rather
+    # than 'done'. google_link_token is google_oauth.make_link_token()'s output, carried
+    # through so the mobile app can resubmit it with the sign-up form exactly like the web
+    # form's own hidden field does - see complete_oauth_login_session_needs_signup below.
+    cursor.execute("ALTER TABLE oauth_login_sessions ADD COLUMN IF NOT EXISTS google_name TEXT")
+    cursor.execute("ALTER TABLE oauth_login_sessions ADD COLUMN IF NOT EXISTS google_email TEXT")
+    cursor.execute("ALTER TABLE oauth_login_sessions ADD COLUMN IF NOT EXISTS google_link_token TEXT")
 
     # Account-deletion exit survey (web + mobile "Delete account" wizard) - a snapshot of
     # the business's own identifying fields plus why they left, kept AFTER delete_business()
@@ -1382,6 +1391,21 @@ def fail_oauth_login_session(state):
     connection.close()
 
 
+def complete_oauth_login_session_needs_signup(state, name, email, link_token):
+    """A Google identity nobody's seen before (see app.py's _google_login_existing) -
+    instead of 'done' with a live token, this hands the mobile app a name/email starting
+    point and a google_link_token to resubmit with the sign-up form, exactly like the web
+    flow's own redirect to /register?google_name=...&google_link_token=... does."""
+    connection = connect()
+    cursor = connection.cursor()
+    cursor.execute(
+        "UPDATE oauth_login_sessions SET status = 'needs_signup', google_name = %s, google_email = %s, google_link_token = %s WHERE state = %s",
+        (name, email, link_token, state),
+    )
+    connection.commit()
+    connection.close()
+
+
 def oauth_login_session_exists(state):
     """Lets app.py's /auth/google/callback tell a mobile attempt (a row was created by
     /api/google-login/start) apart from a web one (no row - CSRF-checked via the session
@@ -1395,27 +1419,31 @@ def oauth_login_session_exists(state):
 
 
 def oauth_login_session_status(state):
-    """Polled by the mobile app (see api.py's api_google_login_status). A 'done'/'error'
-    result is single-use - deleted here the moment it's picked up - since the token inside
-    it is a live, usable Bearer credential that should exist in exactly one place
-    afterward (the row, or the app that fetched it - never both)."""
+    """Polled by the mobile app (see api.py's api_google_login_status). A 'done'/'error'/
+    'needs_signup' result is single-use - deleted here the moment it's picked up - since
+    the token (or google_link_token) inside it is a live credential that should exist in
+    exactly one place afterward (the row, or the app that fetched it - never both)."""
     connection = connect()
     cursor = connection.cursor()
     _cleanup_stale_oauth_login_sessions(cursor)
     cursor.execute(
-        "SELECT status, token, business_id, business_name FROM oauth_login_sessions WHERE state = %s",
+        """SELECT status, token, business_id, business_name, google_name, google_email, google_link_token
+           FROM oauth_login_sessions WHERE state = %s""",
         (state,),
     )
     row = cursor.fetchone()
-    if row is not None and row[0] in ("done", "error"):
+    if row is not None and row[0] in ("done", "error", "needs_signup"):
         cursor.execute("DELETE FROM oauth_login_sessions WHERE state = %s", (state,))
     connection.commit()
     connection.close()
 
     if row is None:
         return None
-    status, token, business_id, business_name = row
-    return {"status": status, "token": token, "business_id": business_id, "business_name": business_name}
+    status, token, business_id, business_name, google_name, google_email, google_link_token = row
+    return {
+        "status": status, "token": token, "business_id": business_id, "business_name": business_name,
+        "google_name": google_name, "google_email": google_email, "google_link_token": google_link_token,
+    }
 
 
 def save_reset_token(business_id, token, expires):

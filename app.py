@@ -26,7 +26,7 @@ from database import (
     username_taken, contact_email_taken, phone_number_taken,
     business_by_google_id, link_google_account,
     create_oauth_login_session, complete_oauth_login_session, fail_oauth_login_session,
-    oauth_login_session_exists,
+    complete_oauth_login_session_needs_signup, oauth_login_session_exists,
     archived_conversations_for_business, trashed_conversations_for_business,
     archive_conversation, unarchive_conversation, soft_delete_conversation, restore_conversation,
     get_slot_duration, set_slot_duration, create_appointment, get_appointment, cancel_appointment,
@@ -358,78 +358,39 @@ def inject_nav_pro_access():
     return {"nav_pro_access": BETA_FREE_MODE or has_pro_access(business_id)}
 
 
-def _username_from_google_profile(email, name):
-    """Derives a starting username candidate for a brand-new "Continue with Google"
-    account from the Google account's email local-part (falling back to its display name
-    if that's somehow empty) - lowercased and stripped down to what the manual
-    registration form itself already accepts (any string, unique is the only real
-    constraint - see username_taken()). De-duped by appending a short random suffix until
-    it lands on something free, rather than surfacing a "pick a username" step Google
-    sign-in is supposed to skip entirely."""
-    base = re.sub(r"[^a-z0-9]+", "", (email.split("@")[0] if email else name or "user").lower()) or "user"
-    candidate = base
-    while username_taken(candidate):
-        candidate = f"{base}{secrets.token_hex(2)}"
-    return candidate
+def _google_login_existing(google_user):
+    """Looks up (and links, on the first match) the existing business this Google identity
+    belongs to - never creates one. Returns the business row, or None if this Google
+    account has never been seen here before. The caller (auth_google_callback below) sends
+    that case to the ordinary sign-up form instead, pre-filled with whatever Google handed
+    over - "Continue with Google" is a shortcut INTO the normal flow for a first-time
+    visitor, not a way to skip filling in the rest of the account (username, password,
+    business details) that a manual sign-up would ask for anyway.
 
-
-def _google_login_or_register(google_user):
-    """Shared by both the web and mobile branches of /auth/google/callback - finds or
-    creates the business a Google identity belongs to and returns its full row (or None
-    if it couldn't, e.g. Google didn't grant an email at all). Three cases, in order:
-
+    Two cases, in order:
     1. This Google account has signed in here before (google_id already linked) - just
        log it in.
     2. First time signing in with Google, but its email already belongs to an existing
        account (password-based, or from an earlier signup that never got confirmed) -
-       link the two rather than creating a duplicate. link_google_account also marks that
-       account's email verified, since Google just proved it either way.
-    3. Genuinely new - create a fresh account. working_hours/price_list/faq start empty,
-       same shape as a bare-minimum manual signup; home()'s onboarding_required sends it
-       straight into the "build your website" wizard to fill the rest in, exactly like any
-       other brand-new registration.
+       link the two rather than sending it through sign-up again. link_google_account
+       also marks that account's email verified, since Google just proved it either way.
     """
     google_id = google_user.get("sub")
     email = (google_user.get("email") or "").strip().lower()
-    name = google_user.get("name") or (email.split("@")[0] if email else "My business")
-    if not google_id or not email:
+    if not google_id:
         return None
 
     business = business_by_google_id(google_id)
     if business:
         return business
 
-    existing = business_by_contact_email(email)
-    if existing:
-        link_google_account(existing[0], google_id)
-        return business_by_id(existing[0])
+    if email:
+        existing = business_by_contact_email(email)
+        if existing:
+            link_google_account(existing[0], google_id)
+            return business_by_id(existing[0])
 
-    username = _username_from_google_profile(email, name)
-    try:
-        new_id = add_business(
-            name=name,
-            username=username,
-            # Unusable, unshown password - this account only ever signs in via Google
-            # unless it later sets a real one from Settings (not currently offered there,
-            # but nothing stops it: check_password_hash will just never match this until
-            # it does).
-            password=secrets.token_urlsafe(24),
-            contact_email=email,
-            working_hours="",
-            price_list="",
-            faq="",
-            initial_status="none" if paddle_billing.is_configured() else "trialing",
-            google_id=google_id,
-            email_verified=True,
-        )
-    except UniqueViolation:
-        # Exceedingly rare race (contact_email_taken by a row created between the
-        # business_by_contact_email() check above and this insert) - not worth a retry
-        # loop, the visitor can just try again.
-        return None
-
-    log_event("register_completed", business_id=new_id)
-    return business_by_id(new_id)
+    return None
 
 
 @app.route("/auth/google")
@@ -484,10 +445,26 @@ def auth_google_callback():
     google_user = google_oauth.fetch_user(request.args["code"], redirect_uri)
     if google_user is None:
         return fail("Google sign-in failed - please try again.")
+    google_id = google_user.get("sub")
+    if not google_id:
+        return fail("Google sign-in failed - please try again.")
 
-    business = _google_login_or_register(google_user)
+    business = _google_login_existing(google_user)
+
     if business is None:
-        return fail("Couldn't sign in with that Google account - try logging in with your password instead.")
+        # Never seen this Google identity before - hand its name/email to the sign-up
+        # form as a starting point rather than creating an account outright (see
+        # _google_login_existing's own docstring). google_link_token carries google_id
+        # through so register()/api_register() can link it - and skip the usual email
+        # confirmation step, since Google already proved this address - IF the sign-up is
+        # actually completed with that same email; see google_oauth.verify_link_token.
+        name = google_user.get("name") or ""
+        email = (google_user.get("email") or "").strip().lower()
+        link_token = google_oauth.make_link_token(google_id, email)
+        if is_mobile:
+            complete_oauth_login_session_needs_signup(state, name, email, link_token)
+            return render_template("google_auth_mobile_result.html", success=True, needs_signup=True)
+        return redirect(url_for("register", google_name=name, google_email=email, google_link_token=link_token))
 
     if is_mobile:
         token = make_token(business[0])
@@ -563,6 +540,18 @@ def register():
         if existing or contact_email_taken(request.form["contact_email"]):
             return render_template("register.html", error="That username, contact email, or phone number is already taken.", data=request.form)
 
+        # "Continue with Google" prefilled this form (see auth_google_callback) rather
+        # than creating an account outright - the hidden google_link_token field carries
+        # google_id back through, re-verified here (never trusted from the client alone)
+        # and only honored if the email it was issued for still matches what was actually
+        # submitted. A visitor who changed the email field after Google prefilled it just
+        # falls back to a normal, unverified signup - exactly as if they'd never used
+        # Google at all.
+        google_link = google_oauth.verify_link_token(request.form.get("google_link_token", ""))
+        google_id = None
+        if google_link and google_link.get("email") == request.form["contact_email"].strip().lower():
+            google_id = google_link.get("google_id")
+
         try:
             new_id = add_business(
                 name=request.form["name"],
@@ -580,11 +569,21 @@ def register():
                 # start a real, card-backed Paddle trial. Until Paddle is configured this
                 # is unchanged from before: every account starts 'trialing' immediately.
                 initial_status="none" if paddle_billing.is_configured() else "trialing",
+                google_id=google_id,
+                email_verified=bool(google_id),
             )
         except UniqueViolation:
             return render_template("register.html", error="That username, contact email, or phone number is already taken.", data=request.form)
 
         log_event("register_completed", business_id=new_id)
+
+        if google_id:
+            # Google already proved this email - no confirmation link to send or wait on,
+            # straight into the app exactly like a normal login would.
+            session["business_id"] = new_id
+            session["business_name"] = request.form["name"]
+            return redirect(url_for("home"))
+
         send_verification_email(new_id, request.form["name"], request.form["contact_email"])
         # Not logged in yet - the account must confirm its email first (see verify_pending()
         # /verify_email() below).
@@ -594,7 +593,22 @@ def register():
     if not session.get("_seen_register"):
         log_event("register_view")
         session["_seen_register"] = True
-    return render_template("register.html", error=None, data={})
+
+    # Prefill data from a "Continue with Google" redirect (see auth_google_callback) - a
+    # first-time Google identity with no account yet lands here instead of one being
+    # created outright, with whatever Google handed over as a starting point for the
+    # fields it can actually cover (name/email); the rest (username, password, business
+    # details) is still entered by hand exactly like a normal sign-up. google_link_token
+    # is echoed back as a hidden field (see register.html) purely to survive this one
+    # render - it's re-verified server-side on submit, never trusted as-is.
+    data = {}
+    if request.args.get("google_link_token"):
+        data = {
+            "name": request.args.get("google_name", ""),
+            "contact_email": request.args.get("google_email", ""),
+            "google_link_token": request.args.get("google_link_token", ""),
+        }
+    return render_template("register.html", error=None, data=data)
 
 
 @app.route("/verify-pending")

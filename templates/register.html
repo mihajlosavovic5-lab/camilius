@@ -36,6 +36,7 @@
 
         <form method="POST" id="register-form">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="google_link_token" value="{{ data.get('google_link_token', '') }}">
 
             <div class="register-steps-viewport">
                 <div class="register-step active" id="register-step-1">

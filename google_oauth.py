@@ -14,6 +14,7 @@ import os
 from urllib.parse import urlencode
 
 import requests
+from itsdangerous import URLSafeTimedSerializer, BadSignature, SignatureExpired
 
 AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth"
 TOKEN_URL = "https://oauth2.googleapis.com/token"
@@ -67,4 +68,37 @@ def fetch_user(code, redirect_uri):
         userinfo_response.raise_for_status()
         return userinfo_response.json()
     except (requests.RequestException, KeyError, ValueError):
+        return None
+
+
+# A brand-new Google identity (no existing account matches it - see app.py's
+# _google_login_existing) doesn't get an account created on the spot anymore - it's handed
+# to the normal sign-up form as a name/email starting point, same as if the visitor had
+# typed them in by hand, and the account is only actually created once they finish that
+# form themselves (username, password, business details, terms). This short-lived signed
+# token is how google_id survives that round trip without trusting a client-supplied value
+# outright: register()/api_register() re-verify it, and only link the account to Google
+# (skipping email confirmation - Google already proved it) if the token is still valid AND
+# its embedded email matches whatever contact_email the form was actually submitted with.
+LINK_TOKEN_MAX_AGE = 60 * 10  # 10 minutes - plenty to finish filling in the rest of the form
+
+
+def _link_token_serializer():
+    return URLSafeTimedSerializer(os.environ["FLASK_SECRET_KEY"], salt="google-link-token")
+
+
+def make_link_token(google_id, email):
+    return _link_token_serializer().dumps({"google_id": google_id, "email": email})
+
+
+def verify_link_token(token):
+    """Returns {"google_id": ..., "email": ...} if `token` is a still-valid, unexpired,
+    unmodified token from make_link_token() above - None for anything else (missing,
+    expired, tampered with), which callers treat as "no Google link, just a normal
+    sign-up" rather than an error."""
+    if not token:
+        return None
+    try:
+        return _link_token_serializer().loads(token, max_age=LINK_TOKEN_MAX_AGE)
+    except (BadSignature, SignatureExpired):
         return None

@@ -1498,6 +1498,13 @@ el("login-form").addEventListener("submit", async (event) => {
 const GOOGLE_LOGIN_POLL_INTERVAL_MS = 1800;
 const GOOGLE_LOGIN_POLL_TIMEOUT_MS = 120000;
 
+// Set by pollGoogleLogin below when a Google identity has never been seen here before
+// (status 'needs_signup') and cleared once the register-form submit handler actually
+// uses it (or the visitor navigates away from Create Account without finishing) - see
+// openRegisterScreen() above. Resubmitted with /api/register exactly like the web sign-up
+// form's own hidden google_link_token field, re-verified server-side either way.
+let pendingGoogleLinkToken = null;
+
 async function pollGoogleLogin(oauthState, errorBox) {
     const startedAt = Date.now();
     while (Date.now() - startedAt < GOOGLE_LOGIN_POLL_TIMEOUT_MS) {
@@ -1519,6 +1526,12 @@ async function pollGoogleLogin(oauthState, errorBox) {
             await storageSet("token", data.token);
             await storageSet("businessName", data.business_name);
             enterApp();
+        } else if (data.status === "needs_signup") {
+            // First time this Google identity has been seen - not logged in, just handed
+            // to the normal Create Account wizard with a name/email starting point (see
+            // openRegisterScreen). Username, password and business details are still
+            // filled in by hand exactly like any other sign-up.
+            openRegisterScreen({ name: data.google_name, contactEmail: data.google_email, googleLinkToken: data.google_link_token });
         } else {
             // 'error' (Google denied/cancelled, or something failed server-side) or
             // 'expired' (visitor closed the tab without finishing, or just sat on the
@@ -1844,7 +1857,10 @@ el("register-next-btn").addEventListener("click", () => {
     if (registerStep < REGISTER_STEP_COUNT) showRegisterStep(registerStep + 1);
 });
 
-el("login-signup-link").addEventListener("click", () => {
+// Shared by the plain "Create account" link and the "Continue with Google" needs_signup
+// path below (see pollGoogleLogin) - the latter just adds a name/email starting point
+// (and a pending google_link_token to resubmit with the form) on top of the same reset.
+function openRegisterScreen({ name, contactEmail, googleLinkToken } = {}) {
     // Deliberately NOT register-form.reset() - the working-hours/price-list pickers
     // contain dynamically-created <select>/checkbox elements with no selected/checked
     // HTML attribute set, so a native form reset would revert them to the browser's own
@@ -1864,9 +1880,17 @@ el("login-signup-link").addEventListener("click", () => {
     el("register-password-error").classList.add("hidden");
     el("register-confirm-password-error").classList.add("hidden");
     el("register-error").classList.add("hidden");
+    pendingGoogleLinkToken = googleLinkToken || null;
+    if (name) el("register-name").value = name;
+    if (contactEmail) {
+        el("register-contact-email").value = contactEmail;
+        registerEmailAvailability.recheck();
+    }
     showRegisterStep(1);
     showScreen("register");
-});
+}
+
+el("login-signup-link").addEventListener("click", () => openRegisterScreen());
 
 // Back either steps back within the wizard, or (from step 1) exits to Login.
 el("register-back").addEventListener("click", () => {
@@ -1935,9 +1959,25 @@ el("register-form").addEventListener("submit", async (event) => {
                 accept_terms: el("register-terms").checked,
                 push_enabled: el("register-push-toggle").checked,
                 new_booking_notifications_enabled: el("register-new-booking-toggle").checked,
+                // Re-verified server-side against whatever contact_email was actually
+                // submitted (see api_register) - only takes effect if this is still the
+                // same email Google prefilled the form with (see openRegisterScreen).
+                google_link_token: pendingGoogleLinkToken || undefined,
             },
         });
-        showVerifyPendingScreen(data.business_id, data.contact_email, data.wait_seconds);
+        pendingGoogleLinkToken = null;
+        if (data.token) {
+            // Google already proved this email - api_register skipped the confirmation
+            // link and handed back a usable Bearer token straight away, same shape as
+            // /api/login's own response.
+            state.token = data.token;
+            state.businessName = data.business_name;
+            await storageSet("token", data.token);
+            await storageSet("businessName", data.business_name);
+            enterApp();
+        } else {
+            showVerifyPendingScreen(data.business_id, data.contact_email, data.wait_seconds);
+        }
     } catch (err) {
         errorBox.textContent = err.message || t("register.error");
         errorBox.classList.remove("hidden");

@@ -246,6 +246,17 @@ def api_register():
             wait_seconds=email_verify_resend_wait_seconds(existing[0], EMAIL_VERIFY_RESEND_COOLDOWN_SECONDS),
         )
 
+    # "Continue with Google" prefilled the sign-up screen (see api_google_login_status
+    # below) rather than creating an account outright - google_link_token carries google_id
+    # back through, re-verified here (never trusted from the client alone) and only
+    # honored if the email it was issued for still matches what was actually submitted. A
+    # visitor who changed the email field after Google prefilled it just falls back to a
+    # normal, unverified signup - exactly as if they'd never used Google at all.
+    google_link = google_oauth.verify_link_token(data.get("google_link_token", ""))
+    google_id = None
+    if google_link and google_link.get("email") == (data.get("contact_email") or "").strip().lower():
+        google_id = google_link.get("google_id")
+
     try:
         new_id = add_business(
             name=data.get("name", ""),
@@ -273,11 +284,19 @@ def api_register():
             # checks has_pro_access() independently before ever looking at this flag, so
             # storing True for a non-pro account is inert rather than a real leak.
             reminders_enabled=bool(data.get("reminders_enabled", False)),
+            google_id=google_id,
+            email_verified=bool(google_id),
         )
     except UniqueViolation:
         return jsonify(error="That username, contact email, or phone number is already taken."), 409
 
     log_event("register_completed", business_id=new_id)
+
+    if google_id:
+        # Google already proved this email - no confirmation link needed, hand back a
+        # usable Bearer token straight away exactly like /api/login does.
+        return jsonify(token=make_token(new_id), business_id=new_id, business_name=data.get("name", ""))
+
     send_verification_email(new_id, data.get("name", ""), data.get("contact_email", ""))
     return jsonify(
         pending_verification=True,

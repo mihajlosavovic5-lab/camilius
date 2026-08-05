@@ -12,7 +12,13 @@
     </div>
 
     <div class="auth-card">
-        {% if success %}
+        {% if success and needs_signup %}
+            <h1 data-i18n="googleAuth.needsSignupTitle">Almost there</h1>
+            <div class="alert alert-success" style="margin-top: 12px;">
+                <span class="alert-icon">&#10003;</span>
+                <span data-i18n="googleAuth.needsSignupBody">Head back to the Camilius app to finish setting up your account - this tab can be closed.</span>
+            </div>
+        {% elif success %}
             <h1 data-i18n="googleAuth.successTitle">You're signed in</h1>
             <div class="alert alert-success" style="margin-top: 12px;">
                 <span class="alert-icon">&#10003;</span>
