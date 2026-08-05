@@ -1329,6 +1329,16 @@ body.auth {
     margin: 22px 0 10px; padding-top: 16px; border-top: 1px solid var(--border);
 }
 
+/* Small circular caret button that returns from the username/password form (revealed by
+   "Continue with email") back to the Google/email choice screen - same 34px circle look
+   as the mobile app's own .back-btn, kept as a separate class since the web page has no
+   shared bundle with mobile/app.css to reuse it from directly. */
+.auth-back-btn {
+    width: 34px; height: 34px; border-radius: 99px; border: none; background: var(--background);
+    color: var(--text); font-size: 23px; line-height: 1; cursor: pointer; margin-bottom: 8px;
+}
+.auth-back-btn:hover { background: var(--border); }
+
 .auth-card h1 { font-size: 20px; margin-bottom: 4px; }
 .auth-subtitle { color: var(--text-muted); font-size: 15px; margin: 0 0 10px; }
 .auth-links { margin-top: 18px; text-align: center; font-size: 15px; }

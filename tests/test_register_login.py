@@ -7,6 +7,36 @@ def test_login_page_loads(client):
     assert response.status_code == 200
 
 
+def test_login_page_defaults_to_google_email_choice_view(client):
+    """Two-phase login (Continue with Google / Continue with email) - a plain page load
+    with no error/message should start on the choice screen, not the username/password
+    form, whether or not Google is even configured (see #login-choice/#login-form-wrap in
+    login.html)."""
+    html = client.get("/login").get_data(as_text=True)
+    assert 'class="auth-choice" id="login-choice"' in html  # visible - no "hidden"
+    assert 'class="auth-form-wrap hidden" id="login-form-wrap"' in html  # hidden by default
+
+
+def test_login_web_wrong_password_shows_form_not_choice(client, unique_username, unique_email):
+    """A failed web login re-renders the page (full reload, not a client-side toggle) -
+    it must land directly on the username/password form with the error visible, not back
+    behind "Continue with email" where the visitor would have to click through to see
+    why it failed."""
+    register_business(client, unique_username, unique_email)
+    csrf_token = _csrf_token_from_html(client.get("/login").get_data(as_text=True))
+
+    response = web_post(client, "/login", {
+        "csrf_token": csrf_token,
+        "username": unique_username,
+        "password": "WrongPassword",
+    })
+    assert response.status_code == 200
+    html = response.get_data(as_text=True)
+    assert "Wrong username or password" in html
+    assert 'class="auth-choice hidden" id="login-choice"' in html  # choice hidden
+    assert 'class="auth-form-wrap" id="login-form-wrap"' in html  # form visible, no "hidden"
+
+
 def test_register_web_rejects_password_mismatch(client, unique_username, unique_email):
     response = register_business_web(client, unique_username, unique_email, confirm_password="SomethingElse123")
     assert response.status_code == 200  # re-renders the form with an error, doesn't redirect

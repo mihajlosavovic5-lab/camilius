@@ -125,6 +125,10 @@ const offlineBanner = el("offline-banner");
 function showScreen(name) {
     Object.values(screens).forEach((s) => s.classList.remove("active"));
     screens[name].classList.add("active");
+    // Every navigation TO the login screen (logout, back button, verify-pending "back to
+    // login", etc.) starts fresh on the Google/email choice view, never mid-form - see
+    // resetLoginPhase() below, defined further down but hoisted (function declaration).
+    if (name === "login") resetLoginPhase();
 }
 
 function showTabbar(show) {
@@ -1579,6 +1583,20 @@ el("login-google-btn").addEventListener("click", () => {
 el("register-google-btn").addEventListener("click", () => {
     startGoogleLogin(el("register-google-btn"), el("register-error"));
 });
+
+// --- Two-phase login (Google/email choice -> revealed username+password form) ---
+
+function resetLoginPhase() {
+    el("login-choice").classList.remove("hidden");
+    el("login-email-form").classList.add("hidden");
+}
+
+el("login-email-btn").addEventListener("click", () => {
+    el("login-choice").classList.add("hidden");
+    el("login-email-form").classList.remove("hidden");
+    el("login-username").focus();
+});
+el("login-email-back-btn").addEventListener("click", resetLoginPhase);
 
 // --- Forgot password (its own native screen, pushed on top of Login - no browser
 // involved at all, unlike the old flow which opened the website's page in a browser tab) ---

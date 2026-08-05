@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
 <title>Camilius</title>
-<link rel="stylesheet" href="app.css?v=c5ca54cfd0fe">
+<link rel="stylesheet" href="app.css?v=c494cd7f4997">
 </head>
 <body>
 
@@ -301,37 +301,48 @@
 
       <div id="login-error" class="alert alert-error hidden"></div>
 
-      <button type="button" id="login-google-btn" class="button button-google button-full button-pill">
-        <svg class="button-google-icon" viewBox="0 0 18 18" aria-hidden="true">
-          <path fill="#4285F4" d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.72v2.26h2.9c1.7-1.57 2.7-3.88 2.7-6.62z"/>
-          <path fill="#34A853" d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.9-2.26c-.8.54-1.83.86-3.06.86-2.35 0-4.34-1.59-5.05-3.72H.96v2.33A9 9 0 0 0 9 18z"/>
-          <path fill="#FBBC05" d="M3.95 10.7A5.4 5.4 0 0 1 3.67 9c0-.59.1-1.17.28-1.7V4.97H.96A9 9 0 0 0 0 9c0 1.45.35 2.83.96 4.03z"/>
-          <path fill="#EA4335" d="M9 3.58c1.32 0 2.51.45 3.44 1.35l2.58-2.58C13.46.89 11.43 0 9 0A9 9 0 0 0 .96 4.97L3.95 7.3C4.66 5.17 6.65 3.58 9 3.58z"/>
-        </svg>
-        <span data-i18n="login.continueWithGoogle">Continue with Google</span>
-      </button>
-      <div class="login-google-divider" data-i18n="login.orDivider">or</div>
+      <!-- Two-phase login: Google/email as equal-weight starting choices, with the
+           actual username+password form only revealed once "Continue with email" is
+           picked (see #login-email-btn/#login-email-back-btn in app.js). showScreen()
+           resets back to this choice view every time the Login screen is navigated TO
+           (logout, back button, etc.) - see app.js. -->
+      <div class="login-choice" id="login-choice">
+        <button type="button" id="login-google-btn" class="button button-google button-full button-pill">
+          <svg class="button-google-icon" viewBox="0 0 18 18" aria-hidden="true">
+            <path fill="#4285F4" d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.72v2.26h2.9c1.7-1.57 2.7-3.88 2.7-6.62z"/>
+            <path fill="#34A853" d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.9-2.26c-.8.54-1.83.86-3.06.86-2.35 0-4.34-1.59-5.05-3.72H.96v2.33A9 9 0 0 0 9 18z"/>
+            <path fill="#FBBC05" d="M3.95 10.7A5.4 5.4 0 0 1 3.67 9c0-.59.1-1.17.28-1.7V4.97H.96A9 9 0 0 0 0 9c0 1.45.35 2.83.96 4.03z"/>
+            <path fill="#EA4335" d="M9 3.58c1.32 0 2.51.45 3.44 1.35l2.58-2.58C13.46.89 11.43 0 9 0A9 9 0 0 0 .96 4.97L3.95 7.3C4.66 5.17 6.65 3.58 9 3.58z"/>
+          </svg>
+          <span data-i18n="login.continueWithGoogle">Continue with Google</span>
+        </button>
+        <div class="login-google-divider" data-i18n="login.orDivider">or</div>
+        <button type="button" id="login-email-btn" class="button button-secondary button-full button-pill" data-i18n="login.continueWithEmail">Continue with email</button>
+      </div>
 
-      <form id="login-form">
-        <div class="floating-field">
-          <input type="text" id="login-username" placeholder=" " autocomplete="username" autocapitalize="off" autocorrect="off">
-          <label for="login-username" data-i18n="login.username">Username, email, or phone</label>
-        </div>
-        <div class="floating-field floating-field-password">
-          <input type="password" id="login-password" placeholder=" " autocomplete="current-password">
-          <label for="login-password" data-i18n="login.password">Password</label>
-          <button type="button" class="password-toggle" aria-label="Show password">
-            <svg class="password-toggle-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
-              <path d="M1.5 12S5 5 12 5s10.5 7 10.5 7-3.5 7-10.5 7S1.5 12 1.5 12z" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
-              <circle cx="12" cy="12" r="3" stroke-width="1.6"/>
-              <line class="password-toggle-slash" x1="2.5" y1="21.5" x2="21.5" y2="2.5" stroke-width="1.6" stroke-linecap="round"/>
-            </svg>
-          </button>
-        </div>
-        <button class="button button-full button-pill" type="submit" id="login-submit" data-i18n="login.submit">Log in</button>
-      </form>
+      <div class="login-email-form hidden" id="login-email-form">
+        <button type="button" class="back-btn login-email-back-btn" id="login-email-back-btn" aria-label="Back">‹</button>
+        <form id="login-form">
+          <div class="floating-field">
+            <input type="text" id="login-username" placeholder=" " autocomplete="username" autocapitalize="off" autocorrect="off">
+            <label for="login-username" data-i18n="login.username">Username, email, or phone</label>
+          </div>
+          <div class="floating-field floating-field-password">
+            <input type="password" id="login-password" placeholder=" " autocomplete="current-password">
+            <label for="login-password" data-i18n="login.password">Password</label>
+            <button type="button" class="password-toggle" aria-label="Show password">
+              <svg class="password-toggle-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
+                <path d="M1.5 12S5 5 12 5s10.5 7 10.5 7-3.5 7-10.5 7S1.5 12 1.5 12z" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+                <circle cx="12" cy="12" r="3" stroke-width="1.6"/>
+                <line class="password-toggle-slash" x1="2.5" y1="21.5" x2="21.5" y2="2.5" stroke-width="1.6" stroke-linecap="round"/>
+              </svg>
+            </button>
+          </div>
+          <button class="button button-full button-pill" type="submit" id="login-submit" data-i18n="login.submit">Log in</button>
+        </form>
 
-      <button type="button" id="login-forgot-link" class="link-btn login-forgot" data-i18n="login.forgot">Forgot password?</button>
+        <button type="button" id="login-forgot-link" class="link-btn login-forgot" data-i18n="login.forgot">Forgot password?</button>
+      </div>
 
       <div class="login-spacer"></div>
 
@@ -1315,7 +1326,7 @@
   </button>
 </nav>
 
-<script src="i18n.js?v=c5ca54cfd0fe"></script>
-<script src="app.js?v=c5ca54cfd0fe"></script>
+<script src="i18n.js?v=c494cd7f4997"></script>
+<script src="app.js?v=c494cd7f4997"></script>
 </body>
 </html>

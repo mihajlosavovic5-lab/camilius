@@ -23,33 +23,46 @@
             <div class="alert alert-success"><span class="alert-icon">&#10003;</span><span>{{ message }}</span></div>
         {% endif %}
 
-        {% if google_oauth_configured %}
-        <a class="button button-google button-full button-pill" href="{{ url_for('auth_google') }}">
-            {% include "_google_icon.html" %}
-            <span data-i18n="login.continueWithGoogle">Continue with Google</span>
-        </a>
-        <div class="auth-divider"><span data-i18n="login.orDivider">or</span></div>
-        {% endif %}
+        {# Two-phase login: Google/email as equal-weight starting choices, with the actual
+           username+password form only revealed once "Continue with email" is picked -
+           reads as a cleaner first screen than a form sitting right under the Google
+           button. Starts open directly on the form (auth-choice hidden instead) whenever
+           there's an error/message to show - both only ever happen after the visitor
+           already submitted the form, so hiding it behind the choice screen again on
+           reload would bury exactly the feedback they're here to see. #}
+        <div class="auth-choice{% if error or message %} hidden{% endif %}" id="login-choice">
+            {% if google_oauth_configured %}
+            <a class="button button-google button-full button-pill" href="{{ url_for('auth_google') }}">
+                {% include "_google_icon.html" %}
+                <span data-i18n="login.continueWithGoogle">Continue with Google</span>
+            </a>
+            <div class="auth-divider"><span data-i18n="login.orDivider">or</span></div>
+            {% endif %}
+            <button type="button" class="button button-secondary button-full button-pill" id="login-email-btn" data-i18n="login.continueWithEmail">Continue with email</button>
+        </div>
 
-        <form method="POST">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <div class="floating-field">
-                <input type="text" id="login-username" name="username" placeholder=" " autocomplete="username" autofocus>
-                <label for="login-username" data-i18n="login.usernameLabel">Username, email, or phone number</label>
-            </div>
+        <div class="auth-form-wrap{% if not (error or message) %} hidden{% endif %}" id="login-form-wrap">
+            <button type="button" class="auth-back-btn" id="login-back-btn" aria-label="Back">&lsaquo;</button>
+            <form method="POST">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="floating-field">
+                    <input type="text" id="login-username" name="username" placeholder=" " autocomplete="username">
+                    <label for="login-username" data-i18n="login.usernameLabel">Username, email, or phone number</label>
+                </div>
 
-            <div class="floating-field floating-field-password">
-                <input type="password" id="login-password" name="password" placeholder=" " autocomplete="current-password">
-                <label for="login-password" data-i18n="login.passwordLabel">Password</label>
-                {% include "_password_toggle.html" %}
-            </div>
+                <div class="floating-field floating-field-password">
+                    <input type="password" id="login-password" name="password" placeholder=" " autocomplete="current-password">
+                    <label for="login-password" data-i18n="login.passwordLabel">Password</label>
+                    {% include "_password_toggle.html" %}
+                </div>
 
-            <div class="form-actions">
-                <button class="button button-full button-pill" type="submit" data-i18n="common.logIn">Log in</button>
-            </div>
-        </form>
+                <div class="form-actions">
+                    <button class="button button-full button-pill" type="submit" data-i18n="common.logIn">Log in</button>
+                </div>
+            </form>
 
-        <a class="link-btn" href="{{ url_for('forgot_password') }}" data-i18n="login.forgotLink">Forgot your password?</a>
+            <a class="link-btn" href="{{ url_for('forgot_password') }}" data-i18n="login.forgotLink">Forgot your password?</a>
+        </div>
 
         <div class="auth-divider"><span data-i18n="login.noAccount">Don't have an account?</span></div>
         <a class="button button-secondary button-full button-pill button-primary-outline" href="{{ url_for('register') }}" data-i18n="login.registerLink">Register your business</a>
@@ -100,4 +113,22 @@
     })();
 </script>
 {% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+    (function () {
+        var choice = document.getElementById("login-choice");
+        var formWrap = document.getElementById("login-form-wrap");
+        document.getElementById("login-email-btn").addEventListener("click", function () {
+            choice.classList.add("hidden");
+            formWrap.classList.remove("hidden");
+            document.getElementById("login-username").focus();
+        });
+        document.getElementById("login-back-btn").addEventListener("click", function () {
+            formWrap.classList.add("hidden");
+            choice.classList.remove("hidden");
+        });
+    })();
+</script>
 {% endblock %}
