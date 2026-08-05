@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
 <title>Camilius</title>
-<link rel="stylesheet" href="app.css?v=6ca2f1e5590c">
+<link rel="stylesheet" href="app.css?v=cd768477b924">
 </head>
 <body>
 
@@ -209,8 +209,8 @@
           </div>
           <span class="onboarding-badge onboarding-badge-pulse">📝</span>
         </div>
-        <h1 data-i18n="onboarding.slide2.title">Just describe your business</h1>
-        <p data-i18n="onboarding.slide2.body">Tell Camilius what you do — the AI writes your tagline, about section, hours, prices, and FAQ for you.</p>
+        <h1 data-i18n="onboarding.slide2.title">Add your business details</h1>
+        <p data-i18n="onboarding.slide2.body">Set your hours, prices, and FAQ — Camilius turns it into your AI-chat page in minutes.</p>
       </div>
 
       <div class="onboarding-slide" data-accent="3">
@@ -229,8 +229,8 @@
           </div>
           <span class="onboarding-badge onboarding-badge-pulse">🎨</span>
         </div>
-        <h1 data-i18n="onboarding.slide3.title">Pick a design, add your photos</h1>
-        <p data-i18n="onboarding.slide3.body">Choose a look and add your best photos — Camilius turns it into a polished, ready-to-publish page.</p>
+        <h1 data-i18n="onboarding.slide3.title">Add your best photos</h1>
+        <p data-i18n="onboarding.slide3.body">Upload photos anytime from Settings, and your page updates instantly.</p>
       </div>
 
       <div class="onboarding-slide" data-accent="4">
@@ -296,10 +296,21 @@
         <span class="brand-mark login-icon"></span>
         <h1 class="login-wordmark brand-name">Camilius</h1>
         <span class="login-accent"></span>
-        <p class="login-tagline" data-i18n="login.tagline">AI replies for your customers, any channel</p>
+        <p class="login-tagline" data-i18n="login.tagline">AI replies to visitors chatting on your page</p>
       </div>
 
       <div id="login-error" class="alert alert-error hidden"></div>
+
+      <button type="button" id="login-google-btn" class="button button-google button-full button-pill">
+        <svg class="button-google-icon" viewBox="0 0 18 18" aria-hidden="true">
+          <path fill="#4285F4" d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.72v2.26h2.9c1.7-1.57 2.7-3.88 2.7-6.62z"/>
+          <path fill="#34A853" d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.9-2.26c-.8.54-1.83.86-3.06.86-2.35 0-4.34-1.59-5.05-3.72H.96v2.33A9 9 0 0 0 9 18z"/>
+          <path fill="#FBBC05" d="M3.95 10.7A5.4 5.4 0 0 1 3.67 9c0-.59.1-1.17.28-1.7V4.97H.96A9 9 0 0 0 0 9c0 1.45.35 2.83.96 4.03z"/>
+          <path fill="#EA4335" d="M9 3.58c1.32 0 2.51.45 3.44 1.35l2.58-2.58C13.46.89 11.43 0 9 0A9 9 0 0 0 .96 4.97L3.95 7.3C4.66 5.17 6.65 3.58 9 3.58z"/>
+        </svg>
+        <span data-i18n="login.continueWithGoogle">Continue with Google</span>
+      </button>
+      <div class="login-google-divider" data-i18n="login.orDivider">or</div>
 
       <form id="login-form">
         <div class="floating-field">
@@ -402,6 +413,20 @@
             <p class="screen-subtitle" data-i18n="register.headlineSubtitle">You can change all of these fields later in settings.</p>
           </div>
 
+          <!-- Shown above every step (like the heading above) rather than step 1 only -
+               skips the whole manual wizard from wherever the user currently is, straight
+               to Google's consent screen and back into the onboarding wizard instead. -->
+          <button type="button" id="register-google-btn" class="button button-google button-full button-pill">
+            <svg class="button-google-icon" viewBox="0 0 18 18" aria-hidden="true">
+              <path fill="#4285F4" d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.72v2.26h2.9c1.7-1.57 2.7-3.88 2.7-6.62z"/>
+              <path fill="#34A853" d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.9-2.26c-.8.54-1.83.86-3.06.86-2.35 0-4.34-1.59-5.05-3.72H.96v2.33A9 9 0 0 0 9 18z"/>
+              <path fill="#FBBC05" d="M3.95 10.7A5.4 5.4 0 0 1 3.67 9c0-.59.1-1.17.28-1.7V4.97H.96A9 9 0 0 0 0 9c0 1.45.35 2.83.96 4.03z"/>
+              <path fill="#EA4335" d="M9 3.58c1.32 0 2.51.45 3.44 1.35l2.58-2.58C13.46.89 11.43 0 9 0A9 9 0 0 0 .96 4.97L3.95 7.3C4.66 5.17 6.65 3.58 9 3.58z"/>
+            </svg>
+            <span data-i18n="login.continueWithGoogle">Continue with Google</span>
+          </button>
+          <div class="login-google-divider" data-i18n="login.orDivider">or</div>
+
           <div class="register-steps-viewport" id="register-steps-viewport">
             <div class="register-steps-track" id="register-steps-track">
             <!-- Temporarily swapped with step 3's content below (same swap mirrored in
@@ -422,7 +447,7 @@
                   <span class="hours-day-toggle-track"><span class="hours-day-toggle-thumb"></span></span>
                 </label>
               </div>
-              <p class="field-hint" data-i18n="register.notificationsHint">You can turn this on or off anytime in Settings.</p>
+              <p class="field-hint" data-i18n="register.notificationsHint">Get notified the moment a new message comes in.</p>
 
               <!-- New bookings already defaults to on server-side (see add_business in
                    database.py) - leaving it checked here changes nothing, only
@@ -1115,7 +1140,7 @@
       <div class="faq-scroll">
         <div class="info-card">
           <strong data-i18n="help.faq1Q">Why didn't a customer message show up?</strong><br>
-          <span data-i18n="help.faq1A">Make sure your page is published in Profile, and that your daily reply limit hasn't been reached.</span>
+          <span data-i18n="help.faq1A">Make sure your page is published — this is managed from the website version of your account — and that your daily reply limit hasn't been reached.</span>
         </div>
         <div class="info-card">
           <strong data-i18n="help.faq2Q">Can I see what the AI told a customer?</strong><br>
@@ -1130,7 +1155,7 @@
           <span data-i18n="help.faq5A">Yes - when a customer asks for a time that fits your working hours, it can book the appointment directly and let you know.</span>
         </div>
         <div class="info-card">
-          <strong data-i18n="help.faq7Q">How do no-show reminders work?</strong><br>
+          <strong data-i18n="help.faq7Q">How do appointment reminders work?</strong><br>
           <span data-i18n="help.faq7A">Turn them on in Settings to get an app notification a set amount of time before each upcoming appointment.</span>
         </div>
         <div class="info-card">
@@ -1139,7 +1164,7 @@
         </div>
         <div class="info-card" id="help-faq-pro-plan">
           <strong data-i18n="help.faq9Q">What's included in the Pro plan?</strong><br>
-          <span data-i18n="help.faq9A">Pro unlocks features like no-show reminders. Check Subscription in Settings for the current plan and pricing.</span>
+          <span data-i18n="help.faq9A">Pro unlocks features like appointment reminders. Check Subscription in Settings for the current plan and pricing.</span>
         </div>
         <div class="info-card">
           <strong data-i18n="help.faq10Q">Is my data shared with anyone?</strong><br>
@@ -1172,10 +1197,10 @@
         <li>You're responsible for the security of your account credentials (username, password).</li>
       </ul>
       <h2>Limitation of liability</h2>
-      <p>The service is provided "as is", without a guarantee of uninterrupted operation or freedom from errors. We are not liable for damages arising from an inaccurate AI reply that you approved and sent, service downtime, or data loss. You use the service at your own risk.</p>
+      <p>The service is provided "as is", without a guarantee of uninterrupted operation or freedom from errors. We are not liable for damages arising from an inaccurate AI reply, service downtime, or data loss. You use the service at your own risk.</p>
       <div id="terms-pricing-section">
         <h2>Pricing</h2>
-        <p>New accounts get a 14-day free trial with full access, starting from registration - nothing is charged during the trial, and we'll email a heads-up before it ends. Continuing after the trial requires choosing a paid plan (see the Subscription tab for current tiers and pricing) and adding a payment method. Payments are processed by Paddle.com, our reseller of record, who also handles VAT/sales tax at checkout. You may cancel at any time from the Subscription tab; canceling stops future charges. We reserve the right to change pricing for future billing periods, with advance notice to existing subscribers.</p>
+        <p>New accounts get a 14-day free trial with full access, starting from registration - nothing is charged during the trial, and we'll email a heads-up before it ends. Continuing after the trial requires choosing a paid plan (see the Subscription tab for current tiers and pricing) and adding a payment method. Payments are processed by Paddle.com, our reseller of record, who also handles VAT/sales tax at checkout. You may cancel at any time using the "Manage subscription" link in the receipt email Paddle sent you, or by emailing us; canceling stops future charges. We reserve the right to change pricing for future billing periods, with advance notice to existing subscribers.</p>
       </div>
       <h2>Account termination</h2>
       <p>We reserve the right to suspend or terminate an account in case of misuse of the service (e.g. sending spam, attempting to bypass limits, unlawful use). You may request deletion of your account at any time.</p>
@@ -1247,8 +1272,8 @@
         <div class="alert alert-success" data-i18n="subscription.betaBadge">Free during beta</div>
         <p data-i18n="subscription.betaBody">Camilius is free during beta - no card needed, nothing to cancel.</p>
         <ul>
-          <li data-i18n="subscription.benefit1">AI drafts replies to new customer messages</li>
-          <li data-i18n="subscription.benefit2">You approve and send</li>
+          <li data-i18n="subscription.benefit1">AI replies to new customer messages instantly</li>
+          <li data-i18n="subscription.benefit2">Can book, cancel, or reschedule appointments in the chat</li>
           <li data-i18n="subscription.benefit3">Up to 50 replies a day</li>
           <li data-i18n="subscription.benefit4">Learns from each customer's history</li>
         </ul>
@@ -1290,7 +1315,7 @@
   </button>
 </nav>
 
-<script src="i18n.js?v=6ca2f1e5590c"></script>
-<script src="app.js?v=6ca2f1e5590c"></script>
+<script src="i18n.js?v=cd768477b924"></script>
+<script src="app.js?v=cd768477b924"></script>
 </body>
 </html>

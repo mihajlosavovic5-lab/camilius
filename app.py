@@ -24,6 +24,9 @@ from database import (
     raw_conversation_rows,
     business_by_username, business_by_phone_number,
     username_taken, contact_email_taken, phone_number_taken,
+    business_by_google_id, link_google_account,
+    create_oauth_login_session, complete_oauth_login_session, fail_oauth_login_session,
+    oauth_login_session_exists,
     archived_conversations_for_business, trashed_conversations_for_business,
     archive_conversation, unarchive_conversation, soft_delete_conversation, restore_conversation,
     get_slot_duration, set_slot_duration, create_appointment, get_appointment, cancel_appointment,
@@ -55,10 +58,11 @@ from page_generator import (
 )
 import stripe_billing
 import paddle_billing
+import google_oauth
 import business_media
 import business_documents
 from database import all_businesses_unfiltered
-from api import api as api_blueprint, APK_VERSION
+from api import api as api_blueprint, APK_VERSION, make_token
 from extensions import limiter
 
 load_dotenv()
@@ -114,6 +118,15 @@ def inject_beta_free_mode():
 @app.context_processor
 def inject_donation_link():
     return {"donation_link": os.getenv("DONATION_LINK", "").strip() or None}
+
+
+# Gates the "Continue with Google" button on login.html/register.html - unset
+# GOOGLE_CLIENT_ID/GOOGLE_CLIENT_SECRET (see google_oauth.is_configured()) hides it
+# entirely rather than showing a button that would 404, same "ship inert until
+# configured" pattern as donation_link/BETA_FREE_MODE above and Paddle/Stripe elsewhere.
+@app.context_processor
+def inject_google_oauth_configured():
+    return {"google_oauth_configured": google_oauth.is_configured()}
 
 
 # --- Static asset caching (perf) ---
@@ -343,6 +356,147 @@ def inject_nav_pro_access():
     if not business_id:
         return {"nav_pro_access": None}
     return {"nav_pro_access": BETA_FREE_MODE or has_pro_access(business_id)}
+
+
+def _username_from_google_profile(email, name):
+    """Derives a starting username candidate for a brand-new "Continue with Google"
+    account from the Google account's email local-part (falling back to its display name
+    if that's somehow empty) - lowercased and stripped down to what the manual
+    registration form itself already accepts (any string, unique is the only real
+    constraint - see username_taken()). De-duped by appending a short random suffix until
+    it lands on something free, rather than surfacing a "pick a username" step Google
+    sign-in is supposed to skip entirely."""
+    base = re.sub(r"[^a-z0-9]+", "", (email.split("@")[0] if email else name or "user").lower()) or "user"
+    candidate = base
+    while username_taken(candidate):
+        candidate = f"{base}{secrets.token_hex(2)}"
+    return candidate
+
+
+def _google_login_or_register(google_user):
+    """Shared by both the web and mobile branches of /auth/google/callback - finds or
+    creates the business a Google identity belongs to and returns its full row (or None
+    if it couldn't, e.g. Google didn't grant an email at all). Three cases, in order:
+
+    1. This Google account has signed in here before (google_id already linked) - just
+       log it in.
+    2. First time signing in with Google, but its email already belongs to an existing
+       account (password-based, or from an earlier signup that never got confirmed) -
+       link the two rather than creating a duplicate. link_google_account also marks that
+       account's email verified, since Google just proved it either way.
+    3. Genuinely new - create a fresh account. working_hours/price_list/faq start empty,
+       same shape as a bare-minimum manual signup; home()'s onboarding_required sends it
+       straight into the "build your website" wizard to fill the rest in, exactly like any
+       other brand-new registration.
+    """
+    google_id = google_user.get("sub")
+    email = (google_user.get("email") or "").strip().lower()
+    name = google_user.get("name") or (email.split("@")[0] if email else "My business")
+    if not google_id or not email:
+        return None
+
+    business = business_by_google_id(google_id)
+    if business:
+        return business
+
+    existing = business_by_contact_email(email)
+    if existing:
+        link_google_account(existing[0], google_id)
+        return business_by_id(existing[0])
+
+    username = _username_from_google_profile(email, name)
+    try:
+        new_id = add_business(
+            name=name,
+            username=username,
+            # Unusable, unshown password - this account only ever signs in via Google
+            # unless it later sets a real one from Settings (not currently offered there,
+            # but nothing stops it: check_password_hash will just never match this until
+            # it does).
+            password=secrets.token_urlsafe(24),
+            contact_email=email,
+            working_hours="",
+            price_list="",
+            faq="",
+            initial_status="none" if paddle_billing.is_configured() else "trialing",
+            google_id=google_id,
+            email_verified=True,
+        )
+    except UniqueViolation:
+        # Exceedingly rare race (contact_email_taken by a row created between the
+        # business_by_contact_email() check above and this insert) - not worth a retry
+        # loop, the visitor can just try again.
+        return None
+
+    log_event("register_completed", business_id=new_id)
+    return business_by_id(new_id)
+
+
+@app.route("/auth/google")
+@limiter.limit("20 per 15 minutes")
+def auth_google():
+    """Entry point for the web "Continue with Google" button (login.html/register.html) -
+    the mobile app never hits this route at all, it builds the same authorization_url
+    itself via /api/google-login/start (see api.py) since it has no session cookie to
+    round-trip through. CSRF is checked here the ordinary web way: `state` is stashed in
+    Flask's own session cookie and compared back in auth_google_callback below."""
+    if not google_oauth.is_configured():
+        abort(404)
+    state = secrets.token_urlsafe(24)
+    session["oauth_state"] = state
+    redirect_uri = url_for("auth_google_callback", _external=True)
+    return redirect(google_oauth.authorization_url(redirect_uri, state))
+
+
+@app.route("/auth/google/callback")
+def auth_google_callback():
+    """Google redirects here after the consent screen, for both the web flow (started by
+    auth_google() above) and the mobile flow (started by api.py's
+    api_google_login_start()) - a single registered redirect URI keeps the Google Cloud
+    OAuth client config to one entry instead of two. Which flow this is is told apart by
+    oauth_login_session_exists(state): only api_google_login_start() ever creates one of
+    those rows, so its presence IS the "this is mobile" signal - no query param needed,
+    and nothing a visitor could spoof to switch flows since `state` is an unguessable
+    token either way."""
+    if not google_oauth.is_configured():
+        abort(404)
+
+    state = request.args.get("state", "")
+    is_mobile = oauth_login_session_exists(state)
+
+    def fail(message):
+        if is_mobile:
+            fail_oauth_login_session(state)
+            return render_template("google_auth_mobile_result.html", success=False)
+        return redirect(url_for("login", message=message))
+
+    # Web-only CSRF check - the mobile state token is its own proof (created server-side by
+    # api_google_login_start(), unguessable), no session cookie involved for that flow at all.
+    if not is_mobile:
+        expected_state = session.pop("oauth_state", None)
+        if not expected_state or expected_state != state:
+            return fail("Google sign-in failed - please try again.")
+
+    if request.args.get("error") or "code" not in request.args:
+        return fail("Google sign-in was cancelled.")
+
+    redirect_uri = url_for("auth_google_callback", _external=True)
+    google_user = google_oauth.fetch_user(request.args["code"], redirect_uri)
+    if google_user is None:
+        return fail("Google sign-in failed - please try again.")
+
+    business = _google_login_or_register(google_user)
+    if business is None:
+        return fail("Couldn't sign in with that Google account - try logging in with your password instead.")
+
+    if is_mobile:
+        token = make_token(business[0])
+        complete_oauth_login_session(state, token, business[0], business[1])
+        return render_template("google_auth_mobile_result.html", success=True)
+
+    session["business_id"] = business[0]
+    session["business_name"] = business[1]
+    return redirect(url_for("home"))
 
 
 @app.route("/login", methods=["GET", "POST"])
@@ -2157,7 +2311,7 @@ def intro():
 
 @app.route("/download")
 def download():
-    return render_template("download.html")
+    return render_template("download.html", apk_version=APK_VERSION)
 
 
 # Serves the APK with Content-Disposition: attachment (Flask's default static file

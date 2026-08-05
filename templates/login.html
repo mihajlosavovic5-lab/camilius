@@ -10,7 +10,7 @@
             <span class="brand-name">Camilius</span>
         </span>
         <span class="auth-accent"></span>
-        <p class="auth-tagline" data-i18n="login.tagline">AI automatically replies to your customers &mdash; manual review available anytime.</p>
+        <p class="auth-tagline" data-i18n="login.tagline">AI automatically replies to your customers &mdash; day or night, nobody waits.</p>
     </div>
 
     <div class="auth-card">
@@ -21,6 +21,14 @@
         {% endif %}
         {% if message %}
             <div class="alert alert-success"><span class="alert-icon">&#10003;</span><span>{{ message }}</span></div>
+        {% endif %}
+
+        {% if google_oauth_configured %}
+        <a class="button button-google button-full button-pill" href="{{ url_for('auth_google') }}">
+            {% include "_google_icon.html" %}
+            <span data-i18n="login.continueWithGoogle">Continue with Google</span>
+        </a>
+        <div class="auth-divider"><span data-i18n="login.orDivider">or</span></div>
         {% endif %}
 
         <form method="POST">

@@ -110,7 +110,8 @@ def _trial_ending_email_body(business_name, trial_ends_at):
         f"Your 14-day free trial ends on {when}. After that, we'll charge the card on "
         f"file to keep your AI page and chat running without interruption.\n\n"
         f"Nothing to do if you want to continue - it's automatic. If you'd rather not "
-        f"continue, cancel any time before then from Subscription in your dashboard, "
+        f"continue, cancel any time before then using the \"Manage subscription\" link "
+        f"in the confirmation email Paddle sent you, or by replying to this email, "
         f"and you won't be charged anything.\n\n"
         f"- Camilius"
     )

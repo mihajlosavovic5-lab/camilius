@@ -50,29 +50,29 @@ account and its conversation history).
 
 Dashboard (top nav "Conversations"): shows every customer question with the AI's reply,
 from the page and any embedded widget. Filters: All / Pending / Sent / Archived / Trash.
-Trash is auto-purged after 30 days. A daily quota bar at the top shows how many messages
-have been processed today out of the daily limit (50/day).
+Trash is auto-purged after 30 days. There's a daily limit of 50 AI replies per business
+(applies to every plan), but it isn't shown anywhere in the dashboard UI.
 
 Subscription & pricing: every new account gets a 14-day free trial with full access
 including Pro features. Starting the trial means picking a plan and adding a card via
 Paddle Checkout - nothing is charged during the trial, and we email a heads-up a few
 days before it ends. Cancel any time before then and nothing is charged at all.
 - Starter: $29/month or $290/year (2 months free on yearly) - basic AI replies to
-  customer messages, up to 300 conversations per month.
+  customer messages, up to 50 AI replies per day.
 - Pro: $59/month or $590/year (2 months free on yearly) - everything in Starter,
-  plus: smart appointment scheduling via the Schedule page, automatic reminders,
-  appointment cancellation, and this support assistant.
+  plus: the Schedule page (calendar view and manual booking are Pro-only too, not
+  just the AI auto-booking), automatic appointment reminders, AI-driven appointment
+  cancellation/rescheduling, and this support assistant.
 Billing is handled by Paddle (Camilius's authorized reseller/merchant of record); VAT is
 calculated automatically at checkout.
 
-Schedule page (top nav "Schedule", called "Raspored"): every business, regardless of
-plan, can view a day or week calendar and manually add or cancel appointments there.
-What's Pro-exclusive is the AI actually booking appointments BY ITSELF during a chat
+Schedule page (top nav "Schedule", called "Raspored"): Pro-only. Starter-plan businesses
+(after their trial ends) have no access at all - not even the manual calendar - and see
+an "Upgrade to Pro" page instead. Pro businesses can view a day or week calendar, manually
+add or cancel appointments, AND let the AI book appointments by itself during a chat
 conversation on the page or embedded widget: checking the calendar for a free slot,
 booking it automatically if it's open, or - if the requested time is taken - offering the
-customer the next 2 closest available times instead. Starter-plan businesses (after
-their trial ends) keep the manual calendar but the AI won't auto-book from a
-conversation.
+customer the next 2 closest available times instead.
 
 Mobile app: a native Android app is available to download from the Download page -
 it mirrors the website and stays in sync automatically (there is no separate account or
