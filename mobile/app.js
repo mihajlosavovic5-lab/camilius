@@ -1499,7 +1499,17 @@ el("login-form").addEventListener("submit", async (event) => {
 // /auth/google/callback - reached once the visitor finishes on Google's side - has filled
 // in a token for that state, exactly like a normal /api/login response.
 
-const GOOGLE_LOGIN_POLL_INTERVAL_MS = 1800;
+// Short on purpose: this is the tail latency between Google actually finishing the
+// redirect (auth_google_callback resolving the attempt) and the app noticing and calling
+// Browser.close() on the Custom Tab - i.e. how long the (now blank, see
+// google_auth_mobile_blank.html) browser tab visibly lingers before it's dismissed. At the
+// previous 1800ms a visitor could catch it sitting there for the better part of two
+// seconds; at 400ms that window shrinks to something closer to imperceptible. Google's own
+// OAuth policy requires this hop through an external browser context at all (no WebView
+// allowed) - a poll interval this tight is the closest this can get to "instant" without a
+// native custom-URL-scheme redirect, which would need a new signed APK, not just this OTA
+// bundle. api_google_login_status's own rate limit (see api.py) is sized to match.
+const GOOGLE_LOGIN_POLL_INTERVAL_MS = 400;
 const GOOGLE_LOGIN_POLL_TIMEOUT_MS = 120000;
 
 // Set by pollGoogleLogin below when a Google identity has never been seen here before

@@ -332,13 +332,17 @@ def api_google_login_start():
     return jsonify(auth_url=google_oauth.authorization_url(redirect_uri, state), state=state)
 
 
-# Polled every couple seconds by the app while its system-browser tab is open (see
-# mobile/app.js's pollGoogleLogin) - 'pending' until /auth/google/callback resolves the
+# Polled every GOOGLE_LOGIN_POLL_INTERVAL_MS (see mobile/app.js's pollGoogleLogin) while
+# its system-browser tab is open - 'pending' until /auth/google/callback resolves the
 # attempt one way or the other. A 'done'/'error' result (or the row simply not existing -
 # either never created, or already consumed by an earlier poll) is single-use, matching
-# database.oauth_login_session_status's own docstring.
+# database.oauth_login_session_status's own docstring. `state` is a 24-byte
+# secrets.token_urlsafe value - too high-entropy to usefully brute-force within this
+# window even at this rate, so the limit here is really just a sanity cap, not real
+# abuse resistance. Sized comfortably above one attempt's own worst case (120s timeout /
+# 400ms interval = 300 requests) so a single slow sign-in never trips it on its own.
 @api.route("/google-login/status", methods=["GET"])
-@limiter.limit("120 per 5 minutes")
+@limiter.limit("400 per 5 minutes")
 def api_google_login_status():
     state = request.args.get("state", "")
     result = oauth_login_session_status(state) if state else None
