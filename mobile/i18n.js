@@ -3093,6 +3093,10 @@ function applyTranslations() {
         node.placeholder = t(node.getAttribute("data-i18n-placeholder"));
     });
     const lang = LANGUAGES.find((l) => l.code === currentLang);
+    const label = document.getElementById("lang-select-label");
+    if (label) label.textContent = lang ? lang.name : currentLang;
+    const settingsValue = document.getElementById("settings-language-value");
+    if (settingsValue) settingsValue.textContent = lang ? lang.name : currentLang;
     const flagGlyph = lang ? countryFlagEmoji(lang.flag) : "";
     const selectFlag = document.getElementById("lang-select-flag");
     if (selectFlag) selectFlag.textContent = flagGlyph;
@@ -3119,8 +3123,8 @@ async function initLanguage() {
 }
 
 function setupLanguagePicker() {
-    // Two triggers open the same shared modal - the login screen's own "English v"
-    // button, and the "Language" row in the new Settings screen.
+    // Two triggers open the same shared modal - the login screen's own "flag + name v"
+    // button, and the "Language" row in the Settings screen.
     const triggers = [
         document.getElementById("lang-select-btn"),
         document.getElementById("settings-language-row"),
@@ -3131,40 +3135,14 @@ function setupLanguagePicker() {
     const list = document.getElementById("lang-modal-list");
     if (!triggers.length || !modal || !sheet || !list) return;
 
-    // Anchored below whichever trigger opened it, same mechanism (never opens behind the
-    // tab bar) as createAnchoredListPicker() in app.js uses for the working-hours/
-    // currency/duration pickers. The login screen's "English v" button is a small
-    // pill-shaped field, so its dropdown is matched edge-to-edge to the button's own
-    // width (option names truncate with ellipsis - see .country-option-name - rather
-    // than force the sheet wider). The Settings row trigger spans almost the full
-    // screen, so matching its width the same way would turn the dropdown into a
-    // near-full-width slab with a lot of empty space next to each flag/name - that one
-    // keeps the list's natural content width instead. This one manages its own two
-    // triggers/backdrop instead of going through that shared instance, so the
-    // positioning math is repeated here rather than shared - the language picker was
-    // still a fixed, centered, un-anchored ~260px box before any of this.
-    const openPicker = (triggerBtn) => {
-        const rect = triggerBtn.getBoundingClientRect();
-        const margin = 12;
-        const top = rect.bottom + 6;
-        const bottomLimit = tabbar.classList.contains("hidden") ? window.innerHeight : tabbar.getBoundingClientRect().top;
-        const available = bottomLimit - top - margin;
-        sheet.style.top = `${top}px`;
-        sheet.style.left = `${rect.left}px`;
-        const maxWidth = window.innerWidth - rect.left - margin;
-        sheet.style.width = "auto";
-        const naturalWidth = sheet.getBoundingClientRect().width;
-        // Rows are flag-only now, so the list's natural width is always small - floored
-        // at the trigger's own width just so it never reads as narrower than the field
-        // that opened it.
-        sheet.style.width = `${Math.min(Math.max(rect.width, naturalWidth), maxWidth)}px`;
-        sheet.style.maxHeight = `${Math.max(0, Math.min(240, available))}px`;
-
+    // Centered on screen (sized and positioned entirely by .lang-picker-sheet in
+    // app.css) instead of anchored under whichever trigger opened it - no single
+    // anchored width reads well against every language name at once ("Türkçe" vs
+    // "Português"), and a mid-screen sheet with its own title reads as a deliberate
+    // "choose your language" moment rather than a cramped dropdown.
+    const openPicker = () => {
         modal.classList.add("open");
         triggers.forEach((t) => t.classList.add("active"));
-        // .lang-modal-sheet (not .lang-modal-list) is the element that actually scrolls
-        // here - see its own overflow-y:auto below, unlike the other anchored pickers
-        // where the inner list scrolls instead.
         sheet.scrollTop = 0;
     };
     const closePicker = () => {
@@ -3175,9 +3153,9 @@ function setupLanguagePicker() {
     LANGUAGES.forEach((lang) => {
         const row = document.createElement("button");
         row.type = "button";
-        row.className = "country-option-btn lang-option-btn";
-        row.setAttribute("aria-label", lang.name);
-        row.innerHTML = `<span class="country-option-flag">${countryFlagEmoji(lang.flag)}</span>`;
+        row.className = "country-option-btn";
+        row.innerHTML = `<span class="country-option-flag">${countryFlagEmoji(lang.flag)}</span>` +
+            `<span class="country-option-name">${escapeHtml(lang.name)}</span>`;
         row.addEventListener("click", async () => {
             await setLanguage(lang.code);
             closePicker();
@@ -3188,7 +3166,7 @@ function setupLanguagePicker() {
     triggers.forEach((btn) => {
         btn.addEventListener("click", () => {
             if (modal.classList.contains("open")) closePicker();
-            else openPicker(btn);
+            else openPicker();
         });
     });
     backdrop.addEventListener("click", closePicker);

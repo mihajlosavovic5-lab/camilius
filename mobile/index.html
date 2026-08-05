@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
 <title>Camilius</title>
-<link rel="stylesheet" href="app.css?v=b2da21af9eb6">
+<link rel="stylesheet" href="app.css?v=c12d10496604">
 </head>
 <body>
 
@@ -49,13 +49,17 @@
   </div>
 </div>
 
-<!-- Language picker dropdown - lives outside #app so its position:fixed isn't affected by
-     any ancestor .screen's transform (a CSS transform creates a new containing block
-     for fixed descendants, which would otherwise break this). Closed/open state is the
-     "open" class (not "hidden") so CSS transitions can animate it. -->
+<!-- Language picker - lives outside #app so its position:fixed isn't affected by any
+     ancestor .screen's transform (a CSS transform creates a new containing block for
+     fixed descendants, which would otherwise break this). Closed/open state is the
+     "open" class (not "hidden") so CSS transitions can animate it. Centered on screen
+     (see .lang-picker-sheet in app.css) rather than anchored under whichever trigger
+     opened it - language names vary too much in length ("Türkçe" vs "Português") for an
+     anchored dropdown to size well against every one of them. -->
 <div id="lang-modal" class="lang-modal">
   <div class="lang-modal-backdrop" id="lang-modal-backdrop"></div>
-  <div class="lang-modal-sheet country-modal-sheet">
+  <div class="lang-modal-sheet lang-picker-sheet">
+    <div class="lang-picker-title" data-i18n="lang.pickerTitle">Choose language</div>
     <div id="lang-modal-list" class="lang-modal-list"></div>
   </div>
 </div>
@@ -285,6 +289,7 @@
       <div class="login-lang-row">
         <button type="button" id="lang-select-btn" class="lang-select-btn">
           <span id="lang-select-flag" class="lang-select-flag"></span>
+          <span id="lang-select-label" class="lang-select-label"></span>
           <span class="lang-chevron">⌄</span>
         </button>
       </div>
@@ -957,6 +962,7 @@
       <div class="settings-row" id="settings-language-row">
         <span class="settings-row-value">
           <span id="settings-language-flag"></span>
+          <span id="settings-language-value" class="settings-language-value"></span>
         </span>
       </div>
       <div class="settings-row settings-row-stack">
@@ -1324,7 +1330,7 @@
   </button>
 </nav>
 
-<script src="i18n.js?v=b2da21af9eb6"></script>
-<script src="app.js?v=b2da21af9eb6"></script>
+<script src="i18n.js?v=c12d10496604"></script>
+<script src="app.js?v=c12d10496604"></script>
 </body>
 </html>

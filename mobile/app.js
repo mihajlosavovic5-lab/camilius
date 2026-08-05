@@ -4065,7 +4065,7 @@ el("settings-app-version").textContent = `Camilius · v${APP_VERSION}`;
 // The native APK version above never changes between OTA pushes (see build_mobile_bundle.py) -
 // appending the actual active bundle hash too gives a way to confirm from the device
 // itself whether a given OTA update actually landed, without needing server-side logs.
-if (capacitorPlugins.CapacitorUpdater) {
+if (capacitorPlugins && capacitorPlugins.CapacitorUpdater) {
     capacitorPlugins.CapacitorUpdater.current()
         .then((current) => {
             const bundleVersion = (current && current.bundle && current.bundle.version) || "builtin";
