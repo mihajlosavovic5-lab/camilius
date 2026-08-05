@@ -5,6 +5,12 @@
 const API_BASE = "https://app.ai-auto-reply-mail.com";
 const APP_VERSION = "1.9.7"; // bumped alongside the native versionName, sent with crash reports
 
+// TEMP: while we're iterating on the onboarding carousel's design, force it to show on
+// every app launch instead of just the first one - bypasses both the stored
+// onboardingSeen flag and an existing logged-in session (see the boot IIFE near the
+// bottom of this file). Set back to false once the design is finalized.
+const FORCE_SHOW_ONBOARDING = true;
+
 // No per-account sent-at tracking on the backend for password-reset emails (unlike email/
 // phone verification below), so the forgot-password buttons' cooldown is purely client-side -
 // matches EMAIL_VERIFY_RESEND_COOLDOWN_SECONDS/PHONE_VERIFY_RESEND_COOLDOWN_SECONDS in app.py.
@@ -3896,7 +3902,14 @@ function setupOnboarding() {
     document.querySelectorAll(".onboarding-continue, .onboarding-skip").forEach((btn) => {
         btn.addEventListener("click", async () => {
             await storageSet("onboardingSeen", "1");
-            showScreen("login");
+            // While FORCE_SHOW_ONBOARDING (below) is on, boot skips straight to this
+            // screen even for an already-logged-in session - so leaving it has to route
+            // the same place boot itself would have, not just always to login.
+            if (state.token) {
+                enterApp();
+            } else {
+                showScreen("login");
+            }
         });
     });
 }
@@ -3963,7 +3976,9 @@ updateOfflineBanner();
     el("donation-strip").classList.toggle("hidden", !donationLink);
     if (donationLink) el("donation-strip-link").href = donationLink;
 
-    if (state.token) {
+    if (FORCE_SHOW_ONBOARDING && isNative) {
+        showScreen("onboarding");
+    } else if (state.token) {
         enterApp();
     } else if (isNative && !onboardingSeen) {
         showScreen("onboarding");
