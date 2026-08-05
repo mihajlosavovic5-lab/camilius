@@ -520,11 +520,13 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
 .button:active { background: var(--primary-dark); }
 .button:disabled { background: #cabfa4; }
 .button-full { width: 100%; }
-/* .button:active's gold press flash is meant for solid primary-colored buttons - on
-   Log out (a plain .button-secondary, already just cream/outlined) it looked like the
-   button was momentarily turning into a primary action instead of just registering the
-   tap. Cancel it back to the resting background. */
-#settings-logout:active { background: var(--surface); }
+/* .button:active's gold press flash is meant for solid primary-colored buttons - on any
+   plain .button-secondary (Log out, Create account, Continue with email, Cancel, ...
+   already just cream/outlined) it looked like the button was momentarily turning into a
+   primary action instead of just registering the tap. Cancel it back to the resting
+   background for every .button-secondary at once, not just Log out - same reasoning as
+   the website's own .button-secondary:hover (static/style.css). */
+.button-secondary:active { background: var(--surface); }
 .button-secondary { background: var(--surface); color: var(--text); border: 1px solid var(--border); }
 .button-primary-outline { color: var(--primary); border-color: var(--primary); }
 .button-pill { border-radius: 999px; }
@@ -532,7 +534,10 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
    branding guidelines, same reasoning/colors as the website's .button-google
    (static/style.css) - the multi-color "G" mark itself is the only branding color. */
 .button-google { background: #fff; color: #3c4043; border: 1px solid var(--border); }
-.button-google:active { background: var(--background); }
+/* No press-color flash at all (matches .button-secondary:active above) - overrides
+   .button:active's amber flash with the SAME white the button already rests at, rather
+   than swapping in a different (if subtler) tint on tap. */
+.button-google:active { background: #fff; }
 .button-google-icon { width: 18px; height: 18px; flex-shrink: 0; }
 /* Same "short caption breaks up a lone floating button" idea as .login-signup-divider
    above, reused here between the Google button and the username/password form. */
