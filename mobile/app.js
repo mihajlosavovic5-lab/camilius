@@ -1745,7 +1745,6 @@ el("login-email-btn").addEventListener("click", () => {
     el("login-choice").classList.add("hidden");
     el("login-email-form").classList.remove("hidden");
     el("login-wrap").classList.add("login-wrap-form-phase");
-    el("login-username").focus();
 });
 el("login-email-back-btn").addEventListener("click", resetLoginPhase);
 

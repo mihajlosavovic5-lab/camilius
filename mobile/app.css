@@ -599,9 +599,13 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
 }
 /* Returns from the revealed username/password form (see #login-email-btn/
    #login-email-back-btn in app.js) back to the Google/email choice screen - reuses
-   .back-btn's plain 34px circle look, just not absolutely positioned inside a .topbar
-   the way every other use of it is, so it needs its own top-of-flow spacing. */
-.login-email-back-btn { margin-bottom: 6px; }
+   .back-btn's plain 34px circle look, pinned to the screen's actual top-left corner
+   (inset by the same padding as .login-wrap itself, not flush against the edge) rather
+   than sitting in-flow above the form, matching the .topbar back-btn convention used
+   everywhere else in the app. .login-wrap is already position:relative. */
+.login-email-back-btn {
+    position: absolute; left: 26px; top: calc(22px + var(--safe-top)); z-index: 2;
+}
 
 .checkbox-row { display: flex; align-items: flex-start; gap: 9px; font-weight: 400; font-size: 15px; margin: 16px 0 4px; cursor: pointer; }
 /* accent-color intentionally uses --text (not --primary/gold) - a plain, clean
