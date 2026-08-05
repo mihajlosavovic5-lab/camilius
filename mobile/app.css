@@ -202,7 +202,15 @@ button { font-family: inherit; -webkit-appearance: none; appearance: none; }
    edge, ignoring that padding entirely) instead of 0, so the button lines up with
    everything else's left margin instead of sitting flush in the corner. */
 .topbar:not(.topbar-detail) .back-btn {
-    position: absolute; left: 18px; top: calc(50% + 5px + (var(--safe-top) / 2)); transform: translateY(-50%); z-index: 1;
+    position: absolute; left: 18px; top: calc(50% + 5px + (var(--safe-top) / 2));
+    transform: translateY(-50%) translateX(10px); z-index: 1;
+}
+/* Settled/entered state - screen's fully active and the back button's own little
+   fade+slide (same appear effect as the login screen's .login-email-back-btn) has run.
+   Kept as its own rule (not folded into .back-btn's transition below) since the
+   translateY(-50%) centering has to survive right alongside the translateX slide. */
+.screen.active .topbar:not(.topbar-detail) .back-btn {
+    transform: translateY(-50%) translateX(0);
 }
 .topbar-title { display: flex; align-items: center; justify-content: center; gap: 10px; flex: 1; }
 /* Same serif brand font as the login screen's "Camilius" wordmark (.brand-name) instead
@@ -215,11 +223,22 @@ button { font-family: inherit; -webkit-appearance: none; appearance: none; }
 .detail-sender { font-weight: 700; font-size: 16px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .detail-time { color: var(--text-muted); font-size: 13px; }
 
+/* Every back button fades + slides into place as its screen becomes active - the same
+   appear effect as the login screen's own .login-email-back-btn (see its comment further
+   down) - instead of just snapping in with whatever the rest of the topbar does. Base
+   rule below is the pre-entrance state (opacity 0, nudged right); .screen.active below
+   is what every back-btn's own trigger resolves to once its screen has arrived. Doesn't
+   fight the .screen's own slide-in transform - .back-btn's containing block is the
+   .topbar (position:relative, itself never transformed), not the .screen, so this stays
+   independent of it. */
 .back-btn {
     width: 34px; height: 34px; border-radius: 99px; border: none; background: var(--background);
     color: var(--text); font-size: 23px; line-height: 1; cursor: pointer; flex-shrink: 0;
+    opacity: 0; transform: translateX(10px);
+    transition: opacity .18s ease, transform .22s cubic-bezier(.22,.9,.32,1.05);
 }
 .back-btn:active { background: var(--border); }
+.screen.active .back-btn { opacity: 1; transform: translateX(0); }
 
 /* --- Brand mark --- */
 .brand-mark {
