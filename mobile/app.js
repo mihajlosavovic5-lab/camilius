@@ -193,6 +193,20 @@ let legalReturnTo = "settings";
 // locked (Starter-plan) upsell state.
 let subscriptionReturnTo = "settings";
 
+// The Google sign-in attempt currently in flight (state/errorBox/settled), or null when
+// none is - see the "Continue with Google" section below for where this is actually set/
+// read/cleared. Declared up here (rather than down there, next to its own logic) because
+// checkForOtaUpdate below needs to check it too - it must not yank the WebView out from
+// under an active attempt with a forced reload (see that check's own comment).
+let activeGoogleLoginAttempt = null;
+
+// Set below, inside `if (capacitorPlugins.CapacitorUpdater)`, to the real checkForOtaUpdate
+// function - stays null on a build without that plugin. Called again once a deferred
+// Google sign-in attempt settles (see checkGoogleLoginStatusOnce) so an update postponed
+// for that reason doesn't just sit forgotten until the next unrelated foreground/visible
+// event.
+let checkForOtaUpdateFn = null;
+
 if (capacitorPlugins) {
     capacitorPlugins.StatusBar.setBackgroundColor({ color: "#d69410" });
     capacitorPlugins.StatusBar.setStyle({ style: "LIGHT" });
@@ -262,6 +276,14 @@ if (capacitorPlugins) {
         };
 
         const checkForOtaUpdate = async () => {
+            // set() below reloads the WebView outright - doing that while a Google
+            // sign-in attempt is in flight would tear down the very screen/state the
+            // visitor is looking at (the login-error message they just got, the
+            // in-progress poll) out from under them, mid-flow, for a reason that has
+            // nothing to do with anything they just did. Deferred, not dropped -
+            // checkGoogleLoginStatusOnce calls checkForOtaUpdateFn again once the
+            // attempt settles, so the update still lands, just not mid-attempt.
+            if (activeGoogleLoginAttempt) return;
             if (otaCheckInProgress) return;
             otaCheckInProgress = true;
             let step = "fetch-manifest";
@@ -310,6 +332,7 @@ if (capacitorPlugins) {
                 otaCheckInProgress = false;
             }
         };
+        checkForOtaUpdateFn = checkForOtaUpdate;
 
         // Check at cold start and every time the app returns to the foreground - two
         // redundant triggers for the same "reopened" moment, since both are Capacitor/OS
@@ -1549,11 +1572,10 @@ const GOOGLE_LOGIN_POLL_TIMEOUT_MS = 120000;
 // form's own hidden google_link_token field, re-verified server-side either way.
 let pendingGoogleLinkToken = null;
 
-// The Google sign-in attempt currently in flight (state/errorBox/settled), or null when
-// none is - lets the appUrlOpen listener below reach the same attempt pollGoogleLogin is
-// already waiting on, so it can settle it immediately instead of waiting for the next
-// scheduled poll tick.
-let activeGoogleLoginAttempt = null;
+// activeGoogleLoginAttempt (declared up near checkForOtaUpdate, which needs to read it
+// too) is set/cleared below - lets the appUrlOpen listener below reach the same attempt
+// pollGoogleLogin is already waiting on, so it can settle it immediately instead of
+// waiting for the next scheduled poll tick.
 
 // One status check - returns true once the attempt has actually resolved (done/
 // needs_signup/no_account/error), false while still 'pending' (or on a network hiccup,
@@ -1562,7 +1584,7 @@ let activeGoogleLoginAttempt = null;
 // two "wins" the race handles the result exactly once; the loser's own fetch (if it was
 // already in flight) just sees 'expired' (the row is single-use - see
 // database.oauth_login_session_status) and is a silent no-op.
-async function checkGoogleLoginStatusOnce(attempt) {
+async function checkGoogleLoginStatusOnce(attempt, { closeBrowser = true } = {}) {
     if (attempt.settled) return true;
     let data;
     try {
@@ -1574,8 +1596,18 @@ async function checkGoogleLoginStatusOnce(attempt) {
     if (data.status === "pending") return false;
 
     attempt.settled = true;
-    if (activeGoogleLoginAttempt === attempt) activeGoogleLoginAttempt = null;
-    if (capacitorPlugins && capacitorPlugins.Browser) {
+    if (activeGoogleLoginAttempt === attempt) {
+        activeGoogleLoginAttempt = null;
+        // A pending OTA update (see checkForOtaUpdate's own guard) was deferred while
+        // this attempt was in flight - worth a prompt re-check now rather than waiting
+        // for the next unrelated foreground/visibility event.
+        if (checkForOtaUpdateFn) checkForOtaUpdateFn();
+    }
+    // closeBrowser is false only when the App Link listener below called this - Android
+    // already dismissed the Custom Tab itself as part of handing the intent to this app
+    // (see AndroidManifest.xml), so there's no tab left to close; calling Browser.close()
+    // on it anyway would just be targeting a session the OS already tore down.
+    if (closeBrowser && capacitorPlugins && capacitorPlugins.Browser) {
         capacitorPlugins.Browser.close().catch(() => {});
     }
     const errorBox = attempt.errorBox;
@@ -1617,7 +1649,13 @@ async function pollGoogleLogin(attempt) {
     // never came back, silently giving up (rather than showing a stale error) is right -
     // nothing failed, the attempt just never got followed through.
     attempt.settled = true;
-    if (activeGoogleLoginAttempt === attempt) activeGoogleLoginAttempt = null;
+    if (activeGoogleLoginAttempt === attempt) {
+        activeGoogleLoginAttempt = null;
+        // A pending OTA update (see checkForOtaUpdate's own guard) was deferred while
+        // this attempt was in flight - worth a prompt re-check now rather than waiting
+        // for the next unrelated foreground/visibility event.
+        if (checkForOtaUpdateFn) checkForOtaUpdateFn();
+    }
 }
 
 async function startGoogleLogin(button, errorBox, intent) {
@@ -1666,7 +1704,7 @@ if (capacitorPlugins && capacitorPlugins.App) {
         let path = "";
         try { path = new URL(data.url).pathname; } catch (e) {}
         if (path === "/auth/google/done") {
-            checkGoogleLoginStatusOnce(activeGoogleLoginAttempt);
+            checkGoogleLoginStatusOnce(activeGoogleLoginAttempt, { closeBrowser: false });
         }
     });
 }
