@@ -322,25 +322,16 @@ button { font-family: inherit; -webkit-appearance: none; appearance: none; }
 .lang-modal.open .lang-modal-sheet { transform: translateY(0) scale(1); opacity: 1; }
 .lang-modal-list { display: flex; flex-direction: column; }
 
-/* --- Language picker list - a full-width panel that drops straight down from
-   whichever trigger opened it (the login screen's own button, or the Settings row),
-   edge to edge with the screen instead of a narrow floating box - reads as a
-   continuation of the field itself rather than an unrelated popup, and a full-width
-   row gives every flag + full language name plenty of room regardless of how long the
-   name is ("Türkçe" vs "Português"). `top` is set inline by openPicker() in i18n.js
-   since it depends on which trigger opened it. --- */
+/* --- Language picker list - drops straight down from whichever trigger opened it (the
+   login screen's own button, or the Settings row), anchored to that trigger's own left
+   edge and sized to its own content instead of a fixed/centered box or a full-width
+   panel - reads as a continuation of the field itself rather than an unrelated popup.
+   `top`/`left`/`width`/`max-height` are all set inline by openPicker() in i18n.js since
+   they depend on which trigger opened it and how long the longest language name is. --- */
 .lang-picker-sheet {
-    left: 0; right: 0; bottom: auto;
-    width: auto; max-width: none; overflow-y: auto;
-    border-radius: 0 0 18px 18px;
-    padding: 8px 0;
-    transform-origin: top center;
-    transform: translateY(-10px) scale(.98);
-}
-.lang-modal.open .lang-picker-sheet { transform: translateY(0) scale(1); }
-.lang-picker-title {
-    font-size: 12.5px; font-weight: 700; color: var(--text-muted);
-    text-transform: uppercase; letter-spacing: .03em; padding: 8px 18px 6px;
+    right: auto; bottom: auto;
+    overflow-y: auto;
+    padding: 8px;
 }
 
 /* --- Country code picker (phone number field) - list (flag + name + dial code), sized

@@ -3133,17 +3133,26 @@ function setupLanguagePicker() {
     const list = document.getElementById("lang-modal-list");
     if (!triggers.length || !modal || !sheet || !list) return;
 
-    // Drops down from whichever trigger was tapped, full width (edge to edge - see
-    // .lang-picker-sheet in app.css) rather than matching the trigger's own width, so
-    // long language names never get squeezed. top/max-height are the only two things
-    // that actually depend on which trigger opened it, so those stay computed here.
+    // Drops down and slides into place right below whichever trigger was tapped,
+    // anchored to that trigger's own left edge (same mechanism as
+    // createAnchoredListPicker() in app.js uses for the working-hours/currency
+    // pickers) instead of centered on screen or spanning the full width. Width is
+    // floored at the trigger's own width - so it never reads as narrower than the
+    // field that opened it - but grows to fit whichever language name is longest
+    // ("Português" vs "Türkçe") rather than truncating any of them.
     const openPicker = (triggerBtn) => {
         const rect = triggerBtn.getBoundingClientRect();
         const gap = 8;
+        const margin = 12;
         const top = rect.bottom + gap;
         sheet.style.top = `${top}px`;
+        sheet.style.left = `${rect.left}px`;
+        sheet.style.width = "auto";
+        const naturalWidth = sheet.getBoundingClientRect().width;
+        const maxWidth = window.innerWidth - rect.left - margin;
+        sheet.style.width = `${Math.min(Math.max(rect.width, naturalWidth), maxWidth)}px`;
         const bottomLimit = tabbar.classList.contains("hidden") ? window.innerHeight : tabbar.getBoundingClientRect().top;
-        sheet.style.maxHeight = `${Math.max(0, bottomLimit - top - 12)}px`;
+        sheet.style.maxHeight = `${Math.max(0, Math.min(240, bottomLimit - top - margin))}px`;
 
         modal.classList.add("open");
         triggers.forEach((t) => t.classList.add("active"));
