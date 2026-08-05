@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
 <title>Camilius</title>
-<link rel="stylesheet" href="app.css?v=b6cdc0e71c77">
+<link rel="stylesheet" href="app.css?v=67357ed31d22">
 </head>
 <body>
 
@@ -308,6 +308,7 @@
            picked (see #login-email-btn/#login-email-back-btn in app.js). showScreen()
            resets back to this choice view every time the Login screen is navigated TO
            (logout, back button, etc.) - see app.js. -->
+      <div class="login-phase-stack" id="login-phase-stack">
       <div class="login-choice" id="login-choice">
         <button type="button" id="login-google-btn" class="button button-google button-full button-pill button-tap-scale">
           <svg class="button-google-icon" viewBox="0 0 18 18" aria-hidden="true">
@@ -322,7 +323,7 @@
         <button type="button" id="login-email-btn" class="button button-secondary button-full button-pill button-tap-scale" data-i18n="login.continueWithEmail">Continue with email</button>
       </div>
 
-      <div class="login-email-form hidden" id="login-email-form">
+      <div class="login-email-form" id="login-email-form">
         <button type="button" class="back-btn login-email-back-btn" id="login-email-back-btn" aria-label="Back">‹</button>
         <form id="login-form">
           <div class="floating-field">
@@ -344,6 +345,7 @@
         </form>
 
         <button type="button" id="login-forgot-link" class="link-btn login-forgot" data-i18n="login.forgot">Forgot password?</button>
+      </div>
       </div>
 
       <div class="login-spacer"></div>
@@ -1328,7 +1330,7 @@
   </button>
 </nav>
 
-<script src="i18n.js?v=b6cdc0e71c77"></script>
-<script src="app.js?v=b6cdc0e71c77"></script>
+<script src="i18n.js?v=67357ed31d22"></script>
+<script src="app.js?v=67357ed31d22"></script>
 </body>
 </html>

@@ -1729,11 +1729,9 @@ if (capacitorPlugins && capacitorPlugins.App) {
 // --- Two-phase login (Google/email choice -> revealed username+password form) ---
 
 function resetLoginPhase() {
-    el("login-choice").classList.remove("hidden");
-    el("login-email-form").classList.add("hidden");
-    // See .login-wrap-form-phase in app.css - the choice screen's shorter content uses a
-    // more evenly-split top/bottom spacer ratio than the full form does, so the block
-    // doesn't visibly jump position when the form is revealed/hidden.
+    // See .login-wrap-form-phase in app.css - this one class alone drives both the
+    // choice/form slide (which panel's on/off screen) and the spacer flex ratio, so the
+    // block doesn't visibly jump position when the form is revealed/hidden.
     el("login-wrap").classList.remove("login-wrap-form-phase");
     // Every fresh arrival at Login starts with a clean slate, not whatever error a
     // previous attempt left behind (see hideLoginError()'s own comment).
@@ -1742,8 +1740,6 @@ function resetLoginPhase() {
 
 el("login-email-btn").addEventListener("click", () => {
     hideLoginError();
-    el("login-choice").classList.add("hidden");
-    el("login-email-form").classList.remove("hidden");
     el("login-wrap").classList.add("login-wrap-form-phase");
 });
 el("login-email-back-btn").addEventListener("click", resetLoginPhase);

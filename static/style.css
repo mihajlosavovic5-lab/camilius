@@ -1284,8 +1284,27 @@ body.auth {
 /* Extra headroom up top while the email form's back arrow is showing (see .auth-back-btn
    below, pulled out of flow into the card's top-left corner) so it doesn't sit on top of
    the "Log in" heading. */
-.auth-card:has(#login-form-wrap:not(.hidden)) { padding-top: 64px; }
+.auth-card.auth-card-email-active { padding-top: 64px; }
 .auth-card-wide { max-width: 560px; }
+/* Choice <-> email-form swap slides instead of an instant cut - same feel as the mobile
+   app's own screen-to-screen navigation. Both panels share one grid cell (grid stacking -
+   the container's height tracks whichever is tallest, no manual height needed) and slide
+   past each other on .auth-card-email-active, driven purely by that one class rather than
+   each panel's own hidden state. No position:relative here deliberately - .auth-back-btn
+   (nested inside .auth-form-wrap) stays positioned against .auth-card itself, not this
+   stack. */
+.login-phase-stack { display: grid; }
+.login-phase-stack > .auth-choice,
+.login-phase-stack > .auth-form-wrap {
+    grid-area: 1 / 1;
+    transition: transform .26s cubic-bezier(.22,.9,.32,1.05), opacity .2s ease;
+}
+.auth-card:not(.auth-card-email-active) .auth-form-wrap {
+    transform: translateX(100%); opacity: 0; pointer-events: none;
+}
+.auth-card.auth-card-email-active .auth-choice {
+    transform: translateX(-100%); opacity: 0; pointer-events: none;
+}
 /* Pill-shaped fields on auth pages - same floating-field treatment as the APK login
    screen (mobile/app.css's .screen-login rules), so the web login isn't just visually
    similar but uses the identical field shape/proportions. */

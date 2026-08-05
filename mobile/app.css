@@ -272,6 +272,25 @@ button { font-family: inherit; -webkit-appearance: none; appearance: none; }
    jumping down when the form is revealed. */
 .login-wrap:not(.login-wrap-form-phase) .login-top-spacer { flex: 0.6; }
 .login-wrap:not(.login-wrap-form-phase) .login-spacer { flex: 0.6; }
+/* Choice <-> email-form swap slides like the app's own screen-to-screen navigation
+   (see .screen.active above) instead of an instant cut: both panels share one grid cell
+   (grid stacking - the container's height tracks whichever is tallest, no manual height
+   needed) and slide past each other on .login-wrap-form-phase, driven purely by that one
+   class rather than each panel's own hidden state. No position:relative here deliberately -
+   .login-email-back-btn (nested inside .login-email-form) stays positioned against
+   .login-wrap itself, not this stack. */
+.login-phase-stack { display: grid; }
+.login-phase-stack > .login-choice,
+.login-phase-stack > .login-email-form {
+    grid-area: 1 / 1;
+    transition: transform .26s cubic-bezier(.22,.9,.32,1.05), opacity .2s ease;
+}
+.login-wrap:not(.login-wrap-form-phase) .login-email-form {
+    transform: translateX(100%); opacity: 0; pointer-events: none;
+}
+.login-wrap.login-wrap-form-phase .login-choice {
+    transform: translateX(-100%); opacity: 0; pointer-events: none;
+}
 /* Breaks up the "lone pill button floating at the bottom" look (Instagram's own
    Sign Up button reads exactly like that) with a short caption above it instead. */
 .login-signup-divider {
