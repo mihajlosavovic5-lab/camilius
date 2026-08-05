@@ -3137,15 +3137,16 @@ function setupLanguagePicker() {
 
     // Anchored below whichever trigger opened it, same mechanism (never opens behind the
     // tab bar) as createAnchoredListPicker() in app.js uses for the working-hours/
-    // currency/duration pickers - except width is the list's own natural content width
-    // (the widest language name), not matched to the trigger's width like those pickers
-    // do. Those triggers are small pill-shaped fields worth matching edge-to-edge; the
-    // Settings row trigger here spans almost the full screen, so matching its width the
-    // same way turned the dropdown into a near-full-width slab with a lot of empty
-    // space next to each flag/name. This one manages its own two triggers/backdrop
-    // instead of going through that shared instance, so the positioning math is
-    // repeated here rather than shared - the language picker was still a fixed,
-    // centered, un-anchored ~260px box before any of this.
+    // currency/duration pickers. The login screen's "English v" button is a small
+    // pill-shaped field, so its dropdown is matched edge-to-edge to the button's own
+    // width (option names truncate with ellipsis - see .country-option-name - rather
+    // than force the sheet wider). The Settings row trigger spans almost the full
+    // screen, so matching its width the same way would turn the dropdown into a
+    // near-full-width slab with a lot of empty space next to each flag/name - that one
+    // keeps the list's natural content width instead. This one manages its own two
+    // triggers/backdrop instead of going through that shared instance, so the
+    // positioning math is repeated here rather than shared - the language picker was
+    // still a fixed, centered, un-anchored ~260px box before any of this.
     const openPicker = (triggerBtn) => {
         const rect = triggerBtn.getBoundingClientRect();
         const margin = 12;
@@ -3154,10 +3155,14 @@ function setupLanguagePicker() {
         const available = bottomLimit - top - margin;
         sheet.style.top = `${top}px`;
         sheet.style.left = `${rect.left}px`;
-        sheet.style.width = "auto";
-        const naturalWidth = sheet.getBoundingClientRect().width;
         const maxWidth = window.innerWidth - rect.left - margin;
-        sheet.style.width = `${Math.min(naturalWidth, maxWidth)}px`;
+        if (triggerBtn.id === "lang-select-btn") {
+            sheet.style.width = `${Math.min(rect.width, maxWidth)}px`;
+        } else {
+            sheet.style.width = "auto";
+            const naturalWidth = sheet.getBoundingClientRect().width;
+            sheet.style.width = `${Math.min(naturalWidth, maxWidth)}px`;
+        }
         sheet.style.maxHeight = `${Math.max(0, Math.min(240, available))}px`;
 
         modal.classList.add("open");
