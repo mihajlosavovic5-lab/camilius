@@ -230,7 +230,16 @@ button { font-family: inherit; -webkit-appearance: none; appearance: none; }
    is what every back-btn's own trigger resolves to once its screen has arrived. Doesn't
    fight the .screen's own slide-in transform - .back-btn's containing block is the
    .topbar (position:relative, itself never transformed), not the .screen, so this stays
-   independent of it. */
+   independent of it.
+
+   :not(.login-email-back-btn) below is load-bearing, not decoration: that one button
+   lives on the Login screen, which is active (and stays active) on the very first screen
+   the app opens to as well as the whole time you're choosing Google vs. email - there's
+   nothing to go back to yet at that point. It has its own separate trigger
+   (.login-wrap-form-phase, further down) tied to actually being in the email form, not
+   to the screen merely being open - without this exclusion the two rules tie on
+   specificity and this one, appearing later in the cascade, would win and show the arrow
+   the instant the screen is active regardless of phase. */
 .back-btn {
     width: 34px; height: 34px; border-radius: 99px; border: none; background: var(--background);
     color: var(--text); font-size: 23px; line-height: 1; cursor: pointer; flex-shrink: 0;
@@ -238,7 +247,7 @@ button { font-family: inherit; -webkit-appearance: none; appearance: none; }
     transition: opacity .18s ease, transform .22s cubic-bezier(.22,.9,.32,1.05);
 }
 .back-btn:active { background: var(--border); }
-.screen.active .back-btn { opacity: 1; transform: translateX(0); }
+.screen.active .back-btn:not(.login-email-back-btn) { opacity: 1; transform: translateX(0); }
 
 /* --- Brand mark --- */
 .brand-mark {
