@@ -343,12 +343,12 @@ button { font-family: inherit; -webkit-appearance: none; appearance: none; }
        below sets direction:ltr right back so the flags/text inside still read normally. */
     direction: rtl;
     scrollbar-width: thin;
-    scrollbar-color: color-mix(in srgb, var(--text-muted) 55%, transparent) transparent;
+    scrollbar-color: color-mix(in srgb, var(--text-muted) 70%, transparent) transparent;
 }
 .lang-picker-sheet::-webkit-scrollbar { width: 3px; }
 .lang-picker-sheet::-webkit-scrollbar-track { background: transparent; margin: 10px 0; }
 .lang-picker-sheet::-webkit-scrollbar-thumb {
-    background: color-mix(in srgb, var(--text-muted) 55%, transparent);
+    background: color-mix(in srgb, var(--text-muted) 70%, transparent);
     border-radius: 3px;
 }
 
