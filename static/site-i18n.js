@@ -46,6 +46,7 @@ const COUNTRY_LANG_MAP = {
 const TRANSLATIONS = {
     en: {
         "common.home": "Home",
+        "common.mySite": "My Website",
         "common.conversations": "Conversations",
         "common.schedule": "Schedule",
         "common.subscription": "Subscription",
@@ -77,7 +78,7 @@ const TRANSLATIONS = {
         "login.accountDeletedMessage": "Your account has been permanently deleted. We're sorry to see you go.",
         "login.backToHome": "Back to home page",
 
-        "register.tagline": "Set up in minutes — your AI starts answering customers right away.",
+        "register.tagline": "Set up in minutes — Camilius builds your website and starts answering customers right away.",
         "register.title": "Register your business",
         "register.subtitle": "You can change all of these fields later in settings.",
         "register.accountSection": "Account",
@@ -184,10 +185,10 @@ const TRANSLATIONS = {
         "landing.nav.login": "Log in",
         "landing.nav.tryFree": "Try for free",
         "landing.nav.whoFor": "Who it's for",
-        "landing.hero.title1": "A customer messages your business at midnight.",
-        "landing.hero.title2": "Camilius already answered — and booked them for Tuesday.",
-        "landing.hero.subtitle1": "Camilius builds your business a page with an AI chat that answers every message instantly — from your hours, prices, and FAQ — and books the appointment when needed.",
-        "landing.hero.subtitle2": "Sent in seconds, day or night — no customer ever waits.",
+        "landing.hero.title1": "Describe your business. Camilius builds the website.",
+        "landing.hero.title2": "Complete with an AI chat agent that answers customers and books appointments.",
+        "landing.hero.subtitle1": "Tell Camilius about your business and it designs, writes, and publishes a website for you in minutes — no coding, no designer.",
+        "landing.hero.subtitle2": "Every site comes with a built-in AI assistant that never sleeps.",
         "landing.hero.ctaFree": "Get started for free",
         "landing.hero.ctaTrial": "Try free for 14 days",
         "landing.hero.finePrintBeta": "Free during the beta",
@@ -198,16 +199,16 @@ const TRANSLATIONS = {
         "landing.slider.aiReplyLabel": "AI-suggested reply",
         "landing.slider.caption": "Real examples, based on the information about your business shown during registration.",
         "landing.howItWorks.title": "How it works",
-        "landing.howItWorks.step1.title": "Set up your business",
-        "landing.howItWorks.step1.desc": "Add your hours, prices, and FAQ.",
-        "landing.howItWorks.step1.descSub1": "Get a hosted page and AI chat in minutes.",
+        "landing.howItWorks.step1.title": "Describe your business",
+        "landing.howItWorks.step1.desc": "Type it, speak it, or upload a document.",
+        "landing.howItWorks.step1.descSub1": "The AI drafts your tagline, about page, hours, prices, and FAQ.",
         "landing.howItWorks.step1.descSub2": "Secure — no passwords shared.",
-        "landing.howItWorks.step2.title": "AI drafts replies",
-        "landing.howItWorks.step2.desc": "Reads every new message instantly.",
-        "landing.howItWorks.step2.descSub": "Drafts an accurate reply in the customer's language.",
-        "landing.howItWorks.step2.visual": "Drafting reply…",
-        "landing.howItWorks.step3.title": "AI sends it instantly",
-        "landing.howItWorks.step3.desc": "Sends the reply the moment it's ready.",
+        "landing.howItWorks.step2.title": "AI designs your site",
+        "landing.howItWorks.step2.desc": "Get design options matched to your business.",
+        "landing.howItWorks.step2.descSub": "Pick a look, add your photos, and publish.",
+        "landing.howItWorks.step2.visual": "Designing your site…",
+        "landing.howItWorks.step3.title": "AI chat, built in",
+        "landing.howItWorks.step3.desc": "Answers every customer question instantly.",
         "landing.howItWorks.step3.descSub1": "Every reply is reviewable anytime",
         "landing.howItWorks.step3.descSub2": "in your Conversations tab.",
         "landing.howItWorks.step1.visual": "Your page & AI are live",
@@ -239,7 +240,7 @@ const TRANSLATIONS = {
         "landing.pricing.trialInfo": "14-day free trial",
         "landing.pricing.benefit3": "Cancel anytime",
         "landing.pricing.cta": "Start your free trial",
-        "landing.footer.tagline": "AI answers your customers and books appointments automatically — with a hosted page included.",
+        "landing.footer.tagline": "The AI that builds your business a website — with a chat agent and appointment booking built in.",
         "landing.footer.productHeading": "Product",
         "landing.footer.getStarted": "Get started",
         "landing.footer.androidApp": "Android app",
@@ -614,6 +615,8 @@ const TRANSLATIONS = {
         "onboarding.describe.documentsAdd": "+ Add document",
         "onboarding.describe.reviewHint": "Have a look and fix anything the transcription got wrong before generating your website.",
         "onboarding.design.title": "Choose a design",
+        "onboarding.design.suggested": "Suggested for your business",
+        "onboarding.design.classic": "Or pick a classic look",
         "onboarding.address.title": "Choose your web address",
         "onboarding.address.label": "Web address",
         "onboarding.address.taken": "That web address is already taken.",
@@ -635,6 +638,7 @@ const TRANSLATIONS = {
 
     es: {
         "common.home": "Inicio",
+        "common.mySite": "Mi sitio web",
         "common.conversations": "Conversaciones",
         "common.schedule": "Agenda",
         "common.subscription": "Suscripción",
@@ -1112,6 +1116,7 @@ const TRANSLATIONS = {
 
     pt: {
         "common.home": "Início",
+        "common.mySite": "Meu site",
         "common.conversations": "Conversas",
         "common.schedule": "Agenda",
         "common.subscription": "Assinatura",
@@ -1589,6 +1594,7 @@ const TRANSLATIONS = {
 
     fr: {
         "common.home": "Accueil",
+        "common.mySite": "Mon site",
         "common.conversations": "Conversations",
         "common.schedule": "Agenda",
         "common.subscription": "Abonnement",
@@ -2066,6 +2072,7 @@ const TRANSLATIONS = {
 
     de: {
         "common.home": "Startseite",
+        "common.mySite": "Meine Website",
         "common.conversations": "Konversationen",
         "common.schedule": "Terminkalender",
         "common.subscription": "Abo",
@@ -2543,6 +2550,7 @@ const TRANSLATIONS = {
 
     it: {
         "common.home": "Home",
+        "common.mySite": "Il mio sito",
         "common.conversations": "Conversazioni",
         "common.schedule": "Agenda",
         "common.subscription": "Abbonamento",
@@ -3020,6 +3028,7 @@ const TRANSLATIONS = {
 
     ru: {
         "common.home": "Главная",
+        "common.mySite": "Мой сайт",
         "common.conversations": "Разговоры",
         "common.schedule": "Расписание",
         "common.subscription": "Подписка",
@@ -3497,6 +3506,7 @@ const TRANSLATIONS = {
 
     sr: {
         "common.home": "Početna",
+        "common.mySite": "Moj sajt",
         "common.conversations": "Razgovori",
         "common.schedule": "Raspored",
         "common.subscription": "Pretplata",
@@ -3528,7 +3538,7 @@ const TRANSLATIONS = {
         "login.accountDeletedMessage": "Vaš nalog je trajno obrisan. Žao nam je što odlazite.",
         "login.backToHome": "Nazad na početnu stranicu",
 
-        "register.tagline": "Podesite za par minuta — vaš AI odmah počinje da odgovara mušterijama.",
+        "register.tagline": "Podesite za par minuta — Camilius pravi vaš sajt i odmah počinje da odgovara mušterijama.",
         "register.title": "Registrujte svoj biznis",
         "register.subtitle": "Sva ova polja možete kasnije promeniti u podešavanjima.",
         "register.accountSection": "Nalog",
@@ -3632,10 +3642,10 @@ const TRANSLATIONS = {
         "landing.nav.login": "Prijavi se",
         "landing.nav.tryFree": "Probaj besplatno",
         "landing.nav.whoFor": "Za koga je",
-        "landing.hero.title1": "Mušterija vam piše u ponoć.",
-        "landing.hero.title2": "Camilius je već odgovorio — i zakazao termin za utorak.",
-        "landing.hero.subtitle1": "Camilius pravi za tvoj biznis stranicu sa AI ćaskanjem koje trenutno odgovara na svaku poruku — na osnovu tvog radnog vremena, cena i najčešćih pitanja — i zakazuje termin kada je potrebno.",
-        "landing.hero.subtitle2": "Poslato za par sekundi, danju i noću — nijedna mušterija ne čeka.",
+        "landing.hero.title1": "Opiši svoj biznis. Camilius pravi sajt.",
+        "landing.hero.title2": "Sa AI chat agentom koji odgovara mušterijama i zakazuje termine.",
+        "landing.hero.subtitle1": "Ispričaj Camiliusu o svom biznisu i on dizajnira, piše i objavljuje sajt za tebe za par minuta — bez kodiranja, bez dizajnera.",
+        "landing.hero.subtitle2": "Svaki sajt dolazi sa ugrađenim AI asistentom koji nikad ne spava.",
         "landing.hero.ctaFree": "Počni besplatno",
         "landing.hero.ctaTrial": "Probaj besplatno 14 dana",
         "landing.hero.finePrintBeta": "Besplatno tokom beta perioda",
@@ -3646,15 +3656,15 @@ const TRANSLATIONS = {
         "landing.slider.aiReplyLabel": "Odgovor koji predlaže AI",
         "landing.slider.caption": "Realni primeri, zasnovani na informacijama koje smo dobili od vas prilikom registracije.",
         "landing.howItWorks.title": "Kako funkcioniše",
-        "landing.howItWorks.step1.title": "Podesite svoj biznis",
-        "landing.howItWorks.step1.desc": "Unesite radno vreme, cenovnik i česta pitanja.",
-        "landing.howItWorks.step1.descSub1": "Dobijte hostovanu stranicu i AI chat za par minuta.",
+        "landing.howItWorks.step1.title": "Opiši svoj biznis",
+        "landing.howItWorks.step1.desc": "Otkucaj, izgovori, ili otpremi dokument.",
+        "landing.howItWorks.step1.descSub1": "AI sastavlja slogan, opis, radno vreme, cene i FAQ.",
         "landing.howItWorks.step1.descSub2": "Bezbedno, bez deljenja lozinki.",
-        "landing.howItWorks.step2.title": "AI sastavlja odgovore",
-        "landing.howItWorks.step2.desc": "AI odmah čita svaku novu poruku.",
-        "landing.howItWorks.step2.descSub": "Sastavlja tačan, ljubazan odgovor na jeziku mušterije.",
-        "landing.howItWorks.step3.title": "AI ga šalje odmah",
-        "landing.howItWorks.step3.desc": "Šalje odgovor čim je spreman.",
+        "landing.howItWorks.step2.title": "AI dizajnira tvoj sajt",
+        "landing.howItWorks.step2.desc": "Dobij predloge dizajna prilagođene tvom biznisu.",
+        "landing.howItWorks.step2.descSub": "Izaberi izgled, dodaj fotografije i objavi.",
+        "landing.howItWorks.step3.title": "AI chat je ugrađen",
+        "landing.howItWorks.step3.desc": "Odgovara na svako pitanje mušterije odmah.",
         "landing.howItWorks.step3.descSub1": "Svaki odgovor možete pregledati",
         "landing.howItWorks.step3.descSub2": "bilo kad, u Razgovorima.",
         "landing.howItWorks.step4.title": "Sam zakazuje termin",
@@ -3670,7 +3680,7 @@ const TRANSLATIONS = {
         "landing.pricing.trialInfo": "14 dana besplatnog probnog perioda",
         "landing.pricing.benefit3": "Otkažite kad god želite",
         "landing.pricing.cta": "Započnite besplatni probni period",
-        "landing.footer.tagline": "AI automatski odgovara vašim mušterijama i zakazuje termine — uz hostovanu stranicu u sklopu paketa.",
+        "landing.footer.tagline": "AI koji pravi sajt za vaš biznis — sa chat agentom i zakazivanjem termina u sklopu paketa.",
         "landing.footer.productHeading": "Proizvod",
         "landing.footer.getStarted": "Počni",
         "landing.footer.androidApp": "Android aplikacija",
@@ -4045,6 +4055,8 @@ const TRANSLATIONS = {
         "onboarding.describe.documentsAdd": "+ Dodaj dokument",
         "onboarding.describe.reviewHint": "Pregledaj i ispravi sve što je prepis pogrešno razumeo pre generisanja sajta.",
         "onboarding.design.title": "Izaberi dizajn",
+        "onboarding.design.suggested": "Predlog za tvoj biznis",
+        "onboarding.design.classic": "Ili izaberi klasičan izgled",
         "onboarding.address.title": "Izaberi svoju web adresu",
         "onboarding.address.label": "Web adresa",
         "onboarding.address.taken": "Ta web adresa je već zauzeta.",
@@ -4066,6 +4078,7 @@ const TRANSLATIONS = {
 
     zh: {
         "common.home": "首页",
+        "common.mySite": "我的网站",
         "common.conversations": "对话",
         "common.schedule": "日程安排",
         "common.subscription": "订阅",
@@ -4543,6 +4556,7 @@ const TRANSLATIONS = {
 
     tr: {
         "common.home": "Ana Sayfa",
+        "common.mySite": "Web Sitem",
         "common.conversations": "Konuşmalar",
         "common.schedule": "Program",
         "common.subscription": "Abonelik",

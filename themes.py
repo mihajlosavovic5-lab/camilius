@@ -16,6 +16,7 @@ buttons, the visitor's own chat bubbles) - both templates used to hardcode this 
 literal "#201a10" that only happened to read well against the one gold accent they had;
 a theme with a light or saturated accent needs its own contrasting value instead.
 """
+import json
 
 DEFAULT_THEME_ID = "warm"
 
@@ -115,3 +116,24 @@ def theme_or_default(theme_id):
     the migration's default) falls back to DEFAULT_THEME_ID rather than 500ing a public
     page."""
     return THEMES.get(theme_id, THEMES[DEFAULT_THEME_ID])
+
+
+CUSTOM_THEME_ID = "custom"
+
+
+def resolve_theme(theme_id, custom_theme_json=None):
+    """Same never-raises contract as theme_or_default, extended for ai_theme.py's
+    AI-generated per-business themes: when theme_id is CUSTOM_THEME_ID and
+    custom_theme_json holds a valid JSON-encoded theme dict (business_pages.custom_theme_json
+    - see ai_theme.py's _validate_option for the shape), returns that dict so callers never
+    need to care whether a page is using one of the fixed THEMES presets or an AI-generated
+    one. Any other theme_id, or a custom_theme_json that fails to parse, falls back to
+    theme_or_default(theme_id) exactly as before."""
+    if theme_id == CUSTOM_THEME_ID and custom_theme_json:
+        try:
+            custom = json.loads(custom_theme_json)
+        except (TypeError, ValueError):
+            custom = None
+        if isinstance(custom, dict) and custom.get("base"):
+            return custom
+    return theme_or_default(theme_id)

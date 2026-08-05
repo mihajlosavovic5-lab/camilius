@@ -763,6 +763,14 @@ def create_database():
     # rendering pixel-identical instead of silently changing color scheme on deploy.
     cursor.execute("ALTER TABLE business_pages ADD COLUMN IF NOT EXISTS theme TEXT NOT NULL DEFAULT 'warm'")
 
+    # Faza 14: the JSON-encoded AI-generated theme dict (see ai_theme.py) when theme =
+    # themes.CUSTOM_THEME_ID - NULL for every page using one of the fixed THEMES presets,
+    # which is still the common case and needs nothing stored here at all. Kept as a
+    # single denormalized text blob rather than its own columns/table, same "ship the
+    # simple version" reasoning as widget_domain above - one AI-generated theme is a
+    # snapshot the owner picked once, not something queried or joined on.
+    cursor.execute("ALTER TABLE business_pages ADD COLUMN IF NOT EXISTS custom_theme_json TEXT")
+
     # Photos/video a business uploads for its own public page (logo in the header, a
     # gallery of shots of the product/space, one hero video) - see storage.py for the
     # actual Cloudinary upload/delete, this table just links the resulting URL back to
@@ -2550,7 +2558,7 @@ def get_business_page(business_id):
     connection = connect()
     cursor = connection.cursor()
     cursor.execute(
-        "SELECT id, business_id, slug, published, tagline, about, created_at, updated_at, widget_domain, theme FROM business_pages WHERE business_id = %s",
+        "SELECT id, business_id, slug, published, tagline, about, created_at, updated_at, widget_domain, theme, custom_theme_json FROM business_pages WHERE business_id = %s",
         (business_id,),
     )
     result = cursor.fetchone()
@@ -2566,7 +2574,7 @@ def page_by_slug(slug):
     connection = connect()
     cursor = connection.cursor()
     cursor.execute(
-        "SELECT id, business_id, slug, published, tagline, about, created_at, updated_at, widget_domain, theme FROM business_pages WHERE slug = %s",
+        "SELECT id, business_id, slug, published, tagline, about, created_at, updated_at, widget_domain, theme, custom_theme_json FROM business_pages WHERE slug = %s",
         (slug,),
     )
     result = cursor.fetchone()
@@ -2574,7 +2582,7 @@ def page_by_slug(slug):
     return result
 
 
-def upsert_business_page(business_id, slug, published, tagline, about, widget_domain=None, theme=None):
+def upsert_business_page(business_id, slug, published, tagline, about, widget_domain=None, theme=None, custom_theme_json=None):
     """Creates the business's page on first save, updates it on every save after - one
     row per business (business_pages_business_id_idx), so this is a plain upsert rather
     than needing a separate create/update pair. Raises UniqueViolation if `slug` is
@@ -2590,21 +2598,27 @@ def upsert_business_page(business_id, slug, published, tagline, about, widget_do
     The COALESCE's middle argument is a subquery against this same business_id's
     pre-statement row, evaluated once as part of the INSERT's VALUES list before any
     ON CONFLICT branch runs, so it resolves correctly whether this call ends up doing the
-    INSERT or the UPDATE."""
+    INSERT or the UPDATE.
+
+    custom_theme_json follows the same None-means-"leave whatever is saved" contract as
+    theme - only ever passed explicitly when theme is themes.CUSTOM_THEME_ID (see
+    ai_theme.py); every other caller passes neither and both columns are left untouched
+    (or default to 'warm'/NULL on first save)."""
     connection = connect()
     cursor = connection.cursor()
     _execute_or_raise_unique_violation(
         cursor,
-        """INSERT INTO business_pages (business_id, slug, published, tagline, about, widget_domain, theme, updated_at)
+        """INSERT INTO business_pages (business_id, slug, published, tagline, about, widget_domain, theme, custom_theme_json, updated_at)
            VALUES (%s, %s, %s, %s, %s, %s,
                    COALESCE(%s, (SELECT theme FROM business_pages WHERE business_id = %s), 'warm'),
+                   COALESCE(%s, (SELECT custom_theme_json FROM business_pages WHERE business_id = %s)),
                    CURRENT_TIMESTAMP)
            ON CONFLICT (business_id) DO UPDATE SET
                slug = EXCLUDED.slug, published = EXCLUDED.published,
                tagline = EXCLUDED.tagline, about = EXCLUDED.about, widget_domain = EXCLUDED.widget_domain,
-               theme = EXCLUDED.theme,
+               theme = EXCLUDED.theme, custom_theme_json = EXCLUDED.custom_theme_json,
                updated_at = CURRENT_TIMESTAMP""",
-        (business_id, slug, published, tagline, about, widget_domain, theme, business_id),
+        (business_id, slug, published, tagline, about, widget_domain, theme, business_id, custom_theme_json, business_id),
     )
     connection.commit()
     connection.close()

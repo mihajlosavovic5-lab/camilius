@@ -10,7 +10,11 @@ home() -> bounced to connect-instagram, no way to reach Profile/Schedule/Setting
 Faza 13 added a real (intentional) redirect back onto home() - the mandatory "build your
 website" wizard for any business that hasn't finished it yet (onboarding_required in
 app.py). The two tests below cover both sides of that: a fresh business is sent to the
-wizard, not a dead end, and once the wizard is done home() reaches the real dashboard."""
+wizard, not a dead end, and once the wizard is done home() reaches the real site overview.
+
+Faza 15 moved the raw conversation inbox off "/" onto its own /conversations route (see
+app.py's home()/conversations_home() split) - "/" now shows a website overview instead,
+so the second test below checks for that page's own content, not the inbox's."""
 import database
 from conftest import register_business_web
 
@@ -29,6 +33,11 @@ def test_dashboard_reachable_once_onboarding_is_done(client, unique_username, un
     database.mark_onboarding_completed(business[0])
 
     response = client.get("/")
+    assert response.status_code == 200
+    html = response.get_data(as_text=True)
+    assert "Your website" in html  # site overview's own website card, not a redirect
+
+    response = client.get("/conversations")
     assert response.status_code == 200
     html = response.get_data(as_text=True)
     assert "Camilius is ready to chat with your visitors" in html  # dashboard's own empty state, not a redirect

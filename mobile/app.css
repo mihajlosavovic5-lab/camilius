@@ -164,7 +164,7 @@ button { font-family: inherit; -webkit-appearance: none; appearance: none; }
 }
 .screen.active { transform: translateX(0); visibility: visible; }
 /* Inbox and Settings are the two tab "home" screens - they don't slide, they're just shown/hidden */
-.screen-inbox, .screen-schedule, .screen-profile, .screen-settings { transition: none; }
+.screen-mysite, .screen-inbox, .screen-schedule, .screen-profile, .screen-settings { transition: none; }
 .screen-login, .screen-onboarding { transition: none; }
 
 .hidden { display: none !important; }
@@ -1263,6 +1263,54 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
     font-size: 14px; font-weight: 600; color: var(--text-muted); cursor: pointer;
 }
 .document-add-btn input { display: none; }
+
+/* Voice input (My Website tab's "Draft this with AI" card) - same markup/behavior as the
+   website's own recorder (see static/style.css's .voice-record-btn), ported here since
+   mobile never had a voice-input feature at all before Faza 15. */
+.voice-input-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 14px; }
+.voice-record-btn { gap: 10px; }
+.voice-record-btn .voice-record-icon { font-size: 17px; line-height: 1; }
+.voice-record-btn.recording { background: var(--danger); color: #fff; border-color: var(--danger); }
+.voice-record-dot {
+    display: none; width: 9px; height: 9px; border-radius: 50%; background: #fff;
+    animation: voice-record-pulse 1.1s ease-in-out infinite;
+}
+.voice-record-btn.recording .voice-record-dot { display: inline-block; }
+@keyframes voice-record-pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: .35; transform: scale(.7); }
+}
+.voice-status { font-size: 14px; color: var(--text-muted); }
+.voice-status.voice-status-error { color: var(--danger); }
+
+/* AI-generated theme suggestion cards (My Website tab) - simpler than the website
+   onboarding wizard's own .onboarding-theme-card (no live iframe preview, just a flat
+   swatch), generated inline by app.js's renderThemeSuggestions(). */
+.theme-suggestion-grid { display: flex; flex-direction: column; gap: 10px; margin-top: 12px; }
+.theme-suggestion-card {
+    display: flex; gap: 12px; align-items: center; padding: 12px; cursor: pointer;
+    border: 2px solid var(--border); border-radius: var(--radius); background: var(--background);
+}
+.theme-suggestion-card input { position: absolute; opacity: 0; pointer-events: none; }
+.theme-suggestion-card.selected { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(214, 148, 16, .2); }
+.theme-suggestion-swatch { width: 44px; height: 44px; border-radius: 10px; flex-shrink: 0; }
+.theme-suggestion-label { font-weight: 700; font-size: 14px; margin: 0 0 2px; }
+.theme-suggestion-blurb { font-size: 12.5px; color: var(--text-muted); margin: 0; }
+
+/* My Website tab - quick-stat tiles (upcoming appointments / pending conversations),
+   same shape as .inbox-stat-tile above. */
+.mysite-stats-row { display: flex; gap: 10px; margin: 0 0 16px; }
+.mysite-stat-tile {
+    flex: 1; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 12px; text-align: center;
+}
+.mysite-stat-value { font-size: 22px; font-weight: 700; }
+.mysite-stat-label { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+.mysite-appointment-row {
+    display: flex; justify-content: space-between; gap: 10px; padding: 9px 0;
+    border-bottom: 1px solid var(--border); font-size: 14px;
+}
+.mysite-appointment-row:last-child { border-bottom: none; }
 
 .badge { padding: 4px 11px; border-radius: 99px; font-size: 13px; font-weight: 600; flex-shrink: 0; }
 .badge-pending { background: var(--warning-bg); color: var(--warning); border: 1px solid var(--warning-border); }

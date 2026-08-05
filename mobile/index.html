@@ -601,6 +601,113 @@
     </div>
   </section>
 
+  <!-- MY SITE (Faza 15) - the app's true landing tab: an overview of the AI-built website
+       (Camilius' actual product) plus the business-info tools (description/voice/AI
+       design suggestions) that used to only exist once, during onboarding, with no way
+       back to them from the app. Conversations (the old default tab) moves to its own
+       tab below - this is the "chat app" home screen the pivot to an AI website builder
+       had outgrown. -->
+  <section id="screen-mysite" class="screen screen-mysite">
+    <div class="inbox-list-wrap">
+      <header class="topbar">
+        <div class="topbar-title">
+          <div><h1 id="mysite-business-name">&nbsp;</h1></div>
+        </div>
+      </header>
+
+      <div id="mysite-error" class="alert alert-error hidden"></div>
+
+      <div class="mysite-stats-row">
+        <div class="mysite-stat-tile">
+          <div class="mysite-stat-value" id="mysite-stat-appointments">0</div>
+          <div class="mysite-stat-label" data-i18n="mysite.upcomingAppointments">Upcoming (7 days)</div>
+        </div>
+        <div class="mysite-stat-tile">
+          <div class="mysite-stat-value" id="mysite-stat-pending">0</div>
+          <div class="mysite-stat-label" data-i18n="mysite.pendingConversations">Awaiting you</div>
+        </div>
+      </div>
+
+      <div id="mysite-appointments-card" class="profile-section hidden">
+        <div class="profile-section-header">
+          <p class="profile-section-title" data-i18n="mysite.appointments.title">Coming up</p>
+        </div>
+        <div id="mysite-appointments-list"></div>
+      </div>
+
+      <div class="profile-section">
+        <div class="profile-section-header">
+          <p class="profile-section-title" data-i18n="mysite.website.title">Your website</p>
+          <p class="profile-section-subtitle" id="mysite-website-status"></p>
+        </div>
+        <div id="mysite-website-preview" class="hidden" style="display:flex; gap:12px; align-items:center; margin-bottom:12px;">
+          <div id="mysite-theme-swatch" style="width:48px; height:48px; border-radius:12px; flex-shrink:0; border:2px solid var(--border);"></div>
+          <div style="flex:1; min-width:0;">
+            <p id="mysite-tagline" style="margin:0 0 3px; font-weight:600;"></p>
+            <p id="mysite-about" class="field-hint" style="margin:0;"></p>
+          </div>
+        </div>
+        <a id="mysite-view-site-link" href="#" target="_blank" rel="noopener" class="button button-secondary hidden" data-i18n="mysite.website.view" style="margin-bottom: 8px;">View your live site</a>
+
+        <div class="floating-field">
+          <input type="text" id="mysite-slug" placeholder=" " autocapitalize="off" autocorrect="off">
+          <label for="mysite-slug" data-i18n="mysite.website.slug">Web address (e.g. your-business-name)</label>
+        </div>
+        <div class="floating-field">
+          <input type="text" id="mysite-tagline-input" placeholder=" " maxlength="200">
+          <label for="mysite-tagline-input" data-i18n="mysite.website.taglineLabel">Tagline (one short line)</label>
+        </div>
+        <div class="floating-field floating-field-textarea">
+          <textarea id="mysite-about-input" rows="3" maxlength="2000" placeholder=" "></textarea>
+          <label for="mysite-about-input" data-i18n="mysite.website.aboutLabel">About (a few sentences)</label>
+        </div>
+        <label class="switch-row" style="display:flex; align-items:center; justify-content:space-between; margin-top:10px;">
+          <span data-i18n="mysite.website.publish">Publish this page</span>
+          <input type="checkbox" id="mysite-published">
+        </label>
+
+        <div id="mysite-theme-select-row" style="margin-top:14px;">
+          <p class="media-label" data-i18n="settings.page.design">Design</p>
+          <select id="mysite-theme-select"></select>
+        </div>
+
+        <p id="mysite-page-error" class="field-error hidden"></p>
+        <button type="button" class="button button-full" id="mysite-save-page-btn" style="margin-top:14px;" data-i18n="mysite.website.save">Save page</button>
+      </div>
+
+      <div class="profile-section">
+        <div class="profile-section-header">
+          <p class="profile-section-title" data-i18n="mysite.draft.title">Draft this with AI</p>
+          <p class="profile-section-subtitle" data-i18n="mysite.draft.subtitle">Describe your business (type, speak, or use a document from the Profile tab) and the AI drafts your tagline, about text, hours, prices, and FAQ.</p>
+        </div>
+        <div class="floating-field floating-field-textarea">
+          <textarea id="mysite-description" rows="3" maxlength="1000" placeholder=" "></textarea>
+          <label for="mysite-description" data-i18n="mysite.draft.label">What does your business do?</label>
+        </div>
+
+        <div class="voice-input-row" id="mysite-voice-row" hidden>
+          <button type="button" class="button button-secondary voice-record-btn" id="mysite-voice-btn">
+            <span class="voice-record-dot" aria-hidden="true"></span>
+            <span class="voice-record-icon" aria-hidden="true">🎤</span>
+            <span id="mysite-voice-btn-label" data-i18n="onboarding.describe.recordStart">Record instead of typing</span>
+          </button>
+          <span class="voice-status" id="mysite-voice-status"></span>
+        </div>
+
+        <p id="mysite-draft-error" class="field-error hidden"></p>
+        <button type="button" class="button button-full" id="mysite-generate-btn" style="margin-top:10px;" data-i18n="mysite.draft.generate">Generate draft</button>
+
+        <div id="mysite-draft-result" class="hidden" style="margin-top:14px;">
+          <p class="field-hint" data-i18n="mysite.draft.reviewHint">Draft ready - review it below, then Save page above (and update hours/prices/FAQ in Profile).</p>
+        </div>
+
+        <button type="button" class="button button-secondary button-full" id="mysite-suggest-themes-btn" style="margin-top:14px;" data-i18n="mysite.draft.suggestThemes">✨ Suggest AI designs for my business</button>
+        <p id="mysite-theme-suggest-error" class="field-error hidden"></p>
+        <div id="mysite-theme-suggest-grid" class="theme-suggestion-grid"></div>
+      </div>
+    </div>
+  </section>
+
   <!-- INBOX -->
   <section id="screen-inbox" class="screen screen-inbox">
     <!-- Everything from the title down through the filters is now plain scrollable
@@ -1315,8 +1422,11 @@
 
 <!-- BOTTOM TAB BAR -->
 <nav id="tabbar" class="tabbar hidden">
-  <button class="tab-btn active" data-tab="inbox">
-    <span class="tab-icon">💬</span><span data-i18n="tab.inbox">Chat</span>
+  <button class="tab-btn active" data-tab="mysite">
+    <span class="tab-icon">🌐</span><span data-i18n="tab.mySite">My Site</span>
+  </button>
+  <button class="tab-btn" data-tab="inbox">
+    <span class="tab-icon">💬</span><span data-i18n="tab.inbox">Conversations</span>
   </button>
   <button class="tab-btn" data-tab="schedule">
     <span class="tab-icon">📅</span><span data-i18n="tab.schedule">Schedule</span>

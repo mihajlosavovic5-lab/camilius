@@ -25,6 +25,7 @@ from database import (
     is_new_booking_notifications_enabled, set_new_booking_notifications_enabled,
     record_account_deletion, ACCOUNT_DELETION_REASONS,
     create_oauth_login_session, oauth_login_session_status,
+    get_business_page, upsert_business_page, page_by_slug, appointments_in_range,
     UniqueViolation,
 )
 from extensions import limiter
@@ -33,6 +34,10 @@ import paddle_billing
 import google_oauth
 import business_media
 import business_documents
+import pages
+import themes
+import ai_theme
+from page_generator import generate_page_draft, format_working_hours, format_price_list, format_faq, transcribe_voice_description, MAX_VOICE_AUDIO_BYTES
 
 api = Blueprint("api", __name__, url_prefix="/api")
 
@@ -930,6 +935,145 @@ def api_delete_document(document_id):
     except business_documents.DocumentError as error:
         return jsonify(error=str(error)), error.status
     return jsonify(deleted=True)
+
+
+# The business's own hosted public page (slug/tagline/about/theme/published) - mobile's
+# Bearer-authed equivalent of app.py's session-authed /profile/page (save_business_page)
+# and settings()'s own page_row read, the "My Website" tab's own screen (see app.js). Web
+# and mobile share the exact same business_pages row/upsert_business_page() call, so a
+# page edited from either always reflects on both.
+@api.route("/page", methods=["GET"])
+@require_api_auth
+def api_get_page():
+    business_id = request.business_id
+    page_row = get_business_page(business_id)
+    page = None if page_row is None else {
+        "slug": page_row[2], "published": page_row[3], "tagline": page_row[4], "about": page_row[5],
+        "theme": page_row[9], "custom_theme_json": page_row[10],
+    }
+
+    # Same "next 7 days, confirmed only" window as the website's own site-overview home()
+    # route (see app.py) - kept here (not a separate endpoint) since the My Site tab is
+    # the only mobile screen that needs this summary.
+    business = request.business
+    tz = booking.tz_for(business)
+    now = booking.now_local(tz)
+    upcoming_rows = appointments_in_range(business_id, now, now + timedelta(days=7))[:5]
+    upcoming_appointments = [
+        {"customer_name": row[1], "service": row[3], "start_time": row[4].astimezone(tz).isoformat()}
+        for row in upcoming_rows
+    ]
+
+    return jsonify(page=page, upcoming_appointments=upcoming_appointments)
+
+
+@api.route("/page", methods=["POST"])
+@require_api_auth
+def api_save_page():
+    data = request.get_json(silent=True) or {}
+    business_id = request.business_id
+
+    slug = pages.normalize_slug(data.get("slug") or "")
+    tagline = (data.get("tagline") or "").strip()[:200] or None
+    about = (data.get("about") or "").strip()[:2000] or None
+    published = bool(data.get("published"))
+
+    theme = data.get("theme")
+    custom_theme_json = None
+    if theme == themes.CUSTOM_THEME_ID:
+        custom_theme_json = data.get("custom_theme_json") or None
+        if not custom_theme_json:
+            theme = None
+    elif theme not in themes.THEMES:
+        theme = None
+
+    if not pages.is_valid_slug(slug):
+        return jsonify(error="Please choose a web address using only lowercase letters, numbers, and hyphens."), 400
+
+    try:
+        upsert_business_page(business_id, slug, published, tagline, about, None, theme, custom_theme_json)
+    except UniqueViolation:
+        return jsonify(error="That web address is already taken - please choose another."), 409
+
+    log_event("business_page_saved", business_id=business_id)
+    return jsonify(message="Saved.")
+
+
+# Drafts tagline/about/hours/prices/faq from a short owner-written description - mobile's
+# Bearer-authed equivalent of app.py's session-authed /profile/generate-page
+# (generate_business_page). Returns the draft as plain JSON rather than re-rendering a
+# page; app.js fills the "My Website" tab's fields with it for the owner to review before
+# tapping Save, same "never writes anything on its own" contract as the web route.
+@api.route("/generate-page", methods=["POST"])
+@require_api_auth
+@limiter.limit("10 per hour")
+def api_generate_page():
+    business_id = request.business_id
+    data = request.get_json(silent=True) or {}
+    description = (data.get("description") or "").strip()
+    if not description:
+        return jsonify(error="Describe your business first so the AI has something to draft from."), 400
+
+    try:
+        draft = generate_page_draft(description, document_text=business_documents.combined_document_text(business_id))
+    except ValueError:
+        return jsonify(error="Couldn't generate a draft from that - please try describing your business differently."), 400
+
+    return jsonify(
+        tagline=draft["tagline"],
+        about=draft["about"],
+        working_hours=format_working_hours(draft["hours"]),
+        price_list=format_price_list(draft["services"]),
+        faq=format_faq(draft["faq"]),
+    )
+
+
+# Voice input for the description field above - mobile's Bearer-authed equivalent of
+# app.py's session-authed /api/onboarding/voice-transcribe, same Whisper call via
+# page_generator.transcribe_voice_description. Audio is never written to disk or the
+# database, same contract as the web route.
+@api.route("/voice-transcribe", methods=["POST"])
+@require_api_auth
+@limiter.limit("20 per hour")
+def api_voice_transcribe():
+    audio = request.files.get("audio")
+    if audio is None or not audio.filename:
+        return jsonify(error="No recording received."), 400
+
+    audio_bytes = audio.read(MAX_VOICE_AUDIO_BYTES + 1)
+    if len(audio_bytes) > MAX_VOICE_AUDIO_BYTES:
+        return jsonify(error="That recording is too long - keep it under a minute or so."), 400
+
+    try:
+        text = transcribe_voice_description(audio_bytes, audio.filename, audio.mimetype)
+    except ValueError:
+        return jsonify(error="Couldn't make sense of that recording - please try again or type your description instead."), 400
+    finally:
+        del audio_bytes
+
+    log_event("onboarding_voice_transcribed", business_id=request.business_id)
+    return jsonify(text=text)
+
+
+# AI-generated theme suggestions for the description above - mobile's Bearer-authed
+# equivalent of app.py's session-authed /profile/suggest-themes, same ai_theme.py call.
+@api.route("/suggest-themes", methods=["POST"])
+@require_api_auth
+@limiter.limit("10 per hour")
+def api_suggest_themes():
+    business_id = request.business_id
+    data = request.get_json(silent=True) or {}
+    description = (data.get("description") or "").strip()
+    if not description:
+        return jsonify(error="Describe your business first so the AI has something to design from."), 400
+
+    document_text = business_documents.combined_document_text(business_id)
+    options = ai_theme.generate_theme_options(description, document_text=document_text)
+    if not options:
+        return jsonify(error="Couldn't come up with designs from that - please try describing your business differently."), 400
+
+    log_event("theme_suggestions_generated", business_id=business_id)
+    return jsonify(themes=options)
 
 
 # Triggered by the "Verify phone number" button on the Profile screen - unlike email

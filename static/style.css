@@ -2865,6 +2865,15 @@ html { scroll-behavior: smooth; }
     gap: 16px;
     margin: 20px 0;
 }
+.onboarding-theme-group-label {
+    font-size: 13px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    color: var(--text-muted);
+    margin: 24px 0 4px;
+}
+.onboarding-theme-group-label:first-of-type { margin-top: 8px; }
 .onboarding-theme-card {
     display: block;
     position: relative;

@@ -11,6 +11,7 @@ import database
 import themes
 from conftest import register_business_web, web_post, get_csrf_token
 import page_generator
+import ai_theme
 
 
 class _FakeMessage:
@@ -50,6 +51,14 @@ def _mock_ai_draft(monkeypatch):
         page_generator.client.chat.completions, "create",
         lambda **kwargs: _FakeResponse(json.dumps(VALID_DRAFT)),
     )
+    # onboarding_website_describe() also calls ai_theme.generate_theme_options() (Faza 14,
+    # its own OpenAI client, separate from page_generator's) to pre-populate the design
+    # step's AI suggestions - mocked here too so every existing describe-step test stays
+    # off the network, same rule as the page-draft mock above. An empty list here is a
+    # legitimate, harmless response (see ai_theme.py's own docstring) - these tests care
+    # about the wizard's flow, not what the design step's AI suggestions look like (see
+    # test_ai_theme.py / test_onboarding_design_ai_suggestions.py for that).
+    monkeypatch.setattr(ai_theme, "generate_theme_options", lambda *args, **kwargs: [])
 
 
 def _run_describe_step(client, monkeypatch):
@@ -127,6 +136,75 @@ def test_onboarding_design_rejects_unknown_theme(client, unique_username, unique
     response = web_post(client, "/onboarding/website/design", {"csrf_token": csrf_token, "theme": "not-a-real-theme"})
     assert response.status_code == 200
     assert "Please choose a design" in response.get_data(as_text=True)
+
+
+# --- Faza 14: AI-suggested designs on the design step ---
+
+_AI_THEME_OPTION = {
+    "label": "Calm Clinic", "blurb": "A calm, professional look.", "swatch": ["#111111", "#ffffff", "#222222"],
+    "radius": "8px", "heading_font": None, "fixed_dark": False,
+    "base": {"primary": "#111111", "on_primary": "#ffffff", "gold": "#222222", "background": "#ffffff",
+             "surface": "#ffffff", "text": "#111111", "text_muted": "#666666", "border": "#dddddd"},
+    "dark": None,
+}
+
+
+def _run_describe_step_with_ai_theme_options(client, monkeypatch, options):
+    monkeypatch.setattr(
+        page_generator.client.chat.completions, "create",
+        lambda **kwargs: _FakeResponse(json.dumps(VALID_DRAFT)),
+    )
+    monkeypatch.setattr(ai_theme, "generate_theme_options", lambda *args, **kwargs: options)
+    csrf_token = get_csrf_token(client, "/onboarding/website")
+    return web_post(client, "/onboarding/website", {
+        "csrf_token": csrf_token, "description": "A barbershop open weekdays 9-6, haircuts 20 EUR.",
+    })
+
+
+def test_onboarding_design_shows_ai_suggested_options(client, unique_username, unique_email, monkeypatch):
+    register_business_web(client, unique_username, unique_email)
+    _run_describe_step_with_ai_theme_options(client, monkeypatch, [_AI_THEME_OPTION])
+
+    html = client.get("/onboarding/website/design").get_data(as_text=True)
+    assert "Calm Clinic" in html
+    assert 'value="ai:0"' in html
+
+
+def test_onboarding_design_no_ai_options_falls_back_to_classic_only(client, unique_username, unique_email, monkeypatch):
+    register_business_web(client, unique_username, unique_email)
+    _run_describe_step_with_ai_theme_options(client, monkeypatch, [])
+
+    html = client.get("/onboarding/website/design").get_data(as_text=True)
+    assert 'value="ai:' not in html
+    assert 'value="minimal"' in html
+
+
+def test_onboarding_can_publish_with_an_ai_suggested_theme(client, unique_username, unique_email, monkeypatch):
+    register_business_web(client, unique_username, unique_email)
+    business_id = database.business_by_username(unique_username)[0]
+    _run_describe_step_with_ai_theme_options(client, monkeypatch, [_AI_THEME_OPTION])
+
+    csrf_token = get_csrf_token(client, "/onboarding/website/design")
+    response = web_post(client, "/onboarding/website/design", {"csrf_token": csrf_token, "theme": "ai:0"})
+    assert response.status_code == 302
+    assert response.headers["Location"] == "/onboarding/website/address"
+
+    slug = f"salon-{uuid.uuid4().hex[:8]}"
+    csrf_token = get_csrf_token(client, "/onboarding/website/address")
+    web_post(client, "/onboarding/website/address", {"csrf_token": csrf_token, "slug": slug})
+    csrf_token = get_csrf_token(client, "/onboarding/website/media")
+    web_post(client, "/onboarding/website/media", {"csrf_token": csrf_token})
+    csrf_token = get_csrf_token(client, "/onboarding/website/review")
+    response = web_post(client, "/onboarding/website/review", {"csrf_token": csrf_token})
+    assert response.status_code == 302
+
+    page_row = database.get_business_page(business_id)
+    assert page_row[9] == themes.CUSTOM_THEME_ID
+    resolved = themes.resolve_theme(page_row[9], page_row[10])
+    assert resolved["label"] == "Calm Clinic"
+
+    public_html = client.get(f"/p/{slug}").get_data(as_text=True)
+    assert "#111111" in public_html
 
 
 def test_onboarding_address_rejects_invalid_and_taken_slugs(client, unique_username, unique_email, monkeypatch):

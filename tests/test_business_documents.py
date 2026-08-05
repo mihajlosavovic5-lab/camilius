@@ -192,6 +192,9 @@ def test_website_generation_uses_uploaded_document_as_extra_context(client, uniq
 
     import app as app_module
     monkeypatch.setattr(app_module, "generate_page_draft", fake_generate)
+    # onboarding_website_describe() also calls ai_theme.generate_theme_options() (Faza 14) -
+    # mocked off the network too, same reasoning as generate_page_draft above.
+    monkeypatch.setattr(app_module.ai_theme, "generate_theme_options", lambda *args, **kwargs: [])
 
     response = web_post(client, "/onboarding/website", {
         "csrf_token": csrf_token, "description": "A barbershop downtown.",

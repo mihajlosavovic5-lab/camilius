@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Camilius — AI that answers your customers and books appointments{% endblock %}
+{% block title %}Camilius — AI that builds your business a website{% endblock %}
 {% block body_class %}auth landing{% endblock %}
 
 {% block structured_data %}
@@ -18,7 +18,7 @@
             "name": "Camilius AI",
             "applicationCategory": "BusinessApplication",
             "operatingSystem": "Web, Android",
-            "description": "Camilius builds a business a hosted page with an AI chat assistant that answers customer questions based on its working hours, price list, and FAQ, and can book the appointment straight into the business's schedule and notify the owner.",
+            "description": "Camilius is an AI that builds a business a website from a short description - complete with a built-in AI chat assistant that answers customer questions based on its working hours, price list, and FAQ, and can book the appointment straight into the business's schedule and notify the owner.",
             "url": "{{ url_for('home', _external=True) }}",
             "offers": {
                 "@type": "Offer",
@@ -88,8 +88,8 @@
 <div class="content">
     <!-- Hero -->
     <section class="hero lp-hero">
-        <h1 class="lp-enter lp-enter-1"><span data-i18n="landing.hero.title1">A customer messages your business at midnight.</span><br><span class="lp-accent" data-i18n="landing.hero.title2">Camilius already answered — and booked them for Tuesday.</span></h1>
-        <p class="hero-subtitle lp-enter lp-enter-2"><span data-i18n="landing.hero.subtitle1">Camilius builds your business a page with an AI chat that answers every message instantly — from your hours, prices, and FAQ — and books the appointment when needed.</span><br><span data-i18n="landing.hero.subtitle2">Sent in seconds, day or night — no customer ever waits.</span></p>
+        <h1 class="lp-enter lp-enter-1"><span data-i18n="landing.hero.title1">Describe your business. Camilius builds the website.</span><br><span class="lp-accent" data-i18n="landing.hero.title2">Complete with an AI chat agent that answers customers and books appointments.</span></h1>
+        <p class="hero-subtitle lp-enter lp-enter-2"><span data-i18n="landing.hero.subtitle1">Tell Camilius about your business and it designs, writes, and publishes a website for you in minutes — no coding, no designer.</span><br><span data-i18n="landing.hero.subtitle2">Every site comes with a built-in AI assistant that never sleeps.</span></p>
         <div class="hero-actions lp-enter lp-enter-3">
             {% if beta_free_mode %}
             <a href="{{ url_for('register') }}" class="button lp-shine" style="font-size: 16px; padding: 13px 28px;" data-i18n="landing.hero.ctaFree">Get started for free</a>
@@ -337,9 +337,9 @@
             <div class="card step lp-card-hover lp-reveal">
                 <div class="lp-step-copy">
                     <div class="step-number lp-step-number">1</div>
-                    <h3 data-i18n="landing.howItWorks.step1.title">Set up your business</h3>
-                    <p class="lp-step-desc-main" data-i18n="landing.howItWorks.step1.desc">Add your hours, prices, and FAQ.</p>
-                    <p class="lp-step-desc-sub"><span data-i18n="landing.howItWorks.step1.descSub1">Get a hosted page and AI chat in minutes.</span> <span data-i18n="landing.howItWorks.step1.descSub2">Secure — no passwords shared.</span></p>
+                    <h3 data-i18n="landing.howItWorks.step1.title">Describe your business</h3>
+                    <p class="lp-step-desc-main" data-i18n="landing.howItWorks.step1.desc">Type it, speak it, or upload a document.</p>
+                    <p class="lp-step-desc-sub"><span data-i18n="landing.howItWorks.step1.descSub1">The AI drafts your tagline, about page, hours, prices, and FAQ.</span> <span data-i18n="landing.howItWorks.step1.descSub2">Secure — no passwords shared.</span></p>
                 </div>
                 <div class="lp-step-visual">
                     <span class="lp-step-visual-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg></span>
@@ -350,21 +350,21 @@
             <div class="card step lp-card-hover lp-reveal">
                 <div class="lp-step-copy">
                     <div class="step-number lp-step-number">2</div>
-                    <h3 data-i18n="landing.howItWorks.step2.title">AI drafts replies</h3>
-                    <p class="lp-step-desc-main" data-i18n="landing.howItWorks.step2.desc">Reads every new message instantly.</p>
-                    <p class="lp-step-desc-sub" data-i18n="landing.howItWorks.step2.descSub">Drafts an accurate reply in the customer's language.</p>
+                    <h3 data-i18n="landing.howItWorks.step2.title">AI designs your site</h3>
+                    <p class="lp-step-desc-main" data-i18n="landing.howItWorks.step2.desc">Get design options matched to your business.</p>
+                    <p class="lp-step-desc-sub" data-i18n="landing.howItWorks.step2.descSub">Pick a look, add your photos, and publish.</p>
                 </div>
                 <div class="lp-step-visual lp-step-visual-typing">
                     <span class="lp-step-visual-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></span>
                     <span class="lp-typing-dots" aria-hidden="true"><span></span><span></span><span></span></span>
-                    <span data-i18n="landing.howItWorks.step2.visual">Drafting reply&hellip;</span>
+                    <span data-i18n="landing.howItWorks.step2.visual">Designing your site&hellip;</span>
                 </div>
             </div>
             <div class="card step lp-card-hover lp-reveal">
                 <div class="lp-step-copy">
                     <div class="step-number lp-step-number">3</div>
-                    <h3 data-i18n="landing.howItWorks.step3.title">AI sends it instantly</h3>
-                    <p class="lp-step-desc-main" data-i18n="landing.howItWorks.step3.desc">Sends the reply the moment it's ready.</p>
+                    <h3 data-i18n="landing.howItWorks.step3.title">AI chat, built in</h3>
+                    <p class="lp-step-desc-main" data-i18n="landing.howItWorks.step3.desc">Answers every customer question instantly.</p>
                     <p class="lp-step-desc-sub"><span data-i18n="landing.howItWorks.step3.descSub1">Every reply is reviewable anytime</span> <span data-i18n="landing.howItWorks.step3.descSub2">in your Conversations tab.</span></p>
                 </div>
                 <div class="lp-step-mode-row">
@@ -468,7 +468,7 @@
                     <span class="brand-mark">C</span>
                     <span class="brand-name">Camilius</span>
                 </span>
-                <p data-i18n="landing.footer.tagline">AI answers your customers and books appointments automatically — with a hosted page included.</p>
+                <p data-i18n="landing.footer.tagline">The AI that builds your business a website — with a chat agent and appointment booking built in.</p>
             </div>
             <div class="lp-footer-cols">
                 <div class="lp-footer-col">
