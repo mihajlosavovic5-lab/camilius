@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
 <title>Camilius</title>
-<link rel="stylesheet" href="app.css?v=884f3ed70b0d">
+<link rel="stylesheet" href="app.css?v=d21f650f25b3">
 </head>
 <body>
 
@@ -52,10 +52,11 @@
 <!-- Language picker - lives outside #app so its position:fixed isn't affected by any
      ancestor .screen's transform (a CSS transform creates a new containing block for
      fixed descendants, which would otherwise break this). Closed/open state is the
-     "open" class (not "hidden") so CSS transitions can animate it. Centered on screen
-     (see .lang-picker-sheet in app.css) rather than anchored under whichever trigger
-     opened it - language names vary too much in length ("Türkçe" vs "Português") for an
-     anchored dropdown to size well against every one of them. -->
+     "open" class (not "hidden") so CSS transitions can animate it. Drops down full
+     width (edge to edge - see .lang-picker-sheet in app.css) from whichever trigger
+     opened it, instead of matching that trigger's own width - language names vary too
+     much in length ("Türkçe" vs "Português") for a narrow anchored dropdown to size
+     well against every one of them. -->
 <div id="lang-modal" class="lang-modal">
   <div class="lang-modal-backdrop" id="lang-modal-backdrop"></div>
   <div class="lang-modal-sheet lang-picker-sheet">
@@ -1329,7 +1330,7 @@
   </button>
 </nav>
 
-<script src="i18n.js?v=884f3ed70b0d"></script>
-<script src="app.js?v=884f3ed70b0d"></script>
+<script src="i18n.js?v=d21f650f25b3"></script>
+<script src="app.js?v=d21f650f25b3"></script>
 </body>
 </html>

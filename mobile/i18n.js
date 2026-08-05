@@ -3133,12 +3133,18 @@ function setupLanguagePicker() {
     const list = document.getElementById("lang-modal-list");
     if (!triggers.length || !modal || !sheet || !list) return;
 
-    // Centered on screen (sized and positioned entirely by .lang-picker-sheet in
-    // app.css) instead of anchored under whichever trigger opened it - no single
-    // anchored width reads well against every language name at once ("Türkçe" vs
-    // "Português"), and a mid-screen sheet with its own title reads as a deliberate
-    // "choose your language" moment rather than a cramped dropdown.
-    const openPicker = () => {
+    // Drops down from whichever trigger was tapped, full width (edge to edge - see
+    // .lang-picker-sheet in app.css) rather than matching the trigger's own width, so
+    // long language names never get squeezed. top/max-height are the only two things
+    // that actually depend on which trigger opened it, so those stay computed here.
+    const openPicker = (triggerBtn) => {
+        const rect = triggerBtn.getBoundingClientRect();
+        const gap = 8;
+        const top = rect.bottom + gap;
+        sheet.style.top = `${top}px`;
+        const bottomLimit = tabbar.classList.contains("hidden") ? window.innerHeight : tabbar.getBoundingClientRect().top;
+        sheet.style.maxHeight = `${Math.max(0, bottomLimit - top - 12)}px`;
+
         modal.classList.add("open");
         triggers.forEach((t) => t.classList.add("active"));
         sheet.scrollTop = 0;
@@ -3164,7 +3170,7 @@ function setupLanguagePicker() {
     triggers.forEach((btn) => {
         btn.addEventListener("click", () => {
             if (modal.classList.contains("open")) closePicker();
-            else openPicker();
+            else openPicker(btn);
         });
     });
     backdrop.addEventListener("click", closePicker);
