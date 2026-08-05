@@ -320,7 +320,7 @@ button { font-family: inherit; -webkit-appearance: none; appearance: none; }
     transition: transform .2s cubic-bezier(.22,.9,.32,1.2), opacity .16s ease;
 }
 .lang-modal.open .lang-modal-sheet { transform: translateY(0) scale(1); opacity: 1; }
-.lang-modal-list { display: flex; flex-direction: column; }
+.lang-modal-list { display: flex; flex-direction: column; direction: ltr; }
 
 /* --- Language picker list - drops straight down from whichever trigger opened it (the
    login screen's own button, or the Settings row), anchored to that trigger's own left
@@ -337,13 +337,20 @@ button { font-family: inherit; -webkit-appearance: none; appearance: none; }
        to instead of the list just looking like it ends where the box does. The track's
        own top/bottom margin keeps the thumb short of the sheet's rounded corners (a
        native scrollbar ignores the sheet's border-radius otherwise, so a thumb running
-       flush to the very top/bottom reads as poking through the curve). */
+       flush to the very top/bottom reads as poking through the curve). Flipped to the
+       left edge via direction:rtl - a vertical scrollbar always renders on the block-end
+       side, so this is the standard trick to move it there instead; .lang-modal-list
+       below sets direction:ltr right back so the flags/text inside still read normally. */
+    direction: rtl;
     scrollbar-width: thin;
-    scrollbar-color: var(--text-muted) transparent;
+    scrollbar-color: color-mix(in srgb, var(--text-muted) 55%, transparent) transparent;
 }
-.lang-picker-sheet::-webkit-scrollbar { width: 4px; }
+.lang-picker-sheet::-webkit-scrollbar { width: 3px; }
 .lang-picker-sheet::-webkit-scrollbar-track { background: transparent; margin: 10px 0; }
-.lang-picker-sheet::-webkit-scrollbar-thumb { background: var(--text-muted); border-radius: 4px; }
+.lang-picker-sheet::-webkit-scrollbar-thumb {
+    background: color-mix(in srgb, var(--text-muted) 55%, transparent);
+    border-radius: 3px;
+}
 
 /* --- Country code picker (phone number field) - list (flag + name + dial code), sized
    and positioned inline by JS to match the width of the whole phone-input-row (button +
