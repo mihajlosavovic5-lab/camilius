@@ -332,7 +332,15 @@ button { font-family: inherit; -webkit-appearance: none; appearance: none; }
     right: auto; bottom: auto;
     overflow-y: auto;
     padding: 8px;
+    /* Thin, pale, always-on scrollbar (rather than the OS's own auto-hiding one) - the
+       list is taller than it can show at once, so this is the hint that there's more
+       to scroll to instead of the list just looking like it ends where the box does. */
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
 }
+.lang-picker-sheet::-webkit-scrollbar { width: 3px; }
+.lang-picker-sheet::-webkit-scrollbar-track { background: transparent; }
+.lang-picker-sheet::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
 
 /* --- Country code picker (phone number field) - list (flag + name + dial code), sized
    and positioned inline by JS to match the width of the whole phone-input-row (button +

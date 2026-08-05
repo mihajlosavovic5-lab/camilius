@@ -3152,7 +3152,7 @@ function setupLanguagePicker() {
         const maxWidth = window.innerWidth - rect.left - margin;
         sheet.style.width = `${Math.min(Math.max(rect.width, naturalWidth), maxWidth)}px`;
         const bottomLimit = tabbar.classList.contains("hidden") ? window.innerHeight : tabbar.getBoundingClientRect().top;
-        sheet.style.maxHeight = `${Math.max(0, Math.min(240, bottomLimit - top - margin))}px`;
+        sheet.style.maxHeight = `${Math.max(0, Math.min(340, bottomLimit - top - margin))}px`;
 
         modal.classList.add("open");
         triggers.forEach((t) => t.classList.add("active"));
