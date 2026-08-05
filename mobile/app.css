@@ -538,6 +538,12 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
    .button:active's amber flash with the SAME white the button already rests at, rather
    than swapping in a different (if subtler) tint on tap. */
 .button-google:active { background: #fff; }
+/* The actual "darkens right after I tap it" culprit wasn't :active at all - it's
+   startGoogleLogin() (app.js) setting button.disabled=true for the brief moment the
+   /api/google-login/start request is in flight (double-tap guard), which without this
+   fell through to .button:disabled's muted tan-gray. Same "stay exactly as it rests"
+   treatment as :active above. */
+.button-google:disabled { background: #fff; }
 .button-google-icon { width: 18px; height: 18px; flex-shrink: 0; }
 /* Same "short caption breaks up a lone floating button" idea as .login-signup-divider
    above, reused here between the Google button and the username/password form. */
