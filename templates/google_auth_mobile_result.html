@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}Continue with Google - Camilius{% endblock %}
+{% block body_class %}auth{% endblock %}
+
+{% block content %}
+<div class="auth-wrapper">
+    <div class="auth-brand">
+        <span class="brand">
+            <span class="brand-mark">C</span>
+            <span class="brand-name">Camilius</span>
+        </span>
+    </div>
+
+    <div class="auth-card">
+        {% if success %}
+            <h1 data-i18n="googleAuth.successTitle">You're signed in</h1>
+            <div class="alert alert-success" style="margin-top: 12px;">
+                <span class="alert-icon">&#10003;</span>
+                <span data-i18n="googleAuth.successBody">Head back to the Camilius app to continue - this tab can be closed.</span>
+            </div>
+        {% else %}
+            <h1 data-i18n="googleAuth.failedTitle">Sign-in didn't go through</h1>
+            <div class="alert alert-error" style="margin-top: 12px;">
+                <span class="alert-icon">&#9888;&#65039;</span>
+                <span data-i18n="googleAuth.failedBody">Head back to the Camilius app and try again - this tab can be closed.</span>
+            </div>
+        {% endif %}
+    </div>
+</div>
+<script>
+    // Best-effort only - most system-browser/Custom Tabs contexts ignore a script-
+    // initiated window.close() (it only works on a window JS itself opened), but it's
+    // free to try, and the copy above already tells the visitor to close it manually
+    // either way. The mobile app itself learns the actual result by polling
+    // /api/google-login/status (see mobile/app.js), not from anything on this page.
+    try { window.close(); } catch (e) {}
+</script>
+{% endblock %}

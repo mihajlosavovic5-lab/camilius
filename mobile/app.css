@@ -518,6 +518,18 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
 .button-secondary { background: var(--surface); color: var(--text); border: 1px solid var(--border); }
 .button-primary-outline { color: var(--primary); border-color: var(--primary); }
 .button-pill { border-radius: 999px; }
+/* "Continue with Google" (Login + Create account) - neutral white per Google's own
+   branding guidelines, same reasoning/colors as the website's .button-google
+   (static/style.css) - the multi-color "G" mark itself is the only branding color. */
+.button-google { background: #fff; color: #3c4043; border: 1px solid var(--border); }
+.button-google:active { background: var(--background); }
+.button-google-icon { width: 18px; height: 18px; flex-shrink: 0; }
+/* Same "short caption breaks up a lone floating button" idea as .login-signup-divider
+   above, reused here between the Google button and the username/password form. */
+.login-google-divider {
+    text-align: center; font-size: 13.5px; font-weight: 600; color: var(--text-muted);
+    margin: 14px 0 4px;
+}
 
 .checkbox-row { display: flex; align-items: flex-start; gap: 9px; font-weight: 400; font-size: 15px; margin: 16px 0 4px; cursor: pointer; }
 /* accent-color intentionally uses --text (not --primary/gold) - a plain, clean

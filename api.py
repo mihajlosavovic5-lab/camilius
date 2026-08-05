@@ -1,5 +1,6 @@
 import hashlib
 import os
+import secrets
 from datetime import date as date_type, datetime, timedelta
 from functools import wraps
 
@@ -23,11 +24,13 @@ from database import (
     notifications_for_business, unread_notification_count, mark_notifications_read,
     is_new_booking_notifications_enabled, set_new_booking_notifications_enabled,
     record_account_deletion, ACCOUNT_DELETION_REASONS,
+    create_oauth_login_session, oauth_login_session_status,
     UniqueViolation,
 )
 from extensions import limiter
 import booking
 import paddle_billing
+import google_oauth
 import business_media
 import business_documents
 
@@ -282,6 +285,39 @@ def api_register():
         contact_email=data.get("contact_email", ""),
         wait_seconds=EMAIL_VERIFY_RESEND_COOLDOWN_SECONDS,
     )
+
+
+# "Continue with Google" (mobile). The app has no cookie session in the system browser
+# tab Capacitor's Browser plugin opens Google's consent screen in (see
+# mobile/app.js's startGoogleLogin), so unlike the web flow (app.py's auth_google(), which
+# just redirects straight to Google) this hands the app a ready-made auth_url to open
+# itself, plus a `state` token it polls api_google_login_status below with until
+# app.py's /auth/google/callback has filled the matching oauth_login_sessions row in.
+@api.route("/google-login/start", methods=["POST"])
+@limiter.limit("10 per 15 minutes")
+def api_google_login_start():
+    if not google_oauth.is_configured():
+        return jsonify(error="Google sign-in isn't available."), 404
+
+    state = secrets.token_urlsafe(24)
+    create_oauth_login_session(state)
+    redirect_uri = url_for("auth_google_callback", _external=True)
+    return jsonify(auth_url=google_oauth.authorization_url(redirect_uri, state), state=state)
+
+
+# Polled every couple seconds by the app while its system-browser tab is open (see
+# mobile/app.js's pollGoogleLogin) - 'pending' until /auth/google/callback resolves the
+# attempt one way or the other. A 'done'/'error' result (or the row simply not existing -
+# either never created, or already consumed by an earlier poll) is single-use, matching
+# database.oauth_login_session_status's own docstring.
+@api.route("/google-login/status", methods=["GET"])
+@limiter.limit("120 per 5 minutes")
+def api_google_login_status():
+    state = request.args.get("state", "")
+    result = oauth_login_session_status(state) if state else None
+    if result is None:
+        return jsonify(status="expired")
+    return jsonify(**result)
 
 
 # Lets the app's "check your email" screen (shown after registration, or after a login

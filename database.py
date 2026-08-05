@@ -649,6 +649,37 @@ def create_database():
         cursor.execute("UPDATE businesses SET onboarding_completed_at = created_at WHERE onboarding_completed_at IS NULL")
         cursor.execute("INSERT INTO schema_flags (key) VALUES ('onboarding_backfill_2026_08_04')")
 
+    # "Continue with Google" (web + mobile) - the Google account's own stable `sub` claim,
+    # set the first time a business ever logs in/signs up via Google (either linked onto
+    # an existing password account that shares the same, Google-verified email, or a
+    # brand-new account created on the spot - see app.py's _google_login_or_register).
+    # NULL for every account that has never used Google sign-in. Same "unique but multiple
+    # NULLs allowed" index pattern as instagram_account_id/phone_number above - appended at
+    # the END of the column list (not grouped with `password`/`contact_email` above) for
+    # the same positional-tuple reason _BUSINESS_COLUMNS' own comment gives.
+    cursor.execute("ALTER TABLE businesses ADD COLUMN IF NOT EXISTS google_id TEXT")
+    cursor.execute("CREATE UNIQUE INDEX IF NOT EXISTS businesses_google_id_idx ON businesses (google_id)")
+
+    # Bridges a Google sign-in completed in the mobile app's system browser tab (Capacitor's
+    # Browser plugin - see mobile/app.js's startGoogleLogin) back to the app itself, which
+    # has no cookie session in that tab and can't receive a redirect directly. The app opens
+    # Google's consent screen with `state` as this row's primary key, then polls
+    # /api/google-login/status?state=... (see api.py) until app.py's /auth/google/callback
+    # has filled in a token - short-lived and single-use, deleted as soon as either the poll
+    # picks up a 'done'/'error' result or it goes stale (see the opportunistic cleanup in
+    # api.py). Not used by the web flow at all, which stays on Flask's own session cookie
+    # for its (same-browser-tab) redirect round trip, exactly like every other web login.
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS oauth_login_sessions (
+            state TEXT PRIMARY KEY,
+            status TEXT NOT NULL DEFAULT 'pending',
+            token TEXT,
+            business_id INTEGER,
+            business_name TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+
     # Account-deletion exit survey (web + mobile "Delete account" wizard) - a snapshot of
     # the business's own identifying fields plus why they left, kept AFTER delete_business()
     # removes the business row itself, so the founder still has something to look at in
@@ -779,20 +810,22 @@ def create_database():
 #   15 whatsapp_phone_number_id, 16 whatsapp_display_number, 17 whatsapp_access_token
 #   (decrypted, None if not connected yet), 18 messenger_page_id, 19 messenger_page_name,
 #   20 messenger_page_access_token (decrypted, None if not connected yet), 21 timezone
-#   (IANA name, never NULL - see the column's DEFAULT). The WhatsApp, Messenger and
-#   timezone columns are appended at the END rather than grouped next to the related
-#   ones above, deliberately - this tuple is indexed positionally (business[5],
-#   business[7], ...) in well over a hundred places across app.py/api.py/booking.py, so
-#   inserting them in the middle would silently shift every existing index instead of
-#   just adding new ones. Read index 21 through booking.tz_for(business) rather than
-#   directly, so there is exactly one place to fix if the shape ever does change.
+#   (IANA name, never NULL - see the column's DEFAULT), 22 google_id (None unless this
+#   account has ever signed in with Google - see business_by_google_id below). The
+#   WhatsApp, Messenger, timezone and google_id columns are appended at the END rather
+#   than grouped next to the related ones above, deliberately - this tuple is indexed
+#   positionally (business[5], business[7], ...) in well over a hundred places across
+#   app.py/api.py/booking.py, so inserting them in the middle would silently shift every
+#   existing index instead of just adding new ones. Read index 21 through booking.tz_for
+#   (business) rather than directly, so there is exactly one place to fix if the shape
+#   ever does change.
 
 _BUSINESS_COLUMNS = """id, name, username, password, contact_email, instagram_account_id,
                        instagram_username, instagram_access_token, working_hours, price_list, faq,
                        phone_number, email_verified, phone_verified, pending_contact_email,
                        whatsapp_phone_number_id, whatsapp_display_number, whatsapp_access_token,
                        messenger_page_id, messenger_page_name, messenger_page_access_token,
-                       timezone"""
+                       timezone, google_id"""
 
 # How many columns _BUSINESS_COLUMNS actually selects. Derived rather than written as a
 # literal because all_businesses()/all_businesses_unfiltered() below select extra
@@ -816,7 +849,7 @@ def _decrypt_row_token(row):
     return row[:7] + (ig_token,) + row[8:17] + (wa_token,) + row[18:20] + (fb_token,) + row[21:]
 
 
-def add_business(name, username, password, contact_email, working_hours, price_list, faq, phone_number=None, initial_status="trialing", push_enabled=True, auto_send=True, new_booking_notifications_enabled=True, reminders_enabled=False):
+def add_business(name, username, password, contact_email, working_hours, price_list, faq, phone_number=None, initial_status="trialing", push_enabled=True, auto_send=True, new_booking_notifications_enabled=True, reminders_enabled=False, google_id=None, email_verified=False):
     """Creates the account itself. phone_number is optional - purely an extra way to log
     in later, not required.
 
@@ -842,15 +875,22 @@ def add_business(name, username, password, contact_email, working_hours, price_l
     whatever each column itself defaults to (True/True/True/False respectively) but the
     mobile app's registration wizard asks up front and passes the answer straight through,
     rather than always signing new accounts up for them and making them opt out (or, for
-    reminders_enabled, opt in) afterward in Settings."""
+    reminders_enabled, opt in) afterward in Settings.
+
+    google_id/email_verified are set together by the "Continue with Google" signup path
+    (see app.py's _google_login_or_register) for a brand-new account with no existing
+    password-based match: google_id links the account for future Google sign-ins, and
+    email_verified=True skips the normal confirm-your-email step entirely since Google has
+    already proven the address. Every other caller leaves both at their defaults (no
+    Google link, unverified - the normal password-signup flow)."""
     connection = connect()
     cursor = connection.cursor()
 
     _execute_or_raise_unique_violation(
         cursor,
-        """INSERT INTO businesses (name, username, password, contact_email, working_hours, price_list, faq, phone_number, subscription_status, email_verified, phone_verified, push_enabled, auto_send, new_booking_notifications_enabled, reminders_enabled)
-           VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, FALSE, FALSE, %s, %s, %s, %s) RETURNING id""",
-        (name, username, generate_password_hash(password), contact_email, working_hours, price_list, faq, phone_number or None, initial_status, push_enabled, auto_send, new_booking_notifications_enabled, reminders_enabled),
+        """INSERT INTO businesses (name, username, password, contact_email, working_hours, price_list, faq, phone_number, subscription_status, email_verified, phone_verified, push_enabled, auto_send, new_booking_notifications_enabled, reminders_enabled, google_id)
+           VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, FALSE, %s, %s, %s, %s, %s) RETURNING id""",
+        (name, username, generate_password_hash(password), contact_email, working_hours, price_list, faq, phone_number or None, initial_status, email_verified, push_enabled, auto_send, new_booking_notifications_enabled, reminders_enabled, google_id),
     )
 
     new_id = cursor.fetchone()[0]
@@ -1207,6 +1247,37 @@ def business_by_contact_email(contact_email):
     return _decrypt_row_token(row)
 
 
+def business_by_google_id(google_id):
+    """Used by "Continue with Google" - looks up an account that has already signed in
+    with this Google account before (see link_google_account below for the first time)."""
+    connection = connect()
+    cursor = connection.cursor()
+    cursor.execute(f"SELECT {_BUSINESS_COLUMNS} FROM businesses WHERE google_id = %s", (google_id,))
+    row = cursor.fetchone()
+    connection.close()
+
+    if row is None:
+        return None
+    return _decrypt_row_token(row)
+
+
+def link_google_account(business_id, google_id):
+    """First-time "Continue with Google" for an existing, password-based account whose
+    contact_email matches the Google account's own (Google-verified) email - see
+    app.py's _google_login_or_register. Also marks the email verified: Google has already
+    proven the business owns that address, so there's no reason to still gate login behind
+    a confirmation link it may never have clicked (see email_verified's own column
+    comment)."""
+    connection = connect()
+    cursor = connection.cursor()
+    cursor.execute(
+        "UPDATE businesses SET google_id = %s, email_verified = TRUE WHERE id = %s",
+        (google_id, business_id),
+    )
+    connection.commit()
+    connection.close()
+
+
 def business_by_phone_number(phone_number):
     """Used by the "find account by phone number" password-recovery path - looks up the
     account the same way business_by_contact_email does, just by phone_number instead."""
@@ -1263,6 +1334,88 @@ def phone_number_taken(phone_number, exclude_business_id=None):
     taken = cursor.fetchone() is not None
     connection.close()
     return taken
+
+
+# --- "Continue with Google" mobile bridge (oauth_login_sessions) ---
+#
+# The web flow never touches this table - it stays on Flask's own session cookie for the
+# redirect round trip between app.py's /auth/google and /auth/google/callback, same as
+# every other web login. Only the mobile app (no cookie session in the system browser tab
+# Google's consent screen opens in) needs this: api.py's /api/google-login/start creates
+# the pending row, /auth/google/callback fills it in once Google redirects back, and
+# /api/google-login/status is what the app polls to pick the result up.
+
+def _cleanup_stale_oauth_login_sessions(cursor):
+    """Best-effort GC, called opportunistically from both endpoints below rather than on a
+    schedule (this app has no cron worker for anything this size) - a mobile sign-in
+    abandoned mid-flow (app killed, consent screen dismissed) would otherwise leave its row
+    behind forever. 15 minutes is generous next to how long the whole round trip actually
+    takes (well under a minute), so it never races a slow-but-still-in-flight attempt."""
+    cursor.execute("DELETE FROM oauth_login_sessions WHERE created_at < NOW() - INTERVAL '15 minutes'")
+
+
+def create_oauth_login_session(state):
+    connection = connect()
+    cursor = connection.cursor()
+    _cleanup_stale_oauth_login_sessions(cursor)
+    cursor.execute("INSERT INTO oauth_login_sessions (state) VALUES (%s)", (state,))
+    connection.commit()
+    connection.close()
+
+
+def complete_oauth_login_session(state, token, business_id, business_name):
+    connection = connect()
+    cursor = connection.cursor()
+    cursor.execute(
+        "UPDATE oauth_login_sessions SET status = 'done', token = %s, business_id = %s, business_name = %s WHERE state = %s",
+        (token, business_id, business_name, state),
+    )
+    connection.commit()
+    connection.close()
+
+
+def fail_oauth_login_session(state):
+    connection = connect()
+    cursor = connection.cursor()
+    cursor.execute("UPDATE oauth_login_sessions SET status = 'error' WHERE state = %s", (state,))
+    connection.commit()
+    connection.close()
+
+
+def oauth_login_session_exists(state):
+    """Lets app.py's /auth/google/callback tell a mobile attempt (a row was created by
+    /api/google-login/start) apart from a web one (no row - CSRF-checked via the session
+    cookie's own oauth_state instead, see login_google())."""
+    connection = connect()
+    cursor = connection.cursor()
+    cursor.execute("SELECT 1 FROM oauth_login_sessions WHERE state = %s", (state,))
+    exists = cursor.fetchone() is not None
+    connection.close()
+    return exists
+
+
+def oauth_login_session_status(state):
+    """Polled by the mobile app (see api.py's api_google_login_status). A 'done'/'error'
+    result is single-use - deleted here the moment it's picked up - since the token inside
+    it is a live, usable Bearer credential that should exist in exactly one place
+    afterward (the row, or the app that fetched it - never both)."""
+    connection = connect()
+    cursor = connection.cursor()
+    _cleanup_stale_oauth_login_sessions(cursor)
+    cursor.execute(
+        "SELECT status, token, business_id, business_name FROM oauth_login_sessions WHERE state = %s",
+        (state,),
+    )
+    row = cursor.fetchone()
+    if row is not None and row[0] in ("done", "error"):
+        cursor.execute("DELETE FROM oauth_login_sessions WHERE state = %s", (state,))
+    connection.commit()
+    connection.close()
+
+    if row is None:
+        return None
+    status, token, business_id, business_name = row
+    return {"status": status, "token": token, "business_id": business_id, "business_name": business_name}
 
 
 def save_reset_token(business_id, token, expires):
