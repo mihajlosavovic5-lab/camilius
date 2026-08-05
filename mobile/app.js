@@ -117,6 +117,11 @@ const tabbar = el("tabbar");
 const offlineBanner = el("offline-banner");
 
 function showScreen(name) {
+    // Leaving Login for anywhere else (Create Account, Forgot password, ...) dismisses
+    // whatever error it was showing (wrong password, no account for that Google
+    // identity, ...) outright - see hideLoginError()/resetLoginPhase()'s own comments -
+    // rather than leaving it to resurface stale on a later visit back here.
+    if (name !== "login" && screens.login.classList.contains("active")) hideLoginError();
     Object.values(screens).forEach((s) => s.classList.remove("active"));
     screens[name].classList.add("active");
     // Every navigation TO the login screen (logout, back button, verify-pending "back to
@@ -1498,6 +1503,18 @@ function showLoginError(message) {
     }, LOGIN_ERROR_AUTO_HIDE_MS);
 }
 
+// Dismisses the Login screen's error box outright (cancelling its auto-hide timer too,
+// so it can't re-show itself a moment later) - called wherever the visitor actively
+// leaves it behind (showScreen away from login, "Continue with email", Create Account)
+// rather than just waiting on LOGIN_ERROR_AUTO_HIDE_MS, and again on the way back in
+// (resetLoginPhase) so a stale message from a previous attempt never resurfaces on a
+// later visit to this screen either.
+function hideLoginError() {
+    const errorBox = el("login-error");
+    clearTimeout(errorBox._autoHideTimer);
+    errorBox.classList.add("hidden");
+}
+
 // startGoogleLogin/checkGoogleLoginStatusOnce below are shared between the Login and
 // Create Account screens' Google buttons (see their own el("login-google-btn")/
 // el("register-google-btn") wiring) - this routes only the Login screen's box through
@@ -1718,9 +1735,13 @@ function resetLoginPhase() {
     // more evenly-split top/bottom spacer ratio than the full form does, so the block
     // doesn't visibly jump position when the form is revealed/hidden.
     el("login-wrap").classList.remove("login-wrap-form-phase");
+    // Every fresh arrival at Login starts with a clean slate, not whatever error a
+    // previous attempt left behind (see hideLoginError()'s own comment).
+    hideLoginError();
 }
 
 el("login-email-btn").addEventListener("click", () => {
+    hideLoginError();
     el("login-choice").classList.add("hidden");
     el("login-email-form").classList.remove("hidden");
     el("login-wrap").classList.add("login-wrap-form-phase");
