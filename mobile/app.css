@@ -1545,15 +1545,14 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
 @keyframes inbox-pull-spin { to { transform: rotate(360deg); } }
 
 /* --- Onboarding ---
-   Premium-feeling intro: a soft accent glow that shifts color per slide (via the
-   --onboarding-accent custom property, set by setupOnboarding() in app.js from each
-   slide's data-accent), scroll-driven parallax on the illustration/copy (--p custom
-   property, also set in app.js, updated live on every real scroll frame - this is what
-   makes the copy/art fade and settle in as a slide arrives, with no separate trigger
-   involved), and small looping decorations (typing dots, a send-icon flight, badge
-   pulses) that only play once per visit, gated by the "is-active" class that app.js
-   sets once scrolling settles. Everything backs off to a plain fade under
-   prefers-reduced-motion.
+   Premium-feeling intro: a soft, fixed-color accent glow behind the whole screen
+   (same var(--primary) on every slide - no per-slide color shift), scroll-driven
+   parallax on the illustration/copy (--p custom property, set in app.js, updated
+   live on every real scroll frame - this is what makes the copy/art fade and settle
+   in as a slide arrives, with no separate trigger involved), and small looping
+   decorations (typing dots, a send-icon flight, badge pulses) that only play once
+   per visit, gated by the "is-active" class that app.js sets once scrolling settles.
+   Everything backs off to a plain fade under prefers-reduced-motion.
 
    Deliberately NOT used for anything that's already visible: see the long comment
    below the .onboarding-art/h1/p/.onboarding-continue rule for why a discrete,
@@ -1564,12 +1563,8 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
 .screen-onboarding { overflow: hidden; background: var(--background); }
 .screen-onboarding::before {
     content: ""; position: absolute; inset: -15%; z-index: 0; pointer-events: none;
-    background: radial-gradient(circle at 50% 18%, var(--onboarding-accent, var(--primary)) 0%, transparent 58%);
+    background: radial-gradient(circle at 50% 18%, var(--primary) 0%, transparent 58%);
     opacity: .16; filter: blur(38px);
-    /* No transition: app.js already updates --onboarding-accent live on every real
-       scroll frame while dragging (see updateParallax() in app.js), so the color
-       itself tracks the finger in real time - a CSS transition here on top of that
-       just re-introduces a lag between the swipe and the glow visibly catching up. */
 }
 .onboarding-slides, .onboarding-dots, .onboarding-skip-wrap { position: relative; z-index: 1; }
 .onboarding-slides {
