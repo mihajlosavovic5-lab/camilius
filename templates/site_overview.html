@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+{% block title %}My Website - {{ business_name }}{% endblock %}
+{% block body_class %}app{% endblock %}
+
+{% block content %}
+{% include "_nav.html" %}
+
+<div class="content">
+    <div class="page-header">
+        <div>
+            <h1 class="business-title">{{ business_name }}</h1>
+            <div class="business-title-rule"></div>
+        </div>
+    </div>
+
+    {% if onboarding_done %}
+        <div class="alert alert-success"><span class="alert-icon">&#127881;</span><span data-i18n="siteOverview.published">Your website is live! Camilius is ready to answer customers and book appointments for you.</span></div>
+    {% endif %}
+
+    {% if not beta_free_mode and not subscription_active_flag %}
+        <div class="alert alert-warning">
+            <span class="alert-icon">&#9888;</span>
+            <span><span data-i18n="dashboard.subscriptionInactive">Subscription not active - the AI is currently not processing new messages.</span> <a href="{{ url_for('subscription') }}" data-i18n="dashboard.activateSubscription">Activate your subscription</a> <span data-i18n="dashboard.toContinue">to continue.</span></span>
+        </div>
+    {% endif %}
+
+    <div class="card profile-section" id="site-overview-website-card">
+        <div class="profile-section-header">
+            <p class="profile-section-title" data-i18n="siteOverview.website.title">Your website</p>
+            {% if page %}
+                <p class="profile-section-subtitle">
+                    {% if page.published %}
+                        <span data-i18n="siteOverview.website.live">Live</span> &middot; {{ page_url_prefix }}{{ page.slug }}
+                    {% else %}
+                        <span data-i18n="siteOverview.website.draft">Not published yet</span>
+                    {% endif %}
+                </p>
+            {% endif %}
+        </div>
+
+        {% if page %}
+        <div class="site-overview-preview" style="display:flex; gap:16px; align-items:center; flex-wrap:wrap;">
+            <div class="site-overview-swatch" style="width:64px; height:64px; border-radius:{{ theme.radius }}; background:{{ theme.base.surface }}; border:2px solid {{ theme.base.primary }}; flex-shrink:0;"></div>
+            <div style="flex:1; min-width:200px;">
+                {% if page.tagline %}<p style="margin:0 0 4px; font-weight:600;">{{ page.tagline }}</p>{% endif %}
+                {% if page.about %}<p class="note" style="margin:0;">{{ page.about }}</p>{% endif %}
+            </div>
+        </div>
+        <div class="form-actions" style="display:flex; gap:10px; flex-wrap:wrap; justify-content:flex-start; margin-top:16px;">
+            {% if page.published %}
+                <a class="button button-secondary" href="{{ page_url_prefix }}{{ page.slug }}" target="_blank" rel="noopener" data-i18n="siteOverview.website.view">View your live site</a>
+            {% endif %}
+            <a class="button button-secondary" href="{{ url_for('settings') }}#settings-page-theme-input" data-i18n="siteOverview.website.changeDesign">Change design</a>
+            <a class="button button-secondary" href="{{ url_for('settings') }}" data-i18n="siteOverview.website.edit">Edit website content</a>
+        </div>
+        {% else %}
+        <p class="note" data-i18n="siteOverview.website.none">You haven't set up your website's page yet.</p>
+        <div class="form-actions" style="justify-content:flex-start;">
+            <a class="button" href="{{ url_for('settings') }}" data-i18n="siteOverview.website.setup">Set up your website</a>
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="stats-row" style="margin-top: 20px;">
+        <a class="card stat-tile" href="{{ url_for('schedule') }}" style="text-decoration:none; color:inherit;">
+            <div class="stat-value">{{ upcoming_appointments|length }}</div>
+            <div class="stat-label" data-i18n="siteOverview.upcomingAppointments">Upcoming appointments (7 days)</div>
+        </a>
+        <a class="card stat-tile" href="{{ url_for('conversations_home') }}" style="text-decoration:none; color:inherit;">
+            <div class="stat-value">{{ pending_count }}</div>
+            <div class="stat-label" data-i18n="siteOverview.pendingConversations">Conversations waiting on you</div>
+        </a>
+    </div>
+
+    <div class="card profile-section" style="margin-top: 20px;">
+        <div class="profile-section-header">
+            <p class="profile-section-title" data-i18n="siteOverview.appointments.title">Coming up</p>
+        </div>
+        {% if upcoming_appointments %}
+            <div class="site-overview-appointment-list">
+                {% for appt in upcoming_appointments %}
+                <div class="site-overview-appointment-row" style="display:flex; justify-content:space-between; gap:12px; padding:10px 0; border-bottom:1px solid var(--border);">
+                    <span>{{ appt.customer_name }}{% if appt.service %} &middot; {{ appt.service }}{% endif %}</span>
+                    <span class="note">{{ appt.start_time.strftime("%a, %b %d %H:%M") }}</span>
+                </div>
+                {% endfor %}
+            </div>
+            <div class="form-actions" style="justify-content:flex-start; margin-top:12px;">
+                <a class="button button-secondary" href="{{ url_for('schedule') }}" data-i18n="siteOverview.appointments.viewAll">View full schedule</a>
+            </div>
+        {% else %}
+            <p class="note" data-i18n="siteOverview.appointments.empty">No appointments booked in the next 7 days yet.</p>
+        {% endif %}
+    </div>
+
+    <div class="card profile-section" style="margin-top: 20px;">
+        <div class="profile-section-header">
+            <p class="profile-section-title" data-i18n="siteOverview.conversations.title">Recent conversations</p>
+            <p class="profile-section-subtitle" data-i18n="siteOverview.conversations.subtitle">Your AI chat agent's replies to customers, ready to review.</p>
+        </div>
+        <div class="form-actions" style="justify-content:flex-start;">
+            <a class="button button-secondary" href="{{ url_for('conversations_home') }}" data-i18n="siteOverview.conversations.viewAll">Open conversations</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

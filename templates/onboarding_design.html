@@ -27,10 +27,32 @@
 
     <form method="POST">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        {% if ai_theme_choices %}
+        <p class="onboarding-theme-group-label" data-i18n="onboarding.design.suggested">Suggested for your business</p>
+        <div class="onboarding-theme-grid">
+            {% for ai_index, theme in ai_theme_choices %}
+            <label class="onboarding-theme-card">
+                <input type="radio" name="theme" value="ai:{{ ai_index }}" {% if selected_theme == 'ai:' ~ ai_index or (not selected_theme and loop.first) %}checked{% endif %} required>
+                <div class="onboarding-theme-preview">
+                    <iframe data-src="{{ url_for('onboarding_website_preview', theme='ai:' ~ ai_index) }}" tabindex="-1" title="{{ theme.label }} preview"></iframe>
+                </div>
+                <div class="onboarding-theme-info">
+                    <p class="onboarding-theme-label">&#10024; {{ theme.label }}</p>
+                    <p class="onboarding-theme-blurb">{{ theme.blurb }}</p>
+                    <div class="onboarding-theme-swatches">
+                        {% for color in theme.swatch %}<span style="background: {{ color }}"></span>{% endfor %}
+                    </div>
+                </div>
+            </label>
+            {% endfor %}
+        </div>
+        <p class="onboarding-theme-group-label" data-i18n="onboarding.design.classic">Or pick a classic look</p>
+        {% endif %}
         <div class="onboarding-theme-grid">
             {% for theme_id, theme in theme_choices %}
             <label class="onboarding-theme-card">
-                <input type="radio" name="theme" value="{{ theme_id }}" {% if selected_theme == theme_id or (not selected_theme and loop.first) %}checked{% endif %} required>
+                <input type="radio" name="theme" value="{{ theme_id }}" {% if selected_theme == theme_id or (not selected_theme and not ai_theme_choices and loop.first) %}checked{% endif %} required>
                 <div class="onboarding-theme-preview">
                     <iframe data-src="{{ url_for('onboarding_website_preview', theme=theme_id) }}" tabindex="-1" title="{{ theme.label }} preview"></iframe>
                 </div>

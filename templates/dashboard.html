@@ -53,11 +53,11 @@
     </div>
 
     <div class="filters" style="margin-bottom: 20px;">
-        <a href="{{ url_for('home') }}" class="{{ 'active' if filter_status == 'all' }}"><span data-i18n="dashboard.filterAll">All</span> ({{ total_count }})</a>
-        <a href="{{ url_for('home', filter='pending') }}" class="{{ 'active' if filter_status == 'pending' }}"><span data-i18n="dashboard.filterPending">Pending</span> ({{ pending_count }})</a>
-        <a href="{{ url_for('home', filter='sent') }}" class="{{ 'active' if filter_status == 'sent' }}"><span data-i18n="dashboard.filterSent">Sent</span> ({{ total_count - pending_count }})</a>
-        <a href="{{ url_for('home', filter='archived') }}" class="{{ 'active' if filter_status == 'archived' }}"><span data-i18n="dashboard.filterArchived">Archived</span> ({{ archived_count }})</a>
-        <a href="{{ url_for('home', filter='trash') }}" class="{{ 'active' if filter_status == 'trash' }}"><span data-i18n="dashboard.filterTrash">Trash</span> ({{ trash_count }})</a>
+        <a href="{{ url_for('conversations_home') }}" class="{{ 'active' if filter_status == 'all' }}"><span data-i18n="dashboard.filterAll">All</span> ({{ total_count }})</a>
+        <a href="{{ url_for('conversations_home', filter='pending') }}" class="{{ 'active' if filter_status == 'pending' }}"><span data-i18n="dashboard.filterPending">Pending</span> ({{ pending_count }})</a>
+        <a href="{{ url_for('conversations_home', filter='sent') }}" class="{{ 'active' if filter_status == 'sent' }}"><span data-i18n="dashboard.filterSent">Sent</span> ({{ total_count - pending_count }})</a>
+        <a href="{{ url_for('conversations_home', filter='archived') }}" class="{{ 'active' if filter_status == 'archived' }}"><span data-i18n="dashboard.filterArchived">Archived</span> ({{ archived_count }})</a>
+        <a href="{{ url_for('conversations_home', filter='trash') }}" class="{{ 'active' if filter_status == 'trash' }}"><span data-i18n="dashboard.filterTrash">Trash</span> ({{ trash_count }})</a>
     </div>
 
     {% if filter_status == 'trash' and trash_count > 0 %}

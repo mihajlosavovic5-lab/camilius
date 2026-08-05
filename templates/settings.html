@@ -190,11 +190,11 @@
          app.py): it only re-renders this same form with generated values pre-filled,
          so the Save buttons those cards already have are still the only way any of it
          actually gets written to the database. -->
-    <form method="POST" action="{{ url_for('generate_business_page') }}" class="card profile-section" style="margin-top: 20px;">
+    <form method="POST" action="{{ url_for('generate_business_page') }}" class="card profile-section" id="settings-generate-form" style="margin-top: 20px;">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <div class="profile-section-header">
             <p class="profile-section-title">Draft this with AI</p>
-            <p class="profile-section-subtitle">Describe your business in a sentence or two and the AI drafts a tagline, about text, hours, prices, and FAQ below for you to review and save.</p>
+            <p class="profile-section-subtitle">Describe your business in a sentence or two (type, speak, or attach a document) and the AI drafts a tagline, about text, hours, prices, and FAQ below for you to review and save.</p>
         </div>
 
         {% if generate_error %}
@@ -206,6 +206,26 @@
         <div class="floating-field floating-field-textarea" style="margin-top: 0;">
             <textarea name="description" id="settings-generate-description-input" placeholder=" " maxlength="1000">{{ generate_description or '' }}</textarea>
             <label for="settings-generate-description-input">What does your business do?</label>
+        </div>
+
+        <div class="voice-input-row" id="settings-voice-row" hidden>
+            <button type="button" class="button button-secondary voice-record-btn" id="settings-voice-btn">
+                <span class="voice-record-dot" aria-hidden="true"></span>
+                <span class="voice-record-icon" aria-hidden="true">&#127908;</span>
+                <span id="settings-voice-btn-label" data-i18n="onboarding.describe.recordStart">Record instead of typing</span>
+            </button>
+            <span class="voice-status" id="settings-voice-status" aria-live="polite"></span>
+        </div>
+
+        <div class="onboarding-media-section" id="settings-document-section">
+            <p class="onboarding-media-label" data-i18n="onboarding.describe.documentsLabel">Or add a document (PDF/Word)</p>
+            <p class="onboarding-media-hint" data-i18n="onboarding.describe.documentsHint">A menu, price list, or brochure - in addition to the description above, not instead of it. The AI treats it as a source of facts (exact prices, hours, services).</p>
+            <div class="onboarding-document-list" id="settings-document-list"></div>
+            <label class="onboarding-document-add" id="settings-document-add">
+                <span data-i18n="onboarding.describe.documentsAdd">+ Add document</span>
+                <input type="file" id="settings-document-input" accept="application/pdf,.pdf,.docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document">
+            </label>
+            <p class="onboarding-media-error hidden" id="settings-document-error"></p>
         </div>
 
         <div class="form-actions" style="text-align: right;">
@@ -239,11 +259,21 @@
         {% endif %}
 
         <label data-i18n="settings.page.design">Design</label>
-        <select name="theme" id="settings-page-theme-input">
+        <input type="hidden" name="theme" id="settings-page-theme-value" value="{{ page.theme if page else 'warm' }}">
+        <input type="hidden" name="custom_theme_json" id="settings-page-custom-theme-json" value="{{ page.custom_theme_json if page and page.theme == 'custom' else '' }}">
+        <select id="settings-page-theme-input">
             {% for theme_id, theme_choice in theme_choices %}
             <option value="{{ theme_id }}" {% if (page.theme if page else 'warm') == theme_id %}selected{% endif %}>{{ theme_choice.label }}</option>
             {% endfor %}
+            <option value="custom" {% if page and page.theme == 'custom' %}selected{% endif %} id="settings-theme-custom-option" {% if not (page and page.theme == 'custom') %}hidden{% endif %}>AI-suggested design</option>
         </select>
+
+        <div id="settings-theme-suggest-wrap" style="margin-top: 10px;">
+            <button type="button" class="button button-secondary" id="settings-theme-suggest-btn">&#10024; Suggest AI designs for my business</button>
+            <p class="note" id="settings-theme-suggest-hint">Uses the description in the "Draft this with AI" card above.</p>
+            <p class="onboarding-media-error hidden" id="settings-theme-suggest-error"></p>
+            <div class="onboarding-theme-grid" id="settings-theme-suggest-grid" style="margin-top: 12px;"></div>
+        </div>
 
         <div class="floating-field">
             <input type="text" id="settings-page-tagline-input" name="tagline" value="{{ page.tagline if page else '' }}" placeholder=" " maxlength="200">
@@ -685,6 +715,316 @@ if (document.readyState === "loading") {
     grids.forEach((grid) => {
         makeAddButton(grid);
         existing.filter((item) => item.role === grid.dataset.role).forEach((item) => makeThumb(grid, item));
+    });
+})();
+
+// Business documents (PDF/Word) - same reachable-outside-onboarding shape as the media
+// card above, but for /api/onboarding/document (see onboarding_describe.html, which this
+// mirrors). Previously this manager only ever appeared once, during the onboarding
+// wizard's own describe step - a business that had already finished onboarding (or was
+// grandfathered in before the wizard existed) had no way back to it at all. Living here
+// too means it's always reachable from Settings, same as the media card.
+(function () {
+    const csrfInput = document.querySelector('#settings-generate-form input[name="csrf_token"]');
+    const list = document.getElementById("settings-document-list");
+    const input = document.getElementById("settings-document-input");
+    const errorBox = document.getElementById("settings-document-error");
+    if (!csrfInput || !list || !input || !errorBox) return;
+
+    const uploadUrl = "{{ url_for('onboarding_document') }}";
+    const existing = {{ documents | tojson }};
+
+    function showError(message) {
+        errorBox.textContent = message;
+        errorBox.classList.remove("hidden");
+    }
+    function clearError() {
+        errorBox.classList.add("hidden");
+    }
+    function makeRow(item) {
+        const row = document.createElement("div");
+        row.className = "onboarding-document-row";
+        row.dataset.id = item.id;
+        const name = document.createElement("span");
+        name.className = "onboarding-document-row-name";
+        name.textContent = item.filename;
+        row.appendChild(name);
+        const removeBtn = document.createElement("button");
+        removeBtn.type = "button";
+        removeBtn.className = "onboarding-document-row-remove";
+        removeBtn.setAttribute("aria-label", "Remove");
+        removeBtn.textContent = "×";
+        removeBtn.addEventListener("click", () => removeItem(item.id, row));
+        row.appendChild(removeBtn);
+        list.appendChild(row);
+    }
+    function uploadFile(file) {
+        clearError();
+        const placeholder = document.createElement("div");
+        placeholder.className = "onboarding-document-row uploading";
+        placeholder.textContent = file.name;
+        list.appendChild(placeholder);
+        const formData = new FormData();
+        formData.append("file", file);
+        fetch(uploadUrl, { method: "POST", headers: { "X-CSRFToken": csrfInput.value }, body: formData })
+            .then((response) => response.json().then((data) => ({ ok: response.ok, data })))
+            .then(({ ok, data }) => {
+                placeholder.remove();
+                if (!ok) { showError(data.error || "Couldn't upload that file."); return; }
+                makeRow(data);
+            })
+            .catch(() => { placeholder.remove(); showError("Couldn't upload that file - check your connection and try again."); });
+    }
+    function removeItem(id, row) {
+        row.classList.add("uploading");
+        fetch(uploadUrl + "/" + id, { method: "DELETE", headers: { "X-CSRFToken": csrfInput.value } })
+            .then((response) => { if (!response.ok) throw new Error(); row.remove(); })
+            .catch(() => { row.classList.remove("uploading"); showError("Couldn't remove that file - please try again."); });
+    }
+
+    input.addEventListener("change", () => {
+        const files = Array.prototype.slice.call(input.files || []);
+        input.value = "";
+        files.forEach(uploadFile);
+    });
+    existing.forEach(makeRow);
+})();
+
+// Voice input for the description above - same MediaRecorder/Whisper round trip as
+// onboarding_describe.html's own recorder, reachable here anytime instead of only once
+// during onboarding. See that template's script block for the full walkthrough of why
+// each piece is here; this is intentionally a near copy with settings-* element ids.
+(function () {
+    const row = document.getElementById("settings-voice-row");
+    const recordBtn = document.getElementById("settings-voice-btn");
+    const btnLabel = document.getElementById("settings-voice-btn-label");
+    const status = document.getElementById("settings-voice-status");
+    const textarea = document.getElementById("settings-generate-description-input");
+    const csrfInput = document.querySelector('#settings-generate-form input[name="csrf_token"]');
+    if (!row || !recordBtn || !textarea || !csrfInput) return;
+
+    const supported = !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia && window.MediaRecorder);
+    if (!supported) return;
+    row.hidden = false;
+
+    const translate = (key, fallback) => (typeof t === "function" ? t(key) : fallback);
+    function setStatus(key, fallback, isError) {
+        status.textContent = key ? translate(key, fallback) : "";
+        status.classList.toggle("voice-status-error", !!isError);
+    }
+
+    const MAX_RECORD_MS = 90 * 1000;
+    let mediaRecorder = null;
+    let mediaStream = null;
+    let chunks = [];
+    let maxLengthTimer = null;
+    let busy = false;
+
+    function stopStream() {
+        if (mediaStream) {
+            mediaStream.getTracks().forEach((track) => track.stop());
+            mediaStream = null;
+        }
+    }
+    function setRecordingUI(isRecording) {
+        recordBtn.classList.toggle("recording", isRecording);
+        btnLabel.textContent = isRecording
+            ? translate("onboarding.describe.recordStop", "Stop recording")
+            : translate("onboarding.describe.recordStart", "Record instead of typing");
+    }
+    function startRecording() {
+        busy = true;
+        recordBtn.disabled = true;
+        setStatus(null);
+        navigator.mediaDevices.getUserMedia({ audio: true }).then((stream) => {
+            mediaStream = stream;
+            chunks = [];
+            const options = MediaRecorder.isTypeSupported("audio/webm") ? { mimeType: "audio/webm" } : undefined;
+            mediaRecorder = new MediaRecorder(stream, options);
+            mediaRecorder.addEventListener("dataavailable", (event) => {
+                if (event.data && event.data.size > 0) chunks.push(event.data);
+            });
+            mediaRecorder.addEventListener("stop", () => {
+                stopStream();
+                clearTimeout(maxLengthTimer);
+                setRecordingUI(false);
+                if (chunks.length === 0) {
+                    busy = false;
+                    recordBtn.disabled = false;
+                    return;
+                }
+                uploadRecording(new Blob(chunks, { type: mediaRecorder.mimeType || "audio/webm" }));
+            });
+            mediaRecorder.start();
+            busy = false;
+            recordBtn.disabled = false;
+            setRecordingUI(true);
+            setStatus("onboarding.describe.recording", "Listening... tap to stop");
+            maxLengthTimer = setTimeout(() => {
+                if (mediaRecorder && mediaRecorder.state === "recording") mediaRecorder.stop();
+            }, MAX_RECORD_MS);
+        }).catch(() => {
+            busy = false;
+            recordBtn.disabled = false;
+            setStatus("onboarding.describe.micError", "Couldn't access the microphone - check your browser/app permissions and try again.", true);
+        });
+    }
+    function stopRecording() {
+        if (mediaRecorder && mediaRecorder.state === "recording") mediaRecorder.stop();
+    }
+    function uploadRecording(blob) {
+        busy = true;
+        recordBtn.disabled = true;
+        setStatus("onboarding.describe.transcribing", "Transcribing...");
+        const extension = (blob.type || "").indexOf("mp4") !== -1 ? "m4a" : "webm";
+        const formData = new FormData();
+        formData.append("audio", blob, "settings-description." + extension);
+        fetch("/api/onboarding/voice-transcribe", { method: "POST", headers: { "X-CSRFToken": csrfInput.value }, body: formData })
+            .then((response) => response.json().then((data) => ({ ok: response.ok, data })))
+            .then(({ ok, data }) => {
+                busy = false;
+                recordBtn.disabled = false;
+                if (!ok) {
+                    setStatus(null);
+                    status.textContent = data.error || translate("onboarding.describe.transcribeError", "Couldn't understand that recording - please try again or type your description instead.");
+                    status.classList.add("voice-status-error");
+                    return;
+                }
+                textarea.value = data.text || "";
+                textarea.focus();
+                setStatus("onboarding.describe.reviewHint", "Have a look and fix anything the transcription got wrong before generating your website.");
+            }).catch(() => {
+                busy = false;
+                recordBtn.disabled = false;
+                setStatus("onboarding.describe.transcribeError", "Couldn't understand that recording - please try again or type your description instead.", true);
+            });
+    }
+
+    recordBtn.addEventListener("click", () => {
+        if (busy) return;
+        if (mediaRecorder && mediaRecorder.state === "recording") stopRecording();
+        else startRecording();
+    });
+    window.addEventListener("beforeunload", stopStream);
+})();
+
+// "Suggest AI designs for my business" - lets a business re-run ai_theme.py's theme
+// generation any time from Settings (see /profile/suggest-themes), instead of only once
+// during onboarding's design step. Picking a card sets the hidden theme/custom_theme_json
+// fields the "Your public page" form's own Save button already submits - nothing here
+// saves anything on its own, same "review then hit the real Save button" shape as the
+// "Draft this with AI" card above it.
+(function () {
+    const btn = document.getElementById("settings-theme-suggest-btn");
+    const grid = document.getElementById("settings-theme-suggest-grid");
+    const errorBox = document.getElementById("settings-theme-suggest-error");
+    const themeSelect = document.getElementById("settings-page-theme-input");
+    const themeValue = document.getElementById("settings-page-theme-value");
+    const customJsonField = document.getElementById("settings-page-custom-theme-json");
+    const customOption = document.getElementById("settings-theme-custom-option");
+    const descriptionInput = document.getElementById("settings-generate-description-input");
+    const csrfInput = document.querySelector('#settings-generate-form input[name="csrf_token"]');
+    if (!btn || !grid || !themeSelect || !themeValue || !customJsonField || !csrfInput) return;
+
+    if (themeSelect.value !== themeValue.value) themeSelect.value = themeValue.value;
+
+    themeSelect.addEventListener("change", () => {
+        themeValue.value = themeSelect.value;
+        if (themeSelect.value !== "custom") customJsonField.value = "";
+    });
+
+    function selectCustomTheme(theme) {
+        themeValue.value = "custom";
+        customJsonField.value = JSON.stringify(theme);
+        if (customOption) {
+            customOption.hidden = false;
+            customOption.selected = true;
+        }
+    }
+
+    function renderOptions(themeList) {
+        grid.innerHTML = "";
+        themeList.forEach((theme, index) => {
+            const card = document.createElement("label");
+            card.className = "onboarding-theme-card";
+            const radio = document.createElement("input");
+            radio.type = "radio";
+            radio.name = "settings-ai-theme-pick";
+            radio.required = false;
+            radio.addEventListener("change", () => selectCustomTheme(theme));
+            card.appendChild(radio);
+
+            const preview = document.createElement("div");
+            preview.className = "onboarding-theme-preview";
+            preview.style.display = "flex";
+            preview.style.alignItems = "center";
+            preview.style.justifyContent = "center";
+            preview.style.background = theme.base.background;
+            const swatch = document.createElement("div");
+            swatch.style.width = "55%";
+            swatch.style.height = "45%";
+            swatch.style.borderRadius = theme.radius;
+            swatch.style.background = theme.base.surface;
+            swatch.style.border = "1px solid " + theme.base.border;
+            preview.appendChild(swatch);
+            card.appendChild(preview);
+
+            const info = document.createElement("div");
+            info.className = "onboarding-theme-info";
+            const label = document.createElement("p");
+            label.className = "onboarding-theme-label";
+            label.textContent = "✨ " + theme.label;
+            info.appendChild(label);
+            const blurb = document.createElement("p");
+            blurb.className = "onboarding-theme-blurb";
+            blurb.textContent = theme.blurb;
+            info.appendChild(blurb);
+            const swatches = document.createElement("div");
+            swatches.className = "onboarding-theme-swatches";
+            (theme.swatch || []).forEach((color) => {
+                const dot = document.createElement("span");
+                dot.style.background = color;
+                swatches.appendChild(dot);
+            });
+            info.appendChild(swatches);
+            card.appendChild(info);
+
+            grid.appendChild(card);
+            if (index === 0) selectCustomTheme(theme);
+        });
+    }
+
+    btn.addEventListener("click", () => {
+        const description = (descriptionInput && descriptionInput.value || "").trim();
+        errorBox.classList.add("hidden");
+        if (!description) {
+            errorBox.textContent = "Describe your business in the “Draft this with AI” card above first.";
+            errorBox.classList.remove("hidden");
+            return;
+        }
+        btn.disabled = true;
+        const originalText = btn.textContent;
+        btn.textContent = "Thinking of designs...";
+        const formData = new FormData();
+        formData.append("description", description);
+        fetch("{{ url_for('suggest_business_themes') }}", { method: "POST", headers: { "X-CSRFToken": csrfInput.value }, body: formData })
+            .then((response) => response.json().then((data) => ({ ok: response.ok, data })))
+            .then(({ ok, data }) => {
+                btn.disabled = false;
+                btn.textContent = originalText;
+                if (!ok) {
+                    errorBox.textContent = data.error || "Couldn't come up with designs right now - please try again.";
+                    errorBox.classList.remove("hidden");
+                    return;
+                }
+                renderOptions(data.themes || []);
+            })
+            .catch(() => {
+                btn.disabled = false;
+                btn.textContent = originalText;
+                errorBox.textContent = "Couldn't come up with designs - check your connection and try again.";
+                errorBox.classList.remove("hidden");
+            });
     });
 })();
 </script>

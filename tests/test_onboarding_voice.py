@@ -172,10 +172,15 @@ def test_voice_transcribe_route_transcript_flows_into_the_normal_describe_step(c
     transcribed = _upload(client, csrf_token).get_json()["text"]
 
     import json
+    import ai_theme
     monkeypatch.setattr(
         page_generator.client.chat.completions, "create",
         lambda **kwargs: _FakeResponse(json.dumps(VALID_DRAFT)),
     )
+    # onboarding_website_describe() also calls ai_theme.generate_theme_options() (Faza 14) -
+    # mocked here too so this stays off the network, same reasoning as test_onboarding_wizard.py's
+    # own _mock_ai_draft().
+    monkeypatch.setattr(ai_theme, "generate_theme_options", lambda *args, **kwargs: [])
     csrf_token = get_csrf_token(client, "/onboarding/website")
     response = web_post(client, "/onboarding/website", {"csrf_token": csrf_token, "description": transcribed})
     assert response.status_code == 302

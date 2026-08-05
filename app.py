@@ -2,6 +2,7 @@ import os
 import re
 import hmac
 import hashlib
+import json
 import secrets
 from datetime import datetime, timedelta, timezone, date as date_type
 from functools import wraps
@@ -31,6 +32,7 @@ from database import (
     archived_conversations_for_business, trashed_conversations_for_business,
     archive_conversation, unarchive_conversation, soft_delete_conversation, restore_conversation,
     get_slot_duration, set_slot_duration, create_appointment, get_appointment, cancel_appointment,
+    appointments_in_range,
     get_upsell_pairs, set_upsell_pairs,
     is_owner_reminders_enabled, set_owner_reminders_enabled, get_owner_reminder_minutes, set_owner_reminder_minutes,
     all_appointments_for_business, get_stripe_customer_id, get_paddle_customer_id,
@@ -62,6 +64,7 @@ import paddle_billing
 import google_oauth
 import business_media
 import business_documents
+import ai_theme
 from database import all_businesses_unfiltered
 from api import api as api_blueprint, APK_VERSION, make_token
 from extensions import limiter
@@ -1229,14 +1232,14 @@ def settings():
     pending_contact_email = business[14]
     pro_access = BETA_FREE_MODE or has_pro_access(business_id)
     # get_business_page returns a plain positional row (id, business_id, slug,
-    # published, tagline, about, created_at, updated_at, widget_domain, theme) or None -
-    # turned into a dict here, same as `business` is built as a dict below, so
-    # settings.html can use page.slug/page.tagline/... instead of a second set of magic
-    # indices.
+    # published, tagline, about, created_at, updated_at, widget_domain, theme,
+    # custom_theme_json) or None - turned into a dict here, same as `business` is built
+    # as a dict below, so settings.html can use page.slug/page.tagline/... instead of a
+    # second set of magic indices.
     page_row = get_business_page(business_id)
     business_page = None if page_row is None else {
         "slug": page_row[2], "published": page_row[3], "tagline": page_row[4], "about": page_row[5],
-        "widget_domain": page_row[8], "theme": page_row[9],
+        "widget_domain": page_row[8], "theme": page_row[9], "custom_theme_json": page_row[10],
     }
     page_error = request.args.get("page_error")
 
@@ -1260,6 +1263,7 @@ def settings():
                 page_error=None,
                 page_url_prefix=request.url_root + "p/",
                 theme_choices=list(themes.THEMES.items()),
+                documents=business_documents.list_documents(business_id),
                 media=business_media.list_media(business_id),
                 max_gallery_images=business_media.MAX_GALLERY_IMAGES,
                 business={
@@ -1333,6 +1337,7 @@ def settings():
             page_error=None,
             page_url_prefix=request.url_root + "p/",
             theme_choices=list(themes.THEMES.items()),
+            documents=business_documents.list_documents(business_id),
             media=business_media.list_media(business_id),
             max_gallery_images=business_media.MAX_GALLERY_IMAGES,
             business={
@@ -1351,6 +1356,7 @@ def settings():
         page_error=page_error,
         page_url_prefix=request.url_root + "p/",
         theme_choices=list(themes.THEMES.items()),
+        documents=business_documents.list_documents(business_id),
         media=business_media.list_media(business_id),
         max_gallery_images=business_media.MAX_GALLERY_IMAGES,
         business={
@@ -1472,8 +1478,17 @@ def save_business_page():
     # upsert_business_page() treats None as "leave whatever theme is already saved
     # alone", which matters for a raw/malformed POST to this route (no known theme <select>
     # options are ever anything else, but this is the boundary that actually enforces it).
+    # themes.CUSTOM_THEME_ID is the one exception - settings.html's "Suggest AI designs"
+    # picker (see ai_theme.py) posts that alongside a custom_theme_json hidden field
+    # rather than one of the fixed THEMES ids.
     theme = request.form.get("theme")
-    theme = theme if theme in themes.THEMES else None
+    custom_theme_json = None
+    if theme == themes.CUSTOM_THEME_ID:
+        custom_theme_json = request.form.get("custom_theme_json") or None
+        if not custom_theme_json:
+            theme = None
+    elif theme not in themes.THEMES:
+        theme = None
 
     # A valid slug is required even to save a draft (published=False) - there is nothing
     # useful to store without one, and requiring it up front means a business never ends
@@ -1483,12 +1498,35 @@ def save_business_page():
         return redirect(url_for("settings", page_error="Please choose a web address using only lowercase letters, numbers, and hyphens."))
 
     try:
-        upsert_business_page(business_id, slug, published, tagline, about, widget_domain, theme)
+        upsert_business_page(business_id, slug, published, tagline, about, widget_domain, theme, custom_theme_json)
     except UniqueViolation:
         return redirect(url_for("settings", page_error="That web address is already taken - please choose another."))
 
     log_event("business_page_saved", business_id=business_id)
     return redirect(url_for("settings", message="Your page has been saved."))
+
+
+# AJAX-only (see settings.html's "Suggest AI designs" button/script) - lets a business
+# re-run ai_theme.generate_theme_options() any time from Settings, not just once during
+# onboarding (see onboarding_website_design() for that first-run path). Returns theme
+# dicts as plain JSON; nothing is saved here, same "review before it's written" shape as
+# generate_business_page() above - the business still has to pick one and hit Save page.
+@app.route("/profile/suggest-themes", methods=["POST"])
+@login_required
+@limiter.limit("10 per hour")
+def suggest_business_themes():
+    business_id = session["business_id"]
+    description = (request.form.get("description") or "").strip()
+    if not description:
+        return jsonify(error="Describe your business first so the AI has something to design from."), 400
+
+    document_text = business_documents.combined_document_text(business_id)
+    options = ai_theme.generate_theme_options(description, document_text=document_text)
+    if not options:
+        return jsonify(error="Couldn't come up with designs from that - please try describing your business differently."), 400
+
+    log_event("theme_suggestions_generated", business_id=business_id)
+    return jsonify(themes=options)
 
 
 # Drafts tagline/about/hours/prices/faq from a short owner-written description
@@ -1513,7 +1551,7 @@ def generate_business_page():
     page_row = get_business_page(business_id)
     saved_page = None if page_row is None else {
         "slug": page_row[2], "published": page_row[3], "tagline": page_row[4], "about": page_row[5],
-        "widget_domain": page_row[8], "theme": page_row[9],
+        "widget_domain": page_row[8], "theme": page_row[9], "custom_theme_json": page_row[10],
     }
 
     description = (request.form.get("description") or "").strip()
@@ -1552,6 +1590,7 @@ def generate_business_page():
             "published": saved_page["published"] if saved_page else False,
             "widget_domain": saved_page["widget_domain"] if saved_page else None,
             "theme": saved_page["theme"] if saved_page else themes.DEFAULT_THEME_ID,
+            "custom_theme_json": saved_page["custom_theme_json"] if saved_page else None,
             "tagline": draft["tagline"],
             "about": draft["about"],
         }
@@ -1567,6 +1606,7 @@ def generate_business_page():
         generate_description=description,
         page_url_prefix=request.url_root + "p/",
         theme_choices=list(themes.THEMES.items()),
+        documents=business_documents.list_documents(business_id),
         media=business_media.list_media(business_id),
         max_gallery_images=business_media.MAX_GALLERY_IMAGES,
         business=business_view,
@@ -1619,6 +1659,10 @@ def onboarding_website_describe():
             except ValueError:
                 error = "Couldn't generate a draft from that - please try describing your business differently."
             else:
+                # Best-effort - see ai_theme.generate_theme_options's own docstring: an
+                # empty list here just means onboarding_website_design() shows only the
+                # classic THEMES presets, never a hard failure of this step.
+                ai_theme_options = ai_theme.generate_theme_options(description, document_text=document_text)
                 session[_ONBOARDING_SESSION_KEY] = {
                     "description": description,
                     "tagline": generated["tagline"],
@@ -1626,6 +1670,7 @@ def onboarding_website_describe():
                     "working_hours": format_working_hours(generated["hours"]),
                     "price_list": format_price_list(generated["services"]),
                     "faq": format_faq(generated["faq"]),
+                    "ai_theme_options": ai_theme_options,
                 }
                 log_event("onboarding_draft_generated", business_id=business_id)
                 return redirect(url_for("onboarding_website_design"))
@@ -1750,21 +1795,39 @@ def onboarding_website_design():
     if draft is None:
         return redirect(url_for("onboarding_website_describe"))
 
+    ai_options = draft.get("ai_theme_options") or []
+
     error = None
     if request.method == "POST":
-        theme_id = request.form.get("theme")
-        if theme_id not in themes.THEMES:
+        theme_id = request.form.get("theme") or ""
+        if theme_id.startswith("ai:"):
+            try:
+                ai_index = int(theme_id.split(":", 1)[1])
+            except ValueError:
+                ai_index = -1
+            if 0 <= ai_index < len(ai_options):
+                draft["theme"] = themes.CUSTOM_THEME_ID
+                draft["custom_theme_json"] = json.dumps(ai_options[ai_index])
+                draft["ai_theme_index"] = ai_index
+                session[_ONBOARDING_SESSION_KEY] = draft
+                return redirect(url_for("onboarding_website_address"))
             error = "Please choose a design."
-        else:
+        elif theme_id in themes.THEMES:
             draft["theme"] = theme_id
+            draft.pop("custom_theme_json", None)
+            draft.pop("ai_theme_index", None)
             session[_ONBOARDING_SESSION_KEY] = draft
             return redirect(url_for("onboarding_website_address"))
+        else:
+            error = "Please choose a design."
 
+    selected_theme = f"ai:{draft['ai_theme_index']}" if draft.get("theme") == themes.CUSTOM_THEME_ID and "ai_theme_index" in draft else draft.get("theme")
     return render_template(
         "onboarding_design.html",
         draft=draft,
+        ai_theme_choices=list(enumerate(ai_options)),
         theme_choices=list(themes.THEMES.items()),
-        selected_theme=draft.get("theme"),
+        selected_theme=selected_theme,
         error=error,
     )
 
@@ -1851,7 +1914,7 @@ def onboarding_website_review():
         try:
             upsert_business_page(
                 business_id, draft["slug"], True, draft["tagline"], draft["about"],
-                None, draft["theme"],
+                None, draft["theme"], draft.get("custom_theme_json"),
             )
         except UniqueViolation:
             # Someone else grabbed this slug in the gap between step 3's check and this
@@ -1865,7 +1928,7 @@ def onboarding_website_review():
     return render_template(
         "onboarding_review.html",
         draft=draft,
-        theme=themes.theme_or_default(draft.get("theme")),
+        theme=themes.resolve_theme(draft.get("theme"), draft.get("custom_theme_json")),
         page_url_prefix=request.url_root + "p/",
     )
 
@@ -1884,7 +1947,16 @@ def onboarding_website_preview():
     if draft is None:
         abort(404)
     business = business_by_id(business_id)
-    theme = themes.theme_or_default(request.args.get("theme") or draft.get("theme"))
+    requested_theme = request.args.get("theme") or draft.get("theme")
+    if requested_theme and requested_theme.startswith("ai:"):
+        ai_options = draft.get("ai_theme_options") or []
+        try:
+            ai_index = int(requested_theme.split(":", 1)[1])
+        except ValueError:
+            ai_index = -1
+        theme = ai_options[ai_index] if 0 <= ai_index < len(ai_options) else themes.theme_or_default(None)
+    else:
+        theme = themes.resolve_theme(requested_theme, draft.get("custom_theme_json"))
     media = business_media.media_for_page(business_id)
     return render_template(
         "public_page.html",
@@ -2130,7 +2202,7 @@ def public_page(slug):
         page_url=url_for("public_page", slug=slug, _external=True),
         chat_url=url_for("public_page_chat", slug=slug),
         slug=slug,
-        theme=themes.theme_or_default(page[9]),
+        theme=themes.resolve_theme(page[9], page[10]),
         preview=False,
         booking_enabled=booking_enabled,
         availability_url=url_for("public_page_availability", slug=slug) if booking_enabled else None,
@@ -2288,7 +2360,7 @@ def widget_frame(slug):
         chat_url=url_for("public_page_chat", slug=slug),
         slug=slug,
         widget_domain=page[8],
-        theme=themes.theme_or_default(page[9]),
+        theme=themes.resolve_theme(page[9], page[10]),
     )
 
 
@@ -2564,12 +2636,24 @@ def android_asset_links():
 DAILY_REPLY_LIMIT = ai_replies.DAILY_REPLY_LIMIT  # single source of truth is ai_replies.py, which actually enforces it
 
 
+# The true post-login landing page (Faza 15) - every existing redirect-to-home() call
+# site (login, register/verify, onboarding's final Publish step, subscription success,
+# etc.) already points at url_for("home"), i.e. "/", so keeping this route's name and
+# path unchanged and moving the old conversation-inbox view to its own /conversations
+# route (conversations_home() below) means all of those keep landing exactly where a
+# business should land first: an overview of the website Camilius built for them, not a
+# raw message inbox - matching the product's actual pitch (see landing.html/intro.html)
+# instead of undercutting it. onboarding_required/subscription_required stay stacked here
+# only, same "single choke point every logged-in path passes through first" reasoning
+# their own docstrings already describe - conversations_home() (and every other
+# @login_required-only route like /schedule, /settings) relies on a visitor having
+# already passed through here at least once in the session, same as before this split.
 @app.route("/")
 @onboarding_required
 @subscription_required
 def home():
     # Logged-out visitors see the public landing page (marketing + call to register)
-    # instead of a redirect to login. Logged-in visitors get the dashboard.
+    # instead of a redirect to login. Logged-in visitors get their website overview.
     business = session.get("business_id") and business_by_id(session["business_id"])
     if not business:
         # Read the flag before clear() wipes it - it's what lets us count each
@@ -2581,9 +2665,51 @@ def home():
             log_event("landing_view")
         return render_template("landing.html")
 
-    conversations = conversations_for_business(session["business_id"])
-    archived = archived_conversations_for_business(session["business_id"])
-    trashed = trashed_conversations_for_business(session["business_id"])
+    business_id = session["business_id"]
+    page_row = get_business_page(business_id)
+    page = None if page_row is None else {
+        "slug": page_row[2], "published": page_row[3], "tagline": page_row[4], "about": page_row[5],
+        "theme": page_row[9],
+    }
+    theme = themes.resolve_theme(page_row[9], page_row[10]) if page_row else themes.theme_or_default(None)
+
+    tz = booking.tz_for(business)
+    now = booking.now_local(tz)
+    upcoming_rows = appointments_in_range(business_id, now, now + timedelta(days=7))[:5]
+    upcoming_appointments = [
+        {"customer_name": row[1], "service": row[3], "start_time": row[4].astimezone(tz)}
+        for row in upcoming_rows
+    ]
+
+    conversations = conversations_for_business(business_id)
+    pending_count = sum(1 for c in conversations if c[6] == "pending")
+
+    return render_template(
+        "site_overview.html",
+        business_name=session["business_name"],
+        page=page,
+        theme=theme,
+        page_url_prefix=request.url_root + "p/",
+        upcoming_appointments=upcoming_appointments,
+        pending_count=pending_count,
+        total_conversations=len(conversations),
+        onboarding_done=request.args.get("onboarding_done"),
+        subscription_active_flag=effective_subscription_active(business_id),
+    )
+
+
+# The conversation inbox - what used to live at "/" before Faza 15 moved the true landing
+# page to home() above (see that route's own comment). Deliberately kept
+# @login_required-only, same as /schedule and /settings - a visitor reaches those without
+# passing back through onboarding_required/subscription_required's gate too, an existing
+# tradeoff this split doesn't change, not a new gap.
+@app.route("/conversations")
+@login_required
+def conversations_home():
+    business_id = session["business_id"]
+    conversations = conversations_for_business(business_id)
+    archived = archived_conversations_for_business(business_id)
+    trashed = trashed_conversations_for_business(business_id)
 
     # Filter by status via ?filter=pending/sent/archived/trash (default: all)
     filter_status = request.args.get("filter")
@@ -2598,8 +2724,8 @@ def home():
         shown = conversations
 
     pending_count = sum(1 for c in conversations if c[6] == "pending")
-    today = replies_today_count(session["business_id"])
-    stats = business_stats(session["business_id"])
+    today = replies_today_count(business_id)
+    stats = business_stats(business_id)
 
     return render_template(
         "dashboard.html",
@@ -2614,7 +2740,7 @@ def home():
         daily_limit=DAILY_REPLY_LIMIT,
         sent=request.args.get("sent"),
         send_error=request.args.get("send_error"),
-        subscription_active_flag=effective_subscription_active(session["business_id"]),
+        subscription_active_flag=effective_subscription_active(business_id),
         stats=stats,
     )
 
@@ -2626,7 +2752,7 @@ def archive_conversation_route(conversation_id):
     if conversation is None or conversation[1] != session["business_id"]:
         abort(404)
     archive_conversation(conversation_id)
-    return redirect(url_for("home", filter=request.form.get("from_filter", "all")))
+    return redirect(url_for("conversations_home", filter=request.form.get("from_filter", "all")))
 
 
 @app.route("/conversations/<int:conversation_id>/unarchive", methods=["POST"])
@@ -2636,7 +2762,7 @@ def unarchive_conversation_route(conversation_id):
     if conversation is None or conversation[1] != session["business_id"]:
         abort(404)
     unarchive_conversation(conversation_id)
-    return redirect(url_for("home", filter=request.form.get("from_filter", "archived")))
+    return redirect(url_for("conversations_home", filter=request.form.get("from_filter", "archived")))
 
 
 @app.route("/conversations/<int:conversation_id>/delete", methods=["POST"])
@@ -2646,7 +2772,7 @@ def delete_conversation_route(conversation_id):
     if conversation is None or conversation[1] != session["business_id"]:
         abort(404)
     soft_delete_conversation(conversation_id)
-    return redirect(url_for("home", filter=request.form.get("from_filter", "all")))
+    return redirect(url_for("conversations_home", filter=request.form.get("from_filter", "all")))
 
 
 @app.route("/conversations/<int:conversation_id>/restore", methods=["POST"])
@@ -2656,7 +2782,7 @@ def restore_conversation_route(conversation_id):
     if conversation is None or conversation[1] != session["business_id"]:
         abort(404)
     restore_conversation(conversation_id)
-    return redirect(url_for("home", filter=request.form.get("from_filter", "trash")))
+    return redirect(url_for("conversations_home", filter=request.form.get("from_filter", "trash")))
 
 
 def send_channel_reply(conversation, business, final_reply):
@@ -2695,7 +2821,7 @@ def send_reply(conversation_id):
     except requests.RequestException as e:
         error_body = e.response.text if getattr(e, "response", None) is not None else str(e)
         log_client_error(business_id, f"{channel} send FAILED: {error_body}", "", debug_context, "")
-        return redirect(url_for("home", send_error=1))
+        return redirect(url_for("conversations_home", send_error=1))
 
     mark_sent(conversation_id, final_reply)
 
@@ -2704,7 +2830,7 @@ def send_reply(conversation_id):
         log_event("first_reply_sent", business_id=business_id)
 
     # sent=1 -> dashboard shows a confirmation that the reply went out
-    return redirect(url_for("home", sent=1))
+    return redirect(url_for("conversations_home", sent=1))
 
 
 # --- Schedule / Smart Booking (Faza 8) ---

@@ -100,6 +100,7 @@ const screens = {
     forgotPassword: el("screen-forgot-password"),
     register: el("screen-register"),
     verifyPending: el("screen-verify-pending"),
+    mysite: el("screen-mysite"),
     inbox: el("screen-inbox"),
     detail: el("screen-detail"),
     schedule: el("screen-schedule"),
@@ -2184,7 +2185,13 @@ el("verify-pending-back").addEventListener("click", () => {
 
 function enterApp() {
     showTabbar(true);
-    setActiveTab("inbox");
+    // Faza 15: My Site (an overview of the AI-built website) is the true landing tab now,
+    // not the conversation inbox - same pivot the website made with its own home()/
+    // conversations_home() split (see app.py). loadDashboard() still runs eagerly so
+    // Conversations is already populated (same "was loaded before you tapped it" feel as
+    // Schedule below) the moment it's tapped.
+    setActiveTab("mysite");
+    loadMySite();
     loadDashboard();
     loadSettingsIntoForm();
     loadBusinessMedia();
@@ -3421,6 +3428,7 @@ function setActiveTab(tab) {
     showScreen(tab);
     if (tab === "settings") loadNotificationPreferences();
     if (tab === "schedule") loadSchedule();
+    if (tab === "mysite") loadMySite();
 }
 
 document.querySelectorAll(".tab-btn").forEach((btn) => {
@@ -4204,6 +4212,362 @@ if (capacitorPlugins && capacitorPlugins.CapacitorUpdater) {
         })
         .catch(() => {});
 }
+
+// --- My Site tab (Faza 15) - website overview + the business-info tools (description,
+// voice, AI design suggestions) that only ever lived once, during the web onboarding
+// wizard, with no mobile equivalent at all. See api.py's /api/page, /api/generate-page,
+// /api/voice-transcribe, /api/suggest-themes - Bearer-authed mirrors of the website's own
+// session-authed routes, same underlying business_pages row/page_generator.py/ai_theme.py
+// either surface calls into. ---
+
+// Same 5 classic presets as themes.py's THEMES dict (label only - full color data isn't
+// needed client-side for a plain <select>, unlike the AI suggestion cards below which
+// come with their own swatch data straight from the server).
+const CLASSIC_THEMES = [
+    { id: "minimal", label: "Minimal", primary: "#141414", surface: "#ffffff" },
+    { id: "warm", label: "Warm & elegant", primary: "#d69410", surface: "#ffffff" },
+    { id: "bold", label: "Bold & contrast", primary: "#ff4d33", surface: "#171717" },
+    { id: "nature", label: "Nature & organic", primary: "#3f7d20", surface: "#ffffff" },
+    { id: "luxury", label: "Luxury", primary: "#c9a227", surface: "#161616" },
+];
+
+let mysiteSelectedCustomTheme = null; // the AI-suggested theme object, if one is currently selected
+
+function mysitePopulateThemeSelect(currentThemeId) {
+    const select = el("mysite-theme-select");
+    select.innerHTML = "";
+    CLASSIC_THEMES.forEach((theme) => {
+        const option = document.createElement("option");
+        option.value = theme.id;
+        option.textContent = theme.label;
+        select.appendChild(option);
+    });
+    if (currentThemeId === "custom") {
+        const option = document.createElement("option");
+        option.value = "custom";
+        option.textContent = t("mysite.website.aiDesign") || "AI-suggested design";
+        select.appendChild(option);
+        select.value = "custom";
+    } else {
+        select.value = CLASSIC_THEMES.some((t2) => t2.id === currentThemeId) ? currentThemeId : "warm";
+    }
+}
+
+async function loadMySite() {
+    el("mysite-business-name").textContent = state.businessName || "";
+    el("mysite-error").classList.add("hidden");
+    try {
+        const data = await api("/api/page");
+        const page = data.page;
+
+        el("mysite-website-preview").classList.toggle("hidden", !page);
+        el("mysite-view-site-link").classList.toggle("hidden", !(page && page.published));
+        if (page) {
+            el("mysite-website-status").textContent = page.published
+                ? (t("mysite.website.live") || "Live") + " · " + page.slug
+                : (t("mysite.website.draft") || "Not published yet");
+            el("mysite-tagline").textContent = page.tagline || "";
+            el("mysite-about").textContent = page.about || "";
+            el("mysite-slug").value = page.slug || "";
+            el("mysite-tagline-input").value = page.tagline || "";
+            el("mysite-about-input").value = page.about || "";
+            el("mysite-published").checked = !!page.published;
+            if (page.published) el("mysite-view-site-link").href = `${API_BASE}/p/${page.slug}`;
+            mysitePopulateThemeSelect(page.theme);
+            mysiteSelectedCustomTheme = page.theme === "custom" && page.custom_theme_json ? JSON.parse(page.custom_theme_json) : null;
+            const swatch = el("mysite-theme-swatch");
+            if (mysiteSelectedCustomTheme) {
+                swatch.style.background = mysiteSelectedCustomTheme.base.surface;
+                swatch.style.borderColor = mysiteSelectedCustomTheme.base.primary;
+            } else {
+                const classic = CLASSIC_THEMES.find((c) => c.id === page.theme) || CLASSIC_THEMES[1];
+                swatch.style.background = classic.surface;
+                swatch.style.borderColor = classic.primary;
+            }
+        } else {
+            el("mysite-website-status").textContent = "";
+            mysitePopulateThemeSelect("warm");
+            mysiteSelectedCustomTheme = null;
+        }
+
+        const appointments = data.upcoming_appointments || [];
+        el("mysite-stat-appointments").textContent = String(appointments.length);
+        const appointmentsCard = el("mysite-appointments-card");
+        appointmentsCard.classList.toggle("hidden", appointments.length === 0);
+        const list = el("mysite-appointments-list");
+        list.innerHTML = "";
+        appointments.forEach((appt) => {
+            const row = document.createElement("div");
+            row.className = "mysite-appointment-row";
+            const label = document.createElement("span");
+            label.textContent = appt.customer_name + (appt.service ? " · " + appt.service : "");
+            const when = document.createElement("span");
+            when.className = "field-hint";
+            when.style.margin = "0";
+            when.textContent = new Date(appt.start_time).toLocaleString(undefined, { weekday: "short", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
+            row.appendChild(label);
+            row.appendChild(when);
+            list.appendChild(row);
+        });
+    } catch (err) {
+        if (err.status === 401) { logout(); return; }
+        el("mysite-error").textContent = err.message || t("network.error");
+        el("mysite-error").classList.remove("hidden");
+    }
+
+    try {
+        const dashboard = await api("/api/dashboard");
+        el("mysite-stat-pending").textContent = String(dashboard.pending_count || 0);
+    } catch (err) {
+        if (err.status === 401) logout();
+    }
+}
+
+el("mysite-theme-select").addEventListener("change", (event) => {
+    const swatch = el("mysite-theme-swatch");
+    if (event.target.value !== "custom") {
+        mysiteSelectedCustomTheme = null;
+        const classic = CLASSIC_THEMES.find((c) => c.id === event.target.value);
+        if (classic) {
+            swatch.style.background = classic.surface;
+            swatch.style.borderColor = classic.primary;
+        }
+    } else if (mysiteSelectedCustomTheme) {
+        swatch.style.background = mysiteSelectedCustomTheme.base.surface;
+        swatch.style.borderColor = mysiteSelectedCustomTheme.base.primary;
+    }
+});
+
+el("mysite-save-page-btn").addEventListener("click", async () => {
+    const errorBox = el("mysite-page-error");
+    errorBox.classList.add("hidden");
+    const themeValue = el("mysite-theme-select").value;
+    const body = {
+        slug: el("mysite-slug").value.trim(),
+        tagline: el("mysite-tagline-input").value.trim(),
+        about: el("mysite-about-input").value.trim(),
+        published: el("mysite-published").checked,
+        theme: themeValue,
+    };
+    if (themeValue === "custom" && mysiteSelectedCustomTheme) {
+        body.custom_theme_json = JSON.stringify(mysiteSelectedCustomTheme);
+    }
+    try {
+        await api("/api/page", { method: "POST", body });
+        showToast(t("mysite.website.saved") || "Saved.");
+        loadMySite();
+    } catch (err) {
+        errorBox.textContent = err.message || t("network.error");
+        errorBox.classList.remove("hidden");
+    }
+});
+
+el("mysite-generate-btn").addEventListener("click", async () => {
+    const errorBox = el("mysite-draft-error");
+    errorBox.classList.add("hidden");
+    const description = el("mysite-description").value.trim();
+    if (!description) {
+        errorBox.textContent = t("mysite.draft.emptyError") || "Describe your business first.";
+        errorBox.classList.remove("hidden");
+        return;
+    }
+    const button = el("mysite-generate-btn");
+    button.disabled = true;
+    try {
+        const draft = await api("/api/generate-page", { method: "POST", body: { description } });
+        el("mysite-tagline-input").value = draft.tagline || "";
+        el("mysite-about-input").value = draft.about || "";
+        el("mysite-draft-result").classList.remove("hidden");
+        // Hours/prices/FAQ live in the Profile tab's own fields, not here (the AI still
+        // drafts them - see api_generate_page - but this screen only owns the page's own
+        // presentation fields). FAQ is a plain textarea, safe to pre-fill directly; hours/
+        // prices go through Profile's own pickers, which the owner is pointed at via
+        // mysite.draft.reviewHint above rather than this screen reaching into them.
+        if (el("settings-faq")) el("settings-faq").value = draft.faq || "";
+        showToast(t("mysite.draft.ready") || "Draft ready - review it above.");
+    } catch (err) {
+        errorBox.textContent = err.message || t("network.error");
+        errorBox.classList.remove("hidden");
+    } finally {
+        button.disabled = false;
+    }
+});
+
+el("mysite-suggest-themes-btn").addEventListener("click", async () => {
+    const errorBox = el("mysite-theme-suggest-error");
+    errorBox.classList.add("hidden");
+    const description = el("mysite-description").value.trim();
+    if (!description) {
+        errorBox.textContent = t("mysite.draft.emptyError") || "Describe your business first.";
+        errorBox.classList.remove("hidden");
+        return;
+    }
+    const button = el("mysite-suggest-themes-btn");
+    button.disabled = true;
+    try {
+        const data = await api("/api/suggest-themes", { method: "POST", body: { description } });
+        mysiteRenderThemeSuggestions(data.themes || []);
+    } catch (err) {
+        errorBox.textContent = err.message || t("network.error");
+        errorBox.classList.remove("hidden");
+    } finally {
+        button.disabled = false;
+    }
+});
+
+function mysiteRenderThemeSuggestions(themeList) {
+    const grid = el("mysite-theme-suggest-grid");
+    grid.innerHTML = "";
+    themeList.forEach((theme) => {
+        const card = document.createElement("label");
+        card.className = "theme-suggestion-card";
+        const radio = document.createElement("input");
+        radio.type = "radio";
+        radio.name = "mysite-theme-pick";
+        radio.addEventListener("change", () => {
+            mysiteSelectedCustomTheme = theme;
+            mysitePopulateThemeSelect("custom");
+            grid.querySelectorAll(".theme-suggestion-card").forEach((c) => c.classList.remove("selected"));
+            card.classList.add("selected");
+        });
+        card.appendChild(radio);
+
+        const swatch = document.createElement("div");
+        swatch.className = "theme-suggestion-swatch";
+        swatch.style.background = theme.base.surface;
+        swatch.style.border = "2px solid " + theme.base.primary;
+        card.appendChild(swatch);
+
+        const info = document.createElement("div");
+        const label = document.createElement("p");
+        label.className = "theme-suggestion-label";
+        label.textContent = "✨ " + theme.label;
+        info.appendChild(label);
+        const blurb = document.createElement("p");
+        blurb.className = "theme-suggestion-blurb";
+        blurb.textContent = theme.blurb;
+        info.appendChild(blurb);
+        card.appendChild(info);
+
+        grid.appendChild(card);
+    });
+}
+
+// Voice input for the description above - same MediaRecorder/Whisper round trip the
+// website's onboarding wizard and Settings page use, ported here since mobile never had
+// a voice-input feature at all before Faza 15.
+(function () {
+    const row = el("mysite-voice-row");
+    const recordBtn = el("mysite-voice-btn");
+    const btnLabel = el("mysite-voice-btn-label");
+    const status = el("mysite-voice-status");
+    const textarea = el("mysite-description");
+    if (!row || !recordBtn || !textarea) return;
+
+    const supported = !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia && window.MediaRecorder);
+    if (!supported) return;
+    row.hidden = false;
+
+    function setStatus(text, isError) {
+        status.textContent = text || "";
+        status.classList.toggle("voice-status-error", !!isError);
+    }
+
+    const MAX_RECORD_MS = 90 * 1000;
+    let mediaRecorder = null;
+    let mediaStream = null;
+    let chunks = [];
+    let maxLengthTimer = null;
+    let busy = false;
+
+    function stopStream() {
+        if (mediaStream) {
+            mediaStream.getTracks().forEach((track) => track.stop());
+            mediaStream = null;
+        }
+    }
+    function setRecordingUI(isRecording) {
+        recordBtn.classList.toggle("recording", isRecording);
+        btnLabel.textContent = isRecording
+            ? (t("onboarding.describe.recordStop") || "Stop recording")
+            : (t("onboarding.describe.recordStart") || "Record instead of typing");
+    }
+    function startRecording() {
+        busy = true;
+        recordBtn.disabled = true;
+        setStatus(null);
+        navigator.mediaDevices.getUserMedia({ audio: true }).then((stream) => {
+            mediaStream = stream;
+            chunks = [];
+            const options = MediaRecorder.isTypeSupported("audio/webm") ? { mimeType: "audio/webm" } : undefined;
+            mediaRecorder = new MediaRecorder(stream, options);
+            mediaRecorder.addEventListener("dataavailable", (event) => {
+                if (event.data && event.data.size > 0) chunks.push(event.data);
+            });
+            mediaRecorder.addEventListener("stop", () => {
+                stopStream();
+                clearTimeout(maxLengthTimer);
+                setRecordingUI(false);
+                if (chunks.length === 0) {
+                    busy = false;
+                    recordBtn.disabled = false;
+                    return;
+                }
+                uploadRecording(new Blob(chunks, { type: mediaRecorder.mimeType || "audio/webm" }));
+            });
+            mediaRecorder.start();
+            busy = false;
+            recordBtn.disabled = false;
+            setRecordingUI(true);
+            setStatus(t("onboarding.describe.recording") || "Listening... tap to stop");
+            maxLengthTimer = setTimeout(() => {
+                if (mediaRecorder && mediaRecorder.state === "recording") mediaRecorder.stop();
+            }, MAX_RECORD_MS);
+        }).catch(() => {
+            busy = false;
+            recordBtn.disabled = false;
+            setStatus(t("onboarding.describe.micError") || "Couldn't access the microphone - check your permissions and try again.", true);
+        });
+    }
+    function stopRecording() {
+        if (mediaRecorder && mediaRecorder.state === "recording") mediaRecorder.stop();
+    }
+    function uploadRecording(blob) {
+        busy = true;
+        recordBtn.disabled = true;
+        setStatus(t("onboarding.describe.transcribing") || "Transcribing...");
+        const extension = (blob.type || "").indexOf("mp4") !== -1 ? "m4a" : "webm";
+        const formData = new FormData();
+        formData.append("audio", blob, "mysite-description." + extension);
+        fetch(API_BASE + "/api/voice-transcribe", {
+            method: "POST",
+            headers: state.token ? { Authorization: "Bearer " + state.token } : {},
+            body: formData,
+        }).then((response) => response.json().catch(() => ({})).then((data) => ({ ok: response.ok, data })))
+            .then(({ ok, data }) => {
+                busy = false;
+                recordBtn.disabled = false;
+                if (!ok) {
+                    setStatus(data.error || (t("onboarding.describe.transcribeError") || "Couldn't understand that recording - please try again."), true);
+                    return;
+                }
+                textarea.value = data.text || "";
+                textarea.focus();
+                setStatus(t("onboarding.describe.reviewHint") || "Have a look and fix anything the transcription got wrong.");
+            }).catch(() => {
+                busy = false;
+                recordBtn.disabled = false;
+                setStatus(t("onboarding.describe.transcribeError") || "Couldn't understand that recording - please try again.", true);
+            });
+    }
+
+    recordBtn.addEventListener("click", () => {
+        if (busy) return;
+        if (mediaRecorder && mediaRecorder.state === "recording") stopRecording();
+        else startRecording();
+    });
+    window.addEventListener("beforeunload", stopStream);
+})();
 
 // --- Boot ---
 
