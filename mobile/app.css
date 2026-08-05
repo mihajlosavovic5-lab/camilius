@@ -520,6 +520,14 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
 .button:active { background: var(--primary-dark); }
 .button:disabled { background: #cabfa4; }
 .button-full { width: 100%; }
+/* Subtle scale-down-and-back tap feedback (Login screen's Google/email/Create account
+   buttons - see mobile/index.html) - no color change at all (see .button-secondary:active/
+   .button-google:active/:disabled above, which deliberately stay flat), just a light
+   press-in that springs back once released. transition (not a keyframe animation) is
+   enough here: the same rule drives both directions - scaling down the instant :active
+   applies, and back to 1 the instant it doesn't. */
+.button-tap-scale { transition: transform .12s ease; }
+.button-tap-scale:active { transform: scale(0.96); }
 /* .button:active's gold press flash is meant for solid primary-colored buttons - on any
    plain .button-secondary (Log out, Create account, Continue with email, Cancel, ...
    already just cream/outlined) it looked like the button was momentarily turning into a
