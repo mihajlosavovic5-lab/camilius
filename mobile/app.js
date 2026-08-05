@@ -124,6 +124,10 @@ function showScreen(name) {
     if (name !== "login" && screens.login.classList.contains("active")) hideLoginError();
     Object.values(screens).forEach((s) => s.classList.remove("active"));
     screens[name].classList.add("active");
+    // #register-back lives outside every .screen (see the comment by its markup) so its
+    // own fade+slide-in isn't tied to .screen.active the way every other back-btn's is -
+    // driven directly off which screen we're actually showing instead.
+    el("register-back").classList.toggle("visible", name === "register");
     // Every navigation TO the login screen (logout, back button, verify-pending "back to
     // login", etc.) starts fresh on the Google/email choice view, never mid-form - see
     // resetLoginPhase() below, defined further down but hoisted (function declaration).

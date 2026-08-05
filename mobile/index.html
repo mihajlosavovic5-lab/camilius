@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
 <title>Camilius</title>
-<link rel="stylesheet" href="app.css?v=70042df1bb5e">
+<link rel="stylesheet" href="app.css?v=f77a7ae985c8">
 </head>
 <body>
 
@@ -161,6 +161,20 @@
 </div>
 
 <div id="app">
+
+  <!-- Create account's own back button, lives here instead of inside #screen-register's
+       topbar deliberately: .screen gets a transform for its screen-to-screen slide, and
+       a button nested inside would travel the full screen-width distance along with it
+       (correct for a title, but reads as far more motion than the login screen's own
+       small local fade+slide for the exact same kind of "go back" control - see
+       .login-email-back-btn). Sitting outside every .screen here, positioned against
+       #app itself (already position:fixed, never transformed) with the identical
+       left/top offsets .login-email-back-btn uses, it gets that same calm fade+slide-in-
+       place instead, so the two read as one consistent control rather than two different
+       ones. Shown/hidden by showScreen() below. Still doubles as the wizard's step-back
+       control once past step 1 (see its own click listener in app.js) - #screen-register
+       just never renders its own back button now that this one covers it. -->
+  <button type="button" class="back-btn register-back-btn" id="register-back" aria-label="Back">‹</button>
 
   <!-- ONBOARDING (shown once, only inside the installed app). Each slide's illustration
        is a small mocked-up UI card (placeholder bars + chat bubbles, no real text inside
@@ -408,15 +422,12 @@
 
   <!-- CREATE ACCOUNT -->
   <section id="screen-register" class="screen screen-register">
-    <!-- Just the back button, pinned in the corner via the same
-         .topbar:not(.topbar-detail) .back-btn convention every other screen uses (see
-         the comment on .topbar in app.css) - no title in this bar. "Register your
-         business" sits lower, centered in the body below (.register-step-intro), not
-         vertically pinned to the button's own height like a normal .topbar-title would
-         be. -->
-    <header class="topbar">
-      <button class="back-btn" id="register-back" aria-label="Back">‹</button>
-    </header>
+    <!-- Empty on purpose - its back button now lives outside every .screen (see the
+         comment up by #app's opening tag) so it doesn't travel with this screen's slide.
+         Kept as a plain spacer: its own padding-top is what pushes "Register your
+         business" (.register-step-intro, sits lower in the body below) down to line up
+         under where the button visually sits. -->
+    <header class="topbar"></header>
     <form id="register-form" class="register-form">
       <div class="detail-body">
         <!-- Groups the heading through the step dots/arrow - no background/border of
@@ -1338,7 +1349,7 @@
   </button>
 </nav>
 
-<script src="i18n.js?v=70042df1bb5e"></script>
-<script src="app.js?v=70042df1bb5e"></script>
+<script src="i18n.js?v=f77a7ae985c8"></script>
+<script src="app.js?v=f77a7ae985c8"></script>
 </body>
 </html>

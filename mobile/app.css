@@ -656,6 +656,21 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
     opacity: 1; pointer-events: auto; transform: translateX(0);
 }
 
+/* Create account's back button - lives outside every .screen (see the comment on its
+   markup in index.html) so it doesn't travel the full screen-width distance with
+   Create account's own slide-in the way a .topbar-nested back-btn normally would.
+   Identical left/top offsets and fade+slide to .login-email-back-btn above so the two
+   read as the same control. z-index needed since it's a plain DOM sibling of every
+   .screen (all z-index:auto) rather than nested inside the active one - without it,
+   document order would put whichever screen is active on top instead. */
+.register-back-btn {
+    position: absolute; left: 26px; top: calc(22px + var(--safe-top)); z-index: 5;
+    pointer-events: none;
+}
+.register-back-btn.visible {
+    opacity: 1; pointer-events: auto; transform: translateX(0);
+}
+
 .checkbox-row { display: flex; align-items: flex-start; gap: 9px; font-weight: 400; font-size: 15px; margin: 16px 0 4px; cursor: pointer; }
 /* accent-color intentionally uses --text (not --primary/gold) - a plain, clean
    checkmark instead of a bright yellow-filled box when checked. */
