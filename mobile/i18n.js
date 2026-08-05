@@ -3156,11 +3156,16 @@ function setupLanguagePicker() {
         sheet.style.top = `${top}px`;
         sheet.style.left = `${rect.left}px`;
         const maxWidth = window.innerWidth - rect.left - margin;
+        sheet.style.width = "auto";
+        const naturalWidth = sheet.getBoundingClientRect().width;
         if (triggerBtn.id === "lang-select-btn") {
-            sheet.style.width = `${Math.min(rect.width, maxWidth)}px`;
+            // Floored at the button's own width (so it's never narrower than the field
+            // that opened it - keeps the "starts from the left edge of the field" feel),
+            // but allowed to grow past it when a language name needs more room than
+            // whichever name currently sits in the button (e.g. the button reads
+            // "Deutsch" but the list also needs to fit "Português" without truncating).
+            sheet.style.width = `${Math.min(Math.max(rect.width, naturalWidth), maxWidth)}px`;
         } else {
-            sheet.style.width = "auto";
-            const naturalWidth = sheet.getBoundingClientRect().width;
             sheet.style.width = `${Math.min(naturalWidth, maxWidth)}px`;
         }
         sheet.style.maxHeight = `${Math.max(0, Math.min(240, available))}px`;
@@ -3181,8 +3186,7 @@ function setupLanguagePicker() {
         const row = document.createElement("button");
         row.type = "button";
         row.className = "country-option-btn";
-        row.innerHTML = `<span class="country-option-flag">${countryFlagEmoji(lang.flag)}</span>` +
-            `<span class="country-option-name">${escapeHtml(lang.name)}</span>`;
+        row.innerHTML = `<span class="country-option-name">${escapeHtml(lang.name)}</span>`;
         row.addEventListener("click", async () => {
             await setLanguage(lang.code);
             closePicker();
