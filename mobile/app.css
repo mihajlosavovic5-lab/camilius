@@ -277,8 +277,8 @@ button { font-family: inherit; -webkit-appearance: none; appearance: none; }
    (grid stacking - the container's height tracks whichever is tallest, no manual height
    needed) and slide past each other on .login-wrap-form-phase, driven purely by that one
    class rather than each panel's own hidden state. No position:relative here deliberately -
-   .login-email-back-btn (nested inside .login-email-form) stays positioned against
-   .login-wrap itself, not this stack. */
+   .login-email-back-btn lives outside this stack entirely (see index.html) precisely so
+   it never ends up a descendant of a transformed panel. */
 .login-phase-stack { display: grid; }
 .login-phase-stack > .login-choice,
 .login-phase-stack > .login-email-form {
@@ -621,9 +621,17 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
    .back-btn's plain 34px circle look, pinned to the screen's actual top-left corner
    (inset by the same padding as .login-wrap itself, not flush against the edge) rather
    than sitting in-flow above the form, matching the .topbar back-btn convention used
-   everywhere else in the app. .login-wrap is already position:relative. */
+   everywhere else in the app. .login-wrap is already position:relative. Its own small
+   fade+slide (not the panels' full-width one - see .login-phase-stack above) is driven
+   by the same .login-wrap-form-phase class the panels use, so it appears/disappears in
+   step with them without actually living inside either sliding panel. */
 .login-email-back-btn {
     position: absolute; left: 26px; top: calc(22px + var(--safe-top)); z-index: 2;
+    opacity: 0; pointer-events: none; transform: translateX(10px);
+    transition: opacity .18s ease, transform .22s cubic-bezier(.22,.9,.32,1.05);
+}
+.login-wrap.login-wrap-form-phase .login-email-back-btn {
+    opacity: 1; pointer-events: auto; transform: translateX(0);
 }
 
 .checkbox-row { display: flex; align-items: flex-start; gap: 9px; font-weight: 400; font-size: 15px; margin: 16px 0 4px; cursor: pointer; }

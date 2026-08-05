@@ -1291,8 +1291,8 @@ body.auth {
    the container's height tracks whichever is tallest, no manual height needed) and slide
    past each other on .auth-card-email-active, driven purely by that one class rather than
    each panel's own hidden state. No position:relative here deliberately - .auth-back-btn
-   (nested inside .auth-form-wrap) stays positioned against .auth-card itself, not this
-   stack. */
+   lives outside this stack entirely (see login.html) precisely so it never ends up a
+   descendant of a transformed panel. */
 .login-phase-stack { display: grid; }
 .login-phase-stack > .auth-choice,
 .login-phase-stack > .auth-form-wrap {
@@ -1371,11 +1371,19 @@ body.auth {
    shared bundle with mobile/app.css to reuse it from directly. Pinned to the card's
    top-left corner (inset, not flush against it - same treatment as the mobile app's own
    .topbar .back-btn) instead of sitting inline above the form, so it reads as a screen-level
-   "go back" control rather than another form element. */
+   "go back" control rather than another form element. Its own small fade+slide (not the
+   panels' full-width one above) is driven by the same .auth-card-email-active class the
+   panels use, so it appears/disappears in step with them without actually living inside
+   either sliding panel. */
 .auth-back-btn {
     position: absolute; top: 20px; left: 20px;
     width: 34px; height: 34px; border-radius: 99px; border: none; background: var(--background);
     color: var(--text); font-size: 23px; line-height: 1; cursor: pointer;
+    opacity: 0; pointer-events: none; transform: translateX(10px);
+    transition: opacity .18s ease, transform .22s cubic-bezier(.22,.9,.32,1.05);
+}
+.auth-card.auth-card-email-active .auth-back-btn {
+    opacity: 1; pointer-events: auto; transform: translateX(0);
 }
 .auth-back-btn:hover { background: var(--border); }
 

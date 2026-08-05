@@ -34,6 +34,14 @@
            The two panels share one grid cell (see .login-phase-stack in style.css) and
            slide past each other on .auth-card-email-active instead of an instant cut -
            same slide-in feel as the mobile app's own screen-to-screen navigation. #}
+        {# .auth-back-btn lives outside .login-phase-stack deliberately: .auth-form-wrap
+           below gets a transform for its slide, and any transformed ancestor becomes the
+           containing block for its position:absolute descendants - nesting the back
+           button in there made it re-anchor to the sliding panel's own box for the whole
+           transition, flashing at roughly its old pre-slide spot before snapping to the
+           corner once the transition settled. Kept out here, it stays anchored to
+           .auth-card throughout and just fades/slides itself in on the same class. #}
+        <button type="button" class="auth-back-btn" id="login-back-btn" aria-label="Back">&lsaquo;</button>
         <div class="login-phase-stack">
         <div class="auth-choice" id="login-choice">
             {% if google_oauth_configured %}
@@ -47,7 +55,6 @@
         </div>
 
         <div class="auth-form-wrap" id="login-form-wrap">
-            <button type="button" class="auth-back-btn" id="login-back-btn" aria-label="Back">&lsaquo;</button>
             <form method="POST">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <div class="floating-field">
