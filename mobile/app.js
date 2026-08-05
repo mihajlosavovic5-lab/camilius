@@ -3,7 +3,7 @@
 // screens instead of loading the server-rendered website.
 
 const API_BASE = "https://app.ai-auto-reply-mail.com";
-const APP_VERSION = "1.9.7"; // bumped alongside the native versionName, sent with crash reports
+const APP_VERSION = "1.9.8"; // bumped alongside the native versionName, sent with crash reports
 
 // No per-account sent-at tracking on the backend for password-reset emails (unlike email/
 // phone verification below), so the forgot-password buttons' cooldown is purely client-side -
@@ -1499,16 +1499,14 @@ el("login-form").addEventListener("submit", async (event) => {
 // /auth/google/callback - reached once the visitor finishes on Google's side - has filled
 // in a token for that state, exactly like a normal /api/login response.
 
-// Short on purpose: this is the tail latency between Google actually finishing the
-// redirect (auth_google_callback resolving the attempt) and the app noticing and calling
-// Browser.close() on the Custom Tab - i.e. how long the (now blank, see
-// google_auth_mobile_blank.html) browser tab visibly lingers before it's dismissed. At the
-// previous 1800ms a visitor could catch it sitting there for the better part of two
-// seconds; at 400ms that window shrinks to something closer to imperceptible. Google's own
-// OAuth policy requires this hop through an external browser context at all (no WebView
-// allowed) - a poll interval this tight is the closest this can get to "instant" without a
-// native custom-URL-scheme redirect, which would need a new signed APK, not just this OTA
-// bundle. api_google_login_status's own rate limit (see api.py) is sized to match.
+// Fallback cadence for devices where the App Link handoff below doesn't fire (older
+// installed APK without that manifest entry yet, or an Android/Chrome combination that
+// doesn't honor it mid-Custom-Tab) - this is the tail latency between Google actually
+// finishing the redirect and the app noticing and calling Browser.close() on the Custom
+// Tab. On a device where the App Link DOES fire, checkGoogleLoginStatusOnce runs the
+// instant that happens instead of waiting for this timer at all - see the appUrlOpen
+// listener below. api_google_login_status's own rate limit (see api.py) is sized to
+// match this interval.
 const GOOGLE_LOGIN_POLL_INTERVAL_MS = 400;
 const GOOGLE_LOGIN_POLL_TIMEOUT_MS = 120000;
 
@@ -1519,53 +1517,77 @@ const GOOGLE_LOGIN_POLL_TIMEOUT_MS = 120000;
 // form's own hidden google_link_token field, re-verified server-side either way.
 let pendingGoogleLinkToken = null;
 
-async function pollGoogleLogin(oauthState, errorBox) {
+// The Google sign-in attempt currently in flight (state/errorBox/settled), or null when
+// none is - lets the appUrlOpen listener below reach the same attempt pollGoogleLogin is
+// already waiting on, so it can settle it immediately instead of waiting for the next
+// scheduled poll tick.
+let activeGoogleLoginAttempt = null;
+
+// One status check - returns true once the attempt has actually resolved (done/
+// needs_signup/no_account/error), false while still 'pending' (or on a network hiccup,
+// which the caller just retries). Shared by pollGoogleLogin's interval loop and the App
+// Link listener's immediate check below - attempt.settled makes sure whichever of the
+// two "wins" the race handles the result exactly once; the loser's own fetch (if it was
+// already in flight) just sees 'expired' (the row is single-use - see
+// database.oauth_login_session_status) and is a silent no-op.
+async function checkGoogleLoginStatusOnce(attempt) {
+    if (attempt.settled) return true;
+    let data;
+    try {
+        data = await api("/api/google-login/status?state=" + encodeURIComponent(attempt.state));
+    } catch (err) {
+        return false;
+    }
+    if (attempt.settled) return true; // Resolved by the other path while this fetch was in flight.
+    if (data.status === "pending") return false;
+
+    attempt.settled = true;
+    if (activeGoogleLoginAttempt === attempt) activeGoogleLoginAttempt = null;
+    if (capacitorPlugins && capacitorPlugins.Browser) {
+        capacitorPlugins.Browser.close().catch(() => {});
+    }
+    const errorBox = attempt.errorBox;
+    if (data.status === "done") {
+        state.token = data.token;
+        state.businessName = data.business_name;
+        await storageSet("token", data.token);
+        await storageSet("businessName", data.business_name);
+        enterApp();
+    } else if (data.status === "needs_signup") {
+        // First time this Google identity has been seen, started from Create Account -
+        // not logged in, just handed to the normal Create Account wizard with a
+        // name/email starting point (see openRegisterScreen). Username, password and
+        // business details are still filled in by hand exactly like any other sign-up.
+        openRegisterScreen({ name: data.google_name, contactEmail: data.google_email, googleLinkToken: data.google_link_token });
+    } else if (data.status === "no_account") {
+        // First time this Google identity has been seen, but started from the Login
+        // screen - the visitor asked to log in, not sign up, so this is just a failed
+        // login: explain it and let them try again or go create an account instead.
+        errorBox.textContent = t("login.googleNoAccount");
+        errorBox.classList.remove("hidden");
+    } else {
+        // 'error' (Google denied/cancelled, or something failed server-side) or 'expired'
+        // (visitor closed the tab without finishing, or just sat on the consent screen
+        // past GOOGLE_LOGIN_POLL_TIMEOUT_MS) - same "explain and let them retry"
+        // treatment either way, nothing more specific to say.
+        errorBox.textContent = t("login.googleError");
+        errorBox.classList.remove("hidden");
+    }
+    return true;
+}
+
+async function pollGoogleLogin(attempt) {
     const startedAt = Date.now();
     while (Date.now() - startedAt < GOOGLE_LOGIN_POLL_TIMEOUT_MS) {
         await new Promise((resolve) => setTimeout(resolve, GOOGLE_LOGIN_POLL_INTERVAL_MS));
-        let data;
-        try {
-            data = await api("/api/google-login/status?state=" + encodeURIComponent(oauthState));
-        } catch (err) {
-            continue; // Network hiccup mid-poll - just try again on the next tick.
-        }
-        if (data.status === "pending") continue;
-
-        if (capacitorPlugins && capacitorPlugins.Browser) {
-            capacitorPlugins.Browser.close().catch(() => {});
-        }
-        if (data.status === "done") {
-            state.token = data.token;
-            state.businessName = data.business_name;
-            await storageSet("token", data.token);
-            await storageSet("businessName", data.business_name);
-            enterApp();
-        } else if (data.status === "needs_signup") {
-            // First time this Google identity has been seen, started from Create Account -
-            // not logged in, just handed to the normal Create Account wizard with a
-            // name/email starting point (see openRegisterScreen). Username, password and
-            // business details are still filled in by hand exactly like any other sign-up.
-            openRegisterScreen({ name: data.google_name, contactEmail: data.google_email, googleLinkToken: data.google_link_token });
-        } else if (data.status === "no_account") {
-            // First time this Google identity has been seen, but started from the Login
-            // screen - the visitor asked to log in, not sign up, so this is just a failed
-            // login: explain it and let them try again or go create an account instead.
-            errorBox.textContent = t("login.googleNoAccount");
-            errorBox.classList.remove("hidden");
-        } else {
-            // 'error' (Google denied/cancelled, or something failed server-side) or
-            // 'expired' (visitor closed the tab without finishing, or just sat on the
-            // consent screen past GOOGLE_LOGIN_POLL_TIMEOUT_MS) - same "explain and let
-            // them retry" treatment either way, nothing more specific to say.
-            errorBox.textContent = t("login.googleError");
-            errorBox.classList.remove("hidden");
-        }
-        return;
+        if (await checkGoogleLoginStatusOnce(attempt)) return;
     }
     // Timed out still 'pending' - the browser tab itself already told the visitor what
     // happened (see google_auth_mobile_result.html) if they did finish; if they just
     // never came back, silently giving up (rather than showing a stale error) is right -
     // nothing failed, the attempt just never got followed through.
+    attempt.settled = true;
+    if (activeGoogleLoginAttempt === attempt) activeGoogleLoginAttempt = null;
 }
 
 async function startGoogleLogin(button, errorBox, intent) {
@@ -1578,7 +1600,8 @@ async function startGoogleLogin(button, errorBox, intent) {
         } else {
             window.open(data.auth_url, "_blank");
         }
-        pollGoogleLogin(data.state, errorBox);
+        activeGoogleLoginAttempt = { state: data.state, errorBox, settled: false };
+        pollGoogleLogin(activeGoogleLoginAttempt);
     } catch (err) {
         errorBox.textContent = err.message || t("login.googleError");
         errorBox.classList.remove("hidden");
@@ -1588,7 +1611,7 @@ async function startGoogleLogin(button, errorBox, intent) {
 }
 
 // intent tells the server which screen this came from - "login" must never auto-create
-// or hand off to sign-up on a brand-new Google identity (see pollGoogleLogin's
+// or hand off to sign-up on a brand-new Google identity (see checkGoogleLoginStatusOnce's
 // 'no_account' handling above), while "register" keeps the existing "prefill Create
 // Account" behavior.
 el("login-google-btn").addEventListener("click", () => {
@@ -1597,6 +1620,26 @@ el("login-google-btn").addEventListener("click", () => {
 el("register-google-btn").addEventListener("click", () => {
     startGoogleLogin(el("register-google-btn"), el("register-error"), "register");
 });
+
+// Android hands /auth/google/done straight to THIS app instead of loading it in the
+// Custom Tab, on a signed APK that has the verified App Link intent-filter for it (see
+// AndroidManifest.xml and app.py's auth_google_callback/auth_google_done) - meaning the
+// sign-in attempt already resolved server-side and the Custom Tab never got to render
+// anything at all. This settles activeGoogleLoginAttempt immediately instead of waiting
+// for pollGoogleLogin's next scheduled tick, which is what makes that handoff feel
+// instant rather than just "a bit faster". A device without that manifest entry yet (an
+// older installed APK) never fires this at all - pollGoogleLogin's own timer is the only
+// thing settling the attempt there, exactly as before this existed.
+if (capacitorPlugins && capacitorPlugins.App) {
+    capacitorPlugins.App.addListener("appUrlOpen", (data) => {
+        if (!activeGoogleLoginAttempt) return;
+        let path = "";
+        try { path = new URL(data.url).pathname; } catch (e) {}
+        if (path === "/auth/google/done") {
+            checkGoogleLoginStatusOnce(activeGoogleLoginAttempt);
+        }
+    });
+}
 
 // --- Two-phase login (Google/email choice -> revealed username+password form) ---
 

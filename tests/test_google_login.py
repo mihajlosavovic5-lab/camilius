@@ -329,7 +329,12 @@ def test_mobile_google_login_new_identity_status_is_needs_signup(client, monkeyp
     sub = _unique_sub()
     monkeypatch.setattr(app_module.google_oauth, "fetch_user", lambda code, redirect_uri: _fake_profile(sub, unique_email, name="Jane's Salon"))
     callback = client.get(f"/auth/google/callback?code=abc&state={state}")
-    assert callback.status_code == 200  # renders the "head back to the app" page, no redirect
+    # Redirects to the App Link bridge page (see app.py's auth_google_done) rather than
+    # rendering directly - Android intercepts this on a signed APK with the manifest
+    # entry; here (no such interception in a test client) it just renders as a fallback.
+    assert callback.status_code == 302
+    assert "/auth/google/done" in callback.headers["Location"]
+    assert client.get(callback.headers["Location"]).status_code == 200
 
     status = client.get(f"/api/google-login/status?state={state}").get_json()
     assert status["status"] == "needs_signup"
@@ -355,7 +360,9 @@ def test_mobile_google_login_new_identity_with_login_intent_status_is_no_account
     sub = _unique_sub()
     monkeypatch.setattr(app_module.google_oauth, "fetch_user", lambda code, redirect_uri: _fake_profile(sub, unique_email))
     callback = client.get(f"/auth/google/callback?code=abc&state={state}")
-    assert callback.status_code == 200
+    assert callback.status_code == 302
+    assert "/auth/google/done" in callback.headers["Location"]
+    assert client.get(callback.headers["Location"]).status_code == 200
 
     status = client.get(f"/api/google-login/status?state={state}").get_json()
     assert status["status"] == "no_account"
@@ -433,12 +440,15 @@ def test_mobile_google_login_existing_account_status_is_done(client, monkeypatch
     assert status["business_id"]
 
 
-def test_mobile_google_login_success_callback_is_bare_page_not_full_site(client, monkeypatch, unique_username, unique_email):
-    """The browser tab shown for a plain successful mobile login (existing account, no
-    signup/error to report) must be the bare google_auth_mobile_blank.html - not
-    google_auth_mobile_result.html's full base.html-derived page - so nothing from the
-    site's own chrome (install banner, language picker, brand logo, etc.) has a chance to
-    flash on screen before the app closes this tab or the page closes itself."""
+def test_mobile_google_login_success_callback_redirects_to_app_link_bridge(client, monkeypatch, unique_username, unique_email):
+    """A plain successful mobile login (existing account, no signup/error to report)
+    redirects to /auth/google/done with no outcome param - the verified Android App Link
+    target (see AndroidManifest.xml) that a signed APK with the matching manifest entry
+    intercepts before Chrome/the Custom Tab ever loads it. Falling back to actually
+    rendering it (as this test client does, with no App Link interception involved) must
+    land on the bare google_auth_mobile_blank.html - not google_auth_mobile_result.html's
+    full base.html-derived page - so nothing from the site's own chrome (install banner,
+    language picker, brand logo, etc.) has a chance to flash on screen."""
     from conftest import register_business
 
     register_business(client, unique_username, unique_email)
@@ -449,8 +459,14 @@ def test_mobile_google_login_success_callback_is_bare_page_not_full_site(client,
     monkeypatch.setattr(app_module.google_oauth, "fetch_user", lambda code, redirect_uri: _fake_profile(sub, unique_email))
     callback = client.get(f"/auth/google/callback?code=abc&state={start['state']}")
 
-    assert callback.status_code == 200
-    html = callback.get_data(as_text=True)
+    assert callback.status_code == 302
+    location = callback.headers["Location"]
+    assert "/auth/google/done" in location
+    assert "outcome=" not in location
+
+    fallback = client.get(location)
+    assert fallback.status_code == 200
+    html = fallback.get_data(as_text=True)
     assert "mobile-install-banner" not in html
     assert "site-lang-select-btn" not in html
     assert "auth-brand" not in html
@@ -468,7 +484,44 @@ def test_mobile_google_login_callback_records_error_on_denied_consent(client, mo
     state = start["state"]
 
     response = client.get(f"/auth/google/callback?state={state}&error=access_denied")
-    assert response.status_code == 200
+    assert response.status_code == 302
+    assert "/auth/google/done" in response.headers["Location"]
+    assert client.get(response.headers["Location"]).status_code == 200
 
     status = client.get(f"/api/google-login/status?state={state}").get_json()
     assert status["status"] == "error"
+
+
+# --- /auth/google/done (Android App Link bridge fallback rendering) ---
+
+def test_auth_google_done_404s_when_not_configured(client, monkeypatch):
+    monkeypatch.delenv("GOOGLE_CLIENT_ID", raising=False)
+    monkeypatch.delenv("GOOGLE_CLIENT_SECRET", raising=False)
+    response = client.get("/auth/google/done")
+    assert response.status_code == 404
+
+
+def test_auth_google_done_outcome_no_account_renders_error_message(client, monkeypatch):
+    _configure_google(monkeypatch)
+    response = client.get("/auth/google/done?state=x&outcome=no_account")
+    assert response.status_code == 200
+    html = response.get_data(as_text=True)
+    assert "No account found" in html
+
+
+def test_auth_google_done_outcome_needs_signup_renders_signup_message(client, monkeypatch):
+    _configure_google(monkeypatch)
+    response = client.get("/auth/google/done?state=x&outcome=needs_signup")
+    assert response.status_code == 200
+    assert "Almost there" in response.get_data(as_text=True)
+
+
+def test_auth_google_done_no_outcome_renders_bare_page(client, monkeypatch):
+    """No `outcome` (the plain successful-login case) falls back to the same bare,
+    resource-free page as a direct hit - no install banner/language picker/brand chrome."""
+    _configure_google(monkeypatch)
+    response = client.get("/auth/google/done?state=x")
+    assert response.status_code == 200
+    html = response.get_data(as_text=True)
+    assert "mobile-install-banner" not in html
+    assert "auth-brand" not in html

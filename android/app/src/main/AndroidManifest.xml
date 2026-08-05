@@ -22,6 +22,29 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
+            <!-- Verified Android App Link for the "Continue with Google" mobile bridge
+                 (see app.py's auth_google_done, mobile/app.js's appUrlOpen listener, and
+                 the assetlinks.json route below it). Host matches API_BASE
+                 (mobile/app.js) - app.ai-auto-reply-mail.com, not the bare domain - since
+                 that's the actual host app.py's routes (including this one) are served
+                 from. autoVerify tells Android to check /.well-known/assetlinks.json for
+                 this host at install time and, once verified, hand navigation to this
+                 exact path straight to this app instead of loading it in Chrome/a Custom
+                 Tab - closing that Custom Tab as part of the OS-level handoff, with no
+                 page ever rendered in it. Scoped to this one path (not the whole domain)
+                 - auth_google_callback (Google's own OAuth redirect target) must NOT be
+                 App-Link-verified, or Android would intercept Google's own redirect
+                 before it ever reached the server to exchange the code at all. -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data
+                    android:scheme="https"
+                    android:host="app.ai-auto-reply-mail.com"
+                    android:pathPrefix="/auth/google/done" />
+            </intent-filter>
+
         </activity>
 
         <provider

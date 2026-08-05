@@ -435,7 +435,7 @@ def auth_google_callback():
     def fail(message):
         if is_mobile:
             fail_oauth_login_session(state)
-            return render_template("google_auth_mobile_result.html")
+            return redirect(url_for("auth_google_done", state=state, outcome="error"))
         return redirect(url_for("login", message=message))
 
     # Which screen "Continue with Google" was clicked on - Login or Create Account (see
@@ -474,7 +474,7 @@ def auth_google_callback():
         if intent == "login":
             if is_mobile:
                 fail_oauth_login_session_no_account(state)
-                return render_template("google_auth_mobile_result.html", no_account=True)
+                return redirect(url_for("auth_google_done", state=state, outcome="no_account"))
             return redirect(url_for("login", error="No Camilius account is linked to that Google account. Please register first."))
 
         # Otherwise (Create Account screen) - hand its name/email to the sign-up form as a
@@ -488,20 +488,54 @@ def auth_google_callback():
         link_token = google_oauth.make_link_token(google_id, email)
         if is_mobile:
             complete_oauth_login_session_needs_signup(state, name, email, link_token)
-            return render_template("google_auth_mobile_result.html", needs_signup=True)
+            return redirect(url_for("auth_google_done", state=state, outcome="needs_signup"))
         return redirect(url_for("register", google_name=name, google_email=email, google_link_token=link_token))
 
     if is_mobile:
         token = make_token(business[0])
         complete_oauth_login_session(state, token, business[0], business[1])
-        # A bare, resource-free page (no base.html chrome - see its own docstring) rather
-        # than google_auth_mobile_result.html: this is the plain "it worked" case, with
-        # nothing for the visitor to read before the app's own poll closes this tab.
-        return render_template("google_auth_mobile_blank.html")
+        return redirect(url_for("auth_google_done", state=state))
 
     session["business_id"] = business[0]
     session["business_name"] = business[1]
     return redirect(url_for("home"))
+
+
+@app.route("/auth/google/done")
+def auth_google_done():
+    """Verified Android App Link target for the "Continue with Google" mobile bridge -
+    see AndroidManifest.xml's intent-filter for this exact path (autoVerify, host
+    app.ai-auto-reply-mail.com - matches mobile/app.js's own API_BASE) and
+    mobile/app.js's appUrlOpen listener. auth_google_callback
+    above redirects here for the mobile flow ONLY - and only once it's already fully
+    resolved the attempt (exchanged the code, resolved/linked the business, updated
+    oauth_login_sessions). Never earlier: Google's own redirect must still land on
+    auth_google_callback normally to hand over `code` in the first place - if this path
+    were the one Google redirected to, Android would intercept that first hop before it
+    ever reached the server to do the exchange at all.
+
+    On a signed APK that has the manifest entry, Android hands this URL straight to the
+    app before Chrome/the Custom Tab ever loads it - closing that tab as part of the OS
+    handoff, with nothing rendered in it. This route's own response below is only ever
+    seen as a fallback: an older installed APK without that manifest entry yet, or an
+    Android/Chrome combination that doesn't honor the App Link mid-Custom-Tab. Either
+    way, `outcome` (plain display info, not a credential - the actual result still has to
+    come from /api/google-login/status, exactly as before this route existed) says which
+    of auth_google_callback's own pages to fall back to."""
+    if not google_oauth.is_configured():
+        abort(404)
+    outcome = request.args.get("outcome")
+    if outcome == "no_account":
+        return render_template("google_auth_mobile_result.html", no_account=True)
+    if outcome == "needs_signup":
+        return render_template("google_auth_mobile_result.html", needs_signup=True)
+    if outcome == "error":
+        return render_template("google_auth_mobile_result.html")
+    # No outcome (or an unrecognized one) - the plain "it worked" case: a bare,
+    # resource-free page (no base.html chrome - see its own docstring), nothing for the
+    # visitor to read before the app's own poll (or this same App Link, next time) closes
+    # this tab.
+    return render_template("google_auth_mobile_blank.html")
 
 
 @app.route("/login", methods=["GET", "POST"])
