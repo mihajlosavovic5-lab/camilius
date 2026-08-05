@@ -1328,6 +1328,18 @@ body.auth {
     text-align: center; font-size: 13.5px; font-weight: 600; color: var(--text-muted);
     margin: 22px 0 10px; padding-top: 16px; border-top: 1px solid var(--border);
 }
+/* The "or" between "Continue with Google" and "Continue with email" - a bigger, bolder
+   word flanked by short lines on each side, rather than .auth-divider's single line above
+   plain small text (which reads fine for a caption like "Don't have an account?", but felt
+   throwaway for a divider that's actually splitting two equally-weighted buttons). */
+.auth-or-divider {
+    display: flex; align-items: center; gap: 12px;
+    font-size: 15px; font-weight: 700; color: var(--text-muted);
+    margin: 18px 0 8px;
+}
+.auth-or-divider::before, .auth-or-divider::after {
+    content: ""; flex: 1; height: 1px; background: var(--border);
+}
 
 /* Small circular caret button that returns from the username/password form (revealed by
    "Continue with email") back to the Google/email choice screen - same 34px circle look

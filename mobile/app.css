@@ -536,9 +536,16 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
 .button-google-icon { width: 18px; height: 18px; flex-shrink: 0; }
 /* Same "short caption breaks up a lone floating button" idea as .login-signup-divider
    above, reused here between the Google button and the username/password form. */
+/* Bigger, bolder "or" flanked by short lines on each side, instead of a plain small
+   caption - reads more like a real divider between two equally-weighted buttons (Google/
+   email) than a throwaway label. Same treatment as the website's .auth-or-divider. */
 .login-google-divider {
-    text-align: center; font-size: 13.5px; font-weight: 600; color: var(--text-muted);
-    margin: 14px 0 4px;
+    display: flex; align-items: center; gap: 12px;
+    font-size: 15px; font-weight: 700; color: var(--text-muted);
+    margin: 16px 0 8px;
+}
+.login-google-divider::before, .login-google-divider::after {
+    content: ""; flex: 1; height: 1px; background: var(--border);
 }
 /* Returns from the revealed username/password form (see #login-email-btn/
    #login-email-back-btn in app.js) back to the Google/email choice screen - reuses
