@@ -3092,16 +3092,14 @@ function applyTranslations() {
     document.querySelectorAll("[data-i18n-placeholder]").forEach((node) => {
         node.placeholder = t(node.getAttribute("data-i18n-placeholder"));
     });
+    // The login screen's own trigger is a static "Choose language" label (set via its
+    // data-i18n="lang.pickerTitle" above, same as every other [data-i18n] node) rather
+    // than reflecting the current language - only the Settings row still shows it.
     const lang = LANGUAGES.find((l) => l.code === currentLang);
-    const label = document.getElementById("lang-select-label");
-    if (label) label.textContent = lang ? lang.name : currentLang;
     const settingsValue = document.getElementById("settings-language-value");
     if (settingsValue) settingsValue.textContent = lang ? lang.name : currentLang;
-    const flagGlyph = lang ? countryFlagEmoji(lang.flag) : "";
-    const selectFlag = document.getElementById("lang-select-flag");
-    if (selectFlag) selectFlag.textContent = flagGlyph;
     const settingsFlag = document.getElementById("settings-language-flag");
-    if (settingsFlag) settingsFlag.textContent = flagGlyph;
+    if (settingsFlag) settingsFlag.textContent = lang ? countryFlagEmoji(lang.flag) : "";
 }
 
 async function setLanguage(code) {
