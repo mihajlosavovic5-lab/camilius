@@ -11,15 +11,7 @@
         </span>
     </div>
 
-    {% if success and not needs_signup and not no_account %}
-        {# A matching account was found - the visitor asked to log in, and the app already
-           gets its own token straight from polling /api/google-login/status (see
-           mobile/app.js), typically within GOOGLE_LOGIN_POLL_INTERVAL_MS, closing this tab
-           itself. Nothing needs to be shown here at all - a "you're signed in" message
-           would just be a beat late by the time anyone reads it, so this tab is left
-           blank (no card, no text) and closes itself as fast as it can (see script below)
-           instead of flashing a message no one asked to see. #}
-    {% elif success and no_account %}
+    {% if no_account %}
         <div class="auth-card">
             <h1 data-i18n="googleAuth.noAccountTitle">No account found</h1>
             <div class="alert alert-error" style="margin-top: 12px;">
@@ -27,7 +19,7 @@
                 <span data-i18n="googleAuth.noAccountBody">Head back to the Camilius app - no account is linked to that Google account. This tab can be closed.</span>
             </div>
         </div>
-    {% elif success and needs_signup %}
+    {% elif needs_signup %}
         <div class="auth-card">
             <h1 data-i18n="googleAuth.needsSignupTitle">Almost there</h1>
             <div class="alert alert-success" style="margin-top: 12px;">
@@ -36,6 +28,11 @@
             </div>
         </div>
     {% else %}
+        {# The plain "it worked, you're logged in" case never renders this template at
+           all anymore - see app.py's auth_google_callback, which sends that one to the
+           bare, resource-free google_auth_mobile_blank.html instead. Reaching here with
+           neither no_account nor needs_signup set means the sign-in itself failed
+           (denied consent, expired code, etc.) - the only case left. #}
         <div class="auth-card">
             <h1 data-i18n="googleAuth.failedTitle">Sign-in didn't go through</h1>
             <div class="alert alert-error" style="margin-top: 12px;">
@@ -48,11 +45,8 @@
 <script>
     // Best-effort only - most system-browser/Custom Tabs contexts ignore a script-
     // initiated window.close() (it only works on a window JS itself opened), but it's
-    // free to try immediately on load. The mobile app itself learns the actual result by
-    // polling /api/google-login/status (see mobile/app.js) and closes this same tab from
-    // its side too (Browser.close()) the moment that poll resolves - usually well under
-    // two seconds - so between the two, a plain successful login (the blank case just
-    // above) is never on screen long enough to read, let alone need its own message.
+    // free to try. The mobile app itself learns the actual result by polling
+    // /api/google-login/status (see mobile/app.js), not from anything on this page.
     try { window.close(); } catch (e) {}
 </script>
 {% endblock %}

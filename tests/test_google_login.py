@@ -433,6 +433,30 @@ def test_mobile_google_login_existing_account_status_is_done(client, monkeypatch
     assert status["business_id"]
 
 
+def test_mobile_google_login_success_callback_is_bare_page_not_full_site(client, monkeypatch, unique_username, unique_email):
+    """The browser tab shown for a plain successful mobile login (existing account, no
+    signup/error to report) must be the bare google_auth_mobile_blank.html - not
+    google_auth_mobile_result.html's full base.html-derived page - so nothing from the
+    site's own chrome (install banner, language picker, brand logo, etc.) has a chance to
+    flash on screen before the app closes this tab or the page closes itself."""
+    from conftest import register_business
+
+    register_business(client, unique_username, unique_email)
+
+    _configure_google(monkeypatch)
+    start = client.post("/api/google-login/start").get_json()
+    sub = _unique_sub()
+    monkeypatch.setattr(app_module.google_oauth, "fetch_user", lambda code, redirect_uri: _fake_profile(sub, unique_email))
+    callback = client.get(f"/auth/google/callback?code=abc&state={start['state']}")
+
+    assert callback.status_code == 200
+    html = callback.get_data(as_text=True)
+    assert "mobile-install-banner" not in html
+    assert "site-lang-select-btn" not in html
+    assert "auth-brand" not in html
+    assert "Camilius" in html  # just the bare page's <title>
+
+
 def test_mobile_google_login_status_unknown_state_is_expired(client):
     response = client.get("/api/google-login/status?state=never-existed")
     assert response.get_json()["status"] == "expired"

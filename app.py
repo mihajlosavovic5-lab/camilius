@@ -435,7 +435,7 @@ def auth_google_callback():
     def fail(message):
         if is_mobile:
             fail_oauth_login_session(state)
-            return render_template("google_auth_mobile_result.html", success=False)
+            return render_template("google_auth_mobile_result.html")
         return redirect(url_for("login", message=message))
 
     # Which screen "Continue with Google" was clicked on - Login or Create Account (see
@@ -474,7 +474,7 @@ def auth_google_callback():
         if intent == "login":
             if is_mobile:
                 fail_oauth_login_session_no_account(state)
-                return render_template("google_auth_mobile_result.html", success=True, no_account=True)
+                return render_template("google_auth_mobile_result.html", no_account=True)
             return redirect(url_for("login", error="No Camilius account is linked to that Google account. Please register first."))
 
         # Otherwise (Create Account screen) - hand its name/email to the sign-up form as a
@@ -488,13 +488,16 @@ def auth_google_callback():
         link_token = google_oauth.make_link_token(google_id, email)
         if is_mobile:
             complete_oauth_login_session_needs_signup(state, name, email, link_token)
-            return render_template("google_auth_mobile_result.html", success=True, needs_signup=True)
+            return render_template("google_auth_mobile_result.html", needs_signup=True)
         return redirect(url_for("register", google_name=name, google_email=email, google_link_token=link_token))
 
     if is_mobile:
         token = make_token(business[0])
         complete_oauth_login_session(state, token, business[0], business[1])
-        return render_template("google_auth_mobile_result.html", success=True)
+        # A bare, resource-free page (no base.html chrome - see its own docstring) rather
+        # than google_auth_mobile_result.html: this is the plain "it worked" case, with
+        # nothing for the visitor to read before the app's own poll closes this tab.
+        return render_template("google_auth_mobile_blank.html")
 
     session["business_id"] = business[0]
     session["business_name"] = business[1]
