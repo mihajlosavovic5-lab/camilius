@@ -308,17 +308,17 @@ button { font-family: inherit; -webkit-appearance: none; appearance: none; }
 }
 .lang-modal.open .lang-modal-backdrop { opacity: 1; }
 .lang-modal-sheet {
-    position: absolute; left: 50%; top: calc(60px + var(--safe-top));
+    position: absolute; left: 0; top: calc(60px + var(--safe-top));
     width: min(260px, calc(100% - 48px)); max-height: 60vh; overflow-y: auto;
     background: var(--surface); border-radius: 16px;
     box-shadow: 0 14px 36px rgba(43,32,19,.24);
     padding: 8px;
-    transform-origin: top center;
-    transform: translate(-50%, -6px) scale(.94);
+    transform-origin: top left;
+    transform: translateY(-6px) scale(.94);
     opacity: 0;
     transition: transform .2s cubic-bezier(.22,.9,.32,1.2), opacity .16s ease;
 }
-.lang-modal.open .lang-modal-sheet { transform: translate(-50%, 0) scale(1); opacity: 1; }
+.lang-modal.open .lang-modal-sheet { transform: translateY(0) scale(1); opacity: 1; }
 .lang-modal-list { display: flex; flex-direction: column; }
 
 /* --- Country code picker (phone number field) - list (flag + name + dial code), sized
