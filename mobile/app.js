@@ -1583,11 +1583,16 @@ el("register-google-btn").addEventListener("click", () => {
 function resetLoginPhase() {
     el("login-choice").classList.remove("hidden");
     el("login-email-form").classList.add("hidden");
+    // See .login-wrap-form-phase in app.css - the choice screen's shorter content uses a
+    // more evenly-split top/bottom spacer ratio than the full form does, so the block
+    // doesn't visibly jump position when the form is revealed/hidden.
+    el("login-wrap").classList.remove("login-wrap-form-phase");
 }
 
 el("login-email-btn").addEventListener("click", () => {
     el("login-choice").classList.add("hidden");
     el("login-email-form").classList.remove("hidden");
+    el("login-wrap").classList.add("login-wrap-form-phase");
     el("login-username").focus();
 });
 el("login-email-back-btn").addEventListener("click", resetLoginPhase);
