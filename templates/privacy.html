@@ -38,7 +38,9 @@
         <p data-i18n="privacy.sharing.intro">We don't sell your data. To provide the service, certain data is processed through the following external services (data processors):</p>
         <ul>
             <li><strong>OpenAI</strong> - <span data-i18n="privacy.sharing.openai">the text of your customer's question and your business data (working hours, price list, FAQ) are sent to OpenAI to generate suggested replies.</span></li>
+            {% if not beta_free_mode %}
             <li><strong>Paddle</strong> - <span data-i18n="privacy.sharing.paddle">used to process subscription payments; Paddle acts as merchant of record for all paid plans and handles your payment details directly - we never receive or store your card information.</span></li>
+            {% endif %}
             <li><strong>Resend</strong> - <span data-i18n="privacy.sharing.resend">used to send account-related emails (e.g. password resets); processes your contact email address.</span></li>
             <li><strong>Railway</strong> - <span data-i18n="privacy.sharing.railway">our hosting provider; all data is physically stored on their servers (outside Serbia).</span></li>
         </ul>

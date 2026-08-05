@@ -3071,12 +3071,16 @@ function renderSubscriptionScreen() {
     el("subscription-active").classList.toggle("hidden", !active);
     el("subscription-needs-plan").classList.toggle("hidden", !needsPlan);
 
-    // While billing is hidden (BETA_FREE_MODE), the Settings "Billing" row and the Help
-    // FAQ entry about the Pro plan reference a plan concept nobody can act on - hide them
-    // too, same idea as the website's app_settings.html gating its equivalents.
+    // While billing is hidden (BETA_FREE_MODE), the Settings "Billing" row, the Help FAQ
+    // entry about the Pro plan, and the Pricing/Paddle mentions in the Terms/Privacy
+    // screens all reference a plan concept nobody can act on right now - hide them too,
+    // same idea as the website's app_settings.html/terms.html/privacy.html gating their
+    // equivalents.
     el("settings-billing-label").classList.toggle("hidden", state.betaFreeMode);
     el("settings-subscription-row").classList.toggle("hidden", state.betaFreeMode);
     el("help-faq-pro-plan").classList.toggle("hidden", state.betaFreeMode);
+    el("terms-pricing-section").classList.toggle("hidden", state.betaFreeMode);
+    el("privacy-paddle-item").classList.toggle("hidden", state.betaFreeMode);
 
     if (needsPlan) {
         // subscription_status "none" means this account never started a trial at all

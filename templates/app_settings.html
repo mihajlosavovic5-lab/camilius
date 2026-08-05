@@ -251,7 +251,11 @@
     </div>
 
     <div class="card settings-card" style="margin-top:20px;">
+        {% if beta_free_mode %}
+        <h2 style="margin-top:0;" data-i18n="appSettings.legalOnly.heading">Legal</h2>
+        {% else %}
         <h2 style="margin-top:0;" data-i18n="appSettings.billingLegal.heading">Billing &amp; Legal</h2>
+        {% endif %}
         <p class="note" data-i18n="appSettings.legal.note">Read our policies any time.</p>
         <div class="settings-link-list">
             {% if not beta_free_mode %}
