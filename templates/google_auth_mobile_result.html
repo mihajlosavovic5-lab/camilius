@@ -11,40 +11,48 @@
         </span>
     </div>
 
-    <div class="auth-card">
-        {% if success and no_account %}
+    {% if success and not needs_signup and not no_account %}
+        {# A matching account was found - the visitor asked to log in, and the app already
+           gets its own token straight from polling /api/google-login/status (see
+           mobile/app.js), typically within GOOGLE_LOGIN_POLL_INTERVAL_MS, closing this tab
+           itself. Nothing needs to be shown here at all - a "you're signed in" message
+           would just be a beat late by the time anyone reads it, so this tab is left
+           blank (no card, no text) and closes itself as fast as it can (see script below)
+           instead of flashing a message no one asked to see. #}
+    {% elif success and no_account %}
+        <div class="auth-card">
             <h1 data-i18n="googleAuth.noAccountTitle">No account found</h1>
             <div class="alert alert-error" style="margin-top: 12px;">
                 <span class="alert-icon">&#9888;&#65039;</span>
                 <span data-i18n="googleAuth.noAccountBody">Head back to the Camilius app - no account is linked to that Google account. This tab can be closed.</span>
             </div>
-        {% elif success and needs_signup %}
+        </div>
+    {% elif success and needs_signup %}
+        <div class="auth-card">
             <h1 data-i18n="googleAuth.needsSignupTitle">Almost there</h1>
             <div class="alert alert-success" style="margin-top: 12px;">
                 <span class="alert-icon">&#10003;</span>
                 <span data-i18n="googleAuth.needsSignupBody">Head back to the Camilius app to finish setting up your account - this tab can be closed.</span>
             </div>
-        {% elif success %}
-            <h1 data-i18n="googleAuth.successTitle">You're signed in</h1>
-            <div class="alert alert-success" style="margin-top: 12px;">
-                <span class="alert-icon">&#10003;</span>
-                <span data-i18n="googleAuth.successBody">Head back to the Camilius app to continue - this tab can be closed.</span>
-            </div>
-        {% else %}
+        </div>
+    {% else %}
+        <div class="auth-card">
             <h1 data-i18n="googleAuth.failedTitle">Sign-in didn't go through</h1>
             <div class="alert alert-error" style="margin-top: 12px;">
                 <span class="alert-icon">&#9888;&#65039;</span>
                 <span data-i18n="googleAuth.failedBody">Head back to the Camilius app and try again - this tab can be closed.</span>
             </div>
-        {% endif %}
-    </div>
+        </div>
+    {% endif %}
 </div>
 <script>
     // Best-effort only - most system-browser/Custom Tabs contexts ignore a script-
     // initiated window.close() (it only works on a window JS itself opened), but it's
-    // free to try, and the copy above already tells the visitor to close it manually
-    // either way. The mobile app itself learns the actual result by polling
-    // /api/google-login/status (see mobile/app.js), not from anything on this page.
+    // free to try immediately on load. The mobile app itself learns the actual result by
+    // polling /api/google-login/status (see mobile/app.js) and closes this same tab from
+    // its side too (Browser.close()) the moment that poll resolves - usually well under
+    // two seconds - so between the two, a plain successful login (the blank case just
+    // above) is never on screen long enough to read, let alone need its own message.
     try { window.close(); } catch (e) {}
 </script>
 {% endblock %}
