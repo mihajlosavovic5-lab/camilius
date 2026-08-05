@@ -1483,6 +1483,84 @@ el("login-form").addEventListener("submit", async (event) => {
     }
 });
 
+// --- Continue with Google (Login + Create account) ---
+//
+// The website's own /auth/google can just redirect straight to Google and rely on its
+// session cookie for the round trip (see app.py) - this app has neither: it opens
+// Google's consent screen in the system browser (Capacitor's Browser plugin, since Google
+// blocks its OAuth screen from loading inside a plain embedded WebView), a separate
+// browser context with no cookie/JS bridge back to the app at all. So instead: ask the
+// server for a one-time `state` + the URL to open (POST /api/google-login/start), open
+// it, then poll GET /api/google-login/status?state=... (see api.py) until app.py's
+// /auth/google/callback - reached once the visitor finishes on Google's side - has filled
+// in a token for that state, exactly like a normal /api/login response.
+
+const GOOGLE_LOGIN_POLL_INTERVAL_MS = 1800;
+const GOOGLE_LOGIN_POLL_TIMEOUT_MS = 120000;
+
+async function pollGoogleLogin(oauthState, errorBox) {
+    const startedAt = Date.now();
+    while (Date.now() - startedAt < GOOGLE_LOGIN_POLL_TIMEOUT_MS) {
+        await new Promise((resolve) => setTimeout(resolve, GOOGLE_LOGIN_POLL_INTERVAL_MS));
+        let data;
+        try {
+            data = await api("/api/google-login/status?state=" + encodeURIComponent(oauthState));
+        } catch (err) {
+            continue; // Network hiccup mid-poll - just try again on the next tick.
+        }
+        if (data.status === "pending") continue;
+
+        if (capacitorPlugins && capacitorPlugins.Browser) {
+            capacitorPlugins.Browser.close().catch(() => {});
+        }
+        if (data.status === "done") {
+            state.token = data.token;
+            state.businessName = data.business_name;
+            await storageSet("token", data.token);
+            await storageSet("businessName", data.business_name);
+            enterApp();
+        } else {
+            // 'error' (Google denied/cancelled, or something failed server-side) or
+            // 'expired' (visitor closed the tab without finishing, or just sat on the
+            // consent screen past GOOGLE_LOGIN_POLL_TIMEOUT_MS) - same "explain and let
+            // them retry" treatment either way, nothing more specific to say.
+            errorBox.textContent = t("login.googleError");
+            errorBox.classList.remove("hidden");
+        }
+        return;
+    }
+    // Timed out still 'pending' - the browser tab itself already told the visitor what
+    // happened (see google_auth_mobile_result.html) if they did finish; if they just
+    // never came back, silently giving up (rather than showing a stale error) is right -
+    // nothing failed, the attempt just never got followed through.
+}
+
+async function startGoogleLogin(button, errorBox) {
+    errorBox.classList.add("hidden");
+    button.disabled = true;
+    try {
+        const data = await api("/api/google-login/start", { method: "POST" });
+        if (capacitorPlugins && capacitorPlugins.Browser) {
+            await capacitorPlugins.Browser.open({ url: data.auth_url });
+        } else {
+            window.open(data.auth_url, "_blank");
+        }
+        pollGoogleLogin(data.state, errorBox);
+    } catch (err) {
+        errorBox.textContent = err.message || t("login.googleError");
+        errorBox.classList.remove("hidden");
+    } finally {
+        button.disabled = false;
+    }
+}
+
+el("login-google-btn").addEventListener("click", () => {
+    startGoogleLogin(el("login-google-btn"), el("login-error"));
+});
+el("register-google-btn").addEventListener("click", () => {
+    startGoogleLogin(el("register-google-btn"), el("register-error"));
+});
+
 // --- Forgot password (its own native screen, pushed on top of Login - no browser
 // involved at all, unlike the old flow which opened the website's page in a browser tab) ---
 

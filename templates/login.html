@@ -23,6 +23,14 @@
             <div class="alert alert-success"><span class="alert-icon">&#10003;</span><span>{{ message }}</span></div>
         {% endif %}
 
+        {% if google_oauth_configured %}
+        <a class="button button-google button-full button-pill" href="{{ url_for('auth_google') }}">
+            {% include "_google_icon.html" %}
+            <span data-i18n="login.continueWithGoogle">Continue with Google</span>
+        </a>
+        <div class="auth-divider"><span data-i18n="login.orDivider">or</span></div>
+        {% endif %}
+
         <form method="POST">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <div class="floating-field">

@@ -48,6 +48,9 @@ const TRANSLATIONS = {
         "login.error": "Wrong username or password.",
         "login.forgot": "Forgot password?",
         "login.signup": "Create account",
+        "login.continueWithGoogle": "Continue with Google",
+        "login.orDivider": "or",
+        "login.googleError": "Google sign-in didn't go through. Please try again.",
         "login.newHere": "New to Camilius?",
 
         "register.title": "Create account",
@@ -391,6 +394,9 @@ const TRANSLATIONS = {
         "login.error": "Pogrešno korisničko ime ili lozinka.",
         "login.forgot": "Zaboravili ste lozinku?",
         "login.signup": "Napravi nalog",
+        "login.continueWithGoogle": "Nastavi sa Google nalogom",
+        "login.orDivider": "ili",
+        "login.googleError": "Prijava preko Google-a nije uspela. Pokušajte ponovo.",
         "login.newHere": "Novi ste na Camilius-u?",
 
         "register.title": "Napravi nalog",
@@ -729,6 +735,9 @@ const TRANSLATIONS = {
         "login.error": "Usuario o contraseña incorrectos.",
         "login.forgot": "¿Olvidaste tu contraseña?",
         "login.signup": "Crear cuenta",
+        "login.continueWithGoogle": "Continuar con Google",
+        "login.orDivider": "o",
+        "login.googleError": "La conexión con Google no se completó. Inténtalo de nuevo.",
         "login.newHere": "¿Nuevo en Camilius?",
 
         "register.title": "Crear cuenta",
@@ -1020,6 +1029,9 @@ const TRANSLATIONS = {
         "login.error": "Usuário ou senha incorretos.",
         "login.forgot": "Esqueceu a senha?",
         "login.signup": "Criar conta",
+        "login.continueWithGoogle": "Continuar com o Google",
+        "login.orDivider": "ou",
+        "login.googleError": "O login com o Google não foi concluído. Tente novamente.",
         "login.newHere": "Novo no Camilius?",
 
         "register.title": "Criar conta",
@@ -1311,6 +1323,9 @@ const TRANSLATIONS = {
         "login.error": "Nom d'utilisateur ou mot de passe incorrect.",
         "login.forgot": "Mot de passe oublié ?",
         "login.signup": "Créer un compte",
+        "login.continueWithGoogle": "Continuer avec Google",
+        "login.orDivider": "ou",
+        "login.googleError": "La connexion avec Google a échoué. Veuillez réessayer.",
         "login.newHere": "Nouveau sur Camilius ?",
 
         "register.title": "Créer un compte",
@@ -1602,6 +1617,9 @@ const TRANSLATIONS = {
         "login.error": "Falscher Benutzername oder falsches Passwort.",
         "login.forgot": "Passwort vergessen?",
         "login.signup": "Konto erstellen",
+        "login.continueWithGoogle": "Mit Google fortfahren",
+        "login.orDivider": "oder",
+        "login.googleError": "Die Anmeldung mit Google hat nicht funktioniert. Bitte versuche es erneut.",
         "login.newHere": "Neu bei Camilius?",
 
         "register.title": "Konto erstellen",
@@ -1893,6 +1911,9 @@ const TRANSLATIONS = {
         "login.error": "Nome utente o password errati.",
         "login.forgot": "Password dimenticata?",
         "login.signup": "Crea account",
+        "login.continueWithGoogle": "Continua con Google",
+        "login.orDivider": "o",
+        "login.googleError": "L'accesso con Google non è riuscito. Riprova.",
         "login.newHere": "Nuovo su Camilius?",
 
         "register.title": "Crea account",
@@ -2184,6 +2205,9 @@ const TRANSLATIONS = {
         "login.error": "Неверное имя пользователя или пароль.",
         "login.forgot": "Забыли пароль?",
         "login.signup": "Создать аккаунт",
+        "login.continueWithGoogle": "Продолжить через Google",
+        "login.orDivider": "или",
+        "login.googleError": "Не удалось войти через Google. Попробуйте снова.",
         "login.newHere": "Впервые в Camilius?",
 
         "register.title": "Создать аккаунт",
@@ -2475,6 +2499,9 @@ const TRANSLATIONS = {
         "login.error": "用户名或密码错误。",
         "login.forgot": "忘记密码？",
         "login.signup": "创建账户",
+        "login.continueWithGoogle": "使用 Google 继续",
+        "login.orDivider": "或",
+        "login.googleError": "Google 登录未成功,请重试。",
         "login.newHere": "第一次使用 Camilius？",
 
         "register.title": "创建账户",
@@ -2766,6 +2793,9 @@ const TRANSLATIONS = {
         "login.error": "Kullanıcı adı veya şifre hatalı.",
         "login.forgot": "Şifrenizi mi unuttunuz?",
         "login.signup": "Hesap oluştur",
+        "login.continueWithGoogle": "Google ile devam et",
+        "login.orDivider": "veya",
+        "login.googleError": "Google ile giriş yapılamadı. Lütfen tekrar deneyin.",
         "login.newHere": "Camilius'ta yeni misiniz?",
 
         "register.title": "Hesap oluştur",
