@@ -301,8 +301,8 @@ const TRANSLATIONS = {
         "intro.slide3.desc": "Choose a look and add your best photos — Camilius turns it into a polished, ready-to-publish page.",
         "intro.slide4.title": "An AI chat comes built in",
         "intro.slide4.desc": "Your new site includes an AI assistant that answers visitor questions instantly, day or night.",
-        "intro.slide5.title": "Books the appointment too",
-        "intro.slide5.desc": "When a customer wants to schedule, Camilius checks your calendar, books the slot, and notifies you the moment it's done.",
+        "intro.slide5.title": "Books appointments too",
+        "intro.slide5.desc": "Checks your calendar, books the slot, and notifies you instantly.",
         "intro.continue": "Continue",
 
 
@@ -863,8 +863,8 @@ const TRANSLATIONS = {
         "intro.slide3.desc": "Elige un estilo y añade tus mejores fotos: Camilius lo convierte en una página pulida, lista para publicar.",
         "intro.slide4.title": "Incluye un chat con IA",
         "intro.slide4.desc": "Tu nuevo sitio incluye un asistente de IA que responde al instante las preguntas de tus visitantes, de día o de noche.",
-        "intro.slide5.title": "También reserva la cita",
-        "intro.slide5.desc": "Cuando un cliente quiere reservar, Camilius revisa tu agenda, reserva el horario y te avisa en cuanto queda hecho.",
+        "intro.slide5.title": "También reserva citas",
+        "intro.slide5.desc": "Revisa tu agenda, reserva el horario y te avisa al instante.",
         "intro.continue": "Continuar",
 
 
@@ -1339,8 +1339,8 @@ const TRANSLATIONS = {
         "intro.slide3.desc": "Escolha um estilo e adicione suas melhores fotos — o Camilius transforma tudo em uma página pronta para publicar.",
         "intro.slide4.title": "Um chat com IA já incluso",
         "intro.slide4.desc": "Seu novo site já vem com um assistente de IA que responde às perguntas dos visitantes na hora, de dia ou de noite.",
-        "intro.slide5.title": "Também agenda o horário",
-        "intro.slide5.desc": "Quando um cliente quer agendar, o Camilius verifica sua agenda, reserva o horário e te avisa assim que estiver feito.",
+        "intro.slide5.title": "Também agenda horários",
+        "intro.slide5.desc": "Verifica sua agenda, reserva o horário e avisa você na hora.",
         "intro.continue": "Continuar",
 
 
@@ -1815,8 +1815,8 @@ const TRANSLATIONS = {
         "intro.slide3.desc": "Choisissez un style et ajoutez vos meilleures photos — Camilius en fait une page soignée, prête à publier.",
         "intro.slide4.title": "Un chat IA déjà intégré",
         "intro.slide4.desc": "Votre nouveau site inclut un assistant IA qui répond instantanément aux questions des visiteurs, de jour comme de nuit.",
-        "intro.slide5.title": "Réserve aussi le rendez-vous",
-        "intro.slide5.desc": "Quand un client veut réserver, Camilius consulte votre agenda, réserve le créneau et vous prévient dès que c'est fait.",
+        "intro.slide5.title": "Réserve aussi les rendez-vous",
+        "intro.slide5.desc": "Consulte votre agenda, réserve le créneau et vous prévient aussitôt.",
         "intro.continue": "Continuer",
 
 
@@ -2291,8 +2291,8 @@ const TRANSLATIONS = {
         "intro.slide3.desc": "Wähle einen Stil und füge deine besten Fotos hinzu — Camilius macht daraus eine fertige, veröffentlichungsbereite Seite.",
         "intro.slide4.title": "Ein KI-Chat ist bereits integriert",
         "intro.slide4.desc": "Deine neue Website enthält einen KI-Assistenten, der Besucherfragen sofort beantwortet, Tag und Nacht.",
-        "intro.slide5.title": "Bucht auch den Termin",
-        "intro.slide5.desc": "Wenn ein Kunde einen Termin möchte, prüft Camilius deinen Kalender, bucht den Termin und benachrichtigt dich, sobald es erledigt ist.",
+        "intro.slide5.title": "Bucht auch Termine",
+        "intro.slide5.desc": "Prüft deinen Kalender, bucht den Termin und benachrichtigt dich sofort.",
         "intro.continue": "Weiter",
 
 
@@ -2767,8 +2767,8 @@ const TRANSLATIONS = {
         "intro.slide3.desc": "Scegli uno stile e aggiungi le tue foto migliori: Camilius le trasforma in una pagina curata, pronta per la pubblicazione.",
         "intro.slide4.title": "Include già una chat IA",
         "intro.slide4.desc": "Il tuo nuovo sito include un assistente IA che risponde subito alle domande dei visitatori, giorno e notte.",
-        "intro.slide5.title": "Prenota anche l'appuntamento",
-        "intro.slide5.desc": "Quando un cliente vuole prenotare, Camilius controlla la tua agenda, prenota lo slot e ti avvisa non appena è fatto.",
+        "intro.slide5.title": "Prenota anche gli appuntamenti",
+        "intro.slide5.desc": "Controlla la tua agenda, prenota lo slot e ti avvisa subito.",
         "intro.continue": "Continua",
 
 
@@ -3243,8 +3243,8 @@ const TRANSLATIONS = {
         "intro.slide3.desc": "Выберите стиль и добавьте лучшие фото — Camilius превратит это в аккуратную страницу, готовую к публикации.",
         "intro.slide4.title": "ИИ-чат уже встроен",
         "intro.slide4.desc": "Ваш новый сайт включает ИИ-ассистента, который мгновенно отвечает на вопросы посетителей, днём и ночью.",
-        "intro.slide5.title": "А ещё сам записывает на приём",
-        "intro.slide5.desc": "Когда клиент хочет записаться, Camilius проверяет ваше расписание, бронирует время и уведомляет вас, как только всё готово.",
+        "intro.slide5.title": "А ещё записывает на приём",
+        "intro.slide5.desc": "Проверяет календарь, бронирует время и сразу уведомляет вас.",
         "intro.continue": "Продолжить",
 
 
@@ -3723,8 +3723,8 @@ const TRANSLATIONS = {
         "intro.slide3.desc": "Izaberite stil i dodajte svoje najbolje fotografije — Camilius od toga pravi doteranu stranicu, spremnu za objavu.",
         "intro.slide4.title": "AI čet je već uključen",
         "intro.slide4.desc": "Vaš novi sajt uključuje AI asistenta koji odmah odgovara na pitanja posetilaca, danju ili noću.",
-        "intro.slide5.title": "I sam zakazuje termin",
-        "intro.slide5.desc": "Kada mušterija želi da zakaže, Camilius proverava vaš raspored, rezerviše termin i odmah vas obaveštava kad je gotovo.",
+        "intro.slide5.title": "I sam zakazuje termine",
+        "intro.slide5.desc": "Proverava kalendar, rezerviše termin i odmah vas obaveštava.",
         "intro.continue": "Nastavi",
 
 
@@ -4286,7 +4286,7 @@ const TRANSLATIONS = {
         "intro.slide4.title": "内置AI聊天助手",
         "intro.slide4.desc": "您的新网站自带AI助手，可全天候即时回答访客的问题。",
         "intro.slide5.title": "还能自动预约",
-        "intro.slide5.desc": "当顾客想要预约时,Camilius会查看您的日程表,预订时段,并在完成后立即通知您。",
+        "intro.slide5.desc": "查看您的日程，预订时段，并立即通知您。",
         "intro.continue": "继续",
 
 
@@ -4761,8 +4761,8 @@ const TRANSLATIONS = {
         "intro.slide3.desc": "Bir stil seçin ve en iyi fotoğraflarınızı ekleyin — Camilius bunları yayına hazır, özenli bir sayfaya dönüştürür.",
         "intro.slide4.title": "Yapay zekâ sohbeti dahildir",
         "intro.slide4.desc": "Yeni siteniz, ziyaretçilerin sorularını gece gündüz anında yanıtlayan bir yapay zekâ asistanı içerir.",
-        "intro.slide5.title": "Randevuyu da ayarlar",
-        "intro.slide5.desc": "Bir müşteri randevu almak istediğinde Camilius takviminizi kontrol eder, saati ayırır ve işlem tamamlanır tamamlanmaz size bildirim gönderir.",
+        "intro.slide5.title": "Randevuları da ayarlar",
+        "intro.slide5.desc": "Takviminizi kontrol eder, saati ayırır ve hemen bilgilendirir.",
         "intro.continue": "Devam et",
 
 
