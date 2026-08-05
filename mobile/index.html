@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
 <title>Camilius</title>
-<link rel="stylesheet" href="app.css?v=f77a7ae985c8">
+<link rel="stylesheet" href="app.css?v=5718d26758a3">
 </head>
 <body>
 
@@ -447,81 +447,9 @@
             <p class="screen-subtitle" data-i18n="register.headlineSubtitle">You can change all of these fields later in settings.</p>
           </div>
 
-          <!-- Shown above every step (like the heading above) rather than step 1 only -
-               skips the whole manual wizard from wherever the user currently is, straight
-               to Google's consent screen and back into the onboarding wizard instead. -->
-          <button type="button" id="register-google-btn" class="button button-google button-full button-pill">
-            <svg class="button-google-icon" viewBox="0 0 18 18" aria-hidden="true">
-              <path fill="#4285F4" d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.72v2.26h2.9c1.7-1.57 2.7-3.88 2.7-6.62z"/>
-              <path fill="#34A853" d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.9-2.26c-.8.54-1.83.86-3.06.86-2.35 0-4.34-1.59-5.05-3.72H.96v2.33A9 9 0 0 0 9 18z"/>
-              <path fill="#FBBC05" d="M3.95 10.7A5.4 5.4 0 0 1 3.67 9c0-.59.1-1.17.28-1.7V4.97H.96A9 9 0 0 0 0 9c0 1.45.35 2.83.96 4.03z"/>
-              <path fill="#EA4335" d="M9 3.58c1.32 0 2.51.45 3.44 1.35l2.58-2.58C13.46.89 11.43 0 9 0A9 9 0 0 0 .96 4.97L3.95 7.3C4.66 5.17 6.65 3.58 9 3.58z"/>
-            </svg>
-            <span data-i18n="login.continueWithGoogle">Continue with Google</span>
-          </button>
-          <div class="login-google-divider" data-i18n="login.orDivider">or</div>
-
           <div class="register-steps-viewport" id="register-steps-viewport">
             <div class="register-steps-track" id="register-steps-track">
-            <!-- Temporarily swapped with step 3's content below (same swap mirrored in
-                 app.js's registerStep1ValidationError/registerStep3ValidationError and
-                 updateRegisterNextButtonValidity) - easier to reach while actively
-                 working on what used to be the last step. Wrapper ids stay matched to
-                 POSITION (showRegisterStep/currentRegisterStepError key off registerStep,
-                 not off what's inside), only the content moved. -->
             <div class="register-step" id="register-step-1">
-              <label data-i18n="register.faq">Tell us more about your business</label>
-              <textarea id="register-faq" rows="3"></textarea>
-              <p class="field-hint" data-i18n="register.faqHint">The more you share, the more questions our AI can answer for your customers.</p>
-
-              <div class="settings-row">
-                <span data-i18n="register.notifications">Notify me when a customer messages me</span>
-                <label class="hours-day-toggle">
-                  <input type="checkbox" id="register-push-toggle" checked>
-                  <span class="hours-day-toggle-track"><span class="hours-day-toggle-thumb"></span></span>
-                </label>
-              </div>
-              <p class="field-hint" data-i18n="register.notificationsHint">Get notified the moment a new message comes in.</p>
-
-              <!-- New bookings already defaults to on server-side (see add_business in
-                   database.py) - leaving it checked here changes nothing, only
-                   unchecking it actually does something. -->
-              <div class="settings-row">
-                <span data-i18n="appSettings.newBookingHeading">New bookings</span>
-                <label class="hours-day-toggle">
-                  <input type="checkbox" id="register-new-booking-toggle" checked>
-                  <span class="hours-day-toggle-track"><span class="hours-day-toggle-thumb"></span></span>
-                </label>
-              </div>
-              <p class="field-hint" data-i18n="appSettings.newBookingNote">Notifies you when a customer books an appointment.</p>
-
-              <label class="checkbox-row">
-                <input type="checkbox" id="register-terms" required>
-                <span>
-                  <span data-i18n="register.acceptPrefix">I accept the</span>
-                  <button type="button" class="link-btn link-btn-inline" id="register-view-terms" data-i18n="register.viewTerms">Terms of Service</button>
-                  <span data-i18n="register.acceptAnd">and</span>
-                  <button type="button" class="link-btn link-btn-inline" id="register-view-privacy" data-i18n="register.viewPrivacy">Privacy Policy</button>
-                </span>
-              </label>
-            </div>
-
-            <div class="register-step" id="register-step-2">
-              <label data-i18n="register.hours">Working hours</label>
-              <div class="hours-picker" id="register-hours-picker"></div>
-
-              <label data-i18n="register.prices">Price list</label>
-              <div class="price-picker">
-                <div class="price-currency-row">
-                  <span data-i18n="pricePicker.currencyLabel">Currency</span>
-                  <div id="register-price-currency"></div>
-                </div>
-                <div class="price-rows" id="register-prices-rows"></div>
-                <button type="button" class="price-add-btn" id="register-prices-add" data-i18n="pricePicker.addButton">+ Add service</button>
-              </div>
-            </div>
-
-            <div class="register-step" id="register-step-3">
               <div class="floating-field">
                 <input type="text" id="register-name" placeholder=" " required>
                 <label for="register-name" data-i18n="register.name">Business name</label>
@@ -577,6 +505,58 @@
                 </div>
               </div>
               <p class="field-error hidden" id="register-phone-error"></p>
+            </div>
+
+            <div class="register-step" id="register-step-2">
+              <label data-i18n="register.hours">Working hours</label>
+              <div class="hours-picker" id="register-hours-picker"></div>
+
+              <label data-i18n="register.prices">Price list</label>
+              <div class="price-picker">
+                <div class="price-currency-row">
+                  <span data-i18n="pricePicker.currencyLabel">Currency</span>
+                  <div id="register-price-currency"></div>
+                </div>
+                <div class="price-rows" id="register-prices-rows"></div>
+                <button type="button" class="price-add-btn" id="register-prices-add" data-i18n="pricePicker.addButton">+ Add service</button>
+              </div>
+            </div>
+
+            <div class="register-step" id="register-step-3">
+              <label data-i18n="register.faq">Tell us more about your business</label>
+              <textarea id="register-faq" rows="3"></textarea>
+              <p class="field-hint" data-i18n="register.faqHint">The more you share, the more questions our AI can answer for your customers.</p>
+
+              <div class="settings-row">
+                <span data-i18n="register.notifications">Notify me when a customer messages me</span>
+                <label class="hours-day-toggle">
+                  <input type="checkbox" id="register-push-toggle" checked>
+                  <span class="hours-day-toggle-track"><span class="hours-day-toggle-thumb"></span></span>
+                </label>
+              </div>
+              <p class="field-hint" data-i18n="register.notificationsHint">Get notified the moment a new message comes in.</p>
+
+              <!-- New bookings already defaults to on server-side (see add_business in
+                   database.py) - leaving it checked here changes nothing, only
+                   unchecking it actually does something. -->
+              <div class="settings-row">
+                <span data-i18n="appSettings.newBookingHeading">New bookings</span>
+                <label class="hours-day-toggle">
+                  <input type="checkbox" id="register-new-booking-toggle" checked>
+                  <span class="hours-day-toggle-track"><span class="hours-day-toggle-thumb"></span></span>
+                </label>
+              </div>
+              <p class="field-hint" data-i18n="appSettings.newBookingNote">Notifies you when a customer books an appointment.</p>
+
+              <label class="checkbox-row">
+                <input type="checkbox" id="register-terms" required>
+                <span>
+                  <span data-i18n="register.acceptPrefix">I accept the</span>
+                  <button type="button" class="link-btn link-btn-inline" id="register-view-terms" data-i18n="register.viewTerms">Terms of Service</button>
+                  <span data-i18n="register.acceptAnd">and</span>
+                  <button type="button" class="link-btn link-btn-inline" id="register-view-privacy" data-i18n="register.viewPrivacy">Privacy Policy</button>
+                </span>
+              </label>
             </div>
           </div>
         </div>
@@ -1349,7 +1329,7 @@
   </button>
 </nav>
 
-<script src="i18n.js?v=f77a7ae985c8"></script>
-<script src="app.js?v=f77a7ae985c8"></script>
+<script src="i18n.js?v=5718d26758a3"></script>
+<script src="app.js?v=5718d26758a3"></script>
 </body>
 </html>

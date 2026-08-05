@@ -1519,10 +1519,9 @@ function hideLoginError() {
     errorBox.classList.add("hidden");
 }
 
-// startGoogleLogin/checkGoogleLoginStatusOnce below are shared between the Login and
-// Create Account screens' Google buttons (see their own el("login-google-btn")/
-// el("register-google-btn") wiring) - this routes only the Login screen's box through
-// showLoginError's auto-hide, leaving Create Account's own error box behavior untouched.
+// startGoogleLogin/checkGoogleLoginStatusOnce below only ever run for the Login screen's
+// own Google button (see its el("login-google-btn") wiring) - this routes its box through
+// showLoginError's auto-hide.
 function showErrorBox(errorBox, message) {
     if (errorBox.id === "login-error") {
         showLoginError(message);
@@ -1563,7 +1562,7 @@ el("login-form").addEventListener("submit", async (event) => {
     }
 });
 
-// --- Continue with Google (Login + Create account) ---
+// --- Continue with Google (Login) ---
 //
 // The website's own /auth/google can just redirect straight to Google and rely on its
 // session cookie for the round trip (see app.py) - this app has neither: it opens
@@ -1705,9 +1704,6 @@ async function startGoogleLogin(button, errorBox, intent) {
 // Account" behavior.
 el("login-google-btn").addEventListener("click", () => {
     startGoogleLogin(el("login-google-btn"), el("login-error"), "login");
-});
-el("register-google-btn").addEventListener("click", () => {
-    startGoogleLogin(el("register-google-btn"), el("register-error"), "register");
 });
 
 // Android hands /auth/google/done straight to THIS app instead of loading it in the
@@ -1901,10 +1897,16 @@ const registerPhoneAvailability = setupAvailabilityField(
 );
 
 // Returns a specific error message if step 1 isn't ready to advance, or null if it is.
-// Step 1 currently holds the FAQ/notifications/terms content (see the swap note on
-// index.html's #register-step-1) - just the terms checkbox to check here.
 function registerStep1ValidationError() {
-    if (!el("register-terms").checked) return t("register.errorTermsRequired");
+    const name = el("register-name").value.trim();
+    const username = el("register-username").value.trim();
+    const password = el("register-password").value;
+    const confirmPassword = el("register-confirm-password").value;
+    const emailField = el("register-contact-email");
+    if (!name || !username) return t("register.errorFillRequired");
+    if (password.length < 8) return t("register.errorPasswordLength");
+    if (password !== confirmPassword) return t("register.errorPasswordMismatch");
+    if (!emailField.value.trim() || !emailField.checkValidity()) return t("register.errorFillRequired");
     return null;
 }
 
@@ -1950,24 +1952,8 @@ function registerStep2ValidationError() {
     return null;
 }
 
-// Step 3 currently holds the account-fields content (see the swap note on index.html's
-// #register-step-3) - name/username/password/email checks that used to live here at
-// step 1, plus the username/email/phone "already taken" check (this step's own inline
-// field errors already show those live as you type - see setupAvailabilityField - but
-// this is what stops the actual submit if one's still mid-check or taken when tapped).
 function registerStep3ValidationError() {
-    const name = el("register-name").value.trim();
-    const username = el("register-username").value.trim();
-    const password = el("register-password").value;
-    const confirmPassword = el("register-confirm-password").value;
-    const emailField = el("register-contact-email");
-    if (!name || !username) return t("register.errorFillRequired");
-    if (password.length < 8) return t("register.errorPasswordLength");
-    if (password !== confirmPassword) return t("register.errorPasswordMismatch");
-    if (!emailField.value.trim() || !emailField.checkValidity()) return t("register.errorFillRequired");
-    if (registerUsernameAvailability.isBlocking() || registerEmailAvailability.isBlocking() || registerPhoneAvailability.isBlocking()) {
-        return t("register.errorFillRequired");
-    }
+    if (!el("register-terms").checked) return t("register.errorTermsRequired");
     return null;
 }
 
@@ -1978,21 +1964,20 @@ function currentRegisterStepError() {
     return null;
 }
 
-// Historically this step's two named conditions (all required fields filled, and none
-// of username/contact email/phone number taken) genuinely gated the arrow via .disabled -
+// Step 1 (Account) has its two named conditions (all required fields filled, and none
+// of username/contact email/phone number taken) genuinely gate the arrow via .disabled -
 // the inline field errors above already explain "why" for the taken case, and empty
 // required fields are visually obvious, so there's no need to keep it tappable-but-dim
-// there. That's now step 3 content-wise (see the swap note on index.html's
-// #register-step-1/-3), but step 3's own arrow is hidden (it's the final/submit step,
-// see showRegisterStep) - the same blocking now happens at submit time instead, via
-// registerStep3ValidationError. Steps 1/2 (terms+FAQ, hours/prices) keep the original
-// dim-only-but-tappable behavior, since tapping is what surfaces a specific reason via
-// register-error - there's nothing here that needs a live per-field message the way
-// "already taken" does.
+// there. Steps 2/3 (hours/prices/terms) keep the original behavior: dim only, still
+// tappable, since tapping is what surfaces a specific reason via register-error - there's
+// nothing here that needs a live per-field message the way "already taken" does.
 function updateRegisterNextButtonValidity() {
     const btn = el("register-next-btn");
     if (registerStep === 1) {
-        const blocked = !!registerStep1ValidationError();
+        const blocked = !!registerStep1ValidationError()
+            || registerUsernameAvailability.isBlocking()
+            || registerEmailAvailability.isBlocking()
+            || registerPhoneAvailability.isBlocking();
         btn.classList.toggle("register-next-btn-dim", blocked);
         btn.disabled = blocked;
     } else {
@@ -2014,11 +1999,6 @@ el("register-hours-picker").addEventListener("change", updateRegisterNextButtonV
 el("register-prices-rows").addEventListener("input", updateRegisterNextButtonValidity);
 el("register-prices-rows").addEventListener("click", updateRegisterNextButtonValidity);
 el("register-prices-add").addEventListener("click", updateRegisterNextButtonValidity);
-// Terms checkbox moved onto step 1 (see the swap note on index.html's #register-step-1),
-// which strictly disables the arrow rather than just dimming it - unlike its old spot on
-// the final/submit step (gated only at click time, no live-disabled arrow to keep in
-// sync), this needs its own listener so checking the box actually re-enables the arrow.
-el("register-terms").addEventListener("change", updateRegisterNextButtonValidity);
 
 el("register-next-btn").addEventListener("click", () => {
     const error = currentRegisterStepError();
