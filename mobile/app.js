@@ -5,6 +5,12 @@
 const API_BASE = "https://app.ai-auto-reply-mail.com";
 const APP_VERSION = "1.9.7"; // bumped alongside the native versionName, sent with crash reports
 
+// TEMP: while we're iterating on the onboarding carousel's design, force it to show on
+// every app launch instead of just the first one - bypasses both the stored
+// onboardingSeen flag and an existing logged-in session (see the boot IIFE near the
+// bottom of this file). Set back to false once the design is finalized.
+const FORCE_SHOW_ONBOARDING = true;
+
 // No per-account sent-at tracking on the backend for password-reset emails (unlike email/
 // phone verification below), so the forgot-password buttons' cooldown is purely client-side -
 // matches EMAIL_VERIFY_RESEND_COOLDOWN_SECONDS/PHONE_VERIFY_RESEND_COOLDOWN_SECONDS in app.py.
@@ -3925,15 +3931,14 @@ el("settings-app-save").addEventListener("click", async () => {
 
 // --- Onboarding (shown once, only inside the installed app) ---
 //
-// Beyond the dot indicator, this drives two visual touches that make the intro feel
-// premium rather than a bare emoji-and-caption swipe:
-//  - a per-slide accent glow behind the whole screen (--onboarding-accent), read from
-//    each slide's data-accent and swapped as the active slide changes;
-//  - a live scroll-progress custom property (--p, -1..1) written to every slide on
-//    each scroll frame, which app.css uses for the copy/art's own fade-and-settle as
-//    slides pass - deliberately continuous and undebounced, so it's always in sync
-//    with the real scroll position and has no separate "trigger" that could ever fire
-//    late against content that's already visible.
+// Beyond the dot indicator, this drives a visual touch that makes the intro feel
+// premium rather than a bare emoji-and-caption swipe: a live scroll-progress custom
+// property (--p, -1..1) written to every slide on each scroll frame, which app.css
+// uses for the copy/art's own fade-and-settle as slides pass - deliberately continuous
+// and undebounced, so it's always in sync with the real scroll position and has no
+// separate "trigger" that could ever fire late against content that's already visible.
+// (The background glow behind the screen is a single fixed color for the whole
+// carousel - see .screen-onboarding::before in app.css - not something driven here.)
 // The active slide also gets an "is-active" class - once scrolling settles, not on
 // every frame - which gates only the small looping decorations (typing dots, send
 // icon, pulsing badge) defined in app.css, kept off on inactive slides so they don't
@@ -3941,16 +3946,7 @@ el("settings-app-save").addEventListener("click", async () => {
 // hide already-visible core content - see the comment in app.css above the (removed)
 // old entrance animation for why that combination used to look like the slide
 // reloading a couple seconds after arriving.
-const ONBOARDING_ACCENTS = {
-    1: "var(--primary)",
-    2: "var(--warning)",
-    3: "var(--primary-dark)",
-    4: "var(--success)",
-    5: "var(--primary)",
-};
-
 function setupOnboarding() {
-    const screen = el("screen-onboarding");
     const slides = el("onboarding-slides");
     const slideEls = Array.from(slides.querySelectorAll(".onboarding-slide"));
     const dots = document.querySelectorAll("#onboarding-dots .onboarding-dot");
@@ -3958,14 +3954,16 @@ function setupOnboarding() {
     let ticking = false;
     let settleTimer = null;
 
-    // Live parallax + dots + accent glow - runs on every scroll frame while dragging,
-    // so the swipe (and the dot indicator and background glow color tracking it)
-    // follows the finger with no lag. Dots and the glow are both a plain CSS
-    // transition (background-color / width), not a keyframe animation with a "snap to
-    // an earlier state" risk, so - unlike is-active below - there's no reason to hold
-    // them back for a settle debounce; doing that only made them visibly trail behind
-    // the slide that's already on screen (the glow lagging by up to the full 120ms
-    // debounce plus however long the settle detection itself took to fire).
+    // Live parallax + dots - runs on every scroll frame while dragging, so the swipe
+    // (and the dot indicator tracking it) follows the finger with no lag. The
+    // background glow is a single fixed color for the whole carousel now (see
+    // .screen-onboarding::before in app.css) rather than something this needs to
+    // update per slide. The dots keep a short .2s transition since that's small/fast
+    // enough to read as a nice touch rather than a lag - and, not being a keyframe
+    // animation with a "snap to an earlier state" risk, there's no reason to hold it
+    // back for a settle debounce like is-active below; doing that only made it
+    // visibly trail behind the slide that's already on screen (lagging by up to the
+    // full 120ms debounce plus however long the settle detection itself took to fire).
     function updateParallax() {
         ticking = false;
         const width = slides.clientWidth || 1;
@@ -3975,8 +3973,6 @@ function setupOnboarding() {
         });
         const liveIndex = Math.min(Math.max(Math.round(raw), 0), slideEls.length - 1);
         dots.forEach((dot, i) => dot.classList.toggle("active", i === liveIndex));
-        const accentVar = ONBOARDING_ACCENTS[slideEls[liveIndex] && slideEls[liveIndex].dataset.accent];
-        if (accentVar) screen.style.setProperty("--onboarding-accent", accentVar);
     }
 
     // "Active slide" bookkeeping - just the "is-active" class that starts the
@@ -4014,7 +4010,14 @@ function setupOnboarding() {
     document.querySelectorAll(".onboarding-continue, .onboarding-skip").forEach((btn) => {
         btn.addEventListener("click", async () => {
             await storageSet("onboardingSeen", "1");
-            showScreen("login");
+            // While FORCE_SHOW_ONBOARDING (below) is on, boot skips straight to this
+            // screen even for an already-logged-in session - so leaving it has to route
+            // the same place boot itself would have, not just always to login.
+            if (state.token) {
+                enterApp();
+            } else {
+                showScreen("login");
+            }
         });
     });
 }
@@ -4081,7 +4084,9 @@ updateOfflineBanner();
     el("donation-strip").classList.toggle("hidden", !donationLink);
     if (donationLink) el("donation-strip-link").href = donationLink;
 
-    if (state.token) {
+    if (FORCE_SHOW_ONBOARDING && isNative) {
+        showScreen("onboarding");
+    } else if (state.token) {
         enterApp();
     } else if (isNative && !onboardingSeen) {
         showScreen("onboarding");
