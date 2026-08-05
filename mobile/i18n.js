@@ -3147,8 +3147,40 @@ function setupLanguagePicker() {
         const top = rect.bottom + gap;
         sheet.style.top = `${top}px`;
         sheet.style.left = `${rect.left}px`;
-        sheet.style.width = "auto";
-        const naturalWidth = sheet.getBoundingClientRect().width;
+
+        // Measuring the sheet's own "auto" width doesn't reliably reflect what the
+        // longest language name actually needs: .country-option-name is flex:1 (needed
+        // so it can ellipsize when the sheet IS width-constrained), and flex:1 means
+        // flex-basis:0% - so while the sheet's own width is itself still being figured
+        // out (also "auto"), each name span's contribution to that figuring-out is
+        // based on a 0 starting point rather than its real content, and every row ends
+        // up reporting close to the same too-small width regardless of which language
+        // is actually longest. Switching flex:none on just the name spans for this one
+        // measurement sidesteps that - each one then reports its own true scrollWidth,
+        // and the widest of those (plus the row's own padding/gap and the flag's
+        // width) is what the sheet actually needs to show every name in full.
+        let maxNameWidth = 0;
+        list.querySelectorAll(".country-option-name").forEach((name) => {
+            name.style.flex = "none";
+            maxNameWidth = Math.max(maxNameWidth, name.scrollWidth);
+            name.style.flex = "";
+        });
+        const sampleRow = list.querySelector(".country-option-btn");
+        const flagEl = list.querySelector(".country-option-flag");
+        let naturalWidth = 0;
+        if (sampleRow) {
+            const sheetStyle = getComputedStyle(sheet);
+            const sheetPadding = parseFloat(sheetStyle.paddingLeft) + parseFloat(sheetStyle.paddingRight);
+            const rowStyle = getComputedStyle(sampleRow);
+            const rowOverhead = parseFloat(rowStyle.paddingLeft) + parseFloat(rowStyle.paddingRight) +
+                parseFloat(rowStyle.columnGap || rowStyle.gap || "0");
+            const flagWidth = flagEl ? flagEl.getBoundingClientRect().width : 0;
+            // Small safety margin on top of the exact measured need, absorbing any tiny
+            // font-metric/rounding differences between this measurement and the real
+            // paint (e.g. a webfont not fully swapped in yet at this exact instant).
+            naturalWidth = Math.ceil(sheetPadding + rowOverhead + flagWidth + maxNameWidth) + 4;
+        }
+
         const maxWidth = window.innerWidth - rect.left - margin;
         sheet.style.width = `${Math.min(Math.max(rect.width, naturalWidth), maxWidth)}px`;
         const bottomLimit = tabbar.classList.contains("hidden") ? window.innerHeight : tabbar.getBoundingClientRect().top;
