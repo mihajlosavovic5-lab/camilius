@@ -1729,9 +1729,9 @@ if (capacitorPlugins && capacitorPlugins.App) {
 // --- Two-phase login (Google/email choice -> revealed username+password form) ---
 
 function resetLoginPhase() {
-    // See .login-wrap-form-phase in app.css - this one class alone drives both the
-    // choice/form slide (which panel's on/off screen) and the spacer flex ratio, so the
-    // block doesn't visibly jump position when the form is revealed/hidden.
+    // See .login-wrap-form-phase in app.css - this one class alone drives which panel
+    // (choice/form) is on/off screen and its own back-btn fade, with the grid-stacked
+    // layout keeping the surrounding block at a constant height either way.
     el("login-wrap").classList.remove("login-wrap-form-phase");
     // Every fresh arrival at Login starts with a clean slate, not whatever error a
     // previous attempt left behind (see hideLoginError()'s own comment).
