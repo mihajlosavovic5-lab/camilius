@@ -8,6 +8,7 @@ applied to the Schedule page itself.
 """
 import uuid
 
+import app as app_module
 import database
 from conftest import register_business_web
 
@@ -28,7 +29,12 @@ def test_public_page_shows_booking_section_during_trial(client, unique_username,
     assert f"/p/{slug}/availability" in html
 
 
-def test_public_page_hides_booking_section_for_starter_plan(client, unique_username, unique_email):
+def test_public_page_hides_booking_section_for_starter_plan(client, unique_username, unique_email, monkeypatch):
+    # This test is about real billing enforcement (Starter plan lacking Pro access),
+    # which BETA_FREE_MODE deliberately bypasses for everyone - pin it off here so the
+    # test still exercises the has_pro_access gate it's named for. See app.py's own
+    # BETA_FREE_MODE comment.
+    monkeypatch.setattr(app_module, "BETA_FREE_MODE", False)
     register_business_web(client, unique_username, unique_email)
     business_id, slug = _publish_page(client, unique_username)
     database.link_subscription(business_id, "cust", "sub", "active", plan="starter")
@@ -65,7 +71,10 @@ def test_availability_endpoint_returns_slots_within_working_hours(client, unique
             assert "09:00" <= slot < "18:00"
 
 
-def test_availability_endpoint_404s_for_starter_plan(client, unique_username, unique_email):
+def test_availability_endpoint_404s_for_starter_plan(client, unique_username, unique_email, monkeypatch):
+    # Same reasoning as test_public_page_hides_booking_section_for_starter_plan above -
+    # pin real billing enforcement on so this still tests the Starter-plan gate.
+    monkeypatch.setattr(app_module, "BETA_FREE_MODE", False)
     register_business_web(client, unique_username, unique_email)
     business_id, slug = _publish_page(client, unique_username)
     database.link_subscription(business_id, "cust", "sub", "active", plan="starter")

@@ -92,16 +92,14 @@ app.register_blueprint(api_blueprint)
 # cookie + CSRF token pair used by browser form submissions, so these routes are exempt.
 csrf.exempt(api_blueprint)
 
-# F4 (2026-08-03): flipped back off - a real, verified Paddle merchant account is now
-# in place, so billing goes live for real. Every business already gets a genuine 14-day
-# trial on signup regardless of this flag (add_business()'s own initial_status=
-# "trialing" default) - this flag only controlled whether that trial's expiry, and the
-# need for a paid plan after it, was actually enforced. Confirmed before flipping this
-# that no pre-existing beta business is old enough for its trial to already be expired,
-# so nobody's live service was cut off by this change. Left as a flag (not deleted)
-# rather than removing every BETA_FREE_MODE check outright, in case billing ever needs
-# to go dormant again (e.g. a Paddle account issue).
-BETA_FREE_MODE = False
+# F5 (2026-08-05): flipped back on - the business behind this app isn't legally
+# registered yet, so it can't take real payments for about another month. All
+# billing/pricing/plan code (Stripe, Paddle, the Starter/Pro tiers) stays exactly as
+# it was - this flag just goes back to hiding it from users and granting everyone full
+# access, same mechanism as the original beta period and the same "flag it, don't
+# delete it" shape as INSTAGRAM_TESTERS_ONLY/META_CHANNELS_ENABLED. Flip back to False
+# once the business is registered and ready to actually charge.
+BETA_FREE_MODE = True
 
 
 @app.context_processor

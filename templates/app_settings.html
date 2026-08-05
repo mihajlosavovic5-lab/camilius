@@ -254,10 +254,12 @@
         <h2 style="margin-top:0;" data-i18n="appSettings.billingLegal.heading">Billing &amp; Legal</h2>
         <p class="note" data-i18n="appSettings.legal.note">Read our policies any time.</p>
         <div class="settings-link-list">
+            {% if not beta_free_mode %}
             <a class="settings-link-row" href="{{ url_for('subscription') }}">
                 <span data-i18n="common.subscription">Subscription</span>
                 <span class="settings-link-chevron" aria-hidden="true">&#8250;</span>
             </a>
+            {% endif %}
             <a class="settings-link-row" href="{{ url_for('terms') }}">
                 <span data-i18n="common.termsOfService">Terms of Service</span>
                 <span class="settings-link-chevron" aria-hidden="true">&#8250;</span>
@@ -308,10 +310,12 @@
                 <strong data-i18n="appSettings.support.faq8Q">Can I change my working hours or prices later?</strong><br>
                 <span data-i18n="appSettings.support.faq8A">Yes - update them anytime in Profile. The AI always uses whatever is saved there for new replies.</span>
             </div>
+            {% if not beta_free_mode %}
             <div class="info-card">
                 <strong data-i18n="appSettings.support.faq9Q">What's included in the Pro plan?</strong><br>
                 <span data-i18n="appSettings.support.faq9A">Pro unlocks features like no-show reminders. Check Subscription in Settings for the current plan and pricing.</span>
             </div>
+            {% endif %}
             <div class="info-card">
                 <strong data-i18n="appSettings.support.faq10Q">Is my data shared with anyone?</strong><br>
                 <span data-i18n="appSettings.support.faq10A">Customer messages and your business info are sent to OpenAI to generate replies. See the Privacy Policy for full details.</span>
