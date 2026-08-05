@@ -1456,6 +1456,38 @@ function resetPasswordField(id) {
     }
 }
 
+const LOGIN_ERROR_AUTO_HIDE_MS = 5000;
+
+// The Login screen's own error box (wrong password, no account for that Google identity,
+// sign-in cancelled, ...) self-clears after LOGIN_ERROR_AUTO_HIDE_MS instead of sitting
+// there indefinitely - it was still showing whatever the last attempt said even after
+// switching to "Continue with email"/Create Account and back, which read as stuck rather
+// than as feedback about something that already happened. Scoped to just this one error
+// box (not the shared errorBox pattern used elsewhere - register/settings/schedule/etc.
+// keep their existing until-next-action behavior) - only ever called with el("login-error").
+function showLoginError(message) {
+    const errorBox = el("login-error");
+    errorBox.textContent = message;
+    errorBox.classList.remove("hidden");
+    clearTimeout(errorBox._autoHideTimer);
+    errorBox._autoHideTimer = setTimeout(() => {
+        errorBox.classList.add("hidden");
+    }, LOGIN_ERROR_AUTO_HIDE_MS);
+}
+
+// startGoogleLogin/checkGoogleLoginStatusOnce below are shared between the Login and
+// Create Account screens' Google buttons (see their own el("login-google-btn")/
+// el("register-google-btn") wiring) - this routes only the Login screen's box through
+// showLoginError's auto-hide, leaving Create Account's own error box behavior untouched.
+function showErrorBox(errorBox, message) {
+    if (errorBox.id === "login-error") {
+        showLoginError(message);
+        return;
+    }
+    errorBox.textContent = message;
+    errorBox.classList.remove("hidden");
+}
+
 el("login-form").addEventListener("submit", async (event) => {
     event.preventDefault();
     const username = el("login-username").value.trim();
@@ -1464,6 +1496,7 @@ el("login-form").addEventListener("submit", async (event) => {
     const submitBtn = el("login-submit");
 
     errorBox.classList.add("hidden");
+    clearTimeout(errorBox._autoHideTimer);
     submitBtn.disabled = true;
     submitBtn.textContent = t("login.submitLoading");
 
@@ -1478,8 +1511,7 @@ el("login-form").addEventListener("submit", async (event) => {
         if (err.data && err.data.pending_verification) {
             showVerifyPendingScreen(err.data.business_id, "", err.data.wait_seconds);
         } else {
-            errorBox.textContent = err.message || t("login.error");
-            errorBox.classList.remove("hidden");
+            showLoginError(err.message || t("login.error"));
         }
     } finally {
         submitBtn.disabled = false;
@@ -1563,15 +1595,13 @@ async function checkGoogleLoginStatusOnce(attempt) {
         // First time this Google identity has been seen, but started from the Login
         // screen - the visitor asked to log in, not sign up, so this is just a failed
         // login: explain it and let them try again or go create an account instead.
-        errorBox.textContent = t("login.googleNoAccount");
-        errorBox.classList.remove("hidden");
+        showErrorBox(errorBox, t("login.googleNoAccount"));
     } else {
         // 'error' (Google denied/cancelled, or something failed server-side) or 'expired'
         // (visitor closed the tab without finishing, or just sat on the consent screen
         // past GOOGLE_LOGIN_POLL_TIMEOUT_MS) - same "explain and let them retry"
         // treatment either way, nothing more specific to say.
-        errorBox.textContent = t("login.googleError");
-        errorBox.classList.remove("hidden");
+        showErrorBox(errorBox, t("login.googleError"));
     }
     return true;
 }
@@ -1592,6 +1622,7 @@ async function pollGoogleLogin(attempt) {
 
 async function startGoogleLogin(button, errorBox, intent) {
     errorBox.classList.add("hidden");
+    clearTimeout(errorBox._autoHideTimer);
     button.disabled = true;
     try {
         const data = await api("/api/google-login/start", { method: "POST", body: { intent } });
@@ -1603,8 +1634,7 @@ async function startGoogleLogin(button, errorBox, intent) {
         activeGoogleLoginAttempt = { state: data.state, errorBox, settled: false };
         pollGoogleLogin(activeGoogleLoginAttempt);
     } catch (err) {
-        errorBox.textContent = err.message || t("login.googleError");
-        errorBox.classList.remove("hidden");
+        showErrorBox(errorBox, err.message || t("login.googleError"));
     } finally {
         button.disabled = false;
     }
