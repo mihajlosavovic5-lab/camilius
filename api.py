@@ -318,8 +318,16 @@ def api_google_login_start():
     if not google_oauth.is_configured():
         return jsonify(error="Google sign-in isn't available."), 404
 
+    data = request.get_json(silent=True) or {}
+    # Which screen the app's "Continue with Google" button lives on - 'login' (Login
+    # screen) or 'register' (Create Account screen), mirrored back to us by
+    # /auth/google/callback via oauth_login_session_intent(). Anything else falls back to
+    # 'register', same as omitting it entirely - the pre-existing "hand new identities to
+    # sign-up" behavior.
+    intent = "login" if data.get("intent") == "login" else "register"
+
     state = secrets.token_urlsafe(24)
-    create_oauth_login_session(state)
+    create_oauth_login_session(state, intent)
     redirect_uri = url_for("auth_google_callback", _external=True)
     return jsonify(auth_url=google_oauth.authorization_url(redirect_uri, state), state=state)
 

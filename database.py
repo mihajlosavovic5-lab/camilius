@@ -688,6 +688,11 @@ def create_database():
     cursor.execute("ALTER TABLE oauth_login_sessions ADD COLUMN IF NOT EXISTS google_name TEXT")
     cursor.execute("ALTER TABLE oauth_login_sessions ADD COLUMN IF NOT EXISTS google_email TEXT")
     cursor.execute("ALTER TABLE oauth_login_sessions ADD COLUMN IF NOT EXISTS google_link_token TEXT")
+    # Which button in the app started this attempt - 'login' (Login screen) or 'register'
+    # (Create Account screen). Mirrors the web flow's own session["oauth_intent"] (see
+    # app.py's auth_google()): a brand-new Google identity started from Login must NOT be
+    # handed to the sign-up form - it should just be told no matching account exists.
+    cursor.execute("ALTER TABLE oauth_login_sessions ADD COLUMN IF NOT EXISTS intent TEXT NOT NULL DEFAULT 'register'")
 
     # Account-deletion exit survey (web + mobile "Delete account" wizard) - a snapshot of
     # the business's own identifying fields plus why they left, kept AFTER delete_business()
@@ -1363,11 +1368,11 @@ def _cleanup_stale_oauth_login_sessions(cursor):
     cursor.execute("DELETE FROM oauth_login_sessions WHERE created_at < NOW() - INTERVAL '15 minutes'")
 
 
-def create_oauth_login_session(state):
+def create_oauth_login_session(state, intent="register"):
     connection = connect()
     cursor = connection.cursor()
     _cleanup_stale_oauth_login_sessions(cursor)
-    cursor.execute("INSERT INTO oauth_login_sessions (state) VALUES (%s)", (state,))
+    cursor.execute("INSERT INTO oauth_login_sessions (state, intent) VALUES (%s, %s)", (state, intent))
     connection.commit()
     connection.close()
 
@@ -1387,6 +1392,18 @@ def fail_oauth_login_session(state):
     connection = connect()
     cursor = connection.cursor()
     cursor.execute("UPDATE oauth_login_sessions SET status = 'error' WHERE state = %s", (state,))
+    connection.commit()
+    connection.close()
+
+
+def fail_oauth_login_session_no_account(state):
+    """A Google identity nobody's seen before, but this attempt started from the Login
+    screen (intent='login') rather than Create Account - unlike complete_oauth_login_session_needs_signup
+    below, this must NOT hand the app a sign-up starting point; it should just report that
+    no account is linked to that Google account, mirroring a plain wrong-password result."""
+    connection = connect()
+    cursor = connection.cursor()
+    cursor.execute("UPDATE oauth_login_sessions SET status = 'no_account' WHERE state = %s", (state,))
     connection.commit()
     connection.close()
 
@@ -1418,11 +1435,24 @@ def oauth_login_session_exists(state):
     return exists
 
 
+def oauth_login_session_intent(state):
+    """The intent ('login' or 'register') api_google_login_start() recorded for this row -
+    lets /auth/google/callback tell a mobile "Continue with Google" tap on the Login screen
+    apart from one on Create Account, the same distinction the web flow keeps in its own
+    session["oauth_intent"] (see app.py's auth_google())."""
+    connection = connect()
+    cursor = connection.cursor()
+    cursor.execute("SELECT intent FROM oauth_login_sessions WHERE state = %s", (state,))
+    row = cursor.fetchone()
+    connection.close()
+    return row[0] if row else "register"
+
+
 def oauth_login_session_status(state):
     """Polled by the mobile app (see api.py's api_google_login_status). A 'done'/'error'/
-    'needs_signup' result is single-use - deleted here the moment it's picked up - since
-    the token (or google_link_token) inside it is a live credential that should exist in
-    exactly one place afterward (the row, or the app that fetched it - never both)."""
+    'needs_signup'/'no_account' result is single-use - deleted here the moment it's picked
+    up - since the token (or google_link_token) inside it is a live credential that should
+    exist in exactly one place afterward (the row, or the app that fetched it - never both)."""
     connection = connect()
     cursor = connection.cursor()
     _cleanup_stale_oauth_login_sessions(cursor)
@@ -1432,7 +1462,7 @@ def oauth_login_session_status(state):
         (state,),
     )
     row = cursor.fetchone()
-    if row is not None and row[0] in ("done", "error", "needs_signup"):
+    if row is not None and row[0] in ("done", "error", "needs_signup", "no_account"):
         cursor.execute("DELETE FROM oauth_login_sessions WHERE state = %s", (state,))
     connection.commit()
     connection.close()

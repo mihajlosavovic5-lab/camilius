@@ -26,7 +26,8 @@ from database import (
     username_taken, contact_email_taken, phone_number_taken,
     business_by_google_id, link_google_account,
     create_oauth_login_session, complete_oauth_login_session, fail_oauth_login_session,
-    complete_oauth_login_session_needs_signup, oauth_login_session_exists,
+    complete_oauth_login_session_needs_signup, oauth_login_session_exists, oauth_login_session_intent,
+    fail_oauth_login_session_no_account,
     archived_conversations_for_business, trashed_conversations_for_business,
     archive_conversation, unarchive_conversation, soft_delete_conversation, restore_conversation,
     get_slot_duration, set_slot_duration, create_appointment, get_appointment, cancel_appointment,
@@ -400,11 +401,17 @@ def auth_google():
     the mobile app never hits this route at all, it builds the same authorization_url
     itself via /api/google-login/start (see api.py) since it has no session cookie to
     round-trip through. CSRF is checked here the ordinary web way: `state` is stashed in
-    Flask's own session cookie and compared back in auth_google_callback below."""
+    Flask's own session cookie and compared back in auth_google_callback below.
+
+    `?intent=login` (set by login.html's button only) is stashed alongside it - it's how
+    auth_google_callback tells "Continue with Google" clicked on the Login screen apart
+    from Create Account, so a brand-new identity from Login gets an error instead of being
+    handed off to the sign-up form."""
     if not google_oauth.is_configured():
         abort(404)
     state = secrets.token_urlsafe(24)
     session["oauth_state"] = state
+    session["oauth_intent"] = "login" if request.args.get("intent") == "login" else "register"
     redirect_uri = url_for("auth_google_callback", _external=True)
     return redirect(google_oauth.authorization_url(redirect_uri, state))
 
@@ -431,6 +438,14 @@ def auth_google_callback():
             return render_template("google_auth_mobile_result.html", success=False)
         return redirect(url_for("login", message=message))
 
+    # Which screen "Continue with Google" was clicked on - Login or Create Account (see
+    # auth_google()'s and api_google_login_start()'s own comments on where this came from).
+    # Only matters below, once we know whether an existing account was actually found.
+    if is_mobile:
+        intent = oauth_login_session_intent(state)
+    else:
+        intent = session.pop("oauth_intent", "register")
+
     # Web-only CSRF check - the mobile state token is its own proof (created server-side by
     # api_google_login_start(), unguessable), no session cookie involved for that flow at all.
     if not is_mobile:
@@ -452,8 +467,18 @@ def auth_google_callback():
     business = _google_login_existing(google_user)
 
     if business is None:
-        # Never seen this Google identity before - hand its name/email to the sign-up
-        # form as a starting point rather than creating an account outright (see
+        # Never seen this Google identity before. Clicked from the Login screen
+        # (intent == "login"): the visitor asked to log in, not sign up, so this must
+        # behave like a failed login - no account created, no sign-up form - not silently
+        # start a new account for them.
+        if intent == "login":
+            if is_mobile:
+                fail_oauth_login_session_no_account(state)
+                return render_template("google_auth_mobile_result.html", success=True, no_account=True)
+            return redirect(url_for("login", error="No Camilius account is linked to that Google account. Please register first."))
+
+        # Otherwise (Create Account screen) - hand its name/email to the sign-up form as a
+        # starting point rather than creating an account outright (see
         # _google_login_existing's own docstring). google_link_token carries google_id
         # through so register()/api_register() can link it - and skip the usual email
         # confirmation step, since Google already proved this address - IF the sign-up is
@@ -498,7 +523,7 @@ def login():
         return render_template("login.html", error="Wrong username or password.", message=None)
 
     return render_template(
-        "login.html", error=None, message=request.args.get("message"),
+        "login.html", error=request.args.get("error"), message=request.args.get("message"),
         account_deleted=request.args.get("account_deleted") == "1",
     )
 

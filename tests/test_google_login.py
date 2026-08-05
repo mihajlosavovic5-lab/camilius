@@ -38,6 +38,15 @@ def _start_web_google_auth(client):
     return start.headers["Location"].split("state=")[1].split("&")[0]
 
 
+def _start_web_google_auth_login(client):
+    """Same as _start_web_google_auth above, but as if the visitor clicked "Continue with
+    Google" on the Login screen (login.html passes ?intent=login) rather than Create
+    Account - the case where a brand-new Google identity must get an error, not a hand-off
+    to sign-up."""
+    start = client.get("/auth/google?intent=login")
+    return start.headers["Location"].split("state=")[1].split("&")[0]
+
+
 # --- google_oauth.is_configured() gating ---
 
 def test_auth_google_404s_when_not_configured(client, monkeypatch):
@@ -104,6 +113,51 @@ def test_auth_google_callback_new_identity_redirects_to_register_prefilled(clien
     html = register_page.get_data(as_text=True)
     assert "Jane&#39;s Salon" in html or "Jane's Salon" in html
     assert unique_email in html
+
+
+def test_auth_google_callback_new_identity_with_login_intent_shows_error_not_signup(client, monkeypatch, unique_email):
+    """Clicked "Continue with Google" on the Login screen, but no account is linked to
+    that Google identity - must send the visitor back to /login with an error, never hand
+    them to the sign-up form or create an account outright."""
+    _configure_google(monkeypatch)
+    state = _start_web_google_auth_login(client)
+    sub = _unique_sub()
+    monkeypatch.setattr(app_module.google_oauth, "fetch_user", lambda code, redirect_uri: _fake_profile(sub, unique_email))
+
+    response = client.get(f"/auth/google/callback?code=abc&state={state}")
+    assert response.status_code == 302
+    location = response.headers["Location"]
+    assert "/register" not in location
+    assert "/login" in location
+
+    assert database.business_by_contact_email(unique_email) is None
+    with client.session_transaction() as sess:
+        assert sess.get("business_id") is None
+
+    login_page = client.get(location)
+    html = login_page.get_data(as_text=True)
+    assert "doesn&#39;t exist" in html or "isn&#39;t linked" in html or "No Camilius account" in html or "no account" in html.lower()
+
+
+def test_auth_google_callback_existing_account_with_login_intent_still_logs_in(client, monkeypatch, unique_username, unique_email):
+    """intent=login must not change anything for a Google identity that DOES match an
+    existing account - it should log straight in exactly like before."""
+    from conftest import register_business
+
+    register_business(client, unique_username, unique_email)
+
+    _configure_google(monkeypatch)
+    state = _start_web_google_auth_login(client)
+    sub = _unique_sub()
+    monkeypatch.setattr(app_module.google_oauth, "fetch_user", lambda code, redirect_uri: _fake_profile(sub, unique_email))
+
+    response = client.get(f"/auth/google/callback?code=abc&state={state}")
+    assert response.status_code == 302
+    assert "/register" not in response.headers["Location"]
+    assert "/login" not in response.headers["Location"]
+
+    with client.session_transaction() as sess:
+        assert sess.get("business_id") is not None
 
 
 def test_register_with_valid_google_link_token_creates_verified_linked_account(client, monkeypatch, unique_username, unique_email):
@@ -287,6 +341,47 @@ def test_mobile_google_login_new_identity_status_is_needs_signup(client, monkeyp
     # Single-use - a second poll finds nothing left.
     status_again = client.get(f"/api/google-login/status?state={state}").get_json()
     assert status_again["status"] == "expired"
+
+
+def test_mobile_google_login_new_identity_with_login_intent_status_is_no_account(client, monkeypatch, unique_email):
+    """Mobile equivalent of the web login-intent test above - the app's Login screen
+    passes intent="login" to /api/google-login/start (see mobile/app.js's
+    startGoogleLogin), so a brand-new identity must come back as 'no_account', not
+    'needs_signup' - the app must not open the Create Account wizard on its own."""
+    _configure_google(monkeypatch)
+    start = client.post("/api/google-login/start", json={"intent": "login"}).get_json()
+    state = start["state"]
+
+    sub = _unique_sub()
+    monkeypatch.setattr(app_module.google_oauth, "fetch_user", lambda code, redirect_uri: _fake_profile(sub, unique_email))
+    callback = client.get(f"/auth/google/callback?code=abc&state={state}")
+    assert callback.status_code == 200
+
+    status = client.get(f"/api/google-login/status?state={state}").get_json()
+    assert status["status"] == "no_account"
+    assert not status["token"]
+
+    assert database.business_by_contact_email(unique_email) is None
+
+    # Single-use, same as every other terminal status.
+    status_again = client.get(f"/api/google-login/status?state={state}").get_json()
+    assert status_again["status"] == "expired"
+
+
+def test_mobile_google_login_existing_account_with_login_intent_status_is_done(client, monkeypatch, unique_username, unique_email):
+    from conftest import register_business
+
+    register_business(client, unique_username, unique_email)
+
+    _configure_google(monkeypatch)
+    start = client.post("/api/google-login/start", json={"intent": "login"}).get_json()
+    sub = _unique_sub()
+    monkeypatch.setattr(app_module.google_oauth, "fetch_user", lambda code, redirect_uri: _fake_profile(sub, unique_email))
+    client.get(f"/auth/google/callback?code=abc&state={start['state']}")
+
+    status = client.get(f"/api/google-login/status?state={start['state']}").get_json()
+    assert status["status"] == "done"
+    assert status["token"]
 
 
 def test_mobile_api_register_with_valid_google_link_token_returns_token_directly(client, monkeypatch, unique_username, unique_email):

@@ -52,6 +52,7 @@ const TRANSLATIONS = {
         "login.continueWithEmail": "Continue with email",
         "login.orDivider": "or",
         "login.googleError": "Google sign-in didn't go through. Please try again.",
+        "login.googleNoAccount": "No account found for that Google account. Please register first.",
         "login.newHere": "New to Camilius?",
 
         "register.title": "Create account",
@@ -399,6 +400,7 @@ const TRANSLATIONS = {
         "login.continueWithEmail": "Nastavi preko email-a",
         "login.orDivider": "ili",
         "login.googleError": "Prijava preko Google-a nije uspela. Pokušajte ponovo.",
+        "login.googleNoAccount": "Ne postoji nalog povezan sa tim Google nalogom. Molimo registrujte se prvo.",
         "login.newHere": "Novi ste na Camilius-u?",
 
         "register.title": "Napravi nalog",
@@ -741,6 +743,7 @@ const TRANSLATIONS = {
         "login.continueWithEmail": "Continuar con email",
         "login.orDivider": "o",
         "login.googleError": "La conexión con Google no se completó. Inténtalo de nuevo.",
+        "login.googleNoAccount": "No se encontró ninguna cuenta para esa cuenta de Google. Regístrate primero.",
         "login.newHere": "¿Nuevo en Camilius?",
 
         "register.title": "Crear cuenta",
@@ -1036,6 +1039,7 @@ const TRANSLATIONS = {
         "login.continueWithEmail": "Continuar com email",
         "login.orDivider": "ou",
         "login.googleError": "O login com o Google não foi concluído. Tente novamente.",
+        "login.googleNoAccount": "Nenhuma conta encontrada para essa conta do Google. Registre-se primeiro.",
         "login.newHere": "Novo no Camilius?",
 
         "register.title": "Criar conta",
@@ -1331,6 +1335,7 @@ const TRANSLATIONS = {
         "login.continueWithEmail": "Continuer avec l'email",
         "login.orDivider": "ou",
         "login.googleError": "La connexion avec Google a échoué. Veuillez réessayer.",
+        "login.googleNoAccount": "Aucun compte trouvé pour ce compte Google. Veuillez d'abord vous inscrire.",
         "login.newHere": "Nouveau sur Camilius ?",
 
         "register.title": "Créer un compte",
@@ -1626,6 +1631,7 @@ const TRANSLATIONS = {
         "login.continueWithEmail": "Mit E-Mail fortfahren",
         "login.orDivider": "oder",
         "login.googleError": "Die Anmeldung mit Google hat nicht funktioniert. Bitte versuche es erneut.",
+        "login.googleNoAccount": "Für dieses Google-Konto wurde kein Konto gefunden. Bitte registriere dich zuerst.",
         "login.newHere": "Neu bei Camilius?",
 
         "register.title": "Konto erstellen",
@@ -1921,6 +1927,7 @@ const TRANSLATIONS = {
         "login.continueWithEmail": "Continua con email",
         "login.orDivider": "o",
         "login.googleError": "L'accesso con Google non è riuscito. Riprova.",
+        "login.googleNoAccount": "Nessun account trovato per questo account Google. Registrati prima.",
         "login.newHere": "Nuovo su Camilius?",
 
         "register.title": "Crea account",
@@ -2216,6 +2223,7 @@ const TRANSLATIONS = {
         "login.continueWithEmail": "Продолжить через email",
         "login.orDivider": "или",
         "login.googleError": "Не удалось войти через Google. Попробуйте снова.",
+        "login.googleNoAccount": "Учетная запись для этого Google-аккаунта не найдена. Сначала зарегистрируйтесь.",
         "login.newHere": "Впервые в Camilius?",
 
         "register.title": "Создать аккаунт",
@@ -2511,6 +2519,7 @@ const TRANSLATIONS = {
         "login.continueWithEmail": "使用邮箱继续",
         "login.orDivider": "或",
         "login.googleError": "Google 登录未成功,请重试。",
+        "login.googleNoAccount": "未找到与该 Google 账户关联的账户,请先注册。",
         "login.newHere": "第一次使用 Camilius？",
 
         "register.title": "创建账户",
@@ -2806,6 +2815,7 @@ const TRANSLATIONS = {
         "login.continueWithEmail": "E-posta ile devam et",
         "login.orDivider": "veya",
         "login.googleError": "Google ile giriş yapılamadı. Lütfen tekrar deneyin.",
+        "login.googleNoAccount": "Bu Google hesabı için bir hesap bulunamadı. Lütfen önce kayıt olun.",
         "login.newHere": "Camilius'ta yeni misiniz?",
 
         "register.title": "Hesap oluştur",

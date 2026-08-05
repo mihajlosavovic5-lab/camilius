@@ -1531,11 +1531,17 @@ async function pollGoogleLogin(oauthState, errorBox) {
             await storageSet("businessName", data.business_name);
             enterApp();
         } else if (data.status === "needs_signup") {
-            // First time this Google identity has been seen - not logged in, just handed
-            // to the normal Create Account wizard with a name/email starting point (see
-            // openRegisterScreen). Username, password and business details are still
-            // filled in by hand exactly like any other sign-up.
+            // First time this Google identity has been seen, started from Create Account -
+            // not logged in, just handed to the normal Create Account wizard with a
+            // name/email starting point (see openRegisterScreen). Username, password and
+            // business details are still filled in by hand exactly like any other sign-up.
             openRegisterScreen({ name: data.google_name, contactEmail: data.google_email, googleLinkToken: data.google_link_token });
+        } else if (data.status === "no_account") {
+            // First time this Google identity has been seen, but started from the Login
+            // screen - the visitor asked to log in, not sign up, so this is just a failed
+            // login: explain it and let them try again or go create an account instead.
+            errorBox.textContent = t("login.googleNoAccount");
+            errorBox.classList.remove("hidden");
         } else {
             // 'error' (Google denied/cancelled, or something failed server-side) or
             // 'expired' (visitor closed the tab without finishing, or just sat on the
@@ -1552,11 +1558,11 @@ async function pollGoogleLogin(oauthState, errorBox) {
     // nothing failed, the attempt just never got followed through.
 }
 
-async function startGoogleLogin(button, errorBox) {
+async function startGoogleLogin(button, errorBox, intent) {
     errorBox.classList.add("hidden");
     button.disabled = true;
     try {
-        const data = await api("/api/google-login/start", { method: "POST" });
+        const data = await api("/api/google-login/start", { method: "POST", body: { intent } });
         if (capacitorPlugins && capacitorPlugins.Browser) {
             await capacitorPlugins.Browser.open({ url: data.auth_url });
         } else {
@@ -1571,11 +1577,15 @@ async function startGoogleLogin(button, errorBox) {
     }
 }
 
+// intent tells the server which screen this came from - "login" must never auto-create
+// or hand off to sign-up on a brand-new Google identity (see pollGoogleLogin's
+// 'no_account' handling above), while "register" keeps the existing "prefill Create
+// Account" behavior.
 el("login-google-btn").addEventListener("click", () => {
-    startGoogleLogin(el("login-google-btn"), el("login-error"));
+    startGoogleLogin(el("login-google-btn"), el("login-error"), "login");
 });
 el("register-google-btn").addEventListener("click", () => {
-    startGoogleLogin(el("register-google-btn"), el("register-error"));
+    startGoogleLogin(el("register-google-btn"), el("register-error"), "register");
 });
 
 // --- Two-phase login (Google/email choice -> revealed username+password form) ---

@@ -12,7 +12,13 @@
     </div>
 
     <div class="auth-card">
-        {% if success and needs_signup %}
+        {% if success and no_account %}
+            <h1 data-i18n="googleAuth.noAccountTitle">No account found</h1>
+            <div class="alert alert-error" style="margin-top: 12px;">
+                <span class="alert-icon">&#9888;&#65039;</span>
+                <span data-i18n="googleAuth.noAccountBody">Head back to the Camilius app - no account is linked to that Google account. This tab can be closed.</span>
+            </div>
+        {% elif success and needs_signup %}
             <h1 data-i18n="googleAuth.needsSignupTitle">Almost there</h1>
             <div class="alert alert-success" style="margin-top: 12px;">
                 <span class="alert-icon">&#10003;</span>
