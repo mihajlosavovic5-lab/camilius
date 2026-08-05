@@ -348,6 +348,7 @@ button { font-family: inherit; -webkit-appearance: none; appearance: none; }
     white-space: nowrap;
 }
 .country-option-btn:active { background: var(--background); }
+.lang-option-btn { justify-content: center; }
 .country-option-flag { font-size: 19px; flex-shrink: 0; }
 .country-option-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .country-option-dial { color: var(--text-muted); font-size: 14.5px; flex-shrink: 0; }

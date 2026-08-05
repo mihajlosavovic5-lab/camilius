@@ -3093,10 +3093,6 @@ function applyTranslations() {
         node.placeholder = t(node.getAttribute("data-i18n-placeholder"));
     });
     const lang = LANGUAGES.find((l) => l.code === currentLang);
-    const label = document.getElementById("lang-select-label");
-    if (label) label.textContent = lang ? lang.name : currentLang;
-    const settingsValue = document.getElementById("settings-language-value");
-    if (settingsValue) settingsValue.textContent = lang ? lang.name : currentLang;
     const flagGlyph = lang ? countryFlagEmoji(lang.flag) : "";
     const selectFlag = document.getElementById("lang-select-flag");
     if (selectFlag) selectFlag.textContent = flagGlyph;
@@ -3158,16 +3154,10 @@ function setupLanguagePicker() {
         const maxWidth = window.innerWidth - rect.left - margin;
         sheet.style.width = "auto";
         const naturalWidth = sheet.getBoundingClientRect().width;
-        if (triggerBtn.id === "lang-select-btn") {
-            // Floored at the button's own width (so it's never narrower than the field
-            // that opened it - keeps the "starts from the left edge of the field" feel),
-            // but allowed to grow past it when a language name needs more room than
-            // whichever name currently sits in the button (e.g. the button reads
-            // "Deutsch" but the list also needs to fit "Português" without truncating).
-            sheet.style.width = `${Math.min(Math.max(rect.width, naturalWidth), maxWidth)}px`;
-        } else {
-            sheet.style.width = `${Math.min(naturalWidth, maxWidth)}px`;
-        }
+        // Rows are flag-only now, so the list's natural width is always small - floored
+        // at the trigger's own width just so it never reads as narrower than the field
+        // that opened it.
+        sheet.style.width = `${Math.min(Math.max(rect.width, naturalWidth), maxWidth)}px`;
         sheet.style.maxHeight = `${Math.max(0, Math.min(240, available))}px`;
 
         modal.classList.add("open");
@@ -3185,8 +3175,9 @@ function setupLanguagePicker() {
     LANGUAGES.forEach((lang) => {
         const row = document.createElement("button");
         row.type = "button";
-        row.className = "country-option-btn";
-        row.innerHTML = `<span class="country-option-name">${escapeHtml(lang.name)}</span>`;
+        row.className = "country-option-btn lang-option-btn";
+        row.setAttribute("aria-label", lang.name);
+        row.innerHTML = `<span class="country-option-flag">${countryFlagEmoji(lang.flag)}</span>`;
         row.addEventListener("click", async () => {
             await setLanguage(lang.code);
             closePicker();
