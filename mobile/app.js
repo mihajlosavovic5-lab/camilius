@@ -3926,12 +3926,15 @@ function setupOnboarding() {
 
     // Live parallax + dots + accent glow - runs on every scroll frame while dragging,
     // so the swipe (and the dot indicator and background glow color tracking it)
-    // follows the finger with no lag. Dots and the glow are both a plain CSS
-    // transition (background-color / width), not a keyframe animation with a "snap to
-    // an earlier state" risk, so - unlike is-active below - there's no reason to hold
-    // them back for a settle debounce; doing that only made them visibly trail behind
-    // the slide that's already on screen (the glow lagging by up to the full 120ms
-    // debounce plus however long the settle detection itself took to fire).
+    // follows the finger with no lag. The glow has no CSS transition of its own (see
+    // .screen-onboarding::before in app.css) so it snaps to the new --onboarding-accent
+    // the instant this runs, in step with the swipe rather than visibly catching up
+    // afterward; the dots keep a short .2s transition since that's small/fast enough
+    // to read as a nice touch rather than a lag. Neither is a keyframe animation with
+    // a "snap to an earlier state" risk, so - unlike is-active below - there's no
+    // reason to hold them back for a settle debounce; doing that only made them
+    // visibly trail behind the slide that's already on screen (lagging by up to the
+    // full 120ms debounce plus however long the settle detection itself took to fire).
     function updateParallax() {
         ticking = false;
         const width = slides.clientWidth || 1;

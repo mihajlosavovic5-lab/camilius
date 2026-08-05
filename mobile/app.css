@@ -1566,7 +1566,10 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
     content: ""; position: absolute; inset: -15%; z-index: 0; pointer-events: none;
     background: radial-gradient(circle at 50% 18%, var(--onboarding-accent, var(--primary)) 0%, transparent 58%);
     opacity: .16; filter: blur(38px);
-    transition: background .55s ease;
+    /* No transition: app.js already updates --onboarding-accent live on every real
+       scroll frame while dragging (see updateParallax() in app.js), so the color
+       itself tracks the finger in real time - a CSS transition here on top of that
+       just re-introduces a lag between the swipe and the glow visibly catching up. */
 }
 .onboarding-slides, .onboarding-dots, .onboarding-skip-wrap { position: relative; z-index: 1; }
 .onboarding-slides {
