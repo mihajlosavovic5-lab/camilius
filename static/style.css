@@ -1521,6 +1521,9 @@ body.auth {
 .hours-customize-link:active { transform: translateY(0); box-shadow: none; }
 
 .hours-advanced-view { display: flex; flex-direction: column; gap: 12px; }
+/* Sits first inside .hours-advanced-view (see hours-picker.js) - the way back to the
+   "Working days" summary, kept centered like .hours-customize-link it complements. */
+.hours-collapse-link { align-self: center; }
 
 .hours-quickfill {
     display: flex; align-items: center; flex-wrap: wrap; gap: 10px;

@@ -181,6 +181,18 @@ function createHoursPickerCore(config) {
     advancedView.className = "hours-advanced-view hidden";
     mount.appendChild(advancedView);
 
+    // The only way out of the per-day list before this was closing/reopening the
+    // whole form - collapseToSimple() already existed (used after a save) but nothing
+    // in the UI called it. Sits at the very top of advancedView so it's visible the
+    // instant the list expands, no scrolling past all seven rows to find it.
+    const collapseLink = document.createElement("button");
+    collapseLink.type = "button";
+    collapseLink.className = "hours-customize-link hours-collapse-link";
+    collapseLink.setAttribute("data-i18n", "hoursPicker.collapseLink");
+    collapseLink.textContent = t("hoursPicker.collapseLink");
+    advancedView.appendChild(collapseLink);
+    collapseLink.addEventListener("click", collapseToSimple);
+
     // Just switches which view is on screen - the seven rows already hold whatever the
     // real current state is (kept up to date by applyPairToWeekdays and each row's own
     // controls), so there's nothing to seed here beyond the quickfill row's own display.

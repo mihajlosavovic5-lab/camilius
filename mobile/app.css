@@ -942,6 +942,9 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
 }
 
 .hours-advanced-view { display: flex; flex-direction: column; gap: 10px; }
+/* Sits first inside .hours-advanced-view (see hours-picker.js) - the way back to the
+   "Working days" summary, kept centered like .hours-customize-link it complements. */
+.hours-collapse-link { align-self: center; }
 
 .hours-quickfill {
     display: flex; align-items: center; flex-wrap: wrap; gap: 8px;
