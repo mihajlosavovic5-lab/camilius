@@ -4456,12 +4456,21 @@ function mysiteUpdateComposeButtons() {
 }
 el("mysite-description").addEventListener("input", mysiteUpdateComposeButtons);
 
+// Overridden by the voice-recording IIFE below, only on devices where recording is actually
+// supported - stays this no-op otherwise, so the click listener beneath it degrades to a
+// plain send with no recording-shortcut branch on a device that can't record at all.
+let mysiteStopRecordingIfActive = () => false;
+
 // Single "send" action (chat-input style, next to the mic button above) that replaces
 // the old separate "Generate draft" and "Suggest AI designs" buttons - one description
 // now drives both the tagline/about/FAQ draft and the theme suggestions at once. Either
 // result that comes back gets applied on its own (Promise.allSettled, not .all) so a
 // hiccup in one call doesn't also throw away the other's success.
-el("mysite-send-btn").addEventListener("click", async () => {
+//
+// A plain function declaration (not the click listener directly) so the voice-recording
+// IIFE below can also call it - tapping send mid-recording stops the recording and, once
+// its transcription lands, submits immediately instead of just parking the text for review.
+async function mysiteSubmitDescription() {
     const errorBox = el("mysite-draft-error");
     errorBox.classList.add("hidden");
     const description = el("mysite-description").value.trim();
@@ -4506,6 +4515,10 @@ el("mysite-send-btn").addEventListener("click", async () => {
     } finally {
         button.disabled = false;
     }
+}
+el("mysite-send-btn").addEventListener("click", () => {
+    if (mysiteStopRecordingIfActive()) return;
+    mysiteSubmitDescription();
 });
 
 function mysiteRenderThemeSuggestions(themeList) {
@@ -4571,6 +4584,11 @@ function mysiteRenderThemeSuggestions(themeList) {
     let chunks = [];
     let maxLengthTimer = null;
     let busy = false;
+    // Set when send is tapped while recording is in progress (see the send button's own
+    // listener below) - stopRecording() is async (waits for the "stop" event, then upload +
+    // transcription), so this just marks the intent; uploadRecording's success handler is
+    // what actually fires mysiteSubmitDescription() once the transcribed text is in hand.
+    let pendingAutoSend = false;
 
     function stopStream() {
         if (mediaStream) {
@@ -4583,6 +4601,13 @@ function mysiteRenderThemeSuggestions(themeList) {
         btnLabel.textContent = isRecording
             ? (t("onboarding.describe.recordStop") || "Stop recording")
             : (t("onboarding.describe.recordStart") || "Record instead of typing");
+        // The send button fills solid gold the instant recording starts, same as if text
+        // were already typed - tapping it mid-recording is a valid "stop and send now"
+        // shortcut (see below), not just a no-op on an empty field. Once recording ends,
+        // hand back to mysiteUpdateComposeButtons() to reflect whatever's actually in the
+        // field (transcribed text, or empty if the recording failed/was too short).
+        if (isRecording) el("mysite-send-btn").classList.add("has-text");
+        else mysiteUpdateComposeButtons();
     }
     function startRecording() {
         busy = true;
@@ -4603,6 +4628,7 @@ function mysiteRenderThemeSuggestions(themeList) {
                 if (chunks.length === 0) {
                     busy = false;
                     recordBtn.disabled = false;
+                    pendingAutoSend = false;
                     return;
                 }
                 uploadRecording(new Blob(chunks, { type: mediaRecorder.mimeType || "audio/webm" }));
@@ -4644,6 +4670,7 @@ function mysiteRenderThemeSuggestions(themeList) {
                 busy = false;
                 recordBtn.disabled = false;
                 if (!ok) {
+                    pendingAutoSend = false;
                     setStatus(data.error || (t("onboarding.describe.transcribeError") || "Couldn't understand that recording - please try again."), true);
                     return;
                 }
@@ -4652,9 +4679,14 @@ function mysiteRenderThemeSuggestions(themeList) {
                 mysiteUpdateComposeButtons();
                 textarea.focus();
                 setStatus(null);
+                if (pendingAutoSend) {
+                    pendingAutoSend = false;
+                    mysiteSubmitDescription();
+                }
             }).catch(() => {
                 busy = false;
                 recordBtn.disabled = false;
+                pendingAutoSend = false;
                 setStatus(t("onboarding.describe.transcribeError") || "Couldn't understand that recording - please try again.", true);
             });
     }
@@ -4664,6 +4696,16 @@ function mysiteRenderThemeSuggestions(themeList) {
         if (mediaRecorder && mediaRecorder.state === "recording") stopRecording();
         else startRecording();
     });
+    // Tapping send while recording is a shortcut: stop, transcribe, and submit immediately
+    // instead of requiring stop-then-review-then-send as three separate taps - wired into
+    // the send button's own click listener (declared alongside mysiteSubmitDescription
+    // above) via this override, rather than a second listener on the same button.
+    mysiteStopRecordingIfActive = () => {
+        if (!(mediaRecorder && mediaRecorder.state === "recording")) return false;
+        pendingAutoSend = true;
+        stopRecording();
+        return true;
+    };
     window.addEventListener("beforeunload", stopStream);
 })();
 

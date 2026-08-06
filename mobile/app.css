@@ -1308,8 +1308,13 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
    between its outline and filled states. */
 .textarea-mic-btn.mic-typing-hidden { visibility: hidden; pointer-events: none; }
 .textarea-mic-btn:active { color: var(--primary-ink); }
-.textarea-mic-btn.recording { color: var(--danger); }
+.textarea-mic-btn.recording {
+    color: var(--text); background: var(--border); border-radius: 50%;
+}
 .textarea-mic-btn .mic-icon { width: 21px; height: 21px; }
+.textarea-mic-btn .stop-icon { display: none; width: 15px; height: 15px; }
+.textarea-mic-btn.recording .mic-icon { display: none; }
+.textarea-mic-btn.recording .stop-icon { display: block; }
 .voice-record-dot {
     display: none; position: absolute; top: 1px; right: 1px; width: 8px; height: 8px;
     border-radius: 50%; background: var(--danger);
