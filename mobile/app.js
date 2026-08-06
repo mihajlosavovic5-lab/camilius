@@ -3,7 +3,16 @@
 // screens instead of loading the server-rendered website.
 
 const API_BASE = "https://app.ai-auto-reply-mail.com";
-const APP_VERSION = "1.9.10"; // bumped alongside the native versionName, sent with crash reports
+// Bumped alongside the native versionName, sent with crash reports - deliberately NOT
+// bumped for the 1.9.11 native-only release (status-bar overlay fix, see build.gradle/
+// api.py's APK_VERSION). This constant ships to every device via the very same OTA
+// bundle it's declared in, native-updated or not, so bumping it here would make the
+// update-banner check below (info.version === APP_VERSION) go true - and stop nagging -
+// for every device the instant this file's OTA update lands, including the ones that
+// never actually installed the new APK. Leaving it at the prior release's value keeps
+// the mismatch (and the banner) alive for anyone still on old native code; bump it to
+// "1.9.11" in a later, purely-cosmetic OTA push once that's no longer needed.
+const APP_VERSION = "1.9.10";
 
 // No per-account sent-at tracking on the backend for password-reset emails (unlike email/
 // phone verification below), so the forgot-password buttons' cooldown is purely client-side -
@@ -375,12 +384,15 @@ if (capacitorPlugins) {
 
             const banner = el("update-banner");
             banner.classList.remove("hidden");
-            el("update-download-btn").addEventListener("click", async () => {
-                if (capacitorPlugins.Browser) {
-                    await capacitorPlugins.Browser.open({ url: info.url });
-                } else {
-                    window.open(info.url, "_blank");
-                }
+            el("update-download-btn").addEventListener("click", () => {
+                // Deliberately NOT capacitorPlugins.Browser.open() (Chrome Custom Tabs on
+                // Android, used elsewhere for OAuth/checkout) - Custom Tabs are known to
+                // leave a download's progress sheet stuck at 100% forever instead of
+                // handing off to the system Download Manager for a real "download
+                // complete" notification/Open action, even once the file's fully written
+                // to disk. "_system" opens this in the actual full browser app instead,
+                // whose downloads behave normally.
+                window.open(info.url, "_system");
             });
             el("update-dismiss-btn").addEventListener("click", async () => {
                 await storageSet("apkUpdateDismissedVersion", info.version);
