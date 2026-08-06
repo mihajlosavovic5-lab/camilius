@@ -44,10 +44,6 @@ MAX_VOICE_AUDIO_BYTES = 6 * 1024 * 1024
 MAX_GENERATION_TOKENS = 1200
 
 _WEEKDAYS = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
-_DAY_LABELS = {
-    "monday": "Monday", "tuesday": "Tuesday", "wednesday": "Wednesday", "thursday": "Thursday",
-    "friday": "Friday", "saturday": "Saturday", "sunday": "Sunday",
-}
 
 _DAY_SCHEMA = {
     "type": "object",
@@ -203,20 +199,17 @@ def transcribe_voice_description(audio_bytes, filename, content_type=None):
 
 def format_working_hours(hours):
     """hours: the {day: {"open": "HH:MM"|None, "close": "HH:MM"|None}} dict from
-    generate_page_draft()'s "hours" key. Produces exactly the "Monday: 09:00-18:00" /
-    "Monday: closed" wire format static/pickers.js's createHoursPicker both emits and
-    parses (see its own HOURS_DAY_LABELS comment) - so a generated page's hours picker
-    re-opens correctly if the owner edits them afterward, not just a string that
-    booking.parse_working_hours happens to also accept."""
-    lines = []
+    generate_page_draft()'s "hours" key. Produces exactly the JSON wire format
+    static/hours-picker.js's shared picker core both emits and parses (see its own
+    getValue/setValue) - so a generated page's hours picker re-opens correctly if the
+    owner edits them afterward, not just a string that booking.parse_working_hours
+    happens to also accept."""
+    result = {}
     for day in _WEEKDAYS:
         day_hours = hours.get(day) or {}
         open_t, close_t = day_hours.get("open"), day_hours.get("close")
-        if open_t and close_t:
-            lines.append(f"{_DAY_LABELS[day]}: {open_t}-{close_t}")
-        else:
-            lines.append(f"{_DAY_LABELS[day]}: closed")
-    return "\n".join(lines)
+        result[day] = {"open": open_t, "close": close_t} if open_t and close_t else None
+    return json.dumps(result)
 
 
 def format_price_list(services):

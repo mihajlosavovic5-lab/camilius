@@ -1,10 +1,16 @@
 """Pure-function tests for booking.py's slot/hours/upsell logic - none of these touch
 the database (day_slots/parse_working_hours/parse_upsell_pairs are pure calendar math),
 so they're fast and don't depend on the appointments table having any particular state."""
+import json
 from datetime import date, datetime, timedelta
 
 import booking
 
+# The pre-JSON "Monday: 09:00-18:00" / "Sunday: closed" free-text format - every business
+# saved before the picker switched to JSON still has this stored, so parse_working_hours
+# must keep reading it indefinitely (see _parse_working_hours_legacy_text), not just
+# during some transition window. Deliberately still used as the default across this file
+# rather than switching it to JSON, so this suite keeps exercising that fallback path.
 WORKING_HOURS = (
     "Monday: 09:00-18:00\n"
     "Tuesday: 09:00-18:00\n"
@@ -51,6 +57,51 @@ def test_parse_working_hours_tolerates_common_hand_typed_variants():
     assert hours[0] == (booking.dtime(9, 0), booking.dtime(18, 0))
     assert hours[1] == (booking.dtime(9, 0), booking.dtime(18, 0))
     assert hours[2] == (booking.dtime(9, 0), booking.dtime(18, 0))
+
+
+def test_parse_working_hours_reads_json_format():
+    # The format static/hours-picker.js's shared picker core (and page_generator's
+    # format_working_hours) write today - see _parse_working_hours_json.
+    text = json.dumps({
+        "monday": {"open": "09:00", "close": "18:00"},
+        "tuesday": None,
+        "saturday": {"open": "09:00", "close": "14:00"},
+    })
+    hours = booking.parse_working_hours(text)
+    assert hours[0] == (booking.dtime(9, 0), booking.dtime(18, 0))  # Monday
+    assert hours[1] is None  # Tuesday
+    assert hours[5] == (booking.dtime(9, 0), booking.dtime(14, 0))  # Saturday
+    assert hours[6] is None  # Sunday - absent from the dict entirely
+
+
+def test_parse_working_hours_json_rejects_inverted_or_malformed_day():
+    # Same "closed rather than erroring" spirit as the legacy parser's own tests -
+    # a nonsensical or unparseable day is simply absent from the result, not raised.
+    text = json.dumps({
+        "monday": {"open": "18:00", "close": "09:00"},  # inverted
+        "tuesday": {"open": "not-a-time", "close": "18:00"},
+        "wednesday": {"open": "09:00"},  # missing close
+    })
+    hours = booking.parse_working_hours(text)
+    assert hours[0] is None
+    assert hours[1] is None
+    assert hours[2] is None
+
+
+def test_parse_working_hours_json_takes_priority_over_legacy_text():
+    # A malformed/non-JSON string (including plain legacy text, which never starts with
+    # "{") falls through to the legacy parser - proven by WORKING_HOURS itself parsing
+    # correctly elsewhere in this file. This just proves the JSON branch is tried first
+    # and wins when the text does look like JSON.
+    assert booking.parse_working_hours("{not valid json") == {i: None for i in range(7)}
+
+
+def test_working_hours_display_text_reads_either_format():
+    json_text = json.dumps({"monday": {"open": "09:00", "close": "18:00"}, "sunday": None})
+    legacy_text = "Monday: 09:00-18:00\nSunday: closed"
+    assert booking.working_hours_display_text(json_text).splitlines()[0] == "Monday: 09:00-18:00"
+    assert booking.working_hours_display_text(legacy_text).splitlines()[0] == "Monday: 09:00-18:00"
+    assert booking.working_hours_display_text(json_text).splitlines()[6] == "Sunday: closed"
 
 
 def test_day_slots_covers_the_full_open_window():

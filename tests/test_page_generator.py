@@ -166,10 +166,15 @@ def test_generate_page_draft_truncates_long_document_text(monkeypatch):
 
 def test_format_working_hours_matches_picker_wire_format():
     text = page_generator.format_working_hours(VALID_DRAFT["hours"])
-    assert text == (
-        "Monday: 09:00-18:00\nTuesday: 09:00-18:00\nWednesday: 09:00-18:00\n"
-        "Thursday: 09:00-18:00\nFriday: 09:00-18:00\nSaturday: closed\nSunday: closed"
-    )
+    assert json.loads(text) == {
+        "monday": {"open": "09:00", "close": "18:00"},
+        "tuesday": {"open": "09:00", "close": "18:00"},
+        "wednesday": {"open": "09:00", "close": "18:00"},
+        "thursday": {"open": "09:00", "close": "18:00"},
+        "friday": {"open": "09:00", "close": "18:00"},
+        "saturday": None,
+        "sunday": None,
+    }
 
 
 def test_format_working_hours_round_trips_through_booking_parser():
@@ -185,8 +190,9 @@ def test_format_working_hours_round_trips_through_booking_parser():
 
 def test_format_working_hours_handles_missing_or_partial_day():
     text = page_generator.format_working_hours({"monday": {"open": "09:00", "close": None}})
-    assert text.splitlines()[0] == "Monday: closed"  # incomplete pair treated as closed
-    assert text.splitlines()[1] == "Tuesday: closed"  # day absent entirely from the dict
+    parsed = json.loads(text)
+    assert parsed["monday"] is None  # incomplete pair treated as closed
+    assert parsed["tuesday"] is None  # day absent entirely from the dict
 
 
 # --- format_price_list ---

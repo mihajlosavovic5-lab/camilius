@@ -11,6 +11,7 @@ every "is this in the past" check, and every "tomorrow at 14:00" resolved agains
 Belgrade's clock. DEFAULT_TZ remains only as the fallback for a business row that
 predates the timezone column, and as the column's own default.
 """
+import json
 import re
 from datetime import datetime, timedelta, time as dtime
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
@@ -46,6 +47,7 @@ def tz_for(business):
 
 
 _WEEKDAY_NAMES = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
+_WEEKDAY_DISPLAY_LABELS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
 
 
 def now_local(tz=DEFAULT_TZ):
@@ -75,20 +77,78 @@ _DASH_VARIANTS = re.compile("[‐-―−]")  # hyphen..horizontal bar, minus sig
 
 
 def parse_working_hours(text):
-    """Parses the "Monday: 09:00-18:00" / "Sunday: closed" format produced by the
-    Profile page's hours picker (static/pickers.js's createHoursPicker) into
-    {weekday_int(0=Mon..6=Sun): (open_time, close_time) or None if closed/unparseable}.
-    Best-effort, same spirit as the JS picker's own parse() - a business whose working
-    hours predate the picker (free-typed text in an unexpected format) just ends up with
-    no slots that day rather than erroring, surfaced to the owner on the Schedule page.
+    """Parses a business's working_hours column into {weekday_int(0=Mon..6=Sun):
+    (open_time, close_time) or None if closed/unparseable}.
 
-    The picker itself only ever emits "HH:MM-HH:MM" with a plain hyphen, but hand-edited
-    or pre-picker text is more forgiving in practice - a phone keyboard's autocorrect
-    readily swaps "-" for an en dash, and it's common to write hours without minutes
-    ("9-18") or with a trailing "h" ("9h-18h"). One day silently parsing to "closed"
-    while the neighboring days (typed the same way, same session) parse fine reads as a
-    baffling bug to the business owner, not a formatting slip - so all of these are
-    accepted rather than just the picker's own exact output."""
+    Understands two wire formats: the structured JSON object the picker (static/
+    hours-picker.js) and the AI page generator (page_generator.format_working_hours)
+    both write today - {"monday": {"open": "09:00", "close": "18:00"}, "tuesday": null,
+    ...} - and the older "Monday: 09:00-18:00" / "Sunday: closed" line-per-day free text
+    every business's hours were stored as before that switch. There's no migration
+    script - a business's stored value only upgrades to JSON the next time its hours are
+    saved through the picker - so the old format is read indefinitely, not just for a
+    transition window. Best-effort either way: a business whose hours don't parse just
+    ends up with no slots that day rather than erroring, surfaced to the owner on the
+    Schedule page."""
+    parsed = _parse_working_hours_json(text)
+    if parsed is not None:
+        return parsed
+    return _parse_working_hours_legacy_text(text)
+
+
+def _parse_working_hours_json(text):
+    """The {weekday: (open,close)|None} dict if `text` is the structured JSON format,
+    or None if it isn't JSON at all - signals parse_working_hours to fall back to the
+    legacy text parser instead. Never raises: a day whose "open"/"close" doesn't parse
+    as "HH:MM", or whose close isn't after its open, is simply treated as closed - same
+    best-effort spirit as the legacy parser."""
+    text = (text or "").strip()
+    if not text.startswith("{"):
+        return None
+    try:
+        data = json.loads(text)
+    except ValueError:
+        return None
+    if not isinstance(data, dict):
+        return None
+    hours = {i: None for i in range(7)}
+    for day, day_hours in data.items():
+        if day not in _WEEKDAY_NAMES or not isinstance(day_hours, dict):
+            continue
+        weekday = _WEEKDAY_NAMES.index(day)
+        open_t, close_t = _parse_hh_mm(day_hours.get("open")), _parse_hh_mm(day_hours.get("close"))
+        if open_t is not None and close_t is not None and open_t < close_t:
+            hours[weekday] = (open_t, close_t)
+    return hours
+
+
+def _parse_hh_mm(value):
+    """dtime from a "HH:MM" string (the only shape the JSON format's picker/AI-generator
+    writers ever produce), or None if `value` isn't one - deliberately not
+    time.fromisoformat, whose accepted input shape varies across Python versions."""
+    if not isinstance(value, str) or ":" not in value:
+        return None
+    hour_str, _, minute_str = value.partition(":")
+    try:
+        h, m = int(hour_str), int(minute_str)
+    except ValueError:
+        return None
+    return dtime(h, m) if 0 <= h <= 23 and 0 <= m <= 59 else None
+
+
+def _parse_working_hours_legacy_text(text):
+    """Best-effort parse of the pre-JSON "Monday: 09:00-18:00" / "Sunday: closed"
+    format, same spirit as the JS picker's own former parse() - a business whose working
+    hours predate the picker (free-typed text in an unexpected format) just ends up with
+    no slots that day rather than erroring.
+
+    The picker itself only ever emitted "HH:MM-HH:MM" with a plain hyphen, but
+    hand-edited or pre-picker text is more forgiving in practice - a phone keyboard's
+    autocorrect readily swaps "-" for an en dash, and it's common to write hours without
+    minutes ("9-18") or with a trailing "h" ("9h-18h"). One day silently parsing to
+    "closed" while the neighboring days (typed the same way, same session) parse fine
+    reads as a baffling bug to the business owner, not a formatting slip - so all of
+    these are accepted rather than just the picker's own exact output."""
     hours = {i: None for i in range(7)}
     for line in (text or "").split("\n"):
         line = line.strip()
@@ -112,6 +172,23 @@ def parse_working_hours(text):
             if open_t < close_t:
                 hours[weekday] = (open_t, close_t)
     return hours
+
+
+def working_hours_display_text(working_hours_text):
+    """Human-readable "Monday: 09:00-18:00" / "Sunday: closed" lines, one per day,
+    regardless of which wire format `working_hours_text` is actually stored in - used
+    wherever a raw stored value would otherwise leak out somewhere that expects readable
+    text (e.g. ai_replies.py's AI prompt context), so a storage-format change here never
+    changes what a customer-facing surface sees."""
+    parsed = parse_working_hours(working_hours_text)
+    lines = []
+    for weekday in range(7):
+        hours = parsed.get(weekday)
+        if hours:
+            lines.append(f"{_WEEKDAY_DISPLAY_LABELS[weekday]}: {hours[0].strftime('%H:%M')}-{hours[1].strftime('%H:%M')}")
+        else:
+            lines.append(f"{_WEEKDAY_DISPLAY_LABELS[weekday]}: closed")
+    return "\n".join(lines)
 
 
 def is_open_on(working_hours_text, local_date):

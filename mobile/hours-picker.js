@@ -25,9 +25,11 @@
 //     reads as more overwhelming than useful there).
 
 const HOURS_DAYS = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
-// English day names - this is the wire format saved to working_hours ("Monday: 09:00-
-// 18:00") that the backend/AI parse, NOT display text, so it must stay fixed regardless
-// of UI language. The visible label text is translated separately via config.dayI18nKey + t().
+// getValue() below uses these lowercase names directly as JSON object keys (the current
+// working_hours wire format - see booking.py's parse_working_hours). HOURS_DAY_LABELS
+// (capitalized) is only needed for parseWireFormat()'s legacy branch, which still reads
+// the older "Monday: 09:00-18:00" per-line free text every business's hours were saved
+// as before the picker switched to JSON.
 const HOURS_DAY_LABELS = {
     monday: "Monday", tuesday: "Tuesday", wednesday: "Wednesday", thursday: "Thursday",
     friday: "Friday", saturday: "Saturday", sunday: "Sunday",
@@ -280,29 +282,64 @@ function createHoursPickerCore(config) {
     updateWeekendNote();
     updateCustomHoursNote();
 
-    // Best-effort parse of our own generated format (or something close enough to it)
-    // back into picker state - used when loading a business's existing hours into the
-    // form. Leaves a day's defaults alone if its line isn't found or doesn't parse,
-    // rather than guessing.
-    function setValue(text) {
-        const lines = (text || "").split("\n");
+    // Best-effort parse of our own generated wire format (or something close enough to
+    // it) back into picker state - used when loading a business's existing hours into
+    // the form. Leaves a day's defaults alone if it's absent or doesn't parse, rather
+    // than guessing.
+    //
+    // Understands two shapes: the structured JSON object getValue() below emits -
+    // {"monday": {"open": "09:00", "close": "18:00"}, "tuesday": null, ...} - and the
+    // older "Monday: 09:00-18:00" / "Sunday: closed" line-per-day free text every
+    // business's hours were saved as before the picker switched to JSON. A business's
+    // stored value only upgrades to JSON the next time it's saved through this picker -
+    // there's no migration script - so the legacy format is understood indefinitely,
+    // not just for a transition window. Mirrors booking.py's parse_working_hours on the
+    // Python side, which reads the same two shapes for the same reason.
+    function parseWireFormat(text) {
+        text = (text || "").trim();
+        if (text.startsWith("{")) {
+            try {
+                const data = JSON.parse(text);
+                if (data && typeof data === "object") return data;
+            } catch (e) {
+                // Not actually valid JSON despite the leading "{" - fall through to the
+                // legacy line parser below, same "don't error, just leave defaults"
+                // spirit as an unparseable legacy line.
+            }
+        }
+        const data = {};
+        const lines = text.split("\n");
         HOURS_DAYS.forEach((day) => {
             const dayLabel = HOURS_DAY_LABELS[day].toLowerCase();
             const line = lines.find((l) => l.trim().toLowerCase().startsWith(dayLabel));
             if (!line) return;
-            const r = rows[day];
             if (/closed/i.test(line)) {
-                r.checkbox.checked = false;
-                updateRowVisibility(day);
+                data[day] = null;
                 return;
             }
             const match = line.match(/(\d{1,2}):(\d{2})\s*-\s*(\d{1,2}):(\d{2})/);
             if (!match) return;
-            const openTime = `${match[1].padStart(2, "0")}:${match[2]}`;
-            const closeTime = `${match[3].padStart(2, "0")}:${match[4]}`;
-            if (HOURS_TIME_OPTIONS.includes(openTime)) r.openField.value = openTime;
-            if (HOURS_TIME_OPTIONS.includes(closeTime)) r.closeField.value = closeTime;
-            r.checkbox.checked = true;
+            data[day] = {
+                open: `${match[1].padStart(2, "0")}:${match[2]}`,
+                close: `${match[3].padStart(2, "0")}:${match[4]}`,
+            };
+        });
+        return data;
+    }
+
+    function setValue(text) {
+        const data = parseWireFormat(text);
+        HOURS_DAYS.forEach((day) => {
+            if (!(day in data)) return;
+            const dayHours = data[day];
+            const r = rows[day];
+            if (dayHours && dayHours.open && dayHours.close) {
+                if (HOURS_TIME_OPTIONS.includes(dayHours.open)) r.openField.value = dayHours.open;
+                if (HOURS_TIME_OPTIONS.includes(dayHours.close)) r.closeField.value = dayHours.close;
+                r.checkbox.checked = true;
+            } else {
+                r.checkbox.checked = false;
+            }
             updateRowVisibility(day);
         });
 
@@ -320,14 +357,16 @@ function createHoursPickerCore(config) {
         updateCustomHoursNote();
     }
 
-    // Serializes the current row state to the plain-text wire format the backend/AI
-    // expect ("Monday: 09:00-18:00" / "Sunday: closed" per line).
+    // Serializes the current row state to the structured JSON wire format the backend
+    // (booking.py's parse_working_hours) understands - {"monday": {"open": "09:00",
+    // "close": "18:00"}, "tuesday": null, ...}, one key per day, null for a closed day.
     function getValue() {
-        return HOURS_DAYS.map((day) => {
+        const data = {};
+        HOURS_DAYS.forEach((day) => {
             const r = rows[day];
-            if (!r.checkbox.checked) return `${HOURS_DAY_LABELS[day]}: closed`;
-            return `${HOURS_DAY_LABELS[day]}: ${r.openField.value}-${r.closeField.value}`;
-        }).join("\n");
+            data[day] = r.checkbox.checked ? { open: r.openField.value, close: r.closeField.value } : null;
+        });
+        return JSON.stringify(data);
     }
 
     // Restores every day to the default open 09:00-18:00 for weekdays / closed for the

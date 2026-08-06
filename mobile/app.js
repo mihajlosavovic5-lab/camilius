@@ -429,7 +429,8 @@ if (capacitorPlugins) {
 
 // --- Working hours / price list pickers (Create Account and Profile both use these -
 // a real "pick from options" UI instead of a freeform textarea, serializing to/from the
-// same plain-text format the backend/AI already expect, so nothing else has to change) ---
+// same wire format the backend/AI already expect - JSON for working hours (see
+// hours-picker.js), plain text for the price list - so nothing else has to change) ---
 
 // Shared anchored option-list picker (Faza 4) - replaces native <select> dropdowns
 // (working-hours times, price-list currency) that used to open as a large OS-centered

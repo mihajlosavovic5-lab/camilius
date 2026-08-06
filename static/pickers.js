@@ -7,10 +7,11 @@
 // page, same reasoning as schedule.html's own per-slot duration dropdown.
 //
 // Each picker renders into a mount <div> and keeps a same-named hidden <input> in sync
-// on every change, serializing to/from the exact same plain-text format the backend/AI
-// already expect ("Monday: 09:00-18:00" / "Service: Price CCY" per line) - so register()/
-// settings() in app.py need no changes at all; they still just read request.form["working_hours"]
-// and request.form["price_list"] as plain strings.
+// on every change, serializing to/from the exact same wire format the backend/AI already
+// expect - JSON for working hours (see static/hours-picker.js), plain "Service: Price
+// CCY" per line for the price list - so register()/settings() in app.py need no changes
+// at all; they still just read request.form["working_hours"] and request.form["price_list"]
+// as plain strings.
 
 // settings.html inits all three pickers in the same DOMContentLoaded callback - without
 // this wrapper, one picker throwing (e.g. on a business whose saved data doesn't parse
