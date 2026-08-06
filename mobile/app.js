@@ -1707,6 +1707,7 @@ async function checkGoogleLoginStatusOnce(attempt, { closeBrowser = true } = {})
 
     attempt.settled = true;
     hideGoogleSigninOverlay();
+    storageRemove("googleLoginPendingState");
     if (activeGoogleLoginAttempt === attempt) {
         activeGoogleLoginAttempt = null;
         // A pending OTA update (see checkForOtaUpdate's own guard) was deferred while
@@ -1766,6 +1767,7 @@ async function pollGoogleLogin(attempt) {
     // nothing failed, the attempt just never got followed through.
     attempt.settled = true;
     hideGoogleSigninOverlay();
+    storageRemove("googleLoginPendingState");
     if (activeGoogleLoginAttempt === attempt) {
         activeGoogleLoginAttempt = null;
         // A pending OTA update (see checkForOtaUpdate's own guard) was deferred while
@@ -1781,6 +1783,12 @@ async function startGoogleLogin(button, errorBox, intent) {
     button.disabled = true;
     try {
         const data = await api("/api/google-login/start", { method: "POST", body: { intent } });
+        // Persisted (and awaited - this one write needs to actually be on disk before
+        // backgrounding, not just fired off) BEFORE the browser opens, so a boot that
+        // happens while it's open - see the boot IIFE's own comment on why that can
+        // happen - has something durable to resume from instead of just losing the
+        // attempt and showing a plain Login screen.
+        await storageSet("googleLoginPendingState", data.state);
         // Shown now, before the browser ever opens - see showGoogleSigninOverlay's own
         // comment for why the timing here (last thing painted before backgrounding, not
         // just "as soon as possible afterward") is what actually matters.
@@ -1794,6 +1802,7 @@ async function startGoogleLogin(button, errorBox, intent) {
         pollGoogleLogin(activeGoogleLoginAttempt);
     } catch (err) {
         hideGoogleSigninOverlay();
+        storageRemove("googleLoginPendingState");
         showErrorBox(errorBox, err.message || t("login.googleError"));
     } finally {
         button.disabled = false;
@@ -5283,7 +5292,7 @@ function waitForLayoutSettle() {
 updateOfflineBanner();
 
 (async () => {
-    const [token, businessName, onboardingSeen, theme, donationLink, pageTheme, mysiteHasPage, mysiteTagline, mysiteAbout, mysiteHasAppointments, mysitePublished, mysiteSlug] = await Promise.all([
+    const [token, businessName, onboardingSeen, theme, donationLink, pageTheme, mysiteHasPage, mysiteTagline, mysiteAbout, mysiteHasAppointments, mysitePublished, mysiteSlug, googleLoginPendingState] = await Promise.all([
         storageGet("token"),
         storageGet("businessName"),
         storageGet("onboardingSeen"),
@@ -5296,6 +5305,7 @@ updateOfflineBanner();
         storageGet("mysiteHasAppointments"),
         storageGet("mysitePublished"),
         storageGet("mysiteSlug"),
+        storageGet("googleLoginPendingState"),
     ]);
     applyTheme(theme || "system");
     await initLanguage();
@@ -5336,6 +5346,27 @@ updateOfflineBanner();
     await waitForLayoutSettle();
     if (state.token) {
         enterApp();
+    } else if (googleLoginPendingState) {
+        // A Google sign-in was in flight (startGoogleLogin persisted this right before
+        // opening the browser) when this boot happened - meaning whatever last ran in
+        // this WebView got wiped out from under that attempt: an OTA update reloading
+        // (see checkForOtaUpdate's own guard, which only protects against that once the
+        // attempt is back in memory - it can't protect a boot that's re-deriving that
+        // memory from scratch) or Android reclaiming the backgrounded process outright
+        // for memory while the Google/Chrome tab was open on top of it, a real
+        // possibility on constrained devices with `singleTask` - the OS is free to kill a
+        // background process at any time and just recreate the activity fresh on return.
+        // Either way this is not a fresh visitor arriving at Login - resume polling with
+        // the same state instead of showing the plain choice screen and losing the
+        // attempt (and the sign-in the visitor already completed on Google's side, whose
+        // result is sitting server-side waiting to be picked up - see
+        // database.oauth_login_session_status). showScreen("login") first so there's a
+        // real screen under the overlay for checkGoogleLoginStatusOnce's own outcomes
+        // (openRegisterScreen, showErrorBox) to land on once it settles.
+        showScreen("login");
+        showGoogleSigninOverlay();
+        activeGoogleLoginAttempt = { state: googleLoginPendingState, errorBox: el("login-error"), settled: false };
+        pollGoogleLogin(activeGoogleLoginAttempt);
     } else if (isNative && !onboardingSeen) {
         showScreen("onboarding");
     } else {
