@@ -2865,6 +2865,42 @@ el("detail-send").addEventListener("click", async () => {
 
 // --- Settings ---
 
+// Autosave for the three "Save changes" flows below (Profile, App Settings, My Site) -
+// a valid, dirty form saves itself a short debounce after the user stops editing instead
+// of waiting for a tap. SHOW_MANUAL_SAVE_BUTTONS is the single switch for all of it: false
+// keeps every button/handler/validity-check below exactly as it already was, just hidden
+// and autosave-triggered instead of tapped; flip it back to true to restore the old
+// tap-to-save UI (visible floating buttons, full-screen save-success overlay, no
+// autosave) with no other code changes.
+const SHOW_MANUAL_SAVE_BUTTONS = false;
+
+function makeAutosaveTrigger(buttonId, debounceMs) {
+    let timer = null;
+    // If a previous autosave is still in flight (button.disabled) when the debounce
+    // fires, retry on the same interval instead of dropping this edit - the button
+    // clears its own disabled state (see each click handler's `finally`) once that
+    // request settles.
+    function attempt() {
+        const button = el(buttonId);
+        if (button.disabled) { timer = setTimeout(attempt, debounceMs); return; }
+        timer = null;
+        button.click();
+    }
+    return function trigger(shouldSave) {
+        if (timer) { clearTimeout(timer); timer = null; }
+        if (SHOW_MANUAL_SAVE_BUTTONS || !shouldSave) return;
+        timer = setTimeout(attempt, debounceMs);
+    };
+}
+
+// Full-screen save-success celebration makes sense for a deliberate tap; for silent
+// autosave it'd pop up mid-edit every time the user pauses, so autosave uses the same
+// brief bottom toast already used elsewhere in the app instead (see showToast above).
+function notifySaved(message) {
+    if (SHOW_MANUAL_SAVE_BUTTONS) showSaveSuccess(message);
+    else showToast(message);
+}
+
 // The Save button stays hidden until the form actually differs from what was loaded (a
 // serialized snapshot comparison, not a generic "something fired an event" flag - so
 // re-picking the same phone country or an untouched field never shows it), then goes
@@ -2907,12 +2943,16 @@ function isProfileFormValid() {
     return true;
 }
 
+const triggerProfileAutosave = makeAutosaveTrigger("settings-save", 1400);
+
 function updateSettingsSaveValidity() {
     const button = el("settings-save");
     const dirty = profileFormSnapshot !== null && serializeProfileForm() !== profileFormSnapshot;
-    button.classList.toggle("hidden", !dirty);
-    button.disabled = !isProfileFormValid();
-    el("screen-profile").classList.toggle("has-unsaved", dirty);
+    const valid = isProfileFormValid();
+    button.classList.toggle("hidden", !SHOW_MANUAL_SAVE_BUTTONS || !dirty);
+    button.disabled = !valid;
+    el("screen-profile").classList.toggle("has-unsaved", SHOW_MANUAL_SAVE_BUTTONS && dirty);
+    triggerProfileAutosave(dirty && valid);
 }
 
 // Delegated instead of one listener per field - also catches the hours/prices pickers'
@@ -3265,7 +3305,7 @@ el("settings-save").addEventListener("click", async () => {
                 new_password: newPassword || undefined,
             },
         });
-        showSaveSuccess(t("settings.saved"));
+        notifySaved(t("settings.saved"));
         el("inbox-business-name").textContent = el("settings-name").value;
         resetPasswordField("settings-current-password");
         resetPasswordField("settings-new-password");
@@ -4040,10 +4080,13 @@ function serializeAppSettingsForm() {
     });
 }
 
+const triggerAppSettingsAutosave = makeAutosaveTrigger("settings-app-save", 400);
+
 function updateAppSettingsSaveState() {
     const dirty = appSettingsSnapshot !== null && serializeAppSettingsForm() !== appSettingsSnapshot;
-    el("settings-app-save").classList.toggle("hidden", !dirty);
-    el("screen-settings").classList.toggle("has-unsaved", dirty);
+    el("settings-app-save").classList.toggle("hidden", !SHOW_MANUAL_SAVE_BUTTONS || !dirty);
+    el("screen-settings").classList.toggle("has-unsaved", SHOW_MANUAL_SAVE_BUTTONS && dirty);
+    triggerAppSettingsAutosave(dirty);
 }
 
 ["settings-new-booking-toggle", "settings-reminders-owner-toggle"].forEach((id) => {
@@ -4136,7 +4179,7 @@ el("settings-app-save").addEventListener("click", async () => {
                 owner_reminder_minutes: state.proAccess ? state.reminderOwnerMinutes : undefined,
             },
         });
-        showSaveSuccess(t("settings.saved"));
+        notifySaved(t("settings.saved"));
         appSettingsSnapshot = serializeAppSettingsForm();
         updateAppSettingsSaveState();
     } catch (err) {
@@ -4312,11 +4355,14 @@ function serializeMysiteForm() {
     });
 }
 
+const triggerMysiteAutosave = makeAutosaveTrigger("mysite-save-btn", 1400);
+
 function updateMysiteSaveValidity() {
     const button = el("mysite-save-btn");
     const dirty = mysiteFormSnapshot !== null && serializeMysiteForm() !== mysiteFormSnapshot;
-    button.classList.toggle("hidden", !dirty);
-    el("screen-mysite").classList.toggle("has-unsaved", dirty);
+    button.classList.toggle("hidden", !SHOW_MANUAL_SAVE_BUTTONS || !dirty);
+    el("screen-mysite").classList.toggle("has-unsaved", SHOW_MANUAL_SAVE_BUTTONS && dirty);
+    triggerMysiteAutosave(dirty);
 }
 
 // Delegated for the same reason as Profile's equivalent listener - also catches the
@@ -4444,7 +4490,7 @@ el("mysite-save-btn").addEventListener("click", async () => {
     button.textContent = t("settings.saveLoading");
     try {
         await api("/api/page", { method: "POST", body });
-        showSaveSuccess(t("settings.saved"));
+        notifySaved(t("settings.saved"));
         await loadMySite();
     } catch (err) {
         errorBox.textContent = err.message || t("network.error");
