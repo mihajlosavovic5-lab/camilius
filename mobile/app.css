@@ -806,6 +806,11 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
 .settings-row-chevron { color: var(--text-muted); font-size: 19px; }
 .settings-row-stack { flex-direction: column; align-items: stretch; gap: 10px; cursor: default; }
 .settings-row-stack:active { background: none; }
+/* Toggle-only row (e.g. My Site's "Publish this page") - nothing happens when you tap
+   the row outside the switch itself, so darkening the whole row on press read as a
+   stray, unexplained flash rather than real feedback; the switch's own thumb/track
+   animation is already the feedback. */
+.settings-row-toggle:active { background: none; }
 
 /* --- Pro-only feature lock (Faza 11) - a Starter-plan/lapsed business sees the row/
    field but can't turn it on, same "visible but disabled" treatment as the website's
