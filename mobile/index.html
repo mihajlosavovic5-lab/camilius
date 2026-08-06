@@ -4,7 +4,17 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
 <title>Camilius</title>
-<link rel="stylesheet" href="app.css?v=26be026ce022">
+<!-- Preloaded ahead of app.css's own @font-face rules so these start fetching the
+     moment parsing reaches <head>, instead of waiting on the CSS to be parsed first -
+     see app.css's font-display: optional comment on why this matters: it's what keeps
+     that ~100ms window from actually being hit on a cold start. latin + latin-ext cover
+     every UI language except Cyrillic ones (ru/bg/...), which pay the one-time fallback
+     cost these two subsets are meant to avoid. -->
+<link rel="preload" href="fonts/inter-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="fonts/inter-latin-ext.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="fonts/lora-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="fonts/lora-latin-ext.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="app.css?v=889b90ce9ee8">
 </head>
 <body>
 
@@ -1525,7 +1535,7 @@
   </button>
 </nav>
 
-<script src="i18n.js?v=26be026ce022"></script>
-<script src="app.js?v=26be026ce022"></script>
+<script src="i18n.js?v=889b90ce9ee8"></script>
+<script src="app.js?v=889b90ce9ee8"></script>
 </body>
 </html>
