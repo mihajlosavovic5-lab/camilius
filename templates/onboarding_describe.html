@@ -203,7 +203,7 @@
             }
             textarea.value = result.data.text || "";
             textarea.focus();
-            setStatus("onboarding.describe.reviewHint", "Have a look and fix anything the transcription got wrong before generating your website.");
+            setStatus(null);
         }).catch(function () {
             busy = false;
             recordBtn.disabled = false;

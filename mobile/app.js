@@ -4636,7 +4636,7 @@ function mysiteRenderThemeSuggestions(themeList) {
                 textarea.value = data.text || "";
                 mysiteAutoGrowDescription();
                 textarea.focus();
-                setStatus(t("onboarding.describe.reviewHint") || "Have a look and fix anything the transcription got wrong.");
+                setStatus(null);
             }).catch(() => {
                 busy = false;
                 recordBtn.disabled = false;
