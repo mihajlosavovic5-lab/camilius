@@ -1595,9 +1595,13 @@ el("login-form").addEventListener("submit", async (event) => {
         const data = await api("/api/login", { method: "POST", body: { username, password } });
         state.token = data.token;
         state.businessName = data.business_name;
-        await storageSet("token", data.token);
-        await storageSet("businessName", data.business_name);
+        // enterApp() only ever reads state.token/state.businessName (kept in memory) -
+        // persisting them to native storage is just for the next cold start, so it
+        // doesn't need to gate the screen transition. Fired off in the background instead
+        // of awaited so the app view appears the instant login succeeds.
         enterApp();
+        storageSet("token", data.token).catch((e) => reportClientError(e.message, e.stack, "storage-set-token"));
+        storageSet("businessName", data.business_name).catch((e) => reportClientError(e.message, e.stack, "storage-set-businessName"));
     } catch (err) {
         if (err.data && err.data.pending_verification) {
             showVerifyPendingScreen(err.data.business_id, "", err.data.wait_seconds);
@@ -1682,9 +1686,14 @@ async function checkGoogleLoginStatusOnce(attempt, { closeBrowser = true } = {})
     if (data.status === "done") {
         state.token = data.token;
         state.businessName = data.business_name;
-        await storageSet("token", data.token);
-        await storageSet("businessName", data.business_name);
+        // See the plain login-form handler above for why this doesn't await the storage
+        // writes: the Custom Tab has just closed (or Android has just handed the app
+        // link straight back to this app) and the Login screen is still what's on
+        // screen underneath it, so every extra tick before enterApp() runs is a visible
+        // "back to login" flash before the app view actually appears.
         enterApp();
+        storageSet("token", data.token).catch((e) => reportClientError(e.message, e.stack, "storage-set-token"));
+        storageSet("businessName", data.business_name).catch((e) => reportClientError(e.message, e.stack, "storage-set-businessName"));
     } else if (data.status === "needs_signup") {
         // First time this Google identity has been seen, started from Create Account -
         // not logged in, just handed to the normal Create Account wizard with a
@@ -2174,9 +2183,9 @@ el("register-form").addEventListener("submit", async (event) => {
             // /api/login's own response.
             state.token = data.token;
             state.businessName = data.business_name;
-            await storageSet("token", data.token);
-            await storageSet("businessName", data.business_name);
             enterApp();
+            storageSet("token", data.token).catch((e) => reportClientError(e.message, e.stack, "storage-set-token"));
+            storageSet("businessName", data.business_name).catch((e) => reportClientError(e.message, e.stack, "storage-set-businessName"));
         } else {
             showVerifyPendingScreen(data.business_id, data.contact_email, data.wait_seconds);
         }
@@ -2234,9 +2243,9 @@ el("verify-pending-form").addEventListener("submit", async (e) => {
         state.pendingVerifyBusinessId = null;
         state.token = data.token;
         state.businessName = data.business_name;
-        await storageSet("token", data.token);
-        await storageSet("businessName", data.business_name);
         enterApp();
+        storageSet("token", data.token).catch((e) => reportClientError(e.message, e.stack, "storage-set-token"));
+        storageSet("businessName", data.business_name).catch((e) => reportClientError(e.message, e.stack, "storage-set-businessName"));
     } catch (err) {
         errorBox.textContent = err.message || t("verifyPending.wrongCode");
         errorBox.classList.remove("hidden");
