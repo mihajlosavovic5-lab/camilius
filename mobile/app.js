@@ -4431,6 +4431,7 @@ async function loadMySite() {
             el("mysite-published").checked = !!page.published;
             if (page.published) el("mysite-view-site-link").href = `${API_BASE}/p/${page.slug}`;
             mysitePopulateThemeSelect(page.theme);
+            storageSet("pageTheme", page.theme || "warm").catch(() => {});
             mysiteSelectedCustomTheme = page.theme === "custom" && page.custom_theme_json ? JSON.parse(page.custom_theme_json) : null;
             const swatch = el("mysite-theme-swatch");
             if (mysiteSelectedCustomTheme) {
@@ -5146,12 +5147,13 @@ function mysiteRenderThemeSuggestions(themeList) {
 updateOfflineBanner();
 
 (async () => {
-    const [token, businessName, onboardingSeen, theme, donationLink] = await Promise.all([
+    const [token, businessName, onboardingSeen, theme, donationLink, pageTheme] = await Promise.all([
         storageGet("token"),
         storageGet("businessName"),
         storageGet("onboardingSeen"),
         storageGet("theme"),
         storageGet("donationLink"),
+        storageGet("pageTheme"),
     ]);
     applyTheme(theme || "system");
     await initLanguage();
@@ -5164,6 +5166,11 @@ updateOfflineBanner();
     // by that same fetch moments later if the business's donation link actually changed.
     el("donation-strip").classList.toggle("hidden", !donationLink);
     if (donationLink) el("donation-strip-link").href = donationLink;
+    // Same reasoning as the donation strip above - populates the My Site tab's "Design"
+    // row from last launch's cache instead of leaving it blank until loadMySite()'s own
+    // /api/page fetch resolves. Corrected by that same fetch moments later if the
+    // business's design actually changed.
+    mysitePopulateThemeSelect(pageTheme || "warm");
 
     if (state.token) {
         enterApp();
