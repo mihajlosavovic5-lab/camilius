@@ -3,7 +3,16 @@
 // screens instead of loading the server-rendered website.
 
 const API_BASE = "https://app.ai-auto-reply-mail.com";
-const APP_VERSION = "1.9.10"; // bumped alongside the native versionName, sent with crash reports
+// Bumped alongside the native versionName, sent with crash reports - deliberately NOT
+// bumped for the 1.9.11 native-only release (status-bar overlay fix, see build.gradle/
+// api.py's APK_VERSION). This constant ships to every device via the very same OTA
+// bundle it's declared in, native-updated or not, so bumping it here would make the
+// update-banner check below (info.version === APP_VERSION) go true - and stop nagging -
+// for every device the instant this file's OTA update lands, including the ones that
+// never actually installed the new APK. Leaving it at the prior release's value keeps
+// the mismatch (and the banner) alive for anyone still on old native code; bump it to
+// "1.9.11" in a later, purely-cosmetic OTA push once that's no longer needed.
+const APP_VERSION = "1.9.10";
 
 // No per-account sent-at tracking on the backend for password-reset emails (unlike email/
 // phone verification below), so the forgot-password buttons' cooldown is purely client-side -
