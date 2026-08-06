@@ -4623,19 +4623,37 @@ function mysiteRenderThemeSuggestions(themeList) {
         ctx2d.scale(dpr, dpr);
         const lineColor = getComputedStyle(document.documentElement).getPropertyValue("--text-muted").trim() || "#7a6c52";
 
+        // Bar-style meter (ChatGPT voice-input look) instead of a continuous oscilloscope
+        // trace: each frame's peak level becomes one bar, pushed onto a rolling history that
+        // scrolls left as new ones arrive on the right - a fixed number of bars sized to fit
+        // the canvas, redrawn as short rounded-cap strokes rather than filled rects.
+        const barWidth = 3;
+        const barStep = 6;
+        const barCount = Math.max(1, Math.floor(w / barStep));
+        const history = new Array(barCount).fill(0.04);
+
         (function draw() {
             waveformRAF = requestAnimationFrame(draw);
             analyser.getByteTimeDomainData(data);
+            let maxDev = 0;
+            for (let i = 0; i < data.length; i++) {
+                const dev = Math.abs(data[i] - 128);
+                if (dev > maxDev) maxDev = dev;
+            }
+            history.push(Math.min(1, maxDev / 110));
+            history.shift();
+
             ctx2d.clearRect(0, 0, w, h);
-            ctx2d.lineWidth = 2;
+            ctx2d.lineWidth = barWidth;
+            ctx2d.lineCap = "round";
             ctx2d.strokeStyle = lineColor;
             ctx2d.beginPath();
-            const sliceWidth = w / data.length;
-            let x = 0;
-            for (let i = 0; i < data.length; i++) {
-                const y = (data[i] / 255) * h;
-                if (i === 0) ctx2d.moveTo(x, y); else ctx2d.lineTo(x, y);
-                x += sliceWidth;
+            for (let j = 0; j < history.length; j++) {
+                const barH = Math.max(barWidth, history[j] * h);
+                const x = j * barStep + barWidth / 2;
+                const yTop = (h - barH) / 2;
+                ctx2d.moveTo(x, yTop);
+                ctx2d.lineTo(x, yTop + barH);
             }
             ctx2d.stroke();
         })();

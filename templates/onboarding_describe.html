@@ -141,19 +141,37 @@
         var lineColor = getComputedStyle(document.documentElement).getPropertyValue("--text-muted").trim() || "#7a6c52";
         waveformCanvas.classList.add("active");
 
+        // Bar-style meter (ChatGPT voice-input look) instead of a continuous oscilloscope
+        // trace: each frame's peak level becomes one bar, pushed onto a rolling history that
+        // scrolls left as new ones arrive on the right - a fixed number of bars sized to fit
+        // the canvas, redrawn as short rounded-cap strokes rather than filled rects.
+        var barWidth = 3;
+        var barStep = 6;
+        var barCount = Math.max(1, Math.floor(w / barStep));
+        var history = new Array(barCount).fill(0.04);
+
         (function draw() {
             waveformRAF = requestAnimationFrame(draw);
             analyser.getByteTimeDomainData(data);
+            var maxDev = 0;
+            for (var i = 0; i < data.length; i++) {
+                var dev = Math.abs(data[i] - 128);
+                if (dev > maxDev) maxDev = dev;
+            }
+            history.push(Math.min(1, maxDev / 110));
+            history.shift();
+
             ctx2d.clearRect(0, 0, w, h);
-            ctx2d.lineWidth = 2;
+            ctx2d.lineWidth = barWidth;
+            ctx2d.lineCap = "round";
             ctx2d.strokeStyle = lineColor;
             ctx2d.beginPath();
-            var sliceWidth = w / data.length;
-            var x = 0;
-            for (var i = 0; i < data.length; i++) {
-                var y = (data[i] / 255) * h;
-                if (i === 0) ctx2d.moveTo(x, y); else ctx2d.lineTo(x, y);
-                x += sliceWidth;
+            for (var j = 0; j < history.length; j++) {
+                var barH = Math.max(barWidth, history[j] * h);
+                var x = j * barStep + barWidth / 2;
+                var yTop = (h - barH) / 2;
+                ctx2d.moveTo(x, yTop);
+                ctx2d.lineTo(x, yTop + barH);
             }
             ctx2d.stroke();
         })();
