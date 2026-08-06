@@ -1712,6 +1712,11 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
    .inbox-list - see .inbox-list above). */
 .inbox-list-wrap { flex: 1; display: flex; flex-direction: column; overflow-y: auto; min-height: 0; -webkit-overflow-scrolling: touch; }
 
+/* My Site tab's content is just stacked .profile-section cards (same as Profile/Settings),
+   not an edge-to-edge list like Inbox - give it the same horizontal/bottom inset as
+   .detail-body so those cards sit inset from the screen edges instead of spanning full-width. */
+.screen-mysite .inbox-list-wrap { padding: 0 18px calc(24px + var(--tabbar-h) + var(--safe-bottom)); }
+
 /* Pull-to-refresh (re-added on top of the automatic push-triggered + 15s poll refresh -
    users expect the gesture on an inbox screen even when the list already updates itself).
    Height is driven from JS as the user drags (0 while idle); .dragging disables the
