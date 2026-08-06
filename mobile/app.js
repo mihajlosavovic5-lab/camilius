@@ -4442,6 +4442,20 @@ function mysiteAutoGrowDescription() {
 }
 el("mysite-description").addEventListener("input", mysiteAutoGrowDescription);
 
+// Send button fills solid gold once there's text to send (starts as an empty gold-outline
+// circle); the mic button hides the moment typing starts, since voice and typed input are
+// alternate ways to fill the same field, not both needed at once. Left alone mid-recording
+// (recordBtn's own "recording" class) so the record indicator doesn't vanish under the user.
+function mysiteUpdateComposeButtons() {
+    const hasText = el("mysite-description").value.trim().length > 0;
+    el("mysite-send-btn").classList.toggle("has-text", hasText);
+    const recordBtn = el("mysite-voice-btn");
+    if (recordBtn && !recordBtn.classList.contains("recording")) {
+        recordBtn.hidden = hasText || recordBtn.dataset.unsupported === "true";
+    }
+}
+el("mysite-description").addEventListener("input", mysiteUpdateComposeButtons);
+
 // Single "send" action (chat-input style, next to the mic button above) that replaces
 // the old separate "Generate draft" and "Suggest AI designs" buttons - one description
 // now drives both the tagline/about/FAQ draft and the theme suggestions at once. Either
@@ -4543,7 +4557,10 @@ function mysiteRenderThemeSuggestions(themeList) {
     if (!recordBtn || !textarea) return;
 
     const supported = !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia && window.MediaRecorder);
-    if (!supported) return;
+    if (!supported) {
+        recordBtn.dataset.unsupported = "true";
+        return;
+    }
     recordBtn.hidden = false;
 
     function setStatus(text, isError) {
@@ -4635,6 +4652,7 @@ function mysiteRenderThemeSuggestions(themeList) {
                 }
                 textarea.value = data.text || "";
                 mysiteAutoGrowDescription();
+                mysiteUpdateComposeButtons();
                 textarea.focus();
                 setStatus(null);
             }).catch(() => {

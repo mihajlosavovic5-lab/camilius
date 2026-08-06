@@ -1315,15 +1315,21 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
     50% { opacity: .35; transform: scale(.7); }
 }
 .textarea-send-btn {
-    width: 34px; height: 34px; border-radius: 50%; border: none;
-    background: var(--primary); color: #fff;
+    width: 34px; height: 34px; border-radius: 50%;
+    border: 2px solid var(--primary); background: transparent; color: var(--primary);
     display: flex; align-items: center; justify-content: center; cursor: pointer;
-    box-shadow: 0 2px 8px -2px rgba(214,148,16,.6);
-    transition: background .15s ease, transform .1s ease;
+    box-shadow: none;
+    transition: background .15s ease, border-color .15s ease, color .15s ease, transform .1s ease;
 }
 .textarea-send-btn svg { width: 18px; height: 18px; }
-.textarea-send-btn:active { background: var(--primary-dark); transform: scale(.94); }
-.textarea-send-btn:disabled { background: #cabfa4; box-shadow: none; }
+.textarea-send-btn.has-text {
+    border-color: transparent; background: var(--primary); color: #fff;
+    box-shadow: 0 2px 8px -2px rgba(214,148,16,.6);
+}
+.textarea-send-btn:active { transform: scale(.94); }
+.textarea-send-btn.has-text:active { background: var(--primary-dark); }
+.textarea-send-btn:disabled { border-color: #cabfa4; color: #cabfa4; background: transparent; box-shadow: none; }
+.textarea-send-btn.has-text:disabled { background: #cabfa4; color: #fff; box-shadow: none; }
 .voice-status { font-size: 13px; color: var(--text-muted); margin: 6px 2px 0; }
 .voice-status.voice-status-error { color: var(--danger); }
 .voice-status:empty { display: none; }
