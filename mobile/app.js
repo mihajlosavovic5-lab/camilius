@@ -384,12 +384,15 @@ if (capacitorPlugins) {
 
             const banner = el("update-banner");
             banner.classList.remove("hidden");
-            el("update-download-btn").addEventListener("click", async () => {
-                if (capacitorPlugins.Browser) {
-                    await capacitorPlugins.Browser.open({ url: info.url });
-                } else {
-                    window.open(info.url, "_blank");
-                }
+            el("update-download-btn").addEventListener("click", () => {
+                // Deliberately NOT capacitorPlugins.Browser.open() (Chrome Custom Tabs on
+                // Android, used elsewhere for OAuth/checkout) - Custom Tabs are known to
+                // leave a download's progress sheet stuck at 100% forever instead of
+                // handing off to the system Download Manager for a real "download
+                // complete" notification/Open action, even once the file's fully written
+                // to disk. "_system" opens this in the actual full browser app instead,
+                // whose downloads behave normally.
+                window.open(info.url, "_system");
             });
             el("update-dismiss-btn").addEventListener("click", async () => {
                 await storageSet("apkUpdateDismissedVersion", info.version);
