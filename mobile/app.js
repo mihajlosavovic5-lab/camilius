@@ -4575,6 +4575,7 @@ function mysiteRenderThemeSuggestions(themeList) {
         const extension = (blob.type || "").indexOf("mp4") !== -1 ? "m4a" : "webm";
         const formData = new FormData();
         formData.append("audio", blob, "mysite-description." + extension);
+        formData.append("language", document.documentElement.lang || "en");
         fetch(API_BASE + "/api/voice-transcribe", {
             method: "POST",
             headers: state.token ? { Authorization: "Bearer " + state.token } : {},

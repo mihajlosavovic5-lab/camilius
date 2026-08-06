@@ -45,6 +45,22 @@ def test_transcribe_voice_description_passes_filename_and_content_type(monkeypat
     assert file_obj.read() == b"fake-audio-bytes"
 
 
+def test_transcribe_voice_description_passes_supported_language(monkeypatch):
+    captured = _mock_transcription(monkeypatch)
+    page_generator.transcribe_voice_description(b"fake-audio-bytes", "recording.webm", "audio/webm", "sr")
+    assert captured["language"] == "sr"
+
+
+def test_transcribe_voice_description_ignores_unsupported_or_missing_language(monkeypatch):
+    captured = _mock_transcription(monkeypatch)
+    page_generator.transcribe_voice_description(b"fake-audio-bytes", "recording.webm", "audio/webm", "xx")
+    assert "language" not in captured
+
+    captured = _mock_transcription(monkeypatch)
+    page_generator.transcribe_voice_description(b"fake-audio-bytes", "recording.webm", "audio/webm")
+    assert "language" not in captured
+
+
 def test_transcribe_voice_description_rejects_empty_audio():
     with pytest.raises(ValueError):
         page_generator.transcribe_voice_description(b"", "recording.webm", "audio/webm")
@@ -80,10 +96,13 @@ def test_transcribe_voice_description_truncates_long_transcript(monkeypatch):
 
 # --- /api/onboarding/voice-transcribe (route) ---
 
-def _upload(client, csrf_token, audio_bytes=b"fake-audio-bytes", filename="recording.webm", content_type="audio/webm"):
+def _upload(client, csrf_token, audio_bytes=b"fake-audio-bytes", filename="recording.webm", content_type="audio/webm", language=None):
+    data = {"csrf_token": csrf_token, "audio": (io.BytesIO(audio_bytes), filename, content_type)}
+    if language is not None:
+        data["language"] = language
     return client.post(
         "/api/onboarding/voice-transcribe",
-        data={"csrf_token": csrf_token, "audio": (io.BytesIO(audio_bytes), filename, content_type)},
+        data=data,
         content_type="multipart/form-data",
         headers={"Referer": "http://localhost/api/onboarding/voice-transcribe"},
     )
@@ -97,6 +116,16 @@ def test_voice_transcribe_route_returns_text(client, unique_username, unique_ema
     response = _upload(client, csrf_token)
     assert response.status_code == 200
     assert response.get_json()["text"] == "A cozy cafe downtown, open 8 to 22, coffee and cakes."
+
+
+def test_voice_transcribe_route_forwards_language_to_whisper(client, unique_username, unique_email, monkeypatch):
+    register_business_web(client, unique_username, unique_email)
+    captured = _mock_transcription(monkeypatch, text="Jedan mali frizerski salon.")
+    csrf_token = get_csrf_token(client, "/onboarding/website")
+
+    response = _upload(client, csrf_token, language="sr")
+    assert response.status_code == 200
+    assert captured["language"] == "sr"
 
 
 def test_voice_transcribe_route_requires_login(client):

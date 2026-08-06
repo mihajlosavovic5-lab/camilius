@@ -37,6 +37,12 @@ MAX_DOCUMENT_TEXT_LENGTH = 8000
 # with room to spare, while keeping a single voice note's OpenAI cost bounded.
 MAX_VOICE_AUDIO_BYTES = 6 * 1024 * 1024
 
+# Mirrors LANGUAGES in static/site-i18n.js / mobile/i18n.js - the caller sends the site's
+# active UI language along with the recording so Whisper can be told what to listen for
+# instead of guessing from audio alone (auto-detection is unreliable on short/noisy clips
+# and tends to default to English when unsure). All ten are valid Whisper language codes.
+SUPPORTED_VOICE_LANGUAGES = {"en", "es", "pt", "fr", "de", "it", "ru", "sr", "zh", "tr"}
+
 # A whole page (tagline + about + 7 days of hours + several services + a few FAQ pairs)
 # needs more room than generate_reply.py's MAX_REPLY_TOKENS (400, tuned for one short
 # chat reply) - this is a one-time generation, not a per-message cost, so the larger
@@ -165,7 +171,7 @@ def generate_page_draft(description, document_text=None):
         raise ValueError(f"model returned invalid JSON: {error}") from error
 
 
-def transcribe_voice_description(audio_bytes, filename, content_type=None):
+def transcribe_voice_description(audio_bytes, filename, content_type=None, language=None):
     """Speech-to-text for the onboarding "describe your business" step, via the same
     OpenAI client as generate_page_draft() above - lets an owner speak their description
     instead of typing it, transcribed text then flows through the exact same
@@ -174,6 +180,11 @@ def transcribe_voice_description(audio_bytes, filename, content_type=None):
     written to disk or persisted anywhere; the caller (app.py) discards it right after
     this returns and keeps only the resulting text, same as it would for typed input.
 
+    language: the site's active UI language code (e.g. "sr", "fr"), passed through to
+    Whisper as a hint when it's one of SUPPORTED_VOICE_LANGUAGES. Left as auto-detect
+    (Whisper's default) for anything else so an unrecognized/missing code never breaks
+    transcription - it just loses the accuracy boost from an explicit hint.
+
     Raises ValueError if the recording is missing/too large/unintelligible - caller
     decides how to surface that, same contract as generate_page_draft()."""
     if not audio_bytes:
@@ -181,10 +192,15 @@ def transcribe_voice_description(audio_bytes, filename, content_type=None):
     if len(audio_bytes) > MAX_VOICE_AUDIO_BYTES:
         raise ValueError("audio file is too large")
 
+    kwargs = {}
+    if language in SUPPORTED_VOICE_LANGUAGES:
+        kwargs["language"] = language
+
     try:
         transcript = client.audio.transcriptions.create(
             model="whisper-1",
             file=(filename or "recording.webm", io.BytesIO(audio_bytes), content_type or "application/octet-stream"),
+            **kwargs,
         )
     except Exception as error:
         raise ValueError(f"transcription failed: {error}") from error
