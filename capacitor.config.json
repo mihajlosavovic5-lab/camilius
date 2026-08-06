@@ -5,6 +5,11 @@
   "plugins": {
     "CapacitorUpdater": {
       "autoUpdate": false
+    },
+    "StatusBar": {
+      "overlaysWebView": false,
+      "style": "LIGHT",
+      "backgroundColor": "#d69410"
     }
   }
 }
