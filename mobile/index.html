@@ -14,7 +14,7 @@
 <link rel="preload" href="fonts/inter-latin-ext.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="fonts/lora-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="fonts/lora-latin-ext.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="app.css?v=75a600ab5a3c">
+<link rel="stylesheet" href="app.css?v=0ab53a7dc40e">
 </head>
 <body>
 
@@ -64,6 +64,22 @@
       <div id="ota-progress-fill" class="ota-progress-fill"></div>
     </div>
     <span id="ota-progress-percent" class="ota-progress-percent">0%</span>
+  </div>
+</div>
+
+<!-- Google sign-in handoff overlay - Android's App Link handoff (see app.js's
+     appUrlOpen listener) switches focus back to this app's WebView the instant Google's
+     redirect lands, which is still one network round trip (GET /api/google-login/status)
+     before the app actually knows the attempt succeeded. Without this, that round trip
+     had nothing covering it, so whatever screen was underneath (Login, brand mark and
+     all) was what got revealed for that gap - reading as "bounced back to login" even
+     though the sign-in itself had already succeeded server-side. Reuses the OTA overlay's
+     look (same spinner styling) since it's the same "brief mandatory wait, no user action"
+     shape, just without the icon/progress bar this one doesn't need. -->
+<div id="google-signin-overlay" class="ota-update-overlay hidden">
+  <div class="ota-update-card">
+    <div class="ota-update-spinner"></div>
+    <p data-i18n="login.submitLoading">Logging in…</p>
   </div>
 </div>
 
@@ -1535,7 +1551,7 @@
   </button>
 </nav>
 
-<script src="i18n.js?v=75a600ab5a3c"></script>
-<script src="app.js?v=75a600ab5a3c"></script>
+<script src="i18n.js?v=0ab53a7dc40e"></script>
+<script src="app.js?v=0ab53a7dc40e"></script>
 </body>
 </html>

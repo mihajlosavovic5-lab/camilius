@@ -1649,6 +1649,24 @@ let pendingGoogleLinkToken = null;
 // pollGoogleLogin is already waiting on, so it can settle it immediately instead of
 // waiting for the next scheduled poll tick.
 
+// Covers the gap described above the #google-signin-overlay markup in index.html: only
+// needed around the appUrlOpen handoff, never around the plain poll loop (there,
+// Browser.close() and enterApp()/the error screen fire back-to-back with nothing revealed
+// in between, so there's no gap to cover). safetyTimer is a last-resort auto-hide - if the
+// confirming fetch never comes back (e.g. connectivity dropped the instant the app
+// resumed) this still releases the screen back to the visitor after a few seconds instead
+// of sitting on the spinner for the full 2-minute poll timeout.
+let googleSigninOverlaySafetyTimer = null;
+function showGoogleSigninOverlay() {
+    clearTimeout(googleSigninOverlaySafetyTimer);
+    el("google-signin-overlay").classList.remove("hidden");
+    googleSigninOverlaySafetyTimer = setTimeout(hideGoogleSigninOverlay, 5000);
+}
+function hideGoogleSigninOverlay() {
+    clearTimeout(googleSigninOverlaySafetyTimer);
+    el("google-signin-overlay").classList.add("hidden");
+}
+
 // One status check - returns true once the attempt has actually resolved (done/
 // needs_signup/no_account/error), false while still 'pending' (or on a network hiccup,
 // which the caller just retries). Shared by pollGoogleLogin's interval loop and the App
@@ -1668,6 +1686,7 @@ async function checkGoogleLoginStatusOnce(attempt, { closeBrowser = true } = {})
     if (data.status === "pending") return false;
 
     attempt.settled = true;
+    hideGoogleSigninOverlay();
     if (activeGoogleLoginAttempt === attempt) {
         activeGoogleLoginAttempt = null;
         // A pending OTA update (see checkForOtaUpdate's own guard) was deferred while
@@ -1726,6 +1745,7 @@ async function pollGoogleLogin(attempt) {
     // never came back, silently giving up (rather than showing a stale error) is right -
     // nothing failed, the attempt just never got followed through.
     attempt.settled = true;
+    hideGoogleSigninOverlay();
     if (activeGoogleLoginAttempt === attempt) {
         activeGoogleLoginAttempt = null;
         // A pending OTA update (see checkForOtaUpdate's own guard) was deferred while
@@ -1778,6 +1798,11 @@ if (capacitorPlugins && capacitorPlugins.App) {
         let path = "";
         try { path = new URL(data.url).pathname; } catch (e) {}
         if (path === "/auth/google/done") {
+            // Android has already switched focus back to this app's WebView as part of
+            // delivering the intent - see #google-signin-overlay in index.html for why
+            // that alone (before the status fetch below actually confirms anything)
+            // needs covering.
+            showGoogleSigninOverlay();
             checkGoogleLoginStatusOnce(activeGoogleLoginAttempt, { closeBrowser: false });
         }
     });
