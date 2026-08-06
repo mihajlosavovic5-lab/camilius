@@ -877,7 +877,7 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
    app.js). Looks like the old native <select> it replaces, but opens the shared
    #option-modal anchored right below it instead of a large OS-centered dialog. --- */
 .picker-btn {
-    display: flex; align-items: center; justify-content: space-between; gap: 6px;
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
     padding: 9px 10px; border: 1px solid var(--border); border-radius: 8px;
     font-family: inherit; font-size: 15px; color: var(--text); background: var(--background); cursor: pointer;
 }
@@ -886,6 +886,25 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
 /* Options list inside the shared #option-modal - reuses the country picker's sheet/list
    classes (same anchored-below-field mechanism), plus its own selected-state look. */
 .country-option-btn.selected { color: var(--primary-ink); font-weight: 700; background: var(--primary-light); }
+
+/* Working hours' own "Apply changes" button (Profile > Business details only, not the
+   onboarding step which reuses the same .hours-picker) - the rest of this screen
+   autosaves silently in the background (SHOW_MANUAL_SAVE_BUTTONS in app.js), but hours
+   affect booking availability immediately, so this section gets an explicit, visible
+   save action right where it's edited instead of relying purely on that debounce. Only
+   shown once the hours actually differ from what's saved (see updateHoursApplyVisibility
+   in app.js), same "don't show it until there's something to apply" rule the rest of the
+   form already follows. */
+.hours-section-header { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.hours-section-header label { margin: 0; }
+.hours-apply-btn {
+    padding: 6px 14px; border: none; border-radius: 8px; background: var(--primary);
+    color: #fff; font-family: inherit; font-size: 13px; font-weight: 600; cursor: pointer;
+    flex-shrink: 0; transition: opacity .15s ease, transform .1s ease;
+}
+.hours-apply-btn:active { transform: scale(.96); }
+.hours-apply-btn:disabled { opacity: .5; cursor: default; }
+.hours-apply-btn.hidden { display: none; }
 
 /* --- Working hours picker: a compact single list - one line per day, a subtle divider
    between rows instead of a card per day, and a fixed row height so toggling a day off
@@ -938,7 +957,14 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
 }
 .hours-day-row:last-child { border-bottom: none; }
 .hours-day-row-weekend { border-top: 2px solid var(--border); }
-.hours-day-name { font-weight: 600; font-size: 14.5px; width: 72px; flex-shrink: 0; }
+/* width fits the longest translated day name ("Wednesday") without truncating; the
+   ellipsis below is just a safety net for locales whose day names run even longer
+   (e.g. Portuguese "Segunda-feira") so a long name is clipped instead of spilling into
+   the time fields next to it. */
+.hours-day-name {
+    font-weight: 600; font-size: 14.5px; width: 84px; flex-shrink: 0;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
 .hours-day-times { display: flex; align-items: center; gap: 6px; flex: 1; min-width: 0; }
 .hours-day-times.hidden { display: none; }
 .hours-day-closed-label { flex: 1; min-width: 0; font-size: 14px; color: var(--text-muted); }
