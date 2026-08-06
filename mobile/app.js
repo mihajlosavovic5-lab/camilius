@@ -4631,9 +4631,17 @@ function mysiteRenderThemeSuggestions(themeList) {
         const barStep = 6;
         const barCount = Math.max(1, Math.floor(w / barStep));
         const history = new Array(barCount).fill(0.04);
+        // A new bar every animation frame (~16ms) scrolled too fast to read as speech -
+        // gating pushes to this interval instead slows the scroll without needing a lower
+        // frame rate anywhere else.
+        const PUSH_INTERVAL_MS = 70;
+        let lastPush = 0;
 
         (function draw() {
             waveformRAF = requestAnimationFrame(draw);
+            const now = performance.now();
+            if (now - lastPush < PUSH_INTERVAL_MS) return;
+            lastPush = now;
             analyser.getByteTimeDomainData(data);
             let maxDev = 0;
             for (let i = 0; i < data.length; i++) {

@@ -149,9 +149,17 @@
         var barStep = 6;
         var barCount = Math.max(1, Math.floor(w / barStep));
         var history = new Array(barCount).fill(0.04);
+        // A new bar every animation frame (~16ms) scrolled too fast to read as speech -
+        // gating pushes to this interval instead slows the scroll without needing a lower
+        // frame rate anywhere else.
+        var PUSH_INTERVAL_MS = 70;
+        var lastPush = 0;
 
         (function draw() {
             waveformRAF = requestAnimationFrame(draw);
+            var now = performance.now();
+            if (now - lastPush < PUSH_INTERVAL_MS) return;
+            lastPush = now;
             analyser.getByteTimeDomainData(data);
             var maxDev = 0;
             for (var i = 0; i < data.length; i++) {
