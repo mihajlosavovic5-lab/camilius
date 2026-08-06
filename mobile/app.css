@@ -1313,13 +1313,22 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
     background: var(--surface); border: 1px solid var(--border); border-radius: 14px;
     padding: 3px 8px 3px 3px; font-size: 12.5px; color: var(--text-muted);
 }
-.compose-attachment-chip.uploading { opacity: .5; }
+.compose-attachment-chip.uploading { opacity: .7; }
 .compose-attachment-chip img {
     width: 22px; height: 22px; border-radius: 50%; object-fit: cover; flex-shrink: 0;
 }
 .compose-attachment-chip .chip-icon {
-    width: 22px; height: 22px; border-radius: 50%; background: var(--border);
+    position: relative; width: 22px; height: 22px; border-radius: 50%; background: var(--border);
     display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 11px;
+}
+/* Corner "loading" badge on the icon while an attachment is still uploading - see
+   uploadFile() in app.js, which shows this generic icon+label placeholder instead of the
+   file's own (often long, meaningless-to-read) name while the request is in flight. */
+.chip-spinner {
+    position: absolute; top: -3px; right: -3px; width: 11px; height: 11px;
+    border-radius: 50%; border: 2px solid var(--border); border-top-color: var(--primary);
+    background: var(--surface);
+    animation: ota-spin .7s linear infinite;
 }
 .compose-attachment-chip .chip-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .compose-attachment-chip .chip-remove {

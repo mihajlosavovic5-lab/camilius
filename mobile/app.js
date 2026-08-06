@@ -4885,6 +4885,17 @@ function mysiteRenderThemeSuggestions(themeList) {
         return null;
     }
 
+    // Generic "photo/video/file" stand-ins, never the picked file's own name - a phone's
+    // camera-generated filename is meaningless to read and often long enough to overflow
+    // the chip on its own, so neither the in-flight placeholder below nor the finished
+    // chip (see makeChip's own name.textContent fallback) ever shows it for images/video.
+    function iconFor(kind) {
+        return kind === "video" ? "▶" : kind === "image" ? "🖼" : "📄";
+    }
+    function labelFor(kind) {
+        return kind === "video" ? "Video" : kind === "image" ? "Photo" : "File";
+    }
+
     function makeChip(kind, item) {
         const chip = document.createElement("span");
         chip.className = "compose-attachment-chip";
@@ -4902,13 +4913,13 @@ function mysiteRenderThemeSuggestions(themeList) {
         } else {
             const icon = document.createElement("span");
             icon.className = "chip-icon";
-            icon.textContent = kind === "video" ? "▶" : "📄";
+            icon.textContent = iconFor(kind);
             chip.appendChild(icon);
         }
 
         const name = document.createElement("span");
         name.className = "chip-name";
-        name.textContent = item.filename || (kind === "video" ? "Video" : kind === "image" ? "Photo" : "File");
+        name.textContent = item.filename || labelFor(kind);
         chip.appendChild(name);
 
         const removeBtn = document.createElement("button");
@@ -4946,7 +4957,20 @@ function mysiteRenderThemeSuggestions(themeList) {
 
         const placeholder = document.createElement("span");
         placeholder.className = "compose-attachment-chip uploading";
-        placeholder.textContent = file.name;
+
+        const icon = document.createElement("span");
+        icon.className = "chip-icon";
+        icon.textContent = iconFor(kind);
+        const spinner = document.createElement("span");
+        spinner.className = "chip-spinner";
+        icon.appendChild(spinner);
+        placeholder.appendChild(icon);
+
+        const name = document.createElement("span");
+        name.className = "chip-name";
+        name.textContent = labelFor(kind);
+        placeholder.appendChild(name);
+
         list.appendChild(placeholder);
 
         const formData = new FormData();
