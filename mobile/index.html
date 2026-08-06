@@ -14,7 +14,7 @@
 <link rel="preload" href="fonts/inter-latin-ext.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="fonts/lora-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="fonts/lora-latin-ext.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="app.css?v=c089b7d33166">
+<link rel="stylesheet" href="app.css?v=fe32b2014897">
 </head>
 <body>
 
@@ -1050,6 +1050,14 @@
           <button type="button" class="link-btn" id="settings-phone-verify-btn" data-i18n="settings.phoneVerifyBtn">Send verification email</button>
         </div>
         <div id="settings-phone-verify-sent" class="alert alert-success hidden" data-i18n="verifyPending.resent">Email sent again - check your inbox.</div>
+        <div id="settings-phone-verify-code-row" class="hidden" style="margin-top:10px;">
+          <div class="floating-field">
+            <input type="text" id="settings-phone-verify-code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" pattern="[0-9]{6}" placeholder=" ">
+            <label for="settings-phone-verify-code" data-i18n="verifyPending.codePlaceholder">Verification code</label>
+          </div>
+          <p class="field-error hidden" id="settings-phone-verify-code-error"></p>
+          <button type="button" class="button button-secondary" id="settings-phone-verify-code-submit" data-i18n="verifyPending.verify">Verify</button>
+        </div>
       </div>
 
       <div class="profile-section">
@@ -1549,7 +1557,7 @@
   </button>
 </nav>
 
-<script src="i18n.js?v=c089b7d33166"></script>
-<script src="app.js?v=c089b7d33166"></script>
+<script src="i18n.js?v=fe32b2014897"></script>
+<script src="app.js?v=fe32b2014897"></script>
 </body>
 </html>

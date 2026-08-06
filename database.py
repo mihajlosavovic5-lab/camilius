@@ -642,6 +642,15 @@ def create_database():
     cursor.execute("ALTER TABLE businesses ADD COLUMN IF NOT EXISTS phone_verify_token TEXT")
     cursor.execute("ALTER TABLE businesses ADD COLUMN IF NOT EXISTS phone_verify_expires TIMESTAMP")
     cursor.execute("ALTER TABLE businesses ADD COLUMN IF NOT EXISTS phone_verify_sent_at TIMESTAMP")
+    # SMS path (send_sms.sms_configured() gates whether this is ever used - see that
+    # module's own comment): a typed code texted to the phone itself, not the emailed link
+    # above. Separate columns rather than repurposing phone_verify_token/expires for the
+    # same reason email_verify_code/expires are separate from email_verify_token/expires -
+    # see that pair's own comment. Shares phone_verify_sent_at with the link flow purely
+    # for the resend cooldown; only one of the two flows is ever reachable for a given
+    # deployment (sms_configured() is a single global switch), so they never race.
+    cursor.execute("ALTER TABLE businesses ADD COLUMN IF NOT EXISTS phone_verify_code TEXT")
+    cursor.execute("ALTER TABLE businesses ADD COLUMN IF NOT EXISTS phone_verify_code_expires TIMESTAMP")
 
     # Faza 13: mandatory "build your website" wizard right after email verification (see
     # app.py's onboarding_required/onboarding_website_*). NULL means the wizard hasn't
@@ -1706,11 +1715,43 @@ def mark_phone_verified(business_id):
     connection = connect()
     cursor = connection.cursor()
     cursor.execute(
-        "UPDATE businesses SET phone_verified = TRUE, phone_verify_token = NULL, phone_verify_expires = NULL WHERE id = %s",
+        "UPDATE businesses SET phone_verified = TRUE, phone_verify_token = NULL, phone_verify_expires = NULL, "
+        "phone_verify_code = NULL, phone_verify_code_expires = NULL WHERE id = %s",
         (business_id,),
     )
     connection.commit()
     connection.close()
+
+
+def save_phone_verify_code(business_id, code, expires):
+    """SMS counterpart to save_phone_verify_token() - same one-at-a-time rule (a fresh
+    code overwrites whatever was issued before) and the same phone_verify_sent_at used for
+    the resend cooldown. See send_sms.sms_configured() for when this path is actually
+    reachable."""
+    connection = connect()
+    cursor = connection.cursor()
+    cursor.execute(
+        "UPDATE businesses SET phone_verify_code = %s, phone_verify_code_expires = %s, phone_verify_sent_at = NOW() WHERE id = %s",
+        (code, expires, business_id),
+    )
+    connection.commit()
+    connection.close()
+
+
+def business_phone_verify_code_matches(business_id, code):
+    """Same reasoning as business_email_verify_code_matches() - the caller already knows
+    business_id (it's the authenticated Bearer session, see api.py's
+    /api/verify-phone/confirm), so a wrong guess can't be used to enumerate accounts or
+    brute-force another business's code."""
+    connection = connect()
+    cursor = connection.cursor()
+    cursor.execute(
+        "SELECT 1 FROM businesses WHERE id = %s AND phone_verify_code = %s AND phone_verify_code_expires > NOW()",
+        (business_id, code),
+    )
+    row = cursor.fetchone()
+    connection.close()
+    return row is not None
 
 
 def phone_verify_resend_wait_seconds(business_id, cooldown_seconds):
@@ -1752,7 +1793,9 @@ def update_business(business_id, name, username, contact_email, phone_number, wo
     # touched. phone_verify_sent_at is reset too, alongside the token - otherwise a resend
     # requested right after changing the number could get silently swallowed by
     # phone_verify_sent_recently's cooldown, which would still be looking at when the OLD
-    # number's (now-irrelevant) link was sent.
+    # number's (now-irrelevant) link was sent. phone_verify_code/expires reset the same
+    # way, for the same reason, on whichever of the two flows (link or SMS code) happens
+    # to be the active one - see send_sms.sms_configured().
     connection = connect()
     cursor = connection.cursor()
     _execute_or_raise_unique_violation(
@@ -1763,12 +1806,15 @@ def update_business(business_id, name, username, contact_email, phone_number, wo
                phone_verify_token = CASE WHEN phone_number IS DISTINCT FROM %s THEN NULL ELSE phone_verify_token END,
                phone_verify_expires = CASE WHEN phone_number IS DISTINCT FROM %s THEN NULL ELSE phone_verify_expires END,
                phone_verify_sent_at = CASE WHEN phone_number IS DISTINCT FROM %s THEN NULL ELSE phone_verify_sent_at END,
+               phone_verify_code = CASE WHEN phone_number IS DISTINCT FROM %s THEN NULL ELSE phone_verify_code END,
+               phone_verify_code_expires = CASE WHEN phone_number IS DISTINCT FROM %s THEN NULL ELSE phone_verify_code_expires END,
                phone_number=%s,
                working_hours=%s, price_list=%s, faq=%s
            WHERE id=%s""",
         (
             name, username, contact_email,
-            phone_number or None, phone_number or None, phone_number or None, phone_number or None, phone_number or None,
+            phone_number or None, phone_number or None, phone_number or None, phone_number or None,
+            phone_number or None, phone_number or None, phone_number or None,
             working_hours, price_list, faq, business_id,
         ),
     )

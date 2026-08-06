@@ -19,8 +19,9 @@ from database import (
     get_upsell_pairs, set_upsell_pairs,
     is_owner_reminders_enabled, set_owner_reminders_enabled, get_owner_reminder_minutes, set_owner_reminder_minutes,
     email_verify_sent_recently, phone_verify_sent_recently,
-    email_verify_resend_wait_seconds, phone_verify_resend_wait_seconds,
+    email_verify_resend_wait_seconds, phone_verify_resend_wait_seconds, mark_phone_verified,
     business_email_verify_code_matches, mark_email_verified,
+    business_phone_verify_code_matches,
     get_slot_duration, set_slot_duration, create_appointment, get_appointment, cancel_appointment,
     notifications_for_business, unread_notification_count, mark_notifications_read,
     is_new_booking_notifications_enabled, set_new_booking_notifications_enabled,
@@ -30,6 +31,7 @@ from database import (
     UniqueViolation,
 )
 from extensions import limiter
+from send_sms import sms_configured
 import booking
 import paddle_billing
 import google_oauth
@@ -835,6 +837,7 @@ def api_get_settings():
         faq=business[10],
         phone_number=business[11] or "",
         phone_verified=business[13],
+        sms_verification_available=sms_configured(),
         upsell_pairs=get_upsell_pairs(request.business_id) or "",
     )
 
@@ -893,6 +896,7 @@ def api_update_settings():
     return jsonify(
         message="Saved.", name=name, username=username, contact_email=contact_email,
         phone_number=phone_number, phone_verified=phone_verified,
+        sms_verification_available=sms_configured(),
         working_hours=working_hours, price_list=price_list, faq=faq,
         upsell_pairs=upsell_pairs,
     )
@@ -1104,13 +1108,16 @@ def api_suggest_themes():
 
 # Triggered by the "Verify phone number" button on the Profile screen - unlike email
 # verification this is never sent automatically (phone_number is optional and doesn't
-# gate anything on its own), only on request. Sends to the account's own contact email,
-# same as everywhere else phone verification is confirmed - there's no SMS integration.
+# gate anything on its own), only on request. Texts a short code to the phone itself when
+# send_sms.sms_configured() is True (real Twilio credentials in place - see .env.example);
+# otherwise, or if the SMS send itself throws, falls back to emailing a confirmation link
+# to the account's own contact email, same as it's always worked. `channel` in the
+# response tells the app which of the two to show (code entry vs. "check your email").
 @api.route("/verify-phone/send", methods=["POST"])
 @require_api_auth
 @limiter.limit("5 per hour")
 def api_send_phone_verification():
-    from app import send_phone_verification_email, PHONE_VERIFY_RESEND_COOLDOWN_SECONDS  # deferred: avoid circular import at module load
+    from app import send_phone_verification_email, send_phone_verification_sms, PHONE_VERIFY_RESEND_COOLDOWN_SECONDS  # deferred: avoid circular import at module load
 
     business = business_by_id(request.business_id)
     if not business[11]:
@@ -1118,9 +1125,46 @@ def api_send_phone_verification():
     if business[13]:
         return jsonify(error="This phone number is already verified."), 400
 
+    channel = "sms" if sms_configured() else "email"
     if not phone_verify_sent_recently(business[0], PHONE_VERIFY_RESEND_COOLDOWN_SECONDS):
-        send_phone_verification_email(business[0], business[1], business[11], business[4])
-    return jsonify(sent=True, wait_seconds=phone_verify_resend_wait_seconds(business[0], PHONE_VERIFY_RESEND_COOLDOWN_SECONDS))
+        if channel == "sms":
+            try:
+                send_phone_verification_sms(business[0], business[1], business[11])
+            except Exception:
+                send_phone_verification_email(business[0], business[1], business[11], business[4])
+                channel = "email"
+        else:
+            send_phone_verification_email(business[0], business[1], business[11], business[4])
+    return jsonify(
+        sent=True, channel=channel,
+        wait_seconds=phone_verify_resend_wait_seconds(business[0], PHONE_VERIFY_RESEND_COOLDOWN_SECONDS),
+    )
+
+
+# Redeems the SMS code sent by send_phone_verification_sms() above, from the app's own
+# code-entry step (shown instead of the "check your email" message whenever the previous
+# /verify-phone/send response came back with channel="sms"). Authenticated the same way
+# as the rest of the Profile screen's calls (Bearer token), unlike /verify-email-code's
+# signup flow which has to pass business_id explicitly because nothing is logged in yet -
+# here request.business_id already is the account, so a wrong guess can't be replayed
+# against a different one.
+@api.route("/verify-phone/confirm", methods=["POST"])
+@require_api_auth
+@limiter.limit("10 per hour")
+def api_confirm_phone_verification():
+    data = request.get_json(silent=True) or {}
+    code = (data.get("code") or "").strip()
+
+    business = business_by_id(request.business_id)
+    if business[13]:
+        return jsonify(error="This phone number is already verified."), 400
+
+    if not business_phone_verify_code_matches(business[0], code):
+        return jsonify(error="Incorrect or expired code. Please try again."), 400
+
+    mark_phone_verified(business[0])
+    log_event("phone_verified", business_id=business[0])
+    return jsonify(verified=True)
 
 
 @api.route("/push-token", methods=["POST"])
