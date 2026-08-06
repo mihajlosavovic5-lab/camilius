@@ -4601,10 +4601,14 @@ function mysiteRenderThemeSuggestions(themeList) {
             maxLengthTimer = setTimeout(() => {
                 if (mediaRecorder && mediaRecorder.state === "recording") mediaRecorder.stop();
             }, MAX_RECORD_MS);
-        }).catch(() => {
+        }).catch((err) => {
             busy = false;
             recordBtn.disabled = false;
-            setStatus(t("onboarding.describe.micError") || "Couldn't access the microphone - check your permissions and try again.", true);
+            if (err && (err.name === "NotAllowedError" || err.name === "PermissionDeniedError")) {
+                setStatus(t("onboarding.describe.micPermission") || "Please allow microphone access to record your description.", true);
+            } else {
+                setStatus(t("onboarding.describe.micError") || "Couldn't access the microphone - check your permissions and try again.", true);
+            }
         });
     }
     function stopRecording() {
