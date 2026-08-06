@@ -181,7 +181,6 @@
         var extension = (blob.type || "").indexOf("mp4") !== -1 ? "m4a" : "webm";
         var formData = new FormData();
         formData.append("audio", blob, "onboarding-description." + extension);
-        formData.append("language", document.documentElement.lang || "en");
 
         fetch("/api/onboarding/voice-transcribe", {
             method: "POST",
