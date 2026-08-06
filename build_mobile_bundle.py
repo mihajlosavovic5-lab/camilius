@@ -9,8 +9,8 @@ zip's own content to get a version string, so the app automatically sees it as
 "new" the moment this changes, with no separate step to remember.
 
 Also rewrites mobile/index.html's local <link>/<script> tags to append a
-"?v=<hash>" cache-buster, derived from app.css/app.js/i18n.js's own content.
-Reason: switching the WebView to a new bundle (via capacitor-updater's set())
+"?v=<hash>" cache-buster, derived from app.css/app.js/i18n.js/hours-picker.js's own
+content. Reason: switching the WebView to a new bundle (via capacitor-updater's set())
 reuses the SAME origin+path for these files every time (e.g. https://localhost/
 app.css) - Android's WebView can and does serve a stale cached copy of that URL
 across bundle switches even though the underlying file changed, since nothing
@@ -19,6 +19,12 @@ string forces a fresh fetch exactly when - and only when - the content actually
 changes. This rewrite is applied to the SOURCE file (not just the zip) so a
 native APK build (which copies mobile/ verbatim via `npx cap sync`) gets the
 same cache-busting, not just the OTA path.
+
+Before either of the above, mirrors static/hours-picker.js into mobile/hours-picker.js -
+that file is the canonical source for the Working Hours picker's shared logic (used by
+both static/pickers.js and mobile/app.js), so this is the one place that copy gets
+refreshed. Edit static/hours-picker.js, then re-run this script - editing
+mobile/hours-picker.js directly will just get overwritten next run.
 """
 
 import hashlib
@@ -26,10 +32,11 @@ import re
 import zipfile
 from pathlib import Path
 
-MOBILE_DIR = Path(__file__).parent / "mobile"
-OUTPUT = Path(__file__).parent / "static" / "mobile-bundle.zip"
+ROOT_DIR = Path(__file__).parent
+MOBILE_DIR = ROOT_DIR / "mobile"
+OUTPUT = ROOT_DIR / "static" / "mobile-bundle.zip"
 INDEX_HTML = MOBILE_DIR / "index.html"
-CACHE_BUSTED_FILES = ["app.css", "app.js", "i18n.js"]
+CACHE_BUSTED_FILES = ["app.css", "app.js", "i18n.js", "hours-picker.js"]
 
 
 def compute_cache_bust_stamp():
@@ -50,6 +57,8 @@ def update_index_html_cache_busters(stamp):
 
 
 def build():
+    (MOBILE_DIR / "hours-picker.js").write_bytes((ROOT_DIR / "static" / "hours-picker.js").read_bytes())
+
     stamp = compute_cache_bust_stamp()
     update_index_html_cache_busters(stamp)
 

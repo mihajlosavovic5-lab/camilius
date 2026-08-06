@@ -159,9 +159,10 @@ STATIC_VERSIONS = {
     "style.css": _static_file_version("style.css"),
     "htmx.min.js": _static_file_version("htmx.min.js"),
     "site-i18n.js": _static_file_version("site-i18n.js"),
+    "hours-picker.js": _static_file_version("hours-picker.js"),
     "pickers.js": _static_file_version("pickers.js"),
 }
-_FOREVER_CACHE_STATIC_PATHS = {"/static/style.css", "/static/htmx.min.js", "/static/site-i18n.js", "/static/pickers.js"}
+_FOREVER_CACHE_STATIC_PATHS = {"/static/style.css", "/static/htmx.min.js", "/static/site-i18n.js", "/static/hours-picker.js", "/static/pickers.js"}
 _MODERATE_CACHE_STATIC_PATHS = {
     "/static/manifest.json",
     "/static/icon-192.png",

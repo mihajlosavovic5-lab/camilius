@@ -172,16 +172,19 @@
          translate-on-load call apply on every page automatically, without touching each
          template's own header markup. -->
     <script src="{{ url_for('static', filename='site-i18n.js') }}?v={{ static_versions['site-i18n.js'] }}" defer></script>
-    <!-- Working Hours/Price List/Upsell pickers (static/pickers.js) - used by settings.html
-         and register.html. Lives here rather than in each of those templates' own scripts
-         block because that block is inside <body>, which hx-boosted nav (see above) swaps
-         out and re-executes on every visit; a plain <script src> there raced its own page's
-         inline init script for load order on that path (unlike a real page load, an htmx
-         swap gives no ordering guarantee between a freshly-inserted external <script> and
-         the inline one after it), throwing "safeInit is not defined" and leaving the
-         pickers empty until a manual refresh. Loading it once here, like site-i18n.js above,
-         means it's already loaded - and never reloaded - by the time any page's own script
-         runs, on the first load or any later swap. -->
+    <!-- Working Hours/Price List/Upsell pickers (static/pickers.js, plus the shared
+         static/hours-picker.js core it and mobile/app.js both build on) - used by
+         settings.html and register.html. Lives here rather than in each of those
+         templates' own scripts block because that block is inside <body>, which
+         hx-boosted nav (see above) swaps out and re-executes on every visit; a plain
+         <script src> there raced its own page's inline init script for load order on that
+         path (unlike a real page load, an htmx swap gives no ordering guarantee between a
+         freshly-inserted external <script> and the inline one after it), throwing
+         "safeInit is not defined" and leaving the pickers empty until a manual refresh.
+         Loading it once here, like site-i18n.js above, means it's already loaded - and
+         never reloaded - by the time any page's own script runs, on the first load or any
+         later swap. -->
+    <script src="{{ url_for('static', filename='hours-picker.js') }}?v={{ static_versions['hours-picker.js'] }}" defer></script>
     <script src="{{ url_for('static', filename='pickers.js') }}?v={{ static_versions['pickers.js'] }}" defer></script>
     <!-- Smart install banner init (Faza 5, extended Faza 7 with a real beforeinstallprompt
          PWA install; the banner's own markup is in <body>, right where it renders - see
