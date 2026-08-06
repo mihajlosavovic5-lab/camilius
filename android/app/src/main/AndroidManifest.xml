@@ -61,4 +61,10 @@
     <!-- Permissions -->
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Required for the WebView's getUserMedia mic recording (My Site's "Draft this with
+         AI" voice input) - Capacitor's WebChromeClient can only request a runtime
+         permission, and thus show the native "Allow app to use microphone" system prompt,
+         for permissions declared here. Without this, getUserMedia rejects immediately with
+         NotAllowedError and no system dialog is ever shown. -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
 </manifest>
