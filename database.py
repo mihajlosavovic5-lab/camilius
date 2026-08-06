@@ -977,10 +977,22 @@ def business_by_username(username):
     return _decrypt_row_token(row)
 
 
+# Flip back to True to restore phone-number login (and, alongside it, the Profile
+# screen's phone verification prompts - see updatePhoneVerifyStatus() in mobile/app.js
+# and api.py's /api/settings). Nothing behind either is deleted: phone_verified, the
+# emailed-link and Twilio-SMS verification flows, and the login query's phone branch
+# below all still work exactly as before, this just stops them from being reachable -
+# same "flag it, don't delete it" shape as BETA_FREE_MODE in app.py. The phone_number
+# field itself stays fully visible and editable either way, purely as optional contact
+# info the AI can use when replying to customers - never a login credential while this
+# is False.
+PHONE_LOGIN_ENABLED = False
+
+
 def business_by_login_identifier(identifier):
-    """Login accepts username, contact email, OR phone number - same "any of these
-    identifies you" pattern most consumer apps use. One query checking all three rather
-    than three separate round-trips.
+    """Login accepts username or contact email, and - only while PHONE_LOGIN_ENABLED is
+    True - phone number too, same "any of these identifies you" pattern most consumer
+    apps use. One query checking all of them rather than separate round-trips.
 
     The phone_number branch additionally requires phone_verified - an unconfirmed phone
     number can't be used to log in (see phone_verified's own comment in create_database()),
@@ -988,10 +1000,16 @@ def business_by_login_identifier(identifier):
     unverified (or no) phone number can always still log in the normal way."""
     connection = connect()
     cursor = connection.cursor()
-    cursor.execute(
-        f"SELECT {_BUSINESS_COLUMNS} FROM businesses WHERE username = %s OR contact_email = %s OR (phone_number = %s AND phone_verified)",
-        (identifier, identifier, identifier),
-    )
+    if PHONE_LOGIN_ENABLED:
+        cursor.execute(
+            f"SELECT {_BUSINESS_COLUMNS} FROM businesses WHERE username = %s OR contact_email = %s OR (phone_number = %s AND phone_verified)",
+            (identifier, identifier, identifier),
+        )
+    else:
+        cursor.execute(
+            f"SELECT {_BUSINESS_COLUMNS} FROM businesses WHERE username = %s OR contact_email = %s",
+            (identifier, identifier),
+        )
     row = cursor.fetchone()
     connection.close()
 

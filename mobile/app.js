@@ -3076,11 +3076,22 @@ const profilePhoneAvailability = setupAvailabilityField(
     () => composePhoneNumber(el("settings-phone"), selectedProfilePhoneCountry), updateSettingsSaveValidity,
 );
 
-function updatePhoneVerifyStatus(phoneNumber, phoneVerified, smsAvailable) {
+function updatePhoneVerifyStatus(phoneNumber, phoneVerified, smsAvailable, phoneLoginEnabled) {
     el("settings-phone-verify-sent").classList.add("hidden");
     el("settings-phone-verify-code-row").classList.add("hidden");
     el("settings-phone-verify-code").value = "";
     el("settings-phone-verify-code-error").classList.add("hidden");
+
+    // While PHONE_LOGIN_ENABLED is False server-side (database.py) the phone number is
+    // just optional contact info the AI can use when replying to customers, not a login
+    // identifier - no verified badge, no "not verified" nag, regardless of the account's
+    // actual (stale, from before this was disabled) phone_verified value.
+    if (!phoneLoginEnabled) {
+        el("settings-phone-verified-badge").classList.add("hidden");
+        el("settings-phone-unverified-banner").classList.add("hidden");
+        return;
+    }
+
     el("settings-phone-verified-badge").classList.toggle("hidden", !(phoneNumber && phoneVerified));
     el("settings-phone-unverified-banner").classList.toggle("hidden", !(phoneNumber && !phoneVerified));
 
@@ -3101,7 +3112,7 @@ async function loadSettingsIntoForm() {
         const { country, rest } = splitStoredPhoneNumber(data.phone_number);
         setProfilePhoneCountry(country);
         el("settings-phone").value = rest;
-        updatePhoneVerifyStatus(data.phone_number, data.phone_verified, data.sms_verification_available);
+        updatePhoneVerifyStatus(data.phone_number, data.phone_verified, data.sms_verification_available, data.phone_login_enabled);
         profileHoursPicker.setValue(data.working_hours);
         profilePricesPicker.setValue(data.price_list);
         el("settings-faq").value = data.faq;
@@ -3419,7 +3430,7 @@ el("settings-save").addEventListener("click", async () => {
         el("inbox-business-name").textContent = el("settings-name").value;
         resetPasswordField("settings-current-password");
         resetPasswordField("settings-new-password");
-        updatePhoneVerifyStatus(data.phone_number, data.phone_verified, data.sms_verification_available);
+        updatePhoneVerifyStatus(data.phone_number, data.phone_verified, data.sms_verification_available, data.phone_login_enabled);
         profileHoursPicker.collapseToSimple();
         profileFormSnapshot = serializeProfileForm();
         if (scrollContainer) scrollContainer.scrollTop = scrollTopBeforeSave;
