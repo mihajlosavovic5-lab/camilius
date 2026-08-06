@@ -255,7 +255,7 @@
             <input type="text" id="settings-page-slug-input" name="slug" value="{{ page.slug if page else '' }}" placeholder=" " autocapitalize="off" autocorrect="off" pattern="[a-z0-9][a-z0-9-]{0,49}" maxlength="50">
             <label for="settings-page-slug-input">Web address (e.g. your-business-name)</label>
         </div>
-        {% if page %}
+        {% if page and page.slug %}
             <p class="note">{{ page_url_prefix }}{{ page.slug }}</p>
         {% endif %}
 

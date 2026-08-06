@@ -48,11 +48,16 @@ def test_save_business_page_rejects_invalid_slug(client, unique_username, unique
     csrf_token = get_csrf_token(client, "/profile")
 
     response = web_post(client, "/profile/page", {
-        "csrf_token": csrf_token, "slug": "Not A Valid Slug!", "tagline": "", "about": "",
+        "csrf_token": csrf_token, "slug": "Not A Valid Slug!", "tagline": "Fresh cuts daily", "about": "",
     })
-    page = _follow(client, response)
-    assert page.status_code == 200
-    assert "lowercase letters" in page.get_data(as_text=True)
+    # Re-rendered in place (not a redirect) so the business's own typed values - including
+    # the invalid slug itself - are still on screen next to the error, instead of a fresh
+    # GET wiping the form back to whatever (if anything) was last actually saved.
+    assert response.status_code == 200
+    page = response.get_data(as_text=True)
+    assert "lowercase letters" in page
+    assert "not a valid slug!" in page  # normalize_slug lowercases before re-rendering
+    assert "Fresh cuts daily" in page
     assert database.get_business_page(database.business_by_username(unique_username)[0]) is None
 
 
@@ -63,8 +68,8 @@ def test_save_business_page_rejects_reserved_slug(client, unique_username, uniqu
     response = web_post(client, "/profile/page", {
         "csrf_token": csrf_token, "slug": "admin", "tagline": "", "about": "",
     })
-    page = _follow(client, response)
-    assert "lowercase letters" in page.get_data(as_text=True)
+    assert response.status_code == 200
+    assert "lowercase letters" in response.get_data(as_text=True)
 
 
 def test_save_business_page_rejects_slug_taken_by_another_business(client, unique_username, unique_email):
@@ -81,8 +86,10 @@ def test_save_business_page_rejects_slug_taken_by_another_business(client, uniqu
     response = web_post(client, "/profile/page", {
         "csrf_token": csrf_token, "slug": taken_slug, "tagline": "", "about": "",
     })
-    page = _follow(client, response)
-    assert "already taken" in page.get_data(as_text=True)
+    assert response.status_code == 200
+    page = response.get_data(as_text=True)
+    assert "already taken" in page
+    assert taken_slug in page
 
 
 def test_save_business_page_same_business_can_resave_its_own_slug(client, unique_username, unique_email):

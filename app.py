@@ -1587,17 +1587,53 @@ def save_business_page():
     elif theme not in themes.THEMES:
         theme = None
 
+    # Re-renders settings.html in place (rather than redirecting to a fresh GET of
+    # /profile) so a failed save doesn't wipe out what the business just typed - a bare
+    # redirect only has page_error to pass along, so slug/tagline/about/widget_domain/
+    # theme would all snap back to whatever (if anything) was last actually saved,
+    # leaving the "Web address" field looking empty right above an error insisting it's
+    # invalid. Same "re-render with the submitted values, don't redirect" shape as
+    # settings()'s own _rerender(error) above, just scoped to this card's fields instead
+    # of the whole profile.
+    def _rerender_page_error(page_error):
+        business = business_by_id(business_id)
+        page_row = get_business_page(business_id)
+        return render_template(
+            "settings.html",
+            error=None,
+            message=None,
+            pro_access=BETA_FREE_MODE or has_pro_access(business_id),
+            page={
+                "slug": slug, "published": published, "tagline": tagline, "about": about,
+                "widget_domain": widget_domain,
+                "theme": theme or (page_row[9] if page_row else themes.DEFAULT_THEME_ID),
+                "custom_theme_json": custom_theme_json or (page_row[10] if page_row else None),
+            },
+            page_error=page_error,
+            page_url_prefix=request.url_root + "p/",
+            theme_choices=list(themes.THEMES.items()),
+            documents=business_documents.list_documents(business_id),
+            media=business_media.list_media(business_id),
+            max_gallery_images=business_media.MAX_GALLERY_IMAGES,
+            business={
+                "name": business[1], "username": business[2], "contact_email": business[4],
+                "pending_contact_email": business[14],
+                "working_hours": business[8], "price_list": business[9], "faq": business[10],
+                "upsell_pairs": get_upsell_pairs(business_id),
+            },
+        )
+
     # A valid slug is required even to save a draft (published=False) - there is nothing
     # useful to store without one, and requiring it up front means a business never ends
     # up with a page row that publishing later would fail on for a reason it can't see
     # from the publish toggle alone.
     if not pages.is_valid_slug(slug):
-        return redirect(url_for("settings", page_error="Please choose a web address using only lowercase letters, numbers, and hyphens."))
+        return _rerender_page_error("Please choose a web address using only lowercase letters, numbers, and hyphens.")
 
     try:
         upsert_business_page(business_id, slug, published, tagline, about, widget_domain, theme, custom_theme_json)
     except UniqueViolation:
-        return redirect(url_for("settings", page_error="That web address is already taken - please choose another."))
+        return _rerender_page_error("That web address is already taken - please choose another.")
 
     log_event("business_page_saved", business_id=business_id)
     return redirect(url_for("settings", message="Your page has been saved."))
