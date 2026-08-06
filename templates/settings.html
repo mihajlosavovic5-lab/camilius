@@ -863,10 +863,14 @@ if (document.readyState === "loading") {
             maxLengthTimer = setTimeout(() => {
                 if (mediaRecorder && mediaRecorder.state === "recording") mediaRecorder.stop();
             }, MAX_RECORD_MS);
-        }).catch(() => {
+        }).catch((err) => {
             busy = false;
             recordBtn.disabled = false;
-            setStatus("onboarding.describe.micError", "Couldn't access the microphone - check your browser/app permissions and try again.", true);
+            if (err && (err.name === "NotAllowedError" || err.name === "PermissionDeniedError")) {
+                setStatus("onboarding.describe.micPermission", "Please allow microphone access in your browser to record your description.", true);
+            } else {
+                setStatus("onboarding.describe.micError", "Couldn't access the microphone - check your browser/app permissions and try again.", true);
+            }
         });
     }
     function stopRecording() {
