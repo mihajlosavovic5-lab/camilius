@@ -1753,20 +1753,29 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
 @keyframes save-success-draw { to { stroke-dashoffset: 0; } }
 .save-success-text { margin: 0; font-size: 16px; font-weight: 600; color: var(--text); }
 
-/* --- Image lightbox - fullscreen zoom for a tapped attachment thumbnail (compose-
-   attachment-list chips, My Site tab). Above the toast/save-success overlay since it's a
-   deliberate full-screen view, below the mandatory OTA overlay (100) which must always
-   win. --- */
+/* --- Image lightbox - zoom for a tapped attachment thumbnail (compose-attachment-list
+   chips, My Site tab). Above the toast/save-success overlay since it's a deliberate
+   full-screen view, below the mandatory OTA overlay (100) which must always win.
+   Opacity/transform-driven (not display:none) so the open/close is an actual fade+scale
+   transition, not an instant cut - pointer-events keeps it non-interactive and
+   untouchable while closed despite staying in the layout. Image itself is capped well
+   under the viewport (not edge-to-edge) so it still reads as "zoomed in on a photo" with
+   backdrop showing around it, not a second fullscreen page. */
 .image-lightbox {
     position: fixed; inset: 0; z-index: 95;
     background: rgba(0,0,0,.88);
     display: flex; align-items: center; justify-content: center; padding: 24px;
+    opacity: 0; pointer-events: none;
+    transition: opacity .22s ease;
 }
-.image-lightbox.hidden { display: none; }
+.image-lightbox.open { opacity: 1; pointer-events: auto; }
 .image-lightbox img {
-    max-width: 100%; max-height: 100%; border-radius: 10px;
+    max-width: 80%; max-height: 70%; border-radius: 10px;
     box-shadow: 0 12px 40px rgba(0,0,0,.5);
+    transform: scale(.92);
+    transition: transform .22s ease;
 }
+.image-lightbox.open img { transform: scale(1); }
 
 /* --- Offline banner --- */
 .offline-banner {

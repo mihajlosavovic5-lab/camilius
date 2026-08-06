@@ -1430,14 +1430,19 @@ function openImageLightbox(url) {
     const img = el("image-lightbox-img");
     if (!lightbox || !img) return;
     img.src = url;
-    lightbox.classList.remove("hidden");
+    lightbox.classList.add("open");
 }
 function closeImageLightbox() {
     const lightbox = el("image-lightbox");
     const img = el("image-lightbox-img");
     if (!lightbox || !img) return;
-    lightbox.classList.add("hidden");
-    img.src = "";
+    lightbox.classList.remove("open");
+    // Clears the src only after the fade-out transition finishes (matches app.css's own
+    // .22s), not immediately - otherwise the image blinks empty mid-close instead of
+    // fading away with the rest of the overlay.
+    setTimeout(() => {
+        if (!lightbox.classList.contains("open")) img.src = "";
+    }, 220);
 }
 el("image-lightbox").addEventListener("click", closeImageLightbox);
 
