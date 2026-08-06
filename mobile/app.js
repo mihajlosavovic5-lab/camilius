@@ -2893,12 +2893,11 @@ function makeAutosaveTrigger(buttonId, debounceMs) {
     };
 }
 
-// Full-screen save-success celebration makes sense for a deliberate tap; for silent
-// autosave it'd pop up mid-edit every time the user pauses, so autosave uses the same
-// brief bottom toast already used elsewhere in the app instead (see showToast above).
+// A save-success message (full-screen celebration or toast) makes sense after a
+// deliberate tap; silent background autosave shows nothing at all - see
+// SHOW_MANUAL_SAVE_BUTTONS above to bring tap-to-save (and this confirmation) back.
 function notifySaved(message) {
     if (SHOW_MANUAL_SAVE_BUTTONS) showSaveSuccess(message);
-    else showToast(message);
 }
 
 // The Save button stays hidden until the form actually differs from what was loaded (a
