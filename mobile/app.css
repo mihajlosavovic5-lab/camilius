@@ -1139,6 +1139,19 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
 .row-action-btn:active { background: var(--background); }
 .row-action-danger { color: var(--danger); }
 .row-action-cancel { color: var(--text-muted); border-top: 1px solid var(--border); margin-top: 4px; padding-top: 14px; border-radius: 0; }
+/* Currently-applied design in the sheet below - same "bold + primary color" treatment
+   .country-option-btn.selected uses for the other pickers' current value. */
+.row-action-btn.selected { color: var(--primary-ink); font-weight: 700; }
+
+/* --- Design (website theme) picker sheet, My Site tab (see #design-modal in index.html) -
+   the option list is data-driven (5 classic presets, +1 once an AI-suggested design has
+   been picked) instead of the row-actions sheet's fixed set of buttons, so it needs its
+   own scroll cap rather than growing the whole sheet past what a short screen can show. */
+.design-modal-list { overflow-y: auto; max-height: 50vh; display: flex; flex-direction: column; }
+/* Down-chevron on the Design row (app.css .settings-row-chevron is normally the "›" used
+   for rows that push a new screen) - "⌄" instead, to read as "opens a dropdown" like the
+   working-hours/currency fields' own .picker-chevron rather than navigation. */
+.settings-row-chevron-down { font-size: 13px; }
 .inbox-dot { width: 8px; height: 8px; border-radius: 99px; background: var(--warning); flex-shrink: 0; }
 
 /* --- Attach options popover (Camera/Photos/Files, My Site tab's "+") - a compact card

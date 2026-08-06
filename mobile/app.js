@@ -4389,6 +4389,12 @@ function mysitePopulateThemeSelect(currentThemeId) {
     } else {
         select.value = CLASSIC_THEMES.some((t2) => t2.id === currentThemeId) ? currentThemeId : "warm";
     }
+    // The real <select> above is kept around (hidden) purely as the existing value/
+    // change-event API the rest of this file already reads (serializeMysiteForm, the
+    // save button, the "change" listener below) - mysite-theme-select-row is what's
+    // actually visible/tappable, so its own label needs to mirror whichever option just
+    // became selected.
+    el("mysite-theme-select-value").textContent = select.options[select.selectedIndex].textContent;
 }
 
 async function loadMySite() {
@@ -4469,6 +4475,40 @@ el("mysite-theme-select").addEventListener("change", (event) => {
         swatch.style.borderColor = mysiteSelectedCustomTheme.base.primary;
     }
 });
+
+// Design picker (My Site tab) - the "Design" row opens #design-modal, a full-width
+// sheet sliding up from the screen's bottom edge (same look as the inbox row-actions
+// sheet), instead of the small anchored dropdown createOptionButton()/optionPicker use
+// elsewhere - there can be more entries here (5 classics + the AI-suggested design, once
+// one's been picked) than reads well as a compact popover. Picking an option just drives
+// the existing hidden <select> (value + a dispatched "change") so every other place that
+// already reads/listens to it - serializeMysiteForm, the save button, the swatch-updating
+// listener above - keeps working unchanged.
+function openDesignPicker() {
+    const select = el("mysite-theme-select");
+    const list = el("design-modal-list");
+    list.innerHTML = "";
+    Array.from(select.options).forEach((option) => {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "row-action-btn" + (option.value === select.value ? " selected" : "");
+        btn.textContent = option.textContent;
+        btn.addEventListener("click", () => {
+            select.value = option.value;
+            el("mysite-theme-select-value").textContent = option.textContent;
+            select.dispatchEvent(new Event("change", { bubbles: true }));
+            closeDesignPicker();
+        });
+        list.appendChild(btn);
+    });
+    el("design-modal").classList.add("open");
+}
+function closeDesignPicker() {
+    el("design-modal").classList.remove("open");
+}
+el("mysite-theme-select-row").addEventListener("click", openDesignPicker);
+el("design-modal-backdrop").addEventListener("click", closeDesignPicker);
+el("design-modal-cancel").addEventListener("click", closeDesignPicker);
 
 el("mysite-save-btn").addEventListener("click", async () => {
     const button = el("mysite-save-btn");
