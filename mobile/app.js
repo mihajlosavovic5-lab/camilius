@@ -4895,7 +4895,6 @@ function mysiteRenderThemeSuggestions(themeList) {
     }
     if (sheet) {
         el("attach-options-backdrop").addEventListener("click", closeAttachSheet);
-        el("attach-option-cancel").addEventListener("click", closeAttachSheet);
         el("attach-option-camera").addEventListener("click", () => { closeAttachSheet(); cameraInput.click(); });
         el("attach-option-photos").addEventListener("click", () => { closeAttachSheet(); photosInput.click(); });
         el("attach-option-files").addEventListener("click", () => { closeAttachSheet(); filesInput.click(); });
