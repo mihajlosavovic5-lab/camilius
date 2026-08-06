@@ -1289,6 +1289,12 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
 /* Same fix as .block-label above - the Account card is never actually :first-child
    either, since #settings-message/-error (hidden alerts) sit before it in the DOM. */
 .alert + .profile-section { margin-top: 0; }
+/* Same story for My Site's "Your website" card - #mysite-appointments-card (also a
+   .profile-section) sits before it in the DOM and is hidden unless there are upcoming
+   appointments, so the rule above never matched and it kept its 16px margin-top on top
+   of .inbox-list-wrap's own (zero) top padding - a bigger gap under the page title than
+   Profile's Account card gets. */
+.profile-section.hidden + .profile-section { margin-top: 0; }
 .profile-section-header { margin-bottom: 14px; }
 .profile-section-title { font-size: 16px; font-weight: 700; margin: 0; display: flex; align-items: center; gap: 8px; }
 .profile-section-subtitle { color: var(--text-muted); font-size: 13.5px; margin: 3px 0 0; }
