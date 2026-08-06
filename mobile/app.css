@@ -1312,7 +1312,7 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
     color: var(--text); background: var(--border); border-radius: 50%;
 }
 .textarea-mic-btn .mic-icon { width: 21px; height: 21px; }
-.textarea-mic-btn .stop-icon { display: none; width: 26px; height: 26px; }
+.textarea-mic-btn .stop-icon { display: none; width: 23px; height: 23px; }
 .textarea-mic-btn.recording .mic-icon { display: none; }
 .textarea-mic-btn.recording .stop-icon { display: block; }
 .voice-record-dot {
