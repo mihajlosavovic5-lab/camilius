@@ -1300,6 +1300,10 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
    a patch on top; the moving line is the only thing that stands out. */
 .chat-compose-waveform {
     display: none; position: absolute; left: 1px; top: 1px; bottom: 1px; right: 90px;
+    /* canvas is a replaced element - inset offsets alone don't stretch it (unlike a plain
+       div), it falls back to its 300x150 intrinsic default unless width/height are also
+       set explicitly here. */
+    width: calc(100% - 91px); height: calc(100% - 2px);
     border-radius: 19px 0 0 19px; background: var(--surface);
 }
 .chat-compose-waveform.active { display: block; }
