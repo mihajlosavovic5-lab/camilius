@@ -3007,6 +3007,10 @@ function notifySaved(message) {
 // from disabled/gray to enabled/yellow only once every field satisfies its own
 // validation - the same checks the click handler below re-runs before actually saving.
 let profileFormSnapshot = null;
+// Same idea as profileFormSnapshot but scoped to just the hours picker, so the
+// "Apply changes" button next to Working hours (see updateHoursApplyVisibility) can
+// tell specifically when hours are unsaved instead of reacting to any field on the form.
+let profileHoursSnapshot = null;
 
 function serializeProfileForm() {
     return JSON.stringify({
@@ -3053,6 +3057,21 @@ function updateSettingsSaveValidity() {
     button.disabled = !valid;
     el("screen-profile").classList.toggle("has-unsaved", SHOW_MANUAL_SAVE_BUTTONS && dirty);
     triggerProfileAutosave(dirty && valid);
+    updateHoursApplyVisibility();
+}
+
+// True while a save started specifically by the "Apply changes" click below is in
+// flight - keeps updateHoursApplyVisibility (called on every form edit, including ones
+// that happen to fire while that request is still out) from re-enabling the button or
+// yanking it out of its loading state mid-request.
+let hoursApplySaving = false;
+
+function updateHoursApplyVisibility() {
+    if (hoursApplySaving) return;
+    const btn = el("settings-hours-apply");
+    const dirty = profileHoursSnapshot !== null && JSON.stringify(profileHoursPicker.getValue()) !== profileHoursSnapshot;
+    btn.classList.toggle("hidden", !dirty);
+    btn.disabled = !isProfileFormValid();
 }
 
 // Delegated instead of one listener per field - also catches the hours/prices pickers'
@@ -3121,6 +3140,7 @@ async function loadSettingsIntoForm() {
         resetPasswordField("settings-new-password");
         applyProAccessLocks();
         profileFormSnapshot = serializeProfileForm();
+        profileHoursSnapshot = JSON.stringify(profileHoursPicker.getValue());
         updateSettingsSaveValidity();
     } catch (err) {
         if (err.status === 401) logout();
@@ -3358,7 +3378,11 @@ async function loadBusinessDocuments() {
     }
 }
 
-el("settings-save").addEventListener("click", async () => {
+// Extracted from the "settings-save" click handler (still its only caller below) so the
+// Working hours section's own "Apply changes" button can also drive a real save - and,
+// since it's a plain async function now instead of only a click listener, await its
+// completion to know when to show its own confirmation (see that button's handler).
+async function saveProfileForm() {
     const button = el("settings-save");
     const errorBox = el("settings-error");
     errorBox.classList.add("hidden");
@@ -3433,6 +3457,7 @@ el("settings-save").addEventListener("click", async () => {
         updatePhoneVerifyStatus(data.phone_number, data.phone_verified, data.sms_verification_available, data.phone_login_enabled);
         profileHoursPicker.collapseToSimple();
         profileFormSnapshot = serializeProfileForm();
+        profileHoursSnapshot = JSON.stringify(profileHoursPicker.getValue());
         if (scrollContainer) scrollContainer.scrollTop = scrollTopBeforeSave;
     } catch (err) {
         errorBox.textContent = err.message || t("settings.error");
@@ -3447,6 +3472,26 @@ el("settings-save").addEventListener("click", async () => {
         updateSettingsSaveValidity();
         button.textContent = t("settings.save");
     }
+}
+el("settings-save").addEventListener("click", saveProfileForm);
+
+// Working hours' own "Apply changes" - calls the exact same save as the (autosave-only,
+// see SHOW_MANUAL_SAVE_BUTTONS) form-wide save above, since /api/settings only ever
+// saves the whole form; this just gives hours specifically a visible, explicit trigger
+// and confirmation instead of waiting on the silent debounce, and shows the same
+// celebration overlay manual saves used to show everywhere (bypassing notifySaved's
+// mute, since this tap is a deliberate manual save the flag was never meant to hide).
+el("settings-hours-apply").addEventListener("click", async () => {
+    const btn = el("settings-hours-apply");
+    if (btn.disabled || hoursApplySaving) return;
+    hoursApplySaving = true;
+    btn.disabled = true;
+    await saveProfileForm();
+    hoursApplySaving = false;
+    if (profileHoursSnapshot === JSON.stringify(profileHoursPicker.getValue())) {
+        showSaveSuccess(t("settings.saved"));
+    }
+    updateHoursApplyVisibility();
 });
 
 el("settings-phone-verify-btn").addEventListener("click", async () => {
