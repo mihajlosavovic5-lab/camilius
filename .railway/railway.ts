@@ -47,6 +47,12 @@ export default defineRailway(() => {
       // preserve()d: set once directly in Railway from Cloudinary dashboard > Account
       // Details > "API Environment variable".
       CLOUDINARY_URL: preserve(),
+      // "Continue with Google" (google_oauth.py) - inert (button hidden, /auth/google
+      // 404s) until both are set. preserve()d: set once directly in Railway from Google
+      // Cloud Console > APIs & Services > Credentials > OAuth 2.0 Client ID (type "Web
+      // application", authorized redirect URI https://app.ai-auto-reply-mail.com/auth/google/callback).
+      GOOGLE_CLIENT_ID: preserve(),
+      GOOGLE_CLIENT_SECRET: preserve(),
       // Firebase Cloud Messaging (push_notifications.py) - owner appointment reminders
       // and new-message alerts push to the Android app through these. Both preserve()d:
       // set once directly in Railway from the Firebase console (Project settings ->
