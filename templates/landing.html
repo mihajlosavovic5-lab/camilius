@@ -78,9 +78,12 @@
         <a href="{{ url_for('login') }}" data-i18n="landing.nav.login">Log in</a>
         <a href="{{ url_for('register') }}" class="button" data-i18n="landing.nav.tryFree">Try for free</a>
         <!-- Android-only download link - doesn't belong in a PC/desktop menu, so
-             it's hidden above the mobile breakpoint (see .lp-menu-mobile-only). -->
+             it's hidden above the mobile breakpoint (see .lp-menu-mobile-only).
+             Points straight at the APK route (not the /download instructions page)
+             so tapping it starts the file download immediately instead of
+             navigating to a separate page first. -->
         <div class="lp-menu-modal-divider lp-menu-mobile-only"></div>
-        <a href="{{ url_for('download') }}" class="lp-menu-mobile-only" data-i18n="download.cta">Download for Android</a>
+        <a href="{{ url_for('download_apk') }}" class="lp-menu-mobile-only" data-i18n="download.cta">Download for Android</a>
     </nav>
 </div>
 <div class="lp-header-spacer"></div>
