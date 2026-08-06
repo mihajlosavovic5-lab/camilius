@@ -1278,24 +1278,27 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
 }
 .document-add-btn input { display: none; }
 
-/* Voice input (My Website tab's "Draft this with AI" card) - a mic icon embedded in the
-   description textarea's own right edge (same corner as .password-toggle's eye icon),
-   like a chat input's mic button, instead of a separate "Record instead of typing" button
-   sitting below the field. */
-.floating-field-with-mic textarea { padding-right: 44px; }
-.floating-field-with-mic label { right: 40px; }
+/* Voice input + send (My Website tab's "Draft this with AI" card) - a chat-input-style
+   mic icon with a round send button just to its right, both pinned inside the
+   description textarea's own bottom-right corner, replacing the separate full-width
+   "Record instead of typing"/"Generate draft"/"Suggest AI designs" buttons that used to
+   sit below the field. Extra bottom padding (and a taller min-height, to keep the same
+   3-visible-lines of typing room as a plain .floating-field-textarea) reserves the
+   corner so typed text never runs under the icons. */
+.floating-field-with-mic textarea { padding-bottom: 46px; min-height: 130px; }
+.textarea-actions { position: absolute; right: 8px; bottom: 8px; display: flex; align-items: center; gap: 4px; }
 .textarea-mic-btn {
-    position: absolute; top: 0; right: 4px; height: 100%; width: 38px;
+    position: relative; width: 36px; height: 36px;
     display: none; align-items: center; justify-content: center;
     background: none; border: none; padding: 0; margin: 0; cursor: pointer;
-    color: var(--text-muted); font-size: 19px;
+    color: var(--text-muted);
 }
 .textarea-mic-btn:not([hidden]) { display: flex; }
 .textarea-mic-btn:active { color: var(--primary-ink); }
 .textarea-mic-btn.recording { color: var(--danger); }
-.textarea-mic-btn .voice-record-icon { line-height: 1; }
+.textarea-mic-btn .mic-icon { width: 21px; height: 21px; }
 .voice-record-dot {
-    display: none; position: absolute; top: 6px; right: 4px; width: 8px; height: 8px;
+    display: none; position: absolute; top: 1px; right: 1px; width: 8px; height: 8px;
     border-radius: 50%; background: var(--danger);
     animation: voice-record-pulse 1.1s ease-in-out infinite;
 }
@@ -1304,6 +1307,16 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
     0%, 100% { opacity: 1; transform: scale(1); }
     50% { opacity: .35; transform: scale(.7); }
 }
+.textarea-send-btn {
+    width: 34px; height: 34px; border-radius: 50%; border: none;
+    background: var(--primary); color: #fff;
+    display: flex; align-items: center; justify-content: center; cursor: pointer;
+    box-shadow: 0 2px 8px -2px rgba(214,148,16,.6);
+    transition: background .15s ease, transform .1s ease;
+}
+.textarea-send-btn svg { width: 18px; height: 18px; }
+.textarea-send-btn:active { background: var(--primary-dark); transform: scale(.94); }
+.textarea-send-btn:disabled { background: #cabfa4; box-shadow: none; }
 .voice-status { font-size: 13px; color: var(--text-muted); margin: 6px 2px 0; }
 .voice-status.voice-status-error { color: var(--danger); }
 .voice-status:empty { display: none; }

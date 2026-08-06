@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
 <title>Camilius</title>
-<link rel="stylesheet" href="app.css?v=ee1da61f9d19">
+<link rel="stylesheet" href="app.css?v=2eb4e871c4bf">
 </head>
 <body>
 
@@ -677,23 +677,33 @@
         <div class="floating-field floating-field-textarea floating-field-with-mic">
           <textarea id="mysite-description" rows="3" maxlength="1000" placeholder=" "></textarea>
           <label for="mysite-description" data-i18n="mysite.draft.label">What does your business do?</label>
-          <button type="button" class="textarea-mic-btn" id="mysite-voice-btn" hidden>
-            <span class="voice-record-dot" aria-hidden="true"></span>
-            <span class="voice-record-icon" aria-hidden="true">🎤</span>
-            <span id="mysite-voice-btn-label" class="sr-only" data-i18n="onboarding.describe.recordStart">Record instead of typing</span>
-          </button>
+          <div class="textarea-actions">
+            <button type="button" class="textarea-mic-btn" id="mysite-voice-btn" hidden>
+              <svg class="mic-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
+                <rect x="9" y="2" width="6" height="12" rx="3" stroke-width="1.8"/>
+                <path d="M5 10a7 7 0 0 0 14 0" stroke-width="1.8" stroke-linecap="round"/>
+                <line x1="12" y1="19" x2="12" y2="22" stroke-width="1.8" stroke-linecap="round"/>
+                <line x1="8" y1="22" x2="16" y2="22" stroke-width="1.8" stroke-linecap="round"/>
+              </svg>
+              <span class="voice-record-dot" aria-hidden="true"></span>
+              <span id="mysite-voice-btn-label" class="sr-only" data-i18n="onboarding.describe.recordStart">Record instead of typing</span>
+            </button>
+            <button type="button" class="textarea-send-btn" id="mysite-send-btn" aria-label="Generate draft">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
+                <line x1="12" y1="19" x2="12" y2="5" stroke-width="2.2" stroke-linecap="round"/>
+                <polyline points="6 11 12 5 18 11" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </button>
+          </div>
         </div>
         <p class="voice-status" id="mysite-voice-status"></p>
 
         <p id="mysite-draft-error" class="field-error hidden"></p>
-        <button type="button" class="button button-full" id="mysite-generate-btn" style="margin-top:10px;" data-i18n="mysite.draft.generate">Generate draft</button>
 
         <div id="mysite-draft-result" class="hidden" style="margin-top:14px;">
           <p class="field-hint" data-i18n="mysite.draft.reviewHint">Draft ready - review it above, then tap Save changes (and update hours/prices/FAQ in Profile).</p>
         </div>
 
-        <button type="button" class="button button-secondary button-full" id="mysite-suggest-themes-btn" style="margin-top:14px;" data-i18n="mysite.draft.suggestThemes">✨ Suggest AI designs for my business</button>
-        <p id="mysite-theme-suggest-error" class="field-error hidden"></p>
         <div id="mysite-theme-suggest-grid" class="theme-suggestion-grid"></div>
       </div>
     </div>
@@ -1428,7 +1438,7 @@
   </button>
 </nav>
 
-<script src="i18n.js?v=ee1da61f9d19"></script>
-<script src="app.js?v=ee1da61f9d19"></script>
+<script src="i18n.js?v=2eb4e871c4bf"></script>
+<script src="app.js?v=2eb4e871c4bf"></script>
 </body>
 </html>

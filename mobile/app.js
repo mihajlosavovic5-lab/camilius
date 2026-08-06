@@ -4430,7 +4430,12 @@ el("mysite-save-btn").addEventListener("click", async () => {
     }
 });
 
-el("mysite-generate-btn").addEventListener("click", async () => {
+// Single "send" action (chat-input style, next to the mic button above) that replaces
+// the old separate "Generate draft" and "Suggest AI designs" buttons - one description
+// now drives both the tagline/about/FAQ draft and the theme suggestions at once. Either
+// result that comes back gets applied on its own (Promise.allSettled, not .all) so a
+// hiccup in one call doesn't also throw away the other's success.
+el("mysite-send-btn").addEventListener("click", async () => {
     const errorBox = el("mysite-draft-error");
     errorBox.classList.add("hidden");
     const description = el("mysite-description").value.trim();
@@ -4439,49 +4444,39 @@ el("mysite-generate-btn").addEventListener("click", async () => {
         errorBox.classList.remove("hidden");
         return;
     }
-    const button = el("mysite-generate-btn");
+    const button = el("mysite-send-btn");
     button.disabled = true;
     try {
-        const draft = await api("/api/generate-page", { method: "POST", body: { description } });
-        el("mysite-tagline-input").value = draft.tagline || "";
-        el("mysite-about-input").value = draft.about || "";
-        el("mysite-draft-result").classList.remove("hidden");
-        // Setting .value directly above doesn't dispatch "input"/"change", so the
-        // delegated listener that normally reveals the Save button (see
-        // updateMysiteSaveValidity above) never fires on its own - poke it here instead.
-        updateMysiteSaveValidity();
-        // Hours/prices/FAQ live in the Profile tab's own fields, not here (the AI still
-        // drafts them - see api_generate_page - but this screen only owns the page's own
-        // presentation fields). FAQ is a plain textarea, safe to pre-fill directly; hours/
-        // prices go through Profile's own pickers, which the owner is pointed at via
-        // mysite.draft.reviewHint above rather than this screen reaching into them.
-        if (el("settings-faq")) el("settings-faq").value = draft.faq || "";
-        showToast(t("mysite.draft.ready") || "Draft ready - review it above.");
-    } catch (err) {
-        errorBox.textContent = err.message || t("network.error");
-        errorBox.classList.remove("hidden");
-    } finally {
-        button.disabled = false;
-    }
-});
-
-el("mysite-suggest-themes-btn").addEventListener("click", async () => {
-    const errorBox = el("mysite-theme-suggest-error");
-    errorBox.classList.add("hidden");
-    const description = el("mysite-description").value.trim();
-    if (!description) {
-        errorBox.textContent = t("mysite.draft.emptyError") || "Describe your business first.";
-        errorBox.classList.remove("hidden");
-        return;
-    }
-    const button = el("mysite-suggest-themes-btn");
-    button.disabled = true;
-    try {
-        const data = await api("/api/suggest-themes", { method: "POST", body: { description } });
-        mysiteRenderThemeSuggestions(data.themes || []);
-    } catch (err) {
-        errorBox.textContent = err.message || t("network.error");
-        errorBox.classList.remove("hidden");
+        const [draftResult, themesResult] = await Promise.allSettled([
+            api("/api/generate-page", { method: "POST", body: { description } }),
+            api("/api/suggest-themes", { method: "POST", body: { description } }),
+        ]);
+        if (draftResult.status === "fulfilled") {
+            const draft = draftResult.value;
+            el("mysite-tagline-input").value = draft.tagline || "";
+            el("mysite-about-input").value = draft.about || "";
+            el("mysite-draft-result").classList.remove("hidden");
+            // Setting .value directly above doesn't dispatch "input"/"change", so the
+            // delegated listener that normally reveals the Save button (see
+            // updateMysiteSaveValidity above) never fires on its own - poke it here instead.
+            updateMysiteSaveValidity();
+            // Hours/prices/FAQ live in the Profile tab's own fields, not here (the AI still
+            // drafts them - see api_generate_page - but this screen only owns the page's own
+            // presentation fields). FAQ is a plain textarea, safe to pre-fill directly; hours/
+            // prices go through Profile's own pickers, which the owner is pointed at via
+            // mysite.draft.reviewHint above rather than this screen reaching into them.
+            if (el("settings-faq")) el("settings-faq").value = draft.faq || "";
+        }
+        if (themesResult.status === "fulfilled") {
+            mysiteRenderThemeSuggestions(themesResult.value.themes || []);
+        }
+        if (draftResult.status === "rejected" || themesResult.status === "rejected") {
+            const failure = draftResult.status === "rejected" ? draftResult.reason : themesResult.reason;
+            errorBox.textContent = (failure && failure.message) || t("network.error");
+            errorBox.classList.remove("hidden");
+        } else {
+            showToast(t("mysite.draft.ready") || "Draft ready - review it above.");
+        }
     } finally {
         button.disabled = false;
     }
