@@ -38,34 +38,18 @@ def test_transcribe_voice_description_returns_stripped_text(monkeypatch):
 def test_transcribe_voice_description_passes_filename_and_content_type(monkeypatch):
     captured = _mock_transcription(monkeypatch)
     page_generator.transcribe_voice_description(b"fake-audio-bytes", "onboarding.m4a", "audio/mp4")
-    assert captured["model"] == "whisper-1"
+    assert captured["model"] == "gpt-4o-transcribe"
     filename, file_obj, content_type = captured["file"]
     assert filename == "onboarding.m4a"
     assert content_type == "audio/mp4"
     assert file_obj.read() == b"fake-audio-bytes"
 
 
-def test_transcribe_voice_description_omits_language_by_default(monkeypatch):
-    """No `language` argument at all falls back to Whisper's own auto-detection."""
+def test_transcribe_voice_description_does_not_force_a_language(monkeypatch):
+    """No language hint is sent - it auto-detects from the audio itself, so an owner can
+    speak any language regardless of the site's UI language."""
     captured = _mock_transcription(monkeypatch)
     page_generator.transcribe_voice_description(b"fake-audio-bytes", "recording.webm", "audio/webm")
-    assert "language" not in captured
-
-
-def test_transcribe_voice_description_hints_a_known_language(monkeypatch):
-    """A site UI language code is passed through to Whisper as a hint - closely-related
-    languages (e.g. Czech vs. Serbian) are otherwise easy for auto-detect to confuse,
-    especially on short recordings."""
-    captured = _mock_transcription(monkeypatch)
-    page_generator.transcribe_voice_description(b"fake-audio-bytes", "recording.webm", "audio/webm", "sr")
-    assert captured["language"] == "sr"
-
-
-def test_transcribe_voice_description_ignores_unknown_language(monkeypatch):
-    """A code outside the site's own supported UI languages (e.g. a stale/foreign value)
-    is dropped rather than passed to Whisper blind."""
-    captured = _mock_transcription(monkeypatch)
-    page_generator.transcribe_voice_description(b"fake-audio-bytes", "recording.webm", "audio/webm", "cs")
     assert "language" not in captured
 
 

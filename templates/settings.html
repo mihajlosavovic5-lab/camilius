@@ -883,7 +883,6 @@ if (document.readyState === "loading") {
         const extension = (blob.type || "").indexOf("mp4") !== -1 ? "m4a" : "webm";
         const formData = new FormData();
         formData.append("audio", blob, "settings-description." + extension);
-        formData.append("lang", typeof currentLang === "string" ? currentLang : "en");
         fetch("/api/onboarding/voice-transcribe", { method: "POST", headers: { "X-CSRFToken": csrfInput.value }, body: formData })
             .then((response) => response.json().then((data) => ({ ok: response.ok, data })))
             .then(({ ok, data }) => {

@@ -1071,7 +1071,7 @@ def api_voice_transcribe():
         return jsonify(error="That recording is too long - keep it under a minute or so."), 400
 
     try:
-        text = transcribe_voice_description(audio_bytes, audio.filename, audio.mimetype, request.form.get("lang"))
+        text = transcribe_voice_description(audio_bytes, audio.filename, audio.mimetype)
     except ValueError:
         return jsonify(error="Couldn't make sense of that recording - please try again or type your description instead."), 400
     finally:

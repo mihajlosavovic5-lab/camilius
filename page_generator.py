@@ -165,12 +165,7 @@ def generate_page_draft(description, document_text=None):
         raise ValueError(f"model returned invalid JSON: {error}") from error
 
 
-# Same 10 codes as static/site-i18n.js's LANGUAGES / mobile/i18n.js's LANGUAGES - the only
-# ones the UI itself is ever set to, so the only ones worth hinting Whisper with below.
-VOICE_TRANSCRIBE_LANGUAGES = {"en", "es", "pt", "fr", "de", "it", "ru", "sr", "zh", "tr"}
-
-
-def transcribe_voice_description(audio_bytes, filename, content_type=None, language=None):
+def transcribe_voice_description(audio_bytes, filename, content_type=None):
     """Speech-to-text for the onboarding "describe your business" step, via the same
     OpenAI client as generate_page_draft() above - lets an owner speak their description
     instead of typing it, transcribed text then flows through the exact same
@@ -179,11 +174,11 @@ def transcribe_voice_description(audio_bytes, filename, content_type=None, langu
     written to disk or persisted anywhere; the caller (app.py) discards it right after
     this returns and keeps only the resulting text, same as it would for typed input.
 
-    `language` is the site's current UI language code (one of VOICE_TRANSCRIBE_LANGUAGES),
-    passed to Whisper as a hint. Without it, Whisper's own auto-detection regularly confuses
-    closely-related languages on short recordings (e.g. Czech misheard as Serbian) - a wrong
-    language code from the caller just costs the same accuracy auto-detect already had, so
-    any value outside the known set is ignored rather than passed through blind.
+    No language is passed - it auto-detects the spoken language from the audio itself, so
+    an owner can speak any language regardless of what language the site's UI happens to be
+    set to. gpt-4o-transcribe (rather than the older whisper-1) both transcribes and
+    auto-detects language more reliably, particularly for closely-related languages
+    whisper-1 tended to confuse on short recordings (e.g. Czech misheard as Serbian).
 
     Raises ValueError if the recording is missing/too large/unintelligible - caller
     decides how to surface that, same contract as generate_page_draft()."""
@@ -192,15 +187,10 @@ def transcribe_voice_description(audio_bytes, filename, content_type=None, langu
     if len(audio_bytes) > MAX_VOICE_AUDIO_BYTES:
         raise ValueError("audio file is too large")
 
-    kwargs = {}
-    if language in VOICE_TRANSCRIBE_LANGUAGES:
-        kwargs["language"] = language
-
     try:
         transcript = client.audio.transcriptions.create(
-            model="whisper-1",
+            model="gpt-4o-transcribe",
             file=(filename or "recording.webm", io.BytesIO(audio_bytes), content_type or "application/octet-stream"),
-            **kwargs,
         )
     except Exception as error:
         raise ValueError(f"transcription failed: {error}") from error
