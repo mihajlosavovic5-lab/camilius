@@ -40,7 +40,7 @@ from database import (
     email_verify_resend_wait_seconds, save_pending_email_change, confirm_pending_email_change,
     save_email_verify_code, business_email_verify_code_matches,
     save_phone_verify_token, business_by_phone_verify_token, mark_phone_verified, phone_verify_sent_recently,
-    phone_verify_resend_wait_seconds,
+    phone_verify_resend_wait_seconds, save_phone_verify_code,
     grant_free_pro_access,
     notifications_for_business, unread_notification_count, mark_notifications_read,
     is_new_booking_notifications_enabled, set_new_booking_notifications_enabled,
@@ -51,6 +51,7 @@ from database import (
     UniqueViolation, release_db_lock,
 )
 from send_email import send_email
+from send_sms import send_sms, sms_configured
 from support_assistant import answer_support_question
 import ai_replies
 import booking
@@ -1079,6 +1080,7 @@ def send_email_change_verification(business_id, business_name, new_email):
 
 
 PHONE_VERIFY_TOKEN_LIFETIME = timedelta(hours=24)
+PHONE_VERIFY_CODE_LIFETIME = timedelta(minutes=15)
 PHONE_VERIFY_RESEND_COOLDOWN_SECONDS = 60
 
 
@@ -1144,9 +1146,10 @@ def _phone_verification_email_html(business_name, phone_number, link):
 
 def send_phone_verification_email(business_id, business_name, phone_number, recipient):
     """Issues a fresh 24h single-use token and emails the confirmation link to the
-    account's contact email (there's no SMS channel - see .env.example). Triggered only
-    from the Profile screen's "Verify phone number" button (see api.py's
-    /api/verify-phone/send), never automatically at registration - unlike the account
+    account's contact email. Used whenever send_sms.sms_configured() is False (the default
+    - no Twilio credentials set, see .env.example) as well as anywhere the SMS send itself
+    fails (see api.py's /api/verify-phone/send). Triggered only from the Profile screen's
+    "Verify phone number" button, never automatically at registration - unlike the account
     email, an unconfirmed phone just can't be used to log in yet, it doesn't block
     anything else."""
     token = secrets.token_urlsafe(32)
@@ -1167,6 +1170,25 @@ def send_phone_verification_email(business_id, business_name, phone_number, reci
         business_name="Camilius",
         reply_to=os.getenv("ALERT_EMAIL") or recipient,
         html=_phone_verification_email_html(business_name, phone_number, link),
+    )
+
+
+def send_phone_verification_sms(business_id, business_name, phone_number):
+    """SMS counterpart to send_phone_verification_email() - only ever called once
+    send_sms.sms_configured() has already been checked by the caller (api.py's
+    /api/verify-phone/send). A typed code rather than a link: the phone itself is where
+    the message lands, so (unlike the emailed link, opened wherever the account's contact
+    email happens to be read) there's no separate "browser" involved - the user is already
+    looking at the app that needs the code, same reasoning as the signup email code (see
+    send_verification_email). Raises on a Twilio failure; the caller falls back to the
+    emailed link rather than leaving the button spinning on a dead SMS attempt."""
+    code = f"{secrets.randbelow(1_000_000):06d}"
+    expires = datetime.now(timezone.utc).replace(tzinfo=None) + PHONE_VERIFY_CODE_LIFETIME
+    save_phone_verify_code(business_id, code, expires)
+
+    send_sms(
+        phone_number,
+        f"Camilius: {code} is your phone verification code for '{business_name}'. Valid for 15 minutes.",
     )
 
 

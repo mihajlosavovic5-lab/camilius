@@ -3076,10 +3076,20 @@ const profilePhoneAvailability = setupAvailabilityField(
     () => composePhoneNumber(el("settings-phone"), selectedProfilePhoneCountry), updateSettingsSaveValidity,
 );
 
-function updatePhoneVerifyStatus(phoneNumber, phoneVerified) {
+function updatePhoneVerifyStatus(phoneNumber, phoneVerified, smsAvailable) {
     el("settings-phone-verify-sent").classList.add("hidden");
+    el("settings-phone-verify-code-row").classList.add("hidden");
+    el("settings-phone-verify-code").value = "";
+    el("settings-phone-verify-code-error").classList.add("hidden");
     el("settings-phone-verified-badge").classList.toggle("hidden", !(phoneNumber && phoneVerified));
     el("settings-phone-unverified-banner").classList.toggle("hidden", !(phoneNumber && !phoneVerified));
+
+    // Button copy matches which channel /api/verify-phone/send will actually use (see
+    // send_sms.sms_configured() server-side) - known upfront from /api/settings, instead
+    // of only finding out after the button's already been tapped once.
+    const verifyBtn = el("settings-phone-verify-btn");
+    verifyBtn.setAttribute("data-i18n", smsAvailable ? "settings.phoneVerifyBtnSms" : "settings.phoneVerifyBtn");
+    verifyBtn.textContent = t(verifyBtn.getAttribute("data-i18n"));
 }
 
 async function loadSettingsIntoForm() {
@@ -3091,7 +3101,7 @@ async function loadSettingsIntoForm() {
         const { country, rest } = splitStoredPhoneNumber(data.phone_number);
         setProfilePhoneCountry(country);
         el("settings-phone").value = rest;
-        updatePhoneVerifyStatus(data.phone_number, data.phone_verified);
+        updatePhoneVerifyStatus(data.phone_number, data.phone_verified, data.sms_verification_available);
         profileHoursPicker.setValue(data.working_hours);
         profilePricesPicker.setValue(data.price_list);
         el("settings-faq").value = data.faq;
@@ -3409,7 +3419,7 @@ el("settings-save").addEventListener("click", async () => {
         el("inbox-business-name").textContent = el("settings-name").value;
         resetPasswordField("settings-current-password");
         resetPasswordField("settings-new-password");
-        updatePhoneVerifyStatus(data.phone_number, data.phone_verified);
+        updatePhoneVerifyStatus(data.phone_number, data.phone_verified, data.sms_verification_available);
         profileHoursPicker.collapseToSimple();
         profileFormSnapshot = serializeProfileForm();
         if (scrollContainer) scrollContainer.scrollTop = scrollTopBeforeSave;
@@ -3434,11 +3444,33 @@ el("settings-phone-verify-btn").addEventListener("click", async () => {
     btn.disabled = true;
     try {
         const data = await api("/api/verify-phone/send", { method: "POST" });
-        el("settings-phone-verify-sent").classList.remove("hidden");
+        // channel="sms" (send_sms.sms_configured() is True server-side) shows the code
+        // field instead of the "check your email" message - see
+        // settings-phone-verify-code-submit below for redeeming it.
+        el("settings-phone-verify-sent").classList.toggle("hidden", data.channel === "sms");
+        el("settings-phone-verify-code-row").classList.toggle("hidden", data.channel !== "sms");
         startResendCountdown(btn, data.wait_seconds || 0);
     } catch (err) {
         // Best-effort, same as the account-email resend button - a real failure here is
         // already surfaced by the offline banner.
+        btn.disabled = false;
+    }
+});
+
+el("settings-phone-verify-code-submit").addEventListener("click", async () => {
+    const btn = el("settings-phone-verify-code-submit");
+    const errorBox = el("settings-phone-verify-code-error");
+    if (btn.disabled) return;
+    const code = el("settings-phone-verify-code").value.trim();
+    errorBox.classList.add("hidden");
+    btn.disabled = true;
+    try {
+        await api("/api/verify-phone/confirm", { method: "POST", body: { code } });
+        updatePhoneVerifyStatus(composePhoneNumber(el("settings-phone"), selectedProfilePhoneCountry), true, true);
+    } catch (err) {
+        errorBox.textContent = err.message || t("settings.error");
+        errorBox.classList.remove("hidden");
+    } finally {
         btn.disabled = false;
     }
 });
