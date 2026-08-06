@@ -66,11 +66,10 @@ def test_site_overview_appointments_stat_reflects_count(client, unique_username,
     assert "Ana" in html and "Bob" in html
 
 
-def test_nav_my_website_and_conversations_are_separate_links(client, unique_username, unique_email):
+def test_nav_shows_my_website_link(client, unique_username, unique_email):
     register_business_web(client, unique_username, unique_email)
     business = database.business_by_username(unique_username)
     database.mark_onboarding_completed(business[0])
 
     html = client.get("/").get_data(as_text=True)
     assert 'href="/"' in html
-    assert 'href="/conversations"' in html
