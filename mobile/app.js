@@ -4529,16 +4529,15 @@ function mysiteRenderThemeSuggestions(themeList) {
 // website's onboarding wizard and Settings page use, ported here since mobile never had
 // a voice-input feature at all before Faza 15.
 (function () {
-    const row = el("mysite-voice-row");
     const recordBtn = el("mysite-voice-btn");
     const btnLabel = el("mysite-voice-btn-label");
     const status = el("mysite-voice-status");
     const textarea = el("mysite-description");
-    if (!row || !recordBtn || !textarea) return;
+    if (!recordBtn || !textarea) return;
 
     const supported = !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia && window.MediaRecorder);
     if (!supported) return;
-    row.hidden = false;
+    recordBtn.hidden = false;
 
     function setStatus(text, isError) {
         status.textContent = text || "";

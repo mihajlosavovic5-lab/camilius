@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
 <title>Camilius</title>
-<link rel="stylesheet" href="app.css?v=975e9b706998">
+<link rel="stylesheet" href="app.css?v=ee1da61f9d19">
 </head>
 <body>
 
@@ -673,21 +673,17 @@
       <div class="profile-section">
         <div class="profile-section-header">
           <p class="profile-section-title" data-i18n="mysite.draft.title">Draft this with AI</p>
-          <p class="profile-section-subtitle" data-i18n="mysite.draft.subtitle">Describe your business (type, speak, or use a document from the Profile tab) and the AI drafts your tagline, about text, hours, prices, and FAQ.</p>
         </div>
-        <div class="floating-field floating-field-textarea">
+        <div class="floating-field floating-field-textarea floating-field-with-mic">
           <textarea id="mysite-description" rows="3" maxlength="1000" placeholder=" "></textarea>
           <label for="mysite-description" data-i18n="mysite.draft.label">What does your business do?</label>
-        </div>
-
-        <div class="voice-input-row" id="mysite-voice-row" hidden>
-          <button type="button" class="button button-secondary voice-record-btn" id="mysite-voice-btn">
+          <button type="button" class="textarea-mic-btn" id="mysite-voice-btn" hidden>
             <span class="voice-record-dot" aria-hidden="true"></span>
             <span class="voice-record-icon" aria-hidden="true">🎤</span>
-            <span id="mysite-voice-btn-label" data-i18n="onboarding.describe.recordStart">Record instead of typing</span>
+            <span id="mysite-voice-btn-label" class="sr-only" data-i18n="onboarding.describe.recordStart">Record instead of typing</span>
           </button>
-          <span class="voice-status" id="mysite-voice-status"></span>
         </div>
+        <p class="voice-status" id="mysite-voice-status"></p>
 
         <p id="mysite-draft-error" class="field-error hidden"></p>
         <button type="button" class="button button-full" id="mysite-generate-btn" style="margin-top:10px;" data-i18n="mysite.draft.generate">Generate draft</button>
@@ -1432,7 +1428,7 @@
   </button>
 </nav>
 
-<script src="i18n.js?v=975e9b706998"></script>
-<script src="app.js?v=975e9b706998"></script>
+<script src="i18n.js?v=ee1da61f9d19"></script>
+<script src="app.js?v=ee1da61f9d19"></script>
 </body>
 </html>
