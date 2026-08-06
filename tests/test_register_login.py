@@ -208,6 +208,72 @@ def test_register_web_resumes_abandoned_unverified_signup(client, unique_usernam
     assert database.business_by_username(f"other-{unique_username}") is None
 
 
+def _current_verify_code(business_id):
+    """Test-only peek at the code just emailed by send_verification_email() - there's no
+    exported getter for this on purpose (see business_email_verify_code_matches's own
+    docstring in database.py), so tests read it straight out of the row like
+    test_paddle_trial.py's own raw-cursor checks do."""
+    connection = database.connect()
+    cursor = connection.cursor()
+    cursor.execute("SELECT email_verify_code FROM businesses WHERE id = %s", (business_id,))
+    row = cursor.fetchone()
+    connection.close()
+    return row[0]
+
+
+def test_verify_pending_confirm_web_wrong_code_shows_error(client, unique_username, unique_email):
+    first = _register_web_form(client, unique_username, unique_email)
+    business = database.business_by_username(unique_username)
+    assert business[12] is False  # email_verified - not yet
+
+    csrf_token = _csrf_token_from_html(client.get("/verify-pending").get_data(as_text=True))
+    response = web_post(client, "/verify-pending/confirm", {"csrf_token": csrf_token, "code": "000000"})
+    assert response.status_code == 200  # re-renders the page, doesn't redirect
+    assert "Incorrect or expired code" in response.get_data(as_text=True)
+    assert database.business_by_username(unique_username)[12] is False  # still unverified
+
+
+def test_verify_pending_confirm_web_correct_code_logs_in(client, unique_username, unique_email):
+    _register_web_form(client, unique_username, unique_email)
+    business = database.business_by_username(unique_username)
+    code = _current_verify_code(business[0])
+
+    csrf_token = _csrf_token_from_html(client.get("/verify-pending").get_data(as_text=True))
+    response = web_post(client, "/verify-pending/confirm", {"csrf_token": csrf_token, "code": code})
+    assert response.status_code == 302
+    assert database.business_by_username(unique_username)[12] is True  # now verified
+    with client.session_transaction() as session:
+        assert session["business_id"] == business[0]
+
+
+def test_api_verify_email_code_wrong_code_rejected(client, unique_username, unique_email):
+    reg = client.post("/api/register", json=_api_register_payload(unique_username, unique_email))
+    business_id = reg.get_json()["business_id"]
+
+    response = client.post("/api/verify-email-code", json={"business_id": business_id, "code": "000000"})
+    assert response.status_code == 400
+    assert database.business_by_id(business_id)[12] is False
+
+
+def test_api_verify_email_code_correct_code_returns_token(client, unique_username, unique_email):
+    """The whole point of a typed code on mobile (vs. the old emailed link) - success
+    hands back a usable Bearer token immediately, so the app can log straight in instead
+    of dead-ending on a "check your email" screen that only a browser tab could resolve."""
+    reg = client.post("/api/register", json=_api_register_payload(unique_username, unique_email))
+    business_id = reg.get_json()["business_id"]
+    code = _current_verify_code(business_id)
+
+    response = client.post("/api/verify-email-code", json={"business_id": business_id, "code": code})
+    assert response.status_code == 200
+    data = response.get_json()
+    assert data["token"]
+    assert database.business_by_id(business_id)[12] is True
+
+    # The token works immediately - a normal authenticated request succeeds with it.
+    dashboard = client.get("/api/notification-preferences", headers={"Authorization": f"Bearer {data['token']}"})
+    assert dashboard.status_code == 200
+
+
 # --- /api/check-availability - the Create Account wizard's live "already taken" check
 # gates its own Next/step button on this, so it has to agree with api_register()'s
 # resume behavior above or the wizard would block the user before they ever reach

@@ -38,6 +38,7 @@ from database import (
     all_appointments_for_business, get_stripe_customer_id, get_paddle_customer_id,
     save_email_verify_token, business_by_email_verify_token, mark_email_verified, email_verify_sent_recently,
     email_verify_resend_wait_seconds, save_pending_email_change, confirm_pending_email_change,
+    save_email_verify_code, business_email_verify_code_matches,
     save_phone_verify_token, business_by_phone_verify_token, mark_phone_verified, phone_verify_sent_recently,
     phone_verify_resend_wait_seconds,
     grant_free_pro_access,
@@ -686,7 +687,7 @@ def verify_pending():
         session.pop("pending_verify_business_id", None)
         return redirect(url_for("login"))
     wait_seconds = email_verify_resend_wait_seconds(business_id, EMAIL_VERIFY_RESEND_COOLDOWN_SECONDS)
-    return render_template("verify_pending.html", contact_email=business[4], resent=False, resend_wait_seconds=wait_seconds)
+    return render_template("verify_pending.html", contact_email=business[4], resent=False, resend_wait_seconds=wait_seconds, error=None)
 
 
 @app.route("/verify-pending/resend", methods=["POST"])
@@ -702,7 +703,39 @@ def verify_pending_resend():
     if not email_verify_sent_recently(business_id, EMAIL_VERIFY_RESEND_COOLDOWN_SECONDS):
         send_verification_email(business[0], business[1], business[4])
     wait_seconds = email_verify_resend_wait_seconds(business_id, EMAIL_VERIFY_RESEND_COOLDOWN_SECONDS)
-    return render_template("verify_pending.html", contact_email=business[4], resent=True, resend_wait_seconds=wait_seconds)
+    return render_template("verify_pending.html", contact_email=business[4], resent=True, resend_wait_seconds=wait_seconds, error=None)
+
+
+# Redeems the code emailed by send_verification_email() - the typed-code counterpart to
+# /verify-email/<token>'s clicked link (still used for the Settings email-change flow
+# only). Session-based like the rest of verify_pending - pending_verify_business_id is
+# set by register()/login() above and is what ties a submitted code back to the right
+# account, so a wrong guess here can't be reused to probe other accounts' codes.
+@app.route("/verify-pending/confirm", methods=["POST"])
+@limiter.limit("10 per 15 minutes")
+def verify_pending_confirm():
+    business_id = session.get("pending_verify_business_id")
+    if not business_id:
+        return redirect(url_for("login"))
+    business = business_by_id(business_id)
+    if business is None or business[12]:  # already verified (or account gone) - nothing pending
+        session.pop("pending_verify_business_id", None)
+        return redirect(url_for("login"))
+
+    code = (request.form.get("code") or "").strip()
+    if not business_email_verify_code_matches(business_id, code):
+        wait_seconds = email_verify_resend_wait_seconds(business_id, EMAIL_VERIFY_RESEND_COOLDOWN_SECONDS)
+        return render_template(
+            "verify_pending.html", contact_email=business[4], resent=False, resend_wait_seconds=wait_seconds,
+            error="Incorrect or expired code. Please try again.",
+        )
+
+    mark_email_verified(business_id)
+    log_event("email_verified", business_id=business_id)
+    session.pop("pending_verify_business_id", None)
+    session["business_id"] = business_id
+    session["business_name"] = business[1]
+    return redirect(url_for("home"))
 
 
 @app.route("/verify-email/<token>")
@@ -838,6 +871,10 @@ def _email_password_reset_link(business):
 
 
 EMAIL_VERIFY_TOKEN_LIFETIME = timedelta(hours=24)
+# Signup verification codes are short-lived compared to the email-change link above -
+# they're meant to be read out of an inbox and typed back in within the same sitting, not
+# saved for later, so a tight window limits how long a leaked/guessed code stays useful.
+EMAIL_VERIFY_CODE_LIFETIME = timedelta(minutes=15)
 # Minimum gap between two verification emails to the same account - stops the login
 # form (which re-triggers a resend on every attempt while unverified, see login() below)
 # from firing a fresh email on every single failed/retried submit.
@@ -911,38 +948,98 @@ def _verification_email_html(heading, intro_html, link, footer_note):
 </html>"""
 
 
-def send_verification_email(business_id, business_name, recipient):
-    """Issues a fresh 24h single-use token and emails the confirmation link. Shared by the
-    web /register route, the mobile /api/register endpoint, and both places that resend it
-    (login() below and /api/login) once an account already exists but hasn't confirmed yet.
+def _verification_code_email_html(heading, intro_html, code, footer_note):
+    """Same branded-card layout as _verification_email_html, but with the code itself
+    displayed as the call to action instead of a clickable link - see
+    send_verification_email's own docstring for why signup verification is a typed code
+    rather than a link."""
+    logo_url = url_for("static", filename="icon-512.png", _external=True)
+    return f"""\
+<!DOCTYPE html>
+<html>
+<body style="margin:0; padding:0; background:#f6f1e7; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f6f1e7; padding:32px 16px;">
+    <tr>
+      <td align="center">
+        <table role="presentation" width="480" cellpadding="0" cellspacing="0" style="max-width:480px; width:100%; background:#ffffff; border-radius:14px; overflow:hidden; box-shadow:0 4px 24px rgba(43,32,19,.08);">
+          <tr>
+            <td style="padding:32px 40px 8px; text-align:center;">
+              <img src="{logo_url}" width="48" height="48" alt="Camilius" style="border-radius:22%; display:block; margin:0 auto 12px;">
+              <div style="font-size:19px; font-weight:700; color:#2b2013;">Camilius</div>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:8px 40px 0;">
+              <hr style="border:none; border-top:1px solid #eee2cc; margin:16px 0;">
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:0 40px; text-align:center;">
+              <h1 style="font-size:20px; color:#2b2013; margin:0 0 16px;">{heading}</h1>
+              <p style="font-size:15px; line-height:1.6; color:#463824; margin:0 0 24px; text-align:left;">
+                {intro_html}
+              </p>
+              <div style="display:inline-block; padding:16px 28px; margin:0 0 24px; background:#f6f1e7; border-radius:12px; font-size:32px; font-weight:700; letter-spacing:8px; color:#2b2013;">{code}</div>
+              <p style="font-size:13.5px; line-height:1.6; color:#8a7a5f; margin:0 0 24px;">
+                This code expires in 15 minutes.
+              </p>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:0 40px 32px;">
+              <hr style="border:none; border-top:1px solid #eee2cc; margin:0 0 20px;">
+              <p style="font-size:13px; line-height:1.6; color:#8a7a5f; margin:0;">
+                {footer_note}
+              </p>
+            </td>
+          </tr>
+        </table>
+        <p style="font-size:12px; color:#a6987d; margin:20px 0 0;">&copy; {datetime.now(timezone.utc).year} Camilius. All rights reserved.</p>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>"""
 
-    The token is saved and the account already exists in the DB before this is ever called
+
+def send_verification_email(business_id, business_name, recipient):
+    """Issues a fresh signup verification code and emails it. Shared by the web /register
+    route, the mobile /api/register endpoint, and both places that resend it (login()
+    below and /api/login) once an account already exists but hasn't confirmed yet.
+
+    Unlike the email-change flow (send_email_change_verification, still a clicked link),
+    signup verification is a typed code - the account isn't logged in anywhere yet for a
+    link to usefully return to, and (per the mobile app) a link opens outside the app
+    entirely, so a code the user types back in wherever they started is what lets both
+    web and app continue in place.
+
+    The code is saved and the account already exists in the DB before this is ever called
     - a broken send (Resend down, bad API key, network blip) must not turn into a 500 that
     leaves the business stuck (account created, no session, nothing to resend from). Caught
     and logged here instead: the caller's own redirect to verify_pending still happens, and
     that page's own "Resend" button (see /verify-pending/resend) covers a retry once
     whatever went wrong clears."""
-    token = secrets.token_urlsafe(32)
-    expires = datetime.now(timezone.utc).replace(tzinfo=None) + EMAIL_VERIFY_TOKEN_LIFETIME
-    save_email_verify_token(business_id, token, expires)
+    code = f"{secrets.randbelow(1_000_000):06d}"
+    expires = datetime.now(timezone.utc).replace(tzinfo=None) + EMAIL_VERIFY_CODE_LIFETIME
+    save_email_verify_code(business_id, code, expires)
 
-    link = url_for("verify_email", token=token, _external=True)
     try:
         send_email(
             recipient=recipient,
-            subject="Confirm your email - Camilius",
+            subject="Your Camilius verification code",
             body=(
                 f"Hi,\n\n"
-                f"Welcome to Camilius! Confirm '{business_name}'s email address to finish setting up your account.\n\n"
-                f"Click the link to confirm (valid for 24 hours):\n{link}\n\n"
+                f"Welcome to Camilius! Use the code below to confirm '{business_name}'s email address "
+                f"and finish setting up your account.\n\n"
+                f"Your verification code (valid for 15 minutes): {code}\n\n"
                 f"If you didn't create a Camilius account, you can safely ignore this email."
             ),
             business_name="Camilius",
             reply_to=os.getenv("ALERT_EMAIL") or recipient,
-            html=_verification_email_html(
+            html=_verification_code_email_html(
                 heading="Confirm your email",
-                intro_html=f"Welcome to Camilius! Confirm <strong>{business_name}</strong>'s email address to finish setting up your account.",
-                link=link,
+                intro_html=f"Welcome to Camilius! Enter this code to confirm <strong>{business_name}</strong>'s email address and finish setting up your account.",
+                code=code,
                 footer_note="If you didn't create a Camilius account, you can safely ignore this email.",
             ),
         )

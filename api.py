@@ -20,6 +20,7 @@ from database import (
     is_owner_reminders_enabled, set_owner_reminders_enabled, get_owner_reminder_minutes, set_owner_reminder_minutes,
     email_verify_sent_recently, phone_verify_sent_recently,
     email_verify_resend_wait_seconds, phone_verify_resend_wait_seconds,
+    business_email_verify_code_matches, mark_email_verified,
     get_slot_duration, set_slot_duration, create_appointment, get_appointment, cancel_appointment,
     notifications_for_business, unread_notification_count, mark_notifications_read,
     is_new_booking_notifications_enabled, set_new_booking_notifications_enabled,
@@ -384,6 +385,31 @@ def api_resend_verification():
         else EMAIL_VERIFY_RESEND_COOLDOWN_SECONDS
     )
     return jsonify(sent=True, wait_seconds=wait_seconds)
+
+
+# Redeems the code emailed by send_verification_email() from the app's own "check your
+# email" screen (showVerifyPendingScreen in mobile/app.js) - the in-app counterpart to
+# app.py's web /verify-pending/confirm. Unlike the web flow (which can only mark the
+# session that's already sitting on verify_pending as logged-in), this hands back a
+# Bearer token on success so the code entered here is the whole continuation: the app
+# never has to fall back to opening anything in a browser to finish signing in.
+@api.route("/verify-email-code", methods=["POST"])
+@limiter.limit("10 per 15 minutes")
+def api_verify_email_code():
+    data = request.get_json(silent=True) or {}
+    business_id = data.get("business_id")
+    code = (data.get("code") or "").strip()
+
+    business = business_by_id(business_id) if business_id else None
+    if business is None or business[12]:  # unknown account, or already verified - nothing to confirm
+        return jsonify(error="Incorrect or expired code. Please try again."), 400
+
+    if not business_email_verify_code_matches(business[0], code):
+        return jsonify(error="Incorrect or expired code. Please try again."), 400
+
+    mark_email_verified(business[0])
+    log_event("email_verified", business_id=business[0])
+    return jsonify(token=make_token(business[0]), business_id=business[0], business_name=business[1])
 
 
 # Native forgot-password screen in the mobile app (replaces opening the website's

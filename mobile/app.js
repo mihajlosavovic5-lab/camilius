@@ -2155,6 +2155,8 @@ function showVerifyPendingScreen(businessId, email, waitSeconds) {
     // address) when the caller doesn't know the address - e.g. a login attempt only ever
     // gets a business_id back, never the contact_email itself.
     el("verify-pending-email").textContent = email || t("verifyPending.yourEmail");
+    el("verify-pending-code").value = "";
+    el("verify-pending-error").classList.add("hidden");
     el("verify-pending-resent").classList.add("hidden");
     // A verification email was just sent (by register/login) to get here at all, so the
     // resend button starts disabled with the real server-side cooldown already counting
@@ -2162,6 +2164,40 @@ function showVerifyPendingScreen(businessId, email, waitSeconds) {
     startResendCountdown(el("verify-pending-resend"), waitSeconds || 0);
     showScreen("verifyPending");
 }
+
+// Submitting the typed code hands back a Bearer token straight away on success (see
+// api_verify_email_code) - unlike the old emailed-link flow, this never needs a browser
+// tab or a trip back to the website: the code entered here is the entire continuation,
+// so a verified signup on the app always keeps going in the app.
+el("verify-pending-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const errorBox = el("verify-pending-error");
+    const submitBtn = el("verify-pending-submit");
+    const code = el("verify-pending-code").value.trim();
+
+    errorBox.classList.add("hidden");
+    submitBtn.disabled = true;
+    submitBtn.textContent = t("verifyPending.verifying");
+
+    try {
+        const data = await api("/api/verify-email-code", {
+            method: "POST",
+            body: { business_id: state.pendingVerifyBusinessId, code },
+        });
+        state.pendingVerifyBusinessId = null;
+        state.token = data.token;
+        state.businessName = data.business_name;
+        await storageSet("token", data.token);
+        await storageSet("businessName", data.business_name);
+        enterApp();
+    } catch (err) {
+        errorBox.textContent = err.message || t("verifyPending.wrongCode");
+        errorBox.classList.remove("hidden");
+    } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = t("verifyPending.verify");
+    }
+});
 
 el("verify-pending-resend").addEventListener("click", async () => {
     const btn = el("verify-pending-resend");
