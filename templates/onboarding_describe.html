@@ -138,6 +138,7 @@
         var ctx2d = waveformCanvas.getContext("2d");
         var w = waveformCanvas.width;
         var h = waveformCanvas.height;
+        var lineColor = getComputedStyle(document.documentElement).getPropertyValue("--text-muted").trim() || "#7a6c52";
         waveformCanvas.classList.add("active");
 
         (function draw() {
@@ -145,7 +146,7 @@
             analyser.getByteTimeDomainData(data);
             ctx2d.clearRect(0, 0, w, h);
             ctx2d.lineWidth = 2;
-            ctx2d.strokeStyle = "#dc2626";
+            ctx2d.strokeStyle = lineColor;
             ctx2d.beginPath();
             var sliceWidth = w / data.length;
             var x = 0;

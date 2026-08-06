@@ -4621,13 +4621,14 @@ function mysiteRenderThemeSuggestions(themeList) {
         const data = new Uint8Array(analyser.fftSize);
         const ctx2d = waveformCanvas.getContext("2d");
         ctx2d.scale(dpr, dpr);
+        const lineColor = getComputedStyle(document.documentElement).getPropertyValue("--text-muted").trim() || "#7a6c52";
 
         (function draw() {
             waveformRAF = requestAnimationFrame(draw);
             analyser.getByteTimeDomainData(data);
             ctx2d.clearRect(0, 0, w, h);
             ctx2d.lineWidth = 2;
-            ctx2d.strokeStyle = "#dc2626";
+            ctx2d.strokeStyle = lineColor;
             ctx2d.beginPath();
             const sliceWidth = w / data.length;
             let x = 0;

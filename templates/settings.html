@@ -844,6 +844,7 @@ if (document.readyState === "loading") {
         const ctx2d = waveformCanvas.getContext("2d");
         const w = waveformCanvas.width;
         const h = waveformCanvas.height;
+        const lineColor = getComputedStyle(document.documentElement).getPropertyValue("--text-muted").trim() || "#7a6c52";
         waveformCanvas.classList.add("active");
 
         (function draw() {
@@ -851,7 +852,7 @@ if (document.readyState === "loading") {
             analyser.getByteTimeDomainData(data);
             ctx2d.clearRect(0, 0, w, h);
             ctx2d.lineWidth = 2;
-            ctx2d.strokeStyle = "#dc2626";
+            ctx2d.strokeStyle = lineColor;
             ctx2d.beginPath();
             const sliceWidth = w / data.length;
             let x = 0;
