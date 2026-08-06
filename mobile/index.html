@@ -707,11 +707,6 @@
           <textarea id="mysite-about-input" rows="3" maxlength="2000" placeholder=" "></textarea>
           <label for="mysite-about-input" data-i18n="mysite.website.aboutLabel">About (a few sentences)</label>
         </div>
-        <label class="switch-row" style="display:flex; align-items:center; justify-content:space-between; margin-top:10px;">
-          <span data-i18n="mysite.website.publish">Publish this page</span>
-          <input type="checkbox" id="mysite-published">
-        </label>
-
         <div id="mysite-theme-select-row" style="margin-top:14px;">
           <p class="media-label" data-i18n="settings.page.design">Design</p>
           <select id="mysite-theme-select"></select>
@@ -770,6 +765,17 @@
         </div>
 
         <div id="mysite-theme-suggest-grid" class="theme-suggestion-grid"></div>
+      </div>
+
+      <div class="profile-section" style="margin-top: 20px;">
+        <div class="settings-row" style="border-bottom: none; padding: 2px;">
+          <span data-i18n="mysite.website.publish">Publish this page</span>
+          <label class="hours-day-toggle">
+            <input type="checkbox" id="mysite-published">
+            <span class="hours-day-toggle-track"><span class="hours-day-toggle-thumb"></span></span>
+          </label>
+        </div>
+        <p class="field-hint" data-i18n="mysite.website.publishHint">Off keeps your changes saved but not visible to customers yet.</p>
       </div>
     </div>
     <button class="fab-save hidden" id="mysite-save-btn" data-i18n="settings.save">Save changes</button>
