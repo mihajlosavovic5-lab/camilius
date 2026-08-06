@@ -4877,9 +4877,29 @@ function mysiteRenderThemeSuggestions(themeList) {
 // exit: stop and throw away everything recorded so far.
 (function () {
     const attachBtn = el("mysite-attach-btn");
-    const attachInput = el("mysite-attach-input");
+    const cameraInput = el("mysite-attach-input-camera");
+    const photosInput = el("mysite-attach-input-photos");
+    const filesInput = el("mysite-attach-input-files");
     const list = el("mysite-attachment-list");
-    if (!attachBtn || !attachInput || !list) return;
+    if (!attachBtn || !cameraInput || !photosInput || !filesInput || !list) return;
+
+    // Camera / Photos / Files bottom sheet - see #attach-options-modal in index.html,
+    // same fixed-overlay pattern as openRowActions(). Picking an option closes the sheet
+    // and clicks that option's own hidden file input.
+    const sheet = el("attach-options-modal");
+    function openAttachSheet() {
+        if (sheet) sheet.classList.add("open");
+    }
+    function closeAttachSheet() {
+        if (sheet) sheet.classList.remove("open");
+    }
+    if (sheet) {
+        el("attach-options-backdrop").addEventListener("click", closeAttachSheet);
+        el("attach-option-cancel").addEventListener("click", closeAttachSheet);
+        el("attach-option-camera").addEventListener("click", () => { closeAttachSheet(); cameraInput.click(); });
+        el("attach-option-photos").addEventListener("click", () => { closeAttachSheet(); photosInput.click(); });
+        el("attach-option-files").addEventListener("click", () => { closeAttachSheet(); filesInput.click(); });
+    }
 
     function kindFor(file) {
         const type = (file.type || "").toLowerCase();
@@ -5001,15 +5021,18 @@ function mysiteRenderThemeSuggestions(themeList) {
             });
     }
 
-    attachInput.addEventListener("change", () => {
-        const files = Array.prototype.slice.call(attachInput.files || []);
-        attachInput.value = "";
+    function handlePicked(input) {
+        const files = Array.prototype.slice.call(input.files || []);
+        input.value = "";
         files.forEach(uploadFile);
-    });
+    }
+    cameraInput.addEventListener("change", () => handlePicked(cameraInput));
+    photosInput.addEventListener("change", () => handlePicked(photosInput));
+    filesInput.addEventListener("change", () => handlePicked(filesInput));
 
     attachBtn.addEventListener("click", () => {
         if (mysiteCancelRecordingIfActive()) return;
-        attachInput.click();
+        openAttachSheet();
     });
 })();
 
