@@ -10,11 +10,12 @@ def test_login_page_loads(client):
 def test_login_page_defaults_to_google_email_choice_view(client):
     """Two-phase login (Continue with Google / Continue with email) - a plain page load
     with no error/message should start on the choice screen, not the username/password
-    form, whether or not Google is even configured (see #login-choice/#login-form-wrap in
-    login.html)."""
+    form, whether or not Google is even configured. The choice <-> form swap is driven
+    by .auth-card-email-active on #login-card (see .login-phase-stack in style.css),
+    not a "hidden" class on the individual panels, so the default (no error/message)
+    render should omit that class."""
     html = client.get("/login").get_data(as_text=True)
-    assert 'class="auth-choice" id="login-choice"' in html  # visible - no "hidden"
-    assert 'class="auth-form-wrap hidden" id="login-form-wrap"' in html  # hidden by default
+    assert 'class="auth-card" id="login-card"' in html  # choice view active by default
 
 
 def test_login_web_wrong_password_shows_form_not_choice(client, unique_username, unique_email):
@@ -33,8 +34,7 @@ def test_login_web_wrong_password_shows_form_not_choice(client, unique_username,
     assert response.status_code == 200
     html = response.get_data(as_text=True)
     assert "Wrong username or password" in html
-    assert 'class="auth-choice hidden" id="login-choice"' in html  # choice hidden
-    assert 'class="auth-form-wrap" id="login-form-wrap"' in html  # form visible, no "hidden"
+    assert 'class="auth-card auth-card-email-active" id="login-card"' in html  # form view active
 
 
 def test_register_web_rejects_password_mismatch(client, unique_username, unique_email):
