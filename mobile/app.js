@@ -4327,7 +4327,6 @@ async function loadMySite() {
         }
 
         const appointments = data.upcoming_appointments || [];
-        el("mysite-stat-appointments").textContent = String(appointments.length);
         const appointmentsCard = el("mysite-appointments-card");
         appointmentsCard.classList.toggle("hidden", appointments.length === 0);
         const list = el("mysite-appointments-list");
@@ -4349,13 +4348,6 @@ async function loadMySite() {
         if (err.status === 401) { logout(); return; }
         el("mysite-error").textContent = err.message || t("network.error");
         el("mysite-error").classList.remove("hidden");
-    }
-
-    try {
-        const dashboard = await api("/api/dashboard");
-        el("mysite-stat-pending").textContent = String(dashboard.pending_count || 0);
-    } catch (err) {
-        if (err.status === 401) logout();
     }
 }
 

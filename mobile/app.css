@@ -1304,15 +1304,6 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
 .theme-suggestion-label { font-weight: 700; font-size: 14px; margin: 0 0 2px; }
 .theme-suggestion-blurb { font-size: 12.5px; color: var(--text-muted); margin: 0; }
 
-/* My Website tab - quick-stat tiles (upcoming appointments / pending conversations),
-   same shape as .inbox-stat-tile above. */
-.mysite-stats-row { display: flex; gap: 10px; margin: 0 0 16px; }
-.mysite-stat-tile {
-    flex: 1; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
-    padding: 12px; text-align: center;
-}
-.mysite-stat-value { font-size: 22px; font-weight: 700; }
-.mysite-stat-label { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
 .mysite-appointment-row {
     display: flex; justify-content: space-between; gap: 10px; padding: 9px 0;
     border-bottom: 1px solid var(--border); font-size: 14px;
