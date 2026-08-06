@@ -341,6 +341,20 @@ if (capacitorPlugins) {
                 }
 
                 setOtaProgress(100);
+                // Re-checked here, not just in the guard at the top of this function - a
+                // Google sign-in can start well after this function began (the fetch/
+                // current()/download sequence above easily takes a few seconds), and
+                // set() below reloads the WebView unconditionally, wiping out that
+                // attempt's in-memory state (activeGoogleLoginAttempt included) out from
+                // under the visitor exactly like the top-of-function comment says must
+                // never happen. The bundle is already downloaded and cached on disk at
+                // this point, so bailing here doesn't lose the update - checkForUpdateFn()
+                // gets called again once the attempt settles (see checkGoogleLoginStatusOnce/
+                // pollGoogleLogin), and that next pass applies this same cached bundle.
+                if (activeGoogleLoginAttempt) {
+                    otaOverlay.classList.add("hidden");
+                    return;
+                }
                 step = "set";
                 await capacitorPlugins.CapacitorUpdater.set(bundle);
                 // set() reloads the app immediately - nothing below this line runs.
