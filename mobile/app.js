@@ -4883,12 +4883,20 @@ function mysiteRenderThemeSuggestions(themeList) {
     const list = el("mysite-attachment-list");
     if (!attachBtn || !cameraInput || !photosInput || !filesInput || !list) return;
 
-    // Camera / Photos / Files bottom sheet - see #attach-options-modal in index.html,
-    // same fixed-overlay pattern as openRowActions(). Picking an option closes the sheet
-    // and clicks that option's own hidden file input.
+    // Camera / Photos / Files popover - see #attach-options-modal in index.html, same
+    // fixed-overlay pattern as openRowActions(), but positioned as a small card right
+    // above the "+" (same anchoring technique as i18n.js's openPicker()) instead of a
+    // full-width sheet. Picking an option closes it and clicks that option's own hidden
+    // file input.
     const sheet = el("attach-options-modal");
+    const sheetCard = el("attach-options-sheet");
     function openAttachSheet() {
-        if (sheet) sheet.classList.add("open");
+        if (!sheet || !sheetCard) return;
+        const rect = attachBtn.getBoundingClientRect();
+        const gap = 10;
+        sheetCard.style.left = `${rect.left}px`;
+        sheetCard.style.bottom = `${window.innerHeight - rect.top + gap}px`;
+        sheet.classList.add("open");
     }
     function closeAttachSheet() {
         if (sheet) sheet.classList.remove("open");

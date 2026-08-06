@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
 <title>Camilius</title>
-<link rel="stylesheet" href="app.css?v=ffadd2e5eafb">
+<link rel="stylesheet" href="app.css?v=c9cbfc13f585">
 </head>
 <body>
 
@@ -110,15 +110,15 @@
 </div>
 
 <!-- Attach options (My Site tab's "+") - same fixed-overlay/backdrop machinery as the
-     row-actions sheet above, but its own bottom-edge slide-up sheet (see
-     .attach-options-sheet in app.css) with an icon+label row per option instead of a
-     floating centered-text list, matching the native iOS/Android share-sheet look. Each
-     option triggers its own hidden file input with the accept/capture combo that gets the
-     matching native picker (see the attach IIFE in app.js): Camera opens the camera
-     directly, Photos opens the library, Files opens the document browser. -->
+     row-actions sheet above, but positioned as a small popover right above the "+" that
+     opened it (see openAttachSheet() in app.js, same anchoring technique as i18n.js's own
+     openPicker()) instead of a full-width sheet from the screen's bottom edge. Each option
+     triggers its own hidden file input with the accept/capture combo that gets the
+     matching native picker: Camera opens the camera directly, Photos opens the library,
+     Files opens the document browser. -->
 <div id="attach-options-modal" class="lang-modal">
   <div class="lang-modal-backdrop" id="attach-options-backdrop"></div>
-  <div class="lang-modal-sheet attach-options-sheet">
+  <div class="lang-modal-sheet attach-options-sheet" id="attach-options-sheet">
     <button type="button" class="attach-option-row" id="attach-option-camera">
       <span class="attach-option-icon">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
@@ -1503,7 +1503,7 @@
   </button>
 </nav>
 
-<script src="i18n.js?v=ffadd2e5eafb"></script>
-<script src="app.js?v=ffadd2e5eafb"></script>
+<script src="i18n.js?v=c9cbfc13f585"></script>
+<script src="app.js?v=c9cbfc13f585"></script>
 </body>
 </html>
