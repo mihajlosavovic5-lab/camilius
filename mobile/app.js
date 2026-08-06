@@ -4356,12 +4356,25 @@ function serializeMysiteForm() {
 
 const triggerMysiteAutosave = makeAutosaveTrigger("mysite-save-btn", 1400);
 
+// Mirrors pages.py's is_valid_slug/_SLUG_RE (minus the reserved-word list, which only
+// matters for a deliberate save attempt, not this "don't autosave yet" gate) - without
+// this, picking a Design or typing a tagline before ever touching the Web address field
+// (an empty slug is the state every new business starts this form in) marked the form
+// dirty on its own and fired the silent autosave below, which the server then rejects -
+// surfacing a "choose a web address" error the user never asked to save.
+const MYSITE_SLUG_RE = /^[a-z0-9](?:[a-z0-9-]{0,48}[a-z0-9])?$/;
+function isMysiteFormValid() {
+    return MYSITE_SLUG_RE.test(el("mysite-slug").value.trim().toLowerCase());
+}
+
 function updateMysiteSaveValidity() {
     const button = el("mysite-save-btn");
     const dirty = mysiteFormSnapshot !== null && serializeMysiteForm() !== mysiteFormSnapshot;
+    const valid = isMysiteFormValid();
     button.classList.toggle("hidden", !SHOW_MANUAL_SAVE_BUTTONS || !dirty);
+    button.disabled = !valid;
     el("screen-mysite").classList.toggle("has-unsaved", SHOW_MANUAL_SAVE_BUTTONS && dirty);
-    triggerMysiteAutosave(dirty);
+    triggerMysiteAutosave(dirty && valid);
 }
 
 // Delegated for the same reason as Profile's equivalent listener - also catches the
