@@ -49,6 +49,26 @@ def test_save_and_get_page(client, unique_username, unique_email):
     assert page["theme"] == "minimal"
 
 
+def test_save_page_without_published_field_preserves_existing_state(client, unique_username, unique_email):
+    # The mobile app no longer sends "published" (that's managed from the website
+    # version of the account) - editing other fields from mobile shouldn't silently
+    # unpublish an already-live page.
+    headers, business_id = _auth(client, unique_username, unique_email)
+    slug = f"cool-business-{uuid.uuid4().hex[:8]}"
+    client.post("/api/page", json={
+        "slug": slug, "tagline": "Fresh cuts", "published": True,
+    }, headers=headers)
+
+    response = client.post("/api/page", json={
+        "slug": slug, "tagline": "Fresher cuts",
+    }, headers=headers)
+    assert response.status_code == 200
+
+    page = client.get("/api/page", headers=headers).get_json()["page"]
+    assert page["tagline"] == "Fresher cuts"
+    assert page["published"] is True
+
+
 def test_save_page_rejects_invalid_slug(client, unique_username, unique_email):
     headers, _ = _auth(client, unique_username, unique_email)
     response = client.post("/api/page", json={"slug": "Not A Valid Slug!"}, headers=headers)
