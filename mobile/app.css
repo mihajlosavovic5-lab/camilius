@@ -1293,7 +1293,17 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
 }
 .chat-compose-input::placeholder { color: var(--text-muted); }
 .chat-compose-input:focus { outline: none; border-color: var(--primary); }
-.textarea-actions { position: absolute; right: 8px; bottom: 7px; display: flex; align-items: center; gap: 4px; }
+/* Live waveform while the mic is recording - sits inside the compose field itself,
+   covering the left side up to the mic/send icons (same footprint the typed text would
+   occupy), so recording visibly takes over the input rather than living in a separate
+   strip below it. Same background as the field so it blends in instead of looking like
+   a patch on top; the moving line is the only thing that stands out. */
+.chat-compose-waveform {
+    display: none; position: absolute; left: 1px; top: 1px; bottom: 1px; right: 90px;
+    border-radius: 19px 0 0 19px; background: var(--surface);
+}
+.chat-compose-waveform.active { display: block; }
+.textarea-actions { position: absolute; right: 8px; bottom: 7px; display: flex; align-items: center; gap: 4px; z-index: 1; }
 .textarea-mic-btn {
     position: relative; width: 36px; height: 36px;
     display: none; align-items: center; justify-content: center;
@@ -1344,12 +1354,6 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
 .voice-status { font-size: 13px; color: var(--text-muted); margin: 6px 2px 0; }
 .voice-status.voice-status-error { color: var(--danger); }
 .voice-status:empty { display: none; }
-
-/* Live waveform under the compose bar while the mic is recording - a flat line that jumps
-   with the incoming audio, so it visibly reads as "the phone is listening" rather than just
-   the pulsing dot on the mic button. Hidden until app.js's recorder marks it active. */
-.voice-waveform { display: none; width: 100%; height: 34px; margin: 8px 0 0; border-radius: 8px; background: var(--surface-alt, rgba(127,127,127,.08)); }
-.voice-waveform.active { display: block; }
 
 /* AI-generated theme suggestion cards (My Website tab) - simpler than the website
    onboarding wizard's own .onboarding-theme-card (no live iframe preview, just a flat

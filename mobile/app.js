@@ -4609,11 +4609,18 @@ function mysiteRenderThemeSuggestions(themeList) {
         waveformSource = audioCtx.createMediaStreamSource(stream);
         waveformSource.connect(analyser);
 
+        // The canvas is sized by CSS (fills the field's left side, see .chat-compose-waveform),
+        // not fixed HTML attributes - match its backing store to the rendered box, scaled for
+        // devicePixelRatio, right before the first frame so the line draws crisp, not blurry.
+        waveformCanvas.classList.add("active");
+        const dpr = window.devicePixelRatio || 1;
+        const w = waveformCanvas.clientWidth;
+        const h = waveformCanvas.clientHeight;
+        waveformCanvas.width = w * dpr;
+        waveformCanvas.height = h * dpr;
         const data = new Uint8Array(analyser.fftSize);
         const ctx2d = waveformCanvas.getContext("2d");
-        const w = waveformCanvas.width;
-        const h = waveformCanvas.height;
-        waveformCanvas.classList.add("active");
+        ctx2d.scale(dpr, dpr);
 
         (function draw() {
             waveformRAF = requestAnimationFrame(draw);
@@ -4642,6 +4649,7 @@ function mysiteRenderThemeSuggestions(themeList) {
         if (waveformCanvas) {
             waveformCanvas.classList.remove("active");
             const ctx2d = waveformCanvas.getContext("2d");
+            ctx2d.setTransform(1, 0, 0, 1, 0, 0);
             ctx2d.clearRect(0, 0, waveformCanvas.width, waveformCanvas.height);
         }
     }
