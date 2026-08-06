@@ -4419,12 +4419,21 @@ async function loadMySite() {
 
         el("mysite-website-preview").classList.toggle("hidden", !page);
         el("mysite-view-site-link").classList.toggle("hidden", !(page && page.published));
+        // Cached (along with hasAppointments below) so next launch can show this section
+        // in its right shape right away instead of waiting on this same fetch every time -
+        // same reasoning as pageTheme/donationLink above it in the boot sequence. Without
+        // this, the preview card and appointments card both start hidden and pop in a
+        // moment later, shoving the whole rest of the screen down after it already looks
+        // fully loaded.
+        storageSet("mysiteHasPage", page ? "1" : "").catch(() => {});
         if (page) {
             el("mysite-website-status").textContent = page.published
                 ? (t("mysite.website.live") || "Live") + " · " + page.slug
                 : (t("mysite.website.draft") || "Not published yet");
             el("mysite-tagline").textContent = page.tagline || "";
             el("mysite-about").textContent = page.about || "";
+            storageSet("mysiteTagline", page.tagline || "").catch(() => {});
+            storageSet("mysiteAbout", page.about || "").catch(() => {});
             el("mysite-slug").value = page.slug || "";
             el("mysite-tagline-input").value = page.tagline || "";
             el("mysite-about-input").value = page.about || "";
@@ -4453,6 +4462,7 @@ async function loadMySite() {
         const appointments = data.upcoming_appointments || [];
         const appointmentsCard = el("mysite-appointments-card");
         appointmentsCard.classList.toggle("hidden", appointments.length === 0);
+        storageSet("mysiteHasAppointments", appointments.length > 0 ? "1" : "").catch(() => {});
         const list = el("mysite-appointments-list");
         list.innerHTML = "";
         appointments.forEach((appt) => {
@@ -5147,13 +5157,17 @@ function mysiteRenderThemeSuggestions(themeList) {
 updateOfflineBanner();
 
 (async () => {
-    const [token, businessName, onboardingSeen, theme, donationLink, pageTheme] = await Promise.all([
+    const [token, businessName, onboardingSeen, theme, donationLink, pageTheme, mysiteHasPage, mysiteTagline, mysiteAbout, mysiteHasAppointments] = await Promise.all([
         storageGet("token"),
         storageGet("businessName"),
         storageGet("onboardingSeen"),
         storageGet("theme"),
         storageGet("donationLink"),
         storageGet("pageTheme"),
+        storageGet("mysiteHasPage"),
+        storageGet("mysiteTagline"),
+        storageGet("mysiteAbout"),
+        storageGet("mysiteHasAppointments"),
     ]);
     applyTheme(theme || "system");
     await initLanguage();
@@ -5171,6 +5185,23 @@ updateOfflineBanner();
     // /api/page fetch resolves. Corrected by that same fetch moments later if the
     // business's design actually changed.
     mysitePopulateThemeSelect(pageTheme || "warm");
+    // Same reasoning again - the website preview card and the "Coming up" appointments
+    // card both start hidden in the raw HTML and otherwise only appear once loadMySite()'s
+    // fetch resolves, which shoves the whole rest of the My Site tab (its own web address/
+    // tagline/about fields, the Design row, everything below) down a beat after the tab
+    // already looks fully loaded - since My Site is the landing tab, that happens on every
+    // single launch. Applying last launch's cached shape immediately avoids that jump;
+    // loadMySite() corrects it moments later if anything actually changed.
+    el("mysite-website-preview").classList.toggle("hidden", !mysiteHasPage);
+    if (mysiteHasPage) {
+        el("mysite-tagline").textContent = mysiteTagline || "";
+        el("mysite-about").textContent = mysiteAbout || "";
+        const classic = CLASSIC_THEMES.find((c) => c.id === pageTheme) || CLASSIC_THEMES[1];
+        const swatch = el("mysite-theme-swatch");
+        swatch.style.background = classic.surface;
+        swatch.style.borderColor = classic.primary;
+    }
+    el("mysite-appointments-card").classList.toggle("hidden", !mysiteHasAppointments);
 
     if (state.token) {
         enterApp();
