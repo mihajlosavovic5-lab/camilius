@@ -14,19 +14,34 @@
     <div class="auth-card">
         <h1 data-i18n="verifyPending.title">Check your email</h1>
         <p class="auth-subtitle">
-            <span data-i18n="verifyPending.body1">We sent a confirmation link to</span>
+            <span data-i18n="verifyPending.body1">We sent a verification code to</span>
             <strong>{{ contact_email }}</strong>.
-            <span data-i18n="verifyPending.body2">Click it to activate your account, then come back here and log in.</span>
+            <span data-i18n="verifyPending.body2">Enter it below to activate your account.</span>
         </p>
+
+        {% if error %}
+            <div class="alert alert-error"><span class="alert-icon">&#9888;&#65039;</span><span>{{ error }}</span></div>
+        {% endif %}
 
         {% if resent %}
             <div class="alert alert-success" style="margin-top: 12px;"><span class="alert-icon">&#10003;</span><span data-i18n="verifyPending.resent">Email sent again - check your inbox.</span></div>
         {% endif %}
 
+        <form method="POST" action="{{ url_for('verify_pending_confirm') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="floating-field">
+                <input type="text" id="verify-pending-code-input" name="code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" pattern="[0-9]{6}" placeholder=" " required autofocus>
+                <label for="verify-pending-code-input" data-i18n="verifyPending.codePlaceholder">Verification code</label>
+            </div>
+            <div class="form-actions">
+                <button class="button button-full button-pill" type="submit" data-i18n="verifyPending.verify">Verify</button>
+            </div>
+        </form>
+
         <form method="POST" action="{{ url_for('verify_pending_resend') }}">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <div class="form-actions">
-                <button class="button button-secondary button-full button-pill button-primary-outline" type="submit" id="verify-pending-resend-btn" data-i18n="verifyPending.resend">Resend email</button>
+                <button class="button button-secondary button-full button-pill button-primary-outline" type="submit" id="verify-pending-resend-btn" data-i18n="verifyPending.resend">Resend code</button>
             </div>
         </form>
 

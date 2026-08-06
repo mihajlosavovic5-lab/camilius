@@ -779,6 +779,13 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
 .screen-verify-pending h1 { margin: 0 0 4px; }
 .screen-verify-pending .screen-subtitle { margin: 2px 0 20px; }
 .screen-verify-pending .alert { margin-bottom: 14px; width: 100%; }
+/* The code-entry form is the one non-plain-button descendant here - align-items:center
+   above makes flex children shrink-to-fit by default (unlike .screen-login's own
+   .login-wrap, which never overrides align-items and so stretches its form full-width
+   for free), so this needs its own explicit width for the floating-field/button inside
+   to size against. */
+.screen-verify-pending .login-wrap form { width: 100%; }
+.screen-verify-pending #verify-pending-submit { margin-bottom: 16px; }
 .screen-verify-pending #verify-pending-resend { margin-bottom: 16px; }
 
 /* --- Settings screen (app preferences - distinct from Profile's business-info form) --- */

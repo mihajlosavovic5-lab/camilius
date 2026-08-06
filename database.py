@@ -615,6 +615,13 @@ def create_database():
     # token's lifetime back off it) so the resend-cooldown check below doesn't have to
     # hardcode that lifetime a second time.
     cursor.execute("ALTER TABLE businesses ADD COLUMN IF NOT EXISTS email_verify_sent_at TIMESTAMP")
+    # Signup verification is a typed code, not the emailed link above (still used for the
+    # Settings email-change flow instead) - a separate pair of columns rather than
+    # repurposing email_verify_token/expires, since the two flows can be in flight through
+    # unrelated code paths and one clearing the other's columns would be a bug in either
+    # direction. See save_email_verify_code()/business_email_verify_code_matches() below.
+    cursor.execute("ALTER TABLE businesses ADD COLUMN IF NOT EXISTS email_verify_code TEXT")
+    cursor.execute("ALTER TABLE businesses ADD COLUMN IF NOT EXISTS email_verify_code_expires TIMESTAMP")
     # Changing the contact email from an already-verified account (web Settings page)
     # doesn't touch contact_email directly - it stages the new address here and reuses
     # the email_verify_token/expires/sent_at columns above for a confirmation link sent
@@ -1549,11 +1556,46 @@ def mark_email_verified(business_id):
     connection = connect()
     cursor = connection.cursor()
     cursor.execute(
-        "UPDATE businesses SET email_verified = TRUE, email_verify_token = NULL, email_verify_expires = NULL WHERE id = %s",
+        "UPDATE businesses SET email_verified = TRUE, email_verify_token = NULL, email_verify_expires = NULL, "
+        "email_verify_code = NULL, email_verify_code_expires = NULL WHERE id = %s",
         (business_id,),
     )
     connection.commit()
     connection.close()
+
+
+def save_email_verify_code(business_id, code, expires):
+    """Issues a fresh signup verification code, overwriting whatever code (if any) was
+    issued before - only the most recently sent code is ever valid, same one-at-a-time
+    rule as save_email_verify_token()'s link. Shares email_verify_sent_at with that
+    function purely for the resend cooldown; the two flows never run concurrently for the
+    same account (a signup can't also be mid email-change, which requires already being
+    verified), so there's no real cross-talk despite the shared column."""
+    connection = connect()
+    cursor = connection.cursor()
+    cursor.execute(
+        "UPDATE businesses SET email_verify_code = %s, email_verify_code_expires = %s, email_verify_sent_at = NOW() WHERE id = %s",
+        (code, expires, business_id),
+    )
+    connection.commit()
+    connection.close()
+
+
+def business_email_verify_code_matches(business_id, code):
+    """Whether `code` is the current, unexpired signup verification code for this
+    account. The caller already knows business_id (from the pending-verify session on
+    web, or the register/login response on mobile) - unlike the link flow's
+    business_by_email_verify_token(), there's no need to look a business up by the code
+    alone, so a wrong guess can't be used to enumerate accounts."""
+    connection = connect()
+    cursor = connection.cursor()
+    cursor.execute(
+        "SELECT 1 FROM businesses WHERE id = %s AND email_verify_code = %s AND email_verify_code_expires > NOW()",
+        (business_id, code),
+    )
+    row = cursor.fetchone()
+    connection.close()
+    return row is not None
 
 
 def onboarding_completed(business_id):
