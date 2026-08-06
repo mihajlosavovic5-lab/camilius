@@ -166,13 +166,18 @@ function createHoursPickerCore(config) {
         customHoursNote.classList.toggle("hidden", weekdaysAreUniform());
     }
 
+    // A single subtle down-arrow instead of a text link - same glyph as .picker-chevron
+    // elsewhere in the app, just bigger and in its own circle. No visible label (the
+    // action is obvious from position + direction), but the full description still
+    // reaches screen readers via aria-label.
     const customizeLink = document.createElement("button");
     customizeLink.type = "button";
-    customizeLink.className = "hours-customize-link";
-    customizeLink.setAttribute("data-i18n", "hoursPicker.customizeLink");
-    customizeLink.textContent = t("hoursPicker.customizeLink");
+    customizeLink.className = "hours-toggle-arrow";
+    customizeLink.textContent = "⌄";
+    customizeLink.setAttribute("aria-label", t("hoursPicker.customizeLink"));
     simpleView.appendChild(customizeLink);
     mount.appendChild(simpleView);
+    if (onLanguageChange) onLanguageChange(() => customizeLink.setAttribute("aria-label", t("hoursPicker.customizeLink")));
 
     simpleOpenField.el.addEventListener("change", () => applyPairToWeekdays(simpleOpenField.value, simpleCloseField.value));
     simpleCloseField.el.addEventListener("change", () => applyPairToWeekdays(simpleOpenField.value, simpleCloseField.value));
@@ -185,13 +190,16 @@ function createHoursPickerCore(config) {
     // whole form - collapseToSimple() already existed (used after a save) but nothing
     // in the UI called it. Sits at the very top of advancedView so it's visible the
     // instant the list expands, no scrolling past all seven rows to find it.
+    // Same glyph and circle as customizeLink above, just rotated to point up - the pair
+    // reads as one open/close control rather than two unrelated buttons.
     const collapseLink = document.createElement("button");
     collapseLink.type = "button";
-    collapseLink.className = "hours-customize-link hours-collapse-link";
-    collapseLink.setAttribute("data-i18n", "hoursPicker.collapseLink");
-    collapseLink.textContent = t("hoursPicker.collapseLink");
+    collapseLink.className = "hours-toggle-arrow hours-toggle-arrow-up";
+    collapseLink.textContent = "⌄";
+    collapseLink.setAttribute("aria-label", t("hoursPicker.collapseLink"));
     advancedView.appendChild(collapseLink);
     collapseLink.addEventListener("click", collapseToSimple);
+    if (onLanguageChange) onLanguageChange(() => collapseLink.setAttribute("aria-label", t("hoursPicker.collapseLink")));
 
     // Just switches which view is on screen - the seven rows already hold whatever the
     // real current state is (kept up to date by applyPairToWeekdays and each row's own

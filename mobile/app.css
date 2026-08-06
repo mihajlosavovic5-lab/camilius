@@ -916,16 +916,21 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
    other than Monday has custom hours (collapseToSimple() always shows Monday's regardless)
    - toned down like the other notes here, not an alarming red, just enough to notice. */
 .hours-custom-note { font-size: 12px; color: var(--primary-ink); margin: 0; text-align: center; }
-.hours-customize-link {
-    align-self: center; padding: 0; border: none; background: none;
-    color: var(--primary-ink); font-family: inherit; font-size: 13.5px; font-weight: 600;
-    cursor: pointer;
+/* Expand/collapse control between the "Working days" summary and the full per-day list
+   - one small circle, one chevron, no label (see hours-picker.js's aria-label for the
+   accessible name). .hours-toggle-arrow-up just rotates the same glyph 180deg rather
+   than swapping to a different character, so the two states read as one control. */
+.hours-toggle-arrow {
+    align-self: center; display: flex; align-items: center; justify-content: center;
+    width: 34px; height: 34px; padding: 0; margin: 2px 0; border: none; border-radius: 50%;
+    background: var(--primary-light); color: var(--primary-ink); font-size: 16px; line-height: 1;
+    cursor: pointer; transition: transform .15s ease, background .15s ease;
 }
+.hours-toggle-arrow:active { background: var(--primary); color: #fff; transform: scale(.92); }
+.hours-toggle-arrow-up { transform: rotate(180deg); }
+.hours-toggle-arrow-up:active { transform: rotate(180deg) scale(.92); }
 
 .hours-advanced-view { display: flex; flex-direction: column; gap: 10px; }
-/* Sits first inside .hours-advanced-view (see hours-picker.js) - the way back to the
-   "Working days" summary, kept centered like .hours-customize-link it complements. */
-.hours-collapse-link { align-self: center; }
 
 .hours-quickfill {
     display: flex; align-items: center; flex-wrap: wrap; gap: 8px;
