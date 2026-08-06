@@ -4306,6 +4306,7 @@ function serializeMysiteForm() {
         slug: el("mysite-slug").value,
         tagline: el("mysite-tagline-input").value,
         about: el("mysite-about-input").value,
+        published: el("mysite-published").checked,
         theme: el("mysite-theme-select").value,
         customTheme: mysiteSelectedCustomTheme ? JSON.stringify(mysiteSelectedCustomTheme) : "",
     });
@@ -4363,6 +4364,7 @@ async function loadMySite() {
             el("mysite-slug").value = page.slug || "";
             el("mysite-tagline-input").value = page.tagline || "";
             el("mysite-about-input").value = page.about || "";
+            el("mysite-published").checked = !!page.published;
             if (page.published) el("mysite-view-site-link").href = `${API_BASE}/p/${page.slug}`;
             mysitePopulateThemeSelect(page.theme);
             mysiteSelectedCustomTheme = page.theme === "custom" && page.custom_theme_json ? JSON.parse(page.custom_theme_json) : null;
@@ -4432,6 +4434,7 @@ el("mysite-save-btn").addEventListener("click", async () => {
         slug: el("mysite-slug").value.trim(),
         tagline: el("mysite-tagline-input").value.trim(),
         about: el("mysite-about-input").value.trim(),
+        published: el("mysite-published").checked,
         theme: themeValue,
     };
     if (themeValue === "custom" && mysiteSelectedCustomTheme) {

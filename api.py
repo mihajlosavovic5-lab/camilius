@@ -1002,14 +1002,7 @@ def api_save_page():
     slug = pages.normalize_slug(data.get("slug") or "")
     tagline = (data.get("tagline") or "").strip()[:200] or None
     about = (data.get("about") or "").strip()[:2000] or None
-    # Publishing is managed from the website version of the account (see mobile's
-    # "My Site" FAQ copy) - the app no longer sends this field, so preserve whatever
-    # is already saved instead of silently unpublishing on every mobile edit.
-    if "published" in data:
-        published = bool(data.get("published"))
-    else:
-        existing_page = get_business_page(business_id)
-        published = bool(existing_page[3]) if existing_page else False
+    published = bool(data.get("published"))
 
     theme = data.get("theme")
     custom_theme_json = None
