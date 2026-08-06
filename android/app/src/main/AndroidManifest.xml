@@ -65,6 +65,12 @@
          AI" voice input) - Capacitor's WebChromeClient can only request a runtime
          permission, and thus show the native "Allow app to use microphone" system prompt,
          for permissions declared here. Without this, getUserMedia rejects immediately with
-         NotAllowedError and no system dialog is ever shown. -->
+         NotAllowedError and no system dialog is ever shown.
+         Both permissions below are requested by Capacitor as ONE batch for an audio
+         capture request (see BridgeWebChromeClient#onPermissionRequest) - MODIFY_AUDIO_SETTINGS
+         is a normal (non-prompted) permission but still has to be declared here or the whole
+         batch is treated as not fully granted and the WebView denies the request even after
+         the user taps Allow on the RECORD_AUDIO system dialog. -->
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
 </manifest>
