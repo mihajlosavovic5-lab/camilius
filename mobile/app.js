@@ -5153,8 +5153,8 @@ updateOfflineBanner();
         storageGet("theme"),
         storageGet("donationLink"),
     ]);
-    await initLanguage();
     applyTheme(theme || "system");
+    await initLanguage();
 
     state.token = token || null;
     state.businessName = businessName || "";
