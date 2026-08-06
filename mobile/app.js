@@ -377,7 +377,16 @@ if (capacitorPlugins) {
         try {
             const response = await fetch(API_BASE + "/api/apk-version");
             const info = await response.json();
-            if (info.version === APP_VERSION) return;
+            // Compares against the INSTALLED NATIVE app's own version (Capacitor's App
+            // plugin reads this straight from the APK's versionName - build.gradle's
+            // "major.minor.patch.build", first 3 segments) instead of the APP_VERSION
+            // constant above - that constant ships to every device via the same OTA
+            // bundle regardless of which native APK they're actually running, so it
+            // can go stale (or get bumped) independently of a real native install and
+            // can't actually tell a device apart from one still on the old APK.
+            const nativeInfo = await capacitorPlugins.App.getInfo();
+            const nativeVersion = nativeInfo.version.split(".").slice(0, 3).join(".");
+            if (nativeVersion === info.version) return;
 
             const dismissedVersion = await storageGet("apkUpdateDismissedVersion");
             if (dismissedVersion === info.version) return;
