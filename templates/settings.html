@@ -214,6 +214,7 @@
                 <span class="voice-record-icon" aria-hidden="true">&#127908;</span>
                 <span id="settings-voice-btn-label" data-i18n="onboarding.describe.recordStart">Record instead of typing</span>
             </button>
+            <canvas class="voice-waveform" id="settings-voice-waveform" width="130" height="32" aria-hidden="true"></canvas>
             <span class="voice-status" id="settings-voice-status" aria-live="polite"></span>
         </div>
 
@@ -800,6 +801,7 @@ if (document.readyState === "loading") {
     const btnLabel = document.getElementById("settings-voice-btn-label");
     const status = document.getElementById("settings-voice-status");
     const textarea = document.getElementById("settings-generate-description-input");
+    const waveformCanvas = document.getElementById("settings-voice-waveform");
     const csrfInput = document.querySelector('#settings-generate-form input[name="csrf_token"]');
     if (!row || !recordBtn || !textarea || !csrfInput) return;
 
@@ -819,6 +821,61 @@ if (document.readyState === "loading") {
     let chunks = [];
     let maxLengthTimer = null;
     let busy = false;
+
+    // Live waveform: a separate AnalyserNode tapping the same mic stream, purely visual -
+    // it never touches the recorded audio or the MediaRecorder above. Drawn with
+    // getByteTimeDomainData so the line sits flat at rest and swings with the incoming
+    // sound, like a phone visibly "listening" rather than just a static recording icon.
+    let audioCtx = null;
+    let analyser = null;
+    let waveformSource = null;
+    let waveformRAF = null;
+
+    function startWaveform(stream) {
+        if (!waveformCanvas || !(window.AudioContext || window.webkitAudioContext)) return;
+        const Ctx = window.AudioContext || window.webkitAudioContext;
+        audioCtx = new Ctx();
+        analyser = audioCtx.createAnalyser();
+        analyser.fftSize = 1024;
+        waveformSource = audioCtx.createMediaStreamSource(stream);
+        waveformSource.connect(analyser);
+
+        const data = new Uint8Array(analyser.fftSize);
+        const ctx2d = waveformCanvas.getContext("2d");
+        const w = waveformCanvas.width;
+        const h = waveformCanvas.height;
+        waveformCanvas.classList.add("active");
+
+        (function draw() {
+            waveformRAF = requestAnimationFrame(draw);
+            analyser.getByteTimeDomainData(data);
+            ctx2d.clearRect(0, 0, w, h);
+            ctx2d.lineWidth = 2;
+            ctx2d.strokeStyle = "#dc2626";
+            ctx2d.beginPath();
+            const sliceWidth = w / data.length;
+            let x = 0;
+            for (let i = 0; i < data.length; i++) {
+                const y = (data[i] / 255) * h;
+                if (i === 0) ctx2d.moveTo(x, y); else ctx2d.lineTo(x, y);
+                x += sliceWidth;
+            }
+            ctx2d.stroke();
+        })();
+    }
+
+    function stopWaveform() {
+        if (waveformRAF) cancelAnimationFrame(waveformRAF);
+        waveformRAF = null;
+        if (waveformSource) { waveformSource.disconnect(); waveformSource = null; }
+        if (audioCtx) { audioCtx.close(); audioCtx = null; }
+        analyser = null;
+        if (waveformCanvas) {
+            waveformCanvas.classList.remove("active");
+            const ctx2d = waveformCanvas.getContext("2d");
+            ctx2d.clearRect(0, 0, waveformCanvas.width, waveformCanvas.height);
+        }
+    }
 
     function stopStream() {
         if (mediaStream) {
@@ -846,6 +903,7 @@ if (document.readyState === "loading") {
             });
             mediaRecorder.addEventListener("stop", () => {
                 stopStream();
+                stopWaveform();
                 clearTimeout(maxLengthTimer);
                 setRecordingUI(false);
                 if (chunks.length === 0) {
@@ -856,6 +914,7 @@ if (document.readyState === "loading") {
                 uploadRecording(new Blob(chunks, { type: mediaRecorder.mimeType || "audio/webm" }));
             });
             mediaRecorder.start();
+            startWaveform(stream);
             busy = false;
             recordBtn.disabled = false;
             setRecordingUI(true);
@@ -909,7 +968,10 @@ if (document.readyState === "loading") {
         if (mediaRecorder && mediaRecorder.state === "recording") stopRecording();
         else startRecording();
     });
-    window.addEventListener("beforeunload", stopStream);
+    window.addEventListener("beforeunload", () => {
+        stopStream();
+        stopWaveform();
+    });
 })();
 
 // "Suggest AI designs for my business" - lets a business re-run ai_theme.py's theme

@@ -4567,6 +4567,7 @@ function mysiteRenderThemeSuggestions(themeList) {
     const btnLabel = el("mysite-voice-btn-label");
     const status = el("mysite-voice-status");
     const textarea = el("mysite-description");
+    const waveformCanvas = el("mysite-voice-waveform");
     if (!recordBtn || !textarea) return;
 
     const supported = !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia && window.MediaRecorder);
@@ -4589,6 +4590,61 @@ function mysiteRenderThemeSuggestions(themeList) {
     // transcription), so this just marks the intent; uploadRecording's success handler is
     // what actually fires mysiteSubmitDescription() once the transcribed text is in hand.
     let pendingAutoSend = false;
+
+    // Live waveform: a separate AnalyserNode tapping the same mic stream, purely visual -
+    // it never touches the recorded audio or the MediaRecorder above. Drawn with
+    // getByteTimeDomainData so the line sits flat at rest and swings with the incoming
+    // sound, so the compose bar visibly reads as "listening" while recording.
+    let audioCtx = null;
+    let analyser = null;
+    let waveformSource = null;
+    let waveformRAF = null;
+
+    function startWaveform(stream) {
+        if (!waveformCanvas || !(window.AudioContext || window.webkitAudioContext)) return;
+        const Ctx = window.AudioContext || window.webkitAudioContext;
+        audioCtx = new Ctx();
+        analyser = audioCtx.createAnalyser();
+        analyser.fftSize = 1024;
+        waveformSource = audioCtx.createMediaStreamSource(stream);
+        waveformSource.connect(analyser);
+
+        const data = new Uint8Array(analyser.fftSize);
+        const ctx2d = waveformCanvas.getContext("2d");
+        const w = waveformCanvas.width;
+        const h = waveformCanvas.height;
+        waveformCanvas.classList.add("active");
+
+        (function draw() {
+            waveformRAF = requestAnimationFrame(draw);
+            analyser.getByteTimeDomainData(data);
+            ctx2d.clearRect(0, 0, w, h);
+            ctx2d.lineWidth = 2;
+            ctx2d.strokeStyle = "#dc2626";
+            ctx2d.beginPath();
+            const sliceWidth = w / data.length;
+            let x = 0;
+            for (let i = 0; i < data.length; i++) {
+                const y = (data[i] / 255) * h;
+                if (i === 0) ctx2d.moveTo(x, y); else ctx2d.lineTo(x, y);
+                x += sliceWidth;
+            }
+            ctx2d.stroke();
+        })();
+    }
+
+    function stopWaveform() {
+        if (waveformRAF) cancelAnimationFrame(waveformRAF);
+        waveformRAF = null;
+        if (waveformSource) { waveformSource.disconnect(); waveformSource = null; }
+        if (audioCtx) { audioCtx.close(); audioCtx = null; }
+        analyser = null;
+        if (waveformCanvas) {
+            waveformCanvas.classList.remove("active");
+            const ctx2d = waveformCanvas.getContext("2d");
+            ctx2d.clearRect(0, 0, waveformCanvas.width, waveformCanvas.height);
+        }
+    }
 
     function stopStream() {
         if (mediaStream) {
@@ -4623,6 +4679,7 @@ function mysiteRenderThemeSuggestions(themeList) {
             });
             mediaRecorder.addEventListener("stop", () => {
                 stopStream();
+                stopWaveform();
                 clearTimeout(maxLengthTimer);
                 setRecordingUI(false);
                 if (chunks.length === 0) {
@@ -4634,6 +4691,7 @@ function mysiteRenderThemeSuggestions(themeList) {
                 uploadRecording(new Blob(chunks, { type: mediaRecorder.mimeType || "audio/webm" }));
             });
             mediaRecorder.start();
+            startWaveform(stream);
             busy = false;
             recordBtn.disabled = false;
             setRecordingUI(true);
@@ -4706,7 +4764,10 @@ function mysiteRenderThemeSuggestions(themeList) {
         stopRecording();
         return true;
     };
-    window.addEventListener("beforeunload", stopStream);
+    window.addEventListener("beforeunload", () => {
+        stopStream();
+        stopWaveform();
+    });
 })();
 
 // --- Boot ---

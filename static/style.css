@@ -1454,6 +1454,16 @@ body.auth {
 .voice-status { font-size: 14px; color: var(--text-muted); }
 .voice-status.voice-status-error { color: var(--danger); }
 
+/* Live waveform shown next to the record button while the mic is listening - a flat
+   line that jumps with the incoming audio, same "obviously live" purpose as the pulsing
+   dot above but reacting to actual sound instead of a fixed rhythm. Hidden by default;
+   the recorder script only unhides it while a MediaRecorder is active. */
+.voice-waveform {
+    display: none; width: 130px; height: 32px; border-radius: 8px;
+    background: var(--bg-alt, rgba(127,127,127,.08)); flex-shrink: 0;
+}
+.voice-waveform.active { display: block; }
+
 .register-next-btn {
     width: 50px; height: 50px; border-radius: 50%; border: none; flex-shrink: 0;
     background: var(--primary); color: #fff; font-size: 23px; line-height: 1; cursor: pointer;

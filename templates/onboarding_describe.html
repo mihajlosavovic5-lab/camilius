@@ -41,6 +41,7 @@
                     <span class="voice-record-icon" aria-hidden="true">&#127908;</span>
                     <span id="onboarding-voice-btn-label" data-i18n="onboarding.describe.recordStart">Record instead of typing</span>
                 </button>
+                <canvas class="voice-waveform" id="onboarding-voice-waveform" width="130" height="32" aria-hidden="true"></canvas>
                 <span class="voice-status" id="onboarding-voice-status" aria-live="polite"></span>
             </div>
 
@@ -88,6 +89,7 @@
     var btnLabel = document.getElementById("onboarding-voice-btn-label");
     var status = document.getElementById("onboarding-voice-status");
     var textarea = document.getElementById("onboarding-description-input");
+    var waveformCanvas = document.getElementById("onboarding-voice-waveform");
     var csrfInput = document.querySelector('#onboarding-describe-form input[name="csrf_token"]');
     if (!row || !recordBtn || !textarea || !csrfInput) return;
 
@@ -113,6 +115,61 @@
     var chunks = [];
     var maxLengthTimer = null;
     var busy = false; // true while a mic permission prompt or an upload is in flight
+
+    // Live waveform: a separate AnalyserNode tapping the same mic stream, purely visual -
+    // it never touches the recorded audio or the MediaRecorder above. Drawn with
+    // getByteTimeDomainData so the line sits flat at rest and swings with the incoming
+    // sound, like a phone visibly "listening" rather than just a static recording icon.
+    var audioCtx = null;
+    var analyser = null;
+    var waveformSource = null;
+    var waveformRAF = null;
+
+    function startWaveform(stream) {
+        if (!waveformCanvas || !(window.AudioContext || window.webkitAudioContext)) return;
+        var Ctx = window.AudioContext || window.webkitAudioContext;
+        audioCtx = new Ctx();
+        analyser = audioCtx.createAnalyser();
+        analyser.fftSize = 1024;
+        waveformSource = audioCtx.createMediaStreamSource(stream);
+        waveformSource.connect(analyser);
+
+        var data = new Uint8Array(analyser.fftSize);
+        var ctx2d = waveformCanvas.getContext("2d");
+        var w = waveformCanvas.width;
+        var h = waveformCanvas.height;
+        waveformCanvas.classList.add("active");
+
+        (function draw() {
+            waveformRAF = requestAnimationFrame(draw);
+            analyser.getByteTimeDomainData(data);
+            ctx2d.clearRect(0, 0, w, h);
+            ctx2d.lineWidth = 2;
+            ctx2d.strokeStyle = "#dc2626";
+            ctx2d.beginPath();
+            var sliceWidth = w / data.length;
+            var x = 0;
+            for (var i = 0; i < data.length; i++) {
+                var y = (data[i] / 255) * h;
+                if (i === 0) ctx2d.moveTo(x, y); else ctx2d.lineTo(x, y);
+                x += sliceWidth;
+            }
+            ctx2d.stroke();
+        })();
+    }
+
+    function stopWaveform() {
+        if (waveformRAF) cancelAnimationFrame(waveformRAF);
+        waveformRAF = null;
+        if (waveformSource) { waveformSource.disconnect(); waveformSource = null; }
+        if (audioCtx) { audioCtx.close(); audioCtx = null; }
+        analyser = null;
+        if (waveformCanvas) {
+            waveformCanvas.classList.remove("active");
+            var ctx2d = waveformCanvas.getContext("2d");
+            ctx2d.clearRect(0, 0, waveformCanvas.width, waveformCanvas.height);
+        }
+    }
 
     function stopStream() {
         if (mediaStream) {
@@ -144,6 +201,7 @@
             });
             mediaRecorder.addEventListener("stop", function () {
                 stopStream();
+                stopWaveform();
                 clearTimeout(maxLengthTimer);
                 setRecordingUI(false);
                 if (chunks.length === 0) {
@@ -155,6 +213,7 @@
             });
 
             mediaRecorder.start();
+            startWaveform(stream);
             busy = false;
             recordBtn.disabled = false;
             setRecordingUI(true);
@@ -220,7 +279,10 @@
         }
     });
 
-    window.addEventListener("beforeunload", stopStream);
+    window.addEventListener("beforeunload", function () {
+        stopStream();
+        stopWaveform();
+    });
 })();
 
 // Document upload: an addition to the typed/spoken description above, not a replacement -
