@@ -4422,10 +4422,11 @@ async function loadMySite() {
         // Cached (along with hasAppointments below) so next launch can show this section
         // in its right shape right away instead of waiting on this same fetch every time -
         // same reasoning as pageTheme/donationLink above it in the boot sequence. Without
-        // this, the preview card and appointments card both start hidden and pop in a
-        // moment later, shoving the whole rest of the screen down after it already looks
-        // fully loaded.
+        // this, the preview card, the "View your live site" button, and the appointments
+        // card all start hidden and pop in a moment later, shoving the whole rest of the
+        // screen down after it already looks fully loaded.
         storageSet("mysiteHasPage", page ? "1" : "").catch(() => {});
+        storageSet("mysitePublished", page && page.published ? "1" : "").catch(() => {});
         if (page) {
             el("mysite-website-status").textContent = page.published
                 ? (t("mysite.website.live") || "Live") + " · " + page.slug
@@ -4438,7 +4439,10 @@ async function loadMySite() {
             el("mysite-tagline-input").value = page.tagline || "";
             el("mysite-about-input").value = page.about || "";
             el("mysite-published").checked = !!page.published;
-            if (page.published) el("mysite-view-site-link").href = `${API_BASE}/p/${page.slug}`;
+            if (page.published) {
+                el("mysite-view-site-link").href = `${API_BASE}/p/${page.slug}`;
+                storageSet("mysiteSlug", page.slug || "").catch(() => {});
+            }
             mysitePopulateThemeSelect(page.theme);
             storageSet("pageTheme", page.theme || "warm").catch(() => {});
             mysiteSelectedCustomTheme = page.theme === "custom" && page.custom_theme_json ? JSON.parse(page.custom_theme_json) : null;
@@ -5157,7 +5161,7 @@ function mysiteRenderThemeSuggestions(themeList) {
 updateOfflineBanner();
 
 (async () => {
-    const [token, businessName, onboardingSeen, theme, donationLink, pageTheme, mysiteHasPage, mysiteTagline, mysiteAbout, mysiteHasAppointments] = await Promise.all([
+    const [token, businessName, onboardingSeen, theme, donationLink, pageTheme, mysiteHasPage, mysiteTagline, mysiteAbout, mysiteHasAppointments, mysitePublished, mysiteSlug] = await Promise.all([
         storageGet("token"),
         storageGet("businessName"),
         storageGet("onboardingSeen"),
@@ -5168,6 +5172,8 @@ updateOfflineBanner();
         storageGet("mysiteTagline"),
         storageGet("mysiteAbout"),
         storageGet("mysiteHasAppointments"),
+        storageGet("mysitePublished"),
+        storageGet("mysiteSlug"),
     ]);
     applyTheme(theme || "system");
     await initLanguage();
@@ -5202,6 +5208,8 @@ updateOfflineBanner();
         swatch.style.borderColor = classic.primary;
     }
     el("mysite-appointments-card").classList.toggle("hidden", !mysiteHasAppointments);
+    el("mysite-view-site-link").classList.toggle("hidden", !mysitePublished);
+    if (mysitePublished && mysiteSlug) el("mysite-view-site-link").href = `${API_BASE}/p/${mysiteSlug}`;
 
     if (state.token) {
         enterApp();
