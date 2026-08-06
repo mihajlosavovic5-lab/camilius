@@ -887,25 +887,6 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
    classes (same anchored-below-field mechanism), plus its own selected-state look. */
 .country-option-btn.selected { color: var(--primary-ink); font-weight: 700; background: var(--primary-light); }
 
-/* Working hours' own "Apply changes" button (Profile > Business details only, not the
-   onboarding step which reuses the same .hours-picker) - the rest of this screen
-   autosaves silently in the background (SHOW_MANUAL_SAVE_BUTTONS in app.js), but hours
-   affect booking availability immediately, so this section gets an explicit, visible
-   save action right where it's edited instead of relying purely on that debounce. Only
-   shown once the hours actually differ from what's saved (see updateHoursApplyVisibility
-   in app.js), same "don't show it until there's something to apply" rule the rest of the
-   form already follows. */
-.hours-section-header { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
-.hours-section-header label { margin: 0; }
-.hours-apply-btn {
-    padding: 6px 14px; border: none; border-radius: 8px; background: var(--primary);
-    color: #fff; font-family: inherit; font-size: 13px; font-weight: 600; cursor: pointer;
-    flex-shrink: 0; transition: opacity .15s ease, transform .1s ease;
-}
-.hours-apply-btn:active { transform: scale(.96); }
-.hours-apply-btn:disabled { opacity: .5; cursor: default; }
-.hours-apply-btn.hidden { display: none; }
-
 /* --- Working hours picker: a compact single list - one line per day, a subtle divider
    between rows instead of a card per day, and a fixed row height so toggling a day off
    shows a "Closed" label without the layout jumping - plus a "Same hours every day"
