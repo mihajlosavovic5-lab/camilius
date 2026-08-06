@@ -1284,7 +1284,43 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
    #mysite-description in app.js, capped by max-height below, then scrolls) rather than
    opening at a fixed 3-row height nobody asked for. Right padding reserves room for the
    mic + send icons pinned in its bottom-right corner so typed text never runs under them. */
-.chat-compose { position: relative; margin-top: 14px; }
+.chat-compose-row { display: flex; align-items: flex-end; gap: 8px; margin-top: 14px; }
+.chat-compose { position: relative; flex: 1; min-width: 0; }
+/* Attach button (+) sitting to the left of the field, ChatGPT-layout style - opens the
+   native photo/video/file picker (see mysite-attach-input, app.js). While the mic is
+   recording it swaps to a cancel (X) in the exact same spot instead of disappearing, so
+   there's always an obvious way to back out of a recording without sending anything. */
+.compose-attach-btn {
+    flex-shrink: 0; width: 38px; height: 38px; border-radius: 50%;
+    border: 1px solid var(--border); background: var(--surface); color: var(--text-muted);
+    display: flex; align-items: center; justify-content: center; padding: 0; cursor: pointer;
+}
+.compose-attach-btn svg { width: 19px; height: 19px; }
+.compose-attach-btn .attach-cancel-icon { display: none; }
+.compose-attach-btn.recording { border-color: var(--danger); color: var(--danger); background: var(--surface); }
+.compose-attach-btn.recording .attach-plus-icon { display: none; }
+.compose-attach-btn.recording .attach-cancel-icon { display: block; }
+.compose-attach-btn:active { transform: scale(.94); }
+
+.compose-attachment-list { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 0 46px; }
+.compose-attachment-chip {
+    display: flex; align-items: center; gap: 6px; max-width: 150px;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 14px;
+    padding: 3px 8px 3px 3px; font-size: 12.5px; color: var(--text-muted);
+}
+.compose-attachment-chip.uploading { opacity: .5; }
+.compose-attachment-chip img {
+    width: 22px; height: 22px; border-radius: 50%; object-fit: cover; flex-shrink: 0;
+}
+.compose-attachment-chip .chip-icon {
+    width: 22px; height: 22px; border-radius: 50%; background: var(--border);
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 11px;
+}
+.compose-attachment-chip .chip-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.compose-attachment-chip .chip-remove {
+    border: none; background: none; color: var(--text-muted); cursor: pointer;
+    font-size: 15px; line-height: 1; padding: 0 2px; flex-shrink: 0;
+}
 .chat-compose-input {
     display: block; width: 100%; box-sizing: border-box; resize: none;
     border: 1px solid var(--border); border-radius: 20px; background: var(--surface);

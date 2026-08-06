@@ -4460,6 +4460,10 @@ el("mysite-description").addEventListener("input", mysiteUpdateComposeButtons);
 // supported - stays this no-op otherwise, so the click listener beneath it degrades to a
 // plain send with no recording-shortcut branch on a device that can't record at all.
 let mysiteStopRecordingIfActive = () => false;
+// Same idea, but for the attach button's "cancel recording" click (see the attach IIFE
+// below) - overridden alongside mysiteStopRecordingIfActive by the same voice-recording
+// IIFE, and just as much a no-op on devices where recording isn't supported at all.
+let mysiteCancelRecordingIfActive = () => false;
 
 // Single "send" action (chat-input style, next to the mic button above) that replaces
 // the old separate "Generate draft" and "Suggest AI designs" buttons - one description
@@ -4568,6 +4572,7 @@ function mysiteRenderThemeSuggestions(themeList) {
     const status = el("mysite-voice-status");
     const textarea = el("mysite-description");
     const waveformCanvas = el("mysite-voice-waveform");
+    const attachBtn = el("mysite-attach-btn");
     if (!recordBtn || !textarea) return;
 
     const supported = !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia && window.MediaRecorder);
@@ -4590,6 +4595,11 @@ function mysiteRenderThemeSuggestions(themeList) {
     // transcription), so this just marks the intent; uploadRecording's success handler is
     // what actually fires mysiteSubmitDescription() once the transcribed text is in hand.
     let pendingAutoSend = false;
+    // Set by cancelRecording() just before stop() - the "stop" event handler checks this
+    // first and, if set, discards everything instead of transcribing, no matter how much
+    // was captured. This is the attach button's "throw it away" exit from recording,
+    // distinct from the mic/stop button's own "stop and keep it" click.
+    let cancelled = false;
 
     // Live waveform: a separate AnalyserNode tapping the same mic stream, purely visual -
     // it never touches the recorded audio or the MediaRecorder above. Drawn with
@@ -4697,6 +4707,7 @@ function mysiteRenderThemeSuggestions(themeList) {
     }
     function setRecordingUI(isRecording) {
         recordBtn.classList.toggle("recording", isRecording);
+        if (attachBtn) attachBtn.classList.toggle("recording", isRecording);
         btnLabel.textContent = isRecording
             ? (t("onboarding.describe.recordStop") || "Stop recording")
             : (t("onboarding.describe.recordStart") || "Record instead of typing");
@@ -4725,10 +4736,11 @@ function mysiteRenderThemeSuggestions(themeList) {
                 stopWaveform();
                 clearTimeout(maxLengthTimer);
                 setRecordingUI(false);
-                if (chunks.length === 0) {
+                if (cancelled || chunks.length === 0) {
                     busy = false;
                     recordBtn.disabled = false;
                     pendingAutoSend = false;
+                    cancelled = false;
                     return;
                 }
                 uploadRecording(new Blob(chunks, { type: mediaRecorder.mimeType || "audio/webm" }));
@@ -4754,6 +4766,11 @@ function mysiteRenderThemeSuggestions(themeList) {
     }
     function stopRecording() {
         if (mediaRecorder && mediaRecorder.state === "recording") mediaRecorder.stop();
+    }
+    function cancelRecording() {
+        if (!(mediaRecorder && mediaRecorder.state === "recording")) return;
+        cancelled = true;
+        mediaRecorder.stop();
     }
     function uploadRecording(blob) {
         busy = true;
@@ -4807,9 +4824,138 @@ function mysiteRenderThemeSuggestions(themeList) {
         stopRecording();
         return true;
     };
+    // The attach button's other exit from recording - cancel instead of send (see the
+    // attach IIFE below, which calls this before falling back to opening the file picker).
+    mysiteCancelRecordingIfActive = () => {
+        if (!(mediaRecorder && mediaRecorder.state === "recording")) return false;
+        cancelRecording();
+        return true;
+    };
     window.addEventListener("beforeunload", () => {
         stopStream();
         stopWaveform();
+    });
+})();
+
+// Attach button (compose bar, My Site tab) - lets the owner add photos/video/documents
+// straight from the chat instead of hunting through Profile's own media/document
+// sections. Reuses those same endpoints (api.py's /api/media and /api/documents,
+// business_media.py/business_documents.py) rather than inventing a third upload path:
+// PDFs/Word docs become source documents, already folded into the AI draft automatically
+// (business_documents.combined_document_text, wired into /api/generate-page and
+// /api/suggest-themes), while photos/video become the site's own gallery/hero video -
+// the AI copywriting call is text-only, so there's no "send this photo to the AI" step,
+// but the app does remember every attachment against the business either way. While the
+// mic is recording, this same button is a cancel (X) instead - the send button already
+// covers "stop and use" (mysiteStopRecordingIfActive), so this is deliberately the other
+// exit: stop and throw away everything recorded so far.
+(function () {
+    const attachBtn = el("mysite-attach-btn");
+    const attachInput = el("mysite-attach-input");
+    const list = el("mysite-attachment-list");
+    if (!attachBtn || !attachInput || !list) return;
+
+    function kindFor(file) {
+        const type = (file.type || "").toLowerCase();
+        if (type === "application/pdf") return "document";
+        if (type.indexOf("wordprocessingml") !== -1 || /\.docx?$/i.test(file.name || "")) return "document";
+        if (type.indexOf("video/") === 0) return "video";
+        if (type.indexOf("image/") === 0) return "image";
+        return null;
+    }
+
+    function makeChip(kind, item) {
+        const chip = document.createElement("span");
+        chip.className = "compose-attachment-chip";
+
+        if (kind === "image") {
+            const img = document.createElement("img");
+            img.src = item.url;
+            img.alt = "";
+            chip.appendChild(img);
+        } else {
+            const icon = document.createElement("span");
+            icon.className = "chip-icon";
+            icon.textContent = kind === "video" ? "▶" : "📄";
+            chip.appendChild(icon);
+        }
+
+        const name = document.createElement("span");
+        name.className = "chip-name";
+        name.textContent = item.filename || (kind === "video" ? "Video" : kind === "image" ? "Photo" : "File");
+        chip.appendChild(name);
+
+        const removeBtn = document.createElement("button");
+        removeBtn.type = "button";
+        removeBtn.className = "chip-remove";
+        removeBtn.setAttribute("aria-label", "Remove");
+        removeBtn.textContent = "×";
+        removeBtn.addEventListener("click", () => removeAttachment(kind, item.id, chip));
+        chip.appendChild(removeBtn);
+
+        list.appendChild(chip);
+    }
+
+    function removeAttachment(kind, id, chip) {
+        chip.classList.add("uploading");
+        const path = kind === "document" ? "/api/documents/" + id : "/api/media/" + id;
+        fetch(API_BASE + path, {
+            method: "DELETE",
+            headers: state.token ? { Authorization: "Bearer " + state.token } : {},
+        }).then((response) => {
+            if (!response.ok) throw new Error();
+            chip.remove();
+        }).catch(() => {
+            chip.classList.remove("uploading");
+            showToast(t("settings.media.removeError") || "Couldn't remove that - please try again.");
+        });
+    }
+
+    function uploadFile(file) {
+        const kind = kindFor(file);
+        if (!kind) {
+            showToast("That file type isn't supported here.");
+            return;
+        }
+
+        const placeholder = document.createElement("span");
+        placeholder.className = "compose-attachment-chip uploading";
+        placeholder.textContent = file.name;
+        list.appendChild(placeholder);
+
+        const formData = new FormData();
+        formData.append("file", file);
+        if (kind !== "document") formData.append("role", kind === "video" ? "hero_video" : "gallery");
+        const path = kind === "document" ? "/api/documents" : "/api/media";
+        const errorKey = kind === "document" ? "settings.documents.error" : "settings.media.error";
+
+        fetch(API_BASE + path, {
+            method: "POST",
+            headers: state.token ? { Authorization: "Bearer " + state.token } : {},
+            body: formData,
+        }).then((response) => response.json().catch(() => ({})).then((data) => ({ ok: response.ok, data })))
+            .then(({ ok, data }) => {
+                placeholder.remove();
+                if (!ok) {
+                    showToast(data.error || t(errorKey) || "Couldn't upload that - please try again.");
+                    return;
+                }
+                makeChip(kind, data);
+            }).catch(() => {
+                placeholder.remove();
+                showToast(t(errorKey) || "Couldn't upload that - please try again.");
+            });
+    }
+
+    attachInput.addEventListener("change", () => {
+        const files = Array.prototype.slice.call(attachInput.files || []);
+        attachInput.value = "";
+        files.forEach(uploadFile);
+    });
+
+    attachBtn.addEventListener("click", () => {
+        if (mysiteCancelRecordingIfActive()) return;
+        attachInput.click();
     });
 })();
 
