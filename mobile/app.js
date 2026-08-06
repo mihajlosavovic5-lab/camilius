@@ -4269,6 +4269,37 @@ const CLASSIC_THEMES = [
 
 let mysiteSelectedCustomTheme = null; // the AI-suggested theme object, if one is currently selected
 
+// Same "hidden until dirty" floating Save button as Profile/Settings (see
+// updateSettingsSaveValidity above) - only the website's own fields count, not the
+// separate "Draft this with AI" description/voice controls below them, which don't
+// persist anything themselves.
+let mysiteFormSnapshot = null;
+
+function serializeMysiteForm() {
+    return JSON.stringify({
+        slug: el("mysite-slug").value,
+        tagline: el("mysite-tagline-input").value,
+        about: el("mysite-about-input").value,
+        published: el("mysite-published").checked,
+        theme: el("mysite-theme-select").value,
+        customTheme: mysiteSelectedCustomTheme ? JSON.stringify(mysiteSelectedCustomTheme) : "",
+    });
+}
+
+function updateMysiteSaveValidity() {
+    const button = el("mysite-save-btn");
+    const dirty = mysiteFormSnapshot !== null && serializeMysiteForm() !== mysiteFormSnapshot;
+    button.classList.toggle("hidden", !dirty);
+    el("screen-mysite").classList.toggle("has-unsaved", dirty);
+}
+
+// Delegated for the same reason as Profile's equivalent listener - also catches the
+// theme-select dropdown and the AI theme-suggestion radios (see mysiteRenderThemeSuggestions
+// below), which dispatch their own bubbling "change".
+["input", "change", "click"].forEach((evt) => {
+    el("screen-mysite").addEventListener(evt, updateMysiteSaveValidity);
+});
+
 function mysitePopulateThemeSelect(currentThemeId) {
     const select = el("mysite-theme-select");
     select.innerHTML = "";
@@ -4325,6 +4356,8 @@ async function loadMySite() {
             mysitePopulateThemeSelect("warm");
             mysiteSelectedCustomTheme = null;
         }
+        mysiteFormSnapshot = serializeMysiteForm();
+        updateMysiteSaveValidity();
 
         const appointments = data.upcoming_appointments || [];
         const appointmentsCard = el("mysite-appointments-card");
@@ -4366,8 +4399,9 @@ el("mysite-theme-select").addEventListener("change", (event) => {
     }
 });
 
-el("mysite-save-page-btn").addEventListener("click", async () => {
-    const errorBox = el("mysite-page-error");
+el("mysite-save-btn").addEventListener("click", async () => {
+    const button = el("mysite-save-btn");
+    const errorBox = el("mysite-error");
     errorBox.classList.add("hidden");
     const themeValue = el("mysite-theme-select").value;
     const body = {
@@ -4380,13 +4414,19 @@ el("mysite-save-page-btn").addEventListener("click", async () => {
     if (themeValue === "custom" && mysiteSelectedCustomTheme) {
         body.custom_theme_json = JSON.stringify(mysiteSelectedCustomTheme);
     }
+    button.disabled = true;
+    button.textContent = t("settings.saveLoading");
     try {
         await api("/api/page", { method: "POST", body });
-        showToast(t("mysite.website.saved") || "Saved.");
-        loadMySite();
+        showSaveSuccess(t("settings.saved"));
+        await loadMySite();
     } catch (err) {
         errorBox.textContent = err.message || t("network.error");
         errorBox.classList.remove("hidden");
+    } finally {
+        button.disabled = false;
+        button.textContent = t("settings.save");
+        updateMysiteSaveValidity();
     }
 });
 
@@ -4406,6 +4446,10 @@ el("mysite-generate-btn").addEventListener("click", async () => {
         el("mysite-tagline-input").value = draft.tagline || "";
         el("mysite-about-input").value = draft.about || "";
         el("mysite-draft-result").classList.remove("hidden");
+        // Setting .value directly above doesn't dispatch "input"/"change", so the
+        // delegated listener that normally reveals the Save button (see
+        // updateMysiteSaveValidity above) never fires on its own - poke it here instead.
+        updateMysiteSaveValidity();
         // Hours/prices/FAQ live in the Profile tab's own fields, not here (the AI still
         // drafts them - see api_generate_page - but this screen only owns the page's own
         // presentation fields). FAQ is a plain textarea, safe to pre-fill directly; hours/
