@@ -1649,12 +1649,18 @@ let pendingGoogleLinkToken = null;
 // pollGoogleLogin is already waiting on, so it can settle it immediately instead of
 // waiting for the next scheduled poll tick.
 
-// Covers the gap described above the #google-signin-overlay markup in index.html: only
-// needed around the appUrlOpen handoff, never around the plain poll loop (there,
-// Browser.close() and enterApp()/the error screen fire back-to-back with nothing revealed
-// in between, so there's no gap to cover). safetyTimer is a last-resort auto-hide - if the
-// confirming fetch never comes back (e.g. connectivity dropped the instant the app
-// resumed) this still releases the screen back to the visitor after a few seconds instead
+// Covers the gap described above the #google-signin-overlay markup in index.html.
+// Shown from the moment the Google browser opens (startGoogleLogin) rather than only
+// around the appUrlOpen handoff - Android can resume the app by first painting a cached
+// snapshot of whatever this WebView last rendered before it was backgrounded, and that
+// snapshot is captured well before any JS here gets a chance to run. If the last thing on
+// screen was the bare Login choice buttons, THAT is what briefly reappears on return no
+// matter how fast the real handoff logic below reacts afterward - the only fix is making
+// sure the spinner is already what's rendered before backgrounding ever happens.
+// safetyTimer is a last-resort auto-hide, re-armed every time this is called (including on
+// every foreground resume - see the appStateChange listener near the Google button below)
+// - if the confirming fetch never comes back (connectivity dropped, or the visitor simply
+// cancelled without finishing) this still releases the screen after a few seconds instead
 // of sitting on the spinner for the full 2-minute poll timeout.
 let googleSigninOverlaySafetyTimer = null;
 function showGoogleSigninOverlay() {
@@ -1761,6 +1767,10 @@ async function startGoogleLogin(button, errorBox, intent) {
     button.disabled = true;
     try {
         const data = await api("/api/google-login/start", { method: "POST", body: { intent } });
+        // Shown now, before the browser ever opens - see showGoogleSigninOverlay's own
+        // comment for why the timing here (last thing painted before backgrounding, not
+        // just "as soon as possible afterward") is what actually matters.
+        showGoogleSigninOverlay();
         if (capacitorPlugins && capacitorPlugins.Browser) {
             await capacitorPlugins.Browser.open({ url: data.auth_url });
         } else {
@@ -1769,6 +1779,7 @@ async function startGoogleLogin(button, errorBox, intent) {
         activeGoogleLoginAttempt = { state: data.state, errorBox, settled: false };
         pollGoogleLogin(activeGoogleLoginAttempt);
     } catch (err) {
+        hideGoogleSigninOverlay();
         showErrorBox(errorBox, err.message || t("login.googleError"));
     } finally {
         button.disabled = false;
@@ -1798,12 +1809,24 @@ if (capacitorPlugins && capacitorPlugins.App) {
         let path = "";
         try { path = new URL(data.url).pathname; } catch (e) {}
         if (path === "/auth/google/done") {
-            // Android has already switched focus back to this app's WebView as part of
-            // delivering the intent - see #google-signin-overlay in index.html for why
-            // that alone (before the status fetch below actually confirms anything)
-            // needs covering.
+            // Belt-and-braces re-arm alongside startGoogleLogin's own call - the overlay
+            // should already be up (it was shown before the browser even opened), but
+            // this also refreshes the safety-hide timer right as the real handoff happens.
             showGoogleSigninOverlay();
             checkGoogleLoginStatusOnce(activeGoogleLoginAttempt, { closeBrowser: false });
+        }
+    });
+
+    // Covers a return to the app that DOESN'T go through the App Link handoff above - the
+    // visitor closing the Custom Tab themselves (back gesture, recents switcher) after
+    // finishing, or a device/browser combination that never fires appUrlOpen at all (see
+    // pollGoogleLogin's own fallback comment). Same snapshot concern as
+    // showGoogleSigninOverlay's own comment: re-showing (and re-arming the safety timer)
+    // on every resume, not just this one deep-link path, is what keeps the spinner - not
+    // a stale Login screenshot - on screen for however long is left of that gap.
+    capacitorPlugins.App.addListener("appStateChange", ({ isActive }) => {
+        if (isActive && activeGoogleLoginAttempt && !activeGoogleLoginAttempt.settled) {
+            showGoogleSigninOverlay();
         }
     });
 }
