@@ -5158,6 +5158,36 @@ function mysiteRenderThemeSuggestions(themeList) {
 
 // --- Boot ---
 
+// On a cold start (never on a warm resume - Android's already dispatched these once by
+// then), the WebView's very first frames can render before Android finishes delivering
+// the real WindowInsets, so mobile/app.css's --safe-top/--safe-bottom (env(safe-area-
+// inset-*)) briefly read as their 0px fallback. Every screen's top padding is built on
+// --safe-top (see .topbar above), so revealing a screen before the real inset lands and
+// then having it arrive a frame later shoves the whole screen down by the status bar's
+// height right in front of the user. Every .screen starts visibility:hidden until
+// showScreen()/enterApp() below adds .active, so waiting a few frames here - before that
+// first reveal - costs nothing visible; it just gives Android's insets dispatch, which
+// normally lands within a frame or two, room to land first. Capped by the timeout so a
+// stalled rAF (backgrounded tab, some OEM WebView oddity) can never hang the boot.
+function waitForLayoutSettle() {
+    return new Promise((resolve) => {
+        let settled = false;
+        const done = () => {
+            if (settled) return;
+            settled = true;
+            resolve();
+        };
+        let frames = 0;
+        const tick = () => {
+            frames += 1;
+            if (frames >= 3) { done(); return; }
+            requestAnimationFrame(tick);
+        };
+        requestAnimationFrame(tick);
+        setTimeout(done, 250);
+    });
+}
+
 updateOfflineBanner();
 
 (async () => {
@@ -5211,6 +5241,7 @@ updateOfflineBanner();
     el("mysite-view-site-link").classList.toggle("hidden", !mysitePublished);
     if (mysitePublished && mysiteSlug) el("mysite-view-site-link").href = `${API_BASE}/p/${mysiteSlug}`;
 
+    await waitForLayoutSettle();
     if (state.token) {
         enterApp();
     } else if (isNative && !onboardingSeen) {
