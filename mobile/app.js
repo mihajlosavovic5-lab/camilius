@@ -4451,7 +4451,7 @@ function mysiteUpdateComposeButtons() {
     el("mysite-send-btn").classList.toggle("has-text", hasText);
     const recordBtn = el("mysite-voice-btn");
     if (recordBtn && !recordBtn.classList.contains("recording")) {
-        recordBtn.hidden = hasText || recordBtn.dataset.unsupported === "true";
+        recordBtn.classList.toggle("mic-typing-hidden", hasText);
     }
 }
 el("mysite-description").addEventListener("input", mysiteUpdateComposeButtons);
@@ -4557,10 +4557,7 @@ function mysiteRenderThemeSuggestions(themeList) {
     if (!recordBtn || !textarea) return;
 
     const supported = !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia && window.MediaRecorder);
-    if (!supported) {
-        recordBtn.dataset.unsupported = "true";
-        return;
-    }
+    if (!supported) return;
     recordBtn.hidden = false;
 
     function setStatus(text, isError) {

@@ -1301,6 +1301,12 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
     color: var(--text-muted);
 }
 .textarea-mic-btn:not([hidden]) { display: flex; }
+/* Hides the mic once typing starts without removing it from the flex row - removing it
+   entirely (e.g. via the [hidden] attribute) shrinks .textarea-actions and drags the send
+   button along with it, since it's no longer sitting next to a same-sized sibling; keeping
+   the layout space reserved (just invisible) is what keeps the send button's position fixed
+   between its outline and filled states. */
+.textarea-mic-btn.mic-typing-hidden { visibility: hidden; pointer-events: none; }
 .textarea-mic-btn:active { color: var(--primary-ink); }
 .textarea-mic-btn.recording { color: var(--danger); }
 .textarea-mic-btn .mic-icon { width: 21px; height: 21px; }
