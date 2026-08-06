@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
 <title>Camilius</title>
-<link rel="stylesheet" href="app.css?v=e2e612479e25">
+<link rel="stylesheet" href="app.css?v=fb5916190dc2">
 </head>
 <body>
 
@@ -109,19 +109,44 @@
   </div>
 </div>
 
-<!-- Attach options (My Site tab's "+") - same bottom-sheet pattern as the row-actions
-     sheet above. Each option triggers its own hidden file input with the accept/capture
-     combo that gets the matching native picker (see the attach IIFE in app.js): Camera
-     opens the camera directly, Photos opens the library, Files opens the document
-     browser - instead of one input whose accept mix left the OS to guess which picker to
-     show. -->
+<!-- Attach options (My Site tab's "+") - same fixed-overlay/backdrop machinery as the
+     row-actions sheet above, but its own bottom-edge slide-up sheet (see
+     .attach-options-sheet in app.css) with an icon+label row per option instead of a
+     floating centered-text list, matching the native iOS/Android share-sheet look. Each
+     option triggers its own hidden file input with the accept/capture combo that gets the
+     matching native picker (see the attach IIFE in app.js): Camera opens the camera
+     directly, Photos opens the library, Files opens the document browser. -->
 <div id="attach-options-modal" class="lang-modal">
   <div class="lang-modal-backdrop" id="attach-options-backdrop"></div>
-  <div class="lang-modal-sheet row-actions-sheet">
-    <button type="button" class="row-action-btn" id="attach-option-camera" data-i18n="mysite.attach.camera">Camera</button>
-    <button type="button" class="row-action-btn" id="attach-option-photos" data-i18n="mysite.attach.photos">Photos</button>
-    <button type="button" class="row-action-btn" id="attach-option-files" data-i18n="mysite.attach.files">Files</button>
-    <button type="button" class="row-action-btn row-action-cancel" id="attach-option-cancel" data-i18n="inbox.cancel">Cancel</button>
+  <div class="lang-modal-sheet attach-options-sheet">
+    <button type="button" class="attach-option-row" id="attach-option-camera">
+      <span class="attach-option-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
+          <path d="M4 8a2 2 0 0 1 2-2h1.6l.9-1.5a1 1 0 0 1 .86-.5h5.28a1 1 0 0 1 .86.5l.9 1.5H18a2 2 0 0 1 2 2v9.5a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8Z" stroke-width="1.7" stroke-linejoin="round"/>
+          <circle cx="12" cy="13" r="3.4" stroke-width="1.7"/>
+        </svg>
+      </span>
+      <span data-i18n="mysite.attach.camera">Camera</span>
+    </button>
+    <button type="button" class="attach-option-row" id="attach-option-photos">
+      <span class="attach-option-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
+          <rect x="3.5" y="4.5" width="17" height="15" rx="2.2" stroke-width="1.7"/>
+          <circle cx="9" cy="10" r="1.6" stroke-width="1.7"/>
+          <path d="M20 15.5l-5.3-5.3a1.2 1.2 0 0 0-1.7 0L4.5 18.5" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </span>
+      <span data-i18n="mysite.attach.photos">Photos</span>
+    </button>
+    <button type="button" class="attach-option-row" id="attach-option-files">
+      <span class="attach-option-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
+          <path d="M7.5 12.5V6.2a3.7 3.7 0 0 1 7.4 0V15a2.3 2.3 0 0 1-4.6 0V7.5" stroke-width="1.7" stroke-linecap="round"/>
+        </svg>
+      </span>
+      <span data-i18n="mysite.attach.files">Files</span>
+    </button>
+    <button type="button" class="attach-option-row attach-option-cancel" id="attach-option-cancel" data-i18n="inbox.cancel">Cancel</button>
   </div>
 </div>
 
@@ -1479,7 +1504,7 @@
   </button>
 </nav>
 
-<script src="i18n.js?v=e2e612479e25"></script>
-<script src="app.js?v=e2e612479e25"></script>
+<script src="i18n.js?v=fb5916190dc2"></script>
+<script src="app.js?v=fb5916190dc2"></script>
 </body>
 </html>
