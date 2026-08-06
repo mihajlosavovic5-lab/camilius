@@ -3643,9 +3643,6 @@ document.querySelectorAll(".tab-btn").forEach((btn) => {
 // bridging out to the website in an in-app browser like the old Settings > Schedule
 // row used to (see mobile/index.html git history for that bridge, still available as
 // /api/schedule-link if it's ever needed again).
-function scheduleNoHoursMessage() {
-    return `${t("schedule.noWorkingHours")} ${t("tab.profile")} ${t("schedule.pageSuffix")}`;
-}
 
 // Same LOCALE_TAGS map the Inbox tab's timeAgo() uses (see above) - keeps date
 // formatting on the Schedule tab consistent with the rest of the app.
@@ -3711,9 +3708,6 @@ async function loadSchedule(date, { force = false } = {}) {
 }
 
 function renderSchedule(data) {
-    el("schedule-no-hours").classList.toggle("hidden", data.has_any_open_day);
-    el("schedule-no-hours").textContent = scheduleNoHoursMessage();
-
     el("schedule-duration-label").textContent = `${data.slot_minutes} min`;
     state.scheduleSlotChoices = data.slot_duration_choices;
     state.scheduleSlotMin = data.slot_duration_min;
