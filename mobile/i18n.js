@@ -41,7 +41,7 @@ const TRANSLATIONS = {
         "onboarding.getStarted": "Get started",
 
         "login.tagline": "AI replies to visitors chatting on your page",
-        "login.username": "Username, email, or phone",
+        "login.username": "Username or email",
         "login.password": "Password",
         "login.submit": "Log in",
         "login.submitLoading": "Logging in…",
@@ -422,7 +422,7 @@ const TRANSLATIONS = {
         "onboarding.getStarted": "Počnimo",
 
         "login.tagline": "AI odgovara posetiocima koji ćaskaju na vašoj stranici",
-        "login.username": "Korisničko ime, email ili telefon",
+        "login.username": "Korisničko ime ili email",
         "login.password": "Lozinka",
         "login.submit": "Prijavi se",
         "login.submitLoading": "Prijavljivanje…",
@@ -798,7 +798,7 @@ const TRANSLATIONS = {
         "onboarding.getStarted": "Empezar",
 
         "login.tagline": "La IA responde a los visitantes que chatean en tu página",
-        "login.username": "Usuario, email o teléfono",
+        "login.username": "Usuario o email",
         "login.password": "Contraseña",
         "login.submit": "Iniciar sesión",
         "login.submitLoading": "Iniciando sesión…",
@@ -1100,7 +1100,7 @@ const TRANSLATIONS = {
         "onboarding.getStarted": "Começar",
 
         "login.tagline": "A IA responde aos visitantes que conversam na sua página",
-        "login.username": "Usuário, email ou telefone",
+        "login.username": "Usuário ou email",
         "login.password": "Senha",
         "login.submit": "Entrar",
         "login.submitLoading": "Entrando…",
@@ -1402,7 +1402,7 @@ const TRANSLATIONS = {
         "onboarding.getStarted": "Commencer",
 
         "login.tagline": "L'IA répond aux visiteurs qui discutent sur votre page",
-        "login.username": "Nom d'utilisateur, email ou téléphone",
+        "login.username": "Nom d'utilisateur ou email",
         "login.password": "Mot de passe",
         "login.submit": "Se connecter",
         "login.submitLoading": "Connexion…",
@@ -1704,7 +1704,7 @@ const TRANSLATIONS = {
         "onboarding.getStarted": "Los geht's",
 
         "login.tagline": "Die KI antwortet Besuchern, die auf deiner Seite chatten",
-        "login.username": "Benutzername, E-Mail oder Telefon",
+        "login.username": "Benutzername oder E-Mail",
         "login.password": "Passwort",
         "login.submit": "Anmelden",
         "login.submitLoading": "Anmeldung…",
@@ -2006,7 +2006,7 @@ const TRANSLATIONS = {
         "onboarding.getStarted": "Inizia",
 
         "login.tagline": "L'IA risponde ai visitatori che chattano sulla tua pagina",
-        "login.username": "Nome utente, email o telefono",
+        "login.username": "Nome utente o email",
         "login.password": "Password",
         "login.submit": "Accedi",
         "login.submitLoading": "Accesso in corso…",
@@ -2308,7 +2308,7 @@ const TRANSLATIONS = {
         "onboarding.getStarted": "Начать",
 
         "login.tagline": "ИИ отвечает посетителям, которые пишут на вашей странице",
-        "login.username": "Имя пользователя, email или телефон",
+        "login.username": "Имя пользователя или email",
         "login.password": "Пароль",
         "login.submit": "Войти",
         "login.submitLoading": "Вход…",
@@ -2610,7 +2610,7 @@ const TRANSLATIONS = {
         "onboarding.getStarted": "开始使用",
 
         "login.tagline": "AI自动回复在您页面上聊天的访客",
-        "login.username": "用户名、邮箱或电话",
+        "login.username": "用户名或邮箱",
         "login.password": "密码",
         "login.submit": "登录",
         "login.submitLoading": "正在登录…",
@@ -2912,7 +2912,7 @@ const TRANSLATIONS = {
         "onboarding.getStarted": "Başla",
 
         "login.tagline": "Yapay zekâ, sayfanızda sohbet eden ziyaretçilere yanıt verir",
-        "login.username": "Kullanıcı adı, e-posta veya telefon",
+        "login.username": "Kullanıcı adı veya e-posta",
         "login.password": "Şifre",
         "login.submit": "Giriş yap",
         "login.submitLoading": "Giriş yapılıyor…",

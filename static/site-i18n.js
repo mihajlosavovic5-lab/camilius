@@ -60,7 +60,7 @@ const TRANSLATIONS = {
 
         "login.tagline": "AI automatically replies to your customers — day or night, nobody waits.",
         "login.title": "Log in",
-        "login.usernameLabel": "Username, email, or phone number",
+        "login.usernameLabel": "Username or email",
         "login.passwordLabel": "Password",
         "login.noAccount": "Don't have an account?",
         "login.registerLink": "Register your business",
@@ -656,7 +656,7 @@ const TRANSLATIONS = {
 
         "login.tagline": "La IA responde automáticamente a tus clientes — día y noche, nadie espera.",
         "login.title": "Iniciar sesión",
-        "login.usernameLabel": "Usuario, correo o número de teléfono",
+        "login.usernameLabel": "Usuario o correo",
         "login.passwordLabel": "Contraseña",
         "login.noAccount": "¿No tienes una cuenta?",
         "login.registerLink": "Registra tu negocio",
@@ -1138,7 +1138,7 @@ const TRANSLATIONS = {
 
         "login.tagline": "A IA responde automaticamente aos seus clientes — dia e noite, ninguém espera.",
         "login.title": "Entrar",
-        "login.usernameLabel": "Usuário, e-mail ou número de telefone",
+        "login.usernameLabel": "Usuário ou e-mail",
         "login.passwordLabel": "Senha",
         "login.noAccount": "Não tem uma conta?",
         "login.registerLink": "Cadastre seu negócio",
@@ -1620,7 +1620,7 @@ const TRANSLATIONS = {
 
         "login.tagline": "L'IA répond automatiquement à vos clients — jour et nuit, personne n'attend.",
         "login.title": "Se connecter",
-        "login.usernameLabel": "Nom d'utilisateur, e-mail ou numéro de téléphone",
+        "login.usernameLabel": "Nom d'utilisateur ou e-mail",
         "login.passwordLabel": "Mot de passe",
         "login.noAccount": "Vous n'avez pas de compte ?",
         "login.registerLink": "Inscrivez votre entreprise",
@@ -2102,7 +2102,7 @@ const TRANSLATIONS = {
 
         "login.tagline": "Die KI beantwortet deine Kunden automatisch — Tag und Nacht, niemand wartet.",
         "login.title": "Anmelden",
-        "login.usernameLabel": "Benutzername, E-Mail oder Telefonnummer",
+        "login.usernameLabel": "Benutzername oder E-Mail",
         "login.passwordLabel": "Passwort",
         "login.noAccount": "Noch kein Konto?",
         "login.registerLink": "Registriere dein Unternehmen",
@@ -2584,7 +2584,7 @@ const TRANSLATIONS = {
 
         "login.tagline": "L'IA risponde automaticamente ai tuoi clienti — giorno e notte, nessuno aspetta.",
         "login.title": "Accedi",
-        "login.usernameLabel": "Nome utente, email o numero di telefono",
+        "login.usernameLabel": "Nome utente o email",
         "login.passwordLabel": "Password",
         "login.noAccount": "Non hai un account?",
         "login.registerLink": "Registra la tua attività",
@@ -3066,7 +3066,7 @@ const TRANSLATIONS = {
 
         "login.tagline": "ИИ автоматически отвечает вашим клиентам — днём и ночью, никто не ждёт.",
         "login.title": "Войти",
-        "login.usernameLabel": "Имя пользователя, email или номер телефона",
+        "login.usernameLabel": "Имя пользователя или email",
         "login.passwordLabel": "Пароль",
         "login.noAccount": "Нет аккаунта?",
         "login.registerLink": "Зарегистрируйте свой бизнес",
@@ -3548,7 +3548,7 @@ const TRANSLATIONS = {
 
         "login.tagline": "AI automatski odgovara vašim mušterijama — danju i noću, niko ne čeka.",
         "login.title": "Prijava",
-        "login.usernameLabel": "Korisničko ime, imejl ili broj telefona",
+        "login.usernameLabel": "Korisničko ime ili imejl",
         "login.passwordLabel": "Lozinka",
         "login.noAccount": "Nemate nalog?",
         "login.registerLink": "Registrujte svoj biznis",
@@ -4124,7 +4124,7 @@ const TRANSLATIONS = {
 
         "login.tagline": "AI自动回复您的顾客——不分昼夜，没有人需要等待。",
         "login.title": "登录",
-        "login.usernameLabel": "用户名、邮箱或手机号",
+        "login.usernameLabel": "用户名或邮箱",
         "login.passwordLabel": "密码",
         "login.noAccount": "还没有账户?",
         "login.registerLink": "注册您的商家",
@@ -4606,7 +4606,7 @@ const TRANSLATIONS = {
 
         "login.tagline": "Yapay zekâ müşterilerinizi otomatik yanıtlar — gece gündüz, kimse beklemez.",
         "login.title": "Giriş yap",
-        "login.usernameLabel": "Kullanıcı adı, e-posta veya telefon numarası",
+        "login.usernameLabel": "Kullanıcı adı veya e-posta",
         "login.passwordLabel": "Şifre",
         "login.noAccount": "Hesabınız yok mu?",
         "login.registerLink": "İşletmenizi kaydedin",

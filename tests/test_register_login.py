@@ -112,7 +112,20 @@ def test_register_defaults_push_enabled_to_true(client, unique_username, unique_
     assert response.get_json()["push_enabled"] is True
 
 
-def test_login_with_phone_number(client, unique_username, unique_email):
+def test_login_with_phone_number_rejected_while_phone_login_disabled(client, unique_username, unique_email):
+    """PHONE_LOGIN_ENABLED (database.py) defaults to False - phone_number is just optional
+    contact info now, not a login identifier, whether or not it's verified."""
+    phone = f"+38160{unique_username[-7:]}"
+    reg = register_business(client, unique_username, unique_email, phone_number=phone)
+    database.mark_phone_verified(reg.get_json()["business_id"])
+    response = client.post("/api/login", json={"username": phone, "password": "TestPassword123"})
+    assert response.status_code == 401
+
+
+def test_login_with_phone_number_when_re_enabled(client, unique_username, unique_email, monkeypatch):
+    """The phone-login code path itself still works - PHONE_LOGIN_ENABLED just isn't
+    flipped on by default (see database.py's own comment on that flag)."""
+    monkeypatch.setattr(database, "PHONE_LOGIN_ENABLED", True)
     phone = f"+38160{unique_username[-7:]}"
     reg = register_business(client, unique_username, unique_email, phone_number=phone)
     # A phone number also needs its own confirmation before it's usable to log in with

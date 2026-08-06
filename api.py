@@ -827,6 +827,8 @@ def api_send_reply(conversation_id):
 @api.route("/settings", methods=["GET"])
 @require_api_auth
 def api_get_settings():
+    from database import PHONE_LOGIN_ENABLED  # deferred: picks up the live value, not one frozen at module load
+
     business = business_by_id(request.business_id)
     return jsonify(
         name=business[1],
@@ -838,6 +840,7 @@ def api_get_settings():
         phone_number=business[11] or "",
         phone_verified=business[13],
         sms_verification_available=sms_configured(),
+        phone_login_enabled=PHONE_LOGIN_ENABLED,
         upsell_pairs=get_upsell_pairs(request.business_id) or "",
     )
 
@@ -846,6 +849,7 @@ def api_get_settings():
 @require_api_auth
 def api_update_settings():
     from app import BETA_FREE_MODE  # deferred to avoid a circular import at module load
+    from database import PHONE_LOGIN_ENABLED  # deferred: picks up the live value, not one frozen at module load
 
     data = request.get_json(silent=True) or {}
     business_id = request.business_id
@@ -897,6 +901,7 @@ def api_update_settings():
         message="Saved.", name=name, username=username, contact_email=contact_email,
         phone_number=phone_number, phone_verified=phone_verified,
         sms_verification_available=sms_configured(),
+        phone_login_enabled=PHONE_LOGIN_ENABLED,
         working_hours=working_hours, price_list=price_list, faq=faq,
         upsell_pairs=upsell_pairs,
     )
