@@ -1871,6 +1871,12 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
     opacity: 1; transition: opacity .25s ease;
 }
 .ota-update-overlay.hidden { opacity: 0; pointer-events: none; }
+/* #google-signin-overlay reuses .ota-update-overlay's markup/behavior but needs a fully
+   opaque backdrop, not the shared translucent scrim: this one exists specifically to hide
+   the stale Login screen underneath (see mobile/app.js's showGoogleSigninOverlay), and a
+   dimmed-but-visible Login screen behind the spinner still reads as "showing the login
+   screen" during the handoff, not as a clean loading transition. */
+#google-signin-overlay { background: var(--background); }
 .ota-update-card {
     width: min(280px, 82vw);
     background: var(--surface); color: var(--text);
