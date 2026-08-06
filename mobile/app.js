@@ -3,7 +3,7 @@
 // screens instead of loading the server-rendered website.
 
 const API_BASE = "https://app.ai-auto-reply-mail.com";
-const APP_VERSION = "1.9.8"; // bumped alongside the native versionName, sent with crash reports
+const APP_VERSION = "1.9.9"; // bumped alongside the native versionName, sent with crash reports
 
 // No per-account sent-at tracking on the backend for password-reset emails (unlike email/
 // phone verification below), so the forgot-password buttons' cooldown is purely client-side -
