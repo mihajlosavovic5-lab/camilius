@@ -4629,27 +4629,34 @@ function mysiteRenderThemeSuggestions(themeList) {
         // the canvas, redrawn as short rounded-cap strokes rather than filled rects.
         const barWidth = 3;
         const barStep = 6;
-        const barCount = Math.max(1, Math.floor(w / barStep));
+        // One extra bar beyond what's visible so there's always one ready to slide in from
+        // the right edge as scrollOffset wraps, instead of a gap flashing into view.
+        const barCount = Math.max(1, Math.ceil(w / barStep)) + 2;
         const history = new Array(barCount).fill(0.04);
-        // A new bar every animation frame (~16ms) scrolled too fast to read as speech -
-        // gating pushes to this interval instead slows the scroll without needing a lower
-        // frame rate anywhere else.
+        // Sampling a new bar every 70ms but sliding it into place gradually, frame by frame
+        // (scrollOffset), rather than snapping the whole row left in one 6px jump every 70ms -
+        // the jump read as a stutter/glitch even though the sample rate itself was fine.
         const PUSH_INTERVAL_MS = 70;
-        let lastPush = 0;
+        const scrollSpeed = barStep / PUSH_INTERVAL_MS; // px per ms
+        let scrollOffset = 0;
+        let lastFrameTime = null;
 
-        (function draw() {
+        function draw(now) {
             waveformRAF = requestAnimationFrame(draw);
-            const now = performance.now();
-            if (now - lastPush < PUSH_INTERVAL_MS) return;
-            lastPush = now;
-            analyser.getByteTimeDomainData(data);
-            let maxDev = 0;
-            for (let i = 0; i < data.length; i++) {
-                const dev = Math.abs(data[i] - 128);
-                if (dev > maxDev) maxDev = dev;
+            if (lastFrameTime === null) lastFrameTime = now;
+            scrollOffset += scrollSpeed * (now - lastFrameTime);
+            lastFrameTime = now;
+            while (scrollOffset >= barStep) {
+                scrollOffset -= barStep;
+                analyser.getByteTimeDomainData(data);
+                let maxDev = 0;
+                for (let i = 0; i < data.length; i++) {
+                    const dev = Math.abs(data[i] - 128);
+                    if (dev > maxDev) maxDev = dev;
+                }
+                history.push(Math.min(1, maxDev / 110));
+                history.shift();
             }
-            history.push(Math.min(1, maxDev / 110));
-            history.shift();
 
             ctx2d.clearRect(0, 0, w, h);
             ctx2d.lineWidth = barWidth;
@@ -4658,13 +4665,14 @@ function mysiteRenderThemeSuggestions(themeList) {
             ctx2d.beginPath();
             for (let j = 0; j < history.length; j++) {
                 const barH = Math.max(barWidth, history[j] * h);
-                const x = j * barStep + barWidth / 2;
+                const x = j * barStep - scrollOffset + barWidth / 2;
                 const yTop = (h - barH) / 2;
                 ctx2d.moveTo(x, yTop);
                 ctx2d.lineTo(x, yTop + barH);
             }
             ctx2d.stroke();
-        })();
+        }
+        waveformRAF = requestAnimationFrame(draw);
     }
 
     function stopWaveform() {
