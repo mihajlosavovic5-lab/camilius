@@ -1139,13 +1139,15 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
 /* --- Attach options sheet (Camera/Photos/Files, My Site tab's "+") - a native share-
    sheet look (icon-badge + label rows, flush against the bottom edge) rather than the
    floating centered-text .row-actions-sheet above: flat bottom (only the top corners are
-   rounded) and slides straight up from off-screen instead of scaling in from the middle. */
+   rounded). A short settle-into-place slide (not a full off-screen throw) with its own
+   no-overshoot easing, subtler than the base .lang-modal-sheet's bouncy cubic-bezier. */
 .attach-options-sheet {
     left: 0; right: 0; top: auto; bottom: 0; width: auto; max-height: none;
     border-radius: 20px 20px 0 0;
     padding: 10px 10px calc(10px + var(--safe-bottom));
     transform-origin: bottom center;
-    transform: translateY(100%);
+    transform: translateY(18px);
+    transition: transform .2s cubic-bezier(.25,.8,.4,1), opacity .18s ease;
     display: flex; flex-direction: column; gap: 2px;
 }
 .lang-modal.open .attach-options-sheet { transform: translateY(0); }
