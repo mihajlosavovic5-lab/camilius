@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
 <title>Camilius</title>
-<link rel="stylesheet" href="app.css?v=70988f51526c">
+<link rel="stylesheet" href="app.css?v=820cee59404e">
 </head>
 <body>
 
@@ -26,6 +26,14 @@
     </svg>
     <p id="save-success-text" class="save-success-text"></p>
   </div>
+</div>
+
+<!-- Fullscreen zoom for a tapped attachment thumbnail (see the compose-attachment-list
+     chips, My Site tab) - lives outside #app for the same position:fixed reason as the
+     other overlays here. Backdrop tap closes it; the image itself doesn't (so a tap meant
+     to look closer doesn't immediately dismiss). -->
+<div id="image-lightbox" class="image-lightbox hidden">
+  <img id="image-lightbox-img" src="" alt="">
 </div>
 
 <div id="update-banner" class="update-banner hidden">
@@ -1453,7 +1461,7 @@
   </button>
 </nav>
 
-<script src="i18n.js?v=70988f51526c"></script>
-<script src="app.js?v=70988f51526c"></script>
+<script src="i18n.js?v=820cee59404e"></script>
+<script src="app.js?v=820cee59404e"></script>
 </body>
 </html>

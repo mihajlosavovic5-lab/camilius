@@ -1420,6 +1420,27 @@ function showToast(message) {
     toastTimer = setTimeout(() => toast.classList.remove("show"), 2400);
 }
 
+// --- Image lightbox (Faza 15) - fullscreen zoom for a tapped attachment thumbnail (see
+// the compose-attachment-list chips in the voice/attach IIFEs below). Backdrop tap closes
+// it; the image itself doesn't (its own click listener stops propagation), so a tap meant
+// to look closer doesn't immediately dismiss the view. ---
+
+function openImageLightbox(url) {
+    const lightbox = el("image-lightbox");
+    const img = el("image-lightbox-img");
+    if (!lightbox || !img) return;
+    img.src = url;
+    lightbox.classList.remove("hidden");
+}
+function closeImageLightbox() {
+    const lightbox = el("image-lightbox");
+    const img = el("image-lightbox-img");
+    if (!lightbox || !img) return;
+    lightbox.classList.add("hidden");
+    img.src = "";
+}
+el("image-lightbox").addEventListener("click", closeImageLightbox);
+
 // --- Save success overlay (Faza 14) - the same animated "circle draws in, then the
 // checkmark traces after" celebration the website's settings.html shows for its own
 // Profile save, in place of the plain .toast above for save confirmations specifically.
@@ -4872,6 +4893,11 @@ function mysiteRenderThemeSuggestions(themeList) {
             const img = document.createElement("img");
             img.src = item.url;
             img.alt = "";
+            img.style.cursor = "zoom-in";
+            img.addEventListener("click", (event) => {
+                event.stopPropagation();
+                openImageLightbox(item.url);
+            });
             chip.appendChild(img);
         } else {
             const icon = document.createElement("span");

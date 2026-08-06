@@ -1744,6 +1744,21 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
 @keyframes save-success-draw { to { stroke-dashoffset: 0; } }
 .save-success-text { margin: 0; font-size: 16px; font-weight: 600; color: var(--text); }
 
+/* --- Image lightbox - fullscreen zoom for a tapped attachment thumbnail (compose-
+   attachment-list chips, My Site tab). Above the toast/save-success overlay since it's a
+   deliberate full-screen view, below the mandatory OTA overlay (100) which must always
+   win. --- */
+.image-lightbox {
+    position: fixed; inset: 0; z-index: 95;
+    background: rgba(0,0,0,.88);
+    display: flex; align-items: center; justify-content: center; padding: 24px;
+}
+.image-lightbox.hidden { display: none; }
+.image-lightbox img {
+    max-width: 100%; max-height: 100%; border-radius: 10px;
+    box-shadow: 0 12px 40px rgba(0,0,0,.5);
+}
+
 /* --- Offline banner --- */
 .offline-banner {
     position: fixed; top: 0; left: 0; right: 0; z-index: 50;
