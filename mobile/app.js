@@ -4430,6 +4430,18 @@ el("mysite-save-btn").addEventListener("click", async () => {
     }
 });
 
+// Chat-style auto-growing textarea (My Site's description field only) - starts one line
+// tall and expands to fit what's typed, up to .chat-compose-input's own max-height (see
+// app.css) beyond which it scrolls instead of growing further. Exported as a plain
+// function (not tucked inside the voice IIFE below) since the voice transcription result
+// also needs to trigger it after setting .value directly, which fires no "input" event.
+function mysiteAutoGrowDescription() {
+    const textarea = el("mysite-description");
+    textarea.style.height = "auto";
+    textarea.style.height = textarea.scrollHeight + "px";
+}
+el("mysite-description").addEventListener("input", mysiteAutoGrowDescription);
+
 // Single "send" action (chat-input style, next to the mic button above) that replaces
 // the old separate "Generate draft" and "Suggest AI designs" buttons - one description
 // now drives both the tagline/about/FAQ draft and the theme suggestions at once. Either
@@ -4618,6 +4630,7 @@ function mysiteRenderThemeSuggestions(themeList) {
                     return;
                 }
                 textarea.value = data.text || "";
+                mysiteAutoGrowDescription();
                 textarea.focus();
                 setStatus(t("onboarding.describe.reviewHint") || "Have a look and fix anything the transcription got wrong.");
             }).catch(() => {
