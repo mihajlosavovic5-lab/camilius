@@ -1321,13 +1321,12 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
     position: relative; width: 22px; height: 22px; border-radius: 50%; background: var(--border);
     display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 11px;
 }
-/* Corner "loading" badge on the icon while an attachment is still uploading - see
-   uploadFile() in app.js, which shows this generic icon+label placeholder instead of the
-   file's own (often long, meaningless-to-read) name while the request is in flight. */
+/* Loading placeholder (uploadFile() in app.js) while an attachment is still uploading -
+   just a spinner filling the icon circle, not a fake photo/video/file glyph standing in
+   for content that doesn't exist yet. */
 .chip-spinner {
-    position: absolute; top: -3px; right: -3px; width: 11px; height: 11px;
+    width: 13px; height: 13px;
     border-radius: 50%; border: 2px solid var(--border); border-top-color: var(--primary);
-    background: var(--surface);
     animation: ota-spin .7s linear infinite;
 }
 .compose-attachment-chip .chip-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

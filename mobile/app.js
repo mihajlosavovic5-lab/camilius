@@ -4965,7 +4965,6 @@ function mysiteRenderThemeSuggestions(themeList) {
 
         const icon = document.createElement("span");
         icon.className = "chip-icon";
-        icon.textContent = iconFor(kind);
         const spinner = document.createElement("span");
         spinner.className = "chip-spinner";
         icon.appendChild(spinner);
