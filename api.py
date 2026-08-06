@@ -58,7 +58,7 @@ def add_cors_headers(response):
     # don't return or act on anything a token would have gated anyway.
     response.headers["Access-Control-Allow-Origin"] = "*"
     response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
-    response.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
+    response.headers["Access-Control-Allow-Methods"] = "GET, POST, DELETE, OPTIONS"
     return response
 
 # Bearer tokens are used instead of the session cookie because the mobile app's requests

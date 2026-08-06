@@ -1304,7 +1304,10 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
 .compose-attach-btn.recording .attach-cancel-icon { display: block; }
 .compose-attach-btn:active { color: var(--primary-ink); }
 
-.compose-attachment-list { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 0; }
+/* Sits above the compose bar now (see mobile/index.html) rather than below it - margin-top
+   matches .chat-compose's own 14px so the gap above the field looks the same whether or
+   not there are attachments (empty list collapses to no visible gap of its own). */
+.compose-attachment-list { display: flex; flex-wrap: wrap; gap: 6px; margin: 14px 0 0; }
 .compose-attachment-chip {
     display: flex; align-items: center; gap: 6px; max-width: 150px;
     background: var(--surface); border: 1px solid var(--border); border-radius: 14px;
