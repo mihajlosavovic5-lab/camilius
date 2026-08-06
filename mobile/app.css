@@ -603,6 +603,17 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
     height: auto; top: 6px; font-size: 12.5px; color: var(--primary);
 }
 
+/* My Site's About field - same textarea as the FAQ box above, but sized and labeled to
+   match the single-line Web address/Headline inputs right above it (centered label,
+   input-height padding) instead of reserving several rows of empty space by default.
+   Still resizes taller via the drag handle if needed. */
+.floating-field-textarea-compact textarea { min-height: 0; padding: 20px 13px 6px; }
+.floating-field-textarea-compact label { height: 100%; align-items: center; top: 0; }
+.floating-field-textarea-compact textarea:focus + label,
+.floating-field-textarea-compact textarea:not(:placeholder-shown) + label {
+    height: 26px; top: 0; font-size: 12.5px; color: var(--primary);
+}
+
 .button {
     display: flex; align-items: center; justify-content: center; gap: 8px;
     padding: 13px 20px; border: none; border-radius: 11px; cursor: pointer;
