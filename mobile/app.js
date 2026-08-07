@@ -101,6 +101,13 @@ const state = {
     scheduleCache: {},
     reminderCustomerMinutes: 1440,
     reminderOwnerMinutes: 60,
+    // Whether this business has a saved business_pages row yet - lets the Design
+    // picker's "change" listener decide synchronously whether a pick should go through
+    // the standalone preferred-theme save (see saveMysitePreferredTheme) instead of the
+    // slug-gated general autosave path. Set from loadMySite()'s own fetch and, for an
+    // instant-correct value before that first fetch resolves, from the same boot-time
+    // cache mysiteHasPage already reads to shape the rest of the My Site tab.
+    mysiteHasPage: false,
 };
 
 const screens = {
@@ -4337,6 +4344,7 @@ async function loadMySite() {
     try {
         const data = await api("/api/page");
         const page = data.page;
+        state.mysiteHasPage = !!page;
 
         el("mysite-website-preview").classList.toggle("hidden", !page);
         el("mysite-view-site-link").classList.toggle("hidden", !(page && page.published));
@@ -4378,8 +4386,25 @@ async function loadMySite() {
             }
         } else {
             el("mysite-website-status").textContent = "";
-            mysitePopulateThemeSelect("warm");
-            mysiteSelectedCustomTheme = null;
+            // No page yet - seed the Design row from whatever was picked before a web
+            // address existed (see api_save_page's blank-slug branch/set_preferred_theme),
+            // instead of always defaulting to "warm", so that preference actually shows
+            // up as pre-selected across app restarts/devices instead of only ever living
+            // in this session's in-memory <select> value.
+            const preferredTheme = data.preferred_theme || "warm";
+            mysitePopulateThemeSelect(preferredTheme);
+            storageSet("pageTheme", preferredTheme).catch(() => {});
+            mysiteSelectedCustomTheme = preferredTheme === "custom" && data.preferred_custom_theme_json
+                ? JSON.parse(data.preferred_custom_theme_json) : null;
+            const swatch = el("mysite-theme-swatch");
+            if (mysiteSelectedCustomTheme) {
+                swatch.style.background = mysiteSelectedCustomTheme.base.surface;
+                swatch.style.borderColor = mysiteSelectedCustomTheme.base.primary;
+            } else {
+                const classic = CLASSIC_THEMES.find((c) => c.id === preferredTheme) || CLASSIC_THEMES[1];
+                swatch.style.background = classic.surface;
+                swatch.style.borderColor = classic.primary;
+            }
         }
         mysiteFormSnapshot = serializeMysiteForm();
         updateMysiteSaveValidity();
@@ -4410,6 +4435,42 @@ async function loadMySite() {
     }
 }
 
+// Persists a Design pick made before this business has a saved page (no web address
+// set yet) - see api_save_page's blank-slug branch. Deliberately its own standalone
+// POST, NOT routed through updateMysiteSaveValidity/triggerMysiteAutosave: that general
+// path is slug-gated (isMysiteFormValid) precisely so tagline/about edits never
+// autosave with no address set (the server would silently drop them, and the next
+// loadMySite() would revert those inputs back to empty) - reusing that path here would
+// only be safe for theme specifically, but the two are driven by the same delegated
+// listener and can't be cleanly split, so this bypasses it entirely instead of loosening
+// the gate for everything.
+async function saveMysitePreferredTheme(themeValue) {
+    const body = { slug: "", theme: themeValue };
+    if (themeValue === "custom" && mysiteSelectedCustomTheme) {
+        body.custom_theme_json = JSON.stringify(mysiteSelectedCustomTheme);
+    }
+    // Patched into the snapshot synchronously, before the network call - updateMysite
+    // SaveValidity's dirty check (serializeMysiteForm() vs mysiteFormSnapshot) runs
+    // synchronously right after this "change" event finishes dispatching, so patching
+    // only after an await would let mysite-slug-required-hint flash on for one frame
+    // (the theme now differs from the stale snapshot until the save round-trips).
+    if (mysiteFormSnapshot !== null) {
+        const snapshot = JSON.parse(mysiteFormSnapshot);
+        snapshot.theme = themeValue;
+        snapshot.customTheme = body.custom_theme_json || "";
+        mysiteFormSnapshot = JSON.stringify(snapshot);
+    }
+    try {
+        await api("/api/page", { method: "POST", body });
+        storageSet("pageTheme", themeValue).catch(() => {});
+    } catch (err) {
+        el("mysite-error").textContent = err.message || t("network.error");
+        el("mysite-error").classList.remove("hidden");
+    } finally {
+        updateMysiteSaveValidity();
+    }
+}
+
 el("mysite-theme-select").addEventListener("change", (event) => {
     const swatch = el("mysite-theme-swatch");
     if (event.target.value !== "custom") {
@@ -4422,6 +4483,9 @@ el("mysite-theme-select").addEventListener("change", (event) => {
     } else if (mysiteSelectedCustomTheme) {
         swatch.style.background = mysiteSelectedCustomTheme.base.surface;
         swatch.style.borderColor = mysiteSelectedCustomTheme.base.primary;
+    }
+    if (!state.mysiteHasPage) {
+        saveMysitePreferredTheme(event.target.value);
     }
 });
 
@@ -5149,6 +5213,7 @@ updateOfflineBanner();
     // already looks fully loaded - since My Site is the landing tab, that happens on every
     // single launch. Applying last launch's cached shape immediately avoids that jump;
     // loadMySite() corrects it moments later if anything actually changed.
+    state.mysiteHasPage = mysiteHasPage === "1";
     el("mysite-website-preview").classList.toggle("hidden", !mysiteHasPage);
     if (mysiteHasPage) {
         el("mysite-tagline").textContent = mysiteTagline || "";

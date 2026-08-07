@@ -676,6 +676,17 @@ def create_database():
     cursor.execute("ALTER TABLE businesses ADD COLUMN IF NOT EXISTS google_id TEXT")
     cursor.execute("CREATE UNIQUE INDEX IF NOT EXISTS businesses_google_id_idx ON businesses (google_id)")
 
+    # A Design pick made from the mobile app's My Site tab before this business has ever
+    # saved a business_pages row (no web address set yet - see api.py's api_save_page
+    # blank-slug branch). NULL means "no preference chosen yet" (mobile then falls back
+    # to 'warm', the same default business_pages.theme itself uses). Lives here rather
+    # than on business_pages since no row exists there yet to hold it, and is only ever
+    # read while that's still true - once a real page is created, its own theme/
+    # custom_theme_json columns take over permanently and these two are never consulted
+    # again for that business.
+    cursor.execute("ALTER TABLE businesses ADD COLUMN IF NOT EXISTS preferred_theme TEXT")
+    cursor.execute("ALTER TABLE businesses ADD COLUMN IF NOT EXISTS preferred_custom_theme_json TEXT")
+
     # Bridges a Google sign-in completed in the mobile app's system browser tab (Capacitor's
     # Browser plugin - see mobile/app.js's startGoogleLogin) back to the app itself, which
     # has no cookie session in that tab and can't receive a redirect directly. The app opens
@@ -849,8 +860,12 @@ def create_database():
 #   (decrypted, None if not connected yet), 18 messenger_page_id, 19 messenger_page_name,
 #   20 messenger_page_access_token (decrypted, None if not connected yet), 21 timezone
 #   (IANA name, never NULL - see the column's DEFAULT), 22 google_id (None unless this
-#   account has ever signed in with Google - see business_by_google_id below). The
-#   WhatsApp, Messenger, timezone and google_id columns are appended at the END rather
+#   account has ever signed in with Google - see business_by_google_id below), 23
+#   preferred_theme, 24 preferred_custom_theme_json (a Design pick made from the mobile
+#   app's My Site tab before this business has ever saved a business_pages row - see
+#   api.py's api_save_page blank-slug branch and set_preferred_theme below; both None
+#   until then, and never read again once a real page exists). The WhatsApp, Messenger,
+#   timezone, google_id, and preferred theme columns are appended at the END rather
 #   than grouped next to the related ones above, deliberately - this tuple is indexed
 #   positionally (business[5], business[7], ...) in well over a hundred places across
 #   app.py/api.py/booking.py, so inserting them in the middle would silently shift every
@@ -863,7 +878,7 @@ _BUSINESS_COLUMNS = """id, name, username, password, contact_email, instagram_ac
                        phone_number, email_verified, phone_verified, pending_contact_email,
                        whatsapp_phone_number_id, whatsapp_display_number, whatsapp_access_token,
                        messenger_page_id, messenger_page_name, messenger_page_access_token,
-                       timezone, google_id"""
+                       timezone, google_id, preferred_theme, preferred_custom_theme_json"""
 
 # How many columns _BUSINESS_COLUMNS actually selects. Derived rather than written as a
 # literal because all_businesses()/all_businesses_unfiltered() below select extra
@@ -2466,6 +2481,22 @@ def set_new_booking_notifications_enabled(business_id, enabled):
     connection = connect()
     cursor = connection.cursor()
     cursor.execute("UPDATE businesses SET new_booking_notifications_enabled = %s WHERE id = %s", (enabled, business_id))
+    connection.commit()
+    connection.close()
+
+
+def set_preferred_theme(business_id, theme, custom_theme_json=None):
+    """Persists a Design pick made before this business has ever saved a page (see
+    api.py's api_save_page blank-slug branch) - stored on businesses, not
+    business_pages, since no page row exists yet to hold it. Once a real page IS later
+    created, upsert_business_page's own theme/custom_theme_json columns take over
+    permanently; these two columns are then never read again for that business."""
+    connection = connect()
+    cursor = connection.cursor()
+    cursor.execute(
+        "UPDATE businesses SET preferred_theme = %s, preferred_custom_theme_json = %s WHERE id = %s",
+        (theme, custom_theme_json, business_id),
+    )
     connection.commit()
     connection.close()
 

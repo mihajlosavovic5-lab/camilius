@@ -28,8 +28,11 @@ def test_get_page_returns_none_when_no_page_saved(client, unique_username, uniqu
     headers, _ = _auth(client, unique_username, unique_email)
     response = client.get("/api/page", headers=headers)
     assert response.status_code == 200
-    assert response.get_json()["page"] is None
-    assert response.get_json()["upcoming_appointments"] == []
+    data = response.get_json()
+    assert data["page"] is None
+    assert data["upcoming_appointments"] == []
+    assert data["preferred_theme"] is None
+    assert data["preferred_custom_theme_json"] is None
 
 
 def test_save_and_get_page(client, unique_username, unique_email):
@@ -53,6 +56,47 @@ def test_save_page_rejects_invalid_slug(client, unique_username, unique_email):
     headers, _ = _auth(client, unique_username, unique_email)
     response = client.post("/api/page", json={"slug": "Not A Valid Slug!"}, headers=headers)
     assert response.status_code == 400
+
+
+# --- Design picked before a web address is ever set (see api_save_page's blank-slug
+# branch and database.set_preferred_theme) ---
+
+def test_save_page_persists_theme_preference_with_blank_slug_and_no_page(client, unique_username, unique_email):
+    headers, business_id = _auth(client, unique_username, unique_email)
+    response = client.post("/api/page", json={"slug": "", "theme": "bold"}, headers=headers)
+    assert response.status_code == 200
+    assert database.get_business_page(business_id) is None
+    assert database.business_by_id(business_id)[23] == "bold"
+
+
+def test_get_page_reflects_theme_preference_when_no_page(client, unique_username, unique_email):
+    headers, _ = _auth(client, unique_username, unique_email)
+    client.post("/api/page", json={"slug": "", "theme": "bold"}, headers=headers)
+
+    response = client.get("/api/page", headers=headers)
+    data = response.get_json()
+    assert data["page"] is None
+    assert data["preferred_theme"] == "bold"
+
+
+def test_save_page_with_non_blank_invalid_slug_still_400s(client, unique_username, unique_email):
+    headers, _ = _auth(client, unique_username, unique_email)
+    response = client.post("/api/page", json={"slug": "Not A Valid Slug!", "theme": "bold"}, headers=headers)
+    assert response.status_code == 400
+
+
+def test_save_page_theme_preference_then_real_page_created_normally(client, unique_username, unique_email):
+    headers, business_id = _auth(client, unique_username, unique_email)
+    client.post("/api/page", json={"slug": "", "theme": "bold"}, headers=headers)
+
+    slug = f"cool-business-{uuid.uuid4().hex[:8]}"
+    response = client.post("/api/page", json={"slug": slug, "theme": "bold"}, headers=headers)
+    assert response.status_code == 200
+
+    page_row = database.get_business_page(business_id)
+    assert page_row is not None
+    assert page_row[2] == slug
+    assert page_row[9] == "bold"
 
 
 def test_save_page_with_custom_theme_json(client, unique_username, unique_email):

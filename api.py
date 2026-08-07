@@ -28,6 +28,7 @@ from database import (
     record_account_deletion, ACCOUNT_DELETION_REASONS,
     create_oauth_login_session, oauth_login_session_status,
     get_business_page, upsert_business_page, page_by_slug, appointments_in_range,
+    set_preferred_theme,
     UniqueViolation,
 )
 from extensions import limiter
@@ -999,7 +1000,17 @@ def api_get_page():
         for row in upcoming_rows
     ]
 
-    return jsonify(page=page, upcoming_appointments=upcoming_appointments)
+    # A Design pick made before this business ever saved a page (see api_save_page's
+    # blank-slug branch below) - top-level, not nested in `page`, since `page` staying
+    # None when no page exists yet is relied on elsewhere (app.js's mysite-website-preview/
+    # mysite-view-site-link visibility). Always present in the response, even once a real
+    # page exists, for a uniform shape - app.js only reads these while page is still None.
+    return jsonify(
+        page=page,
+        upcoming_appointments=upcoming_appointments,
+        preferred_theme=business[23],
+        preferred_custom_theme_json=business[24],
+    )
 
 
 @api.route("/page", methods=["POST"])
@@ -1021,6 +1032,18 @@ def api_save_page():
             theme = None
     elif theme not in themes.THEMES:
         theme = None
+
+    # A Design pick made before this business has ever set a real web address - no page
+    # row exists yet (get_business_page is None) and no slug was even attempted (blank,
+    # not just invalid). Persist ONLY the theme preference on businesses and return
+    # early - tagline/about/published are silently ignored in THIS branch specifically
+    # because the client-side caller for this case (mobile app.js's
+    # saveMysitePreferredTheme) never sends them, by design. A request that DOES include
+    # a non-blank invalid slug still falls through to the normal 400 below, unchanged.
+    if not slug and get_business_page(business_id) is None:
+        set_preferred_theme(business_id, theme, custom_theme_json)
+        log_event("business_page_theme_preference_saved", business_id=business_id)
+        return jsonify(message="Saved.")
 
     if not pages.is_valid_slug(slug):
         return jsonify(error="Please choose a web address using only lowercase letters, numbers, and hyphens."), 400
