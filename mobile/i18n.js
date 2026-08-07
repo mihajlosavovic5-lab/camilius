@@ -53,6 +53,7 @@ const TRANSLATIONS = {
         "login.orDivider": "or",
         "login.googleError": "Google sign-in didn't go through. Please try again.",
         "login.googleNoAccount": "No account found for that Google account. Please register first.",
+        "login.googleNeedsSignup": "You don't have an account yet - finish creating one below.",
         "login.newHere": "New to Camilius?",
 
         "register.title": "Create account",
@@ -435,6 +436,7 @@ const TRANSLATIONS = {
         "login.orDivider": "ili",
         "login.googleError": "Prijava preko Google-a nije uspela. Pokušajte ponovo.",
         "login.googleNoAccount": "Ne postoji nalog povezan sa tim Google nalogom. Molimo registrujte se prvo.",
+        "login.googleNeedsSignup": "Nemate nalog - dovršite registraciju ispod.",
         "login.newHere": "Novi ste na Camilius-u?",
 
         "register.title": "Napravi nalog",
@@ -812,6 +814,7 @@ const TRANSLATIONS = {
         "login.orDivider": "o",
         "login.googleError": "La conexión con Google no se completó. Inténtalo de nuevo.",
         "login.googleNoAccount": "No se encontró ninguna cuenta para esa cuenta de Google. Regístrate primero.",
+        "login.googleNeedsSignup": "Aún no tienes una cuenta: termina de crear una a continuación.",
         "login.newHere": "¿Nuevo en Camilius?",
 
         "register.title": "Crear cuenta",
@@ -1115,6 +1118,7 @@ const TRANSLATIONS = {
         "login.orDivider": "ou",
         "login.googleError": "O login com o Google não foi concluído. Tente novamente.",
         "login.googleNoAccount": "Nenhuma conta encontrada para essa conta do Google. Registre-se primeiro.",
+        "login.googleNeedsSignup": "Você ainda não tem uma conta - termine de criar uma abaixo.",
         "login.newHere": "Novo no Camilius?",
 
         "register.title": "Criar conta",
@@ -1418,6 +1422,7 @@ const TRANSLATIONS = {
         "login.orDivider": "ou",
         "login.googleError": "La connexion avec Google a échoué. Veuillez réessayer.",
         "login.googleNoAccount": "Aucun compte trouvé pour ce compte Google. Veuillez d'abord vous inscrire.",
+        "login.googleNeedsSignup": "Vous n'avez pas encore de compte : terminez d'en créer un ci-dessous.",
         "login.newHere": "Nouveau sur Camilius ?",
 
         "register.title": "Créer un compte",
@@ -1721,6 +1726,7 @@ const TRANSLATIONS = {
         "login.orDivider": "oder",
         "login.googleError": "Die Anmeldung mit Google hat nicht funktioniert. Bitte versuche es erneut.",
         "login.googleNoAccount": "Für dieses Google-Konto wurde kein Konto gefunden. Bitte registriere dich zuerst.",
+        "login.googleNeedsSignup": "Du hast noch kein Konto - schließe die Erstellung unten ab.",
         "login.newHere": "Neu bei Camilius?",
 
         "register.title": "Konto erstellen",
@@ -2024,6 +2030,7 @@ const TRANSLATIONS = {
         "login.orDivider": "o",
         "login.googleError": "L'accesso con Google non è riuscito. Riprova.",
         "login.googleNoAccount": "Nessun account trovato per questo account Google. Registrati prima.",
+        "login.googleNeedsSignup": "Non hai ancora un account: completa la creazione qui sotto.",
         "login.newHere": "Nuovo su Camilius?",
 
         "register.title": "Crea account",
@@ -2327,6 +2334,7 @@ const TRANSLATIONS = {
         "login.orDivider": "или",
         "login.googleError": "Не удалось войти через Google. Попробуйте снова.",
         "login.googleNoAccount": "Учетная запись для этого Google-аккаунта не найдена. Сначала зарегистрируйтесь.",
+        "login.googleNeedsSignup": "У вас еще нет аккаунта - завершите его создание ниже.",
         "login.newHere": "Впервые в Camilius?",
 
         "register.title": "Создать аккаунт",
@@ -2630,6 +2638,7 @@ const TRANSLATIONS = {
         "login.orDivider": "或",
         "login.googleError": "Google 登录未成功,请重试。",
         "login.googleNoAccount": "未找到与该 Google 账户关联的账户,请先注册。",
+        "login.googleNeedsSignup": "您还没有账户 - 请在下方完成创建。",
         "login.newHere": "第一次使用 Camilius？",
 
         "register.title": "创建账户",
@@ -2933,6 +2942,7 @@ const TRANSLATIONS = {
         "login.orDivider": "veya",
         "login.googleError": "Google ile giriş yapılamadı. Lütfen tekrar deneyin.",
         "login.googleNoAccount": "Bu Google hesabı için bir hesap bulunamadı. Lütfen önce kayıt olun.",
+        "login.googleNeedsSignup": "Henüz bir hesabın yok - aşağıdan oluşturmayı tamamla.",
         "login.newHere": "Camilius'ta yeni misiniz?",
 
         "register.title": "Hesap oluştur",

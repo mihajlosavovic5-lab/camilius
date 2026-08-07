@@ -1431,15 +1431,22 @@ async function checkGoogleLoginStatusOnce(attempt, { closeBrowser = true } = {})
         storageSet("token", data.token).catch((e) => reportClientError(e.message, e.stack, "storage-set-token"));
         storageSet("businessName", data.business_name).catch((e) => reportClientError(e.message, e.stack, "storage-set-businessName"));
     } else if (data.status === "needs_signup") {
-        // First time this Google identity has been seen, started from Create Account -
-        // not logged in, just handed to the normal Create Account wizard with a
-        // name/email starting point (see openRegisterScreen). Username, password and
-        // business details are still filled in by hand exactly like any other sign-up.
-        openRegisterScreen({ name: data.google_name, contactEmail: data.google_email, googleLinkToken: data.google_link_token });
+        // First time this Google identity has been seen - not logged in, just handed to
+        // the normal Create Account wizard with a name/email starting point (see
+        // openRegisterScreen) and a banner explaining why they landed here unprompted.
+        // Username, password and business details are still filled in by hand exactly
+        // like any other sign-up.
+        openRegisterScreen({
+            name: data.google_name,
+            contactEmail: data.google_email,
+            googleLinkToken: data.google_link_token,
+            notice: t("login.googleNeedsSignup"),
+        });
     } else if (data.status === "no_account") {
-        // First time this Google identity has been seen, but started from the Login
-        // screen - the visitor asked to log in, not sign up, so this is just a failed
-        // login: explain it and let them try again or go create an account instead.
+        // The server only returns this for an intent="login" attempt, which the Login
+        // screen's own Google button no longer sends (see its click listener below) - kept
+        // as a fallback in case that ever changes, rather than assuming this status can no
+        // longer come back.
         showErrorBox(errorBox, t("login.googleNoAccount"));
     } else {
         // 'error' (Google denied/cancelled, or something failed server-side) or 'expired'
@@ -1505,12 +1512,13 @@ async function startGoogleLogin(button, errorBox, intent) {
     }
 }
 
-// intent tells the server which screen this came from - "login" must never auto-create
-// or hand off to sign-up on a brand-new Google identity (see checkGoogleLoginStatusOnce's
-// 'no_account' handling above), while "register" keeps the existing "prefill Create
-// Account" behavior.
+// Sent as "register" (not "login") on purpose: a brand-new Google identity should hand
+// the visitor straight to Create Account with their name/email prefilled instead of
+// bouncing them off with a "no account found" error (see checkGoogleLoginStatusOnce's
+// 'needs_signup' handling above) - an identity that already has an account still just
+// logs straight in either way (status "done"), so this only changes the first-time case.
 el("login-google-btn").addEventListener("click", () => {
-    startGoogleLogin(el("login-google-btn"), el("login-error"), "login");
+    startGoogleLogin(el("login-google-btn"), el("login-error"), "register");
 });
 
 // Android hands /auth/google/done straight to THIS app instead of loading it in the
@@ -1824,9 +1832,19 @@ el("register-prices-rows").addEventListener("input", updateRegisterNextButtonVal
 el("register-prices-rows").addEventListener("click", updateRegisterNextButtonValidity);
 el("register-prices-add").addEventListener("click", updateRegisterNextButtonValidity);
 
+// register-error doubles as an informational banner (the "you don't have an account yet"
+// notice openRegisterScreen shows below, styled amber via .alert-warning) as well as its
+// original role showing an actual validation/submit error (red, .alert-error) - this
+// keeps whichever one is currently relevant from bleeding into the other.
+function setRegisterErrorBoxStyle(isNotice) {
+    el("register-error").classList.toggle("alert-warning", !!isNotice);
+    el("register-error").classList.toggle("alert-error", !isNotice);
+}
+
 el("register-next-btn").addEventListener("click", () => {
     const error = currentRegisterStepError();
     if (error) {
+        setRegisterErrorBoxStyle(false);
         el("register-error").textContent = error;
         el("register-error").classList.remove("hidden");
         return;
@@ -1837,8 +1855,9 @@ el("register-next-btn").addEventListener("click", () => {
 
 // Shared by the plain "Create account" link and the "Continue with Google" needs_signup
 // path below (see pollGoogleLogin) - the latter just adds a name/email starting point
-// (and a pending google_link_token to resubmit with the form) on top of the same reset.
-function openRegisterScreen({ name, contactEmail, googleLinkToken } = {}) {
+// (and a pending google_link_token to resubmit with the form) on top of the same reset,
+// plus an optional `notice` banner explaining why the visitor landed here unprompted.
+function openRegisterScreen({ name, contactEmail, googleLinkToken, notice } = {}) {
     // Deliberately NOT register-form.reset() - the working-hours/price-list pickers
     // contain dynamically-created <select>/checkbox elements with no selected/checked
     // HTML attribute set, so a native form reset would revert them to the browser's own
@@ -1857,7 +1876,14 @@ function openRegisterScreen({ name, contactEmail, googleLinkToken } = {}) {
     registerPhoneAvailability.reset();
     el("register-password-error").classList.add("hidden");
     el("register-confirm-password-error").classList.add("hidden");
-    el("register-error").classList.add("hidden");
+    if (notice) {
+        setRegisterErrorBoxStyle(true);
+        el("register-error").textContent = notice;
+        el("register-error").classList.remove("hidden");
+    } else {
+        setRegisterErrorBoxStyle(false);
+        el("register-error").classList.add("hidden");
+    }
     pendingGoogleLinkToken = googleLinkToken || null;
     if (name) el("register-name").value = name;
     if (contactEmail) {
@@ -1899,6 +1925,7 @@ el("register-form").addEventListener("submit", async (event) => {
     if (registerStep < REGISTER_STEP_COUNT) {
         const error = currentRegisterStepError();
         if (error) {
+            setRegisterErrorBoxStyle(false);
             el("register-error").textContent = error;
             el("register-error").classList.remove("hidden");
             return;
@@ -1913,6 +1940,7 @@ el("register-form").addEventListener("submit", async (event) => {
 
     const finalError = registerStep3ValidationError();
     if (finalError) {
+        setRegisterErrorBoxStyle(false);
         errorBox.textContent = finalError;
         errorBox.classList.remove("hidden");
         return;
@@ -1956,6 +1984,7 @@ el("register-form").addEventListener("submit", async (event) => {
             showVerifyPendingScreen(data.business_id, data.contact_email, data.wait_seconds);
         }
     } catch (err) {
+        setRegisterErrorBoxStyle(false);
         errorBox.textContent = err.message || t("register.error");
         errorBox.classList.remove("hidden");
     } finally {
