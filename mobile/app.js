@@ -4642,6 +4642,51 @@ let mysiteStopRecordingIfActive = () => false;
 // IIFE, and just as much a no-op on devices where recording isn't supported at all.
 let mysiteCancelRecordingIfActive = () => false;
 
+const MYSITE_DOMAIN_STATUS_KEY = {
+    available: "mysite.website.domainAvailable",
+    taken: "mysite.website.domainTaken",
+    unknown: "mysite.website.domainUnknown",
+};
+const MYSITE_DOMAIN_STATUS_ICON = { available: "✅", taken: "❌", unknown: "❔" };
+
+// "Check real domain availability" - queries domain_lookup.py's RDAP-based check (see
+// /api/check-domains) for baseName across .com/.net/.rs. Entirely separate from the
+// mysite-slug field's own meaning (this platform's own /p/<slug> page address) - this
+// only tells the owner whether a real, independently-registrable domain of the same
+// name is free. A plain function declaration, not just a click listener, so
+// mysiteSubmitDescription below can also call it once a draft suggests (or keeps) a web
+// address, same "AI does the legwork" spirit as the drafted tagline/about themselves.
+async function mysiteCheckDomains(baseName) {
+    if (!baseName) return;
+    const btn = el("mysite-domain-check-btn");
+    const resultsList = el("mysite-domain-check-results");
+    const errorBox = el("mysite-domain-check-error");
+    if (!btn || !resultsList || !errorBox) return;
+    errorBox.classList.add("hidden");
+    btn.disabled = true;
+    const originalText = btn.textContent;
+    btn.textContent = t("mysite.website.checkDomainsChecking") || "Checking...";
+    try {
+        const data = await api("/api/check-domains", { method: "POST", body: { name: baseName } });
+        resultsList.innerHTML = "";
+        (data.domains || []).forEach((entry) => {
+            const li = document.createElement("li");
+            li.style.padding = "4px 0";
+            const icon = MYSITE_DOMAIN_STATUS_ICON[entry.status] || "❔";
+            const label = t(MYSITE_DOMAIN_STATUS_KEY[entry.status]) || entry.status;
+            li.textContent = `${icon} ${entry.domain} — ${label}`;
+            resultsList.appendChild(li);
+        });
+    } catch (err) {
+        errorBox.textContent = (err && err.message) || t("mysite.website.checkDomainsError") || t("network.error");
+        errorBox.classList.remove("hidden");
+    } finally {
+        btn.disabled = false;
+        btn.textContent = originalText;
+    }
+}
+el("mysite-domain-check-btn").addEventListener("click", () => mysiteCheckDomains(el("mysite-slug").value.trim()));
+
 // Single "send" action (chat-input style, next to the mic button above) that replaces
 // the old separate "Generate draft" button - one description drives the tagline/about/FAQ
 // draft.
@@ -4678,6 +4723,10 @@ async function mysiteSubmitDescription() {
         if (draft.slug && !slugInput.value.trim()) {
             slugInput.value = draft.slug;
         }
+        // Best-effort, not awaited - a slow/failed RDAP check must never hold up the
+        // draft itself finishing (see mysiteCheckDomains's own try/catch for its
+        // failure handling).
+        if (slugInput.value.trim()) mysiteCheckDomains(slugInput.value.trim());
         el("mysite-draft-result").classList.remove("hidden");
         // Setting .value directly above doesn't dispatch "input"/"change", so the
         // delegated listener that normally reveals the Save button (see

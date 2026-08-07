@@ -162,6 +162,28 @@ def test_generate_page_requires_description(client, unique_username, unique_emai
     assert response.status_code == 400
 
 
+# --- /api/check-domains ---
+
+def test_check_domains_returns_results_for_each_default_tld(client, unique_username, unique_email, monkeypatch):
+    import domain_lookup
+    monkeypatch.setattr(domain_lookup, "check_domain", lambda domain: domain_lookup.AVAILABLE)
+    headers, _ = _auth(client, unique_username, unique_email)
+    response = client.post("/api/check-domains", json={"name": "blue-star-cafe"}, headers=headers)
+    assert response.status_code == 200
+    data = response.get_json()
+    assert data["domains"] == [{"domain": f"blue-star-cafe{tld}", "status": domain_lookup.AVAILABLE} for tld in domain_lookup.DEFAULT_TLDS]
+
+
+def test_check_domains_requires_a_name(client, unique_username, unique_email):
+    headers, _ = _auth(client, unique_username, unique_email)
+    response = client.post("/api/check-domains", json={"name": "   "}, headers=headers)
+    assert response.status_code == 400
+
+
+def test_check_domains_requires_auth(client):
+    assert client.post("/api/check-domains", json={"name": "blue-star-cafe"}).status_code == 401
+
+
 def test_generate_page_requires_auth(client):
     assert client.post("/api/generate-page", json={"description": "A shop."}).status_code == 401
 

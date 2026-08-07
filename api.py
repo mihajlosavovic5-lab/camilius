@@ -40,6 +40,7 @@ import business_documents
 import pages
 import themes
 import ai_theme
+import domain_lookup
 from page_generator import generate_page_draft, format_working_hours, format_price_list, format_faq, transcribe_voice_description, MAX_VOICE_AUDIO_BYTES
 
 api = Blueprint("api", __name__, url_prefix="/api")
@@ -1093,6 +1094,21 @@ def api_generate_page():
         price_list=format_price_list(draft["services"]),
         faq=format_faq(draft["faq"]),
     )
+
+
+# Mobile's Bearer-authed equivalent of app.py's session-authed /profile/check-domains -
+# checks whether real, independently-registrable domains (blue-star-cafe.com, not this
+# platform's own /p/<slug> web address) are actually free, via domain_lookup.py's RDAP
+# lookups. Pure read-only check - nothing saved, nothing purchased.
+@api.route("/check-domains", methods=["POST"])
+@require_api_auth
+@limiter.limit("20 per hour")
+def api_check_domains():
+    data = request.get_json(silent=True) or {}
+    base_name = (data.get("name") or "").strip()
+    if not base_name:
+        return jsonify(error="Type a name first."), 400
+    return jsonify(domains=domain_lookup.check_domains(base_name))
 
 
 # Voice input for the description field above - mobile's Bearer-authed equivalent of

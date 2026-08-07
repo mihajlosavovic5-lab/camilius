@@ -253,6 +253,13 @@
             <p class="note">{{ page_url_prefix }}{{ page.slug }}</p>
         {% endif %}
 
+        <div id="settings-domain-check-wrap" style="margin-top: 10px;">
+            <button type="button" class="button button-secondary" id="settings-domain-check-btn">&#127760; Check real domain availability</button>
+            <p class="note">Checks .com/.net/.rs for the web address above - these are real, independent domains you'd register elsewhere, separate from your {{ page_url_prefix }}&lt;address&gt; page here.</p>
+            <p class="onboarding-media-error hidden" id="settings-domain-check-error"></p>
+            <ul id="settings-domain-check-results" style="margin-top: 8px; list-style: none; padding: 0;"></ul>
+        </div>
+
         <label data-i18n="settings.page.design">Design</label>
         <input type="hidden" name="theme" id="settings-page-theme-value" value="{{ page.theme if page else 'warm' }}">
         <input type="hidden" name="custom_theme_json" id="settings-page-custom-theme-json" value="{{ page.custom_theme_json if page and page.theme == 'custom' else '' }}">
@@ -1121,6 +1128,70 @@ if (document.readyState === "loading") {
                 errorBox.classList.remove("hidden");
             });
     });
+})();
+
+// "Check real domain availability" - queries domain_lookup.py's RDAP-based check
+// (see /profile/check-domains) for the web address field's current value across
+// .com/.net/.rs. Entirely separate from that field's own {{ page_url_prefix }}<address>
+// meaning - this only tells the owner whether a real, independently-registrable domain
+// of the same name is free; it never reads or writes the field itself.
+(function () {
+    const btn = document.getElementById("settings-domain-check-btn");
+    const resultsList = document.getElementById("settings-domain-check-results");
+    const errorBox = document.getElementById("settings-domain-check-error");
+    const slugInput = document.getElementById("settings-page-slug-input");
+    const csrfInput = document.querySelector('#settings-generate-form input[name="csrf_token"]');
+    if (!btn || !resultsList || !errorBox || !slugInput || !csrfInput) return;
+
+    const STATUS_LABEL = { available: "Available", taken: "Taken", unknown: "Couldn't check - verify manually" };
+    const STATUS_ICON = { available: "✅", taken: "❌", unknown: "❔" };
+
+    function renderResults(domains) {
+        resultsList.innerHTML = "";
+        domains.forEach((entry) => {
+            const li = document.createElement("li");
+            li.style.padding = "4px 0";
+            li.textContent = (STATUS_ICON[entry.status] || "❔") + " " + entry.domain + " — " + (STATUS_LABEL[entry.status] || entry.status);
+            resultsList.appendChild(li);
+        });
+    }
+
+    function checkDomains(baseName) {
+        if (!baseName) return;
+        errorBox.classList.add("hidden");
+        btn.disabled = true;
+        const originalText = btn.textContent;
+        btn.textContent = "Checking...";
+        const formData = new FormData();
+        formData.append("name", baseName);
+        fetch("{{ url_for('check_business_domains') }}", { method: "POST", headers: { "X-CSRFToken": csrfInput.value }, body: formData })
+            .then((response) => response.json().then((data) => ({ ok: response.ok, data })))
+            .then(({ ok, data }) => {
+                btn.disabled = false;
+                btn.textContent = originalText;
+                if (!ok) {
+                    errorBox.textContent = data.error || "Couldn't check domains right now.";
+                    errorBox.classList.remove("hidden");
+                    return;
+                }
+                renderResults(data.domains || []);
+            })
+            .catch(() => {
+                btn.disabled = false;
+                btn.textContent = originalText;
+                errorBox.textContent = "Couldn't check domains - check your connection and try again.";
+                errorBox.classList.remove("hidden");
+            });
+    }
+
+    btn.addEventListener("click", () => checkDomains(slugInput.value.trim()));
+
+    // Right after a fresh AI draft suggests (or keeps) a web address, check its real
+    // domains automatically - so the owner sees this without having to remember to ask,
+    // same "AI does the legwork" spirit as the drafted tagline/about themselves.
+    {% if generate_description and page and page.slug %}
+    checkDomains({{ page.slug|tojson }});
+    {% endif %}
 })();
 </script>
 {% endblock %}

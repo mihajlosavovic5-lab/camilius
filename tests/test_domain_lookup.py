@@ -1,0 +1,75 @@
+"""Tests for domain_lookup.py - real-domain RDAP availability checks. requests.get is
+monkeypatched, same "never make a real network call" rule the rest of the suite follows
+for OpenAI calls - these never actually hit rdap.org."""
+import requests
+
+import domain_lookup
+
+
+class _FakeResponse:
+    def __init__(self, status_code):
+        self.status_code = status_code
+
+
+def test_check_domain_returns_available_on_404(monkeypatch):
+    monkeypatch.setattr(domain_lookup.requests, "get", lambda *a, **kw: _FakeResponse(404))
+    assert domain_lookup.check_domain("free-domain-example.com") == domain_lookup.AVAILABLE
+
+
+def test_check_domain_returns_taken_on_200(monkeypatch):
+    monkeypatch.setattr(domain_lookup.requests, "get", lambda *a, **kw: _FakeResponse(200))
+    assert domain_lookup.check_domain("google.com") == domain_lookup.TAKEN
+
+
+def test_check_domain_returns_unknown_on_other_status(monkeypatch):
+    monkeypatch.setattr(domain_lookup.requests, "get", lambda *a, **kw: _FakeResponse(500))
+    assert domain_lookup.check_domain("some-domain.rs") == domain_lookup.UNKNOWN
+
+
+def test_check_domain_returns_unknown_on_request_exception(monkeypatch):
+    def raise_error(*a, **kw):
+        raise requests.RequestException("boom")
+
+    monkeypatch.setattr(domain_lookup.requests, "get", raise_error)
+    assert domain_lookup.check_domain("some-domain.com") == domain_lookup.UNKNOWN
+
+
+def test_check_domain_hits_rdap_org_with_the_full_domain(monkeypatch):
+    captured = {}
+
+    def fake_get(url, timeout=None):
+        captured["url"] = url
+        captured["timeout"] = timeout
+        return _FakeResponse(404)
+
+    monkeypatch.setattr(domain_lookup.requests, "get", fake_get)
+    domain_lookup.check_domain("blue-star-cafe.com")
+    assert captured["url"] == "https://rdap.org/domain/blue-star-cafe.com"
+    assert captured["timeout"] == domain_lookup._RDAP_TIMEOUT
+
+
+def test_check_domains_builds_one_candidate_per_tld(monkeypatch):
+    monkeypatch.setattr(domain_lookup, "check_domain", lambda domain: domain_lookup.AVAILABLE)
+    results = domain_lookup.check_domains("blue-star-cafe", tlds=[".com", ".net"])
+    assert results == [
+        {"domain": "blue-star-cafe.com", "status": domain_lookup.AVAILABLE},
+        {"domain": "blue-star-cafe.net", "status": domain_lookup.AVAILABLE},
+    ]
+
+
+def test_check_domains_uses_default_tlds_when_not_given(monkeypatch):
+    monkeypatch.setattr(domain_lookup, "check_domain", lambda domain: domain_lookup.AVAILABLE)
+    results = domain_lookup.check_domains("blue-star-cafe")
+    assert [entry["domain"] for entry in results] == [f"blue-star-cafe{tld}" for tld in domain_lookup.DEFAULT_TLDS]
+
+
+def test_check_domains_returns_empty_list_for_blank_base_name():
+    assert domain_lookup.check_domains("") == []
+    assert domain_lookup.check_domains(None) == []
+    assert domain_lookup.check_domains("   ") == []
+
+
+def test_check_domains_strips_leading_and_trailing_dots(monkeypatch):
+    monkeypatch.setattr(domain_lookup, "check_domain", lambda domain: domain_lookup.AVAILABLE)
+    results = domain_lookup.check_domains(".blue-star-cafe.", tlds=[".com"])
+    assert results == [{"domain": "blue-star-cafe.com", "status": domain_lookup.AVAILABLE}]

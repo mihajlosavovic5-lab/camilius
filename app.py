@@ -66,6 +66,7 @@ import google_oauth
 import business_media
 import business_documents
 import ai_theme
+import domain_lookup
 from database import all_businesses_unfiltered
 from api import api as api_blueprint, APK_VERSION, make_token
 from extensions import limiter
@@ -1696,6 +1697,21 @@ def suggest_business_themes():
 
     log_event("theme_suggestions_generated", business_id=business_id)
     return jsonify(themes=options)
+
+
+# AJAX-only (see settings.html's "Check real domains" button/script) - checks whether
+# real, independently-registrable domains (blue-star-cafe.com, not this platform's own
+# /p/<slug> web address) are actually free, via domain_lookup.py's RDAP lookups. Pure
+# read-only check against the public internet - nothing saved, nothing purchased, no
+# opinion on the business's own page slug either way.
+@app.route("/profile/check-domains", methods=["POST"])
+@login_required
+@limiter.limit("20 per hour")
+def check_business_domains():
+    base_name = (request.form.get("name") or "").strip()
+    if not base_name:
+        return jsonify(error="Type a name first."), 400
+    return jsonify(domains=domain_lookup.check_domains(base_name))
 
 
 # Drafts tagline/about/hours/prices/faq from a short owner-written description
