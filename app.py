@@ -117,6 +117,18 @@ def inject_beta_free_mode():
     return {"beta_free_mode": BETA_FREE_MODE}
 
 
+# Google Play listing for the Android app (applicationId in android/app/build.gradle).
+# Still in closed testing as of this writing - not publicly installable yet - but every
+# web "download for Android" entry point sends here instead of the raw APK regardless,
+# so switching the listing to production later needs no template changes.
+PLAY_STORE_URL = "https://play.google.com/store/apps/details?id=com.ai_auto_reply_mail.app.twa"
+
+
+@app.context_processor
+def inject_play_store_url():
+    return {"play_store_url": PLAY_STORE_URL}
+
+
 # Voluntary "support the project" donation link (PayPal.me or similar), shown on the
 # subscription page and site footer instead of real billing while BETA_FREE_MODE is on.
 # Unset by default so the button/card stay hidden until DONATION_LINK is configured on
@@ -2617,7 +2629,7 @@ def intro():
 
 @app.route("/download")
 def download():
-    return render_template("download.html", apk_version=APK_VERSION)
+    return render_template("download.html")
 
 
 # Serves the APK with Content-Disposition: attachment (Flask's default static file

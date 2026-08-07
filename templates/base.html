@@ -288,7 +288,7 @@
                 if (installBtn) {
                     installBtn.addEventListener("click", function (event) {
                         // No captured prompt (unsupported browser, or the event hasn't fired
-                        // yet) - let the link fall through to the normal /download APK page.
+                        // yet) - let the link fall through to the Play Store listing.
                         if (!deferredInstallPrompt) return;
                         event.preventDefault();
                         var promptEvent = deferredInstallPrompt;
@@ -400,11 +400,11 @@
      install icon), and not previously dismissed. Sits above the page content, not
      fixed, so it doesn't cover anything. The button prefers the frictionless in-browser
      PWA install (no "unknown source" / Play Protect warning) whenever the browser
-     supports it, and falls back to the APK download page when it doesn't. -->
+     supports it, and falls back to the Play Store listing when it doesn't. -->
 <div id="mobile-install-banner" class="mobile-install-banner hidden">
     <span class="brand-mark mobile-install-banner-icon"></span>
     <span class="mobile-install-banner-text" data-i18n="installBanner.text">Get the Camilius app for a faster, native experience.</span>
-    <a href="{{ url_for('download') }}" class="mobile-install-banner-btn" id="mobile-install-banner-btn" data-i18n="installBanner.install">Install</a>
+    <a href="{{ play_store_url }}" target="_blank" rel="noopener" class="mobile-install-banner-btn" id="mobile-install-banner-btn" data-i18n="installBanner.install">Install</a>
     <button type="button" class="mobile-install-banner-dismiss" id="mobile-install-banner-dismiss" aria-label="Dismiss">&times;</button>
 </div>
 <script>

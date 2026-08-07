@@ -79,11 +79,11 @@
         <a href="{{ url_for('register') }}" class="button" data-i18n="landing.nav.tryFree">Try for free</a>
         <!-- Android-only download link - doesn't belong in a PC/desktop menu, so
              it's hidden above the mobile breakpoint (see .lp-menu-mobile-only).
-             Points straight at the APK route (not the /download instructions page)
-             so tapping it starts the file download immediately instead of
-             navigating to a separate page first. -->
+             Points straight at the Play Store listing (play_store_url, see
+             inject_play_store_url in app.py) rather than the raw APK, opened in a new
+             tab so tapping it doesn't navigate the visitor away from the site itself. -->
         <div class="lp-menu-modal-divider lp-menu-mobile-only"></div>
-        <a href="{{ url_for('download_apk') }}" class="lp-menu-mobile-only" data-i18n="download.cta">Download for Android</a>
+        <a href="{{ play_store_url }}" target="_blank" rel="noopener" class="lp-menu-mobile-only" data-i18n="download.cta">Download for Android</a>
     </nav>
 </div>
 <div class="lp-header-spacer"></div>
