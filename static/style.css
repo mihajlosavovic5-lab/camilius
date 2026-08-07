@@ -1032,6 +1032,18 @@ input[readonly]:hover { border-color: var(--border); }
    rather than warning-colored, so it doesn't read as something still needing action. */
 .badge-expired { background: var(--border); color: var(--text-muted); border: 1px solid var(--border); }
 .badge-dot { width: 6px; height: 6px; border-radius: 99px; background: currentColor; }
+.badge-domain-available { background: var(--success-bg); color: var(--success); border: 1px solid var(--success-border); }
+.badge-domain-taken { background: var(--danger-bg); color: var(--danger); border: 1px solid var(--danger-border); }
+.badge-domain-unknown { background: var(--border); color: var(--text-muted); border: 1px solid var(--border); }
+
+/* "Check real domain availability" results (settings.html My Site card) - a row per
+   candidate domain with a status badge, not a plain bulleted list. */
+.domain-check-row {
+    display: flex; justify-content: space-between; align-items: center; gap: 10px;
+    padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 14.5px;
+}
+.domain-check-row:last-child { border-bottom: none; }
+.domain-check-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 /* --- "Upgrade to Pro" badge / locked-feature notice (Faza 9/10) - shared component for
    any Pro-only feature shown to a Starter (or expired) business: a small pill badge next

@@ -4647,7 +4647,11 @@ const MYSITE_DOMAIN_STATUS_KEY = {
     taken: "mysite.website.domainTaken",
     unknown: "mysite.website.domainUnknown",
 };
-const MYSITE_DOMAIN_STATUS_ICON = { available: "✅", taken: "❌", unknown: "❔" };
+const MYSITE_DOMAIN_STATUS_BADGE_CLASS = {
+    available: "badge-domain-available",
+    taken: "badge-domain-taken",
+    unknown: "badge-domain-unknown",
+};
 
 // "Check real domain availability" - queries domain_lookup.py's RDAP-based check (see
 // /api/check-domains) for baseName across .com/.net/.rs. Entirely separate from the
@@ -4670,12 +4674,20 @@ async function mysiteCheckDomains(baseName) {
         const data = await api("/api/check-domains", { method: "POST", body: { name: baseName } });
         resultsList.innerHTML = "";
         (data.domains || []).forEach((entry) => {
-            const li = document.createElement("li");
-            li.style.padding = "4px 0";
-            const icon = MYSITE_DOMAIN_STATUS_ICON[entry.status] || "❔";
-            const label = t(MYSITE_DOMAIN_STATUS_KEY[entry.status]) || entry.status;
-            li.textContent = `${icon} ${entry.domain} — ${label}`;
-            resultsList.appendChild(li);
+            const row = document.createElement("div");
+            row.className = "mysite-domain-row";
+
+            const name = document.createElement("span");
+            name.className = "mysite-domain-name";
+            name.textContent = entry.domain;
+            row.appendChild(name);
+
+            const badge = document.createElement("span");
+            badge.className = "badge " + (MYSITE_DOMAIN_STATUS_BADGE_CLASS[entry.status] || "badge-domain-unknown");
+            badge.textContent = t(MYSITE_DOMAIN_STATUS_KEY[entry.status]) || entry.status;
+            row.appendChild(badge);
+
+            resultsList.appendChild(row);
         });
     } catch (err) {
         errorBox.textContent = (err && err.message) || t("mysite.website.checkDomainsError") || t("network.error");

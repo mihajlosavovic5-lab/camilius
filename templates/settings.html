@@ -257,7 +257,7 @@
             <button type="button" class="button button-secondary" id="settings-domain-check-btn">&#127760; Check real domain availability</button>
             <p class="note">Checks .com/.net/.rs for the web address above - these are real, independent domains you'd register elsewhere, separate from your {{ page_url_prefix }}&lt;address&gt; page here.</p>
             <p class="onboarding-media-error hidden" id="settings-domain-check-error"></p>
-            <ul id="settings-domain-check-results" style="margin-top: 8px; list-style: none; padding: 0;"></ul>
+            <div id="settings-domain-check-results" style="margin-top: 6px;"></div>
         </div>
 
         <label data-i18n="settings.page.design">Design</label>
@@ -1144,15 +1144,25 @@ if (document.readyState === "loading") {
     if (!btn || !resultsList || !errorBox || !slugInput || !csrfInput) return;
 
     const STATUS_LABEL = { available: "Available", taken: "Taken", unknown: "Couldn't check - verify manually" };
-    const STATUS_ICON = { available: "✅", taken: "❌", unknown: "❔" };
+    const STATUS_BADGE_CLASS = { available: "badge-domain-available", taken: "badge-domain-taken", unknown: "badge-domain-unknown" };
 
     function renderResults(domains) {
         resultsList.innerHTML = "";
         domains.forEach((entry) => {
-            const li = document.createElement("li");
-            li.style.padding = "4px 0";
-            li.textContent = (STATUS_ICON[entry.status] || "❔") + " " + entry.domain + " — " + (STATUS_LABEL[entry.status] || entry.status);
-            resultsList.appendChild(li);
+            const row = document.createElement("div");
+            row.className = "domain-check-row";
+
+            const name = document.createElement("span");
+            name.className = "domain-check-name";
+            name.textContent = entry.domain;
+            row.appendChild(name);
+
+            const badge = document.createElement("span");
+            badge.className = "badge " + (STATUS_BADGE_CLASS[entry.status] || "badge-domain-unknown");
+            badge.textContent = STATUS_LABEL[entry.status] || entry.status;
+            row.appendChild(badge);
+
+            resultsList.appendChild(row);
         });
     }
 

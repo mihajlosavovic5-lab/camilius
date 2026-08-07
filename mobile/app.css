@@ -1577,6 +1577,19 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
 .badge-expired { background: var(--border); color: var(--text-muted); border: 1px solid var(--border); }
 .badge-pro { background: transparent; color: var(--primary-dark); border: 1.5px solid var(--primary); font-weight: 700; }
 
+/* "Check real domain availability" results (My Site tab) - same row/badge language as
+   .mysite-appointment-row/.badge-* above, not a plain bulleted list, so this reads as
+   part of the same app instead of a bolted-on debug dump. */
+.mysite-domain-row {
+    display: flex; justify-content: space-between; align-items: center; gap: 10px;
+    padding: 9px 0; border-bottom: 1px solid var(--border); font-size: 14px;
+}
+.mysite-domain-row:last-child { border-bottom: none; }
+.mysite-domain-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.badge-domain-available { background: var(--success-bg); color: var(--success); border: 1px solid var(--success-border); }
+.badge-domain-taken { background: var(--danger-bg); color: var(--danger); border: 1px solid var(--danger-border); }
+.badge-domain-unknown { background: var(--border); color: var(--text-muted); border: 1px solid var(--border); }
+
 /* --- Schedule tab (Faza 12) - day/week calendar, native equivalent of the website's
    /schedule page (see templates/schedule.html for the layout this mirrors). --- */
 .schedule-body { display: flex; flex-direction: column; padding-left: 0; padding-right: 0; }
