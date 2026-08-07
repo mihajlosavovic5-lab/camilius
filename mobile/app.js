@@ -474,19 +474,15 @@ if (capacitorPlugins) {
 
             downloadBtn.textContent = t("update.download");
             downloadBtn.onclick = () => {
-                // Deliberately the system browser, not ApkInstallerPlugin's direct
-                // install Intent (still in android/ for now, just unused here): that
-                // path makes OUR app the install source, which needs its OWN "Install
-                // unknown apps" grant in Android Settings - a separate toggle most
-                // testers have never had a reason to visit even after happily
-                // sideloading before, since it's scoped per-source-app rather than
-                // being one global switch. Worse, Android reports that install Intent
-                // as launched successfully regardless of whether it then shows that
-                // blocked screen, so there was no failure here to fall back from - a
-                // tester could get stuck with no obvious next step. Handing the same
-                // URL to the system browser instead reuses whatever source most
-                // sideloaders already trust (Chrome et al.), matching the download
-                // page's (templates/download.html) flow, which is already known to work.
+                // Deliberately the system browser, not a direct install Intent from
+                // this app: that path makes OUR app the install source, which needs
+                // its OWN "Install unknown apps" grant in Android Settings - a
+                // separate toggle most testers have never had a reason to visit even
+                // after happily sideloading before, since it's scoped per-source-app
+                // rather than being one global switch. Handing the same URL to the
+                // system browser instead reuses whatever source most sideloaders
+                // already trust (Chrome et al.), matching the download page's
+                // (templates/download.html) flow, which is already known to work.
                 // Deliberately NOT capacitorPlugins.Browser.open() (Chrome Custom Tabs
                 // on Android, used elsewhere for OAuth/checkout) - Custom Tabs are
                 // known to leave a download's progress sheet stuck at 100% forever

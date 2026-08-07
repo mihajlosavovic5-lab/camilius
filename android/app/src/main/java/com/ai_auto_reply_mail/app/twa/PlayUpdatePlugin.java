@@ -9,10 +9,10 @@ import com.google.android.play.core.install.model.AppUpdateType;
 import com.google.android.play.core.install.model.InstallStatus;
 import com.google.android.play.core.install.model.UpdateAvailability;
 
-// In-app updates via Google Play, so a native-code release (see MainActivity.java's
-// comment on ApkInstallerPlugin/mobile/app.js's apk-update-check for what still can't
-// ship through the OTA bundle) can reach a Play Store install without the website
-// download + "Install unknown apps" dance that a sideloaded install still needs -
+// In-app updates via Google Play, so a native-code release (see mobile/app.js's
+// apk-update-check for what still can't ship through the OTA bundle) can reach a Play
+// Store install without the website download + "Install unknown apps" dance that a
+// sideloaded install still needs -
 // Play is always a trusted install source, so it never needs that per-app grant, and it
 // downloads/verifies the update itself in the background.
 // startUpdateFlowForResult needs an ActivityResultLauncher registered on the Activity

@@ -22,7 +22,7 @@ public class MainActivity extends BridgeActivity {
     // duplicating the Activity Result plumbing below, which only a real Activity/
     // ComponentActivity (not a Plugin) can own. Only ever finds anything for an install
     // that actually came from the Play Store - a sideload (still possible; see
-    // ApkInstallerPlugin/mobile/app.js's website-download fallback) has no Play listing
+    // mobile/app.js's website-download fallback) has no Play listing
     // to diff against, so getAppUpdateInfo() harmlessly resolves to
     // UPDATE_NOT_AVAILABLE there instead of erroring.
     final AppUpdateManager appUpdateManager = AppUpdateManagerFactory.create(this);
@@ -51,9 +51,7 @@ public class MainActivity extends BridgeActivity {
     protected void onCreate(Bundle savedInstanceState) {
         // Must run before super.onCreate() - that's where BridgeActivity actually builds
         // the plugin bridge (see its load()), so a plugin registered any later than this
-        // never makes it in and capacitorPlugins.ApkInstaller/PlayUpdate (mobile/app.js)
-        // are undefined.
-        registerPlugin(ApkInstallerPlugin.class);
+        // never makes it in and capacitorPlugins.PlayUpdate (mobile/app.js) is undefined.
         registerPlugin(PlayUpdatePlugin.class);
 
         SplashScreen splashScreen = SplashScreen.installSplashScreen(this);
