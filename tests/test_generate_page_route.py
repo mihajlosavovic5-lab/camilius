@@ -60,7 +60,10 @@ def test_generate_business_page_prefills_without_saving(client, unique_username,
     assert "Fresh cuts, fair prices" in html
     assert "Family-run barbershop in the neighborhood since 2019." in html
     assert "Haircut: 20 EUR" in html
-    assert "Do I need an appointment?" in html
+    # No FAQ assertion here - the "Tell us more about your business" field was dropped
+    # from settings.html entirely (see "drop the business FAQ field"), so the drafted
+    # FAQ pair has nowhere left to render on this page even though generate_page_draft()
+    # still returns one (format_faq(draft["faq"]) is computed but unused downstream).
 
     # Nothing was persisted - the draft only appears in this response's rendered form.
     assert database.business_by_id(business_id)[8] == original_working_hours
