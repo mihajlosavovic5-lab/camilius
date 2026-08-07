@@ -26,7 +26,7 @@
     font-style: normal;
     font-weight: 400 700;
     font-display: optional;
-    src: url('fonts/inter-latin.woff2?v=cc2795d3fd49') format('woff2');
+    src: url('fonts/inter-latin.woff2?v=f34f66c47972') format('woff2');
     unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
 }
 @font-face {
@@ -34,7 +34,7 @@
     font-style: normal;
     font-weight: 400 700;
     font-display: optional;
-    src: url('fonts/inter-latin-ext.woff2?v=cc2795d3fd49') format('woff2');
+    src: url('fonts/inter-latin-ext.woff2?v=f34f66c47972') format('woff2');
     unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
 }
 @font-face {
@@ -42,7 +42,7 @@
     font-style: normal;
     font-weight: 400 700;
     font-display: optional;
-    src: url('fonts/inter-cyrillic.woff2?v=cc2795d3fd49') format('woff2');
+    src: url('fonts/inter-cyrillic.woff2?v=f34f66c47972') format('woff2');
     unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
 }
 @font-face {
@@ -50,7 +50,7 @@
     font-style: normal;
     font-weight: 400 700;
     font-display: optional;
-    src: url('fonts/inter-cyrillic-ext.woff2?v=cc2795d3fd49') format('woff2');
+    src: url('fonts/inter-cyrillic-ext.woff2?v=f34f66c47972') format('woff2');
     unicode-range: U+0460-052F, U+1C80-1C8A, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
 }
 
@@ -62,7 +62,7 @@
     font-style: normal;
     font-weight: 400 700;
     font-display: optional;
-    src: url('fonts/lora-latin.woff2?v=cc2795d3fd49') format('woff2');
+    src: url('fonts/lora-latin.woff2?v=f34f66c47972') format('woff2');
     unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
 }
 @font-face {
@@ -70,7 +70,7 @@
     font-style: normal;
     font-weight: 400 700;
     font-display: optional;
-    src: url('fonts/lora-latin-ext.woff2?v=cc2795d3fd49') format('woff2');
+    src: url('fonts/lora-latin-ext.woff2?v=f34f66c47972') format('woff2');
     unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
 }
 @font-face {
@@ -78,7 +78,7 @@
     font-style: normal;
     font-weight: 400 700;
     font-display: optional;
-    src: url('fonts/lora-cyrillic.woff2?v=cc2795d3fd49') format('woff2');
+    src: url('fonts/lora-cyrillic.woff2?v=f34f66c47972') format('woff2');
     unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
 }
 @font-face {
@@ -86,8 +86,30 @@
     font-style: normal;
     font-weight: 400 700;
     font-display: optional;
-    src: url('fonts/lora-cyrillic-ext.woff2?v=cc2795d3fd49') format('woff2');
+    src: url('fonts/lora-cyrillic-ext.woff2?v=f34f66c47972') format('woff2');
     unicode-range: U+0460-052F, U+1C80-1C8A, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+
+/* Page-title font (Home/Schedule/Profile/Settings topbar h1 - see .topbar-title h1
+   below) - only weight 700 since that's the only weight the title ever uses. No
+   Cyrillic subset exists for this font upstream, so Cyrillic text in a title (a
+   Cyrillic business name, etc.) falls through to --font-sans (which does cover
+   Cyrillic) via the font-family fallback list, same mechanism as any missing glyph. */
+@font-face {
+    font-family: 'Bricolage Grotesque';
+    font-style: normal;
+    font-weight: 700;
+    font-display: optional;
+    src: url('fonts/bricolage-grotesque-latin.woff2?v=f34f66c47972') format('woff2');
+    unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+    font-family: 'Bricolage Grotesque';
+    font-style: normal;
+    font-weight: 700;
+    font-display: optional;
+    src: url('fonts/bricolage-grotesque-latin-ext.woff2?v=f34f66c47972') format('woff2');
+    unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
 }
 
 :root {
@@ -118,6 +140,10 @@
        subsets above don't cover (CJK, Greek, Vietnamese, ...). */
     --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
     --font-serif: 'Lora', Georgia, "Times New Roman", serif;
+    /* Falls back to --font-sans (not straight to a system font) for any character
+       Bricolage Grotesque's own latin/latin-ext subsets don't cover, e.g. Cyrillic -
+       same self-hosted Inter stack as everywhere else, not a system font swap. */
+    --font-heading: 'Bricolage Grotesque', var(--font-sans);
 }
 
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -232,11 +258,12 @@ button { font-family: inherit; -webkit-appearance: none; appearance: none; }
     transform: translateY(-50%) translateX(0);
 }
 .topbar-title { display: flex; align-items: center; justify-content: center; gap: 10px; flex: 1; }
-/* Same serif brand font as the login screen's "Camilius" wordmark (.brand-name) instead
-   of the plain system sans every other label uses - now that the title is centered and
-   the bar itself is transparent, it's the one piece of text meant to read as a proper
-   page heading rather than another UI label. */
-.topbar-title h1 { font-family: var(--font-serif); font-size: 22px; font-weight: 700; margin: 0; }
+/* --font-heading (sans, same typographic family as every card/label/button below it)
+   instead of the brand's serif --font-serif - the serif was the only serif anywhere
+   on screen, which read as a mismatched, bolted-on element rather than the top of the
+   same page. Sized up from the surrounding 16px body text to still read as a page
+   title rather than another card heading. */
+.topbar-title h1 { font-family: var(--font-heading); font-size: 24px; font-weight: 700; margin: 0; }
 .topbar-detail { gap: 10px; }
 .topbar-detail-meta { flex: 1; min-width: 0; }
 .detail-sender { font-weight: 700; font-size: 16px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
