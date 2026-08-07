@@ -25,7 +25,12 @@ public class MainActivity extends BridgeActivity {
     // mobile/app.js's website-download fallback) has no Play listing
     // to diff against, so getAppUpdateInfo() harmlessly resolves to
     // UPDATE_NOT_AVAILABLE there instead of erroring.
-    final AppUpdateManager appUpdateManager = AppUpdateManagerFactory.create(this);
+    //
+    // Created in onCreate(), not as a field initializer - AppUpdateManagerFactory.create()
+    // needs a real Context (it calls getApplicationContext() internally), but field
+    // initializers run in the constructor, before the system has attached the Activity's
+    // base Context. Doing this eagerly here crashed every launch with a NullPointerException.
+    AppUpdateManager appUpdateManager;
 
     // Must be registered before the Activity reaches STARTED - a field initializer
     // (runs during construction, well before onCreate) is the documented-safe place for
@@ -49,6 +54,8 @@ public class MainActivity extends BridgeActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        appUpdateManager = AppUpdateManagerFactory.create(this);
+
         // Must run before super.onCreate() - that's where BridgeActivity actually builds
         // the plugin bridge (see its load()), so a plugin registered any later than this
         // never makes it in and capacitorPlugins.PlayUpdate (mobile/app.js) is undefined.
