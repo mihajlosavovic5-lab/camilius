@@ -326,16 +326,20 @@ if (capacitorPlugins) {
                 step = "current";
                 const current = await capacitorPlugins.CapacitorUpdater.current();
                 const activeVersion = (current && current.bundle) ? current.bundle.version : "unknown";
-                // current() reports the literal string "builtin" for a bundle that's
-                // never been OTA-updated - which would never equal manifest.version (a
-                // real content hash) even when the APK was JUST built from this exact
-                // mobile/ source, forcing a same-content re-download and the "Updating
-                // app" overlay on every fresh install. document.documentElement's
-                // data-bundle-version carries the hash this exact index.html was built
-                // with (see build_mobile_bundle.py) - substitute it in for "builtin" so
-                // a fresh install that already matches the server correctly no-ops.
+                // Gate the "never OTA-updated" case on bundle.id, not bundle.version - the
+                // plugin only guarantees id === "builtin" for that case. version instead
+                // falls back to the native app's own versionName (CapacitorUpdaterPlugin's
+                // versionBuild = config "version" ?? PackageInfo.versionName, see
+                // CapgoUpdater.getBundleInfo), e.g. "1.9.15.3", which would never equal
+                // manifest.version (a real content hash) even when the APK was JUST built
+                // from this exact mobile/ source - forcing a same-content re-download and
+                // the "Updating app" overlay on every fresh install. document.documentElement's
+                // data-bundle-version carries the hash this exact index.html was built with
+                // (see build_mobile_bundle.py) - substitute it in for the builtin case so a
+                // fresh install that already matches the server correctly no-ops.
+                const activeBundleId = (current && current.bundle) ? current.bundle.id : null;
                 const effectiveActiveVersion =
-                    activeVersion === "builtin"
+                    activeBundleId === "builtin"
                         ? document.documentElement.dataset.bundleVersion || activeVersion
                         : activeVersion;
                 if (effectiveActiveVersion === manifest.version) {
