@@ -115,14 +115,16 @@ _shared_connection = None
 # two concurrent queries interleaving on the same wire connection corrupts pg8000's
 # protocol state (portal/prepared-statement mismatches, "attempting to use unexecuted
 # cursor") instead of just erroring cleanly, and can silently hand one caller another
-# caller's row data. Currently a no-op in practice - the Procfile runs gunicorn with its
-# default single sync worker/thread, so requests are already fully serialized before
-# this ever runs - but that's an assumption living one file away (Procfile) with nothing
-# enforcing it here; this is a safety net for if that assumption ever changes (more
-# gunicorn workers/threads, a future async caller, a page that fires several concurrent
-# sub-requests the way the onboarding wizard's 5 theme-preview iframes do - see
-# onboarding_design.html), not a response to an observed single-worker production
-# incident.
+# caller's row data. This is load-bearing, not a hypothetical safety net: the Procfile
+# runs gunicorn with --worker-class gthread --threads 4 (see its own comment - a single
+# sync thread meant the whole app, across every logged-in user, could only ever serve one
+# HTTP request at a time, so a slow request anywhere - an OpenAI call in
+# ai_replies.handle_incoming_message or page_generator's theme/page generation, in
+# particular - froze the mobile app's login/dashboard burst of requests for everyone else
+# until it finished or timed out), so several requests really do reach connect() at once
+# in normal operation now (e.g. the onboarding wizard's 5 theme-preview iframes - see
+# onboarding_design.html - or the mobile app's own post-login burst of six concurrent
+# /api/* calls - see mobile/app.js's enterApp()).
 _db_access_lock = threading.Lock()
 # Per-thread nesting depth for _db_access_lock above - a route routinely calls one DB
 # helper function from inside another before the outer one's own connection.close() (or

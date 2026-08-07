@@ -1197,9 +1197,20 @@ function setupAvailabilityField(inputEl, errorEl, field, errorKey, getValue, onS
 
 // --- API helper ---
 
+// fetch() has no built-in timeout - without this, a stalled request (server still busy
+// with someone else's slow request, a dropped mobile connection that never sends a
+// TCP RST, ...) just hangs forever with no error and no way for the caller's own
+// try/finally to ever re-enable a disabled button or clear a loading spinner. Generous
+// enough to not false-positive on a real but slow response, short enough that the app
+// recovers with a normal "network error" instead of looking frozen.
+const API_TIMEOUT_MS = 30000;
+
 async function api(path, { method = "GET", body } = {}) {
     const headers = { "Content-Type": "application/json" };
     if (state.token) headers["Authorization"] = "Bearer " + state.token;
+
+    const timeoutController = new AbortController();
+    const timeoutId = setTimeout(() => timeoutController.abort(), API_TIMEOUT_MS);
 
     let response;
     try {
@@ -1207,11 +1218,14 @@ async function api(path, { method = "GET", body } = {}) {
             method,
             headers,
             body: body ? JSON.stringify(body) : undefined,
+            signal: timeoutController.signal,
         });
     } catch (networkError) {
         const err = new Error(t("network.error"));
         err.isNetworkError = true;
         throw err;
+    } finally {
+        clearTimeout(timeoutId);
     }
 
     const data = await response.json().catch(() => ({}));
