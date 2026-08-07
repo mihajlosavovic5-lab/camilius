@@ -236,7 +236,26 @@ button { font-family: inherit; -webkit-appearance: none; appearance: none; }
    of the plain system sans every other label uses - now that the title is centered and
    the bar itself is transparent, it's the one piece of text meant to read as a proper
    page heading rather than another UI label. */
-.topbar-title h1 { font-family: var(--font-serif); font-size: 22px; font-weight: 700; margin: 0; }
+.topbar-title h1 { font-family: var(--font-serif); font-size: 22px; font-weight: 700; margin: 0; position: relative; }
+/* Ties the title into the same primary/primary-dark gold accent every card below it
+   already carries (field labels, buttons, the .ota-progress-fill gradient) - without
+   this the title was plain unaccented text floating on the screen's gradient wash
+   while everything below it was a polished, accented card, so it read as a separate
+   layer instead of the top of the same page. Same motif as the website's own
+   .business-title-rule (static/style.css), scaled down for the smaller mobile title.
+   Sits inside .topbar's existing 14px bottom padding (bottom: -9px), so it's a pure
+   decorative addition - no layout shift. */
+.topbar-title h1::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    bottom: -9px;
+    transform: translateX(-50%);
+    width: 36px;
+    height: 3px;
+    border-radius: 2px;
+    background: linear-gradient(90deg, var(--primary), var(--primary-dark));
+}
 .topbar-detail { gap: 10px; }
 .topbar-detail-meta { flex: 1; min-width: 0; }
 .detail-sender { font-weight: 700; font-size: 16px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
