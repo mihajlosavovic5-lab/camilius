@@ -1540,6 +1540,17 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
 .textarea-send-btn.has-text:active { background: var(--primary-dark); }
 .textarea-send-btn:disabled { border-color: #cabfa4; color: #cabfa4; background: transparent; box-shadow: none; }
 .textarea-send-btn.has-text:disabled { background: #cabfa4; color: #fff; box-shadow: none; }
+/* Swaps the arrow icon for a spinning ring while mysiteSubmitDescription()'s request is
+   in flight - button.disabled alone left the button looking identically "sent, idle",
+   so a slow AI draft/theme call read as a frozen tap rather than work in progress. */
+.textarea-send-btn.loading svg { display: none; }
+.send-btn-spinner {
+    display: none;
+    width: 16px; height: 16px; border-radius: 50%;
+    border: 2px solid rgba(255,255,255,.35); border-top-color: #fff;
+    animation: ota-spin .7s linear infinite;
+}
+.textarea-send-btn.loading .send-btn-spinner { display: block; }
 .voice-status { font-size: 13px; color: var(--text-muted); margin: 6px 2px 0; }
 .voice-status.voice-status-error { color: var(--danger); }
 .voice-status:empty { display: none; }

@@ -4660,6 +4660,8 @@ async function mysiteSubmitDescription() {
     }
     const button = el("mysite-send-btn");
     button.disabled = true;
+    button.classList.add("loading");
+    button.setAttribute("aria-busy", "true");
     try {
         const draft = await api("/api/generate-page", { method: "POST", body: { description } });
         el("mysite-tagline-input").value = draft.tagline || "";
@@ -4680,6 +4682,8 @@ async function mysiteSubmitDescription() {
         errorBox.classList.remove("hidden");
     } finally {
         button.disabled = false;
+        button.classList.remove("loading");
+        button.removeAttribute("aria-busy");
     }
 }
 el("mysite-send-btn").addEventListener("click", () => {
