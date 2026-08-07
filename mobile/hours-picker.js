@@ -182,22 +182,31 @@ function createHoursPickerCore(config) {
     simpleOpenField.el.addEventListener("change", () => applyPairToWeekdays(simpleOpenField.value, simpleCloseField.value));
     simpleCloseField.el.addEventListener("change", () => applyPairToWeekdays(simpleOpenField.value, simpleCloseField.value));
 
+    // A CSS grid-rows animation needs one fixed outer element (collapsed to a 0fr row)
+    // and one inner element that actually holds the content and gets clipped by
+    // overflow:hidden while it does - hence the split between advancedView (the row
+    // that grows) and advancedInner (everything that was previously appended straight
+    // to advancedView). Starts collapsed; showAdvanced()/collapseToSimple() below just
+    // toggle the "-open" class and the transition handles the unfold/fold itself.
     const advancedView = document.createElement("div");
-    advancedView.className = "hours-advanced-view hidden";
+    advancedView.className = "hours-advanced-view";
     mount.appendChild(advancedView);
+    const advancedInner = document.createElement("div");
+    advancedInner.className = "hours-advanced-view-inner";
+    advancedView.appendChild(advancedInner);
 
     // The only way out of the per-day list before this was closing/reopening the
     // whole form - collapseToSimple() already existed (used after a save) but nothing
     // in the UI called it. Sits at the very top of advancedView so it's visible the
     // instant the list expands, no scrolling past all seven rows to find it.
-    // Same glyph and circle as customizeLink above, just rotated to point up - the pair
-    // reads as one open/close control rather than two unrelated buttons.
+    // Same glyph as customizeLink above, just rotated to point up - the pair reads as
+    // one open/close control rather than two unrelated buttons.
     const collapseLink = document.createElement("button");
     collapseLink.type = "button";
     collapseLink.className = "hours-toggle-arrow hours-toggle-arrow-up";
     collapseLink.textContent = "⌄";
     collapseLink.setAttribute("aria-label", t("hoursPicker.collapseLink"));
-    advancedView.appendChild(collapseLink);
+    advancedInner.appendChild(collapseLink);
     collapseLink.addEventListener("click", collapseToSimple);
     if (onLanguageChange) onLanguageChange(() => collapseLink.setAttribute("aria-label", t("hoursPicker.collapseLink")));
 
@@ -208,7 +217,7 @@ function createHoursPickerCore(config) {
         quickOpenField.value = rows.monday.openField.value;
         quickCloseField.value = rows.monday.closeField.value;
         simpleView.classList.add("hidden");
-        advancedView.classList.remove("hidden");
+        advancedView.classList.add("hours-advanced-view-open");
     }
     customizeLink.addEventListener("click", showAdvanced);
 
@@ -232,11 +241,11 @@ function createHoursPickerCore(config) {
     quickfill.appendChild(quickOpenField.el);
     quickfill.appendChild(quickSep);
     quickfill.appendChild(quickCloseField.el);
-    advancedView.appendChild(quickfill);
+    advancedInner.appendChild(quickfill);
 
     const dayList = document.createElement("div");
     dayList.className = "hours-day-list";
-    advancedView.appendChild(dayList);
+    advancedInner.appendChild(dayList);
 
     HOURS_DAYS.forEach((day) => {
         const isWeekend = HOURS_WEEKEND_DAYS.includes(day);
@@ -370,7 +379,7 @@ function createHoursPickerCore(config) {
         if (expandAdvancedIfNonUniform && !weekdaysAreUniform()) {
             showAdvanced();
         } else {
-            advancedView.classList.add("hidden");
+            advancedView.classList.remove("hours-advanced-view-open");
             simpleView.classList.remove("hidden");
         }
         updateWeekendNote();
@@ -403,7 +412,7 @@ function createHoursPickerCore(config) {
         });
         simpleOpenField.value = "09:00";
         simpleCloseField.value = "18:00";
-        advancedView.classList.add("hidden");
+        advancedView.classList.remove("hours-advanced-view-open");
         simpleView.classList.remove("hidden");
         updateWeekendNote();
         updateCustomHoursNote();
@@ -419,7 +428,7 @@ function createHoursPickerCore(config) {
     function collapseToSimple() {
         simpleOpenField.value = rows.monday.openField.value;
         simpleCloseField.value = rows.monday.closeField.value;
-        advancedView.classList.add("hidden");
+        advancedView.classList.remove("hours-advanced-view-open");
         simpleView.classList.remove("hidden");
         updateWeekendNote();
         updateCustomHoursNote();

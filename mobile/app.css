@@ -925,20 +925,34 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
    - toned down like the other notes here, not an alarming red, just enough to notice. */
 .hours-custom-note { font-size: 12px; color: var(--primary-ink); margin: 0; text-align: center; }
 /* Expand/collapse control between the "Working days" summary and the full per-day list
-   - one small circle, one chevron, no label (see hours-picker.js's aria-label for the
-   accessible name). .hours-toggle-arrow-up just rotates the same glyph 180deg rather
-   than swapping to a different character, so the two states read as one control. */
+   - just the chevron itself, no circle/background around it, so it reads as a quiet
+   gold glyph rather than a button chip. No label (see hours-picker.js's aria-label for
+   the accessible name). .hours-toggle-arrow-up just rotates the same glyph 180deg
+   rather than swapping to a different character, so the two states read as one control. */
 .hours-toggle-arrow {
     align-self: center; display: flex; align-items: center; justify-content: center;
-    width: 34px; height: 34px; padding: 0; margin: 2px 0; border: none; border-radius: 50%;
-    background: var(--primary-light); color: var(--primary-ink); font-size: 16px; line-height: 1;
-    cursor: pointer; transition: transform .15s ease, background .15s ease;
+    width: 30px; height: 30px; padding: 0; margin: 2px 0; border: none; background: none;
+    color: var(--primary-dark); font-size: 18px; line-height: 1;
+    cursor: pointer; transition: transform .25s cubic-bezier(.4, 0, .2, 1), color .15s ease, opacity .15s ease;
 }
-.hours-toggle-arrow:active { background: var(--primary); color: #fff; transform: scale(.92); }
+.hours-toggle-arrow:active { color: var(--primary); transform: scale(.82); opacity: .7; }
 .hours-toggle-arrow-up { transform: rotate(180deg); }
-.hours-toggle-arrow-up:active { transform: rotate(180deg) scale(.92); }
+.hours-toggle-arrow-up:active { transform: rotate(180deg) scale(.82); }
 
-.hours-advanced-view { display: flex; flex-direction: column; gap: 10px; }
+/* The per-day list unfolds/folds rather than snapping in and out - .hours-advanced-view
+   is the row that animates (0fr collapsed, 1fr once "-open" is added), and
+   .hours-advanced-view-inner is what actually gets clipped by overflow:hidden while
+   that row grows/shrinks (a plain height transition can't target "auto", so this is
+   the grid-rows trick instead). collapseToSimple()/showAdvanced() in hours-picker.js
+   just toggle the "-open" class; the transition below does the rest, in both directions. */
+.hours-advanced-view {
+    display: grid; grid-template-rows: 0fr;
+    transition: grid-template-rows .38s cubic-bezier(.4, 0, .2, 1);
+}
+.hours-advanced-view-open { grid-template-rows: 1fr; }
+.hours-advanced-view-inner {
+    display: flex; flex-direction: column; gap: 10px; min-height: 0; overflow: hidden;
+}
 
 .hours-quickfill {
     display: flex; align-items: center; flex-wrap: wrap; gap: 8px;
