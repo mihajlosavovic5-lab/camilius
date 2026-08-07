@@ -926,12 +926,15 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
 .hours-custom-note { font-size: 12px; color: var(--primary-ink); margin: 0; text-align: center; }
 /* Expand/collapse control between the "Working days" summary and the full per-day list
    - just the chevron itself, no circle/background around it, so it reads as a quiet
-   gold glyph rather than a button chip. No label (see hours-picker.js's aria-label for
-   the accessible name). .hours-toggle-arrow-up just rotates the same glyph 180deg
-   rather than swapping to a different character, so the two states read as one control. */
+   gold glyph rather than a button chip. Full-width (not just the glyph's own few px)
+   so the whole row at the arrow's height is tappable, not only a tiny hit target
+   right on the character - no label needed either way (see hours-picker.js's
+   aria-label for the accessible name). .hours-toggle-arrow-up just rotates the same
+   glyph 180deg rather than swapping to a different character, so the two states read
+   as one control. */
 .hours-toggle-arrow {
-    align-self: center; display: flex; align-items: center; justify-content: center;
-    width: 30px; height: 30px; padding: 0; margin: 2px 0; border: none; background: none;
+    display: flex; align-items: center; justify-content: center;
+    width: 100%; height: 34px; padding: 0; margin: 2px 0; border: none; background: none;
     color: var(--primary-dark); font-size: 18px; line-height: 1;
     cursor: pointer; transition: transform .18s cubic-bezier(.22, 1, .36, 1), color .15s ease, opacity .15s ease;
 }
