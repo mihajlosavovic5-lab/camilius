@@ -4672,6 +4672,12 @@ async function mysiteSubmitDescription() {
         const draft = await api("/api/generate-page", { method: "POST", body: { description } });
         el("mysite-tagline-input").value = draft.tagline || "";
         el("mysite-about-input").value = draft.about || "";
+        // Only pre-fill the web address if the owner hasn't already got one (typed or
+        // already saved) - never nudge them off an address they picked themselves.
+        const slugInput = el("mysite-slug");
+        if (draft.slug && !slugInput.value.trim()) {
+            slugInput.value = draft.slug;
+        }
         el("mysite-draft-result").classList.remove("hidden");
         // Setting .value directly above doesn't dispatch "input"/"change", so the
         // delegated listener that normally reveals the Save button (see

@@ -137,7 +137,23 @@ def test_generate_page_returns_draft_without_saving(client, unique_username, uni
     data = response.get_json()
     assert data["tagline"] == VALID_DRAFT["tagline"]
     assert data["about"] == VALID_DRAFT["about"]
+    assert data["slug"] == VALID_DRAFT["slug"]
     assert database.business_by_id(business_id)[8] == original_hours  # nothing persisted
+    assert database.get_business_page(business_id) is None
+
+
+def test_generate_page_keeps_already_saved_slug(client, unique_username, unique_email, monkeypatch):
+    headers, business_id = _auth(client, unique_username, unique_email)
+    existing_slug = f"already-chosen-{uuid.uuid4().hex[:8]}"
+    database.upsert_business_page(business_id, existing_slug, False, "Old tagline", "Old about")
+    draft = dict(VALID_DRAFT, slug=f"a-totally-different-{uuid.uuid4().hex[:8]}")
+    monkeypatch.setattr(
+        page_generator.client.chat.completions, "create",
+        lambda **kwargs: _FakeResponse(json.dumps(draft)),
+    )
+    response = client.post("/api/generate-page", json={"description": "A barbershop, weekdays 9-6."}, headers=headers)
+    assert response.status_code == 200
+    assert response.get_json()["slug"] == existing_slug
 
 
 def test_generate_page_requires_description(client, unique_username, unique_email):

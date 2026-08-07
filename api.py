@@ -1076,9 +1076,19 @@ def api_generate_page():
     except ValueError:
         return jsonify(error="Couldn't generate a draft from that - please try describing your business differently."), 400
 
+    # Same "only suggest a web address for an owner who doesn't already have one" rule
+    # as app.py's generate_business_page() - app.js only pre-fills the field when it's
+    # still empty (see mysiteSubmitDescription), but computing an already-taken/invalid
+    # suggestion here would be a pointless round trip either way.
+    existing_page = get_business_page(business_id)
+    existing_slug = existing_page[2] if existing_page else ""
+    business = business_by_id(business_id)
+    suggested_slug = existing_slug or pages.suggest_available_slug(draft.get("slug", ""), business[1], exclude_business_id=business_id)
+
     return jsonify(
         tagline=draft["tagline"],
         about=draft["about"],
+        slug=suggested_slug,
         working_hours=format_working_hours(draft["hours"]),
         price_list=format_price_list(draft["services"]),
         faq=format_faq(draft["faq"]),

@@ -7,6 +7,7 @@ import re
 from urllib.parse import urlparse
 
 import booking
+from database import page_by_slug
 
 # Lowercase letters/digits, hyphens allowed only between them (no leading/trailing/
 # doubled hyphen), 1-50 characters total - readable in a URL, and short enough that a
@@ -45,6 +46,38 @@ def normalize_slug(raw):
 
 def is_valid_slug(slug):
     return bool(slug) and bool(_SLUG_RE.match(slug)) and slug not in RESERVED_SLUGS
+
+
+def slugify(text):
+    """A starting suggestion for a slug field - not a validated result on its own, the
+    caller still runs this through is_valid_slug before trusting it, same as any other
+    slug. Lowercases, collapses anything that isn't a-z0-9 into single hyphens, and trims
+    to the same 50-char ceiling _SLUG_RE enforces. Falls back to "my-business" if text has
+    no ASCII letters/digits at all (e.g. text written entirely in Cyrillic)."""
+    slug = re.sub(r"[^a-z0-9]+", "-", (text or "").lower()).strip("-")[:50].strip("-")
+    return slug or "my-business"
+
+
+def suggest_available_slug(ai_slug, fallback_name, exclude_business_id=None):
+    """Turns an AI-suggested slug (e.g. page_generator.generate_page_draft()'s "slug"
+    field) into a web address ready to pre-fill a form with: sanitized via slugify()
+    above, then only handed back if it's both correctly formatted and not already
+    claimed by another business - so a caller never nudges an owner toward an address
+    that would just fail with "already taken" the moment they save. Falls back to a
+    slugified fallback_name (typically the business's own name) if the AI's suggestion
+    is empty or unusable. Returns "" if neither candidate works out, leaving the caller's
+    address field exactly as un-opinionated as it was before this suggestion existed."""
+    candidates = []
+    if (ai_slug or "").strip():
+        candidates.append(slugify(ai_slug))
+    candidates.append(slugify(fallback_name))
+    for candidate in candidates:
+        if not is_valid_slug(candidate):
+            continue
+        existing = page_by_slug(candidate)
+        if existing is None or (exclude_business_id is not None and existing[1] == exclude_business_id):
+            return candidate
+    return ""
 
 
 # schema.org's dayOfWeek wants a full day name (as a bare token, not a string literal -

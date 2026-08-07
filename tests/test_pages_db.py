@@ -37,6 +37,65 @@ def test_normalize_slug_lowercases_and_strips():
     assert pages.normalize_slug(None) == ""
 
 
+# --- pages.py: slugify / suggest_available_slug ---
+
+def test_slugify_lowercases_and_collapses_non_ascii():
+    assert pages.slugify("Blue Star Café!") == "blue-star-caf"
+    assert pages.slugify("  Marko's  Barbershop  ") == "marko-s-barbershop"
+
+
+def test_slugify_falls_back_to_my_business_for_no_ascii_chars():
+    assert pages.slugify("Кафић Плава Звезда") == "my-business"
+    assert pages.slugify("") == "my-business"
+    assert pages.slugify(None) == "my-business"
+
+
+def test_slugify_trims_to_fifty_chars():
+    assert len(pages.slugify("x" * 100)) == 50
+
+
+def test_suggest_available_slug_uses_sanitized_ai_slug_when_available():
+    unique = uuid.uuid4().hex[:8]
+    result = pages.suggest_available_slug(f"The Blue Scissors {unique}", "Fallback Name")
+    assert result == f"the-blue-scissors-{unique}"
+
+
+def test_suggest_available_slug_falls_back_to_name_when_ai_slug_blank():
+    unique = uuid.uuid4().hex[:8]
+    result = pages.suggest_available_slug("", f"Fallback Name {unique}")
+    assert result == f"fallback-name-{unique}"
+
+
+def test_suggest_available_slug_falls_back_to_name_when_ai_slug_taken(client, unique_username, unique_email):
+    _, business_id = register_and_login(client, unique_username, unique_email)
+    unique = uuid.uuid4().hex[:8]
+    taken = f"taken-{unique}"
+    database.upsert_business_page(business_id, taken, True, "T", "A")
+
+    result = pages.suggest_available_slug(taken, f"Fallback Name {unique}")
+    assert result == f"fallback-name-{unique}"
+
+
+def test_suggest_available_slug_returns_empty_when_nothing_available(client, unique_username, unique_email):
+    _, business_id = register_and_login(client, unique_username, unique_email)
+    unique = uuid.uuid4().hex[:8]
+    taken = f"taken-{unique}"
+    database.upsert_business_page(business_id, taken, True, "T", "A")
+
+    result = pages.suggest_available_slug(taken, taken)
+    assert result == ""
+
+
+def test_suggest_available_slug_excludes_own_business(client, unique_username, unique_email):
+    _, business_id = register_and_login(client, unique_username, unique_email)
+    unique = uuid.uuid4().hex[:8]
+    own_slug = f"my-own-slug-{unique}"
+    database.upsert_business_page(business_id, own_slug, True, "T", "A")
+
+    result = pages.suggest_available_slug(own_slug, "Fallback Name", exclude_business_id=business_id)
+    assert result == own_slug
+
+
 # --- database.py: business_pages CRUD ---
 
 def test_get_business_page_returns_none_when_never_saved(client, unique_username, unique_email):
