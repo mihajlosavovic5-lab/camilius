@@ -4284,15 +4284,13 @@ if (capacitorPlugins && capacitorPlugins.CapacitorUpdater) {
 }
 
 // --- My Site tab (Faza 15) - website overview + the business-info tools (description,
-// voice, AI design suggestions) that only ever lived once, during the web onboarding
-// wizard, with no mobile equivalent at all. See api.py's /api/page, /api/generate-page,
-// /api/voice-transcribe, /api/suggest-themes - Bearer-authed mirrors of the website's own
-// session-authed routes, same underlying business_pages row/page_generator.py/ai_theme.py
-// either surface calls into. ---
+// voice) that only ever lived once, during the web onboarding wizard, with no mobile
+// equivalent at all. See api.py's /api/page, /api/generate-page, /api/voice-transcribe -
+// Bearer-authed mirrors of the website's own session-authed routes, same underlying
+// business_pages row/page_generator.py either surface calls into. ---
 
 // Same 5 classic presets as themes.py's THEMES dict (label only - full color data isn't
-// needed client-side for a plain <select>, unlike the AI suggestion cards below which
-// come with their own swatch data straight from the server).
+// needed client-side for a plain <select>).
 const CLASSIC_THEMES = [
     { id: "minimal", label: "Minimal", primary: "#141414", surface: "#ffffff" },
     { id: "warm", label: "Warm & elegant", primary: "#d69410", surface: "#ffffff" },
@@ -4301,7 +4299,7 @@ const CLASSIC_THEMES = [
     { id: "luxury", label: "Luxury", primary: "#c9a227", surface: "#161616" },
 ];
 
-let mysiteSelectedCustomTheme = null; // the AI-suggested theme object, if one is currently selected
+let mysiteSelectedCustomTheme = null; // a previously-saved custom theme object, if one is currently selected
 
 // Same "hidden until dirty" floating Save button as Profile/Settings (see
 // updateSettingsSaveValidity above) - only the website's own fields count, not the
@@ -4352,8 +4350,7 @@ function updateMysiteSaveValidity() {
 }
 
 // Delegated for the same reason as Profile's equivalent listener - also catches the
-// theme-select dropdown and the AI theme-suggestion radios (see mysiteRenderThemeSuggestions
-// below), which dispatch their own bubbling "change".
+// theme-select dropdown, which dispatches its own bubbling "change".
 ["input", "change", "click"].forEach((evt) => {
     el("screen-mysite").addEventListener(evt, updateMysiteSaveValidity);
 });
@@ -4646,10 +4643,8 @@ let mysiteStopRecordingIfActive = () => false;
 let mysiteCancelRecordingIfActive = () => false;
 
 // Single "send" action (chat-input style, next to the mic button above) that replaces
-// the old separate "Generate draft" and "Suggest AI designs" buttons - one description
-// now drives both the tagline/about/FAQ draft and the theme suggestions at once. Either
-// result that comes back gets applied on its own (Promise.allSettled, not .all) so a
-// hiccup in one call doesn't also throw away the other's success.
+// the old separate "Generate draft" button - one description drives the tagline/about/FAQ
+// draft.
 //
 // A plain function declaration (not the click listener directly) so the voice-recording
 // IIFE below can also call it - tapping send mid-recording stops the recording and, once
@@ -4666,35 +4661,23 @@ async function mysiteSubmitDescription() {
     const button = el("mysite-send-btn");
     button.disabled = true;
     try {
-        const [draftResult, themesResult] = await Promise.allSettled([
-            api("/api/generate-page", { method: "POST", body: { description } }),
-            api("/api/suggest-themes", { method: "POST", body: { description } }),
-        ]);
-        if (draftResult.status === "fulfilled") {
-            const draft = draftResult.value;
-            el("mysite-tagline-input").value = draft.tagline || "";
-            el("mysite-about-input").value = draft.about || "";
-            el("mysite-draft-result").classList.remove("hidden");
-            // Setting .value directly above doesn't dispatch "input"/"change", so the
-            // delegated listener that normally reveals the Save button (see
-            // updateMysiteSaveValidity above) never fires on its own - poke it here instead.
-            updateMysiteSaveValidity();
-            // Hours/prices live in the Profile tab's own fields, not here (the AI still
-            // drafts them - see api_generate_page - but this screen only owns the page's own
-            // presentation fields), so they go through Profile's own pickers, which the owner
-            // is pointed at via mysite.draft.reviewHint above rather than this screen reaching
-            // into them.
-        }
-        if (themesResult.status === "fulfilled") {
-            mysiteRenderThemeSuggestions(themesResult.value.themes || []);
-        }
-        if (draftResult.status === "rejected" || themesResult.status === "rejected") {
-            const failure = draftResult.status === "rejected" ? draftResult.reason : themesResult.reason;
-            errorBox.textContent = (failure && failure.message) || t("network.error");
-            errorBox.classList.remove("hidden");
-        } else {
-            showToast(t("mysite.draft.ready") || "Draft ready - review it above.");
-        }
+        const draft = await api("/api/generate-page", { method: "POST", body: { description } });
+        el("mysite-tagline-input").value = draft.tagline || "";
+        el("mysite-about-input").value = draft.about || "";
+        el("mysite-draft-result").classList.remove("hidden");
+        // Setting .value directly above doesn't dispatch "input"/"change", so the
+        // delegated listener that normally reveals the Save button (see
+        // updateMysiteSaveValidity above) never fires on its own - poke it here instead.
+        updateMysiteSaveValidity();
+        // Hours/prices live in the Profile tab's own fields, not here (the AI still
+        // drafts them - see api_generate_page - but this screen only owns the page's own
+        // presentation fields), so they go through Profile's own pickers, which the owner
+        // is pointed at via mysite.draft.reviewHint above rather than this screen reaching
+        // into them.
+        showToast(t("mysite.draft.ready") || "Draft ready - review it above.");
+    } catch (err) {
+        errorBox.textContent = (err && err.message) || t("network.error");
+        errorBox.classList.remove("hidden");
     } finally {
         button.disabled = false;
     }
@@ -4703,50 +4686,6 @@ el("mysite-send-btn").addEventListener("click", () => {
     if (mysiteStopRecordingIfActive()) return;
     mysiteSubmitDescription();
 });
-
-function mysiteRenderThemeSuggestions(themeList) {
-    const grid = el("mysite-theme-suggest-grid");
-    grid.innerHTML = "";
-    themeList.forEach((theme) => {
-        const card = document.createElement("label");
-        card.className = "theme-suggestion-card";
-        const radio = document.createElement("input");
-        radio.type = "radio";
-        radio.name = "mysite-theme-pick";
-        radio.addEventListener("change", () => {
-            mysiteSelectedCustomTheme = theme;
-            mysitePopulateThemeSelect("custom");
-            // Same dispatch openDesignPicker() uses after driving the <select> programmatically -
-            // without it, mysite-theme-select's own "change" listener never runs, so neither the
-            // website preview swatch nor (when no web address is saved yet) saveMysitePreferredTheme
-            // fire. That left AI-suggested picks looking selected here but silently reverting later,
-            // the exact "chose a design, it reverted" bug the classic dropdown was already fixed for.
-            el("mysite-theme-select").dispatchEvent(new Event("change", { bubbles: true }));
-            grid.querySelectorAll(".theme-suggestion-card").forEach((c) => c.classList.remove("selected"));
-            card.classList.add("selected");
-        });
-        card.appendChild(radio);
-
-        const swatch = document.createElement("div");
-        swatch.className = "theme-suggestion-swatch";
-        swatch.style.background = theme.base.surface;
-        swatch.style.border = "2px solid " + theme.base.primary;
-        card.appendChild(swatch);
-
-        const info = document.createElement("div");
-        const label = document.createElement("p");
-        label.className = "theme-suggestion-label";
-        label.textContent = "✨ " + theme.label;
-        info.appendChild(label);
-        const blurb = document.createElement("p");
-        blurb.className = "theme-suggestion-blurb";
-        blurb.textContent = theme.blurb;
-        info.appendChild(blurb);
-        card.appendChild(info);
-
-        grid.appendChild(card);
-    });
-}
 
 // Voice input for the description above - same MediaRecorder/Whisper round trip the
 // website's onboarding wizard and Settings page use, ported here since mobile never had

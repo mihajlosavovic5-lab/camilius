@@ -1544,20 +1544,6 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
 .voice-status.voice-status-error { color: var(--danger); }
 .voice-status:empty { display: none; }
 
-/* AI-generated theme suggestion cards (My Website tab) - simpler than the website
-   onboarding wizard's own .onboarding-theme-card (no live iframe preview, just a flat
-   swatch), generated inline by app.js's renderThemeSuggestions(). */
-.theme-suggestion-grid { display: flex; flex-direction: column; gap: 10px; margin-top: 12px; }
-.theme-suggestion-card {
-    display: flex; gap: 12px; align-items: center; padding: 12px; cursor: pointer;
-    border: 2px solid var(--border); border-radius: var(--radius); background: var(--background);
-}
-.theme-suggestion-card input { position: absolute; opacity: 0; pointer-events: none; }
-.theme-suggestion-card.selected { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(214, 148, 16, .2); }
-.theme-suggestion-swatch { width: 44px; height: 44px; border-radius: 10px; flex-shrink: 0; }
-.theme-suggestion-label { font-weight: 700; font-size: 14px; margin: 0 0 2px; }
-.theme-suggestion-blurb { font-size: 12.5px; color: var(--text-muted); margin: 0; }
-
 .mysite-appointment-row {
     display: flex; justify-content: space-between; gap: 10px; padding: 9px 0;
     border-bottom: 1px solid var(--border); font-size: 14px;
