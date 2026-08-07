@@ -20,8 +20,8 @@ android {
         applicationId "com.ai_auto_reply_mail.app.twa"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 39
-        versionName "1.9.13.0"
+        versionCode 40
+        versionName "1.9.14.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
@@ -59,6 +59,10 @@ dependencies {
     implementation "androidx.appcompat:appcompat:$androidxAppCompatVersion"
     implementation "androidx.coordinatorlayout:coordinatorlayout:$androidxCoordinatorLayoutVersion"
     implementation "androidx.core:core-splashscreen:$coreSplashScreenVersion"
+    // PlayUpdatePlugin/MainActivity's in-app update flow (Play Store downloads/
+    // installs a native release itself, no browser/"unknown sources" prompt needed) -
+    // a no-op for any install that isn't actually from the Play Store.
+    implementation "com.google.android.play:app-update:2.1.0"
     implementation project(':capacitor-android')
     testImplementation "junit:junit:$junitVersion"
     androidTestImplementation "androidx.test.ext:junit:$androidxJunitVersion"

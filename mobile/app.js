@@ -391,9 +391,70 @@ if (capacitorPlugins) {
 
     // Native-code changes (new plugin, permissions, icon, splash, anything under
     // android/) can't ship through the OTA check above - they need a new signed APK
-    // install. This offers that in-app instead of requiring the user be sent a link
-    // manually.
+    // install. Two paths offer that in-app, tried in order:
+    //  1. PlayUpdatePlugin (see PlayUpdatePlugin.java/MainActivity.java) - only ever
+    //     has anything to offer once this install actually came from the Play Store (a
+    //     sideload has no Play listing to diff against, and an old native build
+    //     predating this plugin doesn't have it registered at all - checkForUpdate()
+    //     below throws for both, same as any missing Capacitor plugin call always
+    //     does). Play downloads and verifies the update itself in the background - no
+    //     browser, no "Install unknown apps" prompt, since Play is always a trusted
+    //     install source.
+    //  2. The apk-version/website fallback below, for everyone checkForUpdate() threw
+    //     for.
     (async () => {
+        const banner = el("update-banner");
+        const downloadBtn = el("update-download-btn");
+        const dismissBtn = el("update-dismiss-btn");
+
+        // Base behavior: just hide for this session. The website-fallback path below
+        // adds a second listener that also persists the dismissal by version - there's
+        // no equivalent "version" to key that off here, Play doesn't expose one this
+        // plugin surfaces, so re-prompting next cold start is the simplest fallback.
+        dismissBtn.addEventListener("click", () => banner.classList.add("hidden"));
+
+        const offerRestart = () => {
+            downloadBtn.textContent = t("update.install");
+            downloadBtn.onclick = () => capacitorPlugins.PlayUpdate.completeUpdate();
+            banner.classList.remove("hidden");
+        };
+
+        try {
+            const status = await capacitorPlugins.PlayUpdate.checkForUpdate();
+            if (status.downloaded) {
+                // A FLEXIBLE download from an earlier session (or one that finished
+                // while this session was backgrounded, missing the event below) is
+                // already sitting there ready to install.
+                offerRestart();
+                return;
+            }
+            if (status.available && status.flexibleAllowed) {
+                // Starts downloading in the background immediately - nothing for the
+                // visitor to tap to kick it off. offerRestart() only runs once it's
+                // actually landed, via this event.
+                await capacitorPlugins.PlayUpdate.startUpdate({ type: "FLEXIBLE" });
+                window.addEventListener("playUpdateDownloaded", offerRestart, { once: true });
+                return;
+            }
+            if (status.available && status.immediateAllowed) {
+                // Play takes over the screen entirely for this one - nothing left here
+                // to show.
+                await capacitorPlugins.PlayUpdate.startUpdate({ type: "IMMEDIATE" });
+                return;
+            }
+            // Either nothing's available (this Play Store install is already current),
+            // or an update exists but neither type is allowed yet (can happen mid-
+            // rollout) - either way there's nothing actionable, and re-checking via
+            // the website fallback below would only tell a Play install the exact same
+            // "not installable right now", so stop here regardless.
+            return;
+        } catch (e) {
+            // No PlayUpdatePlugin (old native build - capacitorPlugins.PlayUpdate is
+            // undefined) or its checkForUpdate() rejected (Play has nothing tracked
+            // for this install, e.g. still sideloaded) - both fall straight through to
+            // the website fallback below, same as before this plugin existed.
+        }
+
         try {
             const response = await fetch(API_BASE + "/api/apk-version");
             const info = await response.json();
@@ -411,10 +472,8 @@ if (capacitorPlugins) {
             const dismissedVersion = await storageGet("apkUpdateDismissedVersion");
             if (dismissedVersion === info.version) return;
 
-            const banner = el("update-banner");
-            const downloadBtn = el("update-download-btn");
-
-            downloadBtn.addEventListener("click", () => {
+            downloadBtn.textContent = t("update.download");
+            downloadBtn.onclick = () => {
                 // Deliberately the system browser, not ApkInstallerPlugin's direct
                 // install Intent (still in android/ for now, just unused here): that
                 // path makes OUR app the install source, which needs its OWN "Install
@@ -436,10 +495,9 @@ if (capacitorPlugins) {
                 // fully written to disk. "_system" opens this in the actual full
                 // browser app instead, whose downloads behave normally.
                 window.open(info.url, "_system");
-            });
-            el("update-dismiss-btn").addEventListener("click", async () => {
+            };
+            dismissBtn.addEventListener("click", async () => {
                 await storageSet("apkUpdateDismissedVersion", info.version);
-                banner.classList.add("hidden");
             });
 
             banner.classList.remove("hidden");
