@@ -4287,6 +4287,14 @@ function updateMysiteSaveValidity() {
     button.classList.toggle("hidden", !SHOW_MANUAL_SAVE_BUTTONS || !dirty);
     button.disabled = !valid;
     el("screen-mysite").classList.toggle("has-unsaved", SHOW_MANUAL_SAVE_BUTTONS && dirty);
+    // isMysiteFormValid() only ever fails on a missing/invalid slug (see its comment
+    // above) - without this, picking a Design (or editing tagline/about) with no web
+    // address set yet silently never autosaves: the picker updates the row's own label
+    // right away so it looks like the change took, but nothing persists, and the very
+    // next loadMySite() (switching tabs and back, reopening the app...) quietly puts the
+    // old saved value back with no explanation of why. Surface the reason right here
+    // instead of leaving that "chose a design, it reverted a few seconds later" mystery.
+    el("mysite-slug-required-hint").classList.toggle("hidden", !(dirty && !valid));
     triggerMysiteAutosave(dirty && valid);
 }
 
