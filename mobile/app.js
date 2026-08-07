@@ -4403,6 +4403,7 @@ async function loadMySite() {
                 ? (t("mysite.website.live") || "Live") + " · " + page.slug
                 : (t("mysite.website.draft") || "Not published yet");
             el("mysite-slug").value = page.slug || "";
+            mysiteSyncDomainCheckBtnVisibility();
             el("mysite-tagline-input").value = page.tagline || "";
             el("mysite-about-input").value = page.about || "";
             el("mysite-published").checked = !!page.published;
@@ -4637,7 +4638,7 @@ async function mysiteCheckDomains(baseName) {
     errorBox.classList.add("hidden");
     btn.disabled = true;
     const originalText = btn.textContent;
-    btn.textContent = t("mysite.website.checkDomainsChecking") || "Checking...";
+    btn.textContent = t("mysite.website.checkDomainsChecking") || "…";
     try {
         const data = await api("/api/check-domains", { method: "POST", body: { name: baseName } });
         resultsList.innerHTML = "";
@@ -4666,6 +4667,17 @@ async function mysiteCheckDomains(baseName) {
     }
 }
 el("mysite-domain-check-btn").addEventListener("click", () => mysiteCheckDomains(el("mysite-slug").value.trim()));
+
+// Hidden until the field actually has something to check - same reasoning as the
+// password-toggle eye icon, so it isn't sitting there inert over an empty field. Not
+// just an "input" listener: mysite-slug's value is also set programmatically (loadMySite
+// loading a saved page, mysiteSubmitDescription prefilling an AI-suggested address),
+// which never fires "input" - callers of those must call this themselves too.
+function mysiteSyncDomainCheckBtnVisibility() {
+    el("mysite-domain-check-btn").classList.toggle("has-value", el("mysite-slug").value.trim().length > 0);
+}
+el("mysite-slug").addEventListener("input", mysiteSyncDomainCheckBtnVisibility);
+mysiteSyncDomainCheckBtnVisibility();
 
 // Single "send" action (chat-input style, next to the mic button above) that replaces
 // the old separate "Generate draft" button - one description drives the tagline/about/FAQ
@@ -4702,6 +4714,7 @@ async function mysiteSubmitDescription() {
         const slugInput = el("mysite-slug");
         if (draft.slug && !slugInput.value.trim()) {
             slugInput.value = draft.slug;
+            mysiteSyncDomainCheckBtnVisibility();
         }
         // Best-effort, not awaited - a slow/failed RDAP check must never hold up the
         // draft itself finishing (see mysiteCheckDomains's own try/catch for its

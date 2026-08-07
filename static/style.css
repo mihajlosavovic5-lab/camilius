@@ -1358,6 +1358,22 @@ body.auth {
 .password-toggle-slash { transition: opacity .1s ease; }
 .password-toggle.is-visible { color: var(--primary-ink); }
 .password-toggle.is-visible .password-toggle-slash { opacity: 0; }
+
+/* "Check" button inline in the web-address field (settings.html My Site card) - same
+   "absolutely positioned inside an already position:relative .floating-field" mechanic
+   as .password-toggle above, just a short text pill instead of an icon. */
+.floating-field-domain-check input { padding-right: 70px; }
+.floating-field-domain-check label { max-width: calc(100% - 82px); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.field-inline-btn {
+    position: absolute; top: 50%; right: 6px; transform: translateY(-50%);
+    padding: 6px 14px; border-radius: 99px; border: 1px solid var(--border);
+    background: var(--surface); color: var(--text); font-size: 13.5px; font-weight: 600;
+    cursor: pointer; display: none;
+}
+/* Hidden until there's something to check - same reasoning as .password-toggle.has-value. */
+.field-inline-btn.has-value { display: block; }
+.field-inline-btn:hover, .field-inline-btn:focus-visible { border-color: var(--primary); color: var(--primary-ink); }
+.field-inline-btn:disabled { opacity: .6; cursor: default; }
 /* Caption + outline pill button pair ("New to Camilius?" / "Create account" on the
    APK) replacing a plain text link for the register CTA. */
 .auth-divider {

@@ -1,5 +1,5 @@
 <!doctype html>
-<html data-bundle-version="da416d3a3282" lang="en">
+<html data-bundle-version="14eaef4d1159" lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
@@ -14,7 +14,7 @@
 <link rel="preload" href="fonts/inter-latin-ext.woff2?v=cc2795d3fd49" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="fonts/lora-latin.woff2?v=cc2795d3fd49" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="fonts/lora-latin-ext.woff2?v=cc2795d3fd49" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="app.css?v=da416d3a3282">
+<link rel="stylesheet" href="app.css?v=14eaef4d1159">
 </head>
 <body>
 
@@ -723,14 +723,13 @@
         </div>
         <a id="mysite-view-site-link" href="#" target="_blank" rel="noopener" class="button button-secondary hidden" data-i18n="mysite.website.view" style="margin-bottom: 8px;">View your live site</a>
 
-        <div class="floating-field">
+        <div class="floating-field floating-field-domain-check">
           <input type="text" id="mysite-slug" placeholder=" " autocapitalize="off" autocorrect="off">
           <label for="mysite-slug" data-i18n="mysite.website.slug">Web address</label>
+          <button type="button" class="field-inline-btn" id="mysite-domain-check-btn" data-i18n="mysite.website.checkDomainsShort">Check</button>
         </div>
-        <button type="button" class="button button-secondary" id="mysite-domain-check-btn" style="margin: 4px 0 4px;" data-i18n="mysite.website.checkDomains">🌐 Check real domain availability</button>
-        <p class="field-hint" data-i18n="mysite.website.checkDomainsHint">Checks .com/.net/.rs - real domains you'd register elsewhere, separate from this address above.</p>
         <p class="field-error hidden" id="mysite-domain-check-error"></p>
-        <div id="mysite-domain-check-results" style="margin: 4px 0 14px;"></div>
+        <div id="mysite-domain-check-results" style="margin: 0 0 14px;"></div>
         <div class="floating-field">
           <input type="text" id="mysite-tagline-input" placeholder=" " maxlength="200">
           <label for="mysite-tagline-input" data-i18n="mysite.website.taglineLabel">Headline</label>
@@ -1544,8 +1543,8 @@
   </button>
 </nav>
 
-<script src="i18n.js?v=da416d3a3282"></script>
-<script src="hours-picker.js?v=da416d3a3282"></script>
-<script src="app.js?v=da416d3a3282"></script>
+<script src="i18n.js?v=14eaef4d1159"></script>
+<script src="hours-picker.js?v=14eaef4d1159"></script>
+<script src="app.js?v=14eaef4d1159"></script>
 </body>
 </html>

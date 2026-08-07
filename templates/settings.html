@@ -245,20 +245,16 @@
             <div class="alert alert-error"><span class="alert-icon">&#9888;&#65039;</span><span>{{ page_error }}</span></div>
         {% endif %}
 
-        <div class="floating-field" style="margin-top: 0;">
+        <div class="floating-field floating-field-domain-check" style="margin-top: 0;">
             <input type="text" id="settings-page-slug-input" name="slug" value="{{ page.slug if page else '' }}" placeholder=" " autocapitalize="off" autocorrect="off" pattern="[a-z0-9][a-z0-9-]{0,49}" maxlength="50">
             <label for="settings-page-slug-input">Web address (e.g. your-business-name)</label>
+            <button type="button" class="field-inline-btn" id="settings-domain-check-btn">Check</button>
         </div>
         {% if page and page.slug %}
             <p class="note">{{ page_url_prefix }}{{ page.slug }}</p>
         {% endif %}
-
-        <div id="settings-domain-check-wrap" style="margin-top: 10px;">
-            <button type="button" class="button button-secondary" id="settings-domain-check-btn">&#127760; Check real domain availability</button>
-            <p class="note">Checks .com/.net/.rs for the web address above - these are real, independent domains you'd register elsewhere, separate from your {{ page_url_prefix }}&lt;address&gt; page here.</p>
-            <p class="onboarding-media-error hidden" id="settings-domain-check-error"></p>
-            <div id="settings-domain-check-results" style="margin-top: 6px;"></div>
-        </div>
+        <p class="onboarding-media-error hidden" id="settings-domain-check-error"></p>
+        <div id="settings-domain-check-results" style="margin-top: 4px;"></div>
 
         <label data-i18n="settings.page.design">Design</label>
         <input type="hidden" name="theme" id="settings-page-theme-value" value="{{ page.theme if page else 'warm' }}">
@@ -1171,7 +1167,7 @@ if (document.readyState === "loading") {
         errorBox.classList.add("hidden");
         btn.disabled = true;
         const originalText = btn.textContent;
-        btn.textContent = "Checking...";
+        btn.textContent = "…";
         const formData = new FormData();
         formData.append("name", baseName);
         fetch("{{ url_for('check_business_domains') }}", { method: "POST", headers: { "X-CSRFToken": csrfInput.value }, body: formData })
@@ -1193,6 +1189,13 @@ if (document.readyState === "loading") {
                 errorBox.classList.remove("hidden");
             });
     }
+
+    // Hidden until the field actually has something to check - same reasoning as the
+    // password-toggle eye icon (see base.html), so it isn't sitting there inert over an
+    // empty field.
+    const syncHasValue = () => btn.classList.toggle("has-value", slugInput.value.trim().length > 0);
+    slugInput.addEventListener("input", syncHasValue);
+    syncHasValue();
 
     btn.addEventListener("click", () => checkDomains(slugInput.value.trim()));
 
