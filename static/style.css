@@ -1523,7 +1523,16 @@ body.auth {
 .hours-toggle-arrow-up:hover { transform: rotate(180deg) translateY(-1px); }
 .hours-toggle-arrow-up:active { transform: rotate(180deg); box-shadow: none; }
 
-.hours-advanced-view { display: flex; flex-direction: column; gap: 12px; }
+/* hours-picker.js renders the advanced view's actual content (collapse link,
+   quickfill row, day list) inside a nested .hours-advanced-view-inner wrapper and
+   toggles "hours-advanced-view-open" on the outer element rather than adding/removing
+   a "hidden" class - see mobile/app.css's own copy of this pair for why (an
+   accordion-style unfold there needs the same two-element split). The website doesn't
+   need that animation, so this just reproduces the previous instant show/hide with the
+   new class name. */
+.hours-advanced-view { display: none; }
+.hours-advanced-view-open { display: flex; }
+.hours-advanced-view-inner { display: flex; flex-direction: column; gap: 12px; }
 
 .hours-quickfill {
     display: flex; align-items: center; flex-wrap: wrap; gap: 10px;
