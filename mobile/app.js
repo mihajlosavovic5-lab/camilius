@@ -1513,14 +1513,6 @@ el("login-google-btn").addEventListener("click", () => {
     startGoogleLogin(el("login-google-btn"), el("login-error"), "login");
 });
 
-// Create Account's own Google button - "register" intent, so a brand-new identity
-// prefills this same form (needs_signup, see checkGoogleLoginStatusOnce) instead of
-// erroring like the Login screen's button does, and an identity that's already linked
-// to an existing account just logs straight in (status "done").
-el("register-google-btn").addEventListener("click", () => {
-    startGoogleLogin(el("register-google-btn"), el("register-error"), "register");
-});
-
 // Android hands /auth/google/done straight to THIS app instead of loading it in the
 // Custom Tab, on a signed APK that has the verified App Link intent-filter for it (see
 // AndroidManifest.xml and app.py's auth_google_callback/auth_google_done) - meaning the
