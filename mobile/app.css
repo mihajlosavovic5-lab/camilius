@@ -933,25 +933,37 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
     align-self: center; display: flex; align-items: center; justify-content: center;
     width: 30px; height: 30px; padding: 0; margin: 2px 0; border: none; background: none;
     color: var(--primary-dark); font-size: 18px; line-height: 1;
-    cursor: pointer; transition: transform .25s cubic-bezier(.4, 0, .2, 1), color .15s ease, opacity .15s ease;
+    cursor: pointer; transition: transform .18s cubic-bezier(.22, 1, .36, 1), color .15s ease, opacity .15s ease;
 }
-.hours-toggle-arrow:active { color: var(--primary); transform: scale(.82); opacity: .7; }
+.hours-toggle-arrow:active { color: var(--primary); transform: scale(.8); opacity: .65; }
 .hours-toggle-arrow-up { transform: rotate(180deg); }
-.hours-toggle-arrow-up:active { transform: rotate(180deg) scale(.82); }
+.hours-toggle-arrow-up:active { transform: rotate(180deg) scale(.8); }
 
 /* The per-day list unfolds/folds rather than snapping in and out - .hours-advanced-view
    is the row that animates (0fr collapsed, 1fr once "-open" is added), and
    .hours-advanced-view-inner is what actually gets clipped by overflow:hidden while
    that row grows/shrinks (a plain height transition can't target "auto", so this is
    the grid-rows trick instead). collapseToSimple()/showAdvanced() in hours-picker.js
-   just toggle the "-open" class; the transition below does the rest, in both directions. */
+   just toggle the "-open" class; the transition below does the rest, in both directions.
+   cubic-bezier(.22,1,.36,1) is a gentle decelerate ("ease-out-quint") - content settles
+   into place instead of snapping to a stop like the old linear-ish .4,0,.2,1 curve did.
+   The inner wrapper also fades + drifts down half a row on top of the height grow
+   (delayed .1s so it trails the unfold rather than popping in at zero height), and on
+   the way back out it fades on its own quick timing with no delay - the two together
+   read as one continuous reveal opening and a crisp, un-mushy close. */
 .hours-advanced-view {
     display: grid; grid-template-rows: 0fr;
-    transition: grid-template-rows .38s cubic-bezier(.4, 0, .2, 1);
+    transition: grid-template-rows .42s cubic-bezier(.22, 1, .36, 1);
 }
 .hours-advanced-view-open { grid-template-rows: 1fr; }
 .hours-advanced-view-inner {
     display: flex; flex-direction: column; gap: 10px; min-height: 0; overflow: hidden;
+    opacity: 0; transform: translateY(-6px);
+    transition: opacity .16s ease, transform .16s ease;
+}
+.hours-advanced-view-open .hours-advanced-view-inner {
+    opacity: 1; transform: translateY(0);
+    transition: opacity .32s ease .12s, transform .36s cubic-bezier(.22, 1, .36, 1) .12s;
 }
 
 .hours-quickfill {
