@@ -1699,6 +1699,26 @@ def suggest_business_themes():
     return jsonify(themes=options)
 
 
+def _suggest_page_slug(ai_slug, business_name, business_id):
+    """Turns generate_page_draft()'s raw "slug" suggestion into a web address
+    generate_business_page() can safely pre-fill: sanitized through the same
+    _slugify_business_name cleanup as any other slug, then only handed back if it's both
+    correctly formatted and not already claimed by another business - so this never
+    nudges an owner toward an address that would just fail with "already taken" the
+    moment they hit Save. Falls back to a slug of the business name itself if the AI's
+    suggestion is empty or unusable, same starting point onboarding_website_address
+    already offers. Returns "" if neither works out, leaving the address field exactly
+    as un-opinionated as it was before this suggestion existed."""
+    candidates = []
+    if (ai_slug or "").strip():
+        candidates.append(_slugify_business_name(ai_slug))
+    candidates.append(_slugify_business_name(business_name))
+    for candidate in candidates:
+        if pages.is_valid_slug(candidate) and not _slug_taken(candidate, exclude_business_id=business_id):
+            return candidate
+    return ""
+
+
 # Drafts tagline/about/hours/prices/faq from a short owner-written description
 # (page_generator.py) and re-renders settings.html with them pre-filled - same
 # "re-render the form with different values, don't redirect" shape as settings()'s own
@@ -1752,11 +1772,14 @@ def generate_business_page():
             "faq": format_faq(draft["faq"]),
             "upsell_pairs": get_upsell_pairs(business_id),
         }
-        # Keeps whatever slug/published/widget_domain state is already saved (a
-        # generated draft has no opinion on the web address, whether it's live, or the
-        # widget) and only overwrites the presentation fields the AI actually drafted.
+        # Keeps whatever published/widget_domain state is already saved (a generated
+        # draft has no opinion on whether the page is live or the widget) and only
+        # overwrites the presentation fields the AI actually drafted. The web address is
+        # in between: an owner who already picked one keeps it untouched, but one who
+        # hasn't yet gets the AI's suggestion pre-filled too, via _suggest_page_slug.
+        existing_slug = saved_page["slug"] if saved_page else ""
         page_view = {
-            "slug": saved_page["slug"] if saved_page else "",
+            "slug": existing_slug or _suggest_page_slug(draft.get("slug", ""), business[1], business_id),
             "published": saved_page["published"] if saved_page else False,
             "widget_domain": saved_page["widget_domain"] if saved_page else None,
             "theme": saved_page["theme"] if saved_page else themes.DEFAULT_THEME_ID,
@@ -1797,7 +1820,8 @@ _ONBOARDING_SESSION_KEY = "onboarding_draft"
 
 
 def _slugify_business_name(name):
-    """A starting suggestion for onboarding_website_address's slug field, not a
+    """A starting suggestion for a slug field - onboarding_website_address's, or an
+    AI-drafted page's suggested web address (see _suggest_page_slug below) - not a
     validated result on its own - the caller still runs this through
     pages.is_valid_slug/page_by_slug before trusting it, same as any other slug. Lowercases,
     collapses anything that isn't a-z0-9 into single hyphens, and trims to the same
@@ -1837,6 +1861,7 @@ def onboarding_website_describe():
                     "description": description,
                     "tagline": generated["tagline"],
                     "about": generated["about"],
+                    "slug": generated.get("slug", ""),
                     "working_hours": format_working_hours(generated["hours"]),
                     "price_list": format_price_list(generated["services"]),
                     "faq": format_faq(generated["faq"]),
@@ -2013,7 +2038,11 @@ def onboarding_website_address():
         return redirect(url_for("onboarding_website_describe"))
 
     business = business_by_id(business_id)
-    slug_value = draft.get("slug") or _slugify_business_name(business[1])
+    # draft["slug"] is either the AI draft's raw suggestion (see
+    # onboarding_website_describe) or, once this step has been submitted once, the
+    # owner's own already-validated choice - _slugify_business_name sanitizes either
+    # case the same way, and is a no-op on a value that's already a valid slug.
+    slug_value = _slugify_business_name(draft.get("slug") or business[1])
     error = None
 
     if request.method == "POST":

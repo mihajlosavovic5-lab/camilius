@@ -4,6 +4,7 @@ generate_page_draft()/format_*() directly; these exercise the route's own contra
 re-renders settings.html with the draft pre-filled but MUST NOT write anything to the
 database (see generate_business_page()'s docstring in app.py for why)."""
 import json
+import uuid
 
 import database
 from conftest import register_business_web, web_post, get_csrf_token
@@ -99,3 +100,64 @@ def test_generate_business_page_requires_login(client):
     response = web_post(client, "/profile/generate-page", {"csrf_token": csrf_token, "description": "A barbershop."})
     assert response.status_code == 302
     assert "/login" in response.headers["Location"]
+
+
+def test_generate_business_page_prefills_suggested_slug_when_none_saved(client, unique_username, unique_email, monkeypatch):
+    suggested_slug = f"the-blue-scissors-{uuid.uuid4().hex[:8]}"
+    draft = dict(VALID_DRAFT, slug=suggested_slug)
+    monkeypatch.setattr(
+        page_generator.client.chat.completions, "create",
+        lambda **kwargs: _FakeResponse(json.dumps(draft)),
+    )
+    register_business_web(client, unique_username, unique_email)
+    csrf_token = get_csrf_token(client, "/profile")
+
+    response = web_post(client, "/profile/generate-page", {
+        "csrf_token": csrf_token, "description": "A barbershop open weekdays 9-6, haircuts 20 EUR.",
+    })
+    assert response.status_code == 200
+    html = response.get_data(as_text=True)
+    assert f'value="{suggested_slug}"' in html
+
+
+def test_generate_business_page_keeps_already_saved_slug(client, unique_username, unique_email, monkeypatch):
+    existing_slug = f"already-chosen-{uuid.uuid4().hex[:8]}"
+    draft = dict(VALID_DRAFT, slug=f"a-totally-different-{uuid.uuid4().hex[:8]}")
+    monkeypatch.setattr(
+        page_generator.client.chat.completions, "create",
+        lambda **kwargs: _FakeResponse(json.dumps(draft)),
+    )
+    register_business_web(client, unique_username, unique_email)
+    business_id = database.business_by_username(unique_username)[0]
+    database.upsert_business_page(business_id, existing_slug, False, "Old tagline", "Old about")
+    csrf_token = get_csrf_token(client, "/profile")
+
+    response = web_post(client, "/profile/generate-page", {
+        "csrf_token": csrf_token, "description": "A barbershop open weekdays 9-6, haircuts 20 EUR.",
+    })
+    assert response.status_code == 200
+    html = response.get_data(as_text=True)
+    assert f'value="{existing_slug}"' in html
+    assert draft["slug"] not in html
+
+
+def test_generate_business_page_falls_back_to_business_name_slug_when_ai_slug_taken(client, unique_username, unique_email, monkeypatch):
+    taken_slug = f"taken-{uuid.uuid4().hex[:8]}"
+    register_business_web(client, "slug-owner-" + unique_username, "owner-" + unique_email)
+    owner_id = database.business_by_username("slug-owner-" + unique_username)[0]
+    database.upsert_business_page(owner_id, taken_slug, True, "T", "A")
+
+    draft = dict(VALID_DRAFT, slug=taken_slug)
+    monkeypatch.setattr(
+        page_generator.client.chat.completions, "create",
+        lambda **kwargs: _FakeResponse(json.dumps(draft)),
+    )
+    register_business_web(client, unique_username, unique_email)
+    csrf_token = get_csrf_token(client, "/profile")
+
+    response = web_post(client, "/profile/generate-page", {
+        "csrf_token": csrf_token, "description": "A barbershop open weekdays 9-6, haircuts 20 EUR.",
+    })
+    assert response.status_code == 200
+    html = response.get_data(as_text=True)
+    assert f'value="{taken_slug}"' not in html

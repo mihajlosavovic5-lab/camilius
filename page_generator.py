@@ -60,6 +60,7 @@ PAGE_SCHEMA = {
     "properties": {
         "tagline": {"type": "string", "description": "One short, appealing sentence a customer sees first (under 80 characters)."},
         "about": {"type": "string", "description": "2-4 warm, concrete sentences about the business - no filler, no made-up history."},
+        "slug": {"type": "string", "description": "A short, URL-friendly suggested web address for this business's page, e.g. 'blue-star-cafe' - lowercase ASCII letters, digits, and hyphens only, transliterating any non-Latin script or accented letters to plain ASCII. 2-4 words, based on the business's name or what it does."},
         "hours": {
             "type": "object",
             "properties": {day: _DAY_SCHEMA for day in _WEEKDAYS},
@@ -90,7 +91,7 @@ PAGE_SCHEMA = {
             },
         },
     },
-    "required": ["tagline", "about", "hours", "services", "faq"],
+    "required": ["tagline", "about", "slug", "hours", "services", "faq"],
     "additionalProperties": False,
 }
 
@@ -109,6 +110,9 @@ Rules:
 - tagline and about are customer-facing marketing copy: warm and specific, never generic
   filler like "we provide quality service to every customer".
 - faq answers should sound like the business owner speaking, not a legal disclaimer.
+- slug is not customer-facing copy - always fill it in, in plain ASCII (lowercase
+  letters/digits/hyphens only), even when the description itself is in another language
+  or script.
 """
 
 

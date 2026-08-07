@@ -119,6 +119,25 @@ def test_wizard_happy_path_publishes_a_page_and_completes_onboarding(client, uni
     assert client.get("/").status_code == 200
 
 
+def test_onboarding_address_prefills_ai_suggested_slug(client, unique_username, unique_email, monkeypatch):
+    register_business_web(client, unique_username, unique_email)
+    draft = dict(VALID_DRAFT, slug="the-fade-room")
+    monkeypatch.setattr(
+        page_generator.client.chat.completions, "create",
+        lambda **kwargs: _FakeResponse(json.dumps(draft)),
+    )
+    monkeypatch.setattr(ai_theme, "generate_theme_options", lambda *args, **kwargs: [])
+    csrf_token = get_csrf_token(client, "/onboarding/website")
+    web_post(client, "/onboarding/website", {
+        "csrf_token": csrf_token, "description": "A barbershop open weekdays 9-6, haircuts 20 EUR.",
+    })
+    csrf_token = get_csrf_token(client, "/onboarding/website/design")
+    web_post(client, "/onboarding/website/design", {"csrf_token": csrf_token, "theme": "bold"})
+
+    address_html = client.get("/onboarding/website/address").get_data(as_text=True)
+    assert 'value="the-fade-room"' in address_html
+
+
 def test_onboarding_describe_requires_a_description(client, unique_username, unique_email):
     register_business_web(client, unique_username, unique_email)
     csrf_token = get_csrf_token(client, "/onboarding/website")

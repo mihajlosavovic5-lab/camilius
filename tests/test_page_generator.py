@@ -27,6 +27,7 @@ class _FakeResponse:
 VALID_DRAFT = {
     "tagline": "Fresh cuts, fair prices",
     "about": "Family-run barbershop in the neighborhood since 2019.",
+    "slug": "fresh-cuts-barbershop",
     "hours": {
         "monday": {"open": "09:00", "close": "18:00"},
         "tuesday": {"open": "09:00", "close": "18:00"},
@@ -64,6 +65,7 @@ def test_generate_page_draft_passes_description_and_schema(monkeypatch):
     assert captured["messages"][-1] == {"role": "user", "content": "A barbershop."}
     assert captured["response_format"]["json_schema"]["schema"] == page_generator.PAGE_SCHEMA
     assert captured["response_format"]["json_schema"]["strict"] is True
+    assert "slug" in page_generator.PAGE_SCHEMA["required"]
 
 
 def test_generate_page_draft_rejects_empty_description():
