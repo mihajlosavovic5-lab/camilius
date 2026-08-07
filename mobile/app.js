@@ -4716,6 +4716,12 @@ function mysiteRenderThemeSuggestions(themeList) {
         radio.addEventListener("change", () => {
             mysiteSelectedCustomTheme = theme;
             mysitePopulateThemeSelect("custom");
+            // Same dispatch openDesignPicker() uses after driving the <select> programmatically -
+            // without it, mysite-theme-select's own "change" listener never runs, so neither the
+            // website preview swatch nor (when no web address is saved yet) saveMysitePreferredTheme
+            // fire. That left AI-suggested picks looking selected here but silently reverting later,
+            // the exact "chose a design, it reverted" bug the classic dropdown was already fixed for.
+            el("mysite-theme-select").dispatchEvent(new Event("change", { bubbles: true }));
             grid.querySelectorAll(".theme-suggestion-card").forEach((c) => c.classList.remove("selected"));
             card.classList.add("selected");
         });
