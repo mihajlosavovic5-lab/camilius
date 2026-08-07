@@ -64,11 +64,41 @@
                     <span class="note" data-i18n="appSettings.notifications.newBookingNote">Notifies you when a customer books an appointment.</span>
                 </div>
                 <label class="hours-day-toggle">
-                    <input type="checkbox" name="new_booking_notifications_enabled" {% if new_booking_notifications_enabled %}checked{% endif %} onchange="this.form.submit()">
+                    <input type="checkbox" name="new_booking_notifications_enabled" {% if new_booking_notifications_enabled %}checked{% endif %}>
                     <span class="hours-day-toggle-track"><span class="hours-day-toggle-thumb"></span></span>
                 </label>
             </div>
+
+            <div class="form-actions" style="text-align:right;">
+                <button class="button floating-save-btn hidden" type="submit" id="notifications-save-btn" data-i18n="settings.saveChanges">Save changes</button>
+            </div>
         </form>
+        <script>
+        (function () {
+            // onchange="this.form.submit()" used to fire a real, non-boosted full-page
+            // reload the instant this toggle was flipped - every other switch on this page
+            // (reminders-form right below) already moved off that same pattern to a
+            // hidden-until-dirty Save button instead (see initRemindersSaveButton's own
+            // comment), precisely because an unannounced full navigation mid-tap reads as
+            // the page yanking itself out from under you. This one form got missed in that
+            // migration; same fix, same snapshot-diff approach.
+            var form = document.getElementById("notifications-form");
+            var saveButton = document.getElementById("notifications-save-btn");
+            if (!form || !saveButton) return;
+
+            function serialize() {
+                var data = new FormData(form);
+                data.delete("csrf_token");
+                return new URLSearchParams(data).toString();
+            }
+
+            var snapshot = serialize();
+            function updateVisibility() {
+                saveButton.classList.toggle("hidden", serialize() === snapshot);
+            }
+            ["input", "change", "click"].forEach(function (evt) { form.addEventListener(evt, updateVisibility); });
+        })();
+        </script>
 
         {% if pro_access %}
             <form method="POST" action="{{ url_for('update_reminders') }}" id="reminders-form">

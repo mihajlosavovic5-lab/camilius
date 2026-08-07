@@ -4556,10 +4556,20 @@ el("mysite-save-btn").addEventListener("click", async () => {
     }
     button.disabled = true;
     button.textContent = t("settings.saveLoading");
+    // Same fix as saveProfileForm's own scrollTopBeforeSave above: loadMySite() below
+    // clears/rebuilds mysite-appointments-list and the theme <select> (innerHTML = ""
+    // then re-appended), which can momentarily shrink .inbox-list-wrap's content height
+    // enough for the WebView to clamp its scroll position back up - reads as autosave
+    // yanking the screen while you're mid-edit, since this fires on every debounced
+    // keystroke/toggle, not just a deliberate tap. Restoring the pre-save scrollTop
+    // afterward keeps you exactly where you were.
+    const scrollContainer = el("screen-mysite").querySelector(".inbox-list-wrap");
+    const scrollTopBeforeSave = scrollContainer ? scrollContainer.scrollTop : 0;
     try {
         await api("/api/page", { method: "POST", body });
         notifySaved(t("settings.saved"));
         await loadMySite();
+        if (scrollContainer) scrollContainer.scrollTop = scrollTopBeforeSave;
     } catch (err) {
         errorBox.textContent = err.message || t("network.error");
         errorBox.classList.remove("hidden");
