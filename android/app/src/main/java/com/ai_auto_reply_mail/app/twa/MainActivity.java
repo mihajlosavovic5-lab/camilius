@@ -7,6 +7,11 @@ import com.getcapacitor.BridgeActivity;
 public class MainActivity extends BridgeActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        // Must run before super.onCreate() - that's where BridgeActivity actually builds
+        // the plugin bridge (see its load()), so a plugin registered any later than this
+        // never makes it in and capacitorPlugins.ApkInstaller (mobile/app.js) is undefined.
+        registerPlugin(ApkInstallerPlugin.class);
+
         SplashScreen splashScreen = SplashScreen.installSplashScreen(this);
         super.onCreate(savedInstanceState);
 

@@ -386,7 +386,9 @@ if (capacitorPlugins) {
     // android/) can't ship through the OTA check above - they need a new signed APK
     // install. This offers that in-app instead of requiring the user be sent a link
     // manually. Android still shows its own "Install unknown app?" confirmation before
-    // installing - that step is an OS security measure and can't be skipped from here.
+    // installing - that step is an OS security measure and can't be skipped from here,
+    // but everything before it (the actual download) happens on its own, same principle
+    // as the OTA check above - no tap needed just to start fetching the update.
     (async () => {
         try {
             const response = await fetch(API_BASE + "/api/apk-version");
@@ -406,8 +408,23 @@ if (capacitorPlugins) {
             if (dismissedVersion === info.version) return;
 
             const banner = el("update-banner");
+            const downloadBtn = el("update-download-btn");
             banner.classList.remove("hidden");
-            el("update-download-btn").addEventListener("click", () => {
+
+            // Set once the background download below lands. Until then (and if it fails
+            // outright), the button falls back to the old behavior of handing the APK's
+            // URL to the system browser instead of a dead click.
+            let downloadedApkPath = null;
+            downloadBtn.addEventListener("click", async () => {
+                if (downloadedApkPath) {
+                    try {
+                        await capacitorPlugins.ApkInstaller.installApk({ path: downloadedApkPath });
+                        return;
+                    } catch (e) {
+                        reportClientError(e.message, e.stack, "apk-install");
+                        // Falls through to the browser-download fallback below.
+                    }
+                }
                 // Deliberately NOT capacitorPlugins.Browser.open() (Chrome Custom Tabs on
                 // Android, used elsewhere for OAuth/checkout) - Custom Tabs are known to
                 // leave a download's progress sheet stuck at 100% forever instead of
@@ -421,6 +438,37 @@ if (capacitorPlugins) {
                 await storageSet("apkUpdateDismissedVersion", info.version);
                 banner.classList.add("hidden");
             });
+
+            if (capacitorPlugins.Filesystem && capacitorPlugins.ApkInstaller) {
+                // Version-scoped filename so a still-there download from a previous
+                // launch (this check reruns on every cold start, not just once) is
+                // detected and reused instead of re-fetched over the network every time -
+                // and so it can never be mistaken for a different version's file.
+                const apkFileName = `camilius-update-${info.version}.apk`;
+                try {
+                    // Directory.Cache ("CACHE") resolves to the app's own private cache
+                    // dir (no storage permission needed) and is exactly what file_paths.xml's
+                    // <cache-path> grants FileProvider access to for ApkInstallerPlugin.
+                    const existing = await capacitorPlugins.Filesystem.stat({ path: apkFileName, directory: "CACHE" });
+                    downloadedApkPath = existing.uri;
+                    downloadBtn.textContent = t("update.install");
+                } catch (e) {
+                    // Not found (or unreadable) - fall through to a fresh download below.
+                }
+                if (!downloadedApkPath) {
+                    try {
+                        const downloaded = await capacitorPlugins.Filesystem.downloadFile({
+                            url: info.url,
+                            path: apkFileName,
+                            directory: "CACHE",
+                        });
+                        downloadedApkPath = downloaded.path;
+                        downloadBtn.textContent = t("update.install");
+                    } catch (e) {
+                        reportClientError(e.message, e.stack, "apk-auto-download");
+                    }
+                }
+            }
         } catch (e) {
             reportClientError(e.message, e.stack, "apk-update-check");
         }

@@ -404,6 +404,7 @@ const TRANSLATIONS = {
         "offline": "No internet connection",
         "update.available": "A new version of the app is available.",
         "update.download": "Download",
+        "update.install": "Install",
         "update.dismiss": "Dismiss",
         "update.installing": "Updating the app…",
 
@@ -782,6 +783,7 @@ const TRANSLATIONS = {
         "offline": "Nema internet konekcije",
         "update.available": "Dostupna je nova verzija aplikacije.",
         "update.download": "Preuzmi",
+        "update.install": "Instaliraj",
         "update.dismiss": "Odbaci",
         "update.installing": "Ažuriranje aplikacije…",
 
@@ -1086,6 +1088,7 @@ const TRANSLATIONS = {
         "offline": "Sin conexión a internet",
         "update.available": "Hay una nueva versión de la aplicación disponible.",
         "update.download": "Descargar",
+        "update.install": "Instalar",
         "update.dismiss": "Descartar",
         "update.installing": "Actualizando la aplicación…",
 
@@ -1390,6 +1393,7 @@ const TRANSLATIONS = {
         "offline": "Sem conexão com a internet",
         "update.available": "Uma nova versão do aplicativo está disponível.",
         "update.download": "Baixar",
+        "update.install": "Instalar",
         "update.dismiss": "Dispensar",
         "update.installing": "Atualizando o aplicativo…",
 
@@ -1694,6 +1698,7 @@ const TRANSLATIONS = {
         "offline": "Pas de connexion internet",
         "update.available": "Une nouvelle version de l'application est disponible.",
         "update.download": "Télécharger",
+        "update.install": "Installer",
         "update.dismiss": "Ignorer",
         "update.installing": "Mise à jour de l'application…",
 
@@ -1998,6 +2003,7 @@ const TRANSLATIONS = {
         "offline": "Keine Internetverbindung",
         "update.available": "Eine neue Version der App ist verfügbar.",
         "update.download": "Herunterladen",
+        "update.install": "Installieren",
         "update.dismiss": "Verwerfen",
         "update.installing": "App wird aktualisiert …",
 
@@ -2302,6 +2308,7 @@ const TRANSLATIONS = {
         "offline": "Nessuna connessione internet",
         "update.available": "È disponibile una nuova versione dell'app.",
         "update.download": "Scarica",
+        "update.install": "Installa",
         "update.dismiss": "Ignora",
         "update.installing": "Aggiornamento dell'app in corso…",
 
@@ -2606,6 +2613,7 @@ const TRANSLATIONS = {
         "offline": "Нет подключения к интернету",
         "update.available": "Доступна новая версия приложения.",
         "update.download": "Скачать",
+        "update.install": "Установить",
         "update.dismiss": "Скрыть",
         "update.installing": "Обновление приложения…",
 
@@ -2910,6 +2918,7 @@ const TRANSLATIONS = {
         "offline": "无网络连接",
         "update.available": "有可用的应用新版本。",
         "update.download": "下载",
+        "update.install": "安装",
         "update.dismiss": "关闭",
         "update.installing": "正在更新应用…",
 
@@ -3214,6 +3223,7 @@ const TRANSLATIONS = {
         "offline": "İnternet bağlantısı yok",
         "update.available": "Uygulamanın yeni bir sürümü mevcut.",
         "update.download": "İndir",
+        "update.install": "Yükle",
         "update.dismiss": "Kapat",
         "update.installing": "Uygulama güncelleniyor…",
 

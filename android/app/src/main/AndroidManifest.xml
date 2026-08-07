@@ -73,4 +73,11 @@
          the user taps Allow on the RECORD_AUDIO system dialog. -->
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
+    <!-- Lets the app launch the system package installer for an APK it already
+         downloaded itself (see ApkInstallerPlugin / mobile/app.js's apk-update-check),
+         instead of only being able to hand the user a link to open in a browser. Android
+         still shows its own "Install unknown app?" confirmation before installing - this
+         permission only unlocks offering that prompt from inside the app, it can't skip
+         it. -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
 </manifest>
