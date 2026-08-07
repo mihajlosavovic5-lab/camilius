@@ -628,7 +628,7 @@ def register():
                 contact_email=request.form["contact_email"],
                 working_hours=request.form["working_hours"],
                 price_list=request.form["price_list"],
-                faq=request.form["faq"],
+                faq=request.form.get("faq", ""),
                 phone_number=request.form.get("phone_number") or None,
                 # Once real Paddle billing is live, a new account no longer gets our own
                 # card-free self-serve trial (subscription_status stays 'none' - see
@@ -1369,7 +1369,9 @@ def settings():
         submitted_email = request.form["contact_email"].strip()
         working_hours = request.form["working_hours"]
         price_list = request.form["price_list"]
-        faq = request.form["faq"]
+        # No longer an editable field on this page - carry the existing value through
+        # unchanged (same pattern as phone_number below) instead of wiping it on every save.
+        faq = business[10]
         current_password = request.form.get("current_password", "")
         new_password = request.form.get("new_password", "")
 

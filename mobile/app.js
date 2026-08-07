@@ -572,6 +572,15 @@ function createPricePicker(rowsContainerId, addButtonId, currencyContainerId) {
     const currencyBtn = createOptionButton("RSD", CURRENCIES, "currency-picker-btn");
     el(currencyContainerId).appendChild(currencyBtn.el);
 
+    // Keeps every row's inline currency badge (see addRow below) matching the picker
+    // whenever the owner changes it - createOptionButton dispatches a bubbling "change"
+    // the same way a native <select> would.
+    function updatePriceCurrencyBadges() {
+        const currency = currencyBtn.value;
+        rowsContainer.querySelectorAll(".price-amount-currency").forEach((badge) => { badge.textContent = currency; });
+    }
+    currencyBtn.el.addEventListener("change", updatePriceCurrencyBadges);
+
     // Each row is two floating-label fields (Service / Price - same floating mechanism as
     // the login screen, see .floating-field in app.css) plus a remove button. The label
     // IS the translated text now (there's no separate example placeholder to show once
@@ -604,8 +613,15 @@ function createPricePicker(rowsContainerId, addButtonId, currencyContainerId) {
         const priceLabel = document.createElement("label");
         priceLabel.dataset.i18n = "pricePicker.pricePlaceholder";
         priceLabel.textContent = t("pricePicker.pricePlaceholder");
+        // Shows the currently selected currency inside the field itself (kept in sync
+        // below whenever the currency picker changes), instead of only in the currency
+        // row above.
+        const priceCurrency = document.createElement("span");
+        priceCurrency.className = "price-amount-currency";
+        priceCurrency.textContent = currencyBtn.value;
         priceField.appendChild(priceInput);
         priceField.appendChild(priceLabel);
+        priceField.appendChild(priceCurrency);
 
         const removeBtn = document.createElement("button");
         removeBtn.type = "button";
@@ -646,6 +662,7 @@ function createPricePicker(rowsContainerId, addButtonId, currencyContainerId) {
             if (lines.length === 0) {
                 addRow();
                 currencyBtn.value = "RSD";
+                updatePriceCurrencyBadges();
                 return;
             }
             let detectedCurrency = null;
@@ -661,6 +678,7 @@ function createPricePicker(rowsContainerId, addButtonId, currencyContainerId) {
                 addRow(service, price);
             });
             currencyBtn.value = detectedCurrency || "RSD";
+            updatePriceCurrencyBadges();
         },
         // False if any row has only one of service/price filled in - getValue() silently
         // drops such a row instead of erroring, which used to mean whatever the user typed
@@ -1826,7 +1844,7 @@ function openRegisterScreen({ name, contactEmail, googleLinkToken } = {}) {
     // HTML attribute set, so a native form reset would revert them to the browser's own
     // default (first option / unchecked) instead of our intended defaults. Clear the
     // plain fields by hand and use each picker's own .reset()/.setValue("") instead.
-    ["register-name", "register-username", "register-password", "register-confirm-password", "register-contact-email", "register-phone", "register-faq"].forEach((id) => {
+    ["register-name", "register-username", "register-password", "register-confirm-password", "register-contact-email", "register-phone"].forEach((id) => {
         el(id).value = "";
     });
     el("register-terms").checked = false;
@@ -1915,7 +1933,6 @@ el("register-form").addEventListener("submit", async (event) => {
                 phone_number: composePhoneNumber(el("register-phone"), selectedPhoneCountry),
                 working_hours: registerHoursPicker.getValue(),
                 price_list: registerPricesPicker.getValue(),
-                faq: el("register-faq").value,
                 accept_terms: el("register-terms").checked,
                 push_enabled: el("register-push-toggle").checked,
                 new_booking_notifications_enabled: el("register-new-booking-toggle").checked,
@@ -2694,7 +2711,6 @@ function serializeProfileForm() {
         phone: composePhoneNumber(el("settings-phone"), selectedProfilePhoneCountry),
         hours: profileHoursPicker.getValue(),
         prices: profilePricesPicker.getValue(),
-        faq: el("settings-faq").value,
         upsell: profileUpsellPicker.getValue(),
         currentPassword: el("settings-current-password").value,
         newPassword: el("settings-new-password").value,
@@ -2793,7 +2809,6 @@ async function loadSettingsIntoForm() {
         updatePhoneVerifyStatus(data.phone_number, data.phone_verified, data.sms_verification_available, data.phone_login_enabled);
         profileHoursPicker.setValue(data.working_hours);
         profilePricesPicker.setValue(data.price_list);
-        el("settings-faq").value = data.faq;
         profileUpsellPicker.setValue(data.upsell_pairs || "");
         resetPasswordField("settings-current-password");
         resetPasswordField("settings-new-password");
@@ -3098,7 +3113,6 @@ async function saveProfileForm() {
                 phone_number: composePhoneNumber(el("settings-phone"), selectedProfilePhoneCountry),
                 working_hours: profileHoursPicker.getValue(),
                 price_list: profilePricesPicker.getValue(),
-                faq: el("settings-faq").value,
                 upsell_pairs: state.proAccess ? profileUpsellPicker.getValue() : undefined,
                 current_password: currentPassword || undefined,
                 new_password: newPassword || undefined,
@@ -4455,12 +4469,11 @@ async function mysiteSubmitDescription() {
             // delegated listener that normally reveals the Save button (see
             // updateMysiteSaveValidity above) never fires on its own - poke it here instead.
             updateMysiteSaveValidity();
-            // Hours/prices/FAQ live in the Profile tab's own fields, not here (the AI still
+            // Hours/prices live in the Profile tab's own fields, not here (the AI still
             // drafts them - see api_generate_page - but this screen only owns the page's own
-            // presentation fields). FAQ is a plain textarea, safe to pre-fill directly; hours/
-            // prices go through Profile's own pickers, which the owner is pointed at via
-            // mysite.draft.reviewHint above rather than this screen reaching into them.
-            if (el("settings-faq")) el("settings-faq").value = draft.faq || "";
+            // presentation fields), so they go through Profile's own pickers, which the owner
+            // is pointed at via mysite.draft.reviewHint above rather than this screen reaching
+            // into them.
         }
         if (themesResult.status === "fulfilled") {
             mysiteRenderThemeSuggestions(themesResult.value.themes || []);

@@ -46,7 +46,7 @@ const COUNTRY_LANG_MAP = {
 const TRANSLATIONS = {
     en: {
         "common.home": "Home",
-        "common.mySite": "My Website",
+        "common.mySite": "Home",
         "common.conversations": "Conversations",
         "common.schedule": "Schedule",
         "common.subscription": "Subscription",
@@ -643,7 +643,7 @@ const TRANSLATIONS = {
 
     es: {
         "common.home": "Inicio",
-        "common.mySite": "Mi sitio web",
+        "common.mySite": "Inicio",
         "common.conversations": "Conversaciones",
         "common.schedule": "Agenda",
         "common.subscription": "Suscripción",
@@ -1126,7 +1126,7 @@ const TRANSLATIONS = {
 
     pt: {
         "common.home": "Início",
-        "common.mySite": "Meu site",
+        "common.mySite": "Início",
         "common.conversations": "Conversas",
         "common.schedule": "Agenda",
         "common.subscription": "Assinatura",
@@ -1609,7 +1609,7 @@ const TRANSLATIONS = {
 
     fr: {
         "common.home": "Accueil",
-        "common.mySite": "Mon site",
+        "common.mySite": "Accueil",
         "common.conversations": "Conversations",
         "common.schedule": "Agenda",
         "common.subscription": "Abonnement",
@@ -2092,7 +2092,7 @@ const TRANSLATIONS = {
 
     de: {
         "common.home": "Startseite",
-        "common.mySite": "Meine Website",
+        "common.mySite": "Start",
         "common.conversations": "Konversationen",
         "common.schedule": "Terminkalender",
         "common.subscription": "Abo",
@@ -2575,7 +2575,7 @@ const TRANSLATIONS = {
 
     it: {
         "common.home": "Home",
-        "common.mySite": "Il mio sito",
+        "common.mySite": "Home",
         "common.conversations": "Conversazioni",
         "common.schedule": "Agenda",
         "common.subscription": "Abbonamento",
@@ -3058,7 +3058,7 @@ const TRANSLATIONS = {
 
     ru: {
         "common.home": "Главная",
-        "common.mySite": "Мой сайт",
+        "common.mySite": "Главная",
         "common.conversations": "Разговоры",
         "common.schedule": "Расписание",
         "common.subscription": "Подписка",
@@ -3541,7 +3541,7 @@ const TRANSLATIONS = {
 
     sr: {
         "common.home": "Početna",
-        "common.mySite": "Moj sajt",
+        "common.mySite": "Početna",
         "common.conversations": "Razgovori",
         "common.schedule": "Raspored",
         "common.subscription": "Pretplata",
@@ -4118,7 +4118,7 @@ const TRANSLATIONS = {
 
     zh: {
         "common.home": "首页",
-        "common.mySite": "我的网站",
+        "common.mySite": "首页",
         "common.conversations": "对话",
         "common.schedule": "日程安排",
         "common.subscription": "订阅",
@@ -4601,7 +4601,7 @@ const TRANSLATIONS = {
 
     tr: {
         "common.home": "Ana Sayfa",
-        "common.mySite": "Web Sitem",
+        "common.mySite": "Ana Sayfa",
         "common.conversations": "Konuşmalar",
         "common.schedule": "Program",
         "common.subscription": "Abonelik",

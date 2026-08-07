@@ -188,6 +188,7 @@ function createPricePicker(mountId, addButtonId, currencySelectId, hiddenFieldId
 
     function sync() {
         const currency = currencySelect.value;
+        mount.querySelectorAll(".price-amount-currency").forEach((el) => { el.textContent = currency; });
         hiddenField.value = Array.from(mount.querySelectorAll(".price-row-picker"))
             .map((row) => {
                 const service = row.querySelector(".price-service-input").value.trim();
@@ -209,12 +210,26 @@ function createPricePicker(mountId, addButtonId, currencySelectId, hiddenFieldId
         serviceInput.value = service || "";
         serviceInput.className = "price-service-input";
 
+        const priceWrap = document.createElement("div");
+        priceWrap.className = "price-amount-wrap";
+
         const priceInput = document.createElement("input");
         priceInput.type = "text";
         priceInput.placeholder = t("pickers.pricePlaceholder");
         priceInput.setAttribute("data-i18n-placeholder", "pickers.pricePlaceholder");
         priceInput.value = price || "";
         priceInput.className = "price-amount-input";
+
+        // Shows the currently selected currency inside the field itself (kept in sync by
+        // sync() above, whenever the currency dropdown changes) - the code already gets
+        // appended to the stored price on save, this just previews it inline instead of
+        // making the owner check the currency row separately.
+        const priceCurrency = document.createElement("span");
+        priceCurrency.className = "price-amount-currency";
+        priceCurrency.textContent = currencySelect.value;
+
+        priceWrap.appendChild(priceInput);
+        priceWrap.appendChild(priceCurrency);
 
         const removeBtn = document.createElement("button");
         removeBtn.type = "button";
@@ -227,7 +242,7 @@ function createPricePicker(mountId, addButtonId, currencySelectId, hiddenFieldId
         priceInput.addEventListener("input", sync);
 
         row.appendChild(serviceInput);
-        row.appendChild(priceInput);
+        row.appendChild(priceWrap);
         row.appendChild(removeBtn);
         mount.appendChild(row);
     }

@@ -346,7 +346,7 @@ const TRANSLATIONS = {
         "help.faq11Q": "Can I delete my account and data?",
         "help.faq11A": "Yes - go to Settings and choose Delete account. This permanently removes your account and conversations and can't be undone.",
 
-        "tab.mySite": "My Site",
+        "tab.mySite": "Home",
         "tab.inbox": "Conversations",
         "tab.schedule": "Schedule",
         "mysite.appointments.title": "Coming up",
@@ -723,7 +723,7 @@ const TRANSLATIONS = {
         "help.faq11Q": "Mogu li da obrišem svoj nalog i podatke?",
         "help.faq11A": "Da, idi u Podešavanja i izaberi Obriši nalog. Ovo trajno uklanja tvoj nalog i razgovore i ne može se poništiti.",
 
-        "tab.mySite": "Moj sajt",
+        "tab.mySite": "Početna",
         "tab.inbox": "Razgovori",
         "tab.schedule": "Raspored",
         "mysite.appointments.title": "Uskoro",
@@ -1053,7 +1053,7 @@ const TRANSLATIONS = {
         "help.faq11Q": "¿Puedo eliminar mi cuenta y mis datos?",
         "help.faq11A": "Sí, ve a Configuración y elige Eliminar cuenta. Esto elimina tu cuenta y conversaciones de forma permanente y no se puede deshacer.",
 
-        "tab.mySite": "Mi sitio",
+        "tab.mySite": "Inicio",
         "tab.inbox": "Conversaciones",
         "tab.schedule": "Agenda",
         "tab.profile": "Perfil",
@@ -1356,7 +1356,7 @@ const TRANSLATIONS = {
         "help.faq11Q": "Posso excluir minha conta e meus dados?",
         "help.faq11A": "Sim, vá em Configurações e escolha Excluir conta. Isso remove sua conta e conversas permanentemente e não pode ser desfeito.",
 
-        "tab.mySite": "Meu site",
+        "tab.mySite": "Início",
         "tab.inbox": "Conversas",
         "tab.schedule": "Agenda",
         "tab.profile": "Perfil",
@@ -1659,7 +1659,7 @@ const TRANSLATIONS = {
         "help.faq11Q": "Puis-je supprimer mon compte et mes données ?",
         "help.faq11A": "Oui, allez dans Paramètres et choisissez Supprimer le compte. Cela supprime définitivement votre compte et vos conversations, et c'est irréversible.",
 
-        "tab.mySite": "Mon site",
+        "tab.mySite": "Accueil",
         "tab.inbox": "Conversations",
         "tab.schedule": "Agenda",
         "tab.profile": "Profil",
@@ -1962,7 +1962,7 @@ const TRANSLATIONS = {
         "help.faq11Q": "Kann ich mein Konto und meine Daten löschen?",
         "help.faq11A": "Ja, geh zu Einstellungen und wähle Konto löschen. Das entfernt dein Konto und deine Unterhaltungen dauerhaft und kann nicht rückgängig gemacht werden.",
 
-        "tab.mySite": "Meine Website",
+        "tab.mySite": "Start",
         "tab.inbox": "Unterhaltungen",
         "tab.schedule": "Terminkalender",
         "tab.profile": "Profil",
@@ -2265,7 +2265,7 @@ const TRANSLATIONS = {
         "help.faq11Q": "Posso eliminare il mio account e i miei dati?",
         "help.faq11A": "Sì, vai su Impostazioni e scegli Elimina account. Questo rimuove definitivamente account e conversazioni e non può essere annullato.",
 
-        "tab.mySite": "Il mio sito",
+        "tab.mySite": "Home",
         "tab.inbox": "Conversazioni",
         "tab.schedule": "Agenda",
         "tab.profile": "Profilo",
@@ -2568,7 +2568,7 @@ const TRANSLATIONS = {
         "help.faq11Q": "Могу ли я удалить свой аккаунт и данные?",
         "help.faq11A": "Да, зайдите в Настройки и выберите Удалить аккаунт. Это навсегда удалит ваш аккаунт и диалоги, и отменить это нельзя.",
 
-        "tab.mySite": "Мой сайт",
+        "tab.mySite": "Главная",
         "tab.inbox": "Разговоры",
         "tab.schedule": "Расписание",
         "tab.profile": "Профиль",
@@ -2871,7 +2871,7 @@ const TRANSLATIONS = {
         "help.faq11Q": "我可以删除我的账户和数据吗？",
         "help.faq11A": "可以，前往设置并选择删除账户。这会永久删除您的账户和对话，且无法撤销。",
 
-        "tab.mySite": "我的网站",
+        "tab.mySite": "首页",
         "tab.inbox": "对话",
         "tab.schedule": "日程安排",
         "tab.profile": "资料",
@@ -3174,7 +3174,7 @@ const TRANSLATIONS = {
         "help.faq11Q": "Hesabımı ve verilerimi silebilir miyim?",
         "help.faq11A": "Evet, Ayarlar'a gidip Hesabı sil seçeneğini seçin. Bu, hesabınızı ve konuşmalarınızı kalıcı olarak kaldırır ve geri alınamaz.",
 
-        "tab.mySite": "Web Sitem",
+        "tab.mySite": "Ana Sayfa",
         "tab.inbox": "Konuşmalar",
         "tab.schedule": "Program",
         "tab.profile": "Profil",

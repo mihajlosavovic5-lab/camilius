@@ -41,7 +41,7 @@
              there since desktop pills already hug their own text) stretched all the way
              across the row instead of sitting under the word like it does on desktop. -->
         <div class="nav-links" id="nav-links" hx-boost="true" hx-replace-url="true">
-            <a href="{{ url_for('home') }}" class="{{ 'active' if request.endpoint == 'home' }}"><span class="nav-link-label" data-i18n="common.mySite">My Website</span></a>
+            <a href="{{ url_for('home') }}" class="{{ 'active' if request.endpoint == 'home' }}"><span class="nav-link-label" data-i18n="common.mySite">Home</span></a>
             <a href="{{ url_for('schedule') }}" class="nav-link-with-badge {{ 'active' if request.endpoint == 'schedule' }}">
                 <span class="nav-link-label" data-i18n="common.schedule">Schedule</span>
             </a>

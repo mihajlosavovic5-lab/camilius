@@ -1577,6 +1577,15 @@ body.auth {
 .price-picker-rows { display: flex; flex-direction: column; gap: 8px; }
 .price-row-picker { display: flex; gap: 8px; align-items: center; }
 .price-row-picker input { flex: 1; min-width: 0; }
+/* .price-amount-wrap holds the price input plus a read-only currency badge pinned to its
+   right edge (kept in sync with the currency dropdown above - see sync() in pickers.js),
+   so the selected currency previews inline instead of only showing in the row above. */
+.price-amount-wrap { position: relative; flex: 1; min-width: 0; }
+.price-amount-wrap .price-amount-input { width: 100%; box-sizing: border-box; padding-right: 44px; }
+.price-amount-currency {
+    position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+    font-size: 12.5px; font-weight: 700; color: var(--text-muted); pointer-events: none;
+}
 .price-remove-btn {
     width: 32px; height: 32px; border-radius: 50%; border: none; background: var(--background);
     color: var(--text-muted); font-size: 19px; line-height: 1; cursor: pointer; flex-shrink: 0;

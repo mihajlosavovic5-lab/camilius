@@ -559,6 +559,14 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
 .price-row .floating-field input:not(:placeholder-shown) + label {
     height: 15px; font-size: 10px;
 }
+/* Read-only currency badge pinned to the price field's right edge (kept in sync with the
+   currency picker above - see updatePriceCurrencyBadges in app.js), so the selected
+   currency previews inline instead of only showing in the row above. */
+.floating-field-price input[type="text"] { padding-right: 34px; }
+.price-amount-currency {
+    position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
+    font-size: 11px; font-weight: 700; color: var(--text-muted); pointer-events: none;
+}
 
 /* Show/hide password toggle - an eye icon inside the right edge of a password field
    (login, sign up, and the Profile screen's security fields). Marked with
