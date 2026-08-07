@@ -326,7 +326,19 @@ if (capacitorPlugins) {
                 step = "current";
                 const current = await capacitorPlugins.CapacitorUpdater.current();
                 const activeVersion = (current && current.bundle) ? current.bundle.version : "unknown";
-                if (activeVersion === manifest.version) {
+                // current() reports the literal string "builtin" for a bundle that's
+                // never been OTA-updated - which would never equal manifest.version (a
+                // real content hash) even when the APK was JUST built from this exact
+                // mobile/ source, forcing a same-content re-download and the "Updating
+                // app" overlay on every fresh install. document.documentElement's
+                // data-bundle-version carries the hash this exact index.html was built
+                // with (see build_mobile_bundle.py) - substitute it in for "builtin" so
+                // a fresh install that already matches the server correctly no-ops.
+                const effectiveActiveVersion =
+                    activeVersion === "builtin"
+                        ? document.documentElement.dataset.bundleVersion || activeVersion
+                        : activeVersion;
+                if (effectiveActiveVersion === manifest.version) {
                     return;
                 }
 

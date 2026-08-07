@@ -1,4 +1,3 @@
-import hashlib
 import os
 import secrets
 from datetime import date as date_type, datetime, timedelta
@@ -1353,15 +1352,27 @@ def api_client_error():
 # was silently skipped as "already applied", even though the zip's contents kept changing.
 # Hashing the file removes the whole class of mistake - the version now changes
 # automatically, exactly when and only when the content actually does.
+#
+# Read from mobile-bundle.version (written by build_mobile_bundle.py alongside the zip)
+# rather than hashed from the zip's own bytes here: that same stamp is also baked into
+# mobile/index.html's data-bundle-version attribute, which a freshly built native APK
+# carries too (see mobile/app.js's checkForOtaUpdate) - a fresh install needs to be able
+# to tell "the builtin bundle already IS this version" apart from "an OTA update actually
+# changed something", and that only works if both sides compute the identical value from
+# the identical inputs. Hashing the zip container here independently would drift from
+# that baked-in value even when the content is byte-identical (zip entries carry
+# filesystem mtimes), forcing every fresh install to download a same-content OTA update
+# it doesn't need.
 _MOBILE_BUNDLE_PATH = os.path.join(os.path.dirname(__file__), "static", "mobile-bundle.zip")
+_MOBILE_BUNDLE_VERSION_PATH = os.path.join(os.path.dirname(__file__), "static", "mobile-bundle.version")
 
 
 @api.route("/mobile-manifest")
 def api_mobile_manifest():
-    if not os.path.exists(_MOBILE_BUNDLE_PATH):
+    if not os.path.exists(_MOBILE_BUNDLE_PATH) or not os.path.exists(_MOBILE_BUNDLE_VERSION_PATH):
         return jsonify(available=False)
-    with open(_MOBILE_BUNDLE_PATH, "rb") as f:
-        version = hashlib.sha256(f.read()).hexdigest()[:16]
+    with open(_MOBILE_BUNDLE_VERSION_PATH, "r") as f:
+        version = f.read().strip()
     return jsonify(
         available=True,
         version=version,
