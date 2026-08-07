@@ -76,7 +76,7 @@ public class MainActivity extends BridgeActivity {
     }
 
     @Override
-    protected void onResume() {
+    public void onResume() {
         super.onResume();
         // Resumes an IMMEDIATE update the visitor backed out of mid-flow - Play
         // requires that one to be re-shown on the next resume, it can't just be
@@ -92,7 +92,7 @@ public class MainActivity extends BridgeActivity {
     }
 
     @Override
-    protected void onDestroy() {
+    public void onDestroy() {
         appUpdateManager.unregisterListener(installStateListener);
         super.onDestroy();
     }
