@@ -392,10 +392,7 @@ if (capacitorPlugins) {
     // Native-code changes (new plugin, permissions, icon, splash, anything under
     // android/) can't ship through the OTA check above - they need a new signed APK
     // install. This offers that in-app instead of requiring the user be sent a link
-    // manually. Android still shows its own "Install unknown app?" confirmation before
-    // installing - that step is an OS security measure and can't be skipped from here,
-    // but everything before it (the actual download) happens on its own, same principle
-    // as the OTA check above - no tap needed just to start fetching the update.
+    // manually.
     (async () => {
         try {
             const response = await fetch(API_BASE + "/api/apk-version");
@@ -417,27 +414,27 @@ if (capacitorPlugins) {
             const banner = el("update-banner");
             const downloadBtn = el("update-download-btn");
 
-            // Set once the background download below lands. Until then (and if it fails
-            // outright), the button falls back to the old behavior of handing the APK's
-            // URL to the system browser instead of a dead click.
-            let downloadedApkPath = null;
-            downloadBtn.addEventListener("click", async () => {
-                if (downloadedApkPath) {
-                    try {
-                        await capacitorPlugins.ApkInstaller.installApk({ path: downloadedApkPath });
-                        return;
-                    } catch (e) {
-                        reportClientError(e.message, e.stack, "apk-install");
-                        // Falls through to the browser-download fallback below.
-                    }
-                }
-                // Deliberately NOT capacitorPlugins.Browser.open() (Chrome Custom Tabs on
-                // Android, used elsewhere for OAuth/checkout) - Custom Tabs are known to
-                // leave a download's progress sheet stuck at 100% forever instead of
-                // handing off to the system Download Manager for a real "download
-                // complete" notification/Open action, even once the file's fully written
-                // to disk. "_system" opens this in the actual full browser app instead,
-                // whose downloads behave normally.
+            downloadBtn.addEventListener("click", () => {
+                // Deliberately the system browser, not ApkInstallerPlugin's direct
+                // install Intent (still in android/ for now, just unused here): that
+                // path makes OUR app the install source, which needs its OWN "Install
+                // unknown apps" grant in Android Settings - a separate toggle most
+                // testers have never had a reason to visit even after happily
+                // sideloading before, since it's scoped per-source-app rather than
+                // being one global switch. Worse, Android reports that install Intent
+                // as launched successfully regardless of whether it then shows that
+                // blocked screen, so there was no failure here to fall back from - a
+                // tester could get stuck with no obvious next step. Handing the same
+                // URL to the system browser instead reuses whatever source most
+                // sideloaders already trust (Chrome et al.), matching the download
+                // page's (templates/download.html) flow, which is already known to work.
+                // Deliberately NOT capacitorPlugins.Browser.open() (Chrome Custom Tabs
+                // on Android, used elsewhere for OAuth/checkout) - Custom Tabs are
+                // known to leave a download's progress sheet stuck at 100% forever
+                // instead of handing off to the system Download Manager for a real
+                // "download complete" notification/Open action, even once the file's
+                // fully written to disk. "_system" opens this in the actual full
+                // browser app instead, whose downloads behave normally.
                 window.open(info.url, "_system");
             });
             el("update-dismiss-btn").addEventListener("click", async () => {
@@ -445,41 +442,6 @@ if (capacitorPlugins) {
                 banner.classList.add("hidden");
             });
 
-            if (capacitorPlugins.Filesystem && capacitorPlugins.ApkInstaller) {
-                // Version-scoped filename so a still-there download from a previous
-                // launch (this check reruns on every cold start, not just once) is
-                // detected and reused instead of re-fetched over the network every time -
-                // and so it can never be mistaken for a different version's file.
-                const apkFileName = `camilius-update-${info.version}.apk`;
-                try {
-                    // Directory.Cache ("CACHE") resolves to the app's own private cache
-                    // dir (no storage permission needed) and is exactly what file_paths.xml's
-                    // <cache-path> grants FileProvider access to for ApkInstallerPlugin.
-                    const existing = await capacitorPlugins.Filesystem.stat({ path: apkFileName, directory: "CACHE" });
-                    downloadedApkPath = existing.uri;
-                } catch (e) {
-                    // Not found (or unreadable) - fall through to a fresh download below.
-                }
-                if (!downloadedApkPath) {
-                    try {
-                        const downloaded = await capacitorPlugins.Filesystem.downloadFile({
-                            url: info.url,
-                            path: apkFileName,
-                            directory: "CACHE",
-                        });
-                        downloadedApkPath = downloaded.path;
-                    } catch (e) {
-                        reportClientError(e.message, e.stack, "apk-auto-download");
-                    }
-                }
-            }
-
-            // Only surface the banner once the background download above has already
-            // settled - either it landed (button opens straight to "Install", the
-            // download itself was never something to show) or it failed/isn't possible
-            // here (button falls back to "Download", same as before this auto-download
-            // behavior existed).
-            downloadBtn.textContent = downloadedApkPath ? t("update.install") : t("update.download");
             banner.classList.remove("hidden");
         } catch (e) {
             reportClientError(e.message, e.stack, "apk-update-check");
