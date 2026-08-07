@@ -409,7 +409,6 @@ if (capacitorPlugins) {
 
             const banner = el("update-banner");
             const downloadBtn = el("update-download-btn");
-            banner.classList.remove("hidden");
 
             // Set once the background download below lands. Until then (and if it fails
             // outright), the button falls back to the old behavior of handing the APK's
@@ -451,7 +450,6 @@ if (capacitorPlugins) {
                     // <cache-path> grants FileProvider access to for ApkInstallerPlugin.
                     const existing = await capacitorPlugins.Filesystem.stat({ path: apkFileName, directory: "CACHE" });
                     downloadedApkPath = existing.uri;
-                    downloadBtn.textContent = t("update.install");
                 } catch (e) {
                     // Not found (or unreadable) - fall through to a fresh download below.
                 }
@@ -463,12 +461,19 @@ if (capacitorPlugins) {
                             directory: "CACHE",
                         });
                         downloadedApkPath = downloaded.path;
-                        downloadBtn.textContent = t("update.install");
                     } catch (e) {
                         reportClientError(e.message, e.stack, "apk-auto-download");
                     }
                 }
             }
+
+            // Only surface the banner once the background download above has already
+            // settled - either it landed (button opens straight to "Install", the
+            // download itself was never something to show) or it failed/isn't possible
+            // here (button falls back to "Download", same as before this auto-download
+            // behavior existed).
+            downloadBtn.textContent = downloadedApkPath ? t("update.install") : t("update.download");
+            banner.classList.remove("hidden");
         } catch (e) {
             reportClientError(e.message, e.stack, "apk-update-check");
         }
