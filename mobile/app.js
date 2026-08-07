@@ -4661,9 +4661,12 @@ async function mysiteSubmitDescription() {
     const button = el("mysite-send-btn");
     // Not button.disabled = true: that flips on the button's :disabled CSS (dulls it to
     // the grayed-out "can't tap this" look), which is the opposite of what a loading
-    // spinner should communicate. The "loading" class's own pointer-events: none (see
-    // app.css) blocks a second tap just as well, without touching the button's color.
-    button.classList.add("loading");
+    // spinner should communicate. The "send-loading" class's own pointer-events: none
+    // (see app.css) blocks a second tap just as well, without touching the button's
+    // color. Named "send-loading", not the generic "loading" helper class used
+    // elsewhere in app.css for list placeholders - that class carries its own
+    // padding/flex rules which leaked onto this button and ballooned it when reused.
+    button.classList.add("send-loading");
     button.setAttribute("aria-busy", "true");
     try {
         const draft = await api("/api/generate-page", { method: "POST", body: { description } });
@@ -4684,7 +4687,7 @@ async function mysiteSubmitDescription() {
         errorBox.textContent = (err && err.message) || t("network.error");
         errorBox.classList.remove("hidden");
     } finally {
-        button.classList.remove("loading");
+        button.classList.remove("send-loading");
         button.removeAttribute("aria-busy");
     }
 }

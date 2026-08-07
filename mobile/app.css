@@ -1544,16 +1544,20 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
    in flight - deliberately NOT the :disabled rules above (those dull the circle to a
    grayed-out color/lose its shadow), since the point here is the opposite: same gold
    circle, same size, just a spinner in place of the arrow. pointer-events blocks a
-   second tap the way :disabled normally would. */
-.textarea-send-btn.loading { pointer-events: none; }
-.textarea-send-btn.loading svg { display: none; }
+   second tap the way :disabled normally would.
+   "send-loading", not the generic "loading" class used elsewhere for list/empty-state
+   placeholders (see .loading above, padding: 30px; flex: 1; ...) - class names are global
+   in CSS, and reusing "loading" here let that unrelated rule's flex/padding leak onto
+   this button and balloon the circle to roughly 2x its size. */
+.textarea-send-btn.send-loading { pointer-events: none; }
+.textarea-send-btn.send-loading svg { display: none; }
 .send-btn-spinner {
     display: none;
     width: 16px; height: 16px; border-radius: 50%;
     border: 2px solid rgba(255,255,255,.35); border-top-color: #fff;
     animation: ota-spin .7s linear infinite;
 }
-.textarea-send-btn.loading .send-btn-spinner { display: block; }
+.textarea-send-btn.send-loading .send-btn-spinner { display: block; }
 .voice-status { font-size: 13px; color: var(--text-muted); margin: 6px 2px 0; }
 .voice-status.voice-status-error { color: var(--danger); }
 .voice-status:empty { display: none; }
