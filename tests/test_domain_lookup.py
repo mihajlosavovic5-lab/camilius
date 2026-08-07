@@ -73,3 +73,18 @@ def test_check_domains_strips_leading_and_trailing_dots(monkeypatch):
     monkeypatch.setattr(domain_lookup, "check_domain", lambda domain: domain_lookup.AVAILABLE)
     results = domain_lookup.check_domains(".blue-star-cafe.", tlds=[".com"])
     assert results == [{"domain": "blue-star-cafe.com", "status": domain_lookup.AVAILABLE}]
+
+
+def test_check_domains_drops_a_tld_the_owner_already_typed(monkeypatch):
+    """Regression test: an owner typing "mihajlo-prodaja.com" into the web-address field
+    (a very natural thing to type, even though the field itself wants a bare name) used
+    to get appended straight onto each candidate TLD, producing nonsense domains like
+    "mihajlo-prodaja.com.com" that RDAP could never resolve - every result came back
+    UNKNOWN ("Couldn't check"). Only the part before the first "." should ever be used."""
+    monkeypatch.setattr(domain_lookup, "check_domain", lambda domain: domain_lookup.AVAILABLE)
+    results = domain_lookup.check_domains("mihajlo-prodaja.com", tlds=[".com", ".net", ".rs"])
+    assert results == [
+        {"domain": "mihajlo-prodaja.com", "status": domain_lookup.AVAILABLE},
+        {"domain": "mihajlo-prodaja.net", "status": domain_lookup.AVAILABLE},
+        {"domain": "mihajlo-prodaja.rs", "status": domain_lookup.AVAILABLE},
+    ]

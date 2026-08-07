@@ -45,12 +45,16 @@ def check_domain(domain):
 
 
 def check_domains(base_name, tlds=None):
-    """base_name: a slug-shaped name with no TLD (e.g. page_generator's AI-suggested
-    page slug, "blue-star-cafe") - reused as-is, not re-slugified, since callers already
-    have a clean candidate (pages.slugify's output, or an owner's own web-address field).
-    Returns [{"domain": "blue-star-cafe.com", "status": AVAILABLE|TAKEN|UNKNOWN}, ...],
-    one entry per tld (DEFAULT_TLDS if not given) - [] if base_name is blank."""
-    base_name = (base_name or "").strip().strip(".")
+    """base_name: nominally a slug-shaped name with no TLD (e.g. page_generator's
+    AI-suggested page slug, "blue-star-cafe"), but callers include a free-text web-
+    address field an owner can type anything into - including, reasonably enough, a
+    full domain like "blue-star-cafe.com" they already have in mind. Only the part
+    before the first "." is ever used, so that case checks "blue-star-cafe.com/.net/.rs"
+    the same as a bare "blue-star-cafe" would, instead of building nonsense candidates
+    like "blue-star-cafe.com.com". Returns
+    [{"domain": "blue-star-cafe.com", "status": AVAILABLE|TAKEN|UNKNOWN}, ...], one entry
+    per tld (DEFAULT_TLDS if not given) - [] if nothing's left after that split."""
+    base_name = (base_name or "").strip().strip(".").split(".", 1)[0].strip("-")
     if not base_name:
         return []
     return [
