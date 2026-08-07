@@ -4389,24 +4389,19 @@ async function loadMySite() {
         const page = data.page;
         state.mysiteHasPage = !!page;
 
-        el("mysite-website-preview").classList.toggle("hidden", !page);
         el("mysite-view-site-link").classList.toggle("hidden", !(page && page.published));
         // Cached (along with hasAppointments below) so next launch can show this section
         // in its right shape right away instead of waiting on this same fetch every time -
         // same reasoning as pageTheme/donationLink above it in the boot sequence. Without
-        // this, the preview card, the "View your live site" button, and the appointments
-        // card all start hidden and pop in a moment later, shoving the whole rest of the
-        // screen down after it already looks fully loaded.
+        // this, the "View your live site" button and the appointments card both pop in a
+        // moment later, shoving the whole rest of the screen down after it already looks
+        // fully loaded.
         storageSet("mysiteHasPage", page ? "1" : "").catch(() => {});
         storageSet("mysitePublished", page && page.published ? "1" : "").catch(() => {});
         if (page) {
             el("mysite-website-status").textContent = page.published
                 ? (t("mysite.website.live") || "Live") + " · " + page.slug
                 : (t("mysite.website.draft") || "Not published yet");
-            el("mysite-tagline").textContent = page.tagline || "";
-            el("mysite-about").textContent = page.about || "";
-            storageSet("mysiteTagline", page.tagline || "").catch(() => {});
-            storageSet("mysiteAbout", page.about || "").catch(() => {});
             el("mysite-slug").value = page.slug || "";
             el("mysite-tagline-input").value = page.tagline || "";
             el("mysite-about-input").value = page.about || "";
@@ -4418,15 +4413,6 @@ async function loadMySite() {
             mysitePopulateThemeSelect(page.theme);
             storageSet("pageTheme", page.theme || "warm").catch(() => {});
             mysiteSelectedCustomTheme = page.theme === "custom" && page.custom_theme_json ? JSON.parse(page.custom_theme_json) : null;
-            const swatch = el("mysite-theme-swatch");
-            if (mysiteSelectedCustomTheme) {
-                swatch.style.background = mysiteSelectedCustomTheme.base.surface;
-                swatch.style.borderColor = mysiteSelectedCustomTheme.base.primary;
-            } else {
-                const classic = CLASSIC_THEMES.find((c) => c.id === page.theme) || CLASSIC_THEMES[1];
-                swatch.style.background = classic.surface;
-                swatch.style.borderColor = classic.primary;
-            }
         } else {
             el("mysite-website-status").textContent = "";
             // No page yet - seed the Design row from whatever was picked before a web
@@ -4439,15 +4425,6 @@ async function loadMySite() {
             storageSet("pageTheme", preferredTheme).catch(() => {});
             mysiteSelectedCustomTheme = preferredTheme === "custom" && data.preferred_custom_theme_json
                 ? JSON.parse(data.preferred_custom_theme_json) : null;
-            const swatch = el("mysite-theme-swatch");
-            if (mysiteSelectedCustomTheme) {
-                swatch.style.background = mysiteSelectedCustomTheme.base.surface;
-                swatch.style.borderColor = mysiteSelectedCustomTheme.base.primary;
-            } else {
-                const classic = CLASSIC_THEMES.find((c) => c.id === preferredTheme) || CLASSIC_THEMES[1];
-                swatch.style.background = classic.surface;
-                swatch.style.borderColor = classic.primary;
-            }
         }
         mysiteFormSnapshot = serializeMysiteForm();
         updateMysiteSaveValidity();
@@ -4515,17 +4492,8 @@ async function saveMysitePreferredTheme(themeValue) {
 }
 
 el("mysite-theme-select").addEventListener("change", (event) => {
-    const swatch = el("mysite-theme-swatch");
     if (event.target.value !== "custom") {
         mysiteSelectedCustomTheme = null;
-        const classic = CLASSIC_THEMES.find((c) => c.id === event.target.value);
-        if (classic) {
-            swatch.style.background = classic.surface;
-            swatch.style.borderColor = classic.primary;
-        }
-    } else if (mysiteSelectedCustomTheme) {
-        swatch.style.background = mysiteSelectedCustomTheme.base.surface;
-        swatch.style.borderColor = mysiteSelectedCustomTheme.base.primary;
     }
     if (!state.mysiteHasPage) {
         saveMysitePreferredTheme(event.target.value);
@@ -5252,7 +5220,7 @@ function waitForLayoutSettle() {
 updateOfflineBanner();
 
 (async () => {
-    const [token, businessName, onboardingSeen, theme, donationLink, pageTheme, mysiteHasPage, mysiteTagline, mysiteAbout, mysiteHasAppointments, mysitePublished, mysiteSlug, googleLoginPendingState] = await Promise.all([
+    const [token, businessName, onboardingSeen, theme, donationLink, pageTheme, mysiteHasPage, mysiteHasAppointments, mysitePublished, mysiteSlug, googleLoginPendingState] = await Promise.all([
         storageGet("token"),
         storageGet("businessName"),
         storageGet("onboardingSeen"),
@@ -5260,8 +5228,6 @@ updateOfflineBanner();
         storageGet("donationLink"),
         storageGet("pageTheme"),
         storageGet("mysiteHasPage"),
-        storageGet("mysiteTagline"),
-        storageGet("mysiteAbout"),
         storageGet("mysiteHasAppointments"),
         storageGet("mysitePublished"),
         storageGet("mysiteSlug"),
@@ -5283,23 +5249,14 @@ updateOfflineBanner();
     // /api/page fetch resolves. Corrected by that same fetch moments later if the
     // business's design actually changed.
     mysitePopulateThemeSelect(pageTheme || "warm");
-    // Same reasoning again - the website preview card and the "Coming up" appointments
-    // card both start hidden in the raw HTML and otherwise only appear once loadMySite()'s
-    // fetch resolves, which shoves the whole rest of the My Site tab (its own web address/
-    // tagline/about fields, the Design row, everything below) down a beat after the tab
-    // already looks fully loaded - since My Site is the landing tab, that happens on every
-    // single launch. Applying last launch's cached shape immediately avoids that jump;
-    // loadMySite() corrects it moments later if anything actually changed.
+    // Same reasoning again - the "Coming up" appointments card starts hidden in the raw
+    // HTML and otherwise only appears once loadMySite()'s fetch resolves, which shoves
+    // the whole rest of the My Site tab (its own web address/tagline/about fields, the
+    // Design row, everything below) down a beat after the tab already looks fully loaded
+    // - since My Site is the landing tab, that happens on every single launch. Applying
+    // last launch's cached shape immediately avoids that jump; loadMySite() corrects it
+    // moments later if anything actually changed.
     state.mysiteHasPage = mysiteHasPage === "1";
-    el("mysite-website-preview").classList.toggle("hidden", !mysiteHasPage);
-    if (mysiteHasPage) {
-        el("mysite-tagline").textContent = mysiteTagline || "";
-        el("mysite-about").textContent = mysiteAbout || "";
-        const classic = CLASSIC_THEMES.find((c) => c.id === pageTheme) || CLASSIC_THEMES[1];
-        const swatch = el("mysite-theme-swatch");
-        swatch.style.background = classic.surface;
-        swatch.style.borderColor = classic.primary;
-    }
     el("mysite-appointments-card").classList.toggle("hidden", !mysiteHasAppointments);
     el("mysite-view-site-link").classList.toggle("hidden", !mysitePublished);
     if (mysitePublished && mysiteSlug) el("mysite-view-site-link").href = `${API_BASE}/p/${mysiteSlug}`;
