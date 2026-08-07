@@ -948,22 +948,24 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
    cubic-bezier(.22,1,.36,1) is a gentle decelerate ("ease-out-quint") - content settles
    into place instead of snapping to a stop like the old linear-ish .4,0,.2,1 curve did.
    The inner wrapper also fades + drifts down half a row on top of the height grow
-   (delayed .1s so it trails the unfold rather than popping in at zero height), and on
-   the way back out it fades on its own quick timing with no delay - the two together
-   read as one continuous reveal opening and a crisp, un-mushy close. */
+   (delayed so it trails the unfold rather than popping in at zero height), and on the
+   way back out it fades on its own quicker timing with no delay - the two together
+   read as one continuous reveal opening and a crisp, un-mushy close. Durations run
+   slower than a typical UI micro-transition on purpose - this is a rare, deliberate
+   action (not a hover/press), so it reads better lingering a beat than snapping fast. */
 .hours-advanced-view {
     display: grid; grid-template-rows: 0fr;
-    transition: grid-template-rows .42s cubic-bezier(.22, 1, .36, 1);
+    transition: grid-template-rows .6s cubic-bezier(.22, 1, .36, 1);
 }
 .hours-advanced-view-open { grid-template-rows: 1fr; }
 .hours-advanced-view-inner {
     display: flex; flex-direction: column; gap: 10px; min-height: 0; overflow: hidden;
-    opacity: 0; transform: translateY(-6px);
-    transition: opacity .16s ease, transform .16s ease;
+    opacity: 0; transform: translateY(-8px);
+    transition: opacity .22s ease, transform .22s ease;
 }
 .hours-advanced-view-open .hours-advanced-view-inner {
     opacity: 1; transform: translateY(0);
-    transition: opacity .32s ease .12s, transform .36s cubic-bezier(.22, 1, .36, 1) .12s;
+    transition: opacity .48s ease .18s, transform .52s cubic-bezier(.22, 1, .36, 1) .18s;
 }
 
 .hours-quickfill {
