@@ -1541,8 +1541,11 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
 .textarea-send-btn:disabled { border-color: #cabfa4; color: #cabfa4; background: transparent; box-shadow: none; }
 .textarea-send-btn.has-text:disabled { background: #cabfa4; color: #fff; box-shadow: none; }
 /* Swaps the arrow icon for a spinning ring while mysiteSubmitDescription()'s request is
-   in flight - button.disabled alone left the button looking identically "sent, idle",
-   so a slow AI draft/theme call read as a frozen tap rather than work in progress. */
+   in flight - deliberately NOT the :disabled rules above (those dull the circle to a
+   grayed-out color/lose its shadow), since the point here is the opposite: same gold
+   circle, same size, just a spinner in place of the arrow. pointer-events blocks a
+   second tap the way :disabled normally would. */
+.textarea-send-btn.loading { pointer-events: none; }
 .textarea-send-btn.loading svg { display: none; }
 .send-btn-spinner {
     display: none;
