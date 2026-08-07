@@ -10,6 +10,16 @@ on:
     branches: [master]
   pull_request:
 
+# Several automated sessions push to master in quick succession; without this, each
+# push queues its own full test run and they pile up waiting for a free runner, sitting
+# queued for 15-20 minutes before GitHub eventually cancels them - reported (and
+# emailed) as a failed run even though no test ever actually ran. Cancel any run
+# still queued/in-progress for the same branch or PR the moment a newer commit lands,
+# so only the latest one actually runs.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   test:
     runs-on: ubuntu-latest
