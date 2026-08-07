@@ -23,7 +23,19 @@ def test_check_domain_returns_taken_on_200(monkeypatch):
 
 def test_check_domain_returns_unknown_on_other_status(monkeypatch):
     monkeypatch.setattr(domain_lookup.requests, "get", lambda *a, **kw: _FakeResponse(500))
-    assert domain_lookup.check_domain("some-domain.rs") == domain_lookup.UNKNOWN
+    assert domain_lookup.check_domain("some-domain.net") == domain_lookup.UNKNOWN
+
+
+def test_check_domain_skips_the_network_call_for_an_unsupported_tld(monkeypatch):
+    """.rs (and any TLD outside _RDAP_SUPPORTED_TLDS) has no real RDAP server - rdap.org's
+    own "I don't know this TLD" 404 is indistinguishable from a real registry's "this
+    domain isn't registered" 404, so this must never even make the request (which would
+    let that ambiguous 404 get misread as AVAILABLE - the exact bug this guards against)."""
+    def fail_if_called(*a, **kw):
+        raise AssertionError("requests.get should not be called for an unsupported TLD")
+
+    monkeypatch.setattr(domain_lookup.requests, "get", fail_if_called)
+    assert domain_lookup.check_domain("mihajlo-prodaja.rs") == domain_lookup.UNKNOWN
 
 
 def test_check_domain_returns_unknown_on_request_exception(monkeypatch):
@@ -37,8 +49,9 @@ def test_check_domain_returns_unknown_on_request_exception(monkeypatch):
 def test_check_domain_hits_rdap_org_with_the_full_domain(monkeypatch):
     captured = {}
 
-    def fake_get(url, timeout=None):
+    def fake_get(url, headers=None, timeout=None):
         captured["url"] = url
+        captured["headers"] = headers
         captured["timeout"] = timeout
         return _FakeResponse(404)
 
@@ -46,6 +59,7 @@ def test_check_domain_hits_rdap_org_with_the_full_domain(monkeypatch):
     domain_lookup.check_domain("blue-star-cafe.com")
     assert captured["url"] == "https://rdap.org/domain/blue-star-cafe.com"
     assert captured["timeout"] == domain_lookup._RDAP_TIMEOUT
+    assert captured["headers"]["User-Agent"]
 
 
 def test_check_domains_builds_one_candidate_per_tld(monkeypatch):

@@ -7,9 +7,13 @@ this", nothing more. Distinct from pages.py's own slug - that's a path on THIS p
 Uses rdap.org's free bootstrap redirector rather than talking to each TLD's registry
 RDAP server directly - it looks up the right server from IANA's registry and forwards the
 request, so this doesn't need its own copy of that TLD->server mapping. Best-effort: many
-ccTLD registries (including .rs, at the time of writing) don't run an RDAP server at all,
-so a lookup for those comes back "unknown" rather than a guess - callers show that as
-"couldn't check", never as available or taken.
+ccTLD registries (including .rs, at the time of writing) don't run an RDAP server at all -
+_RDAP_SUPPORTED_TLDS below is what actually enforces that (rather than just documenting
+it and hoping): a TLD outside it never even makes a request, since rdap.org's own 404 for
+"I don't know this TLD at all" is indistinguishable from a real registry's 404 for "this
+specific domain isn't registered" - treating the former as AVAILABLE would be a guess
+dressed up as a real answer. Callers show UNKNOWN as "couldn't check", never as available
+or taken.
 """
 import requests
 
@@ -18,10 +22,20 @@ import requests
 # single RDAP lookup.
 _RDAP_TIMEOUT = 5
 
-# .com/.net are the two RDAP-backed gTLDs a Serbian small business is most likely to
-# actually want; .rs itself isn't RDAP-checkable (see module docstring) but is kept as a
-# candidate anyway - check_domain's own "unknown" result still surfaces it to the owner
-# as "couldn't check automatically, verify at rnids.rs" rather than silently omitting it.
+# rdap.org itself expects this (some public RDAP endpoints reject/rate-limit anonymous
+# requests with no UA harder than ones that identify themselves).
+_REQUEST_HEADERS = {"User-Agent": "Camilius-DomainCheck/1.0", "Accept": "application/rdap+json"}
+
+# TLDs actually known to run a real RDAP server (Verisign, for both) - see module
+# docstring for why this allowlist exists at all, not just .com/.net being the ones a
+# Serbian small business is most likely to want. Extend this only after confirming a new
+# TLD's registry genuinely publishes RDAP (check https://data.iana.org/rdap/dns.json),
+# not just because a business asked for it.
+_RDAP_SUPPORTED_TLDS = frozenset({".com", ".net"})
+
+# .rs itself isn't in _RDAP_SUPPORTED_TLDS (so never live-checked, always UNKNOWN) but is
+# kept as a default candidate anyway - still worth surfacing to the owner as "couldn't
+# check automatically, verify at rnids.rs" rather than silently omitting it.
 DEFAULT_TLDS = [".com", ".net", ".rs"]
 
 AVAILABLE = "available"
@@ -29,12 +43,19 @@ TAKEN = "taken"
 UNKNOWN = "unknown"
 
 
+def _tld_of(domain):
+    return domain[domain.index("."):] if "." in domain else ""
+
+
 def check_domain(domain):
-    """domain: a full "name.tld" string, e.g. "blue-star-cafe.com". Returns AVAILABLE,
-    TAKEN, or UNKNOWN (the RDAP request errored, timed out, or the TLD's registry has no
-    RDAP server for rdap.org to bootstrap to) - never a guessed answer."""
+    """domain: a full "name.tld" string, e.g. "blue-star-cafe.com". Returns UNKNOWN
+    immediately, with no network call, for any TLD outside _RDAP_SUPPORTED_TLDS -
+    otherwise AVAILABLE, TAKEN, or UNKNOWN (the RDAP request errored, timed out, or
+    returned neither a clean 404 nor 200) - never a guessed answer."""
+    if _tld_of(domain) not in _RDAP_SUPPORTED_TLDS:
+        return UNKNOWN
     try:
-        response = requests.get(f"https://rdap.org/domain/{domain}", timeout=_RDAP_TIMEOUT)
+        response = requests.get(f"https://rdap.org/domain/{domain}", headers=_REQUEST_HEADERS, timeout=_RDAP_TIMEOUT)
     except requests.RequestException:
         return UNKNOWN
     if response.status_code == 404:
