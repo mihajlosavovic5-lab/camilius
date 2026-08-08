@@ -166,7 +166,7 @@ def release_db_lock():
     logic for the same "one bad request can't wedge everything" property one layer up).
     Without this, that single skipped close() would leave the lock permanently held for
     every request after it on whichever thread picks them up. A script that never runs
-    inside a Flask request (reminders.py's own process, obradi_email.py,
+    inside a Flask request (reminders.py's own process, process_emails.py,
     migrate_to_english.py, ...) never calls this - any such gap there just holds the lock
     for that process's own remaining lifetime, harmless since there's no second thread in
     that process to ever block on it."""
