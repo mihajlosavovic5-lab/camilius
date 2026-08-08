@@ -1052,7 +1052,16 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
 .hours-day-times { display: flex; align-items: center; gap: 6px; flex: 1; min-width: 0; }
 .hours-day-times.hidden { display: none; }
 .hours-day-closed-label { flex: 1; min-width: 0; font-size: 14px; color: var(--text-muted); }
-.time-picker-btn { flex: 1; min-width: 0; width: 100%; }
+/* No min-width: 0 here (unlike most flex:1 items in this file) - that override lets a
+   flex item shrink below what its own content needs, and since a button's overflow is
+   visible by default, the label+chevron pair (justify-content: space-between, in
+   .picker-btn) then paints past the button's own border into the row's background
+   instead of wrapping inside it - exactly what made the dropdown chevron look like it
+   was floating loose next to the field rather than inside it, worse the larger the
+   phone's system font-size setting scales the label text up. Left at the default
+   min-width: auto instead, so flex can still shrink this button to split evenly with
+   its sibling, but never past the point where its own content would spill outside it. */
+.time-picker-btn { flex: 1; width: 100%; }
 .hours-time-sep { color: var(--text-muted); font-size: 14px; flex-shrink: 0; }
 
 .hours-day-toggle { position: relative; display: inline-block; width: 42px; height: 24px; cursor: pointer; flex-shrink: 0; margin-left: auto; }
