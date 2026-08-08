@@ -524,20 +524,19 @@ if (capacitorPlugins) {
 // same wire format the backend/AI already expect - JSON for working hours (see
 // hours-picker.js), plain text for the price list - so nothing else has to change) ---
 
-// Shared anchored option-list picker (Faza 4) - replaces native <select> dropdowns
-// (working-hours times, price-list currency) that used to open as a large OS-centered
-// dialog on Android, which read as a jarring "zoomed modal" popping up over the whole
-// screen. Works exactly like the country-code picker above - one shared fixed-overlay
-// instance per field "kind", positioned by JS to sit right below whichever button was
-// tapped, so it reads as an inline dropdown attached to that field. Lives outside #app
-// for the same reason the language/country modals do (a .screen's CSS transform would
-// otherwise hijack position:fixed descendants - see the HTML comment above #lang-modal).
-// One instance (backed by one #<modalId> in index.html) can serve any number of buttons/
+// Shared option-list picker (Faza 4, re-centered later) - replaces native <select>
+// dropdowns (working-hours times, price-list currency, duration/lead-time fields).
+// Opens centered on screen with a scale-in "zoom" and a dimmed backdrop (same
+// transform/backdrop machinery as the Book/Confirm modals - see .country-modal-sheet
+// and .lang-modal-backdrop) rather than anchored below whichever field was tapped -
+// tapping anywhere on the dimmed backdrop closes it. Lives outside #app for the same
+// reason the language/country modals do (a .screen's CSS transform would otherwise
+// hijack position:fixed descendants - see the HTML comment above #lang-modal). One
+// instance (backed by one #<modalId> in index.html) can serve any number of buttons/
 // option-sets, since the option list itself is (re)rendered fresh on every open() call
 // rather than built once up front.
 function createAnchoredListPicker(modalId) {
     const modal = el(modalId);
-    const sheet = modal.querySelector(".lang-modal-sheet");
     const backdrop = modal.querySelector(".lang-modal-backdrop");
     const list = modal.querySelector(".country-modal-list");
     let openTriggerBtn = null;
@@ -558,35 +557,6 @@ function createAnchoredListPicker(modalId) {
             list.appendChild(optionBtn);
         });
 
-        const rect = triggerBtn.getBoundingClientRect();
-        const margin = 12;
-        const top = rect.bottom + 6;
-        // Stop above the bottom tab bar instead of running the sheet's max-height out to
-        // the raw viewport edge - the tab bar sits on top of it (own z-index 20 vs. this
-        // modal's 61), so the sheet used to render its last option(s) behind the tab bar
-        // rather than stopping short of it. Falls back to the viewport edge when the tab
-        // bar itself is hidden (e.g. Login/Register screens don't have one).
-        const bottomLimit = tabbar.classList.contains("hidden") ? window.innerHeight : tabbar.getBoundingClientRect().top;
-        const available = bottomLimit - top - margin;
-        sheet.style.top = `${top}px`;
-        sheet.style.left = `${rect.left}px`;
-        // Matches the trigger's own width, edge to edge, same as before - EXCEPT an
-        // option whose text (nowrap - see .country-option-btn) can't actually fit that
-        // width (e.g. "15 min" against the narrow reminder-lead-time field) forced it to
-        // wrap onto a second line instead. "auto" on a position:fixed box with only
-        // `left` set shrink-to-fits its content (CSS2.1 10.3.7), so measuring that first
-        // gives the width nothing wraps at - then the field width only wins when it's
-        // already wide enough, instead of a blanket minimum that overhangs every field.
-        sheet.style.width = "auto";
-        const naturalWidth = sheet.getBoundingClientRect().width;
-        const maxWidth = window.innerWidth - rect.left - margin;
-        sheet.style.width = `${Math.min(Math.max(rect.width, naturalWidth), maxWidth)}px`;
-        // No minimum floor here anymore - a field sitting close to the tab bar can have
-        // well under 160px of real room above it, and forcing a 160px-tall sheet in that
-        // case is exactly what ran it behind the tab bar despite bottomLimit above (a
-        // floor bigger than the actual available space just overrides that limit back
-        // out). Clamped at 0 so a field with no room left doesn't get a negative height.
-        sheet.style.maxHeight = `${Math.max(0, Math.min(240, available))}px`;
         modal.classList.add("open");
         // Always open scrolled to the very top of the list, not centered on whichever
         // option is currently selected - centering could leave the first option cut off
