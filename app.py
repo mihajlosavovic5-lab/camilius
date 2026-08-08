@@ -2162,6 +2162,64 @@ def onboarding_website_preview():
     )
 
 
+# "View Page" from the site overview / My Site home screen - lets a business see the
+# real, complete site Camilius built for them from everything it has on file (tagline,
+# about, hours, prices, FAQ, theme, media) even before they've published it, which
+# public_page() itself can't do since it 404s on an unpublished slug (see its own
+# docstring). Reuses public_page.html the same way onboarding_website_preview() above
+# does - preview=True, noindex, no live chat/booking widget wired up (nothing here is a
+# real slug a visitor could reach) - except this pulls the business's actual saved page
+# row instead of an in-progress onboarding draft, so what the owner sees here is exactly
+# what /p/<slug> will show the moment they publish.
+@app.route("/site/preview")
+@login_required
+def site_preview():
+    business_id = session["business_id"]
+    page_row = get_business_page(business_id)
+    if page_row is None:
+        abort(404)
+    business = business_by_id(business_id)
+    media = business_media.media_for_page(business_id)
+    return render_template(
+        "public_page.html",
+        business_name=business[1],
+        working_hours=business[8],
+        price_list=business[9],
+        faq=business[10],
+        tagline=page_row[4],
+        about=page_row[5],
+        opening_hours_schema=[],
+        opening_hours_display=pages.opening_hours_display(business[8]),
+        page_url="",
+        chat_url="",
+        slug=page_row[2],
+        theme=themes.resolve_theme(page_row[9], page_row[10]),
+        preview=True,
+        show_badge=False,
+        logo_url=media["logo_url"],
+        gallery_urls=media["gallery_urls"],
+        hero_video_url=media["hero_video_url"],
+    )
+
+
+# Mobile-app equivalent of the "View page" button above - same token-bridge pattern as
+# /schedule/<token> and /subscription/<token>, since Capacitor's Browser plugin can't
+# attach the app's Bearer token to a request it opens. Establishes a real session then
+# redirects into the same site_preview() route the website's own button uses.
+@app.route("/site/preview/<token>")
+def site_preview_mobile(token):
+    from api import business_id_from_site_preview_link_token  # deferred: avoid circular import at module load
+
+    business_id = business_id_from_site_preview_link_token(token)
+    if business_id is None:
+        abort(404)
+    business = business_by_id(business_id)
+    if business:
+        session["business_id"] = business_id
+        session["business_name"] = business[1]
+    return redirect(url_for("site_preview"))
+
+
 # Bell icon (base.html, shown on every logged-in page) - owner appointment reminders
 # (reminders.py) land here instead of an email, so this is polled once per page load the
 # same way the mobile app's /api/notifications is. Session-authed web equivalent of that

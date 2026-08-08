@@ -160,6 +160,30 @@ def business_id_from_schedule_link_token(token):
     return data.get("business_id")
 
 
+# Same bridge, for the mobile app's "View page" button (My Site home screen) - the full
+# public_page.html preview render only exists on the website, so this opens it in the
+# in-app browser exactly like Schedule/Subscription do above.
+SITE_PREVIEW_LINK_MAX_AGE = 60 * 10
+
+
+def _site_preview_link_serializer():
+    return URLSafeTimedSerializer(os.environ["FLASK_SECRET_KEY"], salt="mobile-site-preview-link")
+
+
+def make_site_preview_link_token(business_id):
+    return _site_preview_link_serializer().dumps({"business_id": business_id})
+
+
+def business_id_from_site_preview_link_token(token):
+    if not token:
+        return None
+    try:
+        data = _site_preview_link_serializer().loads(token, max_age=SITE_PREVIEW_LINK_MAX_AGE)
+    except (BadSignature, SignatureExpired):
+        return None
+    return data.get("business_id")
+
+
 def require_api_auth(function):
     @wraps(function)
     def wrapped(*args, **kwargs):
@@ -517,6 +541,15 @@ def api_subscription_link():
 def api_schedule_link():
     token = make_schedule_link_token(request.business_id)
     return jsonify(url=f"{request.url_root}schedule/{token}")
+
+
+# Same bridge pattern, for the "View page" button on the mobile app's My Site home
+# screen - see make_site_preview_link_token and app.py's /site/preview/<token>.
+@api.route("/site-preview-link")
+@require_api_auth
+def api_site_preview_link():
+    token = make_site_preview_link_token(request.business_id)
+    return jsonify(url=f"{request.url_root}site/preview/{token}")
 
 
 # Native Schedule tab (mobile day/week calendar) - JSON equivalent of app.py's /schedule

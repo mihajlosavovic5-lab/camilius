@@ -47,6 +47,7 @@
             </div>
         </div>
         <div class="form-actions" style="display:flex; gap:10px; flex-wrap:wrap; justify-content:flex-start; margin-top:16px;">
+            <a class="button" href="{{ url_for('site_preview') }}" target="_blank" rel="noopener" data-i18n="siteOverview.website.viewPage">View page</a>
             {% if page.published %}
                 <a class="button button-secondary" href="{{ page_url_prefix }}{{ page.slug }}" target="_blank" rel="noopener" data-i18n="siteOverview.website.view">View your live site</a>
             {% endif %}

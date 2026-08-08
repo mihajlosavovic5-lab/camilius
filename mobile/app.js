@@ -3466,6 +3466,24 @@ async function openChoosePlan() {
 el("subscription-choose-plan-btn").addEventListener("click", openChoosePlan);
 el("subscription-choose-plan-btn-2").addEventListener("click", openChoosePlan);
 
+// "View page" on the My Site tab - same bridge as "Choose a plan" above, opening the
+// full public_page.html render (see app.py's site_preview()/site_preview_mobile()) in
+// the in-app browser so the owner can see the complete site Camilius built from
+// everything on file, even before it's published.
+async function openSitePreview() {
+    try {
+        const data = await api("/api/site-preview-link");
+        if (capacitorPlugins && capacitorPlugins.Browser) {
+            await capacitorPlugins.Browser.open({ url: data.url });
+        } else {
+            window.open(data.url, "_blank");
+        }
+    } catch (err) {
+        reportClientError(err.message, err.stack, "site-preview-link");
+    }
+}
+el("mysite-view-page-btn").addEventListener("click", openSitePreview);
+
 const SUPPORT_EMAIL = "support@ai-auto-reply-mail.com";
 
 el("help-email-btn").addEventListener("click", () => {
@@ -4390,6 +4408,7 @@ async function loadMySite() {
         const page = data.page;
         state.mysiteHasPage = !!page;
 
+        el("mysite-view-page-btn").classList.toggle("hidden", !page);
         el("mysite-view-site-link").classList.toggle("hidden", !(page && page.published));
         // Cached (along with hasAppointments below) so next launch can show this section
         // in its right shape right away instead of waiting on this same fetch every time -
@@ -5305,6 +5324,7 @@ updateOfflineBanner();
     // moments later if anything actually changed.
     state.mysiteHasPage = mysiteHasPage === "1";
     el("mysite-appointments-card").classList.toggle("hidden", !mysiteHasAppointments);
+    el("mysite-view-page-btn").classList.toggle("hidden", !state.mysiteHasPage);
     el("mysite-view-site-link").classList.toggle("hidden", !mysitePublished);
     if (mysitePublished && mysiteSlug) el("mysite-view-site-link").href = `${API_BASE}/p/${mysiteSlug}`;
 
