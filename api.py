@@ -986,6 +986,7 @@ def api_get_page():
     page = None if page_row is None else {
         "slug": page_row[2], "published": page_row[3], "tagline": page_row[4], "about": page_row[5],
         "theme": page_row[9], "custom_theme_json": page_row[10],
+        "pending_custom_domain": page_row[11], "custom_domain": page_row[12], "custom_domain_status": page_row[13],
     }
 
     # Same "next 7 days, confirmed only" window as the website's own site-overview home()
@@ -1033,6 +1034,13 @@ def api_save_page():
     elif theme not in themes.THEMES:
         theme = None
 
+    # The real external domain (mihajlo-prodaja.com) picked via the mobile app's
+    # "Choose" button on an /api/check-domains "available" result - see
+    # domain_lookup.normalize_pending_domain for why this is re-validated here rather
+    # than trusted as-is. Silently dropped (never a 400) if malformed, same "not
+    # something to hard-fail the whole save over" treatment invalid theme gets above.
+    pending_custom_domain = domain_lookup.normalize_pending_domain(data.get("pending_custom_domain"))
+
     # A Design pick made before this business has ever set a real web address - no page
     # row exists yet (get_business_page is None) and no slug was even attempted (blank,
     # not just invalid). Persist ONLY the theme preference on businesses and return
@@ -1049,7 +1057,7 @@ def api_save_page():
         return jsonify(error="Please choose a web address using only lowercase letters, numbers, and hyphens."), 400
 
     try:
-        upsert_business_page(business_id, slug, published, tagline, about, None, theme, custom_theme_json)
+        upsert_business_page(business_id, slug, published, tagline, about, None, theme, custom_theme_json, pending_custom_domain)
     except UniqueViolation:
         return jsonify(error="That web address is already taken - please choose another."), 409
 

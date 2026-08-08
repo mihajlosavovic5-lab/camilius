@@ -4315,6 +4315,7 @@ function serializeMysiteForm() {
         published: el("mysite-published").checked,
         theme: el("mysite-theme-select").value,
         customTheme: mysiteSelectedCustomTheme ? JSON.stringify(mysiteSelectedCustomTheme) : "",
+        pendingCustomDomain: mysiteChosenDomain || "",
     });
 }
 
@@ -4404,6 +4405,8 @@ async function loadMySite() {
                 : (t("mysite.website.draft") || "Not published yet");
             el("mysite-slug").value = page.slug || "";
             mysiteSyncDomainCheckBtnVisibility();
+            mysiteChosenDomain = page.pending_custom_domain || null;
+            mysiteRenderChosenDomain();
             el("mysite-tagline-input").value = page.tagline || "";
             el("mysite-about-input").value = page.about || "";
             el("mysite-published").checked = !!page.published;
@@ -4546,6 +4549,7 @@ el("mysite-save-btn").addEventListener("click", async () => {
         about: el("mysite-about-input").value.trim(),
         published: el("mysite-published").checked,
         theme: themeValue,
+        pending_custom_domain: mysiteChosenDomain || null,
     };
     if (themeValue === "custom" && mysiteSelectedCustomTheme) {
         body.custom_theme_json = JSON.stringify(mysiteSelectedCustomTheme);
@@ -4611,24 +4615,43 @@ let mysiteStopRecordingIfActive = () => false;
 // IIFE, and just as much a no-op on devices where recording isn't supported at all.
 let mysiteCancelRecordingIfActive = () => false;
 
-const MYSITE_DOMAIN_STATUS_KEY = {
-    available: "mysite.website.domainAvailable",
-    taken: "mysite.website.domainTaken",
-    unknown: "mysite.website.domainUnknown",
-};
-const MYSITE_DOMAIN_STATUS_BADGE_CLASS = {
-    available: "badge-domain-available",
-    taken: "badge-domain-taken",
-    unknown: "badge-domain-unknown",
-};
+// The real, independently-registrable domain (mihajlo-prodaja.com) the owner picked via
+// a "Choose" button below - null until they choose one. Kept separate from mysite-slug
+// (that field is strictly the platform's own /p/<slug> path, see MYSITE_SLUG_RE, and
+// can't hold a dotted domain name), and separate from api.py's naming: this is the
+// *pending* pick, purchased automatically once the owner publishes (not yet owned).
+let mysiteChosenDomain = null;
+
+function mysiteRenderChosenDomain() {
+    const chip = el("mysite-chosen-domain");
+    el("mysite-chosen-domain-name").textContent = mysiteChosenDomain || "";
+    chip.classList.toggle("hidden", !mysiteChosenDomain);
+    // Reflect the current pick on every visible "Choose" button too (e.g. after
+    // switching away and back to My Site, or picking a different candidate from the
+    // same results list) rather than only updating the chip.
+    el("mysite-domain-check-results").querySelectorAll(".mysite-domain-choose-btn").forEach((btn) => {
+        const chosen = btn.dataset.domain === mysiteChosenDomain;
+        btn.classList.toggle("chosen", chosen);
+        btn.textContent = chosen ? t("mysite.website.domainChosen") || "✓" : t("mysite.website.domainChoose") || "Choose";
+    });
+}
+
+function mysiteChooseDomain(domain) {
+    mysiteChosenDomain = domain;
+    mysiteRenderChosenDomain();
+}
+el("mysite-chosen-domain-clear").addEventListener("click", () => mysiteChooseDomain(null));
 
 // "Check real domain availability" - queries domain_lookup.py's RDAP-based check (see
 // /api/check-domains) for baseName across .com/.net/.rs. Entirely separate from the
 // mysite-slug field's own meaning (this platform's own /p/<slug> page address) - this
 // only tells the owner whether a real, independently-registrable domain of the same
-// name is free. A plain function declaration, not just a click listener, so
-// mysiteSubmitDescription below can also call it once a draft suggests (or keeps) a web
-// address, same "AI does the legwork" spirit as the drafted tagline/about themselves.
+// name is free. Only "available" candidates are ever rendered - a domain the owner
+// can't actually have isn't worth showing here, unlike the parallel desktop version
+// (templates/settings.html) which is a plainer read-only status list. A plain function
+// declaration, not just a click listener, so mysiteSubmitDescription below can also
+// call it once a draft suggests (or keeps) a web address, same "AI does the legwork"
+// spirit as the drafted tagline/about themselves.
 async function mysiteCheckDomains(baseName) {
     if (!baseName) return;
     const btn = el("mysite-domain-check-btn");
@@ -4642,22 +4665,33 @@ async function mysiteCheckDomains(baseName) {
     try {
         const data = await api("/api/check-domains", { method: "POST", body: { name: baseName } });
         resultsList.innerHTML = "";
-        (data.domains || []).forEach((entry) => {
-            const row = document.createElement("div");
-            row.className = "mysite-domain-row";
+        (data.domains || [])
+            .filter((entry) => entry.status === "available")
+            .forEach((entry) => {
+                const row = document.createElement("div");
+                row.className = "mysite-domain-row";
 
-            const name = document.createElement("span");
-            name.className = "mysite-domain-name";
-            name.textContent = entry.domain;
-            row.appendChild(name);
+                const name = document.createElement("span");
+                name.className = "mysite-domain-name";
+                name.textContent = entry.domain;
+                row.appendChild(name);
 
-            const badge = document.createElement("span");
-            badge.className = "badge " + (MYSITE_DOMAIN_STATUS_BADGE_CLASS[entry.status] || "badge-domain-unknown");
-            badge.textContent = t(MYSITE_DOMAIN_STATUS_KEY[entry.status]) || entry.status;
-            row.appendChild(badge);
+                const badge = document.createElement("span");
+                badge.className = "badge badge-domain-available";
+                badge.textContent = t("mysite.website.domainAvailable") || "Available";
+                row.appendChild(badge);
 
-            resultsList.appendChild(row);
-        });
+                const chooseBtn = document.createElement("button");
+                chooseBtn.type = "button";
+                chooseBtn.className = "mysite-domain-choose-btn";
+                chooseBtn.textContent = t("mysite.website.domainChoose") || "Choose";
+                chooseBtn.dataset.domain = entry.domain;
+                chooseBtn.addEventListener("click", () => mysiteChooseDomain(entry.domain));
+                row.appendChild(chooseBtn);
+
+                resultsList.appendChild(row);
+            });
+        mysiteRenderChosenDomain();
     } catch (err) {
         errorBox.textContent = (err && err.message) || t("mysite.website.checkDomainsError") || t("network.error");
         errorBox.classList.remove("hidden");

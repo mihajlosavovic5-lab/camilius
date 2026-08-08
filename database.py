@@ -800,6 +800,23 @@ def create_database():
     # snapshot the owner picked once, not something queried or joined on.
     cursor.execute("ALTER TABLE business_pages ADD COLUMN IF NOT EXISTS custom_theme_json TEXT")
 
+    # The real, independently-registrable domain (mihajlo-prodaja.com, never this
+    # platform's own /p/<slug> path - see pages.py's module docstring) the owner picked
+    # from /api/check-domains' "available" results via the mobile app's "Choose" button,
+    # to be purchased automatically the next time this page is published - see
+    # domain_registrar.py. NULL until chosen, and cleared back to NULL once the purchase
+    # actually goes through (at which point it's promoted to custom_domain below instead).
+    cursor.execute("ALTER TABLE business_pages ADD COLUMN IF NOT EXISTS pending_custom_domain TEXT")
+
+    # The real domain currently live for this page, once a pending_custom_domain
+    # purchase above has actually completed - see domain_registrar.py. Unique since two
+    # businesses can never own the same real domain. custom_domain_status tracks where
+    # an in-progress purchase is (NULL/'purchasing'/'active'/'failed') so the mobile UI
+    # can show progress instead of the domain just silently appearing later.
+    cursor.execute("ALTER TABLE business_pages ADD COLUMN IF NOT EXISTS custom_domain TEXT")
+    cursor.execute("CREATE UNIQUE INDEX IF NOT EXISTS business_pages_custom_domain_idx ON business_pages (custom_domain)")
+    cursor.execute("ALTER TABLE business_pages ADD COLUMN IF NOT EXISTS custom_domain_status TEXT")
+
     # Photos/video a business uploads for its own public page (logo in the header, a
     # gallery of shots of the product/space, one hero video) - see storage.py for the
     # actual Cloudinary upload/delete, this table just links the resulting URL back to
@@ -2697,7 +2714,7 @@ def get_business_page(business_id):
     connection = connect()
     cursor = connection.cursor()
     cursor.execute(
-        "SELECT id, business_id, slug, published, tagline, about, created_at, updated_at, widget_domain, theme, custom_theme_json FROM business_pages WHERE business_id = %s",
+        "SELECT id, business_id, slug, published, tagline, about, created_at, updated_at, widget_domain, theme, custom_theme_json, pending_custom_domain, custom_domain, custom_domain_status FROM business_pages WHERE business_id = %s",
         (business_id,),
     )
     result = cursor.fetchone()
@@ -2713,7 +2730,7 @@ def page_by_slug(slug):
     connection = connect()
     cursor = connection.cursor()
     cursor.execute(
-        "SELECT id, business_id, slug, published, tagline, about, created_at, updated_at, widget_domain, theme, custom_theme_json FROM business_pages WHERE slug = %s",
+        "SELECT id, business_id, slug, published, tagline, about, created_at, updated_at, widget_domain, theme, custom_theme_json, pending_custom_domain, custom_domain, custom_domain_status FROM business_pages WHERE slug = %s",
         (slug,),
     )
     result = cursor.fetchone()
@@ -2721,7 +2738,7 @@ def page_by_slug(slug):
     return result
 
 
-def upsert_business_page(business_id, slug, published, tagline, about, widget_domain=None, theme=None, custom_theme_json=None):
+def upsert_business_page(business_id, slug, published, tagline, about, widget_domain=None, theme=None, custom_theme_json=None, pending_custom_domain=None):
     """Creates the business's page on first save, updates it on every save after - one
     row per business (business_pages_business_id_idx), so this is a plain upsert rather
     than needing a separate create/update pair. Raises UniqueViolation if `slug` is
@@ -2742,22 +2759,30 @@ def upsert_business_page(business_id, slug, published, tagline, about, widget_do
     custom_theme_json follows the same None-means-"leave whatever is saved" contract as
     theme - only ever passed explicitly when theme is themes.CUSTOM_THEME_ID (see
     ai_theme.py); every other caller passes neither and both columns are left untouched
-    (or default to 'warm'/NULL on first save)."""
+    (or default to 'warm'/NULL on first save).
+
+    pending_custom_domain follows widget_domain's contract instead (always written as
+    given, not COALESCEd) - the mobile My Site form always sends its current pick (or
+    None once cleared/never chosen), so there's nothing to preserve here the caller
+    doesn't already know. See domain_registrar.py for what turns a pending pick into an
+    actual custom_domain."""
     connection = connect()
     cursor = connection.cursor()
     _execute_or_raise_unique_violation(
         cursor,
-        """INSERT INTO business_pages (business_id, slug, published, tagline, about, widget_domain, theme, custom_theme_json, updated_at)
+        """INSERT INTO business_pages (business_id, slug, published, tagline, about, widget_domain, theme, custom_theme_json, pending_custom_domain, updated_at)
            VALUES (%s, %s, %s, %s, %s, %s,
                    COALESCE(%s, (SELECT theme FROM business_pages WHERE business_id = %s), 'warm'),
                    COALESCE(%s, (SELECT custom_theme_json FROM business_pages WHERE business_id = %s)),
+                   %s,
                    CURRENT_TIMESTAMP)
            ON CONFLICT (business_id) DO UPDATE SET
                slug = EXCLUDED.slug, published = EXCLUDED.published,
                tagline = EXCLUDED.tagline, about = EXCLUDED.about, widget_domain = EXCLUDED.widget_domain,
                theme = EXCLUDED.theme, custom_theme_json = EXCLUDED.custom_theme_json,
+               pending_custom_domain = EXCLUDED.pending_custom_domain,
                updated_at = CURRENT_TIMESTAMP""",
-        (business_id, slug, published, tagline, about, widget_domain, theme, business_id, custom_theme_json, business_id),
+        (business_id, slug, published, tagline, about, widget_domain, theme, business_id, custom_theme_json, business_id, pending_custom_domain),
     )
     connection.commit()
     connection.close()

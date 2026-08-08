@@ -15,6 +15,8 @@ specific domain isn't registered" - treating the former as AVAILABLE would be a 
 dressed up as a real answer. Callers show UNKNOWN as "couldn't check", never as available
 or taken.
 """
+import re
+
 import requests
 
 # Serial round trips (see check_domains) must stay well short of turning "check domains"
@@ -45,6 +47,29 @@ UNKNOWN = "unknown"
 
 def _tld_of(domain):
     return domain[domain.index("."):] if "." in domain else ""
+
+
+_DOMAIN_LABEL_RE = re.compile(r"^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$")
+
+
+def normalize_pending_domain(raw):
+    """Validates a domain string the mobile app claims came from this module's own
+    "available" results (see api.py's api_save_page, which persists this as
+    business_pages.pending_custom_domain) - never trust a client-supplied domain blindly,
+    even though the UI only ever offers ones check_domains() itself generated. Returns
+    the lowercased "label.tld" domain if well-formed with a tld in
+    _RDAP_SUPPORTED_TLDS (the only TLDs ever actually returned as AVAILABLE - anything
+    else, including .rs, is UNKNOWN and so never choosable in the first place), else
+    None - callers treat that as "no valid pick", same as never having chosen one."""
+    raw = (raw or "").strip().lower()
+    if "." not in raw:
+        return None
+    label, _, tld = raw.partition(".")
+    if f".{tld}" not in _RDAP_SUPPORTED_TLDS:
+        return None
+    if not _DOMAIN_LABEL_RE.match(label):
+        return None
+    return f"{label}.{tld}"
 
 
 def check_domain(domain):
