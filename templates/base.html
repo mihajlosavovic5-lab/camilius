@@ -186,10 +186,9 @@
          later swap. -->
     <script src="{{ url_for('static', filename='hours-picker.js') }}?v={{ static_versions['hours-picker.js'] }}" defer></script>
     <script src="{{ url_for('static', filename='pickers.js') }}?v={{ static_versions['pickers.js'] }}" defer></script>
-    <!-- Smart install banner init (Faza 5, extended Faza 7 with a real beforeinstallprompt
-         PWA install; the banner's own markup is in <body>, right where it renders - see
-         #mobile-install-banner below). Lives here in <head>, not next to that markup, for
-         the same reason as pickers.js above: a hx-boosted tab switch swaps <body>, and a
+    <!-- Smart install banner init (Faza 5; the banner's own markup is in <body>, right
+         where it renders - see #mobile-install-banner below). Lives here in <head>, not
+         next to that markup, for the same reason as pickers.js above: a hx-boosted tab switch swaps <body>, and a
          <script> re-inserted there DOES mostly re-run for a normal forward boosted fetch -
          but browser back/forward that hits htmx's own client-side history cache restores
          the cached HTML directly without re-running any script at all, silently leaving
@@ -200,22 +199,21 @@
          registered once. -->
     <script>
         (function () {
-            var deferredInstallPrompt = null;
             var scrollLinked = false;
             var reserved = false;
             var fullHeight = 0;
             var ticking = false;
 
-            // Captured as early as possible so we don't miss the event. preventDefault()
-            // suppresses the browser's own automatic mini-infobar - "presretni" (intercept) -
+            // Suppresses the browser's own automatic mini-infobar - "presretni" (intercept) -
             // so our own banner is the only install prompt shown; doesn't affect desktop
             // Chrome/Edge's separate omnibox install icon, which keeps working on its own.
+            // The banner's own Install button always sends people to the Play Store listing
+            // (see the anchor below) rather than triggering an in-browser PWA install, same
+            // as the "Download for Android" button elsewhere on the site.
             window.addEventListener("beforeinstallprompt", function (event) {
                 event.preventDefault();
-                deferredInstallPrompt = event;
             });
             window.addEventListener("appinstalled", function () {
-                deferredInstallPrompt = null;
                 hideInstallBanner();
             });
 
@@ -284,19 +282,6 @@
                 // detached) buttons are simply discarded along with them.
                 var dismissBtn = document.getElementById("mobile-install-banner-dismiss");
                 if (dismissBtn) dismissBtn.addEventListener("click", hideInstallBanner);
-                var installBtn = document.getElementById("mobile-install-banner-btn");
-                if (installBtn) {
-                    installBtn.addEventListener("click", function (event) {
-                        // No captured prompt (unsupported browser, or the event hasn't fired
-                        // yet) - let the link fall through to the Play Store listing.
-                        if (!deferredInstallPrompt) return;
-                        event.preventDefault();
-                        var promptEvent = deferredInstallPrompt;
-                        deferredInstallPrompt = null;
-                        promptEvent.prompt();
-                        promptEvent.userChoice.finally(hideInstallBanner);
-                    });
-                }
             }
 
             // initInstallBanner can run before static/site-i18n.js (a deferred script)
@@ -393,14 +378,13 @@
     </div>
 </div>
 
-<!-- Smart install banner (Faza 5, extended Faza 7 with a real beforeinstallprompt
-     PWA install) - a subtle top banner offering to install Camilius, shown only when:
-     on an Android phone's regular browser (not the installed app itself, and not
-     iOS/desktop - there's no iOS app and desktop already has its own browser-native
-     install icon), and not previously dismissed. Sits above the page content, not
-     fixed, so it doesn't cover anything. The button prefers the frictionless in-browser
-     PWA install (no "unknown source" / Play Protect warning) whenever the browser
-     supports it, and falls back to the Play Store listing when it doesn't. -->
+<!-- Smart install banner (Faza 5) - a subtle top banner offering to install Camilius,
+     shown only when: on an Android phone's regular browser (not the installed app
+     itself, and not iOS/desktop - there's no iOS app and desktop already has its own
+     browser-native install icon), and not previously dismissed. Sits above the page
+     content, not fixed, so it doesn't cover anything. The button always sends people to
+     the Play Store listing (play_store_url), same as the "Download for Android" button
+     elsewhere on the site. -->
 <div id="mobile-install-banner" class="mobile-install-banner hidden">
     <span class="brand-mark mobile-install-banner-icon"></span>
     <span class="mobile-install-banner-text" data-i18n="installBanner.text">Get the Camilius app for a faster, native experience.</span>
