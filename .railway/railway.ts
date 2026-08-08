@@ -12,7 +12,11 @@ export default defineRailway(() => {
   // for now) - the volume stays attached until it's confirmed unused, then it can be removed.
   const app = service("app", {
     source: github("mihajlosavovic5-lab/ai-auto-reply", { branch: "master" }),
-    start: "python process_emails.py & exec gunicorn app:app --bind 0.0.0.0:${PORT:-8080} --timeout 300 --worker-class gthread --threads 4",
+    // A script file, not an inline "A & exec B" string - Console testing showed the
+    // inline form silently only ran process_emails.py and never reached gunicorn at
+    // all (see start.sh for the full explanation), which is why the deployed container
+    // only had process_emails.py running and nothing listening on the target port.
+    start: "./start.sh",
     // Pinned to a repo-owned Dockerfile - both of Railway's auto-detecting builders
     // failed on this service with variants of the same "blank name" build-daemon bug:
     // Nixpacks with "dockerfile parse error ... ENV names can not be blank" (it tries
