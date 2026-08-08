@@ -2788,6 +2788,41 @@ def upsert_business_page(business_id, slug, published, tagline, about, widget_do
     connection.close()
 
 
+def set_custom_domain_purchasing(business_id):
+    """Marks a chosen-but-unpurchased domain as actively being bought - called right
+    before api_save_page hands off to domain_registrar.purchase_domain(), so the mobile
+    UI can show "buying your domain..." instead of the pick just silently sitting there
+    for however long that call takes."""
+    connection = connect()
+    cursor = connection.cursor()
+    cursor.execute("UPDATE business_pages SET custom_domain_status = 'purchasing' WHERE business_id = %s", (business_id,))
+    connection.commit()
+    connection.close()
+
+
+def resolve_custom_domain_purchase(business_id, domain, success):
+    """Records the outcome of a domain_registrar.purchase_domain() attempt.
+    pending_custom_domain is cleared either way - on success it's been promoted to
+    custom_domain (the real, now-owned domain); on failure (e.g. someone else grabbed
+    it in the meantime, or the registrar call errored) there's nothing left to retry
+    automatically, the owner has to pick again, and leaving a dead pending pick around
+    would just silently re-attempt the same failing purchase on every future save."""
+    connection = connect()
+    cursor = connection.cursor()
+    if success:
+        cursor.execute(
+            "UPDATE business_pages SET custom_domain = %s, custom_domain_status = 'active', pending_custom_domain = NULL WHERE business_id = %s",
+            (domain, business_id),
+        )
+    else:
+        cursor.execute(
+            "UPDATE business_pages SET custom_domain_status = 'failed', pending_custom_domain = NULL WHERE business_id = %s",
+            (business_id,),
+        )
+    connection.commit()
+    connection.close()
+
+
 def published_page_slugs():
     """Every published page's (slug, updated_at) - feeds sitemap.xml's <url> entries."""
     connection = connect()

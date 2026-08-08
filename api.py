@@ -27,7 +27,7 @@ from database import (
     record_account_deletion, ACCOUNT_DELETION_REASONS,
     create_oauth_login_session, oauth_login_session_status,
     get_business_page, upsert_business_page, page_by_slug, appointments_in_range,
-    set_preferred_theme,
+    set_preferred_theme, set_custom_domain_purchasing, resolve_custom_domain_purchase,
     UniqueViolation,
 )
 from extensions import limiter
@@ -41,6 +41,7 @@ import pages
 import themes
 import ai_theme
 import domain_lookup
+import domain_registrar
 from page_generator import generate_page_draft, format_working_hours, format_price_list, format_faq, transcribe_voice_description, MAX_VOICE_AUDIO_BYTES
 
 api = Blueprint("api", __name__, url_prefix="/api")
@@ -1060,6 +1061,24 @@ def api_save_page():
         upsert_business_page(business_id, slug, published, tagline, about, None, theme, custom_theme_json, pending_custom_domain)
     except UniqueViolation:
         return jsonify(error="That web address is already taken - please choose another."), 409
+
+    # Publishing with a still-unpurchased domain pick is what actually buys it - see
+    # domain_registrar.py (currently refuses to spend anything until that module's own
+    # integration is verified against real Dynadot docs). Gated the same way every
+    # other subscription-bundled perk in this codebase is (BETA_FREE_MODE or an active
+    # subscription) - not gated at all while BETA_FREE_MODE is on, same as everything
+    # else. If the business isn't on an active subscription, the pick is left exactly
+    # as-is (still shown as "chosen" in the app) rather than silently dropped, so it
+    # purchases automatically the next time they publish once they do subscribe.
+    if published and pending_custom_domain:
+        from app import BETA_FREE_MODE  # deferred to avoid a circular import at module load
+        if BETA_FREE_MODE or effective_subscription_active(business_id):
+            set_custom_domain_purchasing(business_id)
+            success, reason = domain_registrar.purchase_domain(pending_custom_domain)
+            resolve_custom_domain_purchase(business_id, pending_custom_domain, success)
+            if not success:
+                print(f"[domain] Purchase of {pending_custom_domain} for business {business_id} failed: {reason}")
+                log_event("custom_domain_purchase_failed", business_id=business_id)
 
     log_event("business_page_saved", business_id=business_id)
     return jsonify(message="Saved.")
