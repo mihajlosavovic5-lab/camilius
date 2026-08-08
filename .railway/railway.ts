@@ -13,13 +13,19 @@ export default defineRailway(() => {
   const app = service("app", {
     source: github("mihajlosavovic5-lab/ai-auto-reply", { branch: "master" }),
     start: "python process_emails.py & exec gunicorn app:app --timeout 300 --worker-class gthread --threads 4",
-    // No `build.builder` override here on purpose - stay on the default Railpack
-    // builder. This was pinned to NIXPACKS once (then reverted in #97) on the
-    // theory that Railpack's build daemon was the flaky one; Railway's own build
-    // diagnosis showed the opposite: pinning NIXPACKS is what makes the build try
-    // to load a Dockerfile that doesn't exist in this repo and fail with
-    // "dockerfile parse error ... ENV names can not be blank". Railpack builds
-    // this plain Python service correctly - don't re-add the Nixpacks pin.
+    // Pinned to a repo-owned Dockerfile - both of Railway's auto-detecting builders
+    // failed on this service with variants of the same "blank name" build-daemon bug:
+    // Nixpacks with "dockerfile parse error ... ENV names can not be blank" (it tries
+    // to load a Dockerfile that doesn't exist), and the default Railpack with
+    // "secret ID missing for \"\" environment variable" - with no blank-named variable
+    // found anywhere in this service's variables or the project's shared variables.
+    // Neither auto-detected build plan could be made to work, so this repo now ships
+    // its own Dockerfile and Railway is told to just build that directly, sidestepping
+    // both auto-detectors. NOTE: this `build.builder` value in the IaC file does NOT
+    // by itself change the live service - the actual Builder setting under the app
+    // service's Settings > Build in the Railway dashboard has to be switched to
+    // "Dockerfile" too (IaC changes here were not observed to sync automatically).
+    build: { builder: "DOCKERFILE" },
     volumeMounts: {
       "/data": data,
     },

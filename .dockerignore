@@ -1,0 +1,14 @@
+.git
+.github
+.env
+venv/
+__pycache__/
+*.pyc
+conversations.db
+node_modules/
+android/
+mobile/
+tests/
+.railway
+.claude
+.agents
