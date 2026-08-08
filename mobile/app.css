@@ -488,7 +488,11 @@ button { font-family: inherit; -webkit-appearance: none; appearance: none; }
    that only exists in its markup) - the phone country-code picker reuses the exact
    same .country-modal-list/.country-option-btn classes for its own plain A-Z list and
    must keep that unaffected. --- */
-#option-modal .country-modal-sheet { position: relative; }
+/* Narrower than the shared .country-modal-sheet default (sized for the country
+   picker's flag + name + dial code rows) - every value here is a short "HH:MM"/
+   currency-code/"30 min" label, so the full-width sheet just read as an oversized
+   slab of empty space either side of the text. */
+#option-modal .country-modal-sheet { position: relative; width: 190px; max-width: 190px; }
 .option-modal-center-band {
     position: absolute; left: 8px; right: 8px; top: 50%; height: 44px;
     transform: translateY(-50%); background: var(--primary-light);
