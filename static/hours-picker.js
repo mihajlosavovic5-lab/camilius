@@ -230,6 +230,12 @@ function createHoursPickerCore(config) {
     quickfillLabel.className = "hours-quickfill-label";
     quickfillLabel.setAttribute("data-i18n", "hoursPicker.sameEveryDay");
     quickfillLabel.textContent = t("hoursPicker.sameEveryDay");
+    // Wrapped in the same .hours-day-times container the per-day rows below use (rather
+    // than left as two direct flex children of .hours-quickfill alongside the label) so
+    // the open/close pair here sizes identically to every day row's own pair, instead of
+    // computing its flex share in a different (label-sharing) flex context.
+    const quickTimes = document.createElement("div");
+    quickTimes.className = "hours-day-times";
     const quickOpenField = buildTimeField("09:00");
     const quickCloseField = buildTimeField("18:00");
     const quickSep = document.createElement("span");
@@ -237,10 +243,11 @@ function createHoursPickerCore(config) {
     quickSep.textContent = "–";
     quickOpenField.el.addEventListener("change", () => applyPairToWeekdays(quickOpenField.value, quickCloseField.value));
     quickCloseField.el.addEventListener("change", () => applyPairToWeekdays(quickOpenField.value, quickCloseField.value));
+    quickTimes.appendChild(quickOpenField.el);
+    quickTimes.appendChild(quickSep);
+    quickTimes.appendChild(quickCloseField.el);
     quickfill.appendChild(quickfillLabel);
-    quickfill.appendChild(quickOpenField.el);
-    quickfill.appendChild(quickSep);
-    quickfill.appendChild(quickCloseField.el);
+    quickfill.appendChild(quickTimes);
     advancedInner.appendChild(quickfill);
 
     const dayList = document.createElement("div");

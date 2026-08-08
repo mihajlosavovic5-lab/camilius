@@ -986,8 +986,17 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
     cursor: pointer; transition: transform .18s cubic-bezier(.22, 1, .36, 1), color .15s ease, opacity .15s ease;
 }
 .hours-toggle-arrow:active { color: var(--primary); transform: scale(.8); opacity: .65; }
-.hours-toggle-arrow-up { transform: rotate(180deg); }
-.hours-toggle-arrow-up:active { transform: rotate(180deg) scale(.8); }
+/* The "collapse back to summary" arrow (shown at the top of the expanded per-day list)
+   reads as a stray glyph floating above the "Same hours every day" box below it, with
+   nothing visually tying it to either the box above or below - unlike the "expand"
+   arrow (.hours-toggle-arrow without -up, still shown at the bottom of the collapsed
+   summary view), which sits right next to what it opens. Hidden here rather than
+   removed from hours-picker.js since that file is shared with the website, where the
+   equivalent control is a self-contained circular button (see static/style.css) that
+   doesn't have this problem. Saving already re-collapses the list back to the summary
+   (collapseToSimple(), called after a successful save - see mobile/app.js), so this
+   isn't the only way back. */
+.hours-toggle-arrow-up { display: none; }
 
 /* The per-day list unfolds/folds rather than snapping in and out - .hours-advanced-view
    is the row that animates (0fr collapsed, 1fr once "-open" is added), and
@@ -1019,11 +1028,10 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
 }
 
 .hours-quickfill {
-    display: flex; align-items: center; flex-wrap: wrap; gap: 8px;
+    display: flex; flex-direction: column; gap: 8px;
     padding: 10px 12px; background: var(--background); border: 1px solid var(--border); border-radius: 10px;
 }
-.hours-quickfill-label { flex: 1 1 100%; font-size: 13.5px; font-weight: 600; color: var(--text-muted); }
-.hours-quickfill .time-picker-btn { flex: 1; min-width: 0; }
+.hours-quickfill-label { font-size: 13.5px; font-weight: 600; color: var(--text-muted); }
 
 .hours-day-list { display: flex; flex-direction: column; border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
 .hours-day-row {
