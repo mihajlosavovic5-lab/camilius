@@ -13,6 +13,13 @@ export default defineRailway(() => {
   const app = service("app", {
     source: github("mihajlosavovic5-lab/ai-auto-reply", { branch: "master" }),
     start: "python process_emails.py & exec gunicorn app:app --timeout 300 --worker-class gthread --threads 4",
+    // No `build.builder` override here on purpose - stay on the default Railpack
+    // builder. This was pinned to NIXPACKS once (then reverted in #97) on the
+    // theory that Railpack's build daemon was the flaky one; Railway's own build
+    // diagnosis showed the opposite: pinning NIXPACKS is what makes the build try
+    // to load a Dockerfile that doesn't exist in this repo and fail with
+    // "dockerfile parse error ... ENV names can not be blank". Railpack builds
+    // this plain Python service correctly - don't re-add the Nixpacks pin.
     volumeMounts: {
       "/data": data,
     },
