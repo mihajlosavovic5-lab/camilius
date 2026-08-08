@@ -13,14 +13,6 @@ export default defineRailway(() => {
   const app = service("app", {
     source: github("mihajlosavovic5-lab/ai-auto-reply", { branch: "master" }),
     start: "python process_emails.py & exec gunicorn app:app --timeout 300 --worker-class gthread --threads 4",
-    // Pinned away from Railpack (the platform default) - its build daemon has been
-    // failing this service's builds with "context canceled" / "secret ID missing for
-    // \"\" environment variable" / "internal build daemon error", none of which trace to
-    // anything in this repo (plain Python app, small build context, no Dockerfile/custom
-    // build config, no blank-keyed variables). Nixpacks is the older, more battle-tested
-    // builder for a plain requirements.txt Python service like this one - revert this
-    // once Railpack's build daemon issue is confirmed fixed on Railway's end.
-    build: { builder: "NIXPACKS" },
     volumeMounts: {
       "/data": data,
     },
