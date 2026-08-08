@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block title %}Buy {{ domain }} - Camilius{% endblock %}
+{% block body_class %}app{% endblock %}
+
+{% block content %}
+<div class="content content-narrow">
+    <div class="page-header">
+        <div>
+            <h1 data-i18n="domainCheckout.title">Buy your domain</h1>
+            <p class="subtitle"><span data-i18n="domainCheckout.subtitle">One more step before your domain is live:</span> {{ domain }}</p>
+        </div>
+    </div>
+
+    {% if request.args.get('checkout_error') %}
+        <div class="alert alert-error"><span class="alert-icon">&#9888;&#65039;</span><span data-i18n="subscription.checkoutError">Couldn't start checkout - please try again in a moment.</span></div>
+    {% endif %}
+
+    <div class="card pricing-plan pricing-plan-recommended" style="max-width: 360px; margin: 0 auto;">
+        <p class="pricing-plan-name">{{ domain }}</p>
+        <div class="pricing-plan-price">
+            <span class="pricing-amount"><span class="pricing-amount-value">15</span>$</span>
+            <span class="pricing-period" data-i18n="subscription.perYear">/ year</span>
+        </div>
+
+        <ul class="benefits">
+            <li><span class="checkmark">&#10003;</span> <span data-i18n="domainCheckout.benefit1">Registered and pointed at your Camilius site automatically</span></li>
+            <li><span class="checkmark">&#10003;</span> <span data-i18n="domainCheckout.benefit2">Renews automatically each year, billed separately from your app plan</span></li>
+            <li><span class="checkmark">&#10003;</span> <span data-i18n="domainCheckout.benefit3">Cancel any time - the domain simply won't renew again</span></li>
+        </ul>
+
+        <div class="form-actions">
+            <button type="button" class="button button-full" id="domain-checkout-btn" data-i18n="{{ 'subscription.comingSoon' if not paddle_configured or not paddle_domain_price else 'domainCheckout.buyButton' }}" {% if not paddle_configured or not paddle_domain_price %}disabled{% endif %}>
+                {% if not paddle_configured or not paddle_domain_price %}Coming soon{% else %}Buy domain{% endif %}
+            </button>
+        </div>
+    </div>
+
+    <p class="note" style="text-align: center; margin-top: 16px;">
+        <span data-i18n="subscription.paddleNoteLine1">Payment is securely processed by Paddle, our reseller of record.</span>
+    </p>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{% if paddle_configured and paddle_domain_price %}
+<script src="https://cdn.paddle.com/paddle/v2/paddle.js"></script>
+<script>
+    {% if paddle_environment == 'sandbox' %}Paddle.Environment.set("sandbox");{% endif %}
+    Paddle.Initialize({
+        token: {{ paddle_client_token | tojson }},
+        eventCallback: function (event) {
+            if (event.name === "checkout.completed") {
+                // Same async hand-off as subscription.html's own checkout - app.py's
+                // paddle_webhook links this domain subscription (and only then buys the
+                // domain itself, see domain_registrar.py) once Paddle reports it,
+                // usually within a second or two but not guaranteed instant.
+                window.location.href = {{ url_for('home') | tojson }};
+            }
+        },
+    });
+    document.getElementById("domain-checkout-btn").addEventListener("click", function () {
+        Paddle.Checkout.open({
+            items: [{ priceId: {{ paddle_domain_price | tojson }}, quantity: 1 }],
+            customer: { email: {{ email | tojson }} },
+            customData: { business_id: String({{ business_id | tojson }}), domain: {{ domain | tojson }}, kind: "domain" },
+        });
+    });
+</script>
+{% endif %}
+{% endblock %}

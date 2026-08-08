@@ -3466,6 +3466,24 @@ async function openChoosePlan() {
 el("subscription-choose-plan-btn").addEventListener("click", openChoosePlan);
 el("subscription-choose-plan-btn-2").addEventListener("click", openChoosePlan);
 
+// Same "hand off to a web page" pattern as openChoosePlan above, for the $15/yr custom-
+// domain checkout (templates/domain_checkout.html) that api_save_page's
+// domain_checkout_required response triggers - the domain is billed to the business
+// directly, as its own subscription separate from Starter/Pro, so there's no in-app
+// payment step to build here.
+async function openDomainCheckout(domain) {
+    try {
+        const data = await api("/api/domain-checkout-link?domain=" + encodeURIComponent(domain));
+        if (capacitorPlugins && capacitorPlugins.Browser) {
+            await capacitorPlugins.Browser.open({ url: data.url });
+        } else {
+            window.open(data.url, "_blank");
+        }
+    } catch (err) {
+        reportClientError(err.message, err.stack, "domain-checkout-link");
+    }
+}
+
 const SUPPORT_EMAIL = "support@ai-auto-reply-mail.com";
 
 el("help-email-btn").addEventListener("click", () => {
@@ -4566,10 +4584,16 @@ el("mysite-save-btn").addEventListener("click", async () => {
     const scrollContainer = el("screen-mysite").querySelector(".inbox-list-wrap");
     const scrollTopBeforeSave = scrollContainer ? scrollContainer.scrollTop : 0;
     try {
-        await api("/api/page", { method: "POST", body });
+        const result = await api("/api/page", { method: "POST", body });
         notifySaved(t("settings.saved"));
         await loadMySite();
         if (scrollContainer) scrollContainer.scrollTop = scrollTopBeforeSave;
+        // The domain is charged directly to the business (its own $15/yr subscription,
+        // separate from Starter/Pro - see templates/domain_checkout.html), so a picked
+        // domain isn't actually bought on Publish - the server just flags that a
+        // checkout is still needed, same "hand off to a web page" pattern as
+        // openChoosePlan() below.
+        if (result && result.domain_checkout_required) await openDomainCheckout(result.domain);
     } catch (err) {
         errorBox.textContent = err.message || t("network.error");
         errorBox.classList.remove("hidden");

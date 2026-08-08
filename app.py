@@ -45,6 +45,7 @@ from database import (
     is_new_booking_notifications_enabled, set_new_booking_notifications_enabled,
     record_account_deletion, recent_account_deletions, ACCOUNT_DELETION_REASONS,
     get_business_page, page_by_slug, upsert_business_page, published_page_slugs,
+    set_domain_subscription, set_custom_domain_purchasing, resolve_custom_domain_purchase,
     page_chat_session_messages_today,
     onboarding_completed, mark_onboarding_completed,
     UniqueViolation, release_db_lock,
@@ -67,6 +68,7 @@ import business_media
 import business_documents
 import ai_theme
 import domain_lookup
+import domain_registrar
 from database import all_businesses_unfiltered
 from api import api as api_blueprint, APK_VERSION, make_token
 from extensions import limiter
@@ -3319,6 +3321,42 @@ def subscription_mobile(token):
     return _subscription_response(business_id, hide_nav=True)
 
 
+# "Buy this domain" checkout - same token-bridge pattern as /subscription/<token> above
+# (the mobile app has no in-app checkout of its own, see api.py's
+# make_domain_checkout_link_token), for the $15/yr domain add-on subscription (separate
+# Paddle Price from Starter/Pro - see paddle_billing.domain_price_id). The token itself
+# carries the exact domain (not just business_id), so this page can't be tricked into
+# charging for a different domain than the one the owner actually picked.
+@app.route("/domain-checkout/<token>")
+def domain_checkout(token):
+    from api import domain_checkout_link_token_data  # deferred: avoid circular import at module load
+
+    business_id, domain = domain_checkout_link_token_data(token)
+    if business_id is None or domain is None:
+        abort(404)
+    business = business_by_id(business_id)
+    if business is None:
+        abort(404)
+    # Re-checked against the business's own current pick (not just trusted from the
+    # token) - a 10-minute-old link shouldn't still work after the owner cleared or
+    # changed their choice in the app.
+    page_row = get_business_page(business_id)
+    if not page_row or page_row[11] != domain:
+        abort(404)
+    session["business_id"] = business_id
+    session["business_name"] = business[1]
+    return render_template(
+        "domain_checkout.html",
+        paddle_configured=paddle_billing.is_configured(),
+        paddle_client_token=paddle_billing.client_token(),
+        paddle_environment=paddle_billing.environment(),
+        paddle_domain_price=paddle_billing.domain_price_id(),
+        business_id=business_id,
+        email=business[4],
+        domain=domain,
+    )
+
+
 # --- Subscription (Stripe, Faza 10) ---
 
 @app.route("/subscription/checkout", methods=["POST"])
@@ -3480,6 +3518,34 @@ def paddle_webhook():
         # know whether it's Starter or Pro (see database.has_pro_access).
         custom_data = data.get("custom_data") or {}
         business_id = custom_data.get("business_id")
+
+        # The $15/yr domain add-on (see templates/domain_checkout.html) is its own
+        # Paddle subscription, entirely separate from the business's Starter/Pro plan
+        # below - tagged with kind == "domain" in custom_data at checkout so it never
+        # falls through into link_subscription/update_subscription_status, which would
+        # wrongly overwrite this business's actual app-plan status.
+        if custom_data.get("kind") == "domain":
+            domain = custom_data.get("domain")
+            if business_id and domain:
+                set_domain_subscription(int(business_id), sub_id, status)
+                # Only actually buy the domain once Paddle confirms real payment -
+                # 'trialing' is included since database.py's own ACTIVE_STATUSES treats
+                # it the same way (a trialing Paddle subscription still guarantees the
+                # card will be charged). Guarded against re-buying on every subsequent
+                # subscription.updated webhook for the same subscription by checking
+                # custom_domain_status hasn't already moved past "not yet attempted".
+                if status in ("active", "trialing"):
+                    page_row = get_business_page(int(business_id))
+                    already_resolved = page_row and page_row[13] in ("purchasing", "active")
+                    if page_row and page_row[11] == domain and not already_resolved:
+                        set_custom_domain_purchasing(int(business_id))
+                        success, reason = domain_registrar.purchase_domain(domain)
+                        resolve_custom_domain_purchase(int(business_id), domain, success)
+                        if not success:
+                            print(f"[domain] Purchase of {domain} for business {business_id} failed: {reason}")
+                            log_event("custom_domain_purchase_failed", business_id=int(business_id))
+            return "", 200
+
         plan = custom_data.get("plan")
         # While trialing, next_billed_at IS the trial's end date (the moment Paddle will
         # actually charge the card) - reminders.py's send_trial_ending_warnings_if_needed

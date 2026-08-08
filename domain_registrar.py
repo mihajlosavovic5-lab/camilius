@@ -1,9 +1,12 @@
 """Buys a real, independently-registrable domain (mihajlo-prodaja.com) the owner chose
-via the mobile app's "Choose" button (see business_pages.pending_custom_domain), the
-moment they publish their page - see api.py's api_save_page. Talks to Dynadot
-(dynadot.com), the registrar this product uses; the domain's cost is absorbed by the
-platform itself (bundled into the subscription - see api_save_page's subscription
-gate), never charged to the business separately.
+via the mobile app's "Choose" button (see business_pages.pending_custom_domain), once
+they've paid for it - see templates/domain_checkout.html and app.py's paddle_webhook
+(the "kind" == "domain" branch), which is the only caller of purchase_domain() below.
+Talks to Dynadot (dynadot.com), the registrar this product uses. The domain is charged
+directly to the business as its own $15/yr Paddle subscription (see
+paddle_billing.domain_price_id) - separate from, and independent of, their Starter/Pro
+app subscription - not absorbed by the platform. Renewal on Dynadot should track
+whether that domain subscription itself stays paid, not the business's app plan.
 
 is_configured() gates every entry point the same way paddle_billing.is_configured()/
 send_sms.sms_configured() do elsewhere in this codebase - missing credentials degrade
@@ -57,8 +60,9 @@ def purchase_domain(domain):
     #   1. Re-check availability/price for `domain` right now (the RDAP check that got
     #      it onto the "available" list in the first place could be stale by the time
     #      Publish is tapped).
-    #   2. Register `domain` for 1 year with auto-renew on (see plan: platform keeps
-    #      paying renewals regardless of the business's own subscription status).
+    #   2. Register `domain` for 1 year with auto-renew on (renewal should follow this
+    #      domain's own Paddle subscription staying paid - see database.
+    #      domain_subscription_status - not the business's unrelated app plan).
     #   3. Point its DNS at wherever this platform actually serves custom domains from
     #      (see app.py's Host-header routing, still to be built - Faza 4 of the plan).
     return False, "Not implemented yet."

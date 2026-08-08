@@ -27,7 +27,7 @@ from database import (
     record_account_deletion, ACCOUNT_DELETION_REASONS,
     create_oauth_login_session, oauth_login_session_status,
     get_business_page, upsert_business_page, page_by_slug, appointments_in_range,
-    set_preferred_theme, set_custom_domain_purchasing, resolve_custom_domain_purchase,
+    set_preferred_theme,
     UniqueViolation,
 )
 from extensions import limiter
@@ -41,7 +41,6 @@ import pages
 import themes
 import ai_theme
 import domain_lookup
-import domain_registrar
 from page_generator import generate_page_draft, format_working_hours, format_price_list, format_faq, transcribe_voice_description, MAX_VOICE_AUDIO_BYTES
 
 api = Blueprint("api", __name__, url_prefix="/api")
@@ -134,6 +133,31 @@ def business_id_from_subscription_link_token(token):
     except (BadSignature, SignatureExpired):
         return None
     return data.get("business_id")
+
+
+# Same bridge again, for the "Buy this domain" checkout (see api_domain_checkout_link
+# below and app.py's /domain-checkout/<token>) - carries the specific domain too (not
+# just business_id), since which domain the checkout page shows/charges for has to
+# come from somewhere the client can't just override by editing a request body.
+DOMAIN_CHECKOUT_LINK_MAX_AGE = 60 * 10
+
+
+def _domain_checkout_link_serializer():
+    return URLSafeTimedSerializer(os.environ["FLASK_SECRET_KEY"], salt="mobile-domain-checkout-link")
+
+
+def make_domain_checkout_link_token(business_id, domain):
+    return _domain_checkout_link_serializer().dumps({"business_id": business_id, "domain": domain})
+
+
+def domain_checkout_link_token_data(token):
+    if not token:
+        return None, None
+    try:
+        data = _domain_checkout_link_serializer().loads(token, max_age=DOMAIN_CHECKOUT_LINK_MAX_AGE)
+    except (BadSignature, SignatureExpired):
+        return None, None
+    return data.get("business_id"), data.get("domain")
 
 
 # Same bridge, for the mobile app's "Schedule" row (Faza 11) - the day/week calendar
@@ -508,6 +532,26 @@ def api_export_data_link():
 def api_subscription_link():
     token = make_subscription_link_token(request.business_id)
     return jsonify(url=f"{request.url_root}subscription/{token}")
+
+
+# Same bridge pattern, for the "Buy this domain" checkout the My Site tab opens once
+# api_save_page's response comes back with domain_checkout_required (Faza "domen plaća
+# korisnik") - the domain itself only ever exists on the website (see
+# templates/domain_checkout.html), not duplicated natively. See
+# make_domain_checkout_link_token and app.py's /domain-checkout/<token>.
+@api.route("/domain-checkout-link")
+@require_api_auth
+def api_domain_checkout_link():
+    # Re-validated against this business's own actual pending pick (never trust the
+    # query param alone) - a client can't mint a checkout link for a domain it never
+    # actually chose (or one that belongs to a different business) just by passing a
+    # different ?domain= value.
+    domain = domain_lookup.normalize_pending_domain(request.args.get("domain"))
+    page_row = get_business_page(request.business_id)
+    if not domain or not page_row or page_row[11] != domain:
+        return jsonify(error="No matching domain pick to check out."), 400
+    token = make_domain_checkout_link_token(request.business_id, domain)
+    return jsonify(url=f"{request.url_root}domain-checkout/{token}")
 
 
 # Same bridge pattern, for the Schedule row (Faza 11) - see make_schedule_link_token and
@@ -1062,26 +1106,24 @@ def api_save_page():
     except UniqueViolation:
         return jsonify(error="That web address is already taken - please choose another."), 409
 
-    # Publishing with a still-unpurchased domain pick is what actually buys it - see
-    # domain_registrar.py (currently refuses to spend anything until that module's own
-    # integration is verified against real Dynadot docs). Gated the same way every
-    # other subscription-bundled perk in this codebase is (BETA_FREE_MODE or an active
-    # subscription) - not gated at all while BETA_FREE_MODE is on, same as everything
-    # else. If the business isn't on an active subscription, the pick is left exactly
-    # as-is (still shown as "chosen" in the app) rather than silently dropped, so it
-    # purchases automatically the next time they publish once they do subscribe.
-    if published and pending_custom_domain:
-        from app import BETA_FREE_MODE  # deferred to avoid a circular import at module load
-        if BETA_FREE_MODE or effective_subscription_active(business_id):
-            set_custom_domain_purchasing(business_id)
-            success, reason = domain_registrar.purchase_domain(pending_custom_domain)
-            resolve_custom_domain_purchase(business_id, pending_custom_domain, success)
-            if not success:
-                print(f"[domain] Purchase of {pending_custom_domain} for business {business_id} failed: {reason}")
-                log_event("custom_domain_purchase_failed", business_id=business_id)
-
     log_event("business_page_saved", business_id=business_id)
-    return jsonify(message="Saved.")
+
+    # Publishing with a still-unpurchased domain pick is what starts buying it - but
+    # NOT directly: the domain is charged to the business itself (a separate $15/yr
+    # Paddle subscription, see paddle_billing.domain_price_id), not bundled into their
+    # app subscription, so publishing here only flags that a checkout is needed.
+    # domain_registrar.purchase_domain() only actually runs once app.py's paddle_webhook
+    # confirms that charge went through (see set_custom_domain_purchasing there) - never
+    # from this request. custom_domain_status not yet 'purchasing'/'active' is what
+    # keeps this from re-asking for checkout on every save once one's already underway.
+    response = {"message": "Saved."}
+    if published and pending_custom_domain:
+        page_row = get_business_page(business_id)
+        if page_row and page_row[13] not in ("purchasing", "active"):
+            response["domain_checkout_required"] = True
+            response["domain"] = pending_custom_domain
+
+    return jsonify(**response)
 
 
 # Drafts tagline/about/hours/prices/faq from a short owner-written description - mobile's

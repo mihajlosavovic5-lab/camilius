@@ -817,6 +817,17 @@ def create_database():
     cursor.execute("CREATE UNIQUE INDEX IF NOT EXISTS business_pages_custom_domain_idx ON business_pages (custom_domain)")
     cursor.execute("ALTER TABLE business_pages ADD COLUMN IF NOT EXISTS custom_domain_status TEXT")
 
+    # The Paddle subscription that pays for pending_custom_domain/custom_domain above -
+    # a separate, $15/yr recurring Price from Starter/Pro (see paddle_billing.
+    # domain_price_id, templates/domain_checkout.html), charged directly to the business
+    # rather than bundled into their app subscription. The domain keeps auto-renewing on
+    # Dynadot for as long as THIS subscription stays paid, independent of whether their
+    # Starter/Pro plan is active - see domain_registrar.py. domain_subscription_status
+    # mirrors businesses.subscription_status's own vocabulary (Paddle's own status
+    # strings: trialing/active/past_due/canceled/...), set by app.py's paddle_webhook.
+    cursor.execute("ALTER TABLE business_pages ADD COLUMN IF NOT EXISTS domain_paddle_subscription_id TEXT")
+    cursor.execute("ALTER TABLE business_pages ADD COLUMN IF NOT EXISTS domain_subscription_status TEXT")
+
     # Photos/video a business uploads for its own public page (logo in the header, a
     # gallery of shots of the product/space, one hero video) - see storage.py for the
     # actual Cloudinary upload/delete, this table just links the resulting URL back to
@@ -2714,7 +2725,7 @@ def get_business_page(business_id):
     connection = connect()
     cursor = connection.cursor()
     cursor.execute(
-        "SELECT id, business_id, slug, published, tagline, about, created_at, updated_at, widget_domain, theme, custom_theme_json, pending_custom_domain, custom_domain, custom_domain_status FROM business_pages WHERE business_id = %s",
+        "SELECT id, business_id, slug, published, tagline, about, created_at, updated_at, widget_domain, theme, custom_theme_json, pending_custom_domain, custom_domain, custom_domain_status, domain_paddle_subscription_id, domain_subscription_status FROM business_pages WHERE business_id = %s",
         (business_id,),
     )
     result = cursor.fetchone()
@@ -2730,7 +2741,7 @@ def page_by_slug(slug):
     connection = connect()
     cursor = connection.cursor()
     cursor.execute(
-        "SELECT id, business_id, slug, published, tagline, about, created_at, updated_at, widget_domain, theme, custom_theme_json, pending_custom_domain, custom_domain, custom_domain_status FROM business_pages WHERE slug = %s",
+        "SELECT id, business_id, slug, published, tagline, about, created_at, updated_at, widget_domain, theme, custom_theme_json, pending_custom_domain, custom_domain, custom_domain_status, domain_paddle_subscription_id, domain_subscription_status FROM business_pages WHERE slug = %s",
         (slug,),
     )
     result = cursor.fetchone()
@@ -2788,10 +2799,28 @@ def upsert_business_page(business_id, slug, published, tagline, about, widget_do
     connection.close()
 
 
+def set_domain_subscription(business_id, paddle_subscription_id, status):
+    """Records the domain-purchase Paddle subscription's own lifecycle (see
+    paddle_billing.domain_price_id/templates/domain_checkout.html) - called from
+    app.py's paddle_webhook whenever a 'subscription.*' event's custom_data marks it as
+    the domain add-on (kind == 'domain'), not a Starter/Pro event. Separate from
+    businesses.subscription_status/paddle_subscription_id - this is its own
+    subscription, paid and canceled independently of the business's app plan."""
+    connection = connect()
+    cursor = connection.cursor()
+    cursor.execute(
+        "UPDATE business_pages SET domain_paddle_subscription_id = %s, domain_subscription_status = %s WHERE business_id = %s",
+        (paddle_subscription_id, status, business_id),
+    )
+    connection.commit()
+    connection.close()
+
+
 def set_custom_domain_purchasing(business_id):
-    """Marks a chosen-but-unpurchased domain as actively being bought - called right
-    before api_save_page hands off to domain_registrar.purchase_domain(), so the mobile
-    UI can show "buying your domain..." instead of the pick just silently sitting there
+    """Marks a chosen-but-unpurchased domain as actively being bought - called from
+    app.py's paddle_webhook once the domain subscription above is confirmed paid,
+    right before handing off to domain_registrar.purchase_domain(), so the mobile UI
+    can show "buying your domain..." instead of the pick just silently sitting there
     for however long that call takes."""
     connection = connect()
     cursor = connection.cursor()

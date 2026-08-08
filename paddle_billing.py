@@ -34,6 +34,15 @@ def price_id_for(plan, interval):
     return os.getenv(env_var, "") if env_var else ""
 
 
+def domain_price_id():
+    """The one Price ID for the custom-domain yearly add-on (see
+    templates/domain_checkout.html) - a separate Paddle subscription from
+    Starter/Pro, charged directly to the business (not bundled into their app
+    subscription - see domain_registrar.py), so the domain keeps renewing for as
+    long as THIS is paid, independent of their Starter/Pro status."""
+    return os.getenv("PADDLE_PRICE_DOMAIN_YEARLY", "")
+
+
 def client_token():
     """The PUBLIC client-side token Paddle.Initialize() needs in the browser - safe to
     render straight into the page, unlike PADDLE_API_KEY (server-only, not used by this

@@ -475,6 +475,13 @@ const TRANSLATIONS = {
         "subscription.paddleNoteLine1": "Payment is securely processed by Paddle, our reseller of record.",
         "subscription.paddleNoteLine2": "Your 14-day free trial unlocks every Pro feature — we'll send you a reminder before it ends.",
 
+        "domainCheckout.title": "Buy your domain",
+        "domainCheckout.subtitle": "One more step before your domain is live:",
+        "domainCheckout.benefit1": "Registered and pointed at your Camilius site automatically",
+        "domainCheckout.benefit2": "Renews automatically each year, billed separately from your app plan",
+        "domainCheckout.benefit3": "Cancel any time - the domain simply won't renew again",
+        "domainCheckout.buyButton": "Buy domain",
+
         "schedule.appointmentLength": "Appointment length",
         "schedule.locked.title": "Schedule is a Pro plan feature",
         "schedule.locked.body": "View and manage a day/week calendar, and let the AI book, cancel, and reschedule appointments straight from a chat conversation on your page.",
@@ -3935,6 +3942,13 @@ const TRANSLATIONS = {
         "subscription.choosePro": "Izaberi Pro",
         "subscription.paddleNoteLine1": "Plaćanje bezbedno obrađuje Paddle, naš ovlašćeni preprodavac.",
         "subscription.paddleNoteLine2": "Besplatni probni period od 14 dana uključuje sve Pro funkcije — poslaćemo vam podsetnik imejlom pre isteka.",
+
+        "domainCheckout.title": "Kupi svoj domen",
+        "domainCheckout.subtitle": "Još jedan korak pre nego što tvoj domen proradi:",
+        "domainCheckout.benefit1": "Automatski registrovan i povezan sa tvojim Camilius sajtom",
+        "domainCheckout.benefit2": "Automatski se obnavlja svake godine, naplaćuje se odvojeno od tvog plana",
+        "domainCheckout.benefit3": "Otkaži kad god želiš - domen jednostavno neće biti obnovljen",
+        "domainCheckout.buyButton": "Kupi domen",
 
         "schedule.appointmentLength": "Trajanje termina",
         "schedule.locked.title": "Raspored je funkcija Pro plana",
