@@ -938,6 +938,10 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
 }
 .picker-btn:active { border-color: var(--primary); }
 .picker-chevron { display: flex; align-items: center; color: var(--text-muted); flex-shrink: 0; }
+/* Working hours' own time fields (both the per-day rows and the "Same hours every day"
+   quick-fill pair) drop the chevron entirely rather than just fixing its overflow -
+   the field still opens the same picker on tap, just without the indicator glyph. */
+.time-picker-btn .picker-chevron { display: none; }
 .picker-chevron svg { display: block; }
 /* Options list inside the shared #option-modal - reuses the country picker's sheet/list
    classes (same anchored-below-field mechanism), plus its own selected-state look. */
