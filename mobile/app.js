@@ -3484,6 +3484,24 @@ async function openDomainCheckout(domain) {
     }
 }
 
+// "View page" on the My Site tab - same bridge as "Choose a plan" above, opening the
+// full public_page.html render (see app.py's site_preview()/site_preview_mobile()) in
+// the in-app browser so the owner can see the complete site Camilius built from
+// everything on file, even before it's published.
+async function openSitePreview() {
+    try {
+        const data = await api("/api/site-preview-link");
+        if (capacitorPlugins && capacitorPlugins.Browser) {
+            await capacitorPlugins.Browser.open({ url: data.url });
+        } else {
+            window.open(data.url, "_blank");
+        }
+    } catch (err) {
+        reportClientError(err.message, err.stack, "site-preview-link");
+    }
+}
+el("mysite-view-page-btn").addEventListener("click", openSitePreview);
+
 const SUPPORT_EMAIL = "support@ai-auto-reply-mail.com";
 
 el("help-email-btn").addEventListener("click", () => {
@@ -4408,6 +4426,7 @@ async function loadMySite() {
         const page = data.page;
         state.mysiteHasPage = !!page;
 
+        el("mysite-view-page-btn").classList.toggle("hidden", !page);
         el("mysite-view-site-link").classList.toggle("hidden", !(page && page.published));
         // Cached (along with hasAppointments below) so next launch can show this section
         // in its right shape right away instead of waiting on this same fetch every time -
@@ -4418,9 +4437,6 @@ async function loadMySite() {
         storageSet("mysiteHasPage", page ? "1" : "").catch(() => {});
         storageSet("mysitePublished", page && page.published ? "1" : "").catch(() => {});
         if (page) {
-            el("mysite-website-status").textContent = page.published
-                ? (t("mysite.website.live") || "Live") + " · " + page.slug
-                : (t("mysite.website.draft") || "Not published yet");
             el("mysite-slug").value = page.slug || "";
             mysiteSyncDomainCheckBtnVisibility();
             mysiteChosenDomain = page.pending_custom_domain || null;
@@ -4436,7 +4452,6 @@ async function loadMySite() {
             storageSet("pageTheme", page.theme || "warm").catch(() => {});
             mysiteSelectedCustomTheme = page.theme === "custom" && page.custom_theme_json ? JSON.parse(page.custom_theme_json) : null;
         } else {
-            el("mysite-website-status").textContent = "";
             // No page yet - seed the Design row from whatever was picked before a web
             // address existed (see api_save_page's blank-slug branch/set_preferred_theme),
             // instead of always defaulting to "warm", so that preference actually shows
@@ -5329,6 +5344,7 @@ updateOfflineBanner();
     // moments later if anything actually changed.
     state.mysiteHasPage = mysiteHasPage === "1";
     el("mysite-appointments-card").classList.toggle("hidden", !mysiteHasAppointments);
+    el("mysite-view-page-btn").classList.toggle("hidden", !state.mysiteHasPage);
     el("mysite-view-site-link").classList.toggle("hidden", !mysitePublished);
     if (mysitePublished && mysiteSlug) el("mysite-view-site-link").href = `${API_BASE}/p/${mysiteSlug}`;
 

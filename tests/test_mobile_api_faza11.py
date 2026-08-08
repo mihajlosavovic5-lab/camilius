@@ -116,3 +116,31 @@ def test_schedule_link_bridges_to_a_logged_in_schedule_page(client, unique_usern
 def test_schedule_link_rejects_bad_token(client):
     response = client.get("/schedule/not-a-real-token")
     assert response.status_code == 404
+
+
+def test_site_preview_link_requires_auth(client):
+    response = client.get("/api/site-preview-link")
+    assert response.status_code == 401
+
+
+def test_site_preview_link_bridges_to_a_logged_in_preview(client, unique_username, unique_email):
+    headers, business_id = _auth_header(client, unique_username, unique_email)
+    database.upsert_business_page(business_id, f"draft-{unique_username}", False, "Fresh cuts daily", None)
+
+    link_response = client.get("/api/site-preview-link", headers=headers)
+    assert link_response.status_code == 200
+    url = link_response.get_json()["url"]
+    assert "/site/preview/" in url
+
+    token = url.rsplit("/site/preview/", 1)[1]
+    # Same session-bridge fix as the Schedule link above (see app.py's
+    # site_preview_mobile) - lands on the real preview, unpublished page included,
+    # rather than a login wall.
+    bridge_response = client.get(f"/site/preview/{token}", follow_redirects=True)
+    assert bridge_response.status_code == 200
+    assert "Fresh cuts daily" in bridge_response.get_data(as_text=True)
+
+
+def test_site_preview_link_rejects_bad_token(client):
+    response = client.get("/site/preview/not-a-real-token")
+    assert response.status_code == 404

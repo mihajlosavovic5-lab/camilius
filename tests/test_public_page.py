@@ -209,3 +209,44 @@ def test_sitemap_lists_published_pages_only(client, unique_username, unique_emai
     sitemap = client.get("/sitemap.xml").get_data(as_text=True)
     assert f"/p/{published_slug}" in sitemap
     assert f"/p/{draft_slug}" not in sitemap
+
+
+def test_site_preview_requires_login(client):
+    response = client.get("/site/preview")
+    assert response.status_code == 302
+    assert response.headers["Location"] == "/login"
+
+
+def test_site_preview_404s_with_no_page_saved_yet(client, unique_username, unique_email):
+    register_business_web(client, unique_username, unique_email)
+    response = client.get("/site/preview")
+    assert response.status_code == 404
+
+
+def test_site_preview_renders_unpublished_page(client, unique_username, unique_email):
+    """The whole point of this route (see app.py's site_preview docstring): unlike
+    /p/<slug>, an unpublished page still renders here so the owner can see the complete
+    site Camilius built before ever choosing to publish it."""
+    register_business_web(client, unique_username, unique_email)
+    business_id = database.business_by_username(unique_username)[0]
+    slug = f"draft-{uuid.uuid4().hex[:8]}"
+    database.upsert_business_page(business_id, slug, False, "Fresh cuts daily", "We opened in 2019.")
+
+    response = client.get("/site/preview")
+    assert response.status_code == 200
+    html = response.get_data(as_text=True)
+    assert "Test Salon" in html
+    assert "Fresh cuts daily" in html
+    assert "We opened in 2019." in html
+    assert 'name="robots" content="noindex, nofollow"' in html  # preview=True, never indexed
+
+
+def test_site_preview_renders_published_page_too(client, unique_username, unique_email):
+    register_business_web(client, unique_username, unique_email)
+    business_id = database.business_by_username(unique_username)[0]
+    slug = f"live-{uuid.uuid4().hex[:8]}"
+    database.upsert_business_page(business_id, slug, True, "Fresh cuts daily", None)
+
+    response = client.get("/site/preview")
+    assert response.status_code == 200
+    assert "Fresh cuts daily" in response.get_data(as_text=True)
