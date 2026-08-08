@@ -541,14 +541,45 @@ function createAnchoredListPicker(modalId) {
     const list = modal.querySelector(".country-modal-list");
     let openTriggerBtn = null;
 
+    // Fades each option's opacity/weight by how far it's scrolled from the wheel's own
+    // center band (.option-modal-center-band in app.css - a static highlight, always at
+    // the list's vertical middle) and marks whichever option currently sits closest
+    // with .wheel-active for the bold/primary-color "selected" look. Row height is
+    // fixed (see #option-modal-list's own CSS), so distance converts to "rows away"
+    // directly rather than needing to measure anything but each button's own position.
+    const WHEEL_ROW_H = 44;
+    function updateWheelFade() {
+        const centerY = list.getBoundingClientRect().top + list.clientHeight / 2;
+        let closestBtn = null;
+        let closestDist = Infinity;
+        Array.from(list.children).forEach((btn) => {
+            const dist = Math.abs(btn.getBoundingClientRect().top + btn.offsetHeight / 2 - centerY);
+            if (dist < closestDist) { closestDist = dist; closestBtn = btn; }
+            btn.style.opacity = Math.max(0.16, 1 - (dist / WHEEL_ROW_H) * 0.4).toFixed(2);
+            btn.classList.remove("wheel-active");
+        });
+        if (closestBtn) closestBtn.classList.add("wheel-active");
+    }
+    // rAF-throttled - scroll fires far more often than a frame needs re-painting for.
+    let wheelFadeTicking = false;
+    list.addEventListener("scroll", () => {
+        if (wheelFadeTicking) return;
+        wheelFadeTicking = true;
+        requestAnimationFrame(() => {
+            updateWheelFade();
+            wheelFadeTicking = false;
+        });
+    }, { passive: true });
+
     function open(triggerBtn, options, currentValue, onSelect) {
         openTriggerBtn = triggerBtn;
         list.innerHTML = "";
+        let selectedBtn = null;
         options.forEach((opt) => {
             const optionBtn = document.createElement("button");
             optionBtn.type = "button";
             optionBtn.className = "country-option-btn";
-            if (opt === currentValue) optionBtn.classList.add("selected");
+            if (opt === currentValue) { optionBtn.classList.add("selected"); selectedBtn = optionBtn; }
             optionBtn.textContent = opt;
             optionBtn.addEventListener("click", () => {
                 onSelect(opt);
@@ -558,10 +589,14 @@ function createAnchoredListPicker(modalId) {
         });
 
         modal.classList.add("open");
-        // Always open scrolled to the very top of the list, not centered on whichever
-        // option is currently selected - centering could leave the first option cut off
-        // above the visible area, reading as if the list started mid-way through itself.
-        list.scrollTop = 0;
+        // Opens with the current value already scrolled to the wheel's own center,
+        // rather than at the top of the list - offsetTop needs a layout pass first
+        // (list.innerHTML was just rebuilt above), hence the rAF.
+        requestAnimationFrame(() => {
+            const target = selectedBtn || list.firstElementChild;
+            if (target) list.scrollTop = target.offsetTop - (list.clientHeight - target.offsetHeight) / 2;
+            updateWheelFade();
+        });
     }
     function close() {
         modal.classList.remove("open");

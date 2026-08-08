@@ -1,5 +1,5 @@
 <!doctype html>
-<html data-bundle-version="c4eafbcc0fd2" lang="en">
+<html data-bundle-version="806462144922" lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
@@ -16,7 +16,7 @@
 <link rel="preload" href="fonts/lora-latin-ext.woff2?v=e8c32fe92ded" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="fonts/familjen-grotesk-latin.woff2?v=e8c32fe92ded" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="fonts/familjen-grotesk-latin-ext.woff2?v=e8c32fe92ded" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="app.css?v=c4eafbcc0fd2">
+<link rel="stylesheet" href="app.css?v=806462144922">
 </head>
 <body>
 
@@ -110,14 +110,18 @@
   </div>
 </div>
 
-<!-- Generic anchored option-list picker (Faza 4) - same fixed-overlay + anchor-below-
-     field mechanism as the country picker above, shared by every working-hours time
-     button and the price list's currency button (see createAnchoredListPicker() in
-     app.js). Replaces what used to be native <select> elements for these fields, which
-     opened as a large OS-centered dialog on Android. -->
+<!-- Generic option-list picker (Faza 4, wheel-style later) - same fixed-overlay
+     mechanism as the country picker above, shared by every working-hours time button,
+     the price list's currency button, and the duration/lead-time fields (see
+     createAnchoredListPicker() in app.js). Replaces what used to be native <select>
+     elements for these fields. Styled as a scroll wheel (see #option-modal-list's own
+     CSS) - option-modal-center-band is a static highlight sitting at the list's
+     vertical center, behind whichever option has scrolled there; the list itself
+     (and each option's fade as it scrolls away from center) is what actually moves. -->
 <div id="option-modal" class="lang-modal">
   <div class="lang-modal-backdrop" id="option-modal-backdrop"></div>
   <div class="lang-modal-sheet country-modal-sheet" id="option-modal-sheet">
+    <div class="option-modal-center-band" aria-hidden="true"></div>
     <div id="option-modal-list" class="country-modal-list"></div>
   </div>
 </div>
@@ -1553,8 +1557,8 @@
   </button>
 </nav>
 
-<script src="i18n.js?v=c4eafbcc0fd2"></script>
-<script src="hours-picker.js?v=c4eafbcc0fd2"></script>
-<script src="app.js?v=c4eafbcc0fd2"></script>
+<script src="i18n.js?v=806462144922"></script>
+<script src="hours-picker.js?v=806462144922"></script>
+<script src="app.js?v=806462144922"></script>
 </body>
 </html>

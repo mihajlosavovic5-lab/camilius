@@ -478,6 +478,42 @@ button { font-family: inherit; -webkit-appearance: none; appearance: none; }
 .country-option-btn:active { background: var(--background); }
 .country-option-flag { font-size: 19px; flex-shrink: 0; }
 .country-option-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* --- Wheel-style option list (working-hours times, currency, duration, lead-time) -
+   opens with the current value already scrolled to the list's own center, a static
+   highlight band marks that center row, and every option's opacity/weight fades the
+   further it scrolls from center (updateWheelFade() in app.js, run on scroll) - reads
+   as a real spin wheel rather than a plain scrolling list. Everything here is scoped
+   to #option-modal specifically (by ID, or via the .option-modal-center-band element
+   that only exists in its markup) - the phone country-code picker reuses the exact
+   same .country-modal-list/.country-option-btn classes for its own plain A-Z list and
+   must keep that unaffected. --- */
+#option-modal .country-modal-sheet { position: relative; }
+.option-modal-center-band {
+    position: absolute; left: 8px; right: 8px; top: 50%; height: 44px;
+    transform: translateY(-50%); background: var(--primary-light);
+    border-radius: 10px; pointer-events: none; z-index: 0;
+}
+#option-modal-list {
+    position: relative;
+    /* 220px tall (5 rows), padded top/bottom by (220 - 44) / 2 so the very first and
+       very last option can still be scrolled all the way to the center band, the same
+       way real content in the middle of the list can. */
+    height: 220px; padding: 88px 0;
+    scroll-snap-type: y mandatory;
+}
+#option-modal .country-option-btn {
+    position: relative; z-index: 1; justify-content: center; text-align: center;
+    min-height: 44px; box-sizing: border-box; scroll-snap-align: center;
+    color: var(--text-muted); font-weight: 500;
+    transition: color .15s ease, font-weight .15s ease;
+}
+/* Overrides the plain .selected look (background pill + bold, shared with the country
+   picker's own "current value" state) - here that would leave a second, non-moving
+   pill trailing the original value while .option-modal-center-band already marks
+   whichever row the list is actually centered on via .wheel-active below. */
+#option-modal .country-option-btn.selected { background: none; font-weight: 500; color: var(--text-muted); }
+#option-modal .country-option-btn.wheel-active { color: var(--primary-ink); font-weight: 700; }
 .country-option-dial { color: var(--text-muted); font-size: 14.5px; flex-shrink: 0; }
 
 .phone-input-row { display: flex; gap: 8px; margin-top: 14px; }
