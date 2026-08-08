@@ -4419,9 +4419,6 @@ async function loadMySite() {
         storageSet("mysiteHasPage", page ? "1" : "").catch(() => {});
         storageSet("mysitePublished", page && page.published ? "1" : "").catch(() => {});
         if (page) {
-            el("mysite-website-status").textContent = page.published
-                ? (t("mysite.website.live") || "Live") + " · " + page.slug
-                : (t("mysite.website.draft") || "Not published yet");
             el("mysite-slug").value = page.slug || "";
             mysiteSyncDomainCheckBtnVisibility();
             mysiteChosenDomain = page.pending_custom_domain || null;
@@ -4437,7 +4434,6 @@ async function loadMySite() {
             storageSet("pageTheme", page.theme || "warm").catch(() => {});
             mysiteSelectedCustomTheme = page.theme === "custom" && page.custom_theme_json ? JSON.parse(page.custom_theme_json) : null;
         } else {
-            el("mysite-website-status").textContent = "";
             // No page yet - seed the Design row from whatever was picked before a web
             // address existed (see api_save_page's blank-slug branch/set_preferred_theme),
             // instead of always defaulting to "warm", so that preference actually shows
