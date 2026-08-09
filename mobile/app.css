@@ -1474,13 +1474,6 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
 .profile-section-title { font-size: 16px; font-weight: 700; margin: 0; display: flex; align-items: center; gap: 8px; }
 .profile-section-subtitle { color: var(--text-muted); font-size: 13.5px; margin: 3px 0 0; }
 .profile-section-header + .floating-field, .profile-section-header + label { margin-top: 0; }
-/* "Your website" card header (My Site tab) - title and the "View page" button share one
-   row instead of the button sitting in its own full-width row below a status line (see
-   mobile/index.html) - #mysite-view-page-btn drops .button's own margin-top/full-width
-   defaults to sit inline, right-aligned against the title. */
-.mysite-website-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-.mysite-website-header .button { margin-top: 0; padding: 9px 18px; font-size: 14.5px; flex-shrink: 0; }
-
 /* Website photos & video (inside the Profile screen's own .profile-section) - each
    .media-grid holds thumbs for one role (logo/gallery/hero_video) plus a trailing "+"
    add button, mirroring the web onboarding wizard's .onboarding-media-grid. */
