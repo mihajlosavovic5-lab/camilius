@@ -1095,7 +1095,12 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
     font-weight: 600; font-size: 14.5px; width: 84px; flex-shrink: 0;
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
-.hours-day-times { display: flex; align-items: center; gap: 6px; flex: 1; min-width: 0; }
+/* margin-right nudges the time fields left, off the toggle switch's edge - .hours-day-row's
+   own 10px gap read as cramped there (a bordered field's edge sitting right up against the
+   toggle track), more than the same 10px reads next to the day name's plain text on the
+   other side. Every row shares this rule, so the whole column of time fields stays aligned
+   with each other, just shifted uniformly. */
+.hours-day-times { display: flex; align-items: center; gap: 6px; flex: 1; min-width: 0; margin-right: 8px; }
 .hours-day-times.hidden { display: none; }
 .hours-day-closed-label { flex: 1; min-width: 0; font-size: 14px; color: var(--text-muted); }
 /* No min-width: 0 here (unlike most flex:1 items in this file) - that override lets a
