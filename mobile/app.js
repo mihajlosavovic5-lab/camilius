@@ -3201,13 +3201,6 @@ async function saveProfileForm() {
     const button = el("settings-save");
     const errorBox = el("settings-error");
     errorBox.classList.add("hidden");
-    // collapseToSimple() below can shrink Working hours a lot (the full per-day list down
-    // to one summary row), which shortens the scrollable .detail-body enough that the
-    // WebView clamps its scroll position back up - reads as Save yanking you to the top of
-    // the screen. Restoring the pre-save scrollTop afterward keeps you exactly where you
-    // were, same as the rest of this save flow staying on the same screen.
-    const scrollContainer = el("screen-profile").querySelector(".detail-body");
-    const scrollTopBeforeSave = scrollContainer ? scrollContainer.scrollTop : 0;
 
     const username = el("settings-username").value.trim();
     const contactEmailField = el("settings-contact-email");
@@ -3269,9 +3262,7 @@ async function saveProfileForm() {
         resetPasswordField("settings-current-password");
         resetPasswordField("settings-new-password");
         updatePhoneVerifyStatus(data.phone_number, data.phone_verified, data.sms_verification_available, data.phone_login_enabled);
-        profileHoursPicker.collapseToSimple();
         profileFormSnapshot = serializeProfileForm();
-        if (scrollContainer) scrollContainer.scrollTop = scrollTopBeforeSave;
     } catch (err) {
         errorBox.textContent = err.message || t("settings.error");
         errorBox.classList.remove("hidden");
