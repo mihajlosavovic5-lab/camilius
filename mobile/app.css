@@ -443,10 +443,14 @@ button { font-family: inherit; -webkit-appearance: none; appearance: none; }
 }
 .country-modal-list {
     position: relative; overflow-y: auto;
-    /* 220px tall (5 rows), padded top/bottom by (220 - 44) / 2 so the very first and
-       very last option can still be scrolled all the way to the center band, the same
-       way real content in the middle of the list can. */
-    height: 220px; padding: 88px 0;
+    /* 220px tall (5 rows), no top/bottom padding - padding it by (220 - 44) / 2 so the
+       very first/last option could reach the center band, like real content in the
+       middle of the list does, left a big empty void showing past the last option on
+       short lists (languages, or either end of a long one) once scrolled that far.
+       Without it, the first/last row just rests at the list's own top/bottom edge
+       instead of the center band once you've scrolled that far - true for every other
+       row still lands centered same as before. */
+    height: 220px;
     scroll-snap-type: y mandatory;
 }
 .country-option-btn {
