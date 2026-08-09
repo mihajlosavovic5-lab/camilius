@@ -4346,6 +4346,12 @@ const CLASSIC_THEMES = [
 
 let mysiteSelectedCustomTheme = null; // a previously-saved custom theme object, if one is currently selected
 
+// Set by the attach-button IIFE further down (mysite-attach-btn) - uploads whatever
+// photos/video the owner has attached to the compose bar but not yet sent. Declared up
+// here so mysiteSubmitDescription (defined before that IIFE runs) can call it without
+// the two being coupled by file order.
+let mysiteFlushStagedAttachments = null;
+
 // Same "hidden until dirty" floating Save button as Profile/Settings (see
 // updateSettingsSaveValidity above) - only the website's own fields count, not the
 // separate "Draft this with AI" description/voice controls below them, which don't
@@ -4795,8 +4801,18 @@ async function mysiteSubmitDescription() {
     // padding/flex rules which leaked onto this button and ballooned it when reused.
     button.classList.add("send-loading");
     button.setAttribute("aria-busy", "true");
+    // Photos/video attached to the compose bar were only staged locally (see the
+    // mysite-attach-btn IIFE below) - this is the point they actually upload, same as a
+    // normal chat only sending attachments once you tap send. Runs alongside the draft
+    // call rather than blocking on it first: nothing about the draft depends on these
+    // (the AI call is text-only), and any per-file upload failure already reports its
+    // own toast without rejecting here.
+    const flushAttachments = mysiteFlushStagedAttachments ? mysiteFlushStagedAttachments() : Promise.resolve();
     try {
-        const draft = await api("/api/generate-page", { method: "POST", body: { description } });
+        const [draft] = await Promise.all([
+            api("/api/generate-page", { method: "POST", body: { description } }),
+            flushAttachments,
+        ]);
         el("mysite-tagline-input").value = draft.tagline || "";
         el("mysite-about-input").value = draft.about || "";
         // Only pre-fill the web address if the owner hasn't already got one (typed or
@@ -5111,15 +5127,18 @@ el("mysite-send-btn").addEventListener("click", () => {
 // Attach button (compose bar, My Site tab) - lets the owner add photos/video/documents
 // straight from the chat instead of hunting through Profile's own media/document
 // sections. Reuses those same endpoints (api.py's /api/media and /api/documents,
-// business_media.py/business_documents.py) rather than inventing a third upload path:
-// PDFs/Word docs become source documents, already folded into the AI draft automatically
-// (business_documents.combined_document_text, wired into /api/generate-page and
-// /api/suggest-themes), while photos/video become the site's own gallery/hero video -
-// the AI copywriting call is text-only, so there's no "send this photo to the AI" step,
-// but the app does remember every attachment against the business either way. While the
-// mic is recording, this same button is a cancel (X) instead - the send button already
-// covers "stop and use" (mysiteStopRecordingIfActive), so this is deliberately the other
-// exit: stop and throw away everything recorded so far.
+// business_media.py/business_documents.py) rather than inventing a third upload path.
+// Documents upload the instant they're picked - they become source documents the AI
+// draft reads immediately (business_documents.combined_document_text, wired into
+// /api/generate-page and /api/suggest-themes), so they need to already be there by the
+// time Send runs. Photos/video are different: they're just gallery/hero-video content
+// the AI call never looks at (it's text-only), so there's no reason for them to hit the
+// server before the owner actually taps Send - they're held client-side ("staged",
+// see stageFile/mysiteFlushStagedAttachments below) and only uploaded then, same as any
+// normal chat only sends attachments once you hit send. While the mic is recording,
+// this same button is a cancel (X) instead - the send button already covers "stop and
+// use" (mysiteStopRecordingIfActive), so this is deliberately the other exit: stop and
+// throw away everything recorded so far.
 (function () {
     const attachBtn = el("mysite-attach-btn");
     const cameraInput = el("mysite-attach-input-camera");
@@ -5173,10 +5192,14 @@ el("mysite-send-btn").addEventListener("click", () => {
         return kind === "video" ? "Video" : kind === "image" ? "Photo" : "File";
     }
 
-    function makeChip(kind, item) {
-        const chip = document.createElement("span");
-        chip.className = "compose-attachment-chip";
-
+    // Builds a chip's contents (thumbnail/icon + name + remove button) for an item
+    // that's actually been uploaded - shared by makeChip (documents, uploaded the
+    // instant they're picked) and persistStagedEntry's success path (photos/video,
+    // once Send has actually flushed them). Appends into whatever chip is passed in
+    // rather than creating one, so persistStagedEntry can reuse the same chip element
+    // a staged item was already showing instead of it jumping to a new position in the
+    // list once uploaded.
+    function fillUploadedChip(chip, kind, item) {
         if (kind === "image") {
             const img = document.createElement("img");
             img.src = item.url;
@@ -5206,7 +5229,12 @@ el("mysite-send-btn").addEventListener("click", () => {
         removeBtn.textContent = "×";
         removeBtn.addEventListener("click", () => removeAttachment(kind, item.id, chip));
         chip.appendChild(removeBtn);
+    }
 
+    function makeChip(kind, item) {
+        const chip = document.createElement("span");
+        chip.className = "compose-attachment-chip";
+        fillUploadedChip(chip, kind, item);
         list.appendChild(chip);
     }
 
@@ -5225,13 +5253,10 @@ el("mysite-send-btn").addEventListener("click", () => {
         });
     }
 
-    function uploadFile(file) {
-        const kind = kindFor(file);
-        if (!kind) {
-            showToast("That file type isn't supported here.");
-            return;
-        }
-
+    // Documents only (handlePicked below only ever calls this with kind === "document")
+    // - uploads the instant it's picked, see the file-level comment above for why.
+    // Photos/video go through stageFile below instead.
+    function uploadFile(file, kind) {
         const placeholder = document.createElement("span");
         placeholder.className = "compose-attachment-chip uploading";
 
@@ -5251,11 +5276,9 @@ el("mysite-send-btn").addEventListener("click", () => {
 
         const formData = new FormData();
         formData.append("file", file);
-        if (kind !== "document") formData.append("role", kind === "video" ? "hero_video" : "gallery");
-        const path = kind === "document" ? "/api/documents" : "/api/media";
-        const errorKey = kind === "document" ? "settings.documents.error" : "settings.media.error";
+        const errorKey = "settings.documents.error";
 
-        fetch(API_BASE + path, {
+        fetch(API_BASE + "/api/documents", {
             method: "POST",
             headers: state.token ? { Authorization: "Bearer " + state.token } : {},
             body: formData,
@@ -5273,10 +5296,126 @@ el("mysite-send-btn").addEventListener("click", () => {
             });
     }
 
+    // Photos/video attached to the compose bar but not yet sent - each entry's chip
+    // already sits in the DOM (with a local, not-yet-uploaded preview), so removing a
+    // staged entry before Send is just a client-side splice, no request needed.
+    const staged = [];
+
+    function stageFile(kind, file) {
+        const chip = document.createElement("span");
+        chip.className = "compose-attachment-chip";
+
+        let previewUrl = null;
+        if (kind === "image") {
+            previewUrl = URL.createObjectURL(file);
+            const img = document.createElement("img");
+            img.src = previewUrl;
+            img.alt = "";
+            chip.appendChild(img);
+        } else {
+            const icon = document.createElement("span");
+            icon.className = "chip-icon";
+            icon.textContent = iconFor(kind);
+            chip.appendChild(icon);
+        }
+
+        const name = document.createElement("span");
+        name.className = "chip-name";
+        name.textContent = labelFor(kind);
+        chip.appendChild(name);
+
+        const entry = { kind, file, chip, previewUrl };
+
+        const removeBtn = document.createElement("button");
+        removeBtn.type = "button";
+        removeBtn.className = "chip-remove";
+        removeBtn.setAttribute("aria-label", "Remove");
+        removeBtn.textContent = "×";
+        removeBtn.addEventListener("click", () => {
+            const idx = staged.indexOf(entry);
+            if (idx !== -1) staged.splice(idx, 1);
+            if (entry.previewUrl) URL.revokeObjectURL(entry.previewUrl);
+            chip.remove();
+        });
+        chip.appendChild(removeBtn);
+
+        list.appendChild(chip);
+        staged.push(entry);
+    }
+
+    // Actually uploads one staged entry, in place - swaps its local preview for the
+    // same in-flight spinner look uploadFile uses, then fills in the real thumbnail/
+    // remove button (now wired to a real DELETE via removeAttachment) once it lands.
+    // Never rejects - a failed upload reports its own toast and drops the chip, same
+    // as uploadFile's failure path, so callers can Promise.all a whole batch of these
+    // without one failure losing the rest.
+    function persistStagedEntry(entry) {
+        const { kind, file, chip, previewUrl } = entry;
+        chip.classList.add("uploading");
+        chip.innerHTML = "";
+
+        const icon = document.createElement("span");
+        icon.className = "chip-icon";
+        const spinner = document.createElement("span");
+        spinner.className = "chip-spinner";
+        icon.appendChild(spinner);
+        chip.appendChild(icon);
+
+        const name = document.createElement("span");
+        name.className = "chip-name";
+        name.textContent = labelFor(kind);
+        chip.appendChild(name);
+
+        const formData = new FormData();
+        formData.append("file", file);
+        formData.append("role", kind === "video" ? "hero_video" : "gallery");
+
+        return fetch(API_BASE + "/api/media", {
+            method: "POST",
+            headers: state.token ? { Authorization: "Bearer " + state.token } : {},
+            body: formData,
+        }).then((response) => response.json().catch(() => ({})).then((data) => ({ ok: response.ok, data })))
+            .then(({ ok, data }) => {
+                if (previewUrl) URL.revokeObjectURL(previewUrl);
+                if (!ok) {
+                    chip.remove();
+                    showToast(data.error || t("settings.media.error") || "Couldn't upload that - please try again.");
+                    return;
+                }
+                chip.classList.remove("uploading");
+                chip.innerHTML = "";
+                fillUploadedChip(chip, kind, data);
+            }).catch(() => {
+                if (previewUrl) URL.revokeObjectURL(previewUrl);
+                chip.remove();
+                showToast(t("settings.media.error") || "Couldn't upload that - please try again.");
+            });
+    }
+
+    // Exposed for mysiteSubmitDescription (see the top-level `let` declared near
+    // mysiteFormSnapshot) - called once Send is actually tapped. Drains `staged` up
+    // front so a second Send while these are still uploading, or one that runs after
+    // they've already landed, never re-uploads the same file.
+    mysiteFlushStagedAttachments = function () {
+        const toFlush = staged.splice(0, staged.length);
+        return Promise.all(toFlush.map(persistStagedEntry));
+    };
+
     function handlePicked(input) {
         const files = Array.prototype.slice.call(input.files || []);
         input.value = "";
-        files.forEach(uploadFile);
+        files.forEach((file) => {
+            const kind = kindFor(file);
+            if (!kind) {
+                showToast("That file type isn't supported here.");
+                return;
+            }
+            if (kind === "document") {
+                uploadFile(file, kind);
+            } else {
+                stageFile(kind, file);
+            }
+        });
     }
     cameraInput.addEventListener("change", () => handlePicked(cameraInput));
     photosInput.addEventListener("change", () => handlePicked(photosInput));
