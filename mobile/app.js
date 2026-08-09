@@ -533,6 +533,20 @@ if (capacitorPlugins) {
 // than needing to measure anything but each button's own position. Returns the update
 // function so a caller can also invoke it directly right after scrolling to a target
 // (e.g. on open), instead of waiting for a scroll event to fire first.
+//
+// Also smooth-scrolls the closest row to the list's own center once a scroll gesture
+// settles (SETTLE_MS after the last scroll event), so the list still reads as a wheel
+// that centers on a value - CSS scroll-snap used to do this, but it needs the
+// scrolled-to-center position of the first/last row to be a real, reachable scroll
+// position, which meant padding the list with (height - rowHeight) / 2 of blank space
+// on each end (that padding is what showed as empty space past the last real row once
+// scrolled that far). Doing it in JS instead means every target is clamped to the
+// list's actual [0, scrollHeight - clientHeight] range, so it can never demand a
+// position that doesn't exist - no padding needed, and no scroll-snap "mandatory"
+// interaction that can trap a swipe short of the list's true top/bottom edge. A row
+// within roughly the first/last 2 rows can still never reach exact center (there's no
+// scrollable room left past it) - it stays fully visible and tappable, it just won't
+// end up under the highlight band.
 function setupWheelFade(list, rowHeight) {
     function updateWheelFade() {
         const centerY = list.getBoundingClientRect().top + list.clientHeight / 2;
@@ -546,15 +560,26 @@ function setupWheelFade(list, rowHeight) {
         });
         if (closestBtn) closestBtn.classList.add("wheel-active");
     }
-    // rAF-throttled - scroll fires far more often than a frame needs re-painting for.
+    const SETTLE_MS = 120;
     let wheelFadeTicking = false;
+    let settleTimer = null;
     list.addEventListener("scroll", () => {
-        if (wheelFadeTicking) return;
-        wheelFadeTicking = true;
-        requestAnimationFrame(() => {
-            updateWheelFade();
-            wheelFadeTicking = false;
-        });
+        // rAF-throttled - scroll fires far more often than a frame needs re-painting for.
+        if (!wheelFadeTicking) {
+            wheelFadeTicking = true;
+            requestAnimationFrame(() => {
+                updateWheelFade();
+                wheelFadeTicking = false;
+            });
+        }
+        clearTimeout(settleTimer);
+        settleTimer = setTimeout(() => {
+            const active = list.querySelector(".wheel-active");
+            if (!active) return;
+            const maxScrollTop = list.scrollHeight - list.clientHeight;
+            const target = active.offsetTop - (list.clientHeight - active.offsetHeight) / 2;
+            list.scrollTo({ top: Math.max(0, Math.min(target, maxScrollTop)), behavior: "smooth" });
+        }, SETTLE_MS);
     }, { passive: true });
     return updateWheelFade;
 }

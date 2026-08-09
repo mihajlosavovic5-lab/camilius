@@ -443,20 +443,22 @@ button { font-family: inherit; -webkit-appearance: none; appearance: none; }
 }
 .country-modal-list {
     position: relative; overflow-y: auto;
-    /* 132px tall (3 rows, down from 5/220px) padded top/bottom by (132 - 44) / 2 = 44px
-       so the very first and very last option can still be scrolled all the way to the
-       center band, same as real content in the middle of the list can - dropping this
-       padding entirely was tried, but with scroll-snap-type: mandatory that leaves no
-       valid centered snap position for the first/last couple of rows, which stops a
-       scroll gesture short of the list's true top/bottom edge instead of reaching it
-       (those rows become impossible to reach at all). The empty space below the last
-       item once it's centered is the normal, expected look of a wheel picker (same as
-       a native iOS/Android one) rather than a bug, but it scales with this list's own
-       height - shrinking the window from 5 rows to 3 halves how much of it shows
-       (44px vs. 88px) while keeping every row, including the very first/last, fully
-       reachable and selectable. */
-    height: 132px; padding: 44px 0;
-    scroll-snap-type: y mandatory;
+    /* 220px tall (5 rows), no top/bottom padding. Centering the current row used to be
+       done with CSS scroll-snap (scroll-snap-align: center on each row) plus padding
+       reserving (height - rowHeight) / 2 of blank space on each end so the first/last
+       row had a reachable centered snap position too - that padding is what showed as
+       empty space past the last real row once scrolled that far, and dropping it broke
+       scroll-snap-type: mandatory instead (no valid snap position left for the
+       first/last couple of rows, which stopped a scroll gesture short of the list's
+       true top/bottom edge rather than reaching it). Centering is now done in JS
+       instead (see setupWheelFade() in app.js) - it smooth-scrolls the closest row to
+       center once a scroll gesture settles, clamped to the list's real scrollable
+       range, so it can never demand a position that doesn't exist and a swipe always
+       reaches the true top/bottom. Trade-off: a value within roughly the first/last 2
+       rows can't reach exact center at all (there's no room left to scroll it there),
+       so opening the picker on one of those values won't highlight it under the band -
+       it's still fully visible and one tap away, just not shown as "centered". */
+    height: 220px;
 }
 .country-option-btn {
     display: flex; align-items: center; gap: 10px; width: 100%;
@@ -464,7 +466,7 @@ button { font-family: inherit; -webkit-appearance: none; appearance: none; }
     font-family: inherit; font-size: 16px; color: var(--text-muted); font-weight: 500; cursor: pointer;
     white-space: nowrap;
     position: relative; z-index: 1;
-    min-height: 44px; box-sizing: border-box; scroll-snap-align: center;
+    min-height: 44px; box-sizing: border-box;
     transition: color .15s ease, font-weight .15s ease;
 }
 .country-option-btn:active { background: var(--background); }
