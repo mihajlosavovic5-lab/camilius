@@ -4739,11 +4739,6 @@ async function mysiteCheckDomains(baseName) {
                 name.textContent = entry.domain;
                 row.appendChild(name);
 
-                const badge = document.createElement("span");
-                badge.className = "badge badge-domain-available";
-                badge.textContent = t("mysite.website.domainAvailable") || "Available";
-                row.appendChild(badge);
-
                 const chooseBtn = document.createElement("button");
                 chooseBtn.type = "button";
                 chooseBtn.className = "mysite-domain-choose-btn";

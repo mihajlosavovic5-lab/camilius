@@ -1693,20 +1693,19 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
 .badge-expired { background: var(--border); color: var(--text-muted); border: 1px solid var(--border); }
 .badge-pro { background: transparent; color: var(--primary-dark); border: 1.5px solid var(--primary); font-weight: 700; }
 
-/* "Check real domain availability" results (My Site tab) - same row/badge language as
-   .mysite-appointment-row/.badge-* above, not a plain bulleted list, so this reads as
-   part of the same app instead of a bolted-on debug dump. Only ever shows "available"
-   results (see mysiteCheckDomains in app.js) - taken/unknown candidates are filtered
-   out before they ever reach this markup, so there's no badge-domain-taken/-unknown
-   here (unlike the parallel desktop version, templates/settings.html + static/style.css,
-   which still lists every status). */
+/* "Check real domain availability" results (My Site tab) - same row language as
+   .mysite-appointment-row above, not a plain bulleted list, so this reads as part of
+   the same app instead of a bolted-on debug dump. Only ever shows "available" results
+   (see mysiteCheckDomains in app.js) - taken/unknown candidates are filtered out before
+   they ever reach this markup, and "available" itself goes unlabeled since nothing else
+   is ever shown here (unlike the parallel desktop version, templates/settings.html +
+   static/style.css, which still lists every status with its own badge). */
 .mysite-domain-row {
     display: flex; justify-content: space-between; align-items: center; gap: 8px;
     padding: 9px 0; border-bottom: 1px solid var(--border); font-size: 14px;
 }
 .mysite-domain-row:last-child { border-bottom: none; }
 .mysite-domain-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.badge-domain-available { background: var(--success-bg); color: var(--success); border: 1px solid var(--success-border); }
 
 /* "Choose" button per available domain row - picks that real, independently-registrable
    domain to be purchased automatically once the owner publishes (see mysite-chosen-domain
