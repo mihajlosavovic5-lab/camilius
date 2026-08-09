@@ -1097,6 +1097,12 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
 }
 .hours-day-times { display: flex; align-items: center; gap: 6px; flex: 1; min-width: 0; }
 .hours-day-times.hidden { display: none; }
+/* Nudges the time fields left, off the toggle switch's edge - only in the Monday-Friday
+   day-list rows (.hours-day-times is also reused by .hours-simple-row's collapsed
+   summary and .hours-quickfill's "Same hours every day" box above, neither of which has
+   a toggle next to it, so this is scoped to .hours-day-list specifically rather than
+   changing the shared class itself). */
+.hours-day-list .hours-day-times { margin-right: 16px; }
 .hours-day-closed-label { flex: 1; min-width: 0; font-size: 14px; color: var(--text-muted); }
 /* No min-width: 0 here (unlike most flex:1 items in this file) - that override lets a
    flex item shrink below what its own content needs, and since a button's overflow is
