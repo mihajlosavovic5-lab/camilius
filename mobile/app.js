@@ -3021,7 +3021,10 @@ function mediaMakeThumb(grid, item) {
 
 function mediaUploadFile(grid, role, file) {
     const max = parseInt(grid.dataset.max, 10);
-    if (grid.querySelectorAll(".media-thumb").length >= max) return;
+    if (grid.querySelectorAll(".media-thumb").length >= max) {
+        mediaShowError(t("settings.media.limitError").replace("{max}", max));
+        return;
+    }
     mediaErrorBox.classList.add("hidden");
 
     const placeholder = document.createElement("div");
