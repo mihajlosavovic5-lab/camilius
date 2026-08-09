@@ -443,21 +443,25 @@ button { font-family: inherit; -webkit-appearance: none; appearance: none; }
 }
 .country-modal-list {
     position: relative; overflow-y: auto;
-    /* 220px tall (5 rows), no top/bottom padding. Centering the current row used to be
-       done with CSS scroll-snap (scroll-snap-align: center on each row) plus padding
-       reserving (height - rowHeight) / 2 of blank space on each end so the first/last
-       row had a reachable centered snap position too - that padding is what showed as
-       empty space past the last real row once scrolled that far, and dropping it broke
-       scroll-snap-type: mandatory instead (no valid snap position left for the
-       first/last couple of rows, which stopped a scroll gesture short of the list's
-       true top/bottom edge rather than reaching it). Centering is now done in JS
-       instead (see setupWheelFade() in app.js) - it smooth-scrolls the closest row to
-       center once a scroll gesture settles, clamped to the list's real scrollable
-       range, so it can never demand a position that doesn't exist and a swipe always
-       reaches the true top/bottom. Trade-off: a value within roughly the first/last 2
-       rows can't reach exact center at all (there's no room left to scroll it there),
-       so opening the picker on one of those values won't highlight it under the band -
-       it's still fully visible and one tap away, just not shown as "centered". */
+    /* 220px tall (5 rows), no top/bottom padding, no scroll-snap. Centering the current
+       row used to be done with CSS scroll-snap (scroll-snap-align: center on each row)
+       plus padding reserving (height - rowHeight) / 2 of blank space on each end so the
+       first/last row had a reachable centered snap position too - that padding is what
+       showed as empty space past the last real row once scrolled that far, and merely
+       dropping it broke scroll-snap-type: mandatory instead (no valid snap position
+       left for the first/last couple of rows, so a scroll gesture stopped short of the
+       list's true top/bottom edge rather than reaching it). A JS version of the same
+       "smooth-scroll the closest row to center" idea was tried next, but a real
+       multi-flick touch swipe has its own brief pause between flicks that a debounce
+       reads as "the gesture settled", so it kept smooth-scrolling part-way back before
+       the next flick could continue - same trapped-short-of-the-edge symptom, just via
+       JS instead of scroll-snap. setupWheelFade() (app.js) now only ever reports which
+       row is closest to center (for the fade/highlight) - it never touches the scroll
+       position itself, so nothing is fighting the user's swipe and it always reaches
+       the true top/bottom. Trade-off: a value within roughly the first/last 2 rows
+       can't reach exact center (there's no room left to scroll it there), so opening
+       the picker on one of those values won't highlight it under the band - it's still
+       fully visible and one tap away, just not shown as "centered". */
     height: 220px;
 }
 .country-option-btn {

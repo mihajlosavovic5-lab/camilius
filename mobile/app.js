@@ -534,19 +534,17 @@ if (capacitorPlugins) {
 // function so a caller can also invoke it directly right after scrolling to a target
 // (e.g. on open), instead of waiting for a scroll event to fire first.
 //
-// Also smooth-scrolls the closest row to the list's own center once a scroll gesture
-// settles (SETTLE_MS after the last scroll event), so the list still reads as a wheel
-// that centers on a value - CSS scroll-snap used to do this, but it needs the
-// scrolled-to-center position of the first/last row to be a real, reachable scroll
-// position, which meant padding the list with (height - rowHeight) / 2 of blank space
-// on each end (that padding is what showed as empty space past the last real row once
-// scrolled that far). Doing it in JS instead means every target is clamped to the
-// list's actual [0, scrollHeight - clientHeight] range, so it can never demand a
-// position that doesn't exist - no padding needed, and no scroll-snap "mandatory"
-// interaction that can trap a swipe short of the list's true top/bottom edge. A row
-// within roughly the first/last 2 rows can still never reach exact center (there's no
-// scrollable room left past it) - it stays fully visible and tappable, it just won't
-// end up under the highlight band.
+// Purely reactive to whatever the user is already doing with the scroll position -
+// this used to also force a smooth-scroll to re-center the closest row once a scroll
+// gesture paused for a moment (CSS scroll-snap's job, before that needed list padding
+// that showed as empty space at either end - see .country-modal-list's own CSS/git
+// history). That fought a real, multi-flick touch swipe: each flick's momentum has its
+// own brief pause before the next one, which the debounce read as "gesture settled"
+// and smooth-scrolled part-way back toward center, over and over, so a swipe could
+// never actually make it from one end of the list to the other. Letting the scroll
+// position be is what makes a normal swipe reach the true top/bottom edge - the
+// highlight/fade below just reports whatever's currently closest to center, it never
+// moves the list itself.
 function setupWheelFade(list, rowHeight) {
     function updateWheelFade() {
         const centerY = list.getBoundingClientRect().top + list.clientHeight / 2;
@@ -560,26 +558,15 @@ function setupWheelFade(list, rowHeight) {
         });
         if (closestBtn) closestBtn.classList.add("wheel-active");
     }
-    const SETTLE_MS = 120;
+    // rAF-throttled - scroll fires far more often than a frame needs re-painting for.
     let wheelFadeTicking = false;
-    let settleTimer = null;
     list.addEventListener("scroll", () => {
-        // rAF-throttled - scroll fires far more often than a frame needs re-painting for.
-        if (!wheelFadeTicking) {
-            wheelFadeTicking = true;
-            requestAnimationFrame(() => {
-                updateWheelFade();
-                wheelFadeTicking = false;
-            });
-        }
-        clearTimeout(settleTimer);
-        settleTimer = setTimeout(() => {
-            const active = list.querySelector(".wheel-active");
-            if (!active) return;
-            const maxScrollTop = list.scrollHeight - list.clientHeight;
-            const target = active.offsetTop - (list.clientHeight - active.offsetHeight) / 2;
-            list.scrollTo({ top: Math.max(0, Math.min(target, maxScrollTop)), behavior: "smooth" });
-        }, SETTLE_MS);
+        if (wheelFadeTicking) return;
+        wheelFadeTicking = true;
+        requestAnimationFrame(() => {
+            updateWheelFade();
+            wheelFadeTicking = false;
+        });
     }, { passive: true });
     return updateWheelFade;
 }
