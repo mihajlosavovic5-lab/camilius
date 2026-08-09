@@ -684,15 +684,6 @@ function createPricePicker(rowsContainerId, addButtonId, currencyContainerId) {
     const currencyBtn = createOptionButton("RSD", CURRENCIES, "currency-picker-btn");
     el(currencyContainerId).appendChild(currencyBtn.el);
 
-    // Keeps every row's inline currency badge (see addRow below) matching the picker
-    // whenever the owner changes it - createOptionButton dispatches a bubbling "change"
-    // the same way a native <select> would.
-    function updatePriceCurrencyBadges() {
-        const currency = currencyBtn.value;
-        rowsContainer.querySelectorAll(".price-amount-currency").forEach((badge) => { badge.textContent = currency; });
-    }
-    currencyBtn.el.addEventListener("change", updatePriceCurrencyBadges);
-
     // Each row is two floating-label fields (Service / Price - same floating mechanism as
     // the login screen, see .floating-field in app.css) plus a remove button. The label
     // IS the translated text now (there's no separate example placeholder to show once
@@ -725,15 +716,8 @@ function createPricePicker(rowsContainerId, addButtonId, currencyContainerId) {
         const priceLabel = document.createElement("label");
         priceLabel.dataset.i18n = "pricePicker.pricePlaceholder";
         priceLabel.textContent = t("pricePicker.pricePlaceholder");
-        // Shows the currently selected currency inside the field itself (kept in sync
-        // below whenever the currency picker changes), instead of only in the currency
-        // row above.
-        const priceCurrency = document.createElement("span");
-        priceCurrency.className = "price-amount-currency";
-        priceCurrency.textContent = currencyBtn.value;
         priceField.appendChild(priceInput);
         priceField.appendChild(priceLabel);
-        priceField.appendChild(priceCurrency);
 
         const removeBtn = document.createElement("button");
         removeBtn.type = "button";
@@ -774,7 +758,6 @@ function createPricePicker(rowsContainerId, addButtonId, currencyContainerId) {
             if (lines.length === 0) {
                 addRow();
                 currencyBtn.value = "RSD";
-                updatePriceCurrencyBadges();
                 return;
             }
             let detectedCurrency = null;
@@ -790,7 +773,6 @@ function createPricePicker(rowsContainerId, addButtonId, currencyContainerId) {
                 addRow(service, price);
             });
             currencyBtn.value = detectedCurrency || "RSD";
-            updatePriceCurrencyBadges();
         },
         // False if any row has only one of service/price filled in - getValue() silently
         // drops such a row instead of erroring, which used to mean whatever the user typed
