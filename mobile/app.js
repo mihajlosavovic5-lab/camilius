@@ -4724,7 +4724,7 @@ async function mysiteCheckDomains(baseName) {
     errorBox.classList.add("hidden");
     btn.disabled = true;
     const originalText = btn.textContent;
-    btn.textContent = t("mysite.website.checkDomainsChecking") || "…";
+    btn.innerHTML = '<span class="field-inline-btn-dots"><span></span><span></span><span></span></span>';
     try {
         const data = await api("/api/check-domains", { method: "POST", body: { name: baseName } });
         resultsList.innerHTML = "";
