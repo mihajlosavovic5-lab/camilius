@@ -684,6 +684,19 @@ function createPricePicker(rowsContainerId, addButtonId, currencyContainerId) {
     const currencyBtn = createOptionButton("RSD", CURRENCIES, "currency-picker-btn");
     el(currencyContainerId).appendChild(currencyBtn.el);
 
+    // Makes the whole "Currency" row open the picker, not just the small pill button on
+    // its right (see .price-currency-row in app.css) - bails out when the click landed on
+    // the button itself so it isn't handled twice (once here via the forwarded .click(),
+    // once by the button's own listener from createOptionButton), which would open then
+    // immediately re-close the picker.
+    const currencyRow = el(currencyContainerId).closest(".price-currency-row");
+    if (currencyRow) {
+        currencyRow.addEventListener("click", (e) => {
+            if (e.target.closest(".currency-picker-btn")) return;
+            currencyBtn.el.click();
+        });
+    }
+
     // Each row is two floating-label fields (Service / Price - same floating mechanism as
     // the login screen, see .floating-field in app.css) plus a remove button. The label
     // IS the translated text now (there's no separate example placeholder to show once

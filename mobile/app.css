@@ -1138,8 +1138,12 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
 
 /* --- Price list currency (Faza 4) - one dropdown applies to the whole list, shown
    just above the rows themselves. .currency-picker-btn is a .picker-btn variant (see
-   above), sized to its content instead of stretched full-width like the time fields. */
-.price-currency-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+   above), sized to its content instead of stretched full-width like the time fields.
+   The row itself is the tap target (see the click listener in createPricePicker,
+   app.js) - not just the small pill button - so tapping the "Currency" label or the
+   empty space beside it opens the picker too, same reasoning as .settings-row below. */
+.price-currency-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; padding: 6px 2px; border-radius: 8px; cursor: pointer; }
+.price-currency-row:active { background: var(--background); }
 .price-currency-row span { font-size: 14.5px; color: var(--text-muted); font-weight: 600; }
 .currency-picker-btn { padding: 7px 10px; font-size: 14.5px; font-weight: 600; background: var(--surface); }
 
