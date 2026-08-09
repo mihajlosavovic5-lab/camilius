@@ -1,5 +1,5 @@
 <!doctype html>
-<html data-bundle-version="8d03ec4c6ced" lang="en">
+<html data-bundle-version="1b2c208b9b3f" lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
@@ -16,7 +16,7 @@
 <link rel="preload" href="fonts/lora-latin-ext.woff2?v=e8c32fe92ded" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="fonts/familjen-grotesk-latin.woff2?v=e8c32fe92ded" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="fonts/familjen-grotesk-latin-ext.woff2?v=e8c32fe92ded" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="app.css?v=8d03ec4c6ced">
+<link rel="stylesheet" href="app.css?v=1b2c208b9b3f">
 </head>
 <body>
 
@@ -1086,10 +1086,14 @@
       </div>
 
       <!-- Website photos & video (Faza 14) - logo, gallery photos, one hero video for the
-           business's own public page (camilius.com/p/<slug>, see templates/public_page.html).
-           Each item uploads immediately on selection (calls /api/media, see api.py), so this
-           list always reflects what's actually saved - there's no separate "Save" step for it,
-           unlike the rest of this screen's fields. -->
+           business's own public page (camilius.com/p/<slug>, see templates/public_page.html) -
+           plus business documents (menu, price list, brochure), extra source material for AI
+           page generation (in addition to, not instead of, the "Tell us more about your
+           business" field above). Both upload immediately on selection (api.py's /api/media
+           and /api/documents), so this list always reflects what's actually saved - there's
+           no separate "Save" step for it, unlike the rest of this screen's fields. One card,
+           not three - Documents used to sit in its own section below, but it's the same
+           "attach media to the page" idea as Photos/Video, just PDFs/Word instead of images. -->
       <div class="profile-section">
         <div id="media-error" class="alert alert-error hidden"></div>
 
@@ -1098,19 +1102,11 @@
 
         <p class="media-label" data-i18n="settings.media.video">Video</p>
         <div class="media-grid" id="media-video-grid" data-role="hero_video" data-max="1"></div>
-      </div>
 
-      <!-- Business documents (menu, price list, brochure) - extra source material for AI
-           page generation, in addition to (not instead of) the "Tell us more about your
-           business" field above. Uploaded immediately like the media section, see
-           api.py's /api/documents, business_documents.py, document_extract.py. -->
-      <div class="profile-section">
-        <div class="profile-section-header">
-          <p class="profile-section-title" data-i18n="settings.documents.heading">Documents</p>
-        </div>
+        <p class="media-label" data-i18n="settings.documents.heading">Documents</p>
         <div id="document-error" class="alert alert-error hidden"></div>
         <div class="document-list" id="document-list"></div>
-        <label class="document-add-btn" id="document-add-btn">
+        <label class="media-add" id="document-add-btn">
           <span data-i18n="settings.documents.add">+</span>
           <input type="file" id="document-file-input" accept="application/pdf,.pdf,.docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document">
         </label>
@@ -1547,8 +1543,8 @@
   </button>
 </nav>
 
-<script src="i18n.js?v=8d03ec4c6ced"></script>
-<script src="hours-picker.js?v=8d03ec4c6ced"></script>
-<script src="app.js?v=8d03ec4c6ced"></script>
+<script src="i18n.js?v=1b2c208b9b3f"></script>
+<script src="hours-picker.js?v=1b2c208b9b3f"></script>
+<script src="app.js?v=1b2c208b9b3f"></script>
 </body>
 </html>

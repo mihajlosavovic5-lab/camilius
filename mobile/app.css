@@ -1505,9 +1505,10 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
 .media-add input { display: none; }
 .media-add.hidden { display: none; }
 
-/* Business documents (inside the Profile screen's own .profile-section) - a flat list of
-   uploaded filenames (no thumbnail, PDFs/Word docs have no useful inline preview) plus a
-   trailing "+ Add document" button, same "uploads immediately" shape as .media-grid. */
+/* Business documents - folded into the same card as Photos/Video above (see
+   mobile/index.html), sharing its .media-label headings and .media-add "+" tile. Still
+   a flat list of filenames rather than a .media-grid of thumbnails (PDFs/Word docs have
+   no useful inline preview), so it keeps its own row styling. */
 .document-list { display: flex; flex-direction: column; gap: 8px; margin: 8px 0 12px; }
 .document-row {
     display: flex; align-items: center; justify-content: space-between; gap: 10px;
@@ -1521,12 +1522,6 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
     background: rgba(0, 0, 0, .1); color: var(--text-muted); font-size: 14px; line-height: 1;
     display: flex; align-items: center; justify-content: center; padding: 0;
 }
-.document-add-btn {
-    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
-    padding: 10px 14px; border-radius: var(--radius); border: 2px dashed var(--border);
-    font-size: 14px; font-weight: 600; color: var(--text-muted); cursor: pointer;
-}
-.document-add-btn input { display: none; }
 
 /* "Draft this with AI" description field (My Site tab) - a real chat-input bar instead of
    the app's usual floating-label field: starts one line tall (same as the ChatGPT-style
