@@ -455,19 +455,13 @@ button { font-family: inherit; -webkit-appearance: none; appearance: none; }
    win the stacking regardless of open order. A dedicated z-index keeps this one always
    on top instead of ending up hidden behind the sheet that opened it. */
 #option-modal { z-index: 61; }
-/* Centered zoom-in, like .book-modal-sheet/.confirm-modal-sheet below, instead of
-   anchored to whichever field was tapped - a deliberate change from the anchored
-   dropdown this used to be, so opening any of these fields reads as its own light,
-   focused moment (backdrop dims, the list scales up into the middle of the screen)
-   rather than a strip unfurling off the field's own edge. */
 .country-modal-sheet {
-    left: 50%; right: auto; top: 50%; bottom: auto;
-    width: calc(100% - 56px); max-width: 300px; max-height: min(380px, 70vh); padding: 8px;
-    transform-origin: center;
-    transform: translate(-50%, calc(-50% + 10px)) scale(.94);
+    max-height: min(320px, 60vh); padding: 8px;
+    transform-origin: top left;
+    transform: scale(.96) translateY(-4px);
     display: flex; flex-direction: column;
 }
-.lang-modal.open .country-modal-sheet { transform: translate(-50%, -50%) scale(1); }
+.lang-modal.open .country-modal-sheet { transform: scale(1) translateY(0); }
 .country-modal-list { overflow-y: auto; }
 .country-option-btn {
     display: flex; align-items: center; gap: 10px; width: 100%;
@@ -491,8 +485,22 @@ button { font-family: inherit; -webkit-appearance: none; appearance: none; }
 /* Narrower than the shared .country-modal-sheet default (sized for the country
    picker's flag + name + dial code rows) - every value here is a short "HH:MM"/
    currency-code/"30 min" label, so the full-width sheet just read as an oversized
-   slab of empty space either side of the text. */
-#option-modal .country-modal-sheet { position: relative; width: 190px; max-width: 190px; }
+   slab of empty space either side of the text. Centered zoom-in, like
+   .book-modal-sheet/.confirm-modal-sheet below, instead of anchored to whichever
+   field was tapped - a deliberate change from the anchored dropdown this used to be,
+   so opening any of these fields reads as its own light, focused moment (backdrop
+   dims, the list scales up into the middle of the screen) rather than a strip
+   unfurling off the field's own edge. Scoped to #option-modal only - the phone
+   country-code picker (.country-modal-sheet's base rule above) keeps the anchored-
+   below-field treatment; it's positioned by JS via openCountryModal() in app.js and
+   would end up shifted off-position if it inherited this centered transform too. */
+#option-modal .country-modal-sheet {
+    position: relative; left: 50%; right: auto; top: 50%; bottom: auto;
+    width: 190px; max-width: 190px; max-height: min(380px, 70vh);
+    transform-origin: center;
+    transform: translate(-50%, calc(-50% + 10px)) scale(.94);
+}
+#option-modal.open .country-modal-sheet { transform: translate(-50%, -50%) scale(1); }
 .option-modal-center-band {
     position: absolute; left: 8px; right: 8px; top: 50%; height: 44px;
     transform: translateY(-50%); background: var(--primary-light);
