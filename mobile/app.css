@@ -413,14 +413,16 @@ button { font-family: inherit; -webkit-appearance: none; appearance: none; }
 .lang-modal.open .lang-modal-sheet { transform: translateY(0) scale(1); opacity: 1; }
 .lang-modal-list { display: flex; flex-direction: column; direction: ltr; }
 
-/* --- Language picker list - drops straight down from whichever trigger opened it (the
-   login screen's own button, or the Settings row), anchored to that trigger's own left
-   edge and sized to its own content instead of a fixed/centered box or a full-width
-   panel - reads as a continuation of the field itself rather than an unrelated popup.
-   `top`/`left`/`width`/`max-height` are all set inline by openPicker() in i18n.js since
-   they depend on which trigger opened it and how long the longest language name is. --- */
+/* --- Language picker list - centered zoom-in, same treatment as the country-code
+   picker and the working-hours/currency/duration wheel picker (#option-modal) below,
+   instead of anchored to whichever trigger opened it - reads as the same kind of
+   moment (backdrop dims, the list scales up into the middle of the screen) as every
+   other picker in the app rather than its own one-off dropdown. --- */
 .lang-picker-sheet {
-    right: auto; bottom: auto;
+    left: 50%; right: auto; top: 50%; bottom: auto;
+    width: calc(100% - 56px); max-width: 300px; max-height: min(380px, 70vh);
+    transform-origin: center;
+    transform: translate(-50%, calc(-50% + 10px)) scale(.94);
     overflow-y: auto;
     padding: 8px;
     /* Thin, always-on scrollbar (rather than the OS's own auto-hiding one) - the list is
@@ -442,12 +444,12 @@ button { font-family: inherit; -webkit-appearance: none; appearance: none; }
     background: color-mix(in srgb, var(--text-muted) 70%, transparent);
     border-radius: 3px;
 }
+#lang-modal.open .lang-picker-sheet { transform: translate(-50%, -50%) scale(1); }
 
-/* --- Country code picker (phone number field) - list (flag + name + dial code), sized
-   and positioned inline by JS to match the width of the whole phone-input-row (button +
-   number field) and sit right below it, instead of the language picker's fixed
-   mid-screen spot - reads as attached to the field it belongs to rather than an
-   unrelated popup. --- */
+/* --- Country code picker (phone number field) - list (flag + name + dial code),
+   centered zoom-in like the language picker above and the working-hours/currency/
+   duration wheel picker (#option-modal) below, instead of anchored below the phone
+   field - reads as the same kind of moment as every other picker in the app. --- */
 /* The shared option list (working-hours times, price currency, and the Schedule tab's
    duration pickers) can be opened from a field that itself lives inside another
    already-open bottom sheet (the Book modal's own duration picker) - since every
@@ -456,12 +458,13 @@ button { font-family: inherit; -webkit-appearance: none; appearance: none; }
    on top instead of ending up hidden behind the sheet that opened it. */
 #option-modal { z-index: 61; }
 .country-modal-sheet {
-    max-height: min(320px, 60vh); padding: 8px;
-    transform-origin: top left;
-    transform: scale(.96) translateY(-4px);
+    left: 50%; right: auto; top: 50%; bottom: auto;
+    width: calc(100% - 56px); max-width: 300px; max-height: min(380px, 70vh); padding: 8px;
+    transform-origin: center;
+    transform: translate(-50%, calc(-50% + 10px)) scale(.94);
     display: flex; flex-direction: column;
 }
-.lang-modal.open .country-modal-sheet { transform: scale(1) translateY(0); }
+.lang-modal.open .country-modal-sheet { transform: translate(-50%, -50%) scale(1); }
 .country-modal-list { overflow-y: auto; }
 .country-option-btn {
     display: flex; align-items: center; gap: 10px; width: 100%;
@@ -485,22 +488,10 @@ button { font-family: inherit; -webkit-appearance: none; appearance: none; }
 /* Narrower than the shared .country-modal-sheet default (sized for the country
    picker's flag + name + dial code rows) - every value here is a short "HH:MM"/
    currency-code/"30 min" label, so the full-width sheet just read as an oversized
-   slab of empty space either side of the text. Centered zoom-in, like
-   .book-modal-sheet/.confirm-modal-sheet below, instead of anchored to whichever
-   field was tapped - a deliberate change from the anchored dropdown this used to be,
-   so opening any of these fields reads as its own light, focused moment (backdrop
-   dims, the list scales up into the middle of the screen) rather than a strip
-   unfurling off the field's own edge. Scoped to #option-modal only - the phone
-   country-code picker (.country-modal-sheet's base rule above) keeps the anchored-
-   below-field treatment; it's positioned by JS via openCountryModal() in app.js and
-   would end up shifted off-position if it inherited this centered transform too. */
-#option-modal .country-modal-sheet {
-    position: relative; left: 50%; right: auto; top: 50%; bottom: auto;
-    width: 190px; max-width: 190px; max-height: min(380px, 70vh);
-    transform-origin: center;
-    transform: translate(-50%, calc(-50% + 10px)) scale(.94);
-}
-#option-modal.open .country-modal-sheet { transform: translate(-50%, -50%) scale(1); }
+   slab of empty space either side of the text. Position/transform are already
+   centered via the shared .country-modal-sheet base rule above; only the width
+   needs narrowing here. */
+#option-modal .country-modal-sheet { position: relative; width: 190px; max-width: 190px; }
 .option-modal-center-band {
     position: absolute; left: 8px; right: 8px; top: 50%; height: 44px;
     transform: translateY(-50%); background: var(--primary-light);

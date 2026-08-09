@@ -1036,7 +1036,6 @@ function splitStoredPhoneNumber(stored) {
 // field needs its own selected-country state and its own flag/dial display.
 function setupCountryPicker() {
     const modal = el("country-modal");
-    const sheet = modal.querySelector(".country-modal-sheet");
     const backdrop = el("country-modal-backdrop");
     const list = el("country-modal-list");
 
@@ -1085,19 +1084,9 @@ function setupCountryPicker() {
 
     function openCountryModal(binding) {
         active = binding;
-        // Sized to match the whole phone-input-row (button + number field) and anchored
-        // right below it (never above) - reads as attached to that field instead of a
-        // separate popup. If there isn't full room underneath, shrink the list's
-        // max-height to what's left rather than moving it above the field.
-        const rect = binding.row.getBoundingClientRect();
-        const margin = 12;
-        const top = rect.bottom + 6;
-        const available = window.innerHeight - top - margin;
-        sheet.style.top = `${top}px`;
-        sheet.style.left = `${rect.left}px`;
-        sheet.style.width = `${rect.width}px`;
-        sheet.style.maxHeight = `${Math.max(160, Math.min(320, available))}px`;
-
+        // Centered zoom-in, same as the working-hours/currency/duration wheel picker
+        // (#option-modal) and the language picker - position/size are handled entirely
+        // by .country-modal-sheet's CSS now, no inline rect math needed.
         modal.classList.add("open");
     }
     function closeCountryModal() {
