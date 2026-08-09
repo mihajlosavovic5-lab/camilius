@@ -602,7 +602,16 @@ function createAnchoredListPicker(modalId) {
         modal.classList.remove("open");
         openTriggerBtn = null;
     }
-    backdrop.addEventListener("click", close);
+    // Tapping the backdrop commits whichever option the wheel is currently centered
+    // on - the same as tapping that option directly (its own click listener, set up
+    // in open() above, already does both the onSelect(opt) call and close()) - rather
+    // than discarding a scroll and leaving the field's old value in place. Scrolling
+    // to a value and tapping away is the whole point of a wheel picker; requiring an
+    // exact tap on the row too, on top of that, was the part that felt broken.
+    backdrop.addEventListener("click", () => {
+        const active = list.querySelector(".wheel-active");
+        if (active) active.click(); else close();
+    });
 
     return { open, close, isOpenFor: (btn) => openTriggerBtn === btn };
 }
