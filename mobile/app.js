@@ -4455,19 +4455,30 @@ async function loadMySite() {
             el("mysite-tagline-input").value = page.tagline || "";
             el("mysite-about-input").value = page.about || "";
             el("mysite-published").checked = !!page.published;
+            // Cached the same way as mysiteHasPage/pageTheme above - so next launch's boot
+            // sequence can fill these fields in immediately instead of leaving Web
+            // address/Headline/About empty until this same fetch resolves again.
+            storageSet("mysiteSlug", page.slug || "").catch(() => {});
+            storageSet("mysiteTagline", page.tagline || "").catch(() => {});
+            storageSet("mysiteAbout", page.about || "").catch(() => {});
             if (page.published) {
                 el("mysite-view-site-link").href = `${API_BASE}/p/${page.slug}`;
-                storageSet("mysiteSlug", page.slug || "").catch(() => {});
             }
             mysitePopulateThemeSelect(page.theme);
             storageSet("pageTheme", page.theme || "warm").catch(() => {});
             mysiteSelectedCustomTheme = page.theme === "custom" && page.custom_theme_json ? JSON.parse(page.custom_theme_json) : null;
         } else {
-            // No page yet - seed the Design row from whatever was picked before a web
-            // address existed (see api_save_page's blank-slug branch/set_preferred_theme),
-            // instead of always defaulting to "warm", so that preference actually shows
-            // up as pre-selected across app restarts/devices instead of only ever living
-            // in this session's in-memory <select> value.
+            // No page yet - clear any stale cache from a page that existed on a previous
+            // launch (e.g. deleted since), so a future boot doesn't flash old Web
+            // address/Headline/About text before this same fetch corrects it again.
+            storageSet("mysiteSlug", "").catch(() => {});
+            storageSet("mysiteTagline", "").catch(() => {});
+            storageSet("mysiteAbout", "").catch(() => {});
+            // Seed the Design row from whatever was picked before a web address existed
+            // (see api_save_page's blank-slug branch/set_preferred_theme), instead of
+            // always defaulting to "warm", so that preference actually shows up as
+            // pre-selected across app restarts/devices instead of only ever living in
+            // this session's in-memory <select> value.
             const preferredTheme = data.preferred_theme || "warm";
             mysitePopulateThemeSelect(preferredTheme);
             storageSet("pageTheme", preferredTheme).catch(() => {});
@@ -5317,7 +5328,7 @@ function waitForLayoutSettle() {
 updateOfflineBanner();
 
 (async () => {
-    const [token, businessName, onboardingSeen, theme, donationLink, pageTheme, mysiteHasPage, mysiteHasAppointments, mysitePublished, mysiteSlug, googleLoginPendingState] = await Promise.all([
+    const [token, businessName, onboardingSeen, theme, donationLink, pageTheme, mysiteHasPage, mysiteHasAppointments, mysitePublished, mysiteSlug, mysiteTagline, mysiteAbout, googleLoginPendingState] = await Promise.all([
         storageGet("token"),
         storageGet("businessName"),
         storageGet("onboardingSeen"),
@@ -5328,6 +5339,8 @@ updateOfflineBanner();
         storageGet("mysiteHasAppointments"),
         storageGet("mysitePublished"),
         storageGet("mysiteSlug"),
+        storageGet("mysiteTagline"),
+        storageGet("mysiteAbout"),
         storageGet("googleLoginPendingState"),
     ]);
     applyTheme(theme || "system");
@@ -5358,6 +5371,16 @@ updateOfflineBanner();
     el("mysite-view-page-btn").classList.toggle("hidden", !state.mysiteHasPage);
     el("mysite-view-site-link").classList.toggle("hidden", !mysitePublished);
     if (mysitePublished && mysiteSlug) el("mysite-view-site-link").href = `${API_BASE}/p/${mysiteSlug}`;
+    // Same reasoning again - fills in the Web address/Headline/About fields themselves
+    // from last launch's cache instead of leaving them empty until loadMySite()'s fetch
+    // resolves a couple seconds later. Corrected by that same fetch moments later if the
+    // business's page content actually changed.
+    if (state.mysiteHasPage) {
+        el("mysite-slug").value = mysiteSlug || "";
+        el("mysite-tagline-input").value = mysiteTagline || "";
+        el("mysite-about-input").value = mysiteAbout || "";
+        mysiteSyncDomainCheckBtnVisibility();
+    }
 
     await waitForLayoutSettle();
     if (state.token) {
