@@ -4347,9 +4347,9 @@ const CLASSIC_THEMES = [
 let mysiteSelectedCustomTheme = null; // a previously-saved custom theme object, if one is currently selected
 
 // Set by the attach-button IIFE further down (mysite-attach-btn) - uploads whatever
-// photos/video the owner has attached to the compose bar but not yet sent. Declared up
-// here so mysiteSubmitDescription (defined before that IIFE runs) can call it without
-// the two being coupled by file order.
+// photos/video/documents the owner has attached to the compose bar but not yet sent.
+// Declared up here so mysiteSubmitDescription (defined before that IIFE runs) can call
+// it without the two being coupled by file order.
 let mysiteFlushStagedAttachments = null;
 
 // Same "hidden until dirty" floating Save button as Profile/Settings (see
@@ -4801,18 +4801,17 @@ async function mysiteSubmitDescription() {
     // padding/flex rules which leaked onto this button and ballooned it when reused.
     button.classList.add("send-loading");
     button.setAttribute("aria-busy", "true");
-    // Photos/video attached to the compose bar were only staged locally (see the
-    // mysite-attach-btn IIFE below) - this is the point they actually upload, same as a
-    // normal chat only sending attachments once you tap send. Runs alongside the draft
-    // call rather than blocking on it first: nothing about the draft depends on these
-    // (the AI call is text-only), and any per-file upload failure already reports its
-    // own toast without rejecting here.
-    const flushAttachments = mysiteFlushStagedAttachments ? mysiteFlushStagedAttachments() : Promise.resolve();
     try {
-        const [draft] = await Promise.all([
-            api("/api/generate-page", { method: "POST", body: { description } }),
-            flushAttachments,
-        ]);
+        // Photos/video/documents attached to the compose bar were only staged locally
+        // (see the mysite-attach-btn IIFE below) - this is the point they actually
+        // upload, same as a normal chat only sending attachments once you tap send.
+        // Awaited before the draft call, not just alongside it: a staged document's
+        // text needs to already be saved server-side for /api/generate-page to pick it
+        // up (business_documents.combined_document_text) - an individual file's own
+        // upload failure still just reports its own toast rather than rejecting here,
+        // so one bad attachment never blocks the draft itself from generating.
+        if (mysiteFlushStagedAttachments) await mysiteFlushStagedAttachments();
+        const draft = await api("/api/generate-page", { method: "POST", body: { description } });
         el("mysite-tagline-input").value = draft.tagline || "";
         el("mysite-about-input").value = draft.about || "";
         // Only pre-fill the web address if the owner hasn't already got one (typed or
@@ -5128,16 +5127,15 @@ el("mysite-send-btn").addEventListener("click", () => {
 // straight from the chat instead of hunting through Profile's own media/document
 // sections. Reuses those same endpoints (api.py's /api/media and /api/documents,
 // business_media.py/business_documents.py) rather than inventing a third upload path.
-// Documents upload the instant they're picked - they become source documents the AI
-// draft reads immediately (business_documents.combined_document_text, wired into
-// /api/generate-page and /api/suggest-themes), so they need to already be there by the
-// time Send runs. Photos/video are different: they're just gallery/hero-video content
-// the AI call never looks at (it's text-only), so there's no reason for them to hit the
-// server before the owner actually taps Send - they're held client-side ("staged",
-// see stageFile/mysiteFlushStagedAttachments below) and only uploaded then, same as any
-// normal chat only sends attachments once you hit send. While the mic is recording,
-// this same button is a cancel (X) instead - the send button already covers "stop and
-// use" (mysiteStopRecordingIfActive), so this is deliberately the other exit: stop and
+// Nothing picked here hits the server the instant it's picked - every kind is held
+// client-side ("staged", see stageFile/mysiteFlushStagedAttachments below) and only
+// actually uploaded once the owner taps Send, same as any normal chat only sending
+// attachments once you hit send. Documents are flushed strictly before the
+// /api/generate-page call (not just alongside it) since that call reads their
+// already-extracted text the moment it runs (business_documents.combined_document_text) -
+// see mysiteSubmitDescription, which awaits the whole flush first. While the mic is
+// recording, this same button is a cancel (X) instead - the send button already covers
+// "stop and use" (mysiteStopRecordingIfActive), so this is deliberately the other exit: stop and
 // throw away everything recorded so far.
 (function () {
     const attachBtn = el("mysite-attach-btn");
@@ -5231,13 +5229,6 @@ el("mysite-send-btn").addEventListener("click", () => {
         chip.appendChild(removeBtn);
     }
 
-    function makeChip(kind, item) {
-        const chip = document.createElement("span");
-        chip.className = "compose-attachment-chip";
-        fillUploadedChip(chip, kind, item);
-        list.appendChild(chip);
-    }
-
     function removeAttachment(kind, id, chip) {
         chip.classList.add("uploading");
         const path = kind === "document" ? "/api/documents/" + id : "/api/media/" + id;
@@ -5253,52 +5244,9 @@ el("mysite-send-btn").addEventListener("click", () => {
         });
     }
 
-    // Documents only (handlePicked below only ever calls this with kind === "document")
-    // - uploads the instant it's picked, see the file-level comment above for why.
-    // Photos/video go through stageFile below instead.
-    function uploadFile(file, kind) {
-        const placeholder = document.createElement("span");
-        placeholder.className = "compose-attachment-chip uploading";
-
-        const icon = document.createElement("span");
-        icon.className = "chip-icon";
-        const spinner = document.createElement("span");
-        spinner.className = "chip-spinner";
-        icon.appendChild(spinner);
-        placeholder.appendChild(icon);
-
-        const name = document.createElement("span");
-        name.className = "chip-name";
-        name.textContent = labelFor(kind);
-        placeholder.appendChild(name);
-
-        list.appendChild(placeholder);
-
-        const formData = new FormData();
-        formData.append("file", file);
-        const errorKey = "settings.documents.error";
-
-        fetch(API_BASE + "/api/documents", {
-            method: "POST",
-            headers: state.token ? { Authorization: "Bearer " + state.token } : {},
-            body: formData,
-        }).then((response) => response.json().catch(() => ({})).then((data) => ({ ok: response.ok, data })))
-            .then(({ ok, data }) => {
-                placeholder.remove();
-                if (!ok) {
-                    showToast(data.error || t(errorKey) || "Couldn't upload that - please try again.");
-                    return;
-                }
-                makeChip(kind, data);
-            }).catch(() => {
-                placeholder.remove();
-                showToast(t(errorKey) || "Couldn't upload that - please try again.");
-            });
-    }
-
-    // Photos/video attached to the compose bar but not yet sent - each entry's chip
-    // already sits in the DOM (with a local, not-yet-uploaded preview), so removing a
-    // staged entry before Send is just a client-side splice, no request needed.
+    // Every kind attached to the compose bar but not yet sent - each entry's chip
+    // already sits in the DOM (with a local, not-yet-uploaded preview/icon), so removing
+    // a staged entry before Send is just a client-side splice, no request needed.
     const staged = [];
 
     function stageFile(kind, file) {
@@ -5366,11 +5314,14 @@ el("mysite-send-btn").addEventListener("click", () => {
         name.textContent = labelFor(kind);
         chip.appendChild(name);
 
+        const isDocument = kind === "document";
         const formData = new FormData();
         formData.append("file", file);
-        formData.append("role", kind === "video" ? "hero_video" : "gallery");
+        if (!isDocument) formData.append("role", kind === "video" ? "hero_video" : "gallery");
+        const path = isDocument ? "/api/documents" : "/api/media";
+        const errorKey = isDocument ? "settings.documents.error" : "settings.media.error";
 
-        return fetch(API_BASE + "/api/media", {
+        return fetch(API_BASE + path, {
             method: "POST",
             headers: state.token ? { Authorization: "Bearer " + state.token } : {},
             body: formData,
@@ -5379,7 +5330,7 @@ el("mysite-send-btn").addEventListener("click", () => {
                 if (previewUrl) URL.revokeObjectURL(previewUrl);
                 if (!ok) {
                     chip.remove();
-                    showToast(data.error || t("settings.media.error") || "Couldn't upload that - please try again.");
+                    showToast(data.error || t(errorKey) || "Couldn't upload that - please try again.");
                     return;
                 }
                 chip.classList.remove("uploading");
@@ -5388,7 +5339,7 @@ el("mysite-send-btn").addEventListener("click", () => {
             }).catch(() => {
                 if (previewUrl) URL.revokeObjectURL(previewUrl);
                 chip.remove();
-                showToast(t("settings.media.error") || "Couldn't upload that - please try again.");
+                showToast(t(errorKey) || "Couldn't upload that - please try again.");
             });
     }
 
@@ -5410,11 +5361,7 @@ el("mysite-send-btn").addEventListener("click", () => {
                 showToast("That file type isn't supported here.");
                 return;
             }
-            if (kind === "document") {
-                uploadFile(file, kind);
-            } else {
-                stageFile(kind, file);
-            }
+            stageFile(kind, file);
         });
     }
     cameraInput.addEventListener("change", () => handlePicked(cameraInput));
