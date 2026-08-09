@@ -1731,6 +1731,12 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
 }
 .mysite-chosen-domain-clear:active { background: rgba(43, 32, 19, .08); }
 
+/* Sits right under the About field, so it takes the same top spacing as the floating
+   fields above it (14px, not .button's own larger default) and a slimmer vertical
+   padding than a normal full-size .button, to read as part of that same field stack
+   rather than a standalone call-to-action. */
+#mysite-view-page-btn { margin-top: 14px; padding: 11px 18px; }
+
 /* --- Schedule tab (Faza 12) - day/week calendar, native equivalent of the website's
    /schedule page (see templates/schedule.html for the layout this mirrors). --- */
 .schedule-body { display: flex; flex-direction: column; padding-left: 0; padding-right: 0; }
