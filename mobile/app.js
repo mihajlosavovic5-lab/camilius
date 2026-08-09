@@ -524,6 +524,41 @@ if (capacitorPlugins) {
 // same wire format the backend/AI already expect - JSON for working hours (see
 // hours-picker.js), plain text for the price list - so nothing else has to change) ---
 
+// Shared by every wheel-style list (#option-modal, #country-modal, #lang-modal):
+// fades each option's opacity/weight by how far it's scrolled from the wheel's own
+// center band (.wheel-center-band in app.css - a static highlight, always at the
+// list's vertical middle) and marks whichever option currently sits closest with
+// .wheel-active for the bold/primary-color "selected" look. Row height is fixed (see
+// .country-modal-list's own CSS), so distance converts to "rows away" directly rather
+// than needing to measure anything but each button's own position. Returns the update
+// function so a caller can also invoke it directly right after scrolling to a target
+// (e.g. on open), instead of waiting for a scroll event to fire first.
+function setupWheelFade(list, rowHeight) {
+    function updateWheelFade() {
+        const centerY = list.getBoundingClientRect().top + list.clientHeight / 2;
+        let closestBtn = null;
+        let closestDist = Infinity;
+        Array.from(list.children).forEach((btn) => {
+            const dist = Math.abs(btn.getBoundingClientRect().top + btn.offsetHeight / 2 - centerY);
+            if (dist < closestDist) { closestDist = dist; closestBtn = btn; }
+            btn.style.opacity = Math.max(0.16, 1 - (dist / rowHeight) * 0.4).toFixed(2);
+            btn.classList.remove("wheel-active");
+        });
+        if (closestBtn) closestBtn.classList.add("wheel-active");
+    }
+    // rAF-throttled - scroll fires far more often than a frame needs re-painting for.
+    let wheelFadeTicking = false;
+    list.addEventListener("scroll", () => {
+        if (wheelFadeTicking) return;
+        wheelFadeTicking = true;
+        requestAnimationFrame(() => {
+            updateWheelFade();
+            wheelFadeTicking = false;
+        });
+    }, { passive: true });
+    return updateWheelFade;
+}
+
 // Shared option-list picker (Faza 4, re-centered later) - replaces native <select>
 // dropdowns (working-hours times, price-list currency, duration/lead-time fields).
 // Opens centered on screen with a scale-in "zoom" and a dimmed backdrop (same
@@ -541,35 +576,7 @@ function createAnchoredListPicker(modalId) {
     const list = modal.querySelector(".country-modal-list");
     let openTriggerBtn = null;
 
-    // Fades each option's opacity/weight by how far it's scrolled from the wheel's own
-    // center band (.option-modal-center-band in app.css - a static highlight, always at
-    // the list's vertical middle) and marks whichever option currently sits closest
-    // with .wheel-active for the bold/primary-color "selected" look. Row height is
-    // fixed (see #option-modal-list's own CSS), so distance converts to "rows away"
-    // directly rather than needing to measure anything but each button's own position.
-    const WHEEL_ROW_H = 44;
-    function updateWheelFade() {
-        const centerY = list.getBoundingClientRect().top + list.clientHeight / 2;
-        let closestBtn = null;
-        let closestDist = Infinity;
-        Array.from(list.children).forEach((btn) => {
-            const dist = Math.abs(btn.getBoundingClientRect().top + btn.offsetHeight / 2 - centerY);
-            if (dist < closestDist) { closestDist = dist; closestBtn = btn; }
-            btn.style.opacity = Math.max(0.16, 1 - (dist / WHEEL_ROW_H) * 0.4).toFixed(2);
-            btn.classList.remove("wheel-active");
-        });
-        if (closestBtn) closestBtn.classList.add("wheel-active");
-    }
-    // rAF-throttled - scroll fires far more often than a frame needs re-painting for.
-    let wheelFadeTicking = false;
-    list.addEventListener("scroll", () => {
-        if (wheelFadeTicking) return;
-        wheelFadeTicking = true;
-        requestAnimationFrame(() => {
-            updateWheelFade();
-            wheelFadeTicking = false;
-        });
-    }, { passive: true });
+    const updateWheelFade = setupWheelFade(list, 44);
 
     function open(triggerBtn, options, currentValue, onSelect) {
         openTriggerBtn = triggerBtn;
@@ -579,7 +586,7 @@ function createAnchoredListPicker(modalId) {
             const optionBtn = document.createElement("button");
             optionBtn.type = "button";
             optionBtn.className = "country-option-btn";
-            if (opt === currentValue) { optionBtn.classList.add("selected"); selectedBtn = optionBtn; }
+            if (opt === currentValue) selectedBtn = optionBtn;
             optionBtn.textContent = opt;
             optionBtn.addEventListener("click", () => {
                 onSelect(opt);
@@ -1043,26 +1050,31 @@ function setupCountryPicker() {
         {
             btn: el("register-phone-country-btn"), row: el("register-phone-row"),
             flagEl: el("register-phone-country-flag"), dialEl: el("register-phone-country-dial"),
-            onSelect: (c) => { selectedPhoneCountry = c; },
+            getCurrent: () => selectedPhoneCountry, onSelect: (c) => { selectedPhoneCountry = c; },
         },
         {
             btn: el("settings-phone-country-btn"), row: el("settings-phone-row"),
             flagEl: el("settings-phone-country-flag"), dialEl: el("settings-phone-country-dial"),
-            onSelect: (c) => { selectedProfilePhoneCountry = c; },
+            getCurrent: () => selectedProfilePhoneCountry, onSelect: (c) => { selectedProfilePhoneCountry = c; },
         },
         {
             btn: el("forgot-phone-country-btn"), row: el("forgot-phone-row"),
             flagEl: el("forgot-phone-country-flag"), dialEl: el("forgot-phone-country-dial"),
-            onSelect: (c) => { selectedForgotPhoneCountry = c; },
+            getCurrent: () => selectedForgotPhoneCountry, onSelect: (c) => { selectedForgotPhoneCountry = c; },
         },
     ];
     let active = null;
 
-    // Rendered once - no search, so the list never changes after this.
+    const updateWheelFade = setupWheelFade(list, 44);
+
+    // Rendered once - no search, so the list never changes after this. data-code lets
+    // openCountryModal() below find the row for whichever country is currently selected
+    // on the field that was tapped, to scroll it to the wheel's own center on open.
     COUNTRIES.forEach((c) => {
         const row = document.createElement("button");
         row.type = "button";
         row.className = "country-option-btn";
+        row.dataset.code = c.code;
         row.innerHTML = `<span class="country-option-flag">${countryFlagEmoji(c.code)}</span>` +
             `<span class="country-option-name">${escapeHtml(c.name)}</span>` +
             `<span class="country-option-dial">${c.dial}</span>`;
@@ -1084,10 +1096,15 @@ function setupCountryPicker() {
 
     function openCountryModal(binding) {
         active = binding;
-        // Centered zoom-in, same as the working-hours/currency/duration wheel picker
-        // (#option-modal) and the language picker - position/size are handled entirely
-        // by .country-modal-sheet's CSS now, no inline rect math needed.
+        // Centered zoom-in, same wheel treatment as the working-hours/currency/duration
+        // picker (#option-modal): opens with the field's current country already
+        // scrolled to the wheel's own center rather than at the top of the list.
         modal.classList.add("open");
+        requestAnimationFrame(() => {
+            const target = list.querySelector(`[data-code="${binding.getCurrent().code}"]`) || list.firstElementChild;
+            if (target) list.scrollTop = target.offsetTop - (list.clientHeight - target.offsetHeight) / 2;
+            updateWheelFade();
+        });
     }
     function closeCountryModal() {
         modal.classList.remove("open");
@@ -1100,7 +1117,13 @@ function setupCountryPicker() {
             else openCountryModal(binding);
         });
     });
-    backdrop.addEventListener("click", closeCountryModal);
+    // Tapping the backdrop commits whichever country the wheel is currently centered
+    // on, same as the working-hours/currency/duration picker's backdrop - scrolling to
+    // a value and tapping away is the whole point of a wheel picker.
+    backdrop.addEventListener("click", () => {
+        const activeRow = list.querySelector(".wheel-active");
+        if (activeRow) activeRow.click(); else closeCountryModal();
+    });
 
     const initial = [selectedPhoneCountry, selectedProfilePhoneCountry, selectedForgotPhoneCountry];
     bindings.forEach((binding, i) => {
