@@ -1726,16 +1726,16 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
    platform address alone. */
 .mysite-chosen-domain {
     display: flex; align-items: center; gap: 10px;
-    padding: 10px 12px; margin: 10px 0 14px; border-radius: 10px;
+    padding: 6px 12px; margin: 10px 0 14px; border-radius: 10px;
     background: var(--success-bg); border: 1px solid var(--success-border);
 }
-.mysite-chosen-domain-icon { font-size: 16px; flex-shrink: 0; }
-.mysite-chosen-domain-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
-.mysite-chosen-domain-label { font-size: 11.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .4px; color: var(--success); }
-.mysite-chosen-domain-name { font-size: 15px; font-weight: 600; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mysite-chosen-domain-icon { font-size: 15px; flex-shrink: 0; }
+.mysite-chosen-domain-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 0; }
+.mysite-chosen-domain-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .4px; color: var(--success); }
+.mysite-chosen-domain-name { font-size: 14px; font-weight: 600; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .mysite-chosen-domain-clear {
-    flex-shrink: 0; width: 26px; height: 26px; border-radius: 50%; border: none;
-    background: none; color: var(--text-muted); font-size: 18px; line-height: 1; cursor: pointer;
+    flex-shrink: 0; width: 22px; height: 22px; border-radius: 50%; border: none;
+    background: none; color: var(--text-muted); font-size: 16px; line-height: 1; cursor: pointer;
 }
 .mysite-chosen-domain-clear:active { background: rgba(43, 32, 19, .08); }
 

@@ -4461,6 +4461,7 @@ async function loadMySite() {
             storageSet("mysiteSlug", page.slug || "").catch(() => {});
             storageSet("mysiteTagline", page.tagline || "").catch(() => {});
             storageSet("mysiteAbout", page.about || "").catch(() => {});
+            storageSet("mysiteChosenDomain", page.pending_custom_domain || "").catch(() => {});
             if (page.published) {
                 el("mysite-view-site-link").href = `${API_BASE}/p/${page.slug}`;
             }
@@ -4474,6 +4475,7 @@ async function loadMySite() {
             storageSet("mysiteSlug", "").catch(() => {});
             storageSet("mysiteTagline", "").catch(() => {});
             storageSet("mysiteAbout", "").catch(() => {});
+            storageSet("mysiteChosenDomain", "").catch(() => {});
             // Seed the Design row from whatever was picked before a web address existed
             // (see api_save_page's blank-slug branch/set_preferred_theme), instead of
             // always defaulting to "warm", so that preference actually shows up as
@@ -5328,7 +5330,7 @@ function waitForLayoutSettle() {
 updateOfflineBanner();
 
 (async () => {
-    const [token, businessName, onboardingSeen, theme, donationLink, pageTheme, mysiteHasPage, mysiteHasAppointments, mysitePublished, mysiteSlug, mysiteTagline, mysiteAbout, googleLoginPendingState] = await Promise.all([
+    const [token, businessName, onboardingSeen, theme, donationLink, pageTheme, mysiteHasPage, mysiteHasAppointments, mysitePublished, mysiteSlug, mysiteTagline, mysiteAbout, mysiteChosenDomainCached, googleLoginPendingState] = await Promise.all([
         storageGet("token"),
         storageGet("businessName"),
         storageGet("onboardingSeen"),
@@ -5341,6 +5343,7 @@ updateOfflineBanner();
         storageGet("mysiteSlug"),
         storageGet("mysiteTagline"),
         storageGet("mysiteAbout"),
+        storageGet("mysiteChosenDomain"),
         storageGet("googleLoginPendingState"),
     ]);
     applyTheme(theme || "system");
@@ -5380,6 +5383,8 @@ updateOfflineBanner();
         el("mysite-tagline-input").value = mysiteTagline || "";
         el("mysite-about-input").value = mysiteAbout || "";
         mysiteSyncDomainCheckBtnVisibility();
+        mysiteChosenDomain = mysiteChosenDomainCached || null;
+        mysiteRenderChosenDomain();
     }
 
     await waitForLayoutSettle();
