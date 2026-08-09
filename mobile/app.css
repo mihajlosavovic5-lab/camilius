@@ -443,14 +443,20 @@ button { font-family: inherit; -webkit-appearance: none; appearance: none; }
 }
 .country-modal-list {
     position: relative; overflow-y: auto;
-    /* 220px tall (5 rows), no top/bottom padding - padding it by (220 - 44) / 2 so the
-       very first/last option could reach the center band, like real content in the
-       middle of the list does, left a big empty void showing past the last option on
-       short lists (languages, or either end of a long one) once scrolled that far.
-       Without it, the first/last row just rests at the list's own top/bottom edge
-       instead of the center band once you've scrolled that far - true for every other
-       row still lands centered same as before. */
-    height: 220px;
+    /* 220px tall (5 rows), padded top/bottom by (220 - 44) / 2 so the very first and
+       very last option can still be scrolled all the way to the center band, the same
+       way real content in the middle of the list can. Dropping this padding was tried
+       (it does remove the empty space past the last real option once scrolled that
+       far) but it also means there's no longer a valid centered scroll-snap position
+       for the first/last couple of rows, which - with scroll-snap-type: mandatory -
+       stops a scroll gesture short of the list's true top/bottom edge instead of
+       reaching it (reported as those rows being impossible to reach at all). Keeping
+       the padding is what makes every row, including the very first/last, actually
+       reachable and selectable; the resulting empty space below the last item once
+       it's centered is the normal, expected look of a wheel picker (same as a native
+       iOS/Android one) rather than a bug - it's just far more noticeable on the short
+       language list than on the 48-slot working-hours one. */
+    height: 220px; padding: 88px 0;
     scroll-snap-type: y mandatory;
 }
 .country-option-btn {
