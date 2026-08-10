@@ -1523,7 +1523,8 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
 }
 .chat-compose-input {
     display: block; width: 100%; box-sizing: border-box; resize: none;
-    border: 1px solid var(--border); border-radius: 20px; background: var(--surface);
+    border: none; border-radius: 20px; background: var(--surface);
+    box-shadow: 0 1px 4px rgba(43, 32, 19, .1);
     padding: 13px 88px 13px 50px; font-family: inherit; font-size: 15.5px; color: var(--text);
     line-height: 1.35; max-height: 160px; overflow-y: auto;
 }
@@ -1533,7 +1534,7 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
    this only targets ::placeholder, so the real auto-growing/wrapping textarea behavior
    above is unaffected. */
 .chat-compose-input::placeholder { color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.chat-compose-input:focus { outline: none; border-color: var(--primary); }
+.chat-compose-input:focus { outline: none; box-shadow: 0 1px 6px rgba(43, 32, 19, .16); }
 /* Live waveform while the mic is recording - sits inside the compose field itself,
    covering the left side up to the mic/send icons (same footprint the typed text would
    occupy), so recording visibly takes over the input rather than living in a separate
@@ -1656,8 +1657,10 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
    div directly: .textarea-actions/.compose-attach-btn (see their own rules above) anchor
    via "bottom: Npx" to .chat-compose's own padding-box edge, so padding put there instead
    of here stretches that box and drags the mic/send/attach icons down below the pill
-   with it, off the field entirely. */
-.website-chat-compose-wrap { padding: 10px 14px calc(10px + var(--safe-bottom)); border-top: 1px solid var(--border); background: var(--surface); flex-shrink: 0; }
+   with it, off the field entirely. No border/background of its own - the screen's own
+   gradient (see .screen) shows straight through, so the compose bar reads as floating on
+   the same surface as the messages above it rather than sitting in a separate panel. */
+.website-chat-compose-wrap { padding: 10px 14px calc(10px + var(--safe-bottom)); flex-shrink: 0; }
 .website-chat-compose-wrap .chat-compose { margin-top: 0; }
 .website-chat-compose-wrap .voice-status { margin-left: 2px; margin-right: 2px; }
 
