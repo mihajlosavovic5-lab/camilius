@@ -3923,19 +3923,22 @@ el("schedule-duration-btn").addEventListener("click", () => {
     });
 });
 
-// Pins a centered dialog's sheet to the screen center it measures right now, in real
-// pixels rather than the CSS top:50%/left:50% it falls back to - a plain percentage is
-// relative to the containing block's CURRENT size on every layout, so if that ever
-// changes the sheet would visibly jump instead of just staying put. One-time
-// measurement, never recomputed later. The other half of "don't move when the
-// keyboard opens" is .book-modal-sheet/.confirm-modal-sheet's max-height in app.css
-// using lvh instead of vh - see the comment there for why that part matters just as
-// much as this pin does.
+// Pins a centered dialog's sheet to the screen center AND size it measures right now,
+// in real pixels rather than the CSS top:50%/left:50%/max-height:80(l)vh it falls back
+// to. Centering is done with transform:translate(-50%,-50%) (see .book-modal-sheet in
+// app.css), and that translate() percentage is relative to the sheet's OWN height - so
+// even with top/left frozen, an unfrozen max-height that shrinks the instant the
+// keyboard opens (confirmed on-device: the sheet's rendered top edge measurably moved
+// down the moment the keyboard finished animating in, even though the CSS already used
+// lvh) still moves the translated top edge down, because the sheet itself got shorter.
+// max-height in real pixels, measured once here before any keyboard exists, can't do
+// that - there's no viewport-unit ambiguity left for the keyboard to exploit.
 function pinModalCenter(modal) {
     const sheet = modal.querySelector(".book-modal-sheet, .confirm-modal-sheet");
     if (!sheet) return;
     sheet.style.left = `${window.innerWidth / 2}px`;
     sheet.style.top = `${window.innerHeight / 2}px`;
+    sheet.style.maxHeight = `${window.innerHeight * 0.8}px`;
 }
 
 // --- Book-a-slot bottom sheet ---
