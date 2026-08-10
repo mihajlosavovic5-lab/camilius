@@ -3924,16 +3924,34 @@ el("schedule-duration-btn").addEventListener("click", () => {
 });
 
 // Pins a centered dialog's sheet to the screen center it measures right now, in real
-// pixels rather than the CSS top:50%/left:50% it falls back to - so that when the field
-// inside it is focused a beat later and the on-screen keyboard shrinks the layout
-// viewport, the sheet's position doesn't get recomputed against that new (shorter)
-// viewport and drift upward. A plain percentage is relative to the containing block's
-// CURRENT size on every layout, which is exactly what kept nudging it; a fixed pixel
-// value, set once before the keyboard ever opens, simply doesn't move.
+// pixels rather than the CSS top:50%/left:50% it falls back to - a plain percentage is
+// relative to the containing block's CURRENT size on every layout, so it visibly nudges
+// as soon as anything about the viewport changes. Re-run (see the visualViewport
+// listener below) whenever the on-screen keyboard opens/closes or the browser scrolls
+// the page to keep a focused field clear of it - both change window.innerHeight and/or
+// visualViewport's offset, and re-centering against the CURRENT values on every such
+// change is what keeps the sheet visually still instead of drifting through the
+// keyboard's slide-in animation: without this it stayed pinned to wherever it was
+// measured once, which the browser's own keyboard-driven scroll then dragged out from
+// under it.
 function pinModalCenter(modal) {
-    const sheet = modal.querySelector(".book-modal-sheet");
-    sheet.style.top = `${window.innerHeight / 2}px`;
-    sheet.style.left = `${window.innerWidth / 2}px`;
+    const sheet = modal.querySelector(".book-modal-sheet, .confirm-modal-sheet");
+    if (!sheet) return;
+    const vv = window.visualViewport;
+    const width = vv ? vv.width : window.innerWidth;
+    const height = vv ? vv.height : window.innerHeight;
+    const offsetLeft = vv ? vv.offsetLeft : 0;
+    const offsetTop = vv ? vv.offsetTop : 0;
+    sheet.style.left = `${offsetLeft + width / 2}px`;
+    sheet.style.top = `${offsetTop + height / 2}px`;
+}
+
+if (window.visualViewport) {
+    const recenterOpenModals = () => {
+        document.querySelectorAll(".lang-modal.open").forEach(pinModalCenter);
+    };
+    window.visualViewport.addEventListener("resize", recenterOpenModals);
+    window.visualViewport.addEventListener("scroll", recenterOpenModals);
 }
 
 // --- Book-a-slot bottom sheet ---
