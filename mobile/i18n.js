@@ -3464,6 +3464,12 @@ function applyTranslations() {
     if (settingsValue) settingsValue.textContent = lang ? lang.name : currentLang;
     const settingsFlag = document.getElementById("settings-language-flag");
     if (settingsFlag) settingsFlag.textContent = lang ? countryFlagEmoji(lang.flag) : "";
+
+    // Lets listeners outside this file (the website-chat greeting in app.js, which
+    // renders its text once from t() rather than via a data-i18n node) react to a
+    // language switch without requiring the screen to be reopened. Mirrors
+    // site-i18n.js's own "site-language-changed" event on the web dashboard.
+    document.dispatchEvent(new CustomEvent("site-language-changed", { detail: { lang: currentLang } }));
 }
 
 async function setLanguage(code) {

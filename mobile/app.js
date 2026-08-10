@@ -4760,6 +4760,7 @@ mysiteSyncDomainCheckBtnVisibility();
 
     let history = [];
     let greeted = false;
+    let greetingEl = null;
 
     // --- Messages ---
 
@@ -4807,8 +4808,18 @@ mysiteSyncDomainCheckBtnVisibility();
     function ensureGreeting() {
         if (greeted) return;
         greeted = true;
-        addMessage("bot", t("websiteChat.greeting") || "Hi! Tell me about your business and let's figure out your website together.");
+        greetingEl = addMessage("bot", t("websiteChat.greeting") || "Hi! Tell me about your business and let's figure out your website together.");
     }
+
+    // Re-renders the greeting bubble when Settings changes the language, same rule
+    // website_chat.html's own "site-language-changed" listener follows: once the
+    // conversation has real messages in it, later switches leave them (and this
+    // bubble) in whatever language they were sent in.
+    document.addEventListener("site-language-changed", () => {
+        if (!greetingEl || history.length > 0) return;
+        greetingEl.textContent = "";
+        renderBotContent(greetingEl, t("websiteChat.greeting"));
+    });
 
     // --- Compose bar: auto-grow + send-button fill state, same behavior the old
     // mysite-description field had (see mysiteAutoGrowDescription/mysiteUpdateComposeButtons,
