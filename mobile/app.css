@@ -1828,15 +1828,20 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
 
 /* Book-a-slot / Custom-duration dialog - centered on screen instead of a bottom sheet.
    Both contain a text/number input, so opening them is immediately followed by the
-   on-screen keyboard popping up (see promptForCustomDuration()'s focus() in app.js) -
-   which shrinks the visual viewport and re-anchors anything pinned to "bottom: Npx",
-   so the old bottom sheet visibly appeared low on screen and then got shoved up into
-   the middle a beat later once the keyboard finished animating in. Opening already
-   centered (same scale-in transition as every other .lang-modal-sheet) means that
-   later resize only nudges it slightly instead of a jarring jump. */
+   on-screen keyboard popping up (see promptForCustomDuration()'s focus() in app.js).
+   Centering is done with left/top:50% + transform:translate(-50%,-50%), and that
+   translate() percentage is relative to the SHEET'S OWN (current) height - so even
+   with app.js's pinModalCenter() freezing top/left in real pixels, plain `vh` on
+   max-height still shrinks the sheet the instant the keyboard opens (many mobile
+   WebViews tie `vh` to the keyboard-shrunk visible area), which moves the translated
+   top edge down even though the center point never moved. `lvh` (large viewport
+   height) instead stays pinned to the keyboard-less viewport size, so the sheet's own
+   height - and with it its rendered position - doesn't change when the keyboard
+   opens. Declared after the plain `vh` line so it overrides in browsers that support
+   it, falling back to the old (keyboard-reactive) behavior on ones that don't. */
 .book-modal-sheet {
     left: 50%; right: auto; top: 50%; bottom: auto;
-    width: calc(100% - 48px); max-width: 360px; max-height: 80vh; overflow-y: auto;
+    width: calc(100% - 48px); max-width: 360px; max-height: 80vh; max-height: 80lvh; overflow-y: auto;
     padding: 20px 18px 16px;
     transform-origin: center;
     transform: translate(-50%, calc(-50% + 14px)) scale(.96);
@@ -1849,10 +1854,12 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
 .book-modal-sheet .row-action-cancel { margin-top: 6px; }
 
 /* --- Confirm modal (e.g. logout, delete account) - centered like .book-modal-sheet, just a
-   message plus two actions instead of a form. --- */
+   message plus two actions instead of a form. Same lvh reasoning as .book-modal-sheet above,
+   even though this one has no input of its own - the logout confirm dialog can still be open
+   while another field somewhere else holds focus and the keyboard is up. --- */
 .confirm-modal-sheet {
     left: 50%; right: auto; top: 50%; bottom: auto;
-    width: calc(100% - 48px); max-width: 340px; max-height: 80vh;
+    width: calc(100% - 48px); max-width: 340px; max-height: 80vh; max-height: 80lvh;
     padding: 22px 20px;
     transform-origin: center;
     transform: translate(-50%, calc(-50% + 14px)) scale(.96);

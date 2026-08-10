@@ -3925,46 +3925,17 @@ el("schedule-duration-btn").addEventListener("click", () => {
 
 // Pins a centered dialog's sheet to the screen center it measures right now, in real
 // pixels rather than the CSS top:50%/left:50% it falls back to - a plain percentage is
-// relative to the containing block's CURRENT size on every layout, so if that size
-// ever changes (e.g. a real, non-keyboard resize) the sheet would visibly jump instead
-// of just... not doing that, since nothing here should be resizing while it's open.
-// This is a one-time measurement, never recomputed later - see keyboardPanFix below
-// for what actually keeps the whole dialog still once the on-screen keyboard opens.
+// relative to the containing block's CURRENT size on every layout, so if that ever
+// changes the sheet would visibly jump instead of just staying put. One-time
+// measurement, never recomputed later. The other half of "don't move when the
+// keyboard opens" is .book-modal-sheet/.confirm-modal-sheet's max-height in app.css
+// using lvh instead of vh - see the comment there for why that part matters just as
+// much as this pin does.
 function pinModalCenter(modal) {
-    modal.style.transform = "";
     const sheet = modal.querySelector(".book-modal-sheet, .confirm-modal-sheet");
     if (!sheet) return;
     sheet.style.left = `${window.innerWidth / 2}px`;
     sheet.style.top = `${window.innerHeight / 2}px`;
-}
-
-// Android WebView has a long-standing bug where a `position: fixed` element visibly
-// drifts along with whatever the browser does to keep a newly-focused field clear of
-// the on-screen keyboard - either an actual (if harmless, since nothing here needs to
-// scroll) document scroll, or a pure visual-viewport pan with no matching scroll at
-// all - even though "fixed" should mean "anchored to the real viewport, ignoring
-// that". .lang-modal (backdrop + sheet together, as one fixed element) is exactly the
-// kind of element this bites. On every visualViewport change while a dialog is open:
-// snap any accidental document scroll back to (0,0) - the app shell (#app) is itself
-// fixed+overflow:hidden, so the document never legitimately needs to scroll - and
-// counter-translate the modal by the visual viewport's own pan offset, which cancels
-// the rest. Between the two, the dialog stops tracking the keyboard's animation
-// instead of sliding/jumping with it.
-function keyboardPanFix() {
-    const openModals = document.querySelectorAll(".lang-modal.open");
-    if (!openModals.length) return;
-    if (window.scrollX || window.scrollY) window.scrollTo(0, 0);
-    const vv = window.visualViewport;
-    const dx = vv ? -vv.offsetLeft : 0;
-    const dy = vv ? -vv.offsetTop : 0;
-    openModals.forEach((modal) => {
-        modal.style.transform = (dx || dy) ? `translate(${dx}px, ${dy}px)` : "";
-    });
-}
-window.addEventListener("scroll", keyboardPanFix, { passive: true });
-if (window.visualViewport) {
-    window.visualViewport.addEventListener("resize", keyboardPanFix);
-    window.visualViewport.addEventListener("scroll", keyboardPanFix);
 }
 
 // --- Book-a-slot bottom sheet ---
