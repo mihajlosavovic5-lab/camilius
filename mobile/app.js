@@ -5192,52 +5192,28 @@ Object.keys(MYSITE_FIELD_MODAL_FIELDS).forEach((fieldId) => {
             sheetCard.style.left = `${rect.left}px`;
             sheetCard.style.bottom = `${window.innerHeight - rect.top + gap}px`;
         }
-        // Tracks whether openAttachSheet() below was the one that blurred the compose
-        // input, so closeAttachSheet() knows to give focus back - vs. the sheet having
-        // opened with no keyboard behind it in the first place, where there's nothing to
-        // restore.
-        let blurredForSheet = false;
+        // Deliberately does NOT blur the compose input on open (an earlier attempt did,
+        // to let a back press reach this sheet on the first try instead of needing two -
+        // see MainActivity.dispatchKeyEvent()'s own comment) - on-device testing across
+        // several follow-up attempts at keeping the keyboard visibly open through that
+        // blur (WindowInsetsController re-show, retried bursts of it) all found the same
+        // underlying issue: forcing the IME open while nothing is actually focused isn't
+        // a state Android's own back handling treats consistently - back still closed the
+        // keyboard anyway (apparently keyed off the IME merely being visible, not off any
+        // focused view), and this sheet's own refocus-on-close then made it silently pop
+        // back open a moment later with no further back press, which read as even more
+        // confusing than the plain two-press behavior it was meant to replace. Left as
+        // the plain, side-effect-free version: the first back press behaves like normal
+        // Android (closes the keyboard, since a focused field is still showing one), the
+        // second closes this sheet - exactly like every other popup already behaves for
+        // any visitor without a keyboard open behind it.
         function openAttachSheet() {
             if (!sheet || !sheetCard) return;
             positionAttachSheet();
             sheet.classList.add("open");
-            // Blurs the compose input so the WebView's focused-editable-view no longer claims
-            // first dibs on BACK to hide the keyboard (see MainActivity.dispatchKeyEvent()'s own
-            // comment) - without this, the very first back press never reaches app.js at all,
-            // needing a second press to close this sheet. An earlier attempt did the same
-            // blur() and fixed that, but got reverted because blurring alone also let the
-            // keyboard visibly hide the instant this sheet opens, an unrelated side effect
-            // neither opening nor closing the sheet was meant to cause.
-            blurredForSheet = document.activeElement === input;
-            if (!blurredForSheet) return;
-            input.blur();
-            // Calls native directly and synchronously here, right alongside the blur() above
-            // - rather than waiting on the generic syncOverlayOpenState MutationObserver
-            // below (which also ends up firing once it sees this sheet's own "open" class
-            // land, redundantly but harmlessly) - because on-device testing found that extra
-            // tick of delay was an actual race: MainActivity.forceShowIme() (see its own
-            // comment) needs to re-assert the IME back open before Android's own hide
-            // animation (which this blur() just triggered) finishes, and waiting on the
-            // MutationObserver sometimes lost that race on a popup's second or later open in
-            // a session, even though the very first open in a session was reliably fine.
-            // forceKeyboard tells native to show() unconditionally instead of re-checking
-            // current IME visibility (see OverlayStatePlugin's own comment for why that
-            // check is itself the same race, just moved one layer down).
-            if (isNative && capacitorPlugins.OverlayState) {
-                capacitorPlugins.OverlayState.setOverlayOpen({ open: true, forceKeyboard: true }).catch(() => {});
-            }
         }
         function closeAttachSheet() {
             if (sheet) sheet.classList.remove("open");
-            // Gives focus back to the compose input if openAttachSheet() was the one that
-            // took it away - restores typing exactly where the visitor left off instead of
-            // silently dropping focus once the sheet closes, since blurring it was only
-            // ever needed to let a back press reach this sheet, not an intentional change
-            // to what has focus.
-            if (blurredForSheet) {
-                blurredForSheet = false;
-                input.focus();
-            }
         }
         if (sheet) {
             el("attach-options-backdrop").addEventListener("click", closeAttachSheet);

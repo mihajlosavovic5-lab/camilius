@@ -1,17 +1,11 @@
 package com.ai_auto_reply_mail.app.twa;
 
 import android.os.Bundle;
-import android.os.Handler;
-import android.os.Looper;
 import android.view.KeyEvent;
-import android.view.View;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.IntentSenderRequest;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.core.splashscreen.SplashScreen;
-import androidx.core.view.ViewCompat;
-import androidx.core.view.WindowInsetsCompat;
-import androidx.core.view.WindowInsetsControllerCompat;
 import com.getcapacitor.BridgeActivity;
 import com.google.android.play.core.appupdate.AppUpdateInfo;
 import com.google.android.play.core.appupdate.AppUpdateManager;
@@ -134,32 +128,31 @@ public class MainActivity extends BridgeActivity {
     }
 
     // Lets a popup/sheet/lightbox (mobile/app.js's closeTopmostOverlay(), tracked here
-    // via OverlayStatePlugin/overlayOpen) close on the very first hardware back press
-    // WITHOUT also touching the on-screen keyboard, even when a text field behind/under
-    // it is still focused.
+    // via OverlayStatePlugin/overlayOpen) close on a hardware back press without waiting
+    // for Capacitor's own backButton JS event, which only fires from onBackPressed() -
+    // the framework only invokes that once a key event bubbles all the way up unconsumed.
     //
-    // Without this override, that first press never reaches app.js at all: for as long
-    // as a focused, editable element is showing the keyboard, the WebView's own key
-    // handling consumes BACK itself (both down and up) to dismiss the keyboard, the
-    // normal Android behavior for any focused editable view - Capacitor's own backButton
-    // JS event is only fired from onBackPressed(), which the framework only invokes once
-    // a key event bubbles all the way up unconsumed, so the WebView swallowing it here
-    // means onBackPressed() (and so the JS listener) never even runs for that press.
-    // Closing the popup then needed a second press, and even then, the keyboard the
-    // first press already hid stayed hidden - a side effect neither press was actually
-    // meant to cause, since dismissing a popup and dismissing the keyboard are two
-    // unrelated actions from the visitor's point of view.
-    //
-    // dispatchKeyEvent() only actually gets a chance to see BACK before the WebView does
-    // when nothing focused and editable is showing the keyboard at that moment (see
-    // keepImeVisibleIfShowing()'s own comment below - the WebView's focused-editable-view
-    // takes priority over this override, not the other way around, confirmed by testing
-    // on-device). While that condition holds, returning true here for BACK - only while
+    // This override only actually gets a chance to see BACK before the WebView does when
+    // nothing focused and editable is showing the keyboard at that moment. For as long as
+    // a focused, editable DOM element IS showing the keyboard, the WebView's own key
+    // handling claims BACK first regardless of this override - the normal Android
+    // behavior for any focused editable view, confirmed by extensive on-device testing.
+    // Several attempts at defeating that (blurring the field on popup-open so nothing
+    // claims BACK for the keyboard, then forcing the IME to stay visibly open through
+    // WindowInsetsController so the visitor wouldn't notice the blur) all ran into the
+    // same wall: Android's own back-closes-keyboard handling fired anyway, apparently
+    // keyed off the IME merely being visible rather than off any view actually having
+    // focus, and forcing it back open afterward just produced a confusing "closes then
+    // silently reopens" side effect with no way to make it reliable. Left as the plain
+    // version below instead: while a focused field is showing the keyboard, the first
+    // back press behaves like normal Android (closes the keyboard) and a second closes
+    // the popup - the same tradeoff most Android apps with a keyboard-aware popup make.
+    // Once no keyboard is in the way, returning true here for BACK - only while
     // overlayOpen is true - consumes the event at the very top, before the WebView ever
     // sees it, and closes the popup directly via a plain evaluateJavascript() call
     // instead. Every other back press (overlayOpen false) falls through to
-    // super.dispatchKeyEvent() completely unchanged, so the existing keyboard-first-then-
-    // app-navigation behavior everywhere else in the app is untouched.
+    // super.dispatchKeyEvent() completely unchanged, so ordinary app navigation is
+    // untouched.
     @Override
     public boolean dispatchKeyEvent(KeyEvent event) {
         if (overlayOpen && event.getKeyCode() == KeyEvent.KEYCODE_BACK) {
@@ -170,65 +163,5 @@ public class MainActivity extends BridgeActivity {
             return true;
         }
         return super.dispatchKeyEvent(event);
-    }
-
-    // Confirmed by testing (see OverlayStatePlugin's own comment) that dispatchKeyEvent()
-    // above was STILL never reached on the very first back press whenever a focused,
-    // editable DOM element was showing the keyboard behind the popup - the WebView's own
-    // key handling takes priority over BACK for as long as that element has focus, full
-    // stop, regardless of this Activity's own override. app.js (openAttachSheet()) blurs
-    // that element the moment the popup opens specifically to give up that focus - but
-    // blurring alone also naturally lets the now-unclaimed IME hide itself, which is the
-    // exact unwanted "keyboard visibly closes when the popup merely opens" side effect an
-    // earlier attempt at this fix had and was reverted for.
-    //
-    // Fallback for callers with no synchronous way of already knowing the keyboard was up
-    // (every popup/sheet/lightbox EXCEPT the attach sheet - see OverlayStatePlugin's own
-    // comment on the forceKeyboard flag) - re-asserts the IME back open via
-    // WindowInsetsControllerCompat, but only if it reads as still showing right now.
-    // Querying current state like this is exactly the race that made forceShowIme() below
-    // necessary in the first place: by the time this runs (after a MutationObserver
-    // round trip, not called synchronously alongside whatever blurred the field), a
-    // hide already in flight may have already completed, in which case there's nothing
-    // left to interrupt and this silently does nothing - acceptable here since these
-    // other popups were never confirmed to have a keyboard behind them to begin with,
-    // unlike the attach sheet's own dedicated, unconditional path.
-    void keepImeVisibleIfShowing() {
-        if (getBridge() == null || getBridge().getWebView() == null) return;
-        View root = getBridge().getWebView();
-        WindowInsetsCompat insets = ViewCompat.getRootWindowInsets(root);
-        if (insets != null && insets.isVisible(WindowInsetsCompat.Type.ime())) {
-            forceShowIme();
-        }
-    }
-
-    // Fires a short burst of re-asserted show(ime()) calls after the caller (OverlayStatePlugin,
-    // forceKeyboard == true) already established synchronously, before blurring anything, that
-    // the keyboard was up. A single immediate call fixed the very first race (Android's hide
-    // animation from openAttachSheet()'s own blur() finishing before we could interrupt it -
-    // see the class's own history for that one), but on-device testing then found the keyboard
-    // could still vanish again roughly a second later even after a successful immediate
-    // show() - nothing else changed in the DOM at that point, so this looks like Android
-    // queuing a second, independently-delayed hide that a single call has no way to see
-    // coming or cancel ahead of time. Re-asserting a few more times over the following second
-    // instead - each one skipped once overlayOpen has gone false in the meantime (the popup
-    // actually closed), so this never fights a legitimate close - covers that delayed hide
-    // whenever it actually lands.
-    private final Handler imeGuardHandler = new Handler(Looper.getMainLooper());
-    private static final long[] IME_REASSERT_DELAYS_MS = {50, 150, 300, 500, 800};
-
-    void forceShowIme() {
-        showImeNow();
-        for (long delay : IME_REASSERT_DELAYS_MS) {
-            imeGuardHandler.postDelayed(() -> {
-                if (overlayOpen) showImeNow();
-            }, delay);
-        }
-    }
-
-    private void showImeNow() {
-        if (getBridge() == null || getBridge().getWebView() == null) return;
-        View root = getBridge().getWebView();
-        new WindowInsetsControllerCompat(getWindow(), root).show(WindowInsetsCompat.Type.ime());
     }
 }
