@@ -1,6 +1,8 @@
 package com.ai_auto_reply_mail.app.twa;
 
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.view.KeyEvent;
 import android.view.View;
 import androidx.activity.result.ActivityResultLauncher;
@@ -200,18 +202,31 @@ public class MainActivity extends BridgeActivity {
         }
     }
 
-    // Re-asserts the IME back open via WindowInsetsControllerCompat unconditionally - no
-    // current-state check, since the caller (OverlayStatePlugin, forceKeyboard == true)
-    // already established synchronously, before blurring anything, that the keyboard was
-    // up. On-device testing found the current-state check (keepImeVisibleIfShowing()
-    // above) an unreliable race for this specific path: correct the first time a given
-    // popup opened over the keyboard in a session, but intermittently reading the IME as
-    // already hidden (and so doing nothing) on a later open, once the round trip through
-    // the MutationObserver-based sync happened to land after Android's own hide animation
-    // had already finished. Calling this directly and synchronously from openAttachSheet()
-    // instead - immediately alongside its own blur(), not waiting on that observer - both
-    // tightens the timing window and removes the racy read entirely.
+    // Fires a short burst of re-asserted show(ime()) calls after the caller (OverlayStatePlugin,
+    // forceKeyboard == true) already established synchronously, before blurring anything, that
+    // the keyboard was up. A single immediate call fixed the very first race (Android's hide
+    // animation from openAttachSheet()'s own blur() finishing before we could interrupt it -
+    // see the class's own history for that one), but on-device testing then found the keyboard
+    // could still vanish again roughly a second later even after a successful immediate
+    // show() - nothing else changed in the DOM at that point, so this looks like Android
+    // queuing a second, independently-delayed hide that a single call has no way to see
+    // coming or cancel ahead of time. Re-asserting a few more times over the following second
+    // instead - each one skipped once overlayOpen has gone false in the meantime (the popup
+    // actually closed), so this never fights a legitimate close - covers that delayed hide
+    // whenever it actually lands.
+    private final Handler imeGuardHandler = new Handler(Looper.getMainLooper());
+    private static final long[] IME_REASSERT_DELAYS_MS = {50, 150, 300, 500, 800};
+
     void forceShowIme() {
+        showImeNow();
+        for (long delay : IME_REASSERT_DELAYS_MS) {
+            imeGuardHandler.postDelayed(() -> {
+                if (overlayOpen) showImeNow();
+            }, delay);
+        }
+    }
+
+    private void showImeNow() {
         if (getBridge() == null || getBridge().getWebView() == null) return;
         View root = getBridge().getWebView();
         new WindowInsetsControllerCompat(getWindow(), root).show(WindowInsetsCompat.Type.ime());
