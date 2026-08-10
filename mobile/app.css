@@ -1952,11 +1952,19 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
     transform: translate(-50%, calc(-50% + 14px)) scale(.96);
     /* top/max-height added to the transform/opacity transition .lang-modal-sheet already
        declares (this replaces that list rather than adding to it, so both are repeated
-       here) - app.js's pinModalCenter() keeps top/max-height live-updated in real pixels
-       as the keyboard opens/closes (see its own comment), and without a transition on
-       those two the sheet would just snap to each new position/height instantly instead
-       of easing into it the way the keyboard itself visibly slides. */
-    transition: transform .2s cubic-bezier(.22, .9, .32, 1.2), opacity .16s ease, top .2s ease, max-height .2s ease;
+       here) - app.js's pinModalCenter()/repositionOpenCenteredModals() keep top/max-height
+       live-updated in real pixels as the keyboard opens/closes (see their own comments),
+       and without a transition on those two the sheet would just snap to each new
+       position/height instantly instead of easing into it the way the keyboard itself
+       visibly slides. Material's own "standard" easing (decelerate-into-place, no
+       overshoot) reads calmer here than the bouncier open/close curve above would -
+       this is a correction chasing a live-moving keyboard, not a deliberate open
+       gesture, so it shouldn't call as much attention to itself. will-change hints the
+       browser to promote the sheet to its own compositor layer for these two specifically,
+       which keeps the motion from stuttering on slower Android WebViews. */
+    transition: transform .2s cubic-bezier(.22, .9, .32, 1.2), opacity .16s ease,
+        top .25s cubic-bezier(.4, 0, .2, 1), max-height .25s cubic-bezier(.4, 0, .2, 1);
+    will-change: top, max-height;
     display: flex; flex-direction: column;
 }
 .lang-modal.open .book-modal-sheet { transform: translate(-50%, -50%) scale(1); }
@@ -2026,10 +2034,12 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
     padding: 22px 20px;
     transform-origin: center;
     transform: translate(-50%, calc(-50% + 14px)) scale(.96);
-    /* Same top/max-height transition as .book-modal-sheet above, and for the same reason -
-       kept in sync so a duration-modal-style keyboard-driven reposition eases the same way
-       regardless of which of the two sheet types is open. */
-    transition: transform .2s cubic-bezier(.22, .9, .32, 1.2), opacity .16s ease, top .2s ease, max-height .2s ease;
+    /* Same top/max-height transition (and the same standard-easing/will-change reasoning)
+       as .book-modal-sheet above, kept in sync so a duration-modal-style keyboard-driven
+       reposition eases the same way regardless of which of the two sheet types is open. */
+    transition: transform .2s cubic-bezier(.22, .9, .32, 1.2), opacity .16s ease,
+        top .25s cubic-bezier(.4, 0, .2, 1), max-height .25s cubic-bezier(.4, 0, .2, 1);
+    will-change: top, max-height;
 }
 .lang-modal.open .confirm-modal-sheet { transform: translate(-50%, -50%) scale(1); }
 .confirm-modal-message { margin: 0 0 20px; color: var(--text); font-size: 15px; line-height: 1.5; }

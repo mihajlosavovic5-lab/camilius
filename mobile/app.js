@@ -3974,7 +3974,19 @@ function pinModalCenter(modal) {
 function repositionOpenCenteredModals() {
     document.querySelectorAll(".lang-modal.open .book-modal-sheet, .lang-modal.open .confirm-modal-sheet").forEach(pinModalCenterSheet);
 }
-(window.visualViewport || window).addEventListener("resize", repositionOpenCenteredModals);
+// Both "resize" (the visible area's final size changed) and "scroll" (its offset moved,
+// which visualViewport also reports for while the keyboard is still animating in/out on
+// several WebViews) are wired to the same handler - resize alone tends to only fire once
+// the keyboard finishes moving, which is enough to land in the right place but reads as
+// "pause, then catch up" instead of tracking the keyboard the whole way; scroll fills in
+// the frames in between so the CSS transition above has more, closer-together waypoints
+// to ease through rather than one big jump at the very end.
+if (window.visualViewport) {
+    window.visualViewport.addEventListener("resize", repositionOpenCenteredModals);
+    window.visualViewport.addEventListener("scroll", repositionOpenCenteredModals);
+} else {
+    window.addEventListener("resize", repositionOpenCenteredModals);
+}
 
 // --- Book-a-slot bottom sheet ---
 
