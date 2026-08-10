@@ -442,27 +442,29 @@ button { font-family: inherit; -webkit-appearance: none; appearance: none; }
     border-radius: 10px; pointer-events: none; z-index: 0;
 }
 .country-modal-list {
-    position: relative; overflow-y: auto;
-    /* 220px tall (5 rows), no top/bottom padding, no scroll-snap. Centering the current
-       row used to be done with CSS scroll-snap (scroll-snap-align: center on each row)
-       plus padding reserving (height - rowHeight) / 2 of blank space on each end so the
-       first/last row had a reachable centered snap position too - that padding is what
-       showed as empty space past the last real row once scrolled that far, and merely
-       dropping it broke scroll-snap-type: mandatory instead (no valid snap position
-       left for the first/last couple of rows, so a scroll gesture stopped short of the
-       list's true top/bottom edge rather than reaching it). A JS version of the same
-       "smooth-scroll the closest row to center" idea was tried next, but a real
-       multi-flick touch swipe has its own brief pause between flicks that a debounce
-       reads as "the gesture settled", so it kept smooth-scrolling part-way back before
-       the next flick could continue - same trapped-short-of-the-edge symptom, just via
-       JS instead of scroll-snap. setupWheelFade() (app.js) reports whichever row is
-       closest to center on every scroll (for the fade/highlight), and separately nudges
-       the list to that row's exact center on 'scrollend' - a resting position, not a
-       gesture pause, so it never fights an in-progress swipe the way the debounce did,
-       but still stops the band from settling half over two rows. Trade-off: a value
-       within roughly the first/last 2 rows can't reach exact center (there's no room
-       left to scroll it there, so the 'scrollend' nudge clamps at the true edge instead)
-       - it's still fully visible and one tap away, just not shown as "centered". */
+    position: relative; overflow-y: auto; box-sizing: border-box;
+    /* 220px tall (5 rows) with 88px ((220 - 44) / 2, i.e. two rows' worth) of blank
+       padding reserved above the first row and below the last - box-sizing: border-box
+       keeps the 220px a fixed VIEWPORT height (clientHeight, still exactly 5 rows) while
+       the padding only grows the scrollable content (scrollHeight), giving the first and
+       last real rows the same reachable centered position every other row already has.
+       Reaching all the way into that padding shows as blank rows above/below the wheel's
+       real ends once Afghanistan/Zimbabwe (etc.) IS centered - expected for a wheel with
+       nothing further to show, same as a native iOS/Android picker at its first or last
+       value, not a bug.
+       This same padding used to cause a real bug, back when nothing ever pulled the list
+       out of it: CSS scroll-snap (scroll-snap-align: center) plus this padding was the
+       original approach, but scroll-snap-type: mandatory had no valid snap point IN the
+       padding itself, so a scroll gesture aimed at the very edge stopped short of it
+       instead of reaching bottom/top. Dropping the padding "fixed" that by removing the
+       first/last rows' reachable center instead (see setupWheelFade()'s own history in
+       app.js) - which is the bug this padding is back to fix. What makes it safe to
+       bring back now is setupWheelFade()'s 'scrollend' nudge (not scroll-snap): it only
+       pulls the resting scroll position back onto a real row once touch input and all
+       momentum have already stopped, so a swipe that overshoots into this padding still
+       reaches the true edge first and gets nudged onto Afghanistan/Zimbabwe afterward,
+       rather than ever being blocked from getting there. */
+    padding: 88px 0;
     height: 220px;
 }
 .country-option-btn {
