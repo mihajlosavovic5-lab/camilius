@@ -610,26 +610,17 @@ function createAnchoredListPicker(modalId) {
 
 const optionPicker = createAnchoredListPicker("option-modal");
 
-// A button that looks like the old <select> but opens the shared optionPicker dropdown
-// right below itself instead of the platform's own picker UI. Used for both the hours
-// picker's time fields and the price list's currency field (see createPricePicker).
+// A button that looks like the old <select> but opens the shared optionPicker (a modal
+// centered on screen, not anchored below the button) instead of the platform's own
+// picker UI. Used for both the hours picker's time fields and the price list's
+// currency field (see createPricePicker).
 function createOptionButton(initialValue, options, extraClass) {
     const btn = document.createElement("button");
     btn.type = "button";
     btn.className = "picker-btn" + (extraClass ? ` ${extraClass}` : "");
     const label = document.createElement("span");
     label.textContent = initialValue;
-    // An inline SVG rather than a "⌄" text character - a glyph's exact shape/baseline
-    // depends on whichever font ends up supplying that codepoint (the custom webfont
-    // may not include it, silently falling back to whatever the platform has), which
-    // showed up as the open/close time fields' arrows looking visibly different from
-    // each other despite identical markup. An SVG path has no font dependency at all,
-    // so both always render pixel-identical.
-    const chevron = document.createElement("span");
-    chevron.className = "picker-chevron";
-    chevron.innerHTML = '<svg width="10" height="6" viewBox="0 0 10 6" fill="none" aria-hidden="true"><path d="M1 1L5 5L9 1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
     btn.appendChild(label);
-    btn.appendChild(chevron);
 
     let value = initialValue;
     btn.addEventListener("click", () => {

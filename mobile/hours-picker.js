@@ -166,8 +166,9 @@ function createHoursPickerCore(config) {
         customHoursNote.classList.toggle("hidden", weekdaysAreUniform());
     }
 
-    // A single subtle down-arrow instead of a text link - same glyph as .picker-chevron
-    // elsewhere in the app, just bigger and in its own circle. No visible label (the
+    // A single subtle down-arrow instead of a text link - it genuinely expands the
+    // per-day list below it (see .hours-toggle-arrow's grid-rows transition), unlike
+    // the picker buttons elsewhere that open a centered modal. No visible label (the
     // action is obvious from position + direction), but the full description still
     // reaches screen readers via aria-label.
     const customizeLink = document.createElement("button");

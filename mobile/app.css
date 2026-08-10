@@ -339,8 +339,6 @@ button { font-family: inherit; -webkit-appearance: none; appearance: none; }
 }
 .lang-select-btn.active { background: var(--background); }
 .lang-select-label { white-space: nowrap; }
-.lang-chevron { font-size: 13px; transform: translateY(1px); transition: transform .18s ease; }
-.lang-select-btn.active .lang-chevron { transform: translateY(1px) rotate(180deg); }
 /* Flexible spacers above/below the form cluster, close to an even split so the cluster
    reads as centered rather than deliberately offset. */
 .login-top-spacer { flex: 0.9; min-height: 8px; }
@@ -962,12 +960,6 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
     font-family: inherit; font-size: 15px; color: var(--text); background: var(--background); cursor: pointer;
 }
 .picker-btn:active { border-color: var(--primary); }
-.picker-chevron { display: flex; align-items: center; color: var(--text-muted); flex-shrink: 0; }
-/* Working hours' own time fields (both the per-day rows and the "Same hours every day"
-   quick-fill pair) drop the chevron entirely rather than just fixing its overflow -
-   the field still opens the same picker on tap, just without the indicator glyph. */
-.time-picker-btn .picker-chevron { display: none; }
-.picker-chevron svg { display: block; }
 
 /* --- Working hours picker: a compact single list - one line per day, a subtle divider
    between rows instead of a card per day, and a fixed row height so toggling a day off
@@ -1081,13 +1073,11 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
 .hours-day-closed-label { flex: 1; min-width: 0; font-size: 14px; color: var(--text-muted); }
 /* No min-width: 0 here (unlike most flex:1 items in this file) - that override lets a
    flex item shrink below what its own content needs, and since a button's overflow is
-   visible by default, the label+chevron pair (justify-content: space-between, in
-   .picker-btn) then paints past the button's own border into the row's background
-   instead of wrapping inside it - exactly what made the dropdown chevron look like it
-   was floating loose next to the field rather than inside it, worse the larger the
-   phone's system font-size setting scales the label text up. Left at the default
-   min-width: auto instead, so flex can still shrink this button to split evenly with
-   its sibling, but never past the point where its own content would spill outside it. */
+   visible by default, the label then paints past the button's own border into the
+   row's background instead of wrapping inside it, worse the larger the phone's system
+   font-size setting scales the label text up. Left at the default min-width: auto
+   instead, so flex can still shrink this button to split evenly with its sibling, but
+   never past the point where its own content would spill outside it. */
 .time-picker-btn { flex: 1; width: 100%; }
 .hours-time-sep { color: var(--text-muted); font-size: 14px; flex-shrink: 0; }
 
@@ -1129,9 +1119,6 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
 .price-currency-row span { font-size: 14.5px; color: var(--text-muted); font-weight: 600; }
 .currency-picker-btn { padding: 0; margin-right: 2px; font-size: 14.5px; font-weight: 600; background: none; border: none; color: var(--text-muted); }
 .currency-picker-btn:active { border-color: transparent; }
-/* No down-chevron - the row itself already reads as tappable (see above), an arrow
-   next to a single value with nothing to compare it against just added clutter. */
-.currency-picker-btn .picker-chevron { display: none; }
 
 /* --- AI upsell pairs picker: repeatable "Service -> suggested service" rows, mirrors
    the website's arrow-separated pair picker (static/pickers.js createUpsellPicker)
@@ -1327,10 +1314,6 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
    been picked) instead of the row-actions sheet's fixed set of buttons, so it needs its
    own scroll cap rather than growing the whole sheet past what a short screen can show. */
 .design-modal-list { overflow-y: auto; max-height: 50vh; display: flex; flex-direction: column; }
-/* Down-chevron on the Design row (app.css .settings-row-chevron is normally the "›" used
-   for rows that push a new screen) - "⌄" instead, to read as "opens a dropdown" like the
-   working-hours/currency fields' own .picker-chevron rather than navigation. */
-.settings-row-chevron-down { font-size: 13px; }
 .inbox-dot { width: 8px; height: 8px; border-radius: 99px; background: var(--warning); flex-shrink: 0; }
 
 /* --- Attach options popover (Camera/Photos/Files, My Site tab's "+") - a compact card
