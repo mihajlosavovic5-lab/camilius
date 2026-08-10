@@ -3923,32 +3923,44 @@ el("schedule-duration-btn").addEventListener("click", () => {
     });
 });
 
-// Pins a centered dialog's sheet to the screen center it measures right now, in real
+// Pins a centered dialog's sheet to the screen position it measures right now, in real
 // pixels rather than the CSS top:50%/left:50% it falls back to - a plain percentage is
-// relative to the containing block's CURRENT size on every layout, so it visibly nudges
-// as soon as anything about the viewport changes. Re-run (see the visualViewport
-// listener below) whenever the on-screen keyboard opens/closes or the browser scrolls
-// the page to keep a focused field clear of it - both change window.innerHeight and/or
-// visualViewport's offset, and re-centering against the CURRENT values on every such
-// change is what keeps the sheet visually still instead of drifting through the
-// keyboard's slide-in animation: without this it stayed pinned to wherever it was
-// measured once, which the browser's own keyboard-driven scroll then dragged out from
-// under it.
+// relative to the containing block's CURRENT size on every layout, so it visibly jumps
+// the moment the on-screen keyboard shrinks that size. Re-deriving the center from the
+// shrunken visualViewport on every resize (an earlier version of this function did
+// that) has the exact same problem one level down - it's still a deliberate re-center
+// against a smaller area, which reads as an abrupt jump upward the instant the
+// keyboard opens. What actually keeps the sheet visually still is freezing its center
+// in screen coordinates at open time (baseCenterX/Y below, from the keyboard-less
+// window size) and, on every later visualViewport resize/scroll while it's open, only
+// correcting for how far the visual viewport's own origin has panned since then
+// (offsetLeft/offsetTop) - that cancels out the browser's own scroll-into-view for the
+// focused field without ever re-centering into the keyboard-shrunk area.
 function pinModalCenter(modal) {
     const sheet = modal.querySelector(".book-modal-sheet, .confirm-modal-sheet");
     if (!sheet) return;
     const vv = window.visualViewport;
-    const width = vv ? vv.width : window.innerWidth;
-    const height = vv ? vv.height : window.innerHeight;
+    sheet._baseCenterX = window.innerWidth / 2;
+    sheet._baseCenterY = window.innerHeight / 2;
+    sheet._baseOffsetLeft = vv ? vv.offsetLeft : 0;
+    sheet._baseOffsetTop = vv ? vv.offsetTop : 0;
+    applyPinnedModalCenter(sheet);
+}
+
+function applyPinnedModalCenter(sheet) {
+    const vv = window.visualViewport;
     const offsetLeft = vv ? vv.offsetLeft : 0;
     const offsetTop = vv ? vv.offsetTop : 0;
-    sheet.style.left = `${offsetLeft + width / 2}px`;
-    sheet.style.top = `${offsetTop + height / 2}px`;
+    sheet.style.left = `${sheet._baseCenterX + (offsetLeft - sheet._baseOffsetLeft)}px`;
+    sheet.style.top = `${sheet._baseCenterY + (offsetTop - sheet._baseOffsetTop)}px`;
 }
 
 if (window.visualViewport) {
     const recenterOpenModals = () => {
-        document.querySelectorAll(".lang-modal.open").forEach(pinModalCenter);
+        document.querySelectorAll(".lang-modal.open").forEach((modal) => {
+            const sheet = modal.querySelector(".book-modal-sheet, .confirm-modal-sheet");
+            if (sheet && sheet._baseCenterX !== undefined) applyPinnedModalCenter(sheet);
+        });
     };
     window.visualViewport.addEventListener("resize", recenterOpenModals);
     window.visualViewport.addEventListener("scroll", recenterOpenModals);
