@@ -5279,6 +5279,14 @@ el("mysite-field-delete-confirm-confirm").addEventListener("click", () => {
         function labelFor(kind) {
             return kind === "video" ? "Video" : kind === "image" ? "Photo" : "File";
         }
+        // Best-effort PDF/DOCX label for a document's chip-sub before the upload response
+        // (which carries the server's own authoritative document_type) has come back.
+        function docTypeFor(file) {
+            const type = (file.type || "").toLowerCase();
+            if (type === "application/pdf") return "PDF";
+            if (type.indexOf("wordprocessingml") !== -1 || /\.docx?$/i.test(file.name || "")) return "DOCX";
+            return "";
+        }
 
         function fillUploadedChip(chip, kind, item) {
             if (kind === "image") {
@@ -5298,10 +5306,19 @@ el("mysite-field-delete-confirm-confirm").addEventListener("click", () => {
                 chip.appendChild(icon);
             }
 
+            const text = document.createElement("span");
+            text.className = "chip-text";
             const name = document.createElement("span");
             name.className = "chip-name";
             name.textContent = item.filename || labelFor(kind);
-            chip.appendChild(name);
+            text.appendChild(name);
+            if (item.type) {
+                const sub = document.createElement("span");
+                sub.className = "chip-sub";
+                sub.textContent = item.type.toUpperCase();
+                text.appendChild(sub);
+            }
+            chip.appendChild(text);
 
             const removeBtn = document.createElement("button");
             removeBtn.type = "button";
@@ -5335,7 +5352,7 @@ el("mysite-field-delete-confirm-confirm").addEventListener("click", () => {
 
         function stageFile(kind, file) {
             const chip = document.createElement("span");
-            chip.className = "compose-attachment-chip";
+            chip.className = "compose-attachment-chip kind-" + kind;
 
             let previewUrl = null;
             if (kind === "image") {
@@ -5351,10 +5368,19 @@ el("mysite-field-delete-confirm-confirm").addEventListener("click", () => {
                 chip.appendChild(icon);
             }
 
-            const name = document.createElement("span");
-            name.className = "chip-name";
-            name.textContent = labelFor(kind);
-            chip.appendChild(name);
+            if (kind === "document") {
+                const text = document.createElement("span");
+                text.className = "chip-text";
+                const name = document.createElement("span");
+                name.className = "chip-name";
+                name.textContent = file.name || labelFor(kind);
+                text.appendChild(name);
+                const sub = document.createElement("span");
+                sub.className = "chip-sub";
+                sub.textContent = docTypeFor(file);
+                text.appendChild(sub);
+                chip.appendChild(text);
+            }
 
             const entry = { kind, file, chip, previewUrl };
 
@@ -5393,10 +5419,15 @@ el("mysite-field-delete-confirm-confirm").addEventListener("click", () => {
             icon.appendChild(spinner);
             chip.appendChild(icon);
 
-            const name = document.createElement("span");
-            name.className = "chip-name";
-            name.textContent = labelFor(kind);
-            chip.appendChild(name);
+            if (kind === "document") {
+                const text = document.createElement("span");
+                text.className = "chip-text";
+                const name = document.createElement("span");
+                name.className = "chip-name";
+                name.textContent = file.name || labelFor(kind);
+                text.appendChild(name);
+                chip.appendChild(text);
+            }
 
             const isDocument = kind === "document";
             const formData = new FormData();
