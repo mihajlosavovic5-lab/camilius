@@ -2024,6 +2024,20 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
         0.6px -0.6px 0.4px rgba(0, 0, 0, .7),
         -0.6px -0.6px 0.4px rgba(0, 0, 0, .7);
 }
+/* Small round delete badge pinned to the sheet's top-right corner - clears whichever
+   field (Web address/Headline/About) this modal currently has open, once confirmed via
+   mysite-field-delete-confirm-modal below. Sits just outside the sheet's own edge like a
+   notification badge rather than inline with the title, so it never competes with the
+   centered title text for space. Positioned against .mysite-field-modal-sheet itself
+   (position: absolute, inherited from .lang-modal-sheet), not a wrapper added just for
+   this. */
+.mysite-field-modal-delete-btn {
+    position: absolute; top: -8px; right: -8px; width: 26px; height: 26px; border-radius: 50%;
+    border: 2px solid var(--surface); background: var(--danger); color: #fff; font-size: 15px;
+    line-height: 1; display: flex; align-items: center; justify-content: center; padding: 0;
+    box-shadow: 0 2px 6px rgba(0,0,0,.2); z-index: 1;
+}
+.mysite-field-modal-delete-btn:active { opacity: .85; }
 .mysite-field-modal-body { margin-top: 14px; }
 .mysite-field-modal-control { width: 100%; text-align: center; }
 /* Height is set by mysiteFieldModalAutoGrowTextarea (app.js) to match the actual value -
