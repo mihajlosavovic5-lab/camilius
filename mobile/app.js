@@ -4295,6 +4295,29 @@ function setupOnboarding() {
 setupOnboarding();
 setupLanguagePicker();
 
+// --- Toggle-only settings rows (label text + on/off switch, e.g. "Publish this page",
+// "New bookings", "Remind me") - tapping anywhere on the row, not just the small switch
+// itself, now flips it, with a light pulse on the switch so it's clear which control
+// just changed regardless of where the tap landed. Scoped to plain .settings-row
+// elements (label + a single .hours-day-toggle switch, nothing else in between) -
+// the working-hours day rows (hours-picker.js) reuse .hours-day-toggle too but pair it
+// with time-picker fields in the same row, where a whole-row tap must NOT also flip
+// the day on/off, so those are deliberately left out of this delegation. ---
+document.querySelectorAll(".settings-row").forEach((row) => {
+    const toggle = row.querySelector(".hours-day-toggle");
+    const checkbox = toggle ? toggle.querySelector('input[type="checkbox"]') : null;
+    if (!checkbox) return;
+    row.addEventListener("click", (event) => {
+        if (checkbox.disabled) return;
+        toggle.classList.remove("toggle-row-pulse");
+        void toggle.offsetWidth; // restart the animation even on back-to-back taps
+        toggle.classList.add("toggle-row-pulse");
+        if (toggle.contains(event.target)) return; // the native label click already flipped it
+        checkbox.checked = !checkbox.checked;
+        checkbox.dispatchEvent(new Event("change", { bubbles: true }));
+    });
+});
+
 // --- Theme (System default via prefers-color-scheme, or an explicit Light/Dark
 // override chosen in Settings and remembered from then on) ---
 

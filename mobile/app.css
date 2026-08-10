@@ -921,11 +921,11 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
 .settings-row-chevron { color: var(--text-muted); font-size: 19px; }
 .settings-row-stack { flex-direction: column; align-items: stretch; gap: 10px; cursor: default; }
 .settings-row-stack:active { background: none; }
-/* Toggle-only row (e.g. My Site's "Publish this page") - nothing happens when you tap
-   the row outside the switch itself, so darkening the whole row on press read as a
-   stray, unexplained flash rather than real feedback; the switch's own thumb/track
-   animation is already the feedback. */
-.settings-row-toggle:active { background: none; }
+/* Toggle-only row (e.g. My Site's "Publish this page") - tapping anywhere on the row,
+   not just the small switch itself, now flips it too (see the .settings-row click
+   delegation in app.js), so it earns the same press highlight every other
+   .settings-row already gets instead of the "nothing happens here" opt-out this used
+   to be. */
 
 /* --- Pro-only feature lock (Faza 11) - a Starter-plan/lapsed business sees the row/
    field but can't turn it on, same "visible but disabled" treatment as the website's
@@ -1085,6 +1085,13 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
 }
 .hours-day-toggle input:checked ~ .hours-day-toggle-track { background: var(--primary); }
 .hours-day-toggle input:checked ~ .hours-day-toggle-track .hours-day-toggle-thumb { transform: translateX(18px); }
+/* One-shot press pulse on the switch itself, played however far from it a tap on its
+   row actually landed (see the .settings-row click delegation in app.js) - a light
+   cue that this is the control that just changed, on top of the track/thumb's own
+   color/slide transition above. app.js restarts it via a forced reflow, so tapping
+   the same row again right away still gets its own pulse. */
+@keyframes toggle-row-pulse { 0% { transform: scale(1); } 40% { transform: scale(.88); } 100% { transform: scale(1); } }
+.hours-day-toggle.toggle-row-pulse { animation: toggle-row-pulse .22s cubic-bezier(.34, 1.4, .64, 1); }
 
 /* --- Price list picker: repeatable service + price rows instead of a freeform textarea --- */
 .price-picker { margin: 6px 0 16px; }
