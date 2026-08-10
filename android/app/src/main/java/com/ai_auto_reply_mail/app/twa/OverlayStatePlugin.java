@@ -26,9 +26,18 @@ public class OverlayStatePlugin extends Plugin {
     @PluginMethod
     public void setOverlayOpen(PluginCall call) {
         boolean open = call.getBoolean("open", false);
+        boolean forceKeyboard = call.getBoolean("forceKeyboard", false);
         MainActivity activity = (MainActivity) getActivity();
         activity.overlayOpen = open;
         if (open) {
+            // Plugin methods run on Capacitor's own background executor, not the UI
+            // thread (see the class comment above) - forceShowIme()/keepImeVisibleIfShowing()
+            // touch the Window/View hierarchy via WindowInsetsControllerCompat, which
+            // Android requires to happen on the UI thread only. Calling it directly from
+            // here (as an earlier version of this fix did) threw
+            // CalledFromWrongThreadException and crashed the app the instant the sheet
+            // opened - runOnUiThread() is what's missing.
+            //
             // forceKeyboard (app.js's openAttachSheet(), called directly and synchronously
             // right alongside its own blur() - not this generic, MutationObserver-delayed
             // path) means the caller already knows, from its own synchronous DOM check
@@ -41,11 +50,13 @@ public class OverlayStatePlugin extends Plugin {
             // generic syncOverlayOpenState observer, for every other popup/sheet/
             // lightbox) has no such synchronous signal to go on, so it keeps using the
             // safer, insets-state-checked fallback.
-            if (call.getBoolean("forceKeyboard", false)) {
-                activity.forceShowIme();
-            } else {
-                activity.keepImeVisibleIfShowing();
-            }
+            activity.runOnUiThread(() -> {
+                if (forceKeyboard) {
+                    activity.forceShowIme();
+                } else {
+                    activity.keepImeVisibleIfShowing();
+                }
+            });
         }
         call.resolve();
     }
