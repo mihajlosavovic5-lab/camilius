@@ -1651,8 +1651,15 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
 /* This screen hides the tabbar entirely (see the draftCard/backBtn wiring in app.js -
    showTabbar(false)) so it reads as its own independent window rather than another tab
    of Home, unlike Detail/Help/Subscription which stay under it - just the safe-area
-   inset to clear a phone's home-indicator/gesture bar, no --tabbar-h reserved. */
-.website-chat-compose { margin: 0; padding: 10px 14px calc(10px + var(--safe-bottom)); border-top: 1px solid var(--border); background: var(--surface); flex-shrink: 0; }
+   inset to clear a phone's home-indicator/gesture bar, no --tabbar-h reserved.
+   Deliberately a separate wrapper around .chat-compose rather than padding added to that
+   div directly: .textarea-actions/.compose-attach-btn (see their own rules above) anchor
+   via "bottom: Npx" to .chat-compose's own padding-box edge, so padding put there instead
+   of here stretches that box and drags the mic/send/attach icons down below the pill
+   with it, off the field entirely. */
+.website-chat-compose-wrap { padding: 10px 14px calc(10px + var(--safe-bottom)); border-top: 1px solid var(--border); background: var(--surface); flex-shrink: 0; }
+.website-chat-compose-wrap .chat-compose { margin-top: 0; }
+.website-chat-compose-wrap .voice-status { margin-left: 2px; margin-right: 2px; }
 
 .mysite-appointment-row {
     display: flex; justify-content: space-between; gap: 10px; padding: 9px 0;
