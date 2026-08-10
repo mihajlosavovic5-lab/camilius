@@ -3941,25 +3941,40 @@ el("schedule-duration-btn").addEventListener("click", () => {
     });
 });
 
-// Caps a centered dialog's sheet to the height it measures right now, in real pixels
-// rather than the CSS max-height:80(l)vh it falls back to. That CSS alone shrinks the
-// sheet the instant the keyboard opens on some WebViews (even with lvh), which - since
-// .book-modal-sheet's centering transform:translate(-50%,-50%) is relative to the
-// sheet's OWN height - moves its rendered top edge down as a side effect, even though
-// nothing about the dialog's content changed. Measuring once here, before any keyboard
-// exists (these dialogs all open unfocused), removes that ambiguity.
+// Centers one book/confirm-style dialog sheet on the visible area right now, in real
+// pixels rather than the CSS top:50%/max-height:80(l)vh it falls back to -
+// visualViewport (where supported) reports the actual keyboard-excluding visible area
+// directly, which plain window.innerHeight doesn't consistently do across WebViews.
 //
-// Left/top are deliberately NOT frozen the same way anymore: .lang-modal (the sheet's
-// containing block) is position:fixed + inset:0, so CSS's own left:50%/top:50% already
-// tracks the CURRENT viewport on every reflow, keyboard or not - freezing them in real
-// pixels instead (as this used to) meant that once the keyboard shrank the viewport,
-// the stale, too-low pixel value no longer matched actual center, and the whole sheet
-// visibly drifted down / behind the keyboard the moment it opened.
+// Both CSS rules (.book-modal-sheet, .confirm-modal-sheet in app.css) declare a
+// transition on top/max-height specifically so the repeated updates below (see
+// repositionOpenCenteredModals) ease into place over the keyboard's own animation
+// instead of snapping - a value that's only ever set once, at open time, is instant
+// either way, but one that gets corrected again mid-keyboard-animation needs the
+// transition or every correction would itself look like a jump.
+function pinModalCenterSheet(sheet) {
+    const vv = window.visualViewport;
+    const height = vv ? vv.height : window.innerHeight;
+    const offsetTop = vv ? vv.offsetTop : 0;
+    sheet.style.top = `${offsetTop + height / 2}px`;
+    sheet.style.maxHeight = `${height * 0.8}px`;
+}
+
 function pinModalCenter(modal) {
     const sheet = modal.querySelector(".book-modal-sheet, .confirm-modal-sheet");
-    if (!sheet) return;
-    sheet.style.maxHeight = `${window.innerHeight * 0.8}px`;
+    if (sheet) pinModalCenterSheet(sheet);
 }
+
+// Re-centers every CURRENTLY OPEN book/confirm-style dialog the same way pinModalCenter
+// centers one at open time - the keyboard sliding open/closed while a dialog is already
+// open (e.g. tapping into the About textarea, or the Duration/Book dialogs' own
+// setTimeout(() => input.focus()) a moment after they open) changes the visible area
+// again after that initial call, and without this the sheet would just keep sitting at
+// wherever it was centered for the viewport size that existed when it opened.
+function repositionOpenCenteredModals() {
+    document.querySelectorAll(".lang-modal.open .book-modal-sheet, .lang-modal.open .confirm-modal-sheet").forEach(pinModalCenterSheet);
+}
+(window.visualViewport || window).addEventListener("resize", repositionOpenCenteredModals);
 
 // --- Book-a-slot bottom sheet ---
 
