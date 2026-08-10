@@ -568,9 +568,15 @@ function createAnchoredListPicker(modalId) {
     const modal = el(modalId);
     const backdrop = modal.querySelector(".lang-modal-backdrop");
     const list = modal.querySelector(".country-modal-list");
+    const titleEl = modal.querySelector(".option-modal-title");
+    const subtitleEl = modal.querySelector(".option-modal-subtitle");
     let openTriggerBtn = null;
 
-    function open(triggerBtn, options, currentValue, onSelect) {
+    // title/subtitle are optional framing text shown above/below the list (only the
+    // reminder lead-time picker uses them, e.g. "Send" / "before the appointment") -
+    // left blank they stay hidden, so every other field using this shared modal
+    // (working hours, currency, duration) looks exactly as before.
+    function open(triggerBtn, options, currentValue, onSelect, { title, subtitle } = {}) {
         openTriggerBtn = triggerBtn;
         list.innerHTML = "";
         let selectedBtn = null;
@@ -586,6 +592,14 @@ function createAnchoredListPicker(modalId) {
             });
             list.appendChild(optionBtn);
         });
+        if (titleEl) {
+            titleEl.textContent = title || "";
+            titleEl.classList.toggle("hidden", !title);
+        }
+        if (subtitleEl) {
+            subtitleEl.textContent = subtitle || "";
+            subtitleEl.classList.toggle("hidden", !subtitle);
+        }
 
         modal.classList.add("open");
         // Marking/scrolling needs a layout pass first (list.innerHTML was just
@@ -4118,7 +4132,7 @@ function openReminderOwnerLeadPicker() {
         }
         state.reminderOwnerMinutes = minutes;
         updateAppSettingsSaveState();
-    });
+    }, { title: t("appSettings.remindersLeadLabel"), subtitle: t("appSettings.remindersBeforeSuffix") });
 }
 
 // Flipping "Remind me" on immediately surfaces the lead-time picker (centered on

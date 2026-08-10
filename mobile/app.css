@@ -467,6 +467,12 @@ button { font-family: inherit; -webkit-appearance: none; appearance: none; }
        reach, so it's gone rather than just shrunk further. */
     max-height: 220px;
 }
+/* Optional framing text around #option-modal-list - only the reminder lead-time
+   picker sets these (see openReminderOwnerLeadPicker in app.js); every other use of
+   this shared modal (working hours, currency, duration) leaves them hidden, since
+   those buttons already carry their own label outside the modal. */
+.option-modal-title { text-align: center; font-size: 15px; font-weight: 700; padding: 6px 10px 2px; }
+.option-modal-subtitle { text-align: center; font-size: 13px; color: var(--text-muted); padding: 2px 10px 6px; }
 .country-option-btn {
     display: flex; align-items: center; gap: 10px; width: 100%;
     background: none; border: none; text-align: left; padding: 11px 14px; border-radius: 10px;
