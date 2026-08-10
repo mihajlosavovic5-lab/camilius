@@ -246,8 +246,46 @@ if (capacitorPlugins) {
     capacitorPlugins.StatusBar.setBackgroundColor({ color: "#d69410" });
     capacitorPlugins.StatusBar.setStyle({ style: "LIGHT" });
 
+    // Closes whichever popup/sheet/lightbox is currently on top, if any - every one of
+    // them (the language/country/option pickers, row-actions, design picker, attach
+    // sheet, Book/Duration/logout-confirm dialogs, the Web address/Headline/About field
+    // editor, the image lightbox) already has its own "tap outside to dismiss" backdrop
+    // click handler, so the hardware back button just triggers the exact same handler
+    // rather than duplicating each one's own close/cleanup logic here. Returns true if
+    // it closed something, so the caller knows not to also fall through to screen
+    // navigation or (worse) exiting the app for a press that was clearly meant to just
+    // back out of the popup on screen.
+    //
+    // #image-lightbox isn't a .lang-modal (it predates that shared class and closes via
+    // a click on itself, not a nested backdrop) so it's checked first, both because its
+    // own z-index (95) already puts it above every .lang-modal (60/61) and because it
+    // has no .lang-modal-backdrop child for the generic branch below to find.
+    //
+    // Multiple .lang-modal instances CAN be open at once (e.g. the Book sheet's own
+    // Duration picker opening #option-modal or #duration-modal on top of it) - picking
+    // by highest z-index (falling back to DOM order for ties, same as the browser's own
+    // stacking) closes the one actually on top rather than an arbitrary one underneath it.
+    function closeTopmostOverlay() {
+        const lightbox = el("image-lightbox");
+        if (lightbox && lightbox.classList.contains("open")) {
+            lightbox.click();
+            return true;
+        }
+        const topModal = Array.from(document.querySelectorAll(".lang-modal.open")).reduce((top, modal) => {
+            const z = parseInt(getComputedStyle(modal).zIndex, 10) || 0;
+            const topZ = top ? (parseInt(getComputedStyle(top).zIndex, 10) || 0) : -Infinity;
+            return z >= topZ ? modal : top;
+        }, null);
+        if (!topModal) return false;
+        const backdrop = topModal.querySelector(".lang-modal-backdrop");
+        if (backdrop) backdrop.click(); else topModal.classList.remove("open");
+        return true;
+    }
+
     capacitorPlugins.App.addListener("backButton", ({ canGoBack }) => {
-        if (screens.detail.classList.contains("active")) {
+        if (closeTopmostOverlay()) {
+            // handled - a popup/sheet/lightbox was open and just got closed
+        } else if (screens.detail.classList.contains("active")) {
             history.back();
         } else if (screens.register.classList.contains("active")) {
             if (registerStep > 1) showRegisterStep(registerStep - 1);
