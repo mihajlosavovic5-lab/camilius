@@ -4093,11 +4093,14 @@ function updateAppSettingsSaveState() {
     });
 });
 
-// Reminder lead-time picker - same anchored optionPicker + "Custom" -> duration-modal
-// pattern as the Schedule tab's own duration buttons above, just with the reminder
-// presets instead of slot-duration ones.
+// Reminder lead-time picker - same optionPicker (centered on screen, see
+// createOptionButton's comment above) + "Custom" -> duration-modal pattern as the
+// Schedule tab's own duration buttons above, just with the reminder presets instead
+// of slot-duration ones. Returns the open function too, so the owner-reminders toggle
+// below can trigger the same centered picker the instant it's switched on, instead of
+// making the user hunt for the small "Send Xh before" row underneath it.
 function wireReminderLeadPicker(buttonId, labelId, getMinutes, setMinutes) {
-    el(buttonId).addEventListener("click", () => {
+    const openPicker = () => {
         const btn = el(buttonId);
         if (optionPicker.isOpenFor(btn)) { optionPicker.close(); return; }
         const customLabel = t("schedule.custom");
@@ -4115,12 +4118,24 @@ function wireReminderLeadPicker(buttonId, labelId, getMinutes, setMinutes) {
             el(labelId).textContent = reminderLeadLabel(minutes);
             updateAppSettingsSaveState();
         });
-    });
+    };
+    el(buttonId).addEventListener("click", openPicker);
+    return openPicker;
 }
-wireReminderLeadPicker(
+const openReminderOwnerLeadPicker = wireReminderLeadPicker(
     "settings-reminders-owner-lead-btn", "settings-reminders-owner-lead-label",
     () => state.reminderOwnerMinutes, (m) => { state.reminderOwnerMinutes = m; },
 );
+
+// Flipping "Remind me" on immediately surfaces the lead-time picker (centered on
+// screen, per createOptionButton's comment above) so choosing "how long before" reads
+// as one continuous action rather than a second thing to remember to go tap - it
+// closes itself on a pick, same as any other optionPicker use. Skipped when the row is
+// pro-locked (see applyProAccessLocks): the toggle itself gets forced back off there,
+// and popping a picker for a setting that can't actually be saved would be confusing.
+el("settings-reminders-owner-toggle").addEventListener("change", (event) => {
+    if (event.target.checked && state.proAccess) openReminderOwnerLeadPicker();
+});
 
 // Faza 11/13: locks the No-show reminders toggle/lead-time picker and AI upsell field
 // for a Starter-plan (or lapsed) business - mirrors the website's .pro-locked treatment.
