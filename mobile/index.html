@@ -1,5 +1,5 @@
 <!doctype html>
-<html data-bundle-version="db18796fcf45" lang="en">
+<html data-bundle-version="4e8a6b241fb5" lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
@@ -16,7 +16,7 @@
 <link rel="preload" href="fonts/lora-latin-ext.woff2?v=e8c32fe92ded" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="fonts/familjen-grotesk-latin.woff2?v=e8c32fe92ded" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="fonts/familjen-grotesk-latin-ext.woff2?v=e8c32fe92ded" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="app.css?v=db18796fcf45">
+<link rel="stylesheet" href="app.css?v=4e8a6b241fb5">
 </head>
 <body>
 
@@ -251,6 +251,24 @@
       <button type="button" class="button button-secondary" id="logout-confirm-cancel" data-i18n="settings.cancel">Cancel</button>
       <button type="button" class="button button-danger" id="logout-confirm-confirm" data-i18n="settings.logout">Log out</button>
     </div>
+  </div>
+</div>
+
+<!-- Web address/Headline/About editor (My Site tab) - tapping any of those three fields
+     opens this instead of focusing them in place (see openMysiteFieldModal in app.js).
+     One shared input + textarea pair, swapped by control type per field; every keystroke
+     here is mirrored straight back onto the real (hidden) field it's editing, so the
+     existing autosave/validation never needed to know this modal exists. Same centered
+     scale-in sheet as book-modal/logout-confirm-modal above - opened without ever calling
+     .focus(), so it appears with no keyboard until the user taps inside mysite-field-
+     modal-input/-textarea themselves. -->
+<div id="mysite-field-modal" class="lang-modal">
+  <div class="lang-modal-backdrop" id="mysite-field-modal-backdrop"></div>
+  <div class="lang-modal-sheet book-modal-sheet mysite-field-modal-sheet">
+    <div class="book-modal-title" id="mysite-field-modal-title"></div>
+    <input type="text" id="mysite-field-modal-input" class="mysite-field-modal-control" autocapitalize="off" autocorrect="off">
+    <textarea id="mysite-field-modal-textarea" class="mysite-field-modal-control hidden" rows="6"></textarea>
+    <button type="button" class="button button-full" id="mysite-field-modal-done" data-i18n="mysite.website.fieldModalDone">Done</button>
   </div>
 </div>
 
@@ -728,19 +746,26 @@
              pages.slug_is_available) - never a real internet domain, never anything paid
              (see the now-unused mysiteCheckDomains right above it in app.js, kept but not
              wired up, for the Dynadot-purchase version of this same button). -->
+        <!-- slug/tagline/about are readonly here - a tap opens mysite-field-modal below
+             (see openMysiteFieldModal in app.js) instead of focusing in place, which is
+             the only reliable cross-WebView way to let the field itself be tapped without
+             the on-screen keyboard popping up immediately (readonly inputs don't trigger
+             it); the keyboard only shows once the user taps inside the modal's own
+             control. Whichever value is too long to fit fades at the clipped edge instead
+             of just stopping dead (see .truncated in app.css / mysiteUpdateFieldFade). -->
         <div class="floating-field floating-field-domain-check">
-          <input type="text" id="mysite-slug" placeholder=" " autocapitalize="off" autocorrect="off">
+          <input type="text" id="mysite-slug" placeholder=" " autocapitalize="off" autocorrect="off" readonly>
           <label for="mysite-slug" data-i18n="mysite.website.slug">Web address</label>
           <button type="button" class="field-inline-btn" id="mysite-domain-check-btn" data-i18n="mysite.website.checkDomainsShort">Check</button>
         </div>
         <p class="field-error hidden" id="mysite-domain-check-error"></p>
         <div id="mysite-domain-check-results" style="margin: 0 0 14px;"></div>
         <div class="floating-field">
-          <input type="text" id="mysite-tagline-input" placeholder=" " maxlength="200">
+          <input type="text" id="mysite-tagline-input" placeholder=" " maxlength="200" readonly>
           <label for="mysite-tagline-input" data-i18n="mysite.website.taglineLabel">Headline</label>
         </div>
         <div class="floating-field floating-field-textarea floating-field-textarea-compact">
-          <textarea id="mysite-about-input" rows="1" maxlength="2000" placeholder=" "></textarea>
+          <textarea id="mysite-about-input" rows="1" maxlength="2000" placeholder=" " readonly></textarea>
           <label for="mysite-about-input" data-i18n="mysite.website.aboutLabel">About</label>
         </div>
         <button type="button" id="mysite-view-page-btn" class="button button-secondary button-primary-outline button-full hidden" data-i18n="mysite.website.viewPage">View page</button>
@@ -1542,8 +1567,8 @@
   </button>
 </nav>
 
-<script src="i18n.js?v=db18796fcf45"></script>
-<script src="hours-picker.js?v=db18796fcf45"></script>
-<script src="app.js?v=db18796fcf45"></script>
+<script src="i18n.js?v=4e8a6b241fb5"></script>
+<script src="hours-picker.js?v=4e8a6b241fb5"></script>
+<script src="app.js?v=4e8a6b241fb5"></script>
 </body>
 </html>

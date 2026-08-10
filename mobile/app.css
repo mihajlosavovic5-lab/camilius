@@ -655,6 +655,23 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
    .password-toggle above, just a short text pill instead of an icon. */
 .floating-field-domain-check input { padding-right: 64px; }
 .floating-field-domain-check label { max-width: calc(100% - 74px); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Web address/Headline/About fields (My Site tab) are readonly, tap-to-open-modal
+   preview fields now (see openMysiteFieldModal in app.js) - a pointer cursor hints
+   they're tappable even though they look like ordinary text fields. Same "fade the
+   clipped tail into the background instead of an abrupt cut" look as .inbox-sender/
+   .inbox-preview's own .truncated rule above (the Inbox list), applied here only once
+   mysiteUpdateFieldFade (app.js) finds the value actually overflows - a short value
+   never dims for no reason. */
+/* Overrides the generic input[readonly] rule above (L548, meant for genuinely inert
+   informational fields elsewhere) - these three still read as normal, fully-colored
+   editable-looking fields, since only the interaction (tap opens a modal instead of
+   focusing in place) changed, not their look. */
+#mysite-slug, #mysite-tagline-input, #mysite-about-input { cursor: pointer; background: var(--surface); color: var(--text); }
+#mysite-slug.truncated, #mysite-tagline-input.truncated, #mysite-about-input.truncated {
+    -webkit-mask-image: linear-gradient(to right, #000 85%, transparent 100%);
+    mask-image: linear-gradient(to right, #000 85%, transparent 100%);
+}
 .field-inline-btn {
     position: absolute; top: 50%; right: 6px; transform: translateY(-50%);
     padding: 5px 12px; border-radius: 99px; border: 1px solid var(--border);
@@ -718,7 +735,12 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
    match the single-line Web address/Headline inputs right above it (centered label,
    input-height padding) instead of reserving several rows of empty space by default.
    Still resizes taller via the drag handle if needed. */
-.floating-field-textarea-compact textarea { min-height: 0; padding: 20px 13px 6px; }
+/* white-space:nowrap keeps this a single visible line like the Web address/Headline
+   inputs above it, instead of wrapping and having its 2nd+ line clipped vertically by
+   the box's short height - the value can still run past the right edge, which is what
+   the .truncated fade above is for; the full text is always readable by tapping into
+   mysite-field-modal's own multi-line textarea. */
+.floating-field-textarea-compact textarea { min-height: 0; padding: 20px 13px 6px; white-space: nowrap; overflow: hidden; }
 .floating-field-textarea-compact label { height: 100%; align-items: center; top: 0; }
 .floating-field-textarea-compact textarea:focus + label,
 .floating-field-textarea-compact textarea:not(:placeholder-shown) + label {
@@ -1919,6 +1941,13 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
 .book-modal-time { color: var(--primary-ink); font-size: 14px; font-weight: 600; margin-top: 2px; }
 .book-modal-sheet .alert { margin: 14px 0 0; }
 .book-modal-sheet .row-action-cancel { margin-top: 6px; }
+
+/* Web address/Headline/About editor (My Site tab, #mysite-field-modal in index.html) -
+   same centered book-modal-sheet as above, just a plain input/textarea pair (whichever
+   one matches the field being edited) under the title instead of a form. No floating
+   label needed since the title above already names the field. */
+.mysite-field-modal-control { margin-top: 14px; }
+#mysite-field-modal-textarea { min-height: 140px; resize: vertical; }
 
 /* --- Confirm modal (e.g. logout, delete account) - centered like .book-modal-sheet, just a
    message plus two actions instead of a form. Same lvh reasoning as .book-modal-sheet above,

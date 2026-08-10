@@ -4505,6 +4505,7 @@ async function loadMySite() {
         }
         mysiteFormSnapshot = serializeMysiteForm();
         updateMysiteSaveValidity();
+        mysiteUpdateAllFieldFades();
 
         const appointments = data.upcoming_appointments || [];
         const appointmentsCard = el("mysite-appointments-card");
@@ -4832,6 +4833,7 @@ async function mysiteCheckSlug(slug) {
             chooseBtn.addEventListener("click", () => {
                 resultsList.innerHTML = "";
                 el("mysite-slug").value = candidate;
+                mysiteUpdateFieldFade(el("mysite-slug"));
                 mysiteFinishDomainCheck(btn);
             });
             row.appendChild(chooseBtn);
@@ -4859,6 +4861,92 @@ function mysiteSyncDomainCheckBtnVisibility() {
 }
 el("mysite-slug").addEventListener("input", mysiteSyncDomainCheckBtnVisibility);
 mysiteSyncDomainCheckBtnVisibility();
+
+// Fade-to-transparent for a clipped Web address/Headline/About value - same
+// "scrollWidth > clientWidth after layout" measurement the Inbox list uses for its own
+// sender/preview truncation (see the .truncated class in app.css and its handling in
+// renderInboxList above), just applied to these three fields instead of inbox rows.
+function mysiteUpdateFieldFade(field) {
+    if (!field) return;
+    field.classList.toggle("truncated", field.scrollWidth > field.clientWidth);
+}
+function mysiteUpdateAllFieldFades() {
+    mysiteUpdateFieldFade(el("mysite-slug"));
+    mysiteUpdateFieldFade(el("mysite-tagline-input"));
+    mysiteUpdateFieldFade(el("mysite-about-input"));
+}
+// Rotating the device (or the card otherwise resizing) changes how much of a long value
+// fits, so a value that was clipped before might not be anymore, and vice versa.
+window.addEventListener("resize", mysiteUpdateAllFieldFades);
+
+// Web address/Headline/About editor (My Site tab) - the three fields above are readonly
+// (index.html) purely so a tap can open this centered modal instead of focusing them in
+// place; #mysite-field-modal (index.html) holds one shared input + textarea pair, shown
+// one at a time depending on which field was tapped. Opened without ever calling
+// .focus() on either control, so the modal appears with no keyboard - it only shows up
+// once the user taps inside the modal's own input/textarea, same as tapping into any
+// ordinary field would.
+const MYSITE_FIELD_MODAL_FIELDS = {
+    "mysite-slug": { control: "input", titleKey: "mysite.website.slug" },
+    "mysite-tagline-input": { control: "input", titleKey: "mysite.website.taglineLabel" },
+    "mysite-about-input": { control: "textarea", titleKey: "mysite.website.aboutLabel" },
+};
+let mysiteFieldModalTargetId = null;
+
+function mysiteFieldModalActiveControl() {
+    const config = MYSITE_FIELD_MODAL_FIELDS[mysiteFieldModalTargetId];
+    return config && config.control === "textarea" ? el("mysite-field-modal-textarea") : el("mysite-field-modal-input");
+}
+
+function openMysiteFieldModal(fieldId) {
+    const config = MYSITE_FIELD_MODAL_FIELDS[fieldId];
+    const source = el(fieldId);
+    if (!config || !source) return;
+    mysiteFieldModalTargetId = fieldId;
+    el("mysite-field-modal-title").textContent = t(config.titleKey);
+    const input = el("mysite-field-modal-input");
+    const textarea = el("mysite-field-modal-textarea");
+    const showTextarea = config.control === "textarea";
+    input.classList.toggle("hidden", showTextarea);
+    textarea.classList.toggle("hidden", !showTextarea);
+    const active = showTextarea ? textarea : input;
+    // Mirrors the real field's own maxlength (200 for the tagline, 2000 for about, none
+    // for the slug) so the modal can't be used to type past what the real field - and the
+    // server behind it - would actually accept.
+    if (source.maxLength >= 0) active.maxLength = source.maxLength; else active.removeAttribute("maxlength");
+    active.value = source.value;
+    source.blur();
+    pinModalCenter(el("mysite-field-modal"));
+    el("mysite-field-modal").classList.add("open");
+}
+
+function closeMysiteFieldModal() {
+    el("mysite-field-modal").classList.remove("open");
+    el("mysite-field-modal-input").blur();
+    el("mysite-field-modal-textarea").blur();
+    mysiteFieldModalTargetId = null;
+}
+
+// Mirrors every keystroke straight back onto the real (hidden) field, dispatching the
+// same "input" event it would fire itself if it were focused directly - the existing
+// autosave/validation (updateMysiteSaveValidity's delegated listener on #screen-mysite,
+// mysiteSyncDomainCheckBtnVisibility on #mysite-slug) already listen for exactly that,
+// so this modal needed no changes of its own to either.
+function mysiteFieldModalSync() {
+    if (!mysiteFieldModalTargetId) return;
+    const source = el(mysiteFieldModalTargetId);
+    source.value = mysiteFieldModalActiveControl().value;
+    source.dispatchEvent(new Event("input", { bubbles: true }));
+    mysiteUpdateFieldFade(source);
+}
+el("mysite-field-modal-input").addEventListener("input", mysiteFieldModalSync);
+el("mysite-field-modal-textarea").addEventListener("input", mysiteFieldModalSync);
+el("mysite-field-modal-backdrop").addEventListener("click", closeMysiteFieldModal);
+el("mysite-field-modal-done").addEventListener("click", closeMysiteFieldModal);
+
+Object.keys(MYSITE_FIELD_MODAL_FIELDS).forEach((fieldId) => {
+    el(fieldId).addEventListener("click", () => openMysiteFieldModal(fieldId));
+});
 
 // "Draft this with AI" chat (Faza 16) - see screen-website-chat in index.html and
 // website_assistant.py's module docstring for the persona/scope this is restricted to.
@@ -5624,6 +5712,7 @@ updateOfflineBanner();
         el("mysite-tagline-input").value = mysiteTagline || "";
         el("mysite-about-input").value = mysiteAbout || "";
         mysiteSyncDomainCheckBtnVisibility();
+        mysiteUpdateAllFieldFades();
         mysiteChosenDomain = mysiteChosenDomainCached || null;
     }
 
