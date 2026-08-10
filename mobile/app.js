@@ -3923,47 +3923,48 @@ el("schedule-duration-btn").addEventListener("click", () => {
     });
 });
 
-// Pins a centered dialog's sheet to the screen position it measures right now, in real
+// Pins a centered dialog's sheet to the screen center it measures right now, in real
 // pixels rather than the CSS top:50%/left:50% it falls back to - a plain percentage is
-// relative to the containing block's CURRENT size on every layout, so it visibly jumps
-// the moment the on-screen keyboard shrinks that size. Re-deriving the center from the
-// shrunken visualViewport on every resize (an earlier version of this function did
-// that) has the exact same problem one level down - it's still a deliberate re-center
-// against a smaller area, which reads as an abrupt jump upward the instant the
-// keyboard opens. What actually keeps the sheet visually still is freezing its center
-// in screen coordinates at open time (baseCenterX/Y below, from the keyboard-less
-// window size) and, on every later visualViewport resize/scroll while it's open, only
-// correcting for how far the visual viewport's own origin has panned since then
-// (offsetLeft/offsetTop) - that cancels out the browser's own scroll-into-view for the
-// focused field without ever re-centering into the keyboard-shrunk area.
+// relative to the containing block's CURRENT size on every layout, so if that size
+// ever changes (e.g. a real, non-keyboard resize) the sheet would visibly jump instead
+// of just... not doing that, since nothing here should be resizing while it's open.
+// This is a one-time measurement, never recomputed later - see keyboardPanFix below
+// for what actually keeps the whole dialog still once the on-screen keyboard opens.
 function pinModalCenter(modal) {
+    modal.style.transform = "";
     const sheet = modal.querySelector(".book-modal-sheet, .confirm-modal-sheet");
     if (!sheet) return;
-    const vv = window.visualViewport;
-    sheet._baseCenterX = window.innerWidth / 2;
-    sheet._baseCenterY = window.innerHeight / 2;
-    sheet._baseOffsetLeft = vv ? vv.offsetLeft : 0;
-    sheet._baseOffsetTop = vv ? vv.offsetTop : 0;
-    applyPinnedModalCenter(sheet);
+    sheet.style.left = `${window.innerWidth / 2}px`;
+    sheet.style.top = `${window.innerHeight / 2}px`;
 }
 
-function applyPinnedModalCenter(sheet) {
+// Android WebView has a long-standing bug where a `position: fixed` element visibly
+// drifts along with whatever the browser does to keep a newly-focused field clear of
+// the on-screen keyboard - either an actual (if harmless, since nothing here needs to
+// scroll) document scroll, or a pure visual-viewport pan with no matching scroll at
+// all - even though "fixed" should mean "anchored to the real viewport, ignoring
+// that". .lang-modal (backdrop + sheet together, as one fixed element) is exactly the
+// kind of element this bites. On every visualViewport change while a dialog is open:
+// snap any accidental document scroll back to (0,0) - the app shell (#app) is itself
+// fixed+overflow:hidden, so the document never legitimately needs to scroll - and
+// counter-translate the modal by the visual viewport's own pan offset, which cancels
+// the rest. Between the two, the dialog stops tracking the keyboard's animation
+// instead of sliding/jumping with it.
+function keyboardPanFix() {
+    const openModals = document.querySelectorAll(".lang-modal.open");
+    if (!openModals.length) return;
+    if (window.scrollX || window.scrollY) window.scrollTo(0, 0);
     const vv = window.visualViewport;
-    const offsetLeft = vv ? vv.offsetLeft : 0;
-    const offsetTop = vv ? vv.offsetTop : 0;
-    sheet.style.left = `${sheet._baseCenterX + (offsetLeft - sheet._baseOffsetLeft)}px`;
-    sheet.style.top = `${sheet._baseCenterY + (offsetTop - sheet._baseOffsetTop)}px`;
+    const dx = vv ? -vv.offsetLeft : 0;
+    const dy = vv ? -vv.offsetTop : 0;
+    openModals.forEach((modal) => {
+        modal.style.transform = (dx || dy) ? `translate(${dx}px, ${dy}px)` : "";
+    });
 }
-
+window.addEventListener("scroll", keyboardPanFix, { passive: true });
 if (window.visualViewport) {
-    const recenterOpenModals = () => {
-        document.querySelectorAll(".lang-modal.open").forEach((modal) => {
-            const sheet = modal.querySelector(".book-modal-sheet, .confirm-modal-sheet");
-            if (sheet && sheet._baseCenterX !== undefined) applyPinnedModalCenter(sheet);
-        });
-    };
-    window.visualViewport.addEventListener("resize", recenterOpenModals);
-    window.visualViewport.addEventListener("scroll", recenterOpenModals);
+    window.visualViewport.addEventListener("resize", keyboardPanFix);
+    window.visualViewport.addEventListener("scroll", keyboardPanFix);
 }
 
 // --- Book-a-slot bottom sheet ---
