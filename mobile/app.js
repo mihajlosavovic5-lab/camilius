@@ -4898,6 +4898,18 @@ function mysiteFieldModalActiveControl() {
     return config && config.control === "textarea" ? el("mysite-field-modal-textarea") : el("mysite-field-modal-input");
 }
 
+// Grows the textarea to exactly fit its current value (capped by app.css's own
+// max-height, past which it scrolls instead) - without this, a short About value sits
+// pinned at the top of a tall, mostly-empty box; sized to its content instead, it's
+// short enough for .mysite-field-modal-body's own centering (app.css) to actually read
+// as "the text is in the middle of the field" rather than doing nothing because the box
+// already filled all the available space.
+function mysiteFieldModalAutoGrowTextarea() {
+    const textarea = el("mysite-field-modal-textarea");
+    textarea.style.height = "auto";
+    textarea.style.height = `${textarea.scrollHeight}px`;
+}
+
 function openMysiteFieldModal(fieldId) {
     const config = MYSITE_FIELD_MODAL_FIELDS[fieldId];
     const source = el(fieldId);
@@ -4915,6 +4927,7 @@ function openMysiteFieldModal(fieldId) {
     // server behind it - would actually accept.
     if (source.maxLength >= 0) active.maxLength = source.maxLength; else active.removeAttribute("maxlength");
     active.value = source.value;
+    if (showTextarea) mysiteFieldModalAutoGrowTextarea();
     source.blur();
     pinModalCenter(el("mysite-field-modal"));
     el("mysite-field-modal").classList.add("open");
@@ -4935,14 +4948,15 @@ function closeMysiteFieldModal() {
 function mysiteFieldModalSync() {
     if (!mysiteFieldModalTargetId) return;
     const source = el(mysiteFieldModalTargetId);
-    source.value = mysiteFieldModalActiveControl().value;
+    const active = mysiteFieldModalActiveControl();
+    source.value = active.value;
     source.dispatchEvent(new Event("input", { bubbles: true }));
     mysiteUpdateFieldFade(source);
+    if (active === el("mysite-field-modal-textarea")) mysiteFieldModalAutoGrowTextarea();
 }
 el("mysite-field-modal-input").addEventListener("input", mysiteFieldModalSync);
 el("mysite-field-modal-textarea").addEventListener("input", mysiteFieldModalSync);
 el("mysite-field-modal-backdrop").addEventListener("click", closeMysiteFieldModal);
-el("mysite-field-modal-done").addEventListener("click", closeMysiteFieldModal);
 
 Object.keys(MYSITE_FIELD_MODAL_FIELDS).forEach((fieldId) => {
     el(fieldId).addEventListener("click", () => openMysiteFieldModal(fieldId));

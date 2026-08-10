@@ -1945,9 +1945,20 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
 /* Web address/Headline/About editor (My Site tab, #mysite-field-modal in index.html) -
    same centered book-modal-sheet as above, just a plain input/textarea pair (whichever
    one matches the field being edited) under the title instead of a form. No floating
-   label needed since the title above already names the field. */
-.mysite-field-modal-control { margin-top: 14px; }
-#mysite-field-modal-textarea { min-height: 140px; resize: vertical; }
+   label needed since the title above already names the field.
+   .mysite-field-modal-body reserves a minimum "stage" height and vertically centers
+   whichever control sits in it (align-items:center) - a short value doesn't just sit
+   pinned at the top of a mostly-empty box, it reads as centered in the field like the
+   title suggested. A long value simply grows the row past that minimum, same as it
+   would without the centering. */
+.mysite-field-modal-body { margin-top: 14px; min-height: 96px; display: flex; align-items: center; }
+.mysite-field-modal-control { width: 100%; }
+#mysite-field-modal-input { text-align: center; }
+/* Height is set by mysiteFieldModalAutoGrowTextarea (app.js) to match the actual value -
+   resize:none since manual dragging would fight that automatic sizing; overflow-y:auto +
+   max-height cap the runaway case (near the 2000-char limit) with a scrollbar instead of
+   the sheet growing past the screen. */
+#mysite-field-modal-textarea { resize: none; overflow-y: auto; max-height: 45vh; }
 
 /* --- Confirm modal (e.g. logout, delete account) - centered like .book-modal-sheet, just a
    message plus two actions instead of a form. Same lvh reasoning as .book-modal-sheet above,
