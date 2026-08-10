@@ -4673,14 +4673,16 @@ function mysiteRenderChosenDomain() {
     const chip = el("mysite-chosen-domain");
     el("mysite-chosen-domain-name").textContent = mysiteChosenDomain || "";
     chip.classList.toggle("hidden", !mysiteChosenDomain);
-    // Reflect the current pick on every visible "Choose" button too (e.g. after
-    // switching away and back to My Site, or picking a different candidate from the
-    // same results list) rather than only updating the chip.
-    el("mysite-domain-check-results").querySelectorAll(".mysite-domain-choose-btn").forEach((btn) => {
-        const chosen = btn.dataset.domain === mysiteChosenDomain;
-        btn.classList.toggle("chosen", chosen);
-        btn.textContent = chosen ? t("mysite.website.domainChosen") || "✓" : t("mysite.website.domainChoose") || "Choose";
-    });
+    // A domain already on file (picked in an earlier session, or during a live check just
+    // above this call - see mysiteChooseDomain) means the button's job from here on is
+    // changing it, not checking for the first time - covers loadMySite/the boot cache
+    // restore too, not just the live check flow (mysiteFinishDomainCheck handles that
+    // one's own checkmark-then-label timing on top of this).
+    const btn = el("mysite-domain-check-btn");
+    if (mysiteChosenDomain && btn && btn.getAttribute("data-i18n") !== "mysite.website.changeDomainBtn") {
+        btn.setAttribute("data-i18n", "mysite.website.changeDomainBtn");
+        btn.textContent = t("mysite.website.changeDomainBtn") || "Change";
+    }
 }
 
 function mysiteChooseDomain(domain) {
@@ -4689,16 +4691,34 @@ function mysiteChooseDomain(domain) {
 }
 el("mysite-chosen-domain-clear").addEventListener("click", () => mysiteChooseDomain(null));
 
+// Swaps the loading dots for a small green checkmark - the "yes, that's yours" signal in
+// place of a badge the owner has to read - then, once it's had a moment to register,
+// swaps the button itself over to "Change" for every check from here on (see
+// mysite.website.changeDomainBtn: only the very first check ever should still say
+// "Check", since every later one is changing a domain that's already on file). Shared by
+// both call sites in mysiteCheckDomains below: the single-match auto-pick and the
+// multi-match "Choose" click, so the confirmation reads identically either way.
+function mysiteFinishDomainCheck(btn) {
+    btn.disabled = true;
+    btn.innerHTML = '<svg class="field-inline-btn-check" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.3" pathLength="1"/><path d="M4.7 8.4l2.1 2.1 4.4-4.9" pathLength="1"/></svg>';
+    setTimeout(() => {
+        btn.setAttribute("data-i18n", "mysite.website.changeDomainBtn");
+        btn.textContent = t("mysite.website.changeDomainBtn") || "Change";
+        btn.disabled = false;
+    }, 1500);
+}
+
 // "Check real domain availability" - queries domain_lookup.py's RDAP-based check (see
 // /api/check-domains) for baseName across .com/.net/.rs. Entirely separate from the
 // mysite-slug field's own meaning (this platform's own /p/<slug> page address) - this
 // only tells the owner whether a real, independently-registrable domain of the same
-// name is free. Only "available" candidates are ever rendered - a domain the owner
-// can't actually have isn't worth showing here, unlike the parallel desktop version
-// (templates/settings.html) which is a plainer read-only status list. A plain function
-// declaration, not just a click listener, so it can be called from more than one place
-// once a draft suggests (or keeps) a web address, same "AI does the legwork" spirit as
-// the drafted tagline/about themselves.
+// name is free. Deliberately doesn't show a plain status list (unlike the parallel
+// desktop version, templates/settings.html): one available candidate is auto-picked with
+// no choice to make, and a pick list only appears at all when there's a genuine decision
+// (2+ candidates free) - see mysiteFinishDomainCheck for the shared "chosen" confirmation.
+// A plain function declaration, not just a click listener, so it can be called from more
+// than one place once a draft suggests (or keeps) a web address, same "AI does the
+// legwork" spirit as the drafted tagline/about themselves.
 async function mysiteCheckDomains(baseName) {
     if (!baseName) return;
     const btn = el("mysite-domain-check-btn");
@@ -4706,40 +4726,58 @@ async function mysiteCheckDomains(baseName) {
     const errorBox = el("mysite-domain-check-error");
     if (!btn || !resultsList || !errorBox) return;
     errorBox.classList.add("hidden");
+    resultsList.innerHTML = "";
     btn.disabled = true;
-    const originalText = btn.textContent;
+    const idleLabel = t(btn.getAttribute("data-i18n")) || btn.textContent;
     btn.innerHTML = '<span class="field-inline-btn-dots"><span></span><span></span><span></span></span>';
     try {
         const data = await api("/api/check-domains", { method: "POST", body: { name: baseName } });
-        resultsList.innerHTML = "";
-        (data.domains || [])
-            .filter((entry) => entry.status === "available")
-            .forEach((entry) => {
-                const row = document.createElement("div");
-                row.className = "mysite-domain-row";
+        const available = (data.domains || []).filter((entry) => entry.status === "available");
 
-                const name = document.createElement("span");
-                name.className = "mysite-domain-name";
-                name.textContent = entry.domain;
-                row.appendChild(name);
+        if (available.length === 0) {
+            btn.disabled = false;
+            btn.textContent = idleLabel;
+            errorBox.textContent = t("mysite.website.noDomainAvailable") || "That name isn't available as a domain - try a different one.";
+            errorBox.classList.remove("hidden");
+            return;
+        }
 
-                const chooseBtn = document.createElement("button");
-                chooseBtn.type = "button";
-                chooseBtn.className = "mysite-domain-choose-btn";
-                chooseBtn.textContent = t("mysite.website.domainChoose") || "Choose";
-                chooseBtn.dataset.domain = entry.domain;
-                chooseBtn.addEventListener("click", () => mysiteChooseDomain(entry.domain));
-                row.appendChild(chooseBtn);
+        if (available.length === 1) {
+            mysiteChooseDomain(available[0].domain);
+            mysiteFinishDomainCheck(btn);
+            return;
+        }
 
-                resultsList.appendChild(row);
+        // 2+ free candidates - a real decision, so (and only so) offer a short pick list.
+        available.forEach((entry) => {
+            const row = document.createElement("div");
+            row.className = "mysite-domain-row";
+
+            const name = document.createElement("span");
+            name.className = "mysite-domain-name";
+            name.textContent = entry.domain;
+            row.appendChild(name);
+
+            const chooseBtn = document.createElement("button");
+            chooseBtn.type = "button";
+            chooseBtn.className = "mysite-domain-choose-btn";
+            chooseBtn.textContent = t("mysite.website.domainChoose") || "Choose";
+            chooseBtn.addEventListener("click", () => {
+                resultsList.innerHTML = "";
+                mysiteChooseDomain(entry.domain);
+                mysiteFinishDomainCheck(btn);
             });
-        mysiteRenderChosenDomain();
+            row.appendChild(chooseBtn);
+
+            resultsList.appendChild(row);
+        });
+        btn.disabled = false;
+        btn.textContent = idleLabel;
     } catch (err) {
+        btn.disabled = false;
+        btn.textContent = idleLabel;
         errorBox.textContent = (err && err.message) || t("mysite.website.checkDomainsError") || t("network.error");
         errorBox.classList.remove("hidden");
-    } finally {
-        btn.disabled = false;
-        btn.textContent = originalText;
     }
 }
 el("mysite-domain-check-btn").addEventListener("click", () => mysiteCheckDomains(el("mysite-slug").value.trim()));

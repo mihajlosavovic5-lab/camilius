@@ -676,6 +676,19 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
 .field-inline-btn-dots span:nth-child(3) { animation-delay: .3s; }
 @keyframes field-inline-btn-dot-bounce { 0%, 60%, 100% { transform: translateY(0); opacity: .5; } 30% { transform: translateY(-3px); opacity: 1; } }
 
+/* Success state (mysiteFinishDomainCheck in app.js swaps the dots above for this once a
+   domain's been picked - auto-picked or chosen from the list) - a small circle-then-check
+   draw-in, same pathLength="1"/stroke-dasharray trick as the fullscreen .save-success-*
+   celebration, just small enough to sit inline in this pill button instead of a modal. */
+.field-inline-btn-check { display: block; width: 14px; height: 14px; overflow: visible; }
+.field-inline-btn-check circle, .field-inline-btn-check path {
+    fill: none; stroke: var(--success); stroke-linecap: round; stroke-linejoin: round;
+    stroke-dasharray: 1; stroke-dashoffset: 1;
+}
+.field-inline-btn-check circle { stroke-width: 1.3; transform-origin: center; animation: field-inline-btn-check-draw .3s ease forwards; }
+.field-inline-btn-check path { stroke-width: 1.6; animation: field-inline-btn-check-draw .2s ease forwards .28s; }
+@keyframes field-inline-btn-check-draw { to { stroke-dashoffset: 0; } }
+
 
 /* Business description (FAQ) field - same floating-label mechanic as the inputs above,
    but the label anchors to the top of the box instead of vertically centering, since a
@@ -1723,13 +1736,15 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
 /* "Choose" button per available domain row - picks that real, independently-registrable
    domain to be purchased automatically once the owner publishes (see mysite-chosen-domain
    below). Small pill button, same size as the badge next to it but interactive/primary-
-   colored so it doesn't get mistaken for another status tag. */
+   colored so it doesn't get mistaken for another status tag. Clicking it clears the whole
+   results list right away (see mysiteCheckDomains in app.js) - there's never a moment
+   where more than one row is on screen to tell "chosen" apart from the rest, so unlike an
+   ordinary picked-item state this button needs no chosen/selected style of its own. */
 .mysite-domain-choose-btn {
     flex-shrink: 0; padding: 4px 12px; border-radius: 99px; border: 1px solid var(--primary);
     background: none; color: var(--primary-ink); font-size: 13px; font-weight: 600; cursor: pointer;
 }
 .mysite-domain-choose-btn:active { background: var(--primary-light); }
-.mysite-domain-choose-btn.chosen { background: var(--primary); color: #fff; border-color: var(--primary); }
 
 /* Confirmation chip once a real domain's been chosen - sits right under the Web address
    field (the platform's own /p/<slug> path field, which can't hold a dotted domain name -
