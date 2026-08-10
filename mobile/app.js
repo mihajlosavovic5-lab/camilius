@@ -5151,13 +5151,31 @@ Object.keys(MYSITE_FIELD_MODAL_FIELDS).forEach((fieldId) => {
         // hidden file input.
         const sheet = el("attach-options-modal");
         const sheetCard = el("attach-options-sheet");
-        function openAttachSheet() {
-            if (!sheet || !sheetCard) return;
+        // Re-anchors the card to the "+" button's CURRENT position - called once up front
+        // by openAttachSheet(), and again on every viewport resize while the card is open
+        // (see the visualViewport wiring below) since blurring the input there closes the
+        // keyboard, and the "+" button (part of the compose bar) sinks down with it as the
+        // compose bar settles into the space the keyboard used to occupy. Without re-
+        // anchoring, the card would stay floating at its original height, drifting away
+        // from the button it's supposed to sit right above.
+        function positionAttachSheet() {
             const rect = attachBtn.getBoundingClientRect();
             const gap = 10;
             sheetCard.style.left = `${rect.left}px`;
             sheetCard.style.bottom = `${window.innerHeight - rect.top + gap}px`;
+        }
+        function openAttachSheet() {
+            if (!sheet || !sheetCard) return;
+            positionAttachSheet();
             sheet.classList.add("open");
+            // Blurring here - rather than leaving the compose input focused with the
+            // keyboard open behind this popup - means the hardware back button isn't
+            // swallowed by the IME to dismiss the keyboard first: Android hands back
+            // presses to the keyboard before the app ever sees them for as long as a
+            // text field has focus, so with the input still focused, closing this popup
+            // would have taken two back presses (one the OS quietly ate to hide the
+            // keyboard, one that actually reached closeTopmostOverlay()) instead of one.
+            input.blur();
         }
         function closeAttachSheet() {
             if (sheet) sheet.classList.remove("open");
@@ -5167,6 +5185,14 @@ Object.keys(MYSITE_FIELD_MODAL_FIELDS).forEach((fieldId) => {
             el("attach-option-camera").addEventListener("click", () => { closeAttachSheet(); cameraInput.click(); });
             el("attach-option-photos").addEventListener("click", () => { closeAttachSheet(); photosInput.click(); });
             el("attach-option-files").addEventListener("click", () => { closeAttachSheet(); filesInput.click(); });
+            (window.visualViewport || window).addEventListener("resize", () => {
+                if (sheet.classList.contains("open")) positionAttachSheet();
+            });
+            if (window.visualViewport) {
+                window.visualViewport.addEventListener("scroll", () => {
+                    if (sheet.classList.contains("open")) positionAttachSheet();
+                });
+            }
         }
 
         function kindFor(file) {

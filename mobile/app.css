@@ -1395,7 +1395,15 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
     padding: 6px;
     transform-origin: bottom left;
     transform: translateY(10px) scale(.96);
-    transition: transform .2s cubic-bezier(.25,.8,.4,1), opacity .18s ease;
+    /* left/bottom transition added for the same reason as .book-modal-sheet's top/
+       max-height one (see its own comment) - openAttachSheet() (app.js) blurs the
+       compose input as it opens, which closes the keyboard and lets the "+" button (and
+       this card, re-anchored to it by positionAttachSheet() on every resize) sink down
+       to sit right above the compose bar instead of floating at the old, keyboard-open
+       height. */
+    transition: transform .2s cubic-bezier(.25,.8,.4,1), opacity .18s ease,
+        left .25s cubic-bezier(.4, 0, .2, 1), bottom .25s cubic-bezier(.4, 0, .2, 1);
+    will-change: left, bottom;
     display: flex; flex-direction: column; gap: 2px;
 }
 .lang-modal.open .attach-options-sheet { transform: translateY(0) scale(1); }
