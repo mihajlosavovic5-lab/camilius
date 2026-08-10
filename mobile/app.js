@@ -4699,16 +4699,17 @@ function mysiteFinishDomainCheck(btn) {
 }
 
 // "Check real domain availability" - queries domain_lookup.py's RDAP-based check (see
-// /api/check-domains) for baseName across .com/.net/.rs. Entirely separate from the
-// mysite-slug field's own meaning (this platform's own /p/<slug> page address) - this
-// only tells the owner whether a real, independently-registrable domain of the same
-// name is free. Deliberately doesn't show a plain status list (unlike the parallel
-// desktop version, templates/settings.html): one available candidate is auto-picked with
-// no choice to make, and a pick list only appears at all when there's a genuine decision
-// (2+ candidates free) - see mysiteFinishDomainCheck for the shared "chosen" confirmation.
-// A plain function declaration, not just a click listener, so it can be called from more
-// than one place once a draft suggests (or keeps) a web address, same "AI does the
-// legwork" spirit as the drafted tagline/about themselves.
+// /api/check-domains) for baseName across .com/.net/.rs, in that fixed order (see
+// check_domains' own DEFAULT_TLDS) - domains[0] is always the ".com" the owner actually
+// searched for. Entirely separate from the mysite-slug field's own meaning (this
+// platform's own /p/<slug> page address) - this only tells the owner whether a real,
+// independently-registrable domain of the same name is free. That exact ".com" is what
+// decides the whole outcome: free, and it's auto-picked with nothing else to look at;
+// taken (or unconfirmable), and it's shown right there tagged "Unavailable" - not silently
+// dropped - with whatever other TLDs actually came back free listed as real alternatives
+// underneath. A plain function declaration, not just a click listener, so it can be
+// called from more than one place once a draft suggests (or keeps) a web address, same
+// "AI does the legwork" spirit as the drafted tagline/about themselves.
 async function mysiteCheckDomains(baseName) {
     if (!baseName) return;
     const btn = el("mysite-domain-check-btn");
@@ -4723,24 +4724,40 @@ async function mysiteCheckDomains(baseName) {
     btn.innerHTML = '<span class="field-inline-btn-dots"><span></span><span></span><span></span></span>';
     try {
         const data = await api("/api/check-domains", { method: "POST", body: { name: baseName } });
-        const available = (data.domains || []).filter((entry) => entry.status === "available");
-
-        if (available.length === 0) {
+        const domains = data.domains || [];
+        const primary = domains[0];
+        if (!primary) {
             btn.disabled = false;
             btn.textContent = idleLabel;
-            errorBox.textContent = t("mysite.website.noDomainAvailable") || "That name isn't available as a domain - try a different one.";
-            errorBox.classList.remove("hidden");
             return;
         }
 
-        if (available.length === 1) {
-            mysiteChooseDomain(available[0].domain);
+        if (primary.status === "available") {
+            mysiteChooseDomain(primary.domain);
             mysiteFinishDomainCheck(btn);
             return;
         }
 
-        // 2+ free candidates - a real decision, so (and only so) offer a short pick list.
-        available.forEach((entry) => {
+        // The exact address searched for isn't free (taken, or couldn't be confirmed) -
+        // a disabled tag, not a Choose button, so it can't be picked but still tells the
+        // owner plainly that's the outcome for the name they actually typed.
+        const primaryRow = document.createElement("div");
+        primaryRow.className = "mysite-domain-row";
+        const primaryName = document.createElement("span");
+        primaryName.className = "mysite-domain-name";
+        primaryName.textContent = primary.domain;
+        primaryRow.appendChild(primaryName);
+        const unavailableTag = document.createElement("button");
+        unavailableTag.type = "button";
+        unavailableTag.className = "mysite-domain-unavailable-tag";
+        unavailableTag.textContent = t("mysite.website.domainUnavailable") || "Unavailable";
+        unavailableTag.disabled = true;
+        primaryRow.appendChild(unavailableTag);
+        resultsList.appendChild(primaryRow);
+
+        // Whatever other TLDs domain_lookup.py checked and came back free - real
+        // alternatives, not the taken one dressed up differently.
+        domains.slice(1).filter((entry) => entry.status === "available").forEach((entry) => {
             const row = document.createElement("div");
             row.className = "mysite-domain-row";
 

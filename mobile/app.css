@@ -1733,11 +1733,10 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
 
 /* "Check real domain availability" results (My Site tab) - same row language as
    .mysite-appointment-row above, not a plain bulleted list, so this reads as part of
-   the same app instead of a bolted-on debug dump. Only ever shows "available" results
-   (see mysiteCheckDomains in app.js) - taken/unknown candidates are filtered out before
-   they ever reach this markup, and "available" itself goes unlabeled since nothing else
-   is ever shown here (unlike the parallel desktop version, templates/settings.html +
-   static/style.css, which still lists every status with its own badge). */
+   the same app instead of a bolted-on debug dump. The exact ".com" the owner searched for
+   is always the first row here when it's not free (see mysiteCheckDomains in app.js) -
+   tagged with .mysite-domain-unavailable-tag below rather than dropped - followed by
+   whatever other TLDs came back genuinely free, each with its own Choose button. */
 .mysite-domain-row {
     display: flex; justify-content: space-between; align-items: center; gap: 8px;
     padding: 9px 0; border-bottom: 1px solid var(--border); font-size: 14px;
@@ -1747,7 +1746,7 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
 
 /* "Choose" button per available domain row - picks that real, independently-registrable
    domain to be purchased automatically once the owner publishes (see mysiteChosenDomain
-   in app.js). Small pill button, same size as the badge next to it but interactive/primary-
+   in app.js). Small pill button, same size as the tag next to it but interactive/primary-
    colored so it doesn't get mistaken for another status tag. Clicking it clears the whole
    results list right away (see mysiteCheckDomains in app.js) - there's never a moment
    where more than one row is on screen to tell "chosen" apart from the rest, so unlike an
@@ -1757,6 +1756,16 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
     background: none; color: var(--primary-ink); font-size: 13px; font-weight: 600; cursor: pointer;
 }
 .mysite-domain-choose-btn:active { background: var(--primary-light); }
+
+/* Disabled tag on the searched-for domain's own row when it's not free - same pill shape
+   and size as .mysite-domain-choose-btn beside it so the two rows still line up, but
+   muted/non-interactive (same "not an action, just a status" language as .badge-expired
+   above) since there's nothing to pick here, only something to know. */
+.mysite-domain-unavailable-tag {
+    flex-shrink: 0; padding: 4px 12px; border-radius: 99px; border: 1px solid var(--border);
+    background: var(--background); color: var(--text-muted); font-size: 13px; font-weight: 600;
+    cursor: default;
+}
 
 /* Sits right under the About field, so it takes the same top spacing as the floating
    fields above it (14px, not .button's own larger default) and a slimmer vertical
