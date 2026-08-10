@@ -462,10 +462,16 @@ button { font-family: inherit; -webkit-appearance: none; appearance: none; }
     white-space: nowrap;
     position: relative; z-index: 1;
     min-height: 44px; box-sizing: border-box;
-    transition: color .15s ease, font-weight .15s ease;
+    transition: color .15s ease, font-weight .15s ease, background-color .15s ease;
 }
 .country-option-btn:active { background: var(--background); }
-.country-option-btn.wheel-active { color: var(--primary-ink); font-weight: 700; }
+/* The highlight itself used to be a separate fixed element (.wheel-center-band,
+   always pinned to the list's vertical center) with the scrolled-to row's text
+   just recoloring on top of it - see git history. That's gone along with the rest
+   of the wheel/center-band approach (.country-modal-list's own comment), so the
+   highlight is now this row's own background instead, following whichever option
+   is actually selected rather than staying fixed in the middle of the sheet. */
+.country-option-btn.wheel-active { color: var(--primary-ink); font-weight: 700; background: var(--primary-light); }
 .country-option-flag { font-size: 19px; flex-shrink: 0; }
 .country-option-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .country-option-dial { color: var(--text-muted); font-size: 14.5px; flex-shrink: 0; }
