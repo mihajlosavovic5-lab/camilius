@@ -40,9 +40,17 @@
 
             <div class="register-steps-viewport">
                 <div class="register-step active" id="register-step-1">
+                    <input type="hidden" id="register-name-input" name="name" value="{{ data.get('name', '') }}">
+
+                    {% set _name_parts = data.get('name', '').split(' ', 1) %}
                     <div class="floating-field">
-                        <input type="text" id="register-name-input" name="name" value="{{ data.get('name', '') }}" placeholder=" " required>
-                        <label for="register-name-input" data-i18n="register.businessName">Business name</label>
+                        <input type="text" id="register-firstname-input" value="{{ _name_parts[0] }}" placeholder=" " required>
+                        <label for="register-firstname-input" data-i18n="register.yourName">Your name</label>
+                    </div>
+
+                    <div class="floating-field">
+                        <input type="text" id="register-surname-input" value="{{ _name_parts[1] if _name_parts|length > 1 else '' }}" placeholder=" " required>
+                        <label for="register-surname-input" data-i18n="register.yourSurname">Your surname</label>
                     </div>
 
                     <div class="floating-field floating-field-password">
@@ -252,6 +260,21 @@ document.addEventListener("DOMContentLoaded", function () {
     passwordInput.addEventListener("input", updateConfirmPasswordError);
     confirmPasswordInput.addEventListener("input", updateConfirmPasswordError);
 
+    // "Your name"/"Your surname" are two separate inputs purely for a nicer sign-up
+    // form - app.py's register() still expects a single "name" field (the same one
+    // shown everywhere else: Settings, emails, the public page, admin), so this keeps
+    // the hidden #register-name-input in sync with both instead of splitting "name"
+    // into two columns end to end.
+    var firstNameInput = document.getElementById("register-firstname-input");
+    var surnameInput = document.getElementById("register-surname-input");
+    var hiddenNameInput = document.getElementById("register-name-input");
+    function updateHiddenNameField() {
+        hiddenNameInput.value = (firstNameInput.value.trim() + " " + surnameInput.value.trim()).trim();
+    }
+    firstNameInput.addEventListener("input", updateHiddenNameField);
+    surnameInput.addEventListener("input", updateHiddenNameField);
+    updateHiddenNameField();
+
     // --- Live "already taken" checks (contact email, phone number) - step 1
     // only, same fields the mobile app's own wizard gates its first arrow on. ---
 
@@ -414,6 +437,7 @@ document.addEventListener("DOMContentLoaded", function () {
     // arrow (advance a step, or explain what's missing) unless we're actually on the last
     // one, matching the mobile app's own register-form submit handler.
     form.addEventListener("submit", function (event) {
+        updateHiddenNameField();
         if (registerStep !== REGISTER_STEP_COUNT) {
             event.preventDefault();
             nextBtn.click();

@@ -1826,9 +1826,18 @@ const registerPhoneAvailability = setupAvailabilityField(
     () => composePhoneNumber(el("register-phone"), selectedPhoneCountry), updateRegisterNextButtonValidity,
 );
 
+// "Your name"/"Your surname" are two separate inputs purely for a nicer sign-up
+// form - api.py's api_register() still expects a single "name" field (the same
+// one shown everywhere else: Settings, emails, the public page, admin), so this
+// is the one place that combines them instead of splitting "name" into two
+// columns end to end.
+function registerFullName() {
+    return (el("register-firstname").value.trim() + " " + el("register-surname").value.trim()).trim();
+}
+
 // Returns a specific error message if step 1 isn't ready to advance, or null if it is.
 function registerStep1ValidationError() {
-    const name = el("register-name").value.trim();
+    const name = registerFullName();
     const password = el("register-password").value;
     const confirmPassword = el("register-confirm-password").value;
     const emailField = el("register-contact-email");
@@ -1913,7 +1922,7 @@ function updateRegisterNextButtonValidity() {
         btn.disabled = false;
     }
 }
-["register-name", "register-password", "register-confirm-password", "register-contact-email"].forEach((id) => {
+["register-firstname", "register-surname", "register-password", "register-confirm-password", "register-contact-email"].forEach((id) => {
     el(id).addEventListener("input", updateRegisterNextButtonValidity);
 });
 el("register-password").addEventListener("input", updatePasswordLengthError);
@@ -1959,7 +1968,7 @@ function openRegisterScreen({ name, contactEmail, googleLinkToken, notice } = {}
     // HTML attribute set, so a native form reset would revert them to the browser's own
     // default (first option / unchecked) instead of our intended defaults. Clear the
     // plain fields by hand and use each picker's own .reset()/.setValue("") instead.
-    ["register-name", "register-password", "register-confirm-password", "register-contact-email", "register-phone"].forEach((id) => {
+    ["register-firstname", "register-surname", "register-password", "register-confirm-password", "register-contact-email", "register-phone"].forEach((id) => {
         el(id).value = "";
     });
     el("register-terms").checked = false;
@@ -1980,7 +1989,11 @@ function openRegisterScreen({ name, contactEmail, googleLinkToken, notice } = {}
         el("register-error").classList.add("hidden");
     }
     pendingGoogleLinkToken = googleLinkToken || null;
-    if (name) el("register-name").value = name;
+    if (name) {
+        const spaceIndex = name.indexOf(" ");
+        el("register-firstname").value = spaceIndex === -1 ? name : name.slice(0, spaceIndex);
+        el("register-surname").value = spaceIndex === -1 ? "" : name.slice(spaceIndex + 1);
+    }
     if (contactEmail) {
         el("register-contact-email").value = contactEmail;
         registerEmailAvailability.recheck();
@@ -2049,7 +2062,7 @@ el("register-form").addEventListener("submit", async (event) => {
         const data = await api("/api/register", {
             method: "POST",
             body: {
-                name: el("register-name").value.trim(),
+                name: registerFullName(),
                 password: el("register-password").value,
                 contact_email: el("register-contact-email").value.trim(),
                 phone_number: composePhoneNumber(el("register-phone"), selectedPhoneCountry),
