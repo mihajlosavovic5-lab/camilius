@@ -4539,6 +4539,8 @@ async function loadMySite() {
         });
     } catch (err) {
         if (err.status === 401) { logout(); return; }
+        // A network error is already surfaced by the offline banner - don't duplicate it here.
+        if (err.isNetworkError) return;
         el("mysite-error").textContent = err.message || t("network.error");
         el("mysite-error").classList.remove("hidden");
     }
