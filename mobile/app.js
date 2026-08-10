@@ -4702,8 +4702,13 @@ function mysiteChooseDomain(domain) {
 // multi-match "Choose" click, so the confirmation reads identically either way.
 function mysiteFinishDomainCheck(btn) {
     btn.disabled = true;
+    // Drops the button's own pill border/background while the checkmark shows - see
+    // .field-inline-btn-success in app.css - so the checkmark reads as a plain icon next
+    // to the field instead of a shape boxed inside another shape.
+    btn.classList.add("field-inline-btn-success");
     btn.innerHTML = '<svg class="field-inline-btn-check" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.3" pathLength="1"/><path d="M4.7 8.4l2.1 2.1 4.4-4.9" pathLength="1"/></svg>';
     setTimeout(() => {
+        btn.classList.remove("field-inline-btn-success");
         btn.setAttribute("data-i18n", "mysite.website.changeDomainBtn");
         btn.textContent = t("mysite.website.changeDomainBtn") || "Change";
         btn.disabled = false;
@@ -4730,6 +4735,7 @@ async function mysiteCheckDomains(baseName) {
     errorBox.classList.add("hidden");
     resultsList.innerHTML = "";
     btn.disabled = true;
+    btn.classList.remove("field-inline-btn-success");
     const idleLabel = t(btn.getAttribute("data-i18n")) || btn.textContent;
     btn.innerHTML = '<span class="field-inline-btn-dots"><span></span><span></span><span></span></span>';
     try {
