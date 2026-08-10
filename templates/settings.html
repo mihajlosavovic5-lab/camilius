@@ -214,16 +214,23 @@
             <div class="alert alert-error"><span class="alert-icon">&#9888;&#65039;</span><span>{{ page_error }}</span></div>
         {% endif %}
 
-        <div class="floating-field floating-field-domain-check" style="margin-top: 0;">
+        <!-- Real-domain purchase UI ($15/yr, via Dynadot - see domain_registrar.py) is
+             deliberately hidden, not removed: the free /p/<slug> site this "Web address"
+             field itself controls needs no purchase at all and stays fully visible below,
+             but the paid domain add-on isn't ready to put in front of customers yet.
+             floating-field-domain-check (which reserves padding for the now-hidden
+             button) is dropped back to a plain floating-field to match - re-add it
+             alongside un-hiding the button/results/error below to bring this back. -->
+        <div class="floating-field" style="margin-top: 0;">
             <input type="text" id="settings-page-slug-input" name="slug" value="{{ page.slug if page else '' }}" placeholder=" " autocapitalize="off" autocorrect="off" pattern="[a-z0-9][a-z0-9-]{0,49}" maxlength="50">
             <label for="settings-page-slug-input">Web address (e.g. your-business-name)</label>
-            <button type="button" class="field-inline-btn" id="settings-domain-check-btn">Check</button>
+            <button type="button" class="field-inline-btn hidden" id="settings-domain-check-btn">Check</button>
         </div>
         {% if page and page.slug %}
             <p class="note">{{ page_url_prefix }}{{ page.slug }}</p>
         {% endif %}
         <p class="onboarding-media-error hidden" id="settings-domain-check-error"></p>
-        <div id="settings-domain-check-results" style="margin-top: 4px;"></div>
+        <div id="settings-domain-check-results" class="hidden" style="margin-top: 4px;"></div>
 
         <label data-i18n="settings.page.design">Design</label>
         <input type="hidden" name="theme" id="settings-page-theme-value" value="{{ page.theme if page else 'warm' }}">
@@ -1105,9 +1112,12 @@ if (document.readyState === "loading") {
     // Right after a fresh AI draft suggests (or keeps) a web address, check its real
     // domains automatically - so the owner sees this without having to remember to ask,
     // same "AI does the legwork" spirit as the drafted tagline/about themselves.
-    {% if generate_description and page and page.slug %}
-    checkDomains({{ page.slug|tojson }});
-    {% endif %}
+    // Disabled while the whole domain-check UI above is hidden (see its own comment) -
+    // firing this against a results box nobody can see would just waste an RDAP lookup
+    // on every AI draft. Re-enable alongside un-hiding that UI.
+    // {% if generate_description and page and page.slug %}
+    // checkDomains({{ page.slug|tojson }});
+    // {% endif %}
 })();
 </script>
 {% endblock %}
