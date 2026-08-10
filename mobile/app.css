@@ -668,10 +668,14 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
 
 /* Set only while the checkmark below is showing (see mysiteFinishDomainCheck in app.js) -
    drops the pill's own border/background so the checkmark reads as a plain icon floating
-   next to the field, not a shape boxed inside another shape. Also cancels the general
-   :disabled dimming above so the checkmark itself still reads as a crisp, full-strength
-   green while the button's briefly unclickable during the hold before "Change" appears. */
-.field-inline-btn.field-inline-btn-success { padding: 0; border: none; background: none; }
+   next to the field, not a shape boxed inside another shape. Nudged in from the field's
+   edge (the plain pill above sits at right:6px too, but its own padding was doing this
+   same job of keeping its content off the edge - gone now along with the padding) and
+   sized up, since a borderless icon at the original 14px/flush-right read as an
+   accidental stray mark rather than a deliberate checkmark. Also cancels the general
+   :disabled dimming above so it still reads as a crisp, full-strength green while the
+   button's briefly unclickable during the hold before "Change" appears. */
+.field-inline-btn.field-inline-btn-success { padding: 0; border: none; background: none; right: 14px; }
 .field-inline-btn.field-inline-btn-success:disabled { opacity: 1; }
 
 /* Loading state (mysiteCheckDomains in app.js swaps the button's text for this while its
@@ -688,7 +692,7 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
    domain's been picked - auto-picked or chosen from the list) - a small circle-then-check
    draw-in, same pathLength="1"/stroke-dasharray trick as the fullscreen .save-success-*
    celebration, just small enough to sit inline in this pill button instead of a modal. */
-.field-inline-btn-check { display: block; width: 14px; height: 14px; overflow: visible; }
+.field-inline-btn-check { display: block; width: 22px; height: 22px; overflow: visible; }
 .field-inline-btn-check circle, .field-inline-btn-check path {
     fill: none; stroke: var(--success); stroke-linecap: round; stroke-linejoin: round;
     stroke-dasharray: 1; stroke-dashoffset: 1;
