@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+{% block title %}Draft this with AI - Camilius{% endblock %}
+
+{% block content %}
+{% include "_nav.html" %}
+
+<div class="content content-narrow">
+    <div class="page-header">
+        <div>
+            <a href="{{ url_for('settings') }}" class="website-chat-back" data-i18n="websiteChat.back">&larr; Back to Profile</a>
+            <h1 data-i18n="websiteChat.title">Draft this with AI</h1>
+            <p class="subtitle" data-i18n="websiteChat.subtitle">Talk it through - the AI will ask questions to help you figure out what your website should say.</p>
+        </div>
+    </div>
+
+    <div class="card website-chat-card">
+        <div id="website-chat-messages" class="support-widget-messages">
+            <div id="website-chat-greeting" class="support-widget-msg support-widget-msg-bot">&nbsp;</div>
+        </div>
+        <form id="website-chat-form" class="support-widget-form">
+            <input type="text" id="website-chat-input" data-i18n-placeholder="websiteChat.inputPlaceholder" placeholder="Type a message..." autocomplete="off" maxlength="2000">
+            <button type="submit" class="support-widget-send" aria-label="Send">&#10148;</button>
+        </form>
+    </div>
+</div>
+
+<script>
+    (function () {
+        var csrfToken = "{{ csrf_token() }}";
+        var messagesEl = document.getElementById("website-chat-messages");
+        var greetingEl = document.getElementById("website-chat-greeting");
+        var form = document.getElementById("website-chat-form");
+        var input = document.getElementById("website-chat-input");
+        var history = [];
+
+        // Same textContent-only <p>/<ul> rendering as the support widget's own
+        // renderBotContent (see base.html) - kept as its own copy (not a shared helper)
+        // since the two pages don't otherwise share a script, same call support_chat's
+        // widget JS already made rather than introduce a new shared file for one function.
+        function renderBotContent(container, text) {
+            var lines = String(text).split(/\n+/).map(function (l) { return l.trim(); }).filter(Boolean);
+            var i = 0;
+            while (i < lines.length) {
+                if (/^[-•]\s+/.test(lines[i])) {
+                    var ul = document.createElement("ul");
+                    ul.className = "support-widget-msg-list";
+                    while (i < lines.length && /^[-•]\s+/.test(lines[i])) {
+                        var li = document.createElement("li");
+                        li.textContent = lines[i].replace(/^[-•]\s+/, "");
+                        ul.appendChild(li);
+                        i++;
+                    }
+                    container.appendChild(ul);
+                } else {
+                    var p = document.createElement("p");
+                    p.textContent = lines[i];
+                    container.appendChild(p);
+                    i++;
+                }
+            }
+        }
+
+        function addMessage(role, text) {
+            var el = document.createElement("div");
+            el.className = "support-widget-msg support-widget-msg-" + (role === "user" ? "user" : "bot");
+            if (role === "user") {
+                el.textContent = text;
+            } else {
+                renderBotContent(el, text);
+            }
+            messagesEl.appendChild(el);
+            messagesEl.scrollTop = messagesEl.scrollHeight;
+            return el;
+        }
+
+        function renderGreeting() {
+            var greetingText = typeof t === "function" ? t("websiteChat.greeting") : "";
+            if (!greetingText) return;
+            greetingEl.textContent = "";
+            renderBotContent(greetingEl, greetingText);
+        }
+        // site-i18n.js is a DEFERRED script (see base.html) - it hasn't run yet at the
+        // point this plain inline script executes during parsing, so t() isn't callable
+        // here immediately (unlike the floating support widget's greeting, which only
+        // renders once its panel is first opened - always well after that script has long
+        // finished by then). applyTranslations() always fires "site-language-changed" once
+        // on its own first run (DOMContentLoaded), not just on an actual language switch,
+        // so waiting for that first event to render the greeting is both correct and only
+        // a brief, invisible delay. Once real messages exist, later switches leave them in
+        // whatever language they were sent in, same rule the support widget follows.
+        document.addEventListener("site-language-changed", function () {
+            if (history.length === 0) renderGreeting();
+        });
+
+        form.addEventListener("submit", function (event) {
+            event.preventDefault();
+            var text = input.value.trim();
+            if (!text) return;
+            input.value = "";
+            input.disabled = true;
+            addMessage("user", text);
+            history.push({ role: "user", content: text });
+            var typingEl = addMessage("bot", "...");
+            typingEl.classList.add("support-widget-typing");
+
+            fetch("{{ url_for('website_chat') }}", {
+                method: "POST",
+                headers: { "Content-Type": "application/json", "X-CSRFToken": csrfToken },
+                body: JSON.stringify({ message: text, history: history.slice(0, -1) }),
+            })
+                .then(function (r) { return r.json(); })
+                .then(function (data) {
+                    typingEl.remove();
+                    var reply = data.reply || t("websiteChat.error");
+                    addMessage("bot", reply);
+                    history.push({ role: "assistant", content: reply });
+                })
+                .catch(function () {
+                    typingEl.remove();
+                    addMessage("bot", t("websiteChat.error"));
+                })
+                .finally(function () {
+                    input.disabled = false;
+                    input.focus();
+                });
+        });
+    })();
+</script>
+{% endblock %}

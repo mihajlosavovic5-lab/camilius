@@ -1651,6 +1651,26 @@ body.auth {
 .profile-section-header { margin-bottom: 18px; }
 .profile-section-title { font-size: 17px; font-weight: 700; margin: 0; }
 .profile-section-subtitle { color: var(--text-muted); font-size: 14.5px; margin: 2px 0 0; }
+
+/* --- "Draft this with AI" launcher card (Faza 16) - the whole card is a link into
+   /website-chat (see settings.html) rather than a form anymore; styled to still read as
+   the compose box it used to literally be, so tapping anywhere on it feels continuous
+   rather than a bait-and-switch. --- */
+.draft-chat-launcher-card { display: block; text-decoration: none; color: inherit; }
+.draft-chat-launcher {
+    display: flex; align-items: center; gap: 10px;
+    padding: 12px 14px;
+    border: 1px solid var(--border); border-radius: 9px;
+    background: var(--background); color: var(--text-muted);
+    transition: border-color .15s, box-shadow .15s;
+}
+.draft-chat-launcher-card:hover .draft-chat-launcher,
+.draft-chat-launcher-card:focus-visible .draft-chat-launcher {
+    border-color: var(--primary); box-shadow: 0 0 0 3px rgba(214, 148, 16, .14);
+}
+.draft-chat-launcher-text { flex: 1; font-size: 16px; }
+.draft-chat-launcher-arrow { flex-shrink: 0; width: 20px; height: 20px; color: var(--primary); }
+.draft-chat-launcher-arrow svg { width: 100%; height: 100%; }
 /* --- Danger zone --- */
 .danger-zone {
     margin-top: 48px; padding: 20px 22px;
@@ -2063,6 +2083,18 @@ body.auth {
        full-width sheet reads as sitting in the middle of the screen rather than as a
        corner widget belonging to the page. */
     .support-widget-panel { width: min(300px, calc(100vw - 24px)); height: min(60vh, calc(100vh - 96px)); }
+}
+
+/* --- Full-page "Draft this with AI" chat (Faza 16, website_chat.html) - reuses the
+   floating support widget's own message-bubble/typing/input styling above
+   (.support-widget-msg*/-form/-send) so the two AI chats in the product read as one
+   family, just laid out as a real page (fixed-height scrolling transcript, no
+   launcher/backdrop) instead of a corner popover. --- */
+.website-chat-card { display: flex; flex-direction: column; padding: 0; overflow: hidden; height: min(72vh, 680px); }
+.website-chat-back { display: inline-block; margin-bottom: 6px; color: var(--text-muted); font-size: 14.5px; text-decoration: none; }
+.website-chat-back:hover { color: var(--primary-dark); }
+@media (max-width: 640px) {
+    .website-chat-card { height: calc(100vh - 250px); min-height: 320px; }
 }
 
 /* --- Legal pages (prose) --- */

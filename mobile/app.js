@@ -117,6 +117,7 @@ const screens = {
     register: el("screen-register"),
     verifyPending: el("screen-verify-pending"),
     mysite: el("screen-mysite"),
+    websiteChat: el("screen-website-chat"),
     inbox: el("screen-inbox"),
     detail: el("screen-detail"),
     schedule: el("screen-schedule"),
@@ -259,6 +260,8 @@ if (capacitorPlugins) {
             showScreen(legalReturnTo);
         } else if (screens.help.classList.contains("active") || screens.subscription.classList.contains("active")) {
             showScreen("settings");
+        } else if (screens.websiteChat.classList.contains("active")) {
+            showScreen("mysite");
         } else if (screens.deleteWarning.classList.contains("active")) {
             showScreen("settings");
         } else if (screens.deleteReason.classList.contains("active")) {
@@ -5371,6 +5374,115 @@ el("mysite-send-btn").addEventListener("click", () => {
     attachBtn.addEventListener("click", () => {
         if (mysiteCancelRecordingIfActive()) return;
         openAttachSheet();
+    });
+})();
+
+// "Draft this with AI" chat (Faza 16) - see screen-website-chat in index.html and
+// website_assistant.py's module docstring for the persona/scope this is restricted to.
+// Tapping anywhere on the My Site tab's compose card (id="mysite-draft-card", above)
+// opens this screen instead of that card doing anything inline now - the capture-phase
+// listener below runs before mic/attach/send's own click listeners (registered directly
+// on those buttons, further up this file) ever see the event, so this needs no changes
+// to that wiring or the "readonly" textarea inside it: everything there is just
+// unreachable through a tap on the card now, not removed.
+(function () {
+    const draftCard = el("mysite-draft-card");
+    const backBtn = el("website-chat-back");
+    const messagesEl = el("website-chat-messages");
+    const input = el("website-chat-input");
+    const sendBtn = el("website-chat-send-btn");
+    if (!draftCard || !backBtn || !messagesEl || !input || !sendBtn) return;
+
+    let history = [];
+    let greeted = false;
+
+    // Same textContent-only <p>/<ul> rendering the web dashboard's own website_chat.html
+    // uses (and, before that, the support-chat widget) - one fact/line, "- " lists become
+    // real bullets, kept as its own copy since mobile and the web dashboard don't share a
+    // script file.
+    function renderBotContent(container, text) {
+        const lines = String(text).split(/\n+/).map((line) => line.trim()).filter(Boolean);
+        let i = 0;
+        while (i < lines.length) {
+            if (/^[-•]\s+/.test(lines[i])) {
+                const ul = document.createElement("ul");
+                ul.className = "website-chat-msg-list";
+                while (i < lines.length && /^[-•]\s+/.test(lines[i])) {
+                    const li = document.createElement("li");
+                    li.textContent = lines[i].replace(/^[-•]\s+/, "");
+                    ul.appendChild(li);
+                    i++;
+                }
+                container.appendChild(ul);
+            } else {
+                const p = document.createElement("p");
+                p.textContent = lines[i];
+                container.appendChild(p);
+                i++;
+            }
+        }
+    }
+
+    function addMessage(role, text) {
+        const wrap = document.createElement("div");
+        wrap.className = "website-chat-msg " + (role === "user" ? "website-chat-msg-user" : "website-chat-msg-bot");
+        if (role === "user") wrap.textContent = text;
+        else renderBotContent(wrap, text);
+        messagesEl.appendChild(wrap);
+        messagesEl.scrollTop = messagesEl.scrollHeight;
+        return wrap;
+    }
+
+    // Rendered the first time the card is actually tapped, not at app boot - by then the
+    // app's own i18n has long finished loading (unlike the web dashboard's version of
+    // this same greeting, which has to wait out a deferred script - see that page's own
+    // comment), so t() is always safe to call here.
+    function ensureGreeting() {
+        if (greeted) return;
+        greeted = true;
+        addMessage("bot", t("websiteChat.greeting") || "Hi! Tell me about your business and let's figure out your website together.");
+    }
+
+    async function send() {
+        const text = input.value.trim();
+        if (!text) return;
+        input.value = "";
+        input.disabled = true;
+        sendBtn.classList.add("send-loading");
+        addMessage("user", text);
+        history.push({ role: "user", content: text });
+        const typingEl = addMessage("bot", "...");
+        typingEl.classList.add("website-chat-msg-typing");
+        try {
+            const data = await api("/api/website-chat", { method: "POST", body: { message: text, history: history.slice(0, -1) } });
+            typingEl.remove();
+            const reply = data.reply || t("websiteChat.error");
+            addMessage("bot", reply);
+            history.push({ role: "assistant", content: reply });
+        } catch (err) {
+            typingEl.remove();
+            addMessage("bot", (err && err.message) || t("websiteChat.error"));
+        } finally {
+            input.disabled = false;
+            sendBtn.classList.remove("send-loading");
+            input.focus();
+        }
+    }
+
+    draftCard.addEventListener("click", (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        showScreen("websiteChat");
+        ensureGreeting();
+    }, true);
+
+    backBtn.addEventListener("click", () => showScreen("mysite"));
+    sendBtn.addEventListener("click", send);
+    input.addEventListener("keydown", (event) => {
+        if (event.key === "Enter" && !event.shiftKey) {
+            event.preventDefault();
+            send();
+        }
     });
 })();
 

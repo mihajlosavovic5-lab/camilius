@@ -53,6 +53,7 @@ from database import (
 from send_email import send_email
 from send_sms import send_sms, sms_configured
 from support_assistant import answer_support_question
+from website_assistant import answer_website_chat, build_business_context
 import ai_replies
 import booking
 import pages
@@ -3265,6 +3266,38 @@ def support_chat():
         for turn in history[-12:] if isinstance(turn, dict)
     ]
     reply = answer_support_question(message, history=safe_history)
+    return jsonify(reply=reply)
+
+
+# --- "Draft this with AI" chat (Faza 16) - a full page (not a floating widget, unlike
+# the support assistant above) that replaces the old single-shot description box: the
+# owner talks through their website with the AI instead of writing one paragraph and
+# getting one draft back. See website_assistant.py's module docstring for the persona/
+# scope split from both the support assistant and page_generator.py's own one-shot
+# extraction (still used by the "Generate draft" button on this same page). ---
+
+@app.route("/website-chat")
+@login_required
+def website_chat_page():
+    return render_template("website_chat.html")
+
+
+@app.route("/website-chat", methods=["POST"])
+@login_required
+@limiter.limit("30 per hour", methods=["POST"])
+def website_chat():
+    data = request.get_json(silent=True) or {}
+    message = (data.get("message") or "").strip()
+    history = data.get("history") or []
+    if not message or not isinstance(history, list):
+        abort(400)
+    safe_history = [
+        {"role": turn.get("role"), "content": turn.get("content")}
+        for turn in history[-12:] if isinstance(turn, dict)
+    ]
+    business_id = session["business_id"]
+    business_context = build_business_context(business_by_id(business_id), get_business_page(business_id))
+    reply = answer_website_chat(message, history=safe_history, business_context=business_context)
     return jsonify(reply=reply)
 
 

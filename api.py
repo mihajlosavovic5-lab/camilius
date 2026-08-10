@@ -42,6 +42,7 @@ import themes
 import ai_theme
 import domain_lookup
 from page_generator import generate_page_draft, format_working_hours, format_price_list, format_faq, transcribe_voice_description, MAX_VOICE_AUDIO_BYTES
+from website_assistant import answer_website_chat, build_business_context
 
 api = Blueprint("api", __name__, url_prefix="/api")
 
@@ -1189,6 +1190,33 @@ def api_generate_page():
         price_list=format_price_list(draft["services"]),
         faq=format_faq(draft["faq"]),
     )
+
+
+# "Draft this with AI" chat (Faza 16) - mobile's Bearer-authed equivalent of app.py's
+# session-authed /website-chat. A back-and-forth conversation that helps the owner think
+# through their page's content instead of the one-shot /generate-page call above; see
+# website_assistant.py's module docstring for the persona/scope this is restricted to.
+# Same "client keeps the transcript, nothing persisted server-side" contract as the web
+# route (and as the older support-chat widget it's modeled on, web-only so far).
+@api.route("/website-chat", methods=["POST"])
+@require_api_auth
+@limiter.limit("30 per hour")
+def api_website_chat():
+    business_id = request.business_id
+    data = request.get_json(silent=True) or {}
+    message = (data.get("message") or "").strip()
+    history = data.get("history") or []
+    if not message:
+        return jsonify(error="Type a message first."), 400
+    if not isinstance(history, list):
+        return jsonify(error="invalid history"), 400
+    safe_history = [
+        {"role": turn.get("role"), "content": turn.get("content")}
+        for turn in history[-12:] if isinstance(turn, dict)
+    ]
+    business_context = build_business_context(business_by_id(business_id), get_business_page(business_id))
+    reply = answer_website_chat(message, history=safe_history, business_context=business_context)
+    return jsonify(reply=reply)
 
 
 # Mobile's Bearer-authed equivalent of app.py's session-authed /profile/check-domains -

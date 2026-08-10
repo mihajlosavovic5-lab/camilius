@@ -173,54 +173,30 @@
         </form>
     {% endif %}
 
-    <!-- Optional AI-drafted starting point for the business-info card above and the
-         page card below - never saves anything itself (see generate_business_page() in
-         app.py): it only re-renders this same form with generated values pre-filled,
-         so the Save buttons those cards already have are still the only way any of it
-         actually gets written to the database. -->
-    <form method="POST" action="{{ url_for('generate_business_page') }}" class="card profile-section" id="settings-generate-form" style="margin-top: 20px;">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <!-- "Draft this with AI" (Faza 16) - a full chat with the AI, not a one-shot
+         "type a paragraph, get a draft" form anymore (that used to live right here as a
+         <form action="{{ url_for('generate_business_page') }}"> POSTing straight into
+         this page - see website_chat.html/website_assistant.py for why it moved to a
+         real back-and-forth). The whole card is just a launcher now: tapping anywhere on
+         it (not one specific button) opens /website-chat, same as the mobile app's own
+         "My Site" tab. -->
+    <a href="{{ url_for('website_chat_page') }}" class="card profile-section draft-chat-launcher-card" style="margin-top: 20px;">
         <div class="profile-section-header">
+            {% if generate_error %}
+                <div class="alert alert-error"><span class="alert-icon">&#9888;&#65039;</span><span>{{ generate_error }}</span></div>
+            {% elif generate_description %}
+                <div class="alert alert-success"><span>Draft ready - review it in the "Your public page" card below, then save.</span></div>
+            {% endif %}
             <p class="profile-section-title">Draft this with AI</p>
-            <p class="profile-section-subtitle">Describe your business in a sentence or two (type, speak, or attach a document) and the AI drafts a tagline, about text, web address, hours, prices, and FAQ below for you to review and save.</p>
+            <p class="profile-section-subtitle">Chat it through with the AI - it'll ask what makes your business worth choosing and help you write a page around that, instead of you starting from a blank paragraph.</p>
         </div>
-
-        {% if generate_error %}
-            <div class="alert alert-error"><span class="alert-icon">&#9888;&#65039;</span><span>{{ generate_error }}</span></div>
-        {% elif generate_description %}
-            <div class="alert alert-success"><span>Draft ready below - review it, then save.</span></div>
-        {% endif %}
-
-        <div class="floating-field floating-field-textarea" style="margin-top: 0;">
-            <textarea name="description" id="settings-generate-description-input" placeholder=" " maxlength="1000">{{ generate_description or '' }}</textarea>
-            <label for="settings-generate-description-input">What does your business do?</label>
+        <div class="draft-chat-launcher">
+            <span class="draft-chat-launcher-text">I'm listening…</span>
+            <span class="draft-chat-launcher-arrow" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12" stroke-width="2" stroke-linecap="round"/><polyline points="12 5 19 12 12 19" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </span>
         </div>
-
-        <div class="voice-input-row" id="settings-voice-row" hidden>
-            <button type="button" class="button button-secondary voice-record-btn" id="settings-voice-btn">
-                <span class="voice-record-dot" aria-hidden="true"></span>
-                <span class="voice-record-icon" aria-hidden="true">&#127908;</span>
-                <span id="settings-voice-btn-label" data-i18n="onboarding.describe.recordStart">Record instead of typing</span>
-            </button>
-            <canvas class="voice-waveform" id="settings-voice-waveform" width="130" height="32" aria-hidden="true"></canvas>
-            <span class="voice-status" id="settings-voice-status" aria-live="polite"></span>
-        </div>
-
-        <div class="onboarding-media-section" id="settings-document-section">
-            <p class="onboarding-media-label" data-i18n="onboarding.describe.documentsLabel">Or add a document (PDF/Word)</p>
-            <p class="onboarding-media-hint" data-i18n="onboarding.describe.documentsHint">A menu, price list, or brochure - in addition to the description above, not instead of it. The AI treats it as a source of facts (exact prices, hours, services).</p>
-            <div class="onboarding-document-list" id="settings-document-list"></div>
-            <label class="onboarding-document-add" id="settings-document-add">
-                <span data-i18n="onboarding.describe.documentsAdd">+ Add document</span>
-                <input type="file" id="settings-document-input" accept="application/pdf,.pdf,.docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document">
-            </label>
-            <p class="onboarding-media-error hidden" id="settings-document-error"></p>
-        </div>
-
-        <div class="form-actions" style="text-align: right;">
-            <button class="button" type="submit">Generate draft</button>
-        </div>
-    </form>
+    </a>
 
     <!-- Separate <form> (not folded into #settings-form above) - same reason as the
          disconnect-*/upgrade-to-pro-free forms above it: this has its own save action
@@ -262,7 +238,7 @@
 
         <div id="settings-theme-suggest-wrap" style="margin-top: 10px;">
             <button type="button" class="button button-secondary" id="settings-theme-suggest-btn">&#10024; Suggest AI designs for my business</button>
-            <p class="note" id="settings-theme-suggest-hint">Uses the description in the "Draft this with AI" card above.</p>
+            <p class="note" id="settings-theme-suggest-hint">Uses the About text below (or chat with the AI above first if it's still empty).</p>
             <p class="onboarding-media-error hidden" id="settings-theme-suggest-error"></p>
             <div class="onboarding-theme-grid" id="settings-theme-suggest-grid" style="margin-top: 12px;"></div>
         </div>
@@ -945,8 +921,11 @@ if (document.readyState === "loading") {
     const themeValue = document.getElementById("settings-page-theme-value");
     const customJsonField = document.getElementById("settings-page-custom-theme-json");
     const customOption = document.getElementById("settings-theme-custom-option");
-    const descriptionInput = document.getElementById("settings-generate-description-input");
-    const csrfInput = document.querySelector('#settings-generate-form input[name="csrf_token"]');
+    // The old "Draft this with AI" textarea this used to read from is gone (that card is
+    // just a launcher into /website-chat now) - the About text below is the closest
+    // still-editable description of the business, so this reads from there instead.
+    const descriptionInput = document.getElementById("settings-page-about-input");
+    const csrfInput = themeSelect && themeSelect.closest("form") && themeSelect.closest("form").querySelector('input[name="csrf_token"]');
     if (!btn || !grid || !themeSelect || !themeValue || !customJsonField || !csrfInput) return;
 
     if (themeSelect.value !== themeValue.value) themeSelect.value = themeValue.value;
@@ -1021,7 +1000,7 @@ if (document.readyState === "loading") {
         const description = (descriptionInput && descriptionInput.value || "").trim();
         errorBox.classList.add("hidden");
         if (!description) {
-            errorBox.textContent = "Describe your business in the “Draft this with AI” card above first.";
+            errorBox.textContent = "Fill in the About text below first (or chat with the AI above to help write it).";
             errorBox.classList.remove("hidden");
             return;
         }

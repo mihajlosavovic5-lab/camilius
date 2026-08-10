@@ -1,5 +1,5 @@
 <!doctype html>
-<html data-bundle-version="02f287812241" lang="en">
+<html data-bundle-version="05c152014b36" lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
@@ -16,7 +16,7 @@
 <link rel="preload" href="fonts/lora-latin-ext.woff2?v=e8c32fe92ded" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="fonts/familjen-grotesk-latin.woff2?v=e8c32fe92ded" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="fonts/familjen-grotesk-latin-ext.woff2?v=e8c32fe92ded" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="app.css?v=02f287812241">
+<link rel="stylesheet" href="app.css?v=05c152014b36">
 </head>
 <body>
 
@@ -759,9 +759,10 @@
         <p id="mysite-slug-required-hint" class="field-error hidden" data-i18n="mysite.website.slugRequired">Add a web address above so this change can be saved.</p>
       </div>
 
-      <div class="profile-section">
+      <div class="profile-section" id="mysite-draft-card">
         <div class="profile-section-header">
           <p class="profile-section-title" data-i18n="mysite.draft.title">Draft this with AI</p>
+          <p class="profile-section-subtitle" data-i18n="mysite.draft.chatSubtitle">Chat it through with the AI - it'll ask what makes your business worth choosing and help you write a page around that.</p>
         </div>
         <div class="compose-attachment-list" id="mysite-attachment-list"></div>
         <div class="chat-compose">
@@ -778,7 +779,7 @@
           <input type="file" id="mysite-attach-input-camera" accept="image/*" capture="environment" hidden>
           <input type="file" id="mysite-attach-input-photos" accept="image/jpeg,image/png,image/webp,video/mp4,video/quicktime" multiple hidden>
           <input type="file" id="mysite-attach-input-files" accept="application/pdf,.pdf,.doc,.docx" multiple hidden>
-          <textarea id="mysite-description" class="chat-compose-input" rows="1" maxlength="1000" placeholder="I'm listening…" data-i18n-placeholder="mysite.draft.label"></textarea>
+          <textarea id="mysite-description" class="chat-compose-input" rows="1" maxlength="1000" placeholder="I'm listening…" data-i18n-placeholder="mysite.draft.label" readonly></textarea>
           <canvas class="chat-compose-waveform" id="mysite-voice-waveform" aria-hidden="true"></canvas>
           <div class="textarea-actions">
             <button type="button" class="textarea-mic-btn" id="mysite-voice-btn" hidden>
@@ -823,6 +824,36 @@
       </div>
     </div>
     <button class="fab-save hidden" id="mysite-save-btn" data-i18n="settings.save">Save changes</button>
+  </section>
+
+  <!-- "DRAFT THIS WITH AI" CHAT (Faza 16) - a real back-and-forth with the AI about the
+       business's own website (what it should say, how it should be structured), opened
+       by tapping anywhere on the "Draft this with AI" card on the My Site tab above -
+       replaces that card's old single-shot "type a paragraph, get a draft back" flow.
+       See website_assistant.py for the persona/scope this is restricted to, and the web
+       dashboard's templates/website_chat.html for the same feature there. -->
+  <section id="screen-website-chat" class="screen screen-website-chat">
+    <header class="topbar topbar-detail">
+      <button class="back-btn" id="website-chat-back" aria-label="Back">‹</button>
+      <div class="topbar-detail-meta">
+        <div class="detail-sender" data-i18n="websiteChat.title">Draft this with AI</div>
+      </div>
+    </header>
+
+    <div id="website-chat-messages" class="website-chat-messages"></div>
+
+    <div class="chat-compose website-chat-compose">
+      <textarea id="website-chat-input" class="chat-compose-input" rows="1" maxlength="2000" placeholder="Type a message…" data-i18n-placeholder="websiteChat.inputPlaceholder"></textarea>
+      <div class="textarea-actions">
+        <button type="button" class="textarea-send-btn" id="website-chat-send-btn" aria-label="Send">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
+            <line x1="12" y1="19" x2="12" y2="5" stroke-width="2.2" stroke-linecap="round"/>
+            <polyline points="6 11 12 5 18 11" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <span class="send-btn-spinner" aria-hidden="true"></span>
+        </button>
+      </div>
+    </div>
   </section>
 
   <!-- INBOX -->
@@ -1518,8 +1549,8 @@
   </button>
 </nav>
 
-<script src="i18n.js?v=02f287812241"></script>
-<script src="hours-picker.js?v=02f287812241"></script>
-<script src="app.js?v=02f287812241"></script>
+<script src="i18n.js?v=05c152014b36"></script>
+<script src="hours-picker.js?v=05c152014b36"></script>
+<script src="app.js?v=05c152014b36"></script>
 </body>
 </html>
