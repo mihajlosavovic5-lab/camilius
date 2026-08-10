@@ -25,7 +25,15 @@ public class OverlayStatePlugin extends Plugin {
 
     @PluginMethod
     public void setOverlayOpen(PluginCall call) {
-        ((MainActivity) getActivity()).overlayOpen = call.getBoolean("open", false);
+        boolean open = call.getBoolean("open", false);
+        MainActivity activity = (MainActivity) getActivity();
+        activity.overlayOpen = open;
+        // Only on the open transition - see MainActivity.keepImeVisibleIfShowing()'s own
+        // comment for why a popup opening (app.js's openAttachSheet() blurring the compose
+        // input) needs this, and why closing never does.
+        if (open) {
+            activity.keepImeVisibleIfShowing();
+        }
         call.resolve();
     }
 }

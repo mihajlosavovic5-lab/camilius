@@ -2,11 +2,14 @@ package com.ai_auto_reply_mail.app.twa;
 
 import android.os.Bundle;
 import android.view.KeyEvent;
-import android.widget.Toast;
+import android.view.View;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.IntentSenderRequest;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.core.splashscreen.SplashScreen;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowInsetsCompat;
+import androidx.core.view.WindowInsetsControllerCompat;
 import com.getcapacitor.BridgeActivity;
 import com.google.android.play.core.appupdate.AppUpdateInfo;
 import com.google.android.play.core.appupdate.AppUpdateManager;
@@ -145,22 +148,18 @@ public class MainActivity extends BridgeActivity {
     // meant to cause, since dismissing a popup and dismissing the keyboard are two
     // unrelated actions from the visitor's point of view.
     //
-    // dispatchKeyEvent() runs before that normal descent into the WebView, so returning
-    // true here for BACK - only while overlayOpen is true - consumes the event at the
-    // very top, before the WebView (and so the keyboard) ever sees it, and closes the
-    // popup directly via a plain evaluateJavascript() call instead. Every other back
-    // press (overlayOpen false) falls through to super.dispatchKeyEvent() completely
-    // unchanged, so the existing keyboard-first-then-app-navigation behavior everywhere
-    // else in the app is untouched.
+    // dispatchKeyEvent() only actually gets a chance to see BACK before the WebView does
+    // when nothing focused and editable is showing the keyboard at that moment (see
+    // keepImeVisibleIfShowing()'s own comment below - the WebView's focused-editable-view
+    // takes priority over this override, not the other way around, confirmed by testing
+    // on-device). While that condition holds, returning true here for BACK - only while
+    // overlayOpen is true - consumes the event at the very top, before the WebView ever
+    // sees it, and closes the popup directly via a plain evaluateJavascript() call
+    // instead. Every other back press (overlayOpen false) falls through to
+    // super.dispatchKeyEvent() completely unchanged, so the existing keyboard-first-then-
+    // app-navigation behavior everywhere else in the app is untouched.
     @Override
     public boolean dispatchKeyEvent(KeyEvent event) {
-        // TEMPORARY diagnostic - remove once we've confirmed whether dispatchKeyEvent()
-        // actually receives BACK at all in the keyboard-visible state, and what
-        // overlayOpen reads as at that moment. Toast rather than a log line since we
-        // have no adb access to the reporting device - this is visible on-screen instead.
-        if (event.getKeyCode() == KeyEvent.KEYCODE_BACK && event.getAction() == KeyEvent.ACTION_DOWN) {
-            Toast.makeText(this, "dispatchKeyEvent BACK, overlayOpen=" + overlayOpen, Toast.LENGTH_SHORT).show();
-        }
         if (overlayOpen && event.getKeyCode() == KeyEvent.KEYCODE_BACK) {
             if (event.getAction() == KeyEvent.ACTION_UP && getBridge() != null && getBridge().getWebView() != null) {
                 getBridge().getWebView().evaluateJavascript(
@@ -169,5 +168,30 @@ public class MainActivity extends BridgeActivity {
             return true;
         }
         return super.dispatchKeyEvent(event);
+    }
+
+    // Confirmed by testing (see OverlayStatePlugin's own comment) that dispatchKeyEvent()
+    // above was STILL never reached on the very first back press whenever a focused,
+    // editable DOM element was showing the keyboard behind the popup - the WebView's own
+    // key handling takes priority over BACK for as long as that element has focus, full
+    // stop, regardless of this Activity's own override. app.js (openAttachSheet()) blurs
+    // that element the moment the popup opens specifically to give up that focus - but
+    // blurring alone also naturally lets the now-unclaimed IME hide itself, which is the
+    // exact unwanted "keyboard visibly closes when the popup merely opens" side effect an
+    // earlier attempt at this fix had and was reverted for.
+    //
+    // Called from OverlayStatePlugin the instant it hears about that blur (open == true),
+    // this re-asserts the IME back open via WindowInsetsControllerCompat before that hide
+    // ever renders - Android's insets animation system is built to let a show() cleanly
+    // interrupt an already-in-flight hide(). Only acts if the IME was ALREADY showing (never
+    // pops the keyboard open for a popup that had none showing behind it), so every other
+    // popup/sheet/lightbox with no focused field behind it is completely unaffected.
+    void keepImeVisibleIfShowing() {
+        if (getBridge() == null || getBridge().getWebView() == null) return;
+        View root = getBridge().getWebView();
+        WindowInsetsCompat insets = ViewCompat.getRootWindowInsets(root);
+        if (insets != null && insets.isVisible(WindowInsetsCompat.Type.ime())) {
+            new WindowInsetsControllerCompat(getWindow(), root).show(WindowInsetsCompat.Type.ime());
+        }
     }
 }

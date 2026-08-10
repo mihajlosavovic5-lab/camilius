@@ -5192,13 +5192,39 @@ Object.keys(MYSITE_FIELD_MODAL_FIELDS).forEach((fieldId) => {
             sheetCard.style.left = `${rect.left}px`;
             sheetCard.style.bottom = `${window.innerHeight - rect.top + gap}px`;
         }
+        // Tracks whether openAttachSheet() below was the one that blurred the compose
+        // input, so closeAttachSheet() knows to give focus back - vs. the sheet having
+        // opened with no keyboard behind it in the first place, where there's nothing to
+        // restore.
+        let blurredForSheet = false;
         function openAttachSheet() {
             if (!sheet || !sheetCard) return;
             positionAttachSheet();
             sheet.classList.add("open");
+            // Blurs the compose input so the WebView's focused-editable-view no longer claims
+            // first dibs on BACK to hide the keyboard (see MainActivity.dispatchKeyEvent()'s own
+            // comment) - without this, the very first back press never reaches app.js at all,
+            // needing a second press to close this sheet. An earlier attempt did the same
+            // blur() and fixed that, but got reverted because blurring alone also let the
+            // keyboard visibly hide the instant this sheet opens, an unrelated side effect
+            // neither opening nor closing the sheet was meant to cause. OverlayStatePlugin.
+            // setOverlayOpen (native) now re-asserts the IME back open via
+            // WindowInsetsController the moment it hears about this blur through the
+            // syncOverlayOpenState MutationObserver below, before that hide ever renders.
+            blurredForSheet = document.activeElement === input;
+            if (blurredForSheet) input.blur();
         }
         function closeAttachSheet() {
             if (sheet) sheet.classList.remove("open");
+            // Gives focus back to the compose input if openAttachSheet() was the one that
+            // took it away - restores typing exactly where the visitor left off instead of
+            // silently dropping focus once the sheet closes, since blurring it was only
+            // ever needed to let a back press reach this sheet, not an intentional change
+            // to what has focus.
+            if (blurredForSheet) {
+                blurredForSheet = false;
+                input.focus();
+            }
         }
         if (sheet) {
             el("attach-options-backdrop").addEventListener("click", closeAttachSheet);
