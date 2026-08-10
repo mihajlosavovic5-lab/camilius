@@ -140,6 +140,17 @@
     --tabbar-h: 58px;
     --safe-top: env(safe-area-inset-top, 0px);
     --safe-bottom: env(safe-area-inset-bottom, 0px);
+    /* Height of bottom chrome NOT covered by a centered modal's own backdrop dimming -
+       the tab bar sits above .lang-modal's z-index (60), so it stays visible and
+       undimmed even while a modal is open. Centering a modal on the full viewport
+       (as if that space were actually available) reads as low/off-center relative to
+       everything the user can actually see and interact with above the tab bar.
+       0px by default (tab bar hidden - login/register/forgot/etc.); showTabbar() in
+       app.js sets this to the tab bar's own height whenever it's visible, and the
+       centered option-picker sheets (.country-modal-sheet) below subtract half of it
+       from their own centering point so they land in the middle of the space that's
+       actually free, not the middle of the full screen. */
+    --modal-bottom-chrome: 0px;
     /* Falls back to the OS system font for any character Inter's/Lora's self-hosted
        subsets above don't cover (CJK, Greek, Vietnamese, ...). */
     --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
@@ -434,7 +445,10 @@ button { font-family: inherit; -webkit-appearance: none; appearance: none; }
    on top instead of ending up hidden behind the sheet that opened it. */
 #option-modal { z-index: 61; }
 .country-modal-sheet {
-    left: 50%; right: auto; top: 50%; bottom: auto;
+    left: 50%; right: auto; bottom: auto;
+    /* Centered in whatever space is actually free above the tab bar, not the full
+       screen - see --modal-bottom-chrome's own comment above. */
+    top: calc(50% - (var(--modal-bottom-chrome) / 2));
     width: 190px; max-width: 190px; max-height: min(380px, 70vh); padding: 8px;
     transform-origin: center;
     transform: translate(-50%, calc(-50% + 10px)) scale(.94);

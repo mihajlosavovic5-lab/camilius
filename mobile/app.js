@@ -153,6 +153,14 @@ function showScreen(name) {
 
 function showTabbar(show) {
     tabbar.classList.toggle("hidden", !show);
+    // The tab bar sits above the centered option pickers' own z-index and stays
+    // visible/undimmed while one is open (see --modal-bottom-chrome's comment in
+    // app.css) - .country-modal-sheet reads this to center itself in the space
+    // that's actually free above the tab bar instead of the full screen, whenever
+    // the tab bar is the reason that space is smaller.
+    document.documentElement.style.setProperty(
+        "--modal-bottom-chrome", show ? "calc(var(--tabbar-h) + var(--safe-bottom))" : "0px"
+    );
 }
 
 // Register / Forgot password are a small, fixed, entirely linear
