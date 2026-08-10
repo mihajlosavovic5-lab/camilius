@@ -3948,7 +3948,6 @@ function openBookModal(time) {
     el("book-modal-error").classList.add("hidden");
     pinModalCenter(el("book-modal"));
     el("book-modal").classList.add("open");
-    setTimeout(() => el("book-customer-name").focus(), 250);
 }
 
 function closeBookModal() {
