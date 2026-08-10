@@ -3726,8 +3726,8 @@ function buildSchedulePastToggle(pastRows) {
 
     const summary = document.createElement("summary");
     summary.className = "schedule-past-summary";
-    summary.innerHTML = `<span class="schedule-past-arrow" aria-hidden="true">&#8593;</span><span class="schedule-past-label"><span class="schedule-past-chevron">&#9656;</span><span></span></span>`;
-    summary.querySelector(".schedule-past-label span:last-child").textContent = t("schedule.past");
+    summary.innerHTML = `<span class="schedule-past-chevron">&#9656;</span><span></span>`;
+    summary.children[1].textContent = t("schedule.past");
     details.appendChild(summary);
 
     // No "schedule-timeline" class here (unlike schedule.html's equivalent) - #schedule-

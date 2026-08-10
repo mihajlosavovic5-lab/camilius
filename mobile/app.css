@@ -1769,14 +1769,12 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
    renderScheduleDay in app.js). */
 .schedule-past-toggle { margin: 0 0 4px; }
 .schedule-past-summary {
-    display: flex; flex-direction: column; align-items: center; cursor: pointer; list-style: none;
+    display: flex; justify-content: center; align-items: center; gap: 6px; cursor: pointer; list-style: none;
     padding: 8px 0; font-size: 13.5px; font-weight: 600; color: var(--text-muted);
     -webkit-tap-highlight-color: transparent;
 }
 .schedule-past-summary::-webkit-details-marker { display: none; }
 .schedule-past-summary:active { color: var(--text); }
-.schedule-past-arrow { display: block; font-size: 11px; line-height: 1; margin-bottom: 2px; }
-.schedule-past-label { display: flex; align-items: center; gap: 6px; }
 .schedule-past-chevron { display: inline-block; font-size: 10px; transition: transform .15s ease; }
 .schedule-past-toggle[open] .schedule-past-chevron { transform: rotate(90deg); }
 .schedule-timeline-past { margin-top: 2px; }
