@@ -288,18 +288,25 @@ button { font-family: inherit; -webkit-appearance: none; appearance: none; }
    this with AI" chat's own Camilius header. .topbar itself stays transparent (no colored
    band behind it - tried that first, read as a bolted-on slab), so plain white nearly
    vanished against the screen's own light cream wash on its own too - the outline
-   (text-stroke, with a layered text-shadow fallback for engines that ignore
+   (text-stroke, with a soft text-shadow fallback for engines that ignore
    -webkit-text-stroke) is what actually keeps the letterforms readable. Scoped to just
    these five screens (via their own .screen-* class) - every other back-button detail
-   screen (Help, Subscription, Delete account, ...) keeps its own dark title text. */
+   screen (Help, Subscription, Delete account, ...) keeps its own dark title text.
+   Used to be a 1px stroke plus four hard 1px-offset shadow copies (no blur); on this
+   bold condensed heading font the un-blurred copies didn't fully overlap on tight
+   junctions and diagonals (M/W/S and the like), so the outline read as doubled,
+   crossing lines instead of one clean edge - same root cause the field-editor modal
+   title had at its own size (see .mysite-field-modal-sheet .book-modal-title below).
+   A single soft (blurred) shadow behind a slightly thinner stroke keeps one crisp
+   edge at every letterform instead. */
 .screen-mysite .topbar-title h1,
 .screen-schedule .topbar-title h1,
 .screen-profile .topbar-title h1,
 .screen-settings .topbar-title h1,
 .screen-website-chat .topbar-title h1 {
     color: #fff;
-    -webkit-text-stroke: 1px rgba(0, 0, 0, .75);
-    text-shadow: -1px -1px 0 rgba(0, 0, 0, .55), 1px -1px 0 rgba(0, 0, 0, .55), -1px 1px 0 rgba(0, 0, 0, .55), 1px 1px 0 rgba(0, 0, 0, .55);
+    -webkit-text-stroke: 0.75px rgba(0, 0, 0, .8);
+    text-shadow: 0 1px 2px rgba(0, 0, 0, .5);
     font-size: 28px;
 }
 
@@ -1964,13 +1971,9 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
    (.screen-mysite .topbar-title h1 etc.) - this modal's title (Web address/Headline/
    About) sits on the same warm cream .mysite-field-modal-sheet background, so plain
    dark text would look inconsistent right next to those, and plain white alone would
-   wash out the same way it did there before the outline was added. Not literally the
-   same values though: that rule's 1px stroke + four hard 1px-offset shadow copies was
-   tuned for its 28px font. Reused verbatim at this title's much smaller 17.5px, the
-   stroke ate a much bigger share of each letterform and the four un-blurred shadow
-   copies (each a full duplicate of the glyph, offset a diagonal pixel) stopped
-   reading as one edge and smeared into a visibly doubled outline instead - a single
-   soft (blurred) shadow behind a thinner stroke keeps one crisp edge instead. */
+   wash out the same way it did there before the outline was added. Thinner stroke
+   here since this title runs much smaller (17.5px vs. 28px) and a proportionally
+   thick stroke eats a bigger share of each letterform at small sizes. */
 .mysite-field-modal-sheet .book-modal-title {
     text-align: center;
     color: #fff;
