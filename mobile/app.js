@@ -1337,22 +1337,42 @@ function showToast(message) {
     toastTimer = setTimeout(() => toast.classList.remove("show"), 2400);
 }
 
-// --- Image lightbox (Faza 15) - fullscreen zoom for a tapped attachment thumbnail (see
-// the compose-attachment-list chips in the voice/attach IIFEs below). Backdrop tap closes
-// it; the image itself doesn't (its own click listener stops propagation), so a tap meant
-// to look closer doesn't immediately dismiss the view. ---
+// --- Image lightbox (Faza 15, annotate added later) - fullscreen zoom for a tapped
+// attachment thumbnail (see the compose-attachment-list chips in the voice/attach IIFEs
+// below). Backdrop tap closes it; the media/toolbar content doesn't (each stops its own
+// click from bubbling), so a tap meant to look closer or use a tool doesn't immediately
+// dismiss the view.
+//
+// openImageLightbox's optional second argument turns on the annotate (pencil) button -
+// only staged, not-yet-uploaded attachments pass one, since it lets the caller swap in a
+// freehand-marked-up copy before Send ever uploads anything. Drawing itself is a plain
+// canvas overlaid on the image (see enterLightboxDrawMode below): strokes are recorded as
+// point lists in the canvas's own CSS-pixel space so Undo/Redo can just replay them, and
+// only get rescaled into the photo's real pixel dimensions once, in
+// finishLightboxAnnotate, when the result is flattened into a new image. ---
 
-function openImageLightbox(url) {
+let lightboxOnAnnotate = null;
+let lightboxDrawing = false;
+let lightboxStrokes = [];
+let lightboxRedoStack = [];
+let lightboxActiveStroke = null;
+
+function openImageLightbox(url, onAnnotate) {
     const lightbox = el("image-lightbox");
     const img = el("image-lightbox-img");
     if (!lightbox || !img) return;
+    exitLightboxDrawMode();
     img.src = url;
+    lightboxOnAnnotate = onAnnotate || null;
+    const annotateBtn = el("image-lightbox-annotate-btn");
+    if (annotateBtn) annotateBtn.hidden = !lightboxOnAnnotate;
     lightbox.classList.add("open");
 }
 function closeImageLightbox() {
     const lightbox = el("image-lightbox");
     const img = el("image-lightbox-img");
     if (!lightbox || !img) return;
+    exitLightboxDrawMode();
     lightbox.classList.remove("open");
     // Clears the src only after the fade-out transition finishes (matches app.css's own
     // .22s), not immediately - otherwise the image blinks empty mid-close instead of
@@ -1362,6 +1382,177 @@ function closeImageLightbox() {
     }, 220);
 }
 el("image-lightbox").addEventListener("click", closeImageLightbox);
+// Everything actually inside the view - the photo/canvas and both toolbars - stops its
+// click from reaching the backdrop listener above, so tapping the picture or a tool button
+// never doubles as "close this".
+["image-lightbox-media", "image-lightbox-top-bar", "image-lightbox-draw-bar"].forEach((id) => {
+    const node = el(id);
+    if (node) node.addEventListener("click", (event) => event.stopPropagation());
+});
+// In draw mode the same X cancels the drawing (back to the plain zoomed view) instead of
+// closing the whole lightbox - closeImageLightbox is only what a non-drawing tap wants.
+el("image-lightbox-close-btn").addEventListener("click", () => {
+    if (lightboxDrawing) exitLightboxDrawMode();
+    else closeImageLightbox();
+});
+
+function lightboxCanvasPoint(event, canvas) {
+    const rect = canvas.getBoundingClientRect();
+    return { x: event.clientX - rect.left, y: event.clientY - rect.top };
+}
+
+function redrawLightboxCanvas() {
+    const canvas = el("image-lightbox-canvas");
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    const dpr = window.devicePixelRatio || 1;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, canvas.width / dpr, canvas.height / dpr);
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+    lightboxStrokes.forEach((stroke) => {
+        if (stroke.points.length < 2) {
+            ctx.fillStyle = stroke.color;
+            ctx.beginPath();
+            ctx.arc(stroke.points[0].x, stroke.points[0].y, stroke.width / 2, 0, Math.PI * 2);
+            ctx.fill();
+            return;
+        }
+        ctx.strokeStyle = stroke.color;
+        ctx.lineWidth = stroke.width;
+        ctx.beginPath();
+        ctx.moveTo(stroke.points[0].x, stroke.points[0].y);
+        for (let i = 1; i < stroke.points.length; i++) ctx.lineTo(stroke.points[i].x, stroke.points[i].y);
+        ctx.stroke();
+    });
+}
+
+function updateLightboxDrawButtons() {
+    const undoBtn = el("image-lightbox-undo-btn");
+    const redoBtn = el("image-lightbox-redo-btn");
+    if (undoBtn) undoBtn.disabled = !lightboxStrokes.length;
+    if (redoBtn) redoBtn.disabled = !lightboxRedoStack.length;
+}
+
+function enterLightboxDrawMode() {
+    const img = el("image-lightbox-img");
+    const canvas = el("image-lightbox-canvas");
+    if (!img || !canvas || !img.naturalWidth) return;
+    const rect = img.getBoundingClientRect();
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = Math.round(rect.width * dpr);
+    canvas.height = Math.round(rect.height * dpr);
+    lightboxStrokes = [];
+    lightboxRedoStack = [];
+    lightboxActiveStroke = null;
+    lightboxDrawing = true;
+    el("image-lightbox").classList.add("drawing");
+    el("image-lightbox-annotate-btn").hidden = true;
+    el("image-lightbox-done-btn").hidden = false;
+    el("image-lightbox-draw-bar").hidden = false;
+    updateLightboxDrawButtons();
+    redrawLightboxCanvas();
+}
+
+function exitLightboxDrawMode() {
+    lightboxDrawing = false;
+    lightboxStrokes = [];
+    lightboxRedoStack = [];
+    lightboxActiveStroke = null;
+    const lightbox = el("image-lightbox");
+    if (lightbox) lightbox.classList.remove("drawing");
+    const annotateBtn = el("image-lightbox-annotate-btn");
+    const doneBtn = el("image-lightbox-done-btn");
+    const drawBar = el("image-lightbox-draw-bar");
+    if (annotateBtn) annotateBtn.hidden = !lightboxOnAnnotate;
+    if (doneBtn) doneBtn.hidden = true;
+    if (drawBar) drawBar.hidden = true;
+}
+
+function undoLightboxStroke() {
+    if (!lightboxStrokes.length) return;
+    lightboxRedoStack.push(lightboxStrokes.pop());
+    redrawLightboxCanvas();
+    updateLightboxDrawButtons();
+}
+function redoLightboxStroke() {
+    if (!lightboxRedoStack.length) return;
+    lightboxStrokes.push(lightboxRedoStack.pop());
+    redrawLightboxCanvas();
+    updateLightboxDrawButtons();
+}
+
+// Flattens the recorded strokes onto a full-resolution copy of the source image (not the
+// possibly-downscaled on-screen canvas) so the annotated file that gets uploaded is as
+// sharp as the original - stroke points/width are recorded in the canvas's own CSS-pixel
+// space, so they're rescaled here by the ratio between that and the image's natural size.
+function finishLightboxAnnotate() {
+    const img = el("image-lightbox-img");
+    const handler = lightboxOnAnnotate;
+    if (!img || !handler || !lightboxStrokes.length) {
+        exitLightboxDrawMode();
+        return;
+    }
+    const rect = img.getBoundingClientRect();
+    const scaleX = img.naturalWidth / rect.width;
+    const scaleY = img.naturalHeight / rect.height;
+    const out = document.createElement("canvas");
+    out.width = img.naturalWidth;
+    out.height = img.naturalHeight;
+    const octx = out.getContext("2d");
+    octx.drawImage(img, 0, 0, out.width, out.height);
+    octx.lineCap = "round";
+    octx.lineJoin = "round";
+    lightboxStrokes.forEach((stroke) => {
+        const points = stroke.points.map((p) => ({ x: p.x * scaleX, y: p.y * scaleY }));
+        const width = stroke.width * ((scaleX + scaleY) / 2);
+        if (points.length < 2) {
+            octx.fillStyle = stroke.color;
+            octx.beginPath();
+            octx.arc(points[0].x, points[0].y, width / 2, 0, Math.PI * 2);
+            octx.fill();
+            return;
+        }
+        octx.strokeStyle = stroke.color;
+        octx.lineWidth = width;
+        octx.beginPath();
+        octx.moveTo(points[0].x, points[0].y);
+        for (let i = 1; i < points.length; i++) octx.lineTo(points[i].x, points[i].y);
+        octx.stroke();
+    });
+    out.toBlob((blob) => {
+        if (blob) handler(blob);
+        closeImageLightbox();
+    }, "image/png");
+}
+
+(function setupLightboxDrawing() {
+    const canvas = el("image-lightbox-canvas");
+    if (!canvas) return;
+    canvas.addEventListener("pointerdown", (event) => {
+        if (!lightboxDrawing) return;
+        event.preventDefault();
+        canvas.setPointerCapture(event.pointerId);
+        lightboxActiveStroke = { points: [lightboxCanvasPoint(event, canvas)], color: "#ff3b30", width: 4 };
+        lightboxStrokes.push(lightboxActiveStroke);
+        lightboxRedoStack = [];
+        updateLightboxDrawButtons();
+        redrawLightboxCanvas();
+    });
+    canvas.addEventListener("pointermove", (event) => {
+        if (!lightboxDrawing || !lightboxActiveStroke) return;
+        event.preventDefault();
+        lightboxActiveStroke.points.push(lightboxCanvasPoint(event, canvas));
+        redrawLightboxCanvas();
+    });
+    const endStroke = () => { lightboxActiveStroke = null; };
+    canvas.addEventListener("pointerup", endStroke);
+    canvas.addEventListener("pointercancel", endStroke);
+    el("image-lightbox-annotate-btn").addEventListener("click", enterLightboxDrawMode);
+    el("image-lightbox-done-btn").addEventListener("click", finishLightboxAnnotate);
+    el("image-lightbox-undo-btn").addEventListener("click", undoLightboxStroke);
+    el("image-lightbox-redo-btn").addEventListener("click", redoLightboxStroke);
+})();
 
 // --- Save success overlay (Faza 14) - the same animated "circle draws in, then the
 // checkmark traces after" celebration the website's settings.html shows for its own
@@ -5350,17 +5541,35 @@ el("mysite-field-delete-confirm-confirm").addEventListener("click", () => {
         // needed.
         const staged = [];
 
+        // Replaces a staged image entry's file/preview with an annotated version (the blob
+        // finishLightboxAnnotate hands back once Send is tapped in the lightbox's draw
+        // mode) - only ever called for entries still sitting in `staged` (never-uploaded),
+        // so swapping entry.file here is enough: Send's later flushStagedAttachments()
+        // upload will pick up the marked-up copy, not the original pick.
+        function applyAnnotationToEntry(entry, blob) {
+            const oldPreviewUrl = entry.previewUrl;
+            const newPreviewUrl = URL.createObjectURL(blob);
+            const baseName = (entry.file.name || "photo").replace(/\.\w+$/, "");
+            entry.file = new File([blob], baseName + "-annotated.png", { type: "image/png" });
+            entry.previewUrl = newPreviewUrl;
+            const img = entry.chip.querySelector("img");
+            if (img) img.src = newPreviewUrl;
+            if (oldPreviewUrl) URL.revokeObjectURL(oldPreviewUrl);
+        }
+
         function stageFile(kind, file) {
             const chip = document.createElement("span");
             chip.className = "compose-attachment-chip kind-" + kind;
 
             let previewUrl = null;
+            let imgEl = null;
             if (kind === "image") {
                 previewUrl = URL.createObjectURL(file);
-                const img = document.createElement("img");
-                img.src = previewUrl;
-                img.alt = "";
-                chip.appendChild(img);
+                imgEl = document.createElement("img");
+                imgEl.src = previewUrl;
+                imgEl.alt = "";
+                imgEl.style.cursor = "zoom-in";
+                chip.appendChild(imgEl);
             } else {
                 const icon = document.createElement("span");
                 icon.className = "chip-icon";
@@ -5383,6 +5592,16 @@ el("mysite-field-delete-confirm-confirm").addEventListener("click", () => {
             }
 
             const entry = { kind, file, chip, previewUrl };
+
+            // Tapping the picked photo zooms it, same as an already-sent one - and, since
+            // this is still a local pick nothing has uploaded yet, also offers the
+            // annotate (pencil) button to mark it up before Send ever ships it.
+            if (imgEl) {
+                imgEl.addEventListener("click", (event) => {
+                    event.stopPropagation();
+                    openImageLightbox(entry.previewUrl, (blob) => applyAnnotationToEntry(entry, blob));
+                });
+            }
 
             const removeBtn = document.createElement("button");
             removeBtn.type = "button";

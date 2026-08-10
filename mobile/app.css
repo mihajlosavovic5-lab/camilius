@@ -2257,13 +2257,13 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
 .save-success-text { margin: 0; font-size: 16px; font-weight: 600; color: var(--text); }
 
 /* --- Image lightbox - zoom for a tapped attachment thumbnail (compose-attachment-list
-   chips, My Site tab). Above the toast/save-success overlay since it's a deliberate
-   full-screen view, below the mandatory OTA overlay (100) which must always win.
-   Opacity/transform-driven (not display:none) so the open/close is an actual fade+scale
-   transition, not an instant cut - pointer-events keeps it non-interactive and
-   untouchable while closed despite staying in the layout. Image itself is capped well
-   under the viewport (not edge-to-edge) so it still reads as "zoomed in on a photo" with
-   backdrop showing around it, not a second fullscreen page. */
+   chips). Above the toast/save-success overlay since it's a deliberate full-screen view,
+   below the mandatory OTA overlay (100) which must always win. Opacity/transform-driven
+   (not display:none) so the open/close is an actual fade+scale transition, not an instant
+   cut - pointer-events keeps it non-interactive and untouchable while closed despite
+   staying in the layout. Image itself is capped well under the viewport (not edge-to-edge)
+   so it still reads as "zoomed in on a photo" with backdrop showing around it, not a
+   second fullscreen page. */
 .image-lightbox {
     position: fixed; inset: 0; z-index: 95;
     background: rgba(0,0,0,.88);
@@ -2272,13 +2272,62 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
     transition: opacity .22s ease;
 }
 .image-lightbox.open { opacity: 1; pointer-events: auto; }
-.image-lightbox img {
-    max-width: 92%; max-height: 85%; border-radius: 10px;
-    box-shadow: 0 12px 40px rgba(0,0,0,.5);
+/* Wraps the image (plus, in draw mode, the canvas overlaid on it) - sized to the image's
+   own rendered box (not the full lightbox) so the canvas's inset:0 lines up with it
+   pixel-for-pixel regardless of the photo's own aspect ratio. */
+.lightbox-media {
+    position: relative; display: inline-flex; max-width: 92%; max-height: 85%;
     transform: scale(.92);
     transition: transform .22s ease;
 }
-.image-lightbox.open img { transform: scale(1); }
+.image-lightbox.open .lightbox-media { transform: scale(1); }
+.lightbox-media img {
+    max-width: 100%; max-height: 100%; width: auto; height: auto; display: block;
+    border-radius: 10px; box-shadow: 0 12px 40px rgba(0,0,0,.5);
+}
+/* Freehand drawing surface for the annotate view (openImageLightbox's onAnnotate path in
+   app.js) - sits exactly over the image but stays click-through until draw mode is
+   actually on, so plain zoom/view taps behave as before. touch-action:none stops the
+   browser's own scroll/zoom gestures from fighting a finger dragging a stroke. */
+.lightbox-canvas {
+    position: absolute; inset: 0; width: 100%; height: 100%; border-radius: 10px;
+    touch-action: none; pointer-events: none;
+}
+.image-lightbox.drawing .lightbox-canvas { pointer-events: auto; cursor: crosshair; }
+/* Close (X) / Annotate (pencil) / Send bar pinned to the top of the screen rather than
+   the image's own corner, so it stays reachable regardless of how small the photo renders.
+   X stays put in draw mode too, but switches meaning (cancel the drawing instead of
+   closing the view) while the pencil swaps out for Send - see app.js. */
+.lightbox-top-bar {
+    position: absolute; top: 0; left: 0; right: 0; z-index: 1;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: max(env(safe-area-inset-top, 0px), 14px) 14px 10px;
+}
+.lightbox-top-btn {
+    width: 36px; height: 36px; border-radius: 50%; border: none; cursor: pointer;
+    background: rgba(0,0,0,.5); color: #fff;
+    display: flex; align-items: center; justify-content: center; padding: 0; flex-shrink: 0;
+}
+.lightbox-top-btn svg { width: 18px; height: 18px; }
+.lightbox-send-btn {
+    border: none; cursor: pointer; padding: 8px 18px; border-radius: 18px;
+    background: #fff; color: #111; font-size: 14.5px; font-weight: 600; flex-shrink: 0;
+}
+.lightbox-top-btn[hidden], .lightbox-send-btn[hidden] { display: none; }
+/* Undo/redo bar for draw mode, pinned to the bottom of the screen (same reasoning as the
+   top bar) - only shown once annotate is switched on. */
+.lightbox-draw-bar {
+    position: absolute; left: 0; right: 0; bottom: 0; z-index: 1;
+    display: flex; align-items: center; justify-content: center; gap: 16px;
+    padding: 12px 14px max(env(safe-area-inset-bottom, 0px), 16px);
+}
+.lightbox-draw-btn {
+    width: 44px; height: 44px; border-radius: 50%; border: none; cursor: pointer;
+    background: rgba(255,255,255,.14); color: #fff;
+    display: flex; align-items: center; justify-content: center; padding: 0;
+}
+.lightbox-draw-btn svg { width: 20px; height: 20px; }
+.lightbox-draw-btn:disabled { opacity: .35; }
 
 /* --- Offline banner --- */
 .offline-banner {

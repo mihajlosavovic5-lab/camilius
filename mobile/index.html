@@ -41,11 +41,47 @@
 </div>
 
 <!-- Fullscreen zoom for a tapped attachment thumbnail (see the compose-attachment-list
-     chips, My Site tab) - lives outside #app for the same position:fixed reason as the
-     other overlays here. Backdrop tap closes it; the image itself doesn't (so a tap meant
-     to look closer doesn't immediately dismiss). -->
+     chips) - lives outside #app for the same position:fixed reason as the other overlays
+     here. Backdrop tap closes it; the media/toolbar content doesn't (each stops its own
+     click from bubbling), so a tap meant to look closer or use a tool doesn't immediately
+     dismiss the view. The pencil button (only shown when the caller passes an onAnnotate
+     callback - see openImageLightbox in app.js) switches to a draw mode that overlays a
+     canvas on the image for freehand markup, mirroring ChatGPT's own attachment annotate
+     view: Send swaps in for the pencil, Undo/Redo appear along the bottom, and X now
+     cancels the drawing instead of closing the whole view. -->
 <div id="image-lightbox" class="image-lightbox">
-  <img id="image-lightbox-img" src="" alt="">
+  <div class="lightbox-top-bar" id="image-lightbox-top-bar">
+    <button type="button" id="image-lightbox-close-btn" class="lightbox-top-btn" aria-label="Close">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
+        <line x1="6" y1="6" x2="18" y2="18" stroke-width="2" stroke-linecap="round"/>
+        <line x1="18" y1="6" x2="6" y2="18" stroke-width="2" stroke-linecap="round"/>
+      </svg>
+    </button>
+    <button type="button" id="image-lightbox-annotate-btn" class="lightbox-top-btn" aria-label="Draw" hidden>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
+        <path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </button>
+    <button type="button" id="image-lightbox-done-btn" class="lightbox-send-btn" hidden>Send</button>
+  </div>
+  <div class="lightbox-media" id="image-lightbox-media">
+    <img id="image-lightbox-img" src="" alt="">
+    <canvas id="image-lightbox-canvas" class="lightbox-canvas"></canvas>
+  </div>
+  <div class="lightbox-draw-bar" id="image-lightbox-draw-bar" hidden>
+    <button type="button" id="image-lightbox-undo-btn" class="lightbox-draw-btn" aria-label="Undo" disabled>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
+        <path d="M9 14 4 9l5-5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M4 9h10.5A5.5 5.5 0 0 1 20 14.5a5.5 5.5 0 0 1-5.5 5.5H11" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </button>
+    <button type="button" id="image-lightbox-redo-btn" class="lightbox-draw-btn" aria-label="Redo" disabled>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
+        <path d="M15 14l5-5-5-5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M20 9H9.5A5.5 5.5 0 0 0 4 14.5 5.5 5.5 0 0 0 9.5 20H13" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </button>
+  </div>
 </div>
 
 <div id="update-banner" class="update-banner hidden">
