@@ -1,5 +1,5 @@
 <!doctype html>
-<html data-bundle-version="3e9e317d78f0" lang="en">
+<html data-bundle-version="1285eb59c393" lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
@@ -16,7 +16,7 @@
 <link rel="preload" href="fonts/lora-latin-ext.woff2?v=e8c32fe92ded" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="fonts/familjen-grotesk-latin.woff2?v=e8c32fe92ded" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="fonts/familjen-grotesk-latin-ext.woff2?v=e8c32fe92ded" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="app.css?v=3e9e317d78f0">
+<link rel="stylesheet" href="app.css?v=1285eb59c393">
 </head>
 <body>
 
@@ -268,10 +268,26 @@
 <div id="mysite-field-modal" class="lang-modal">
   <div class="lang-modal-backdrop" id="mysite-field-modal-backdrop"></div>
   <div class="lang-modal-sheet book-modal-sheet mysite-field-modal-sheet">
+    <button type="button" class="mysite-field-modal-delete-btn" id="mysite-field-modal-delete-btn" aria-label="Delete text">&times;</button>
     <div class="book-modal-title" id="mysite-field-modal-title"></div>
     <div class="mysite-field-modal-body">
       <input type="text" id="mysite-field-modal-input" class="mysite-field-modal-control" autocapitalize="off" autocorrect="off">
       <textarea id="mysite-field-modal-textarea" class="mysite-field-modal-control hidden" rows="1"></textarea>
+    </div>
+  </div>
+</div>
+
+<!-- Delete-this-text confirm (My Site tab's Web address/Headline/About editor) - same
+     .lang-modal confirm pattern as logout-confirm-modal above, opened by the small red
+     "x" badge on mysite-field-modal's sheet instead of clearing the field on the first
+     tap. See mysite-field-modal-delete-btn's click handler in app.js. -->
+<div id="mysite-field-delete-confirm-modal" class="lang-modal">
+  <div class="lang-modal-backdrop" id="mysite-field-delete-confirm-backdrop"></div>
+  <div class="lang-modal-sheet confirm-modal-sheet">
+    <p class="confirm-modal-message" data-i18n="mysite.fieldModal.deleteConfirm">Are you sure you want to delete this text?</p>
+    <div class="confirm-modal-actions">
+      <button type="button" class="button button-secondary" id="mysite-field-delete-confirm-cancel" data-i18n="mysite.fieldModal.cancel">Cancel</button>
+      <button type="button" class="button button-danger" id="mysite-field-delete-confirm-confirm" data-i18n="mysite.fieldModal.delete">Delete</button>
     </div>
   </div>
 </div>
@@ -1571,8 +1587,8 @@
   </button>
 </nav>
 
-<script src="i18n.js?v=3e9e317d78f0"></script>
-<script src="hours-picker.js?v=3e9e317d78f0"></script>
-<script src="app.js?v=3e9e317d78f0"></script>
+<script src="i18n.js?v=1285eb59c393"></script>
+<script src="hours-picker.js?v=1285eb59c393"></script>
+<script src="app.js?v=1285eb59c393"></script>
 </body>
 </html>

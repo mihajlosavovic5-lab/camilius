@@ -5057,6 +5057,23 @@ Object.keys(MYSITE_FIELD_MODAL_FIELDS).forEach((fieldId) => {
     el(fieldId).addEventListener("click", () => openMysiteFieldModal(fieldId));
 });
 
+// Delete badge (top-right of the sheet) - same Cancel/Delete confirm pattern as
+// closeLogoutConfirmModal/settings-logout above, just clearing whichever field this
+// modal currently has open (mysiteFieldModalTargetId) instead of logging out.
+function closeMysiteFieldDeleteConfirmModal() {
+    el("mysite-field-delete-confirm-modal").classList.remove("open");
+}
+el("mysite-field-modal-delete-btn").addEventListener("click", () => {
+    el("mysite-field-delete-confirm-modal").classList.add("open");
+});
+el("mysite-field-delete-confirm-backdrop").addEventListener("click", closeMysiteFieldDeleteConfirmModal);
+el("mysite-field-delete-confirm-cancel").addEventListener("click", closeMysiteFieldDeleteConfirmModal);
+el("mysite-field-delete-confirm-confirm").addEventListener("click", () => {
+    closeMysiteFieldDeleteConfirmModal();
+    mysiteFieldModalActiveControl().value = "";
+    mysiteFieldModalSync();
+});
+
 // "Draft this with AI" chat (Faza 16) - see screen-website-chat in index.html and
 // website_assistant.py's module docstring for the persona/scope this is restricted to.
 // Tapping anywhere on the My Site tab's compose card (id="mysite-draft-card", above)
