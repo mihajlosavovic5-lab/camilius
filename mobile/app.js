@@ -5053,6 +5053,13 @@ mysiteSyncDomainCheckBtnVisibility();
         photosInput.addEventListener("change", () => handlePicked(photosInput));
         filesInput.addEventListener("change", () => handlePicked(filesInput));
 
+        // A tap here would otherwise blur the compose textarea first (its default
+        // mousedown behavior), dismissing the keyboard and shrinking the WebView's
+        // viewport back down before the click that opens the sheet even fires - the
+        // whole bar visibly drops, THEN the sheet appears a beat later. Blocking that
+        // default keeps focus (and the keyboard, and the bar's current position) exactly
+        // where it was, so the sheet opens immediately in place instead.
+        attachBtn.addEventListener("mousedown", (event) => event.preventDefault());
         // While the mic is recording, this same button is a cancel (X) instead - the send
         // button already covers "stop and use" (see stopRecordingIfActive below), so this
         // is deliberately the other exit: stop and throw away everything recorded so far.
