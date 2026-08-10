@@ -1075,9 +1075,9 @@ def api_get_page():
 
     # A Design pick made before this business ever saved a page (see api_save_page's
     # blank-slug branch below) - top-level, not nested in `page`, since `page` staying
-    # None when no page exists yet is relied on elsewhere (app.js's mysite-website-preview/
-    # mysite-view-site-link visibility). Always present in the response, even once a real
-    # page exists, for a uniform shape - app.js only reads these while page is still None.
+    # None when no page exists yet is relied on elsewhere (app.js's mysite-website-preview
+    # visibility). Always present in the response, even once a real page exists, for a
+    # uniform shape - app.js only reads these while page is still None.
     return jsonify(
         page=page,
         upcoming_appointments=upcoming_appointments,

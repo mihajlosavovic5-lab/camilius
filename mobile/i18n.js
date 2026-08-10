@@ -368,7 +368,6 @@ const TRANSLATIONS = {
         "mysite.website.slugRequired": "Add a web address above so this change can be saved.",
         "mysite.website.taglineLabel": "Headline",
         "mysite.website.title": "Your website",
-        "mysite.website.view": "View your live site",
         "mysite.website.viewPage": "View page",
         "settings.page.design": "Design",
         "onboarding.describe.micError": "Couldn't access the microphone - check your permissions and try again.",
@@ -748,7 +747,6 @@ const TRANSLATIONS = {
         "mysite.website.slugRequired": "Unesi web adresu iznad da bi ova izmena mogla da se sačuva.",
         "mysite.website.taglineLabel": "Naslov",
         "mysite.website.title": "Tvoj sajt",
-        "mysite.website.view": "Pogledaj svoj aktivni sajt",
         "mysite.website.viewPage": "Pogledaj stranicu",
         "settings.page.design": "Dizajn",
         "onboarding.describe.micError": "Nije moguć pristup mikrofonu - proveri dozvole i pokušaj ponovo.",
@@ -1119,7 +1117,6 @@ const TRANSLATIONS = {
         "mysite.website.slugRequired": "Agrega una dirección web arriba para poder guardar este cambio.",
         "mysite.website.taglineLabel": "Titular",
         "mysite.website.title": "Tu sitio web",
-        "mysite.website.view": "Ver tu sitio en vivo",
         "mysite.website.viewPage": "Ver página",
     },
     pt: {
@@ -1450,7 +1447,6 @@ const TRANSLATIONS = {
         "mysite.website.slugRequired": "Adicione um endereço do site acima para que essa alteração possa ser salva.",
         "mysite.website.taglineLabel": "Título",
         "mysite.website.title": "Seu site",
-        "mysite.website.view": "Ver seu site ao vivo",
         "mysite.website.viewPage": "Ver página",
     },
     fr: {
@@ -1781,7 +1777,6 @@ const TRANSLATIONS = {
         "mysite.website.slugRequired": "Ajoutez une adresse web ci-dessus pour que cette modification puisse être enregistrée.",
         "mysite.website.taglineLabel": "Titre",
         "mysite.website.title": "Votre site",
-        "mysite.website.view": "Voir votre site en ligne",
         "mysite.website.viewPage": "Voir la page",
     },
     de: {
@@ -2112,7 +2107,6 @@ const TRANSLATIONS = {
         "mysite.website.slugRequired": "Füge oben eine Webadresse hinzu, damit diese Änderung gespeichert werden kann.",
         "mysite.website.taglineLabel": "Überschrift",
         "mysite.website.title": "Deine Website",
-        "mysite.website.view": "Deine Live-Website ansehen",
         "mysite.website.viewPage": "Seite ansehen",
     },
     it: {
@@ -2443,7 +2437,6 @@ const TRANSLATIONS = {
         "mysite.website.slugRequired": "Aggiungi un indirizzo web sopra per poter salvare questa modifica.",
         "mysite.website.taglineLabel": "Titolo",
         "mysite.website.title": "Il tuo sito",
-        "mysite.website.view": "Visualizza il tuo sito online",
         "mysite.website.viewPage": "Visualizza pagina",
     },
     ru: {
@@ -2774,7 +2767,6 @@ const TRANSLATIONS = {
         "mysite.website.slugRequired": "Добавьте веб-адрес выше, чтобы это изменение можно было сохранить.",
         "mysite.website.taglineLabel": "Заголовок",
         "mysite.website.title": "Ваш сайт",
-        "mysite.website.view": "Посмотреть ваш сайт",
         "mysite.website.viewPage": "Просмотреть страницу",
     },
     zh: {
@@ -3105,7 +3097,6 @@ const TRANSLATIONS = {
         "mysite.website.slugRequired": "请在上方添加网址,才能保存此更改。",
         "mysite.website.taglineLabel": "标题",
         "mysite.website.title": "您的网站",
-        "mysite.website.view": "查看您的实时网站",
         "mysite.website.viewPage": "查看页面",
     },
     tr: {
@@ -3436,7 +3427,6 @@ const TRANSLATIONS = {
         "mysite.website.slugRequired": "Bu değişikliğin kaydedilebilmesi için yukarıya bir web adresi ekleyin.",
         "mysite.website.taglineLabel": "Başlık",
         "mysite.website.title": "Web siteniz",
-        "mysite.website.view": "Canlı sitenizi görüntüleyin",
         "mysite.website.viewPage": "Sayfayı görüntüle",
     },
 };

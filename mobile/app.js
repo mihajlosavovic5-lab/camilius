@@ -4461,15 +4461,12 @@ async function loadMySite() {
         state.mysiteHasPage = !!page;
 
         el("mysite-view-page-btn").classList.toggle("hidden", !page);
-        el("mysite-view-site-link").classList.toggle("hidden", !(page && page.published));
         // Cached (along with hasAppointments below) so next launch can show this section
         // in its right shape right away instead of waiting on this same fetch every time -
         // same reasoning as pageTheme/donationLink above it in the boot sequence. Without
-        // this, the "View your live site" button and the appointments card both pop in a
-        // moment later, shoving the whole rest of the screen down after it already looks
-        // fully loaded.
+        // this, the appointments card pops in a moment later, shoving the whole rest of
+        // the screen down after it already looks fully loaded.
         storageSet("mysiteHasPage", page ? "1" : "").catch(() => {});
-        storageSet("mysitePublished", page && page.published ? "1" : "").catch(() => {});
         if (page) {
             el("mysite-slug").value = page.slug || "";
             mysiteSyncDomainCheckBtnVisibility();
@@ -4485,9 +4482,6 @@ async function loadMySite() {
             storageSet("mysiteTagline", page.tagline || "").catch(() => {});
             storageSet("mysiteAbout", page.about || "").catch(() => {});
             storageSet("mysiteChosenDomain", page.pending_custom_domain || "").catch(() => {});
-            if (page.published) {
-                el("mysite-view-site-link").href = `${API_BASE}/p/${page.slug}`;
-            }
             mysitePopulateThemeSelect(page.theme);
             storageSet("pageTheme", page.theme || "warm").catch(() => {});
             mysiteSelectedCustomTheme = page.theme === "custom" && page.custom_theme_json ? JSON.parse(page.custom_theme_json) : null;
@@ -5475,7 +5469,7 @@ function waitForLayoutSettle() {
 updateOfflineBanner();
 
 (async () => {
-    const [token, businessName, onboardingSeen, theme, donationLink, pageTheme, mysiteHasPage, mysiteHasAppointments, mysitePublished, mysiteSlug, mysiteTagline, mysiteAbout, mysiteChosenDomainCached, googleLoginPendingState] = await Promise.all([
+    const [token, businessName, onboardingSeen, theme, donationLink, pageTheme, mysiteHasPage, mysiteHasAppointments, mysiteSlug, mysiteTagline, mysiteAbout, mysiteChosenDomainCached, googleLoginPendingState] = await Promise.all([
         storageGet("token"),
         storageGet("businessName"),
         storageGet("onboardingSeen"),
@@ -5484,7 +5478,6 @@ updateOfflineBanner();
         storageGet("pageTheme"),
         storageGet("mysiteHasPage"),
         storageGet("mysiteHasAppointments"),
-        storageGet("mysitePublished"),
         storageGet("mysiteSlug"),
         storageGet("mysiteTagline"),
         storageGet("mysiteAbout"),
@@ -5517,8 +5510,6 @@ updateOfflineBanner();
     state.mysiteHasPage = mysiteHasPage === "1";
     el("mysite-appointments-card").classList.toggle("hidden", !mysiteHasAppointments);
     el("mysite-view-page-btn").classList.toggle("hidden", !state.mysiteHasPage);
-    el("mysite-view-site-link").classList.toggle("hidden", !mysitePublished);
-    if (mysitePublished && mysiteSlug) el("mysite-view-site-link").href = `${API_BASE}/p/${mysiteSlug}`;
     // Same reasoning again - fills in the Web address/Headline/About fields themselves
     // from last launch's cache instead of leaving them empty until loadMySite()'s fetch
     // resolves a couple seconds later. Corrected by that same fetch moments later if the
