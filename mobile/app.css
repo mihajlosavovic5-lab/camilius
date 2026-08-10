@@ -284,6 +284,29 @@ button { font-family: inherit; -webkit-appearance: none; appearance: none; }
 .detail-sender { font-weight: 700; font-size: 16px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .detail-time { color: var(--text-muted); font-size: 13px; }
 
+/* Colored page-title bar - the 4 tab roots (Home/Schedule/Profile/Settings) plus the
+   "Draft this with AI" chat's own Camilius header get a solid brand-gradient band
+   instead of sitting transparent over the screen's own light cream wash (see .topbar's
+   own comment above) - their titles are white now, which needs a dark-enough background
+   to actually read against. Same amber gradient buttons/user chat bubbles already use
+   elsewhere, for consistency, rather than inventing a second brand gradient. Scoped to
+   just these five screens (via their own .screen-* class) - every other back-button
+   detail screen (Help, Subscription, Delete account, ...) keeps the plain transparent bar. */
+.screen-mysite .topbar,
+.screen-schedule .topbar,
+.screen-profile .topbar,
+.screen-settings .topbar,
+.screen-website-chat .topbar {
+    background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+}
+.screen-mysite .topbar-title h1,
+.screen-schedule .topbar-title h1,
+.screen-profile .topbar-title h1,
+.screen-settings .topbar-title h1,
+.screen-website-chat .topbar-title h1 {
+    color: #fff;
+}
+
 /* Every back button fades + slides into place as its screen becomes active - the same
    appear effect as the login screen's own .login-email-back-btn (see its comment further
    down) - instead of just snapping in with whatever the rest of the topbar does. Base
