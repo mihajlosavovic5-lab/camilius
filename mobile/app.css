@@ -1951,6 +1951,15 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
    About textarea (which already fills close to its own natural height), the two
    fields reading inconsistently instead of alike. Plain margin-top keeps that gap the
    same fixed distance under the title for every field. */
+/* --primary-light is the app's own warm cream tone (the top of the screen gradient,
+   the selected-row/active-state highlight elsewhere) - using it here instead of the
+   plain white every other modal sheet gets makes this one feel like part of the app's
+   own palette rather than a generic system dialog. Automatically follows dark mode too
+   (it resolves to a warm dark brown there, same as everywhere else that reads it) since
+   it's the same variable, not a hardcoded color. The input/textarea inside keeps its
+   own plain --surface white, so the value still reads as a distinct field floating on
+   the cream card instead of blending into it. */
+.mysite-field-modal-sheet { background: var(--primary-light); }
 .mysite-field-modal-sheet .book-modal-title { text-align: center; }
 .mysite-field-modal-body { margin-top: 14px; }
 .mysite-field-modal-control { width: 100%; text-align: center; }
