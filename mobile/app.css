@@ -285,13 +285,9 @@ button { font-family: inherit; -webkit-appearance: none; appearance: none; }
 .detail-time { color: var(--text-muted); font-size: 13px; }
 
 /* White page titles - the 4 tab roots (Home/Schedule/Profile/Settings) plus the "Draft
-   this with AI" chat's own Camilius header. .topbar itself stays transparent (no colored
-   band behind it, unlike an earlier version of this - reverted, the amber block read as
-   a bolted-on slab rather than part of the page), so white alone would nearly vanish
-   against the screen's own light cream wash - a thin dark outline (text-stroke, with a
-   layered text-shadow fallback for engines that ignore -webkit-text-stroke) keeps the
-   letterforms readable without needing a background at all. Scoped to just these five
-   screens (via their own .screen-* class) - every other back-button detail screen (Help,
+   this with AI" chat's own Camilius header. Plain white, no outline/background - tried
+   both of those first and neither one stuck. Scoped to just these five screens (via
+   their own .screen-* class) - every other back-button detail screen (Help,
    Subscription, Delete account, ...) keeps its own dark title text. */
 .screen-mysite .topbar-title h1,
 .screen-schedule .topbar-title h1,
@@ -300,8 +296,6 @@ button { font-family: inherit; -webkit-appearance: none; appearance: none; }
 .screen-website-chat .topbar-title h1 {
     color: #fff;
     font-size: 28px;
-    -webkit-text-stroke: 1px rgba(0, 0, 0, .75);
-    text-shadow: -1px -1px 0 rgba(0, 0, 0, .55), 1px -1px 0 rgba(0, 0, 0, .55), -1px 1px 0 rgba(0, 0, 0, .55), 1px 1px 0 rgba(0, 0, 0, .55);
 }
 
 /* Every back button fades + slides into place as its screen becomes active - the same
