@@ -1960,16 +1960,22 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
    own plain --surface white, so the value still reads as a distinct field floating on
    the cream card instead of blending into it. */
 .mysite-field-modal-sheet { background: var(--primary-light); }
-/* Same white-with-black-outline treatment as the five screen-root page titles above
+/* Same white-with-black-outline idea as the five screen-root page titles above
    (.screen-mysite .topbar-title h1 etc.) - this modal's title (Web address/Headline/
    About) sits on the same warm cream .mysite-field-modal-sheet background, so plain
    dark text would look inconsistent right next to those, and plain white alone would
-   wash out the same way it did there before the outline was added. */
+   wash out the same way it did there before the outline was added. Not literally the
+   same values though: that rule's 1px stroke + four hard 1px-offset shadow copies was
+   tuned for its 28px font. Reused verbatim at this title's much smaller 17.5px, the
+   stroke ate a much bigger share of each letterform and the four un-blurred shadow
+   copies (each a full duplicate of the glyph, offset a diagonal pixel) stopped
+   reading as one edge and smeared into a visibly doubled outline instead - a single
+   soft (blurred) shadow behind a thinner stroke keeps one crisp edge instead. */
 .mysite-field-modal-sheet .book-modal-title {
     text-align: center;
     color: #fff;
-    -webkit-text-stroke: 1px rgba(0, 0, 0, .75);
-    text-shadow: -1px -1px 0 rgba(0, 0, 0, .55), 1px -1px 0 rgba(0, 0, 0, .55), -1px 1px 0 rgba(0, 0, 0, .55), 1px 1px 0 rgba(0, 0, 0, .55);
+    -webkit-text-stroke: 0.6px rgba(0, 0, 0, .8);
+    text-shadow: 0 0.5px 1.5px rgba(0, 0, 0, .5);
 }
 .mysite-field-modal-body { margin-top: 14px; }
 .mysite-field-modal-control { width: 100%; text-align: center; }
