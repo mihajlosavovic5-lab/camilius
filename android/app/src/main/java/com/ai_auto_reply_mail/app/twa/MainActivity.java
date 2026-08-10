@@ -180,18 +180,40 @@ public class MainActivity extends BridgeActivity {
     // exact unwanted "keyboard visibly closes when the popup merely opens" side effect an
     // earlier attempt at this fix had and was reverted for.
     //
-    // Called from OverlayStatePlugin the instant it hears about that blur (open == true),
-    // this re-asserts the IME back open via WindowInsetsControllerCompat before that hide
-    // ever renders - Android's insets animation system is built to let a show() cleanly
-    // interrupt an already-in-flight hide(). Only acts if the IME was ALREADY showing (never
-    // pops the keyboard open for a popup that had none showing behind it), so every other
-    // popup/sheet/lightbox with no focused field behind it is completely unaffected.
+    // Fallback for callers with no synchronous way of already knowing the keyboard was up
+    // (every popup/sheet/lightbox EXCEPT the attach sheet - see OverlayStatePlugin's own
+    // comment on the forceKeyboard flag) - re-asserts the IME back open via
+    // WindowInsetsControllerCompat, but only if it reads as still showing right now.
+    // Querying current state like this is exactly the race that made forceShowIme() below
+    // necessary in the first place: by the time this runs (after a MutationObserver
+    // round trip, not called synchronously alongside whatever blurred the field), a
+    // hide already in flight may have already completed, in which case there's nothing
+    // left to interrupt and this silently does nothing - acceptable here since these
+    // other popups were never confirmed to have a keyboard behind them to begin with,
+    // unlike the attach sheet's own dedicated, unconditional path.
     void keepImeVisibleIfShowing() {
         if (getBridge() == null || getBridge().getWebView() == null) return;
         View root = getBridge().getWebView();
         WindowInsetsCompat insets = ViewCompat.getRootWindowInsets(root);
         if (insets != null && insets.isVisible(WindowInsetsCompat.Type.ime())) {
-            new WindowInsetsControllerCompat(getWindow(), root).show(WindowInsetsCompat.Type.ime());
+            forceShowIme();
         }
+    }
+
+    // Re-asserts the IME back open via WindowInsetsControllerCompat unconditionally - no
+    // current-state check, since the caller (OverlayStatePlugin, forceKeyboard == true)
+    // already established synchronously, before blurring anything, that the keyboard was
+    // up. On-device testing found the current-state check (keepImeVisibleIfShowing()
+    // above) an unreliable race for this specific path: correct the first time a given
+    // popup opened over the keyboard in a session, but intermittently reading the IME as
+    // already hidden (and so doing nothing) on a later open, once the round trip through
+    // the MutationObserver-based sync happened to land after Android's own hide animation
+    // had already finished. Calling this directly and synchronously from openAttachSheet()
+    // instead - immediately alongside its own blur(), not waiting on that observer - both
+    // tightens the timing window and removes the racy read entirely.
+    void forceShowIme() {
+        if (getBridge() == null || getBridge().getWebView() == null) return;
+        View root = getBridge().getWebView();
+        new WindowInsetsControllerCompat(getWindow(), root).show(WindowInsetsCompat.Type.ime());
     }
 }

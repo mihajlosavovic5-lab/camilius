@@ -28,11 +28,24 @@ public class OverlayStatePlugin extends Plugin {
         boolean open = call.getBoolean("open", false);
         MainActivity activity = (MainActivity) getActivity();
         activity.overlayOpen = open;
-        // Only on the open transition - see MainActivity.keepImeVisibleIfShowing()'s own
-        // comment for why a popup opening (app.js's openAttachSheet() blurring the compose
-        // input) needs this, and why closing never does.
         if (open) {
-            activity.keepImeVisibleIfShowing();
+            // forceKeyboard (app.js's openAttachSheet(), called directly and synchronously
+            // right alongside its own blur() - not this generic, MutationObserver-delayed
+            // path) means the caller already knows, from its own synchronous DOM check
+            // taken the instant before it blurred the field, that the keyboard was up -
+            // so this unconditionally shows it back rather than re-querying current
+            // WindowInsets state (see MainActivity.keepImeVisibleIfShowing()'s own comment
+            // for why that query is a race that on-device testing showed losing
+            // intermittently: correct on a popup's first open in a session, silently
+            // failing to restore the keyboard on a later one). Every other caller (the
+            // generic syncOverlayOpenState observer, for every other popup/sheet/
+            // lightbox) has no such synchronous signal to go on, so it keeps using the
+            // safer, insets-state-checked fallback.
+            if (call.getBoolean("forceKeyboard", false)) {
+                activity.forceShowIme();
+            } else {
+                activity.keepImeVisibleIfShowing();
+            }
         }
         call.resolve();
     }

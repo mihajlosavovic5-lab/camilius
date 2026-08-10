@@ -5207,12 +5207,25 @@ Object.keys(MYSITE_FIELD_MODAL_FIELDS).forEach((fieldId) => {
             // needing a second press to close this sheet. An earlier attempt did the same
             // blur() and fixed that, but got reverted because blurring alone also let the
             // keyboard visibly hide the instant this sheet opens, an unrelated side effect
-            // neither opening nor closing the sheet was meant to cause. OverlayStatePlugin.
-            // setOverlayOpen (native) now re-asserts the IME back open via
-            // WindowInsetsController the moment it hears about this blur through the
-            // syncOverlayOpenState MutationObserver below, before that hide ever renders.
+            // neither opening nor closing the sheet was meant to cause.
             blurredForSheet = document.activeElement === input;
-            if (blurredForSheet) input.blur();
+            if (!blurredForSheet) return;
+            input.blur();
+            // Calls native directly and synchronously here, right alongside the blur() above
+            // - rather than waiting on the generic syncOverlayOpenState MutationObserver
+            // below (which also ends up firing once it sees this sheet's own "open" class
+            // land, redundantly but harmlessly) - because on-device testing found that extra
+            // tick of delay was an actual race: MainActivity.forceShowIme() (see its own
+            // comment) needs to re-assert the IME back open before Android's own hide
+            // animation (which this blur() just triggered) finishes, and waiting on the
+            // MutationObserver sometimes lost that race on a popup's second or later open in
+            // a session, even though the very first open in a session was reliably fine.
+            // forceKeyboard tells native to show() unconditionally instead of re-checking
+            // current IME visibility (see OverlayStatePlugin's own comment for why that
+            // check is itself the same race, just moved one layer down).
+            if (isNative && capacitorPlugins.OverlayState) {
+                capacitorPlugins.OverlayState.setOverlayOpen({ open: true, forceKeyboard: true }).catch(() => {});
+            }
         }
         function closeAttachSheet() {
             if (sheet) sheet.classList.remove("open");
