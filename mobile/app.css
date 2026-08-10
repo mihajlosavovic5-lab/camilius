@@ -2015,11 +2015,11 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
     :root {
         --primary: #e8a416;
         --primary-dark: #c78b0f;
-        --primary-light: #3a2f14;
+        --primary-light: #2e2617;
         --primary-ink: #f2b93f;
-        --background: #17140f;
-        --surface: #221d15;
-        --border: #362e21;
+        --background: #110f0d;
+        --surface: #1c1a16;
+        --border: #302c26;
         --text: #f2ece0;
         --text-muted: #a89a80;
         --success: #7fb768;
@@ -2042,11 +2042,11 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
 :root[data-theme="dark"] {
     --primary: #e8a416;
     --primary-dark: #c78b0f;
-    --primary-light: #3a2f14;
+    --primary-light: #2e2617;
     --primary-ink: #f2b93f;
-    --background: #17140f;
-    --surface: #221d15;
-    --border: #362e21;
+    --background: #110f0d;
+    --surface: #1c1a16;
+    --border: #302c26;
     --text: #f2ece0;
     --text-muted: #a89a80;
     --success: #7fb768;
