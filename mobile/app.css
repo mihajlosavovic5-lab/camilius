@@ -922,10 +922,11 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
 .settings-row-stack { flex-direction: column; align-items: stretch; gap: 10px; cursor: default; }
 .settings-row-stack:active { background: none; }
 /* Toggle-only row (e.g. My Site's "Publish this page") - tapping anywhere on the row,
-   not just the small switch itself, now flips it too (see the .settings-row click
-   delegation in app.js), so it earns the same press highlight every other
-   .settings-row already gets instead of the "nothing happens here" opt-out this used
-   to be. */
+   not just the small switch itself, flips it too (see the .settings-row click
+   delegation in app.js), but darkening the whole row on press read as a stray,
+   unexplained flash rather than real feedback; the switch's own thumb/track
+   animation plus its press pulse are already the feedback. */
+.settings-row-toggle:active { background: none; }
 
 /* --- Pro-only feature lock (Faza 11) - a Starter-plan/lapsed business sees the row/
    field but can't turn it on, same "visible but disabled" treatment as the website's
