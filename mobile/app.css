@@ -1951,6 +1951,7 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
    pinned at the top of a mostly-empty box, it reads as centered in the field like the
    title suggested. A long value simply grows the row past that minimum, same as it
    would without the centering. */
+.mysite-field-modal-sheet .book-modal-title { text-align: center; }
 .mysite-field-modal-body { margin-top: 14px; min-height: 96px; display: flex; align-items: center; }
 .mysite-field-modal-control { width: 100%; text-align: center; }
 /* Height is set by mysiteFieldModalAutoGrowTextarea (app.js) to match the actual value -
