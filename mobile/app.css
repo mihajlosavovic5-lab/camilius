@@ -900,6 +900,11 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
     font-size: 16px; cursor: pointer;
 }
 .settings-row:active { background: var(--background); }
+/* The language row opens the picker modal centered on screen rather than navigating
+   anywhere in place - the full-width press highlight below it (.settings-row:active
+   above) had nothing to visually connect to by the time that modal appeared, reading
+   as a stray box flashing under the row rather than real feedback. */
+#settings-language-row:active { background: none; }
 .settings-row-value { display: inline-flex; align-items: center; gap: 4px; color: var(--text-muted); font-size: 15px; }
 .settings-language-value { white-space: nowrap; }
 .settings-row-chevron { color: var(--text-muted); font-size: 19px; }
