@@ -4788,7 +4788,66 @@ async function mysiteCheckDomains(baseName) {
         errorBox.classList.remove("hidden");
     }
 }
-el("mysite-domain-check-btn").addEventListener("click", () => mysiteCheckDomains(el("mysite-slug").value.trim()));
+
+// The Check button's actual current job (mysiteCheckDomains above - real, purchasable
+// internet domains via Dynadot/RDAP - is unused for now, see mobile/index.html's own
+// comment on the now-hidden purchase UI): whether `slug` is free as THIS platform's own
+// /p/<slug> address. A plain database lookup on our own side (see /api/check-slug ->
+// pages.slug_is_available), nothing external, nothing to ever pay for - reuses the same
+// checkmark/pick-list UI language as mysiteCheckDomains purely for consistency, not
+// because the two features are related. Picking a suggestion here writes straight into
+// mysite-slug itself (there's no separate "chosen" value to track, unlike a purchasable
+// domain) - the owner still has to hit Save/Publish same as if they'd typed it themselves.
+async function mysiteCheckSlug(slug) {
+    if (!slug) return;
+    const btn = el("mysite-domain-check-btn");
+    const resultsList = el("mysite-domain-check-results");
+    const errorBox = el("mysite-domain-check-error");
+    if (!btn || !resultsList || !errorBox) return;
+    errorBox.classList.add("hidden");
+    resultsList.innerHTML = "";
+    btn.disabled = true;
+    btn.classList.remove("field-inline-btn-success");
+    const idleLabel = t(btn.getAttribute("data-i18n")) || btn.textContent;
+    btn.innerHTML = '<span class="field-inline-btn-dots"><span></span><span></span><span></span></span>';
+    try {
+        const data = await api("/api/check-slug", { method: "POST", body: { slug } });
+        if (data.available) {
+            mysiteFinishDomainCheck(btn);
+            return;
+        }
+        (data.suggestions || []).forEach((candidate) => {
+            const row = document.createElement("div");
+            row.className = "mysite-domain-row";
+
+            const name = document.createElement("span");
+            name.className = "mysite-domain-name";
+            name.textContent = candidate;
+            row.appendChild(name);
+
+            const chooseBtn = document.createElement("button");
+            chooseBtn.type = "button";
+            chooseBtn.className = "mysite-domain-choose-btn";
+            chooseBtn.textContent = t("mysite.website.domainChoose") || "Choose";
+            chooseBtn.addEventListener("click", () => {
+                resultsList.innerHTML = "";
+                el("mysite-slug").value = candidate;
+                mysiteFinishDomainCheck(btn);
+            });
+            row.appendChild(chooseBtn);
+
+            resultsList.appendChild(row);
+        });
+        btn.disabled = false;
+        btn.textContent = idleLabel;
+    } catch (err) {
+        btn.disabled = false;
+        btn.textContent = idleLabel;
+        errorBox.textContent = (err && err.message) || t("mysite.website.checkDomainsError") || t("network.error");
+        errorBox.classList.remove("hidden");
+    }
+}
+el("mysite-domain-check-btn").addEventListener("click", () => mysiteCheckSlug(el("mysite-slug").value.trim()));
 
 // Hidden until the field actually has something to check - same reasoning as the
 // password-toggle eye icon, so it isn't sitting there inert over an empty field. Not

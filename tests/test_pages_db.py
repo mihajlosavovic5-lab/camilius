@@ -96,6 +96,65 @@ def test_suggest_available_slug_excludes_own_business(client, unique_email):
     assert result == own_slug
 
 
+# --- pages.slug_is_available / suggest_slug_alternatives (settings.html/mobile's "Check"
+# button - THIS platform's own /p/<slug> address, never a real internet domain) ---
+
+def test_slug_is_available_true_for_an_unclaimed_slug():
+    assert pages.slug_is_available(f"free-{uuid.uuid4().hex[:8]}") is True
+
+
+def test_slug_is_available_false_once_another_business_claims_it(client, unique_email):
+    _, business_id = register_and_login(client, unique_email)
+    slug = f"taken-{uuid.uuid4().hex[:8]}"
+    database.upsert_business_page(business_id, slug, True, None, None)
+
+    assert pages.slug_is_available(slug) is False
+
+
+def test_slug_is_available_true_for_the_owning_businesss_own_slug(client, unique_email):
+    _, business_id = register_and_login(client, unique_email)
+    slug = f"mine-{uuid.uuid4().hex[:8]}"
+    database.upsert_business_page(business_id, slug, True, None, None)
+
+    assert pages.slug_is_available(slug, exclude_business_id=business_id) is True
+
+
+def test_suggest_slug_alternatives_returns_free_numbered_variants(client, unique_email):
+    _, business_id = register_and_login(client, unique_email)
+    base = f"taken-{uuid.uuid4().hex[:8]}"
+    database.upsert_business_page(business_id, base, True, None, None)
+
+    suggestions = pages.suggest_slug_alternatives(base)
+    assert len(suggestions) == 3
+    assert len(set(suggestions)) == 3
+    for s in suggestions:
+        assert s.startswith(base)
+        assert pages.is_valid_slug(s)
+        assert pages.slug_is_available(s)
+
+
+def test_suggest_slug_alternatives_skips_variants_already_taken(client, unique_email):
+    _, business_id = register_and_login(client, unique_email)
+    base = f"popular-{uuid.uuid4().hex[:8]}"
+    database.upsert_business_page(business_id, base, True, None, None)
+    other_email = f"other-{unique_email}"
+    _, other_business_id = register_and_login(client, other_email)
+    database.upsert_business_page(other_business_id, f"{base}-2", True, None, None)
+
+    suggestions = pages.suggest_slug_alternatives(base)
+    assert f"{base}-2" not in suggestions
+    assert len(suggestions) == 3
+
+
+def test_suggest_slug_alternatives_respects_the_fifty_char_ceiling():
+    base = "a" * 50
+    suggestions = pages.suggest_slug_alternatives(base)
+    assert len(suggestions) == 3
+    for s in suggestions:
+        assert len(s) <= 50
+        assert pages.is_valid_slug(s)
+
+
 # --- database.py: business_pages CRUD ---
 
 def test_get_business_page_returns_none_when_never_saved(client, unique_email):

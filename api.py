@@ -1234,6 +1234,26 @@ def api_check_domains():
     return jsonify(domains=domain_lookup.check_domains(base_name))
 
 
+# Mobile's Bearer-authed equivalent of app.py's session-authed /profile/check-slug -
+# entirely separate from api_check_domains above despite the similar name: this checks
+# whether `slug` is free as THIS platform's own /p/<slug> address (a plain
+# database.page_by_slug lookup, nothing external, nothing to pay for), not a real
+# internet domain. exclude_business_id=the caller's own business_id so re-checking a
+# business's own already-saved slug never comes back "taken".
+@api.route("/check-slug", methods=["POST"])
+@require_api_auth
+@limiter.limit("30 per hour")
+def api_check_slug():
+    business_id = request.business_id
+    data = request.get_json(silent=True) or {}
+    slug = pages.normalize_slug(data.get("slug"))
+    if not pages.is_valid_slug(slug):
+        return jsonify(error="Not a valid web address."), 400
+    if pages.slug_is_available(slug, exclude_business_id=business_id):
+        return jsonify(available=True)
+    return jsonify(available=False, suggestions=pages.suggest_slug_alternatives(slug, exclude_business_id=business_id))
+
+
 # Voice input for the description field above - mobile's Bearer-authed equivalent of
 # app.py's session-authed /api/onboarding/voice-transcribe, same Whisper call via
 # page_generator.transcribe_voice_description. Audio is never written to disk or the

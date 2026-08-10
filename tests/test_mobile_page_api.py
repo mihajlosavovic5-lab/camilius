@@ -184,6 +184,58 @@ def test_check_domains_requires_auth(client):
     assert client.post("/api/check-domains", json={"name": "blue-star-cafe"}).status_code == 401
 
 
+# --- /api/check-slug --- (entirely separate from /api/check-domains above despite the
+# similar name: this checks THIS platform's own /p/<slug> address, a plain database
+# lookup, never a real internet domain)
+
+def test_check_slug_available_for_an_unclaimed_slug(client, unique_email):
+    import uuid
+    headers, _ = _auth(client, unique_email)
+    response = client.post("/api/check-slug", json={"slug": f"free-{uuid.uuid4().hex[:8]}"}, headers=headers)
+    assert response.status_code == 200
+    assert response.get_json() == {"available": True}
+
+
+def test_check_slug_available_for_the_callers_own_already_saved_slug(client, unique_email):
+    import database
+    import uuid
+    headers, business_id = _auth(client, unique_email)
+    slug = f"mine-{uuid.uuid4().hex[:8]}"
+    database.upsert_business_page(business_id, slug, True, None, None)
+
+    response = client.post("/api/check-slug", json={"slug": slug}, headers=headers)
+    assert response.get_json() == {"available": True}
+
+
+def test_check_slug_offers_suggestions_when_taken_by_another_business(client, unique_email):
+    import database
+    import uuid
+    other_email = f"other-{unique_email}"
+    register_and_login(client, other_email)
+    taken_slug = f"taken-{uuid.uuid4().hex[:8]}"
+    other_business_id = database.business_by_contact_email(other_email)[0]
+    database.upsert_business_page(other_business_id, taken_slug, True, None, None)
+
+    headers, _ = _auth(client, unique_email)
+    response = client.post("/api/check-slug", json={"slug": taken_slug}, headers=headers)
+    assert response.status_code == 200
+    data = response.get_json()
+    assert data["available"] is False
+    assert len(data["suggestions"]) == 3
+    assert all(s.startswith(taken_slug) for s in data["suggestions"])
+    assert len(set(data["suggestions"])) == 3  # no duplicates
+
+
+def test_check_slug_rejects_invalid_format(client, unique_email):
+    headers, _ = _auth(client, unique_email)
+    response = client.post("/api/check-slug", json={"slug": "Not A Valid Slug!"}, headers=headers)
+    assert response.status_code == 400
+
+
+def test_check_slug_requires_auth(client):
+    assert client.post("/api/check-slug", json={"slug": "blue-star-cafe"}).status_code == 401
+
+
 def test_generate_page_requires_auth(client):
     assert client.post("/api/generate-page", json={"description": "A shop."}).status_code == 401
 

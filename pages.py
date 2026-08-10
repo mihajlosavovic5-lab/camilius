@@ -80,6 +80,42 @@ def suggest_available_slug(ai_slug, fallback_name, exclude_business_id=None):
     return ""
 
 
+def slug_is_available(slug, exclude_business_id=None):
+    """Whether `slug` (already validated by the caller via is_valid_slug) is free for
+    exclude_business_id to claim - either genuinely unclaimed, or already that exact
+    business's own current slug (re-checking/re-saving your own address was never
+    "taken" to begin with). Pure database.py:page_by_slug lookup, nothing external -
+    this is the platform's own /p/<slug> web address, never a real internet domain
+    (see domain_lookup.py for that, entirely separate feature)."""
+    existing = page_by_slug(slug)
+    return existing is None or (exclude_business_id is not None and existing[1] == exclude_business_id)
+
+
+def suggest_slug_alternatives(base_slug, exclude_business_id=None, count=3):
+    """Called once slug_is_available() above has already said `base_slug` is taken -
+    offers up to `count` numbered variants (base-2, base-3, ...) that are actually free
+    right now, same availability check as suggest_available_slug uses for its own single
+    candidate, just generating several instead of stopping at the first. base_slug is
+    trusted to already be validly formatted (the caller's own is_valid_slug check on the
+    original address already ran); this only needs to trim it to leave room for a "-N"
+    suffix within the 50-char ceiling _SLUG_RE enforces, dropping a trailing hyphen that
+    truncation might otherwise leave behind."""
+    suggestions = []
+    suffix_n = 2
+    attempts = 0
+    while len(suggestions) < count and attempts < count + 20:
+        attempts += 1
+        suffix = f"-{suffix_n}"
+        suffix_n += 1
+        base = base_slug[:50 - len(suffix)].rstrip("-")
+        candidate = f"{base}{suffix}"
+        if not is_valid_slug(candidate):
+            continue
+        if slug_is_available(candidate, exclude_business_id=exclude_business_id):
+            suggestions.append(candidate)
+    return suggestions
+
+
 # schema.org's dayOfWeek wants a full day name (as a bare token, not a string literal -
 # templates interpolate this straight into the "https://schema.org/<Day>" URL), in
 # calendar order matching booking.parse_working_hours' 0=Monday..6=Sunday weekday index.

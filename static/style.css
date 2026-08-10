@@ -1045,6 +1045,16 @@ input[readonly]:hover { border-color: var(--border); }
 .domain-check-row:last-child { border-bottom: none; }
 .domain-check-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
+/* "Use this" button per suggested-slug row (settings.html's "Web address" Check button,
+   when the typed slug is already taken - see check_business_slug) - same small pill
+   shape as the badges beside it in .domain-check-row, but interactive/primary-colored so
+   it doesn't get mistaken for a status tag like badge-domain-available above. */
+.domain-check-choose-btn {
+    flex-shrink: 0; padding: 4px 12px; border-radius: 99px; border: 1px solid var(--primary);
+    background: none; color: var(--primary-ink); font-size: 13px; font-weight: 600; cursor: pointer;
+}
+.domain-check-choose-btn:hover, .domain-check-choose-btn:focus-visible { background: var(--primary-light); }
+
 /* --- "Upgrade to Pro" badge / locked-feature notice (Faza 9/10) - shared component for
    any Pro-only feature shown to a Starter (or expired) business: a small pill badge next
    to the feature's heading, plus a dimmed/disabled wrapper around the control itself. --- */

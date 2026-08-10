@@ -214,23 +214,21 @@
             <div class="alert alert-error"><span class="alert-icon">&#9888;&#65039;</span><span>{{ page_error }}</span></div>
         {% endif %}
 
-        <!-- Real-domain purchase UI ($15/yr, via Dynadot - see domain_registrar.py) is
-             deliberately hidden, not removed: the free /p/<slug> site this "Web address"
-             field itself controls needs no purchase at all and stays fully visible below,
-             but the paid domain add-on isn't ready to put in front of customers yet.
-             floating-field-domain-check (which reserves padding for the now-hidden
-             button) is dropped back to a plain floating-field to match - re-add it
-             alongside un-hiding the button/results/error below to bring this back. -->
-        <div class="floating-field" style="margin-top: 0;">
+        <!-- The Check button here checks slug availability against THIS platform's own
+             database only (checkSlug below -> /profile/check-slug ->
+             pages.slug_is_available) - never a real internet domain, never anything paid
+             (see the now-unused checkDomains further down for the Dynadot-purchase
+             version of this same button, kept but not wired up). -->
+        <div class="floating-field floating-field-domain-check" style="margin-top: 0;">
             <input type="text" id="settings-page-slug-input" name="slug" value="{{ page.slug if page else '' }}" placeholder=" " autocapitalize="off" autocorrect="off" pattern="[a-z0-9][a-z0-9-]{0,49}" maxlength="50">
             <label for="settings-page-slug-input">Web address (e.g. your-business-name)</label>
-            <button type="button" class="field-inline-btn hidden" id="settings-domain-check-btn">Check</button>
+            <button type="button" class="field-inline-btn" id="settings-domain-check-btn">Check</button>
         </div>
         {% if page and page.slug %}
             <p class="note">{{ page_url_prefix }}{{ page.slug }}</p>
         {% endif %}
         <p class="onboarding-media-error hidden" id="settings-domain-check-error"></p>
-        <div id="settings-domain-check-results" class="hidden" style="margin-top: 4px;"></div>
+        <div id="settings-domain-check-results" style="margin-top: 4px;"></div>
 
         <label data-i18n="settings.page.design">Design</label>
         <input type="hidden" name="theme" id="settings-page-theme-value" value="{{ page.theme if page else 'warm' }}">
@@ -1100,6 +1098,74 @@ if (document.readyState === "loading") {
             });
     }
 
+    // The Check button's actual current job: whether the typed address is free as THIS
+    // platform's own /p/<slug> web address (a plain database lookup on our own side, see
+    // /profile/check-slug -> pages.slug_is_available) - never a real internet domain,
+    // never anything paid. Reuses checkDomains'/renderResults' row styling purely for
+    // visual consistency with the (currently unused) real-domain version above, not
+    // because the two features are related.
+    function checkSlug(slug) {
+        if (!slug) return;
+        errorBox.classList.add("hidden");
+        resultsList.innerHTML = "";
+        btn.disabled = true;
+        const originalText = btn.textContent;
+        btn.textContent = "…";
+        const formData = new FormData();
+        formData.append("slug", slug);
+        fetch("{{ url_for('check_business_slug') }}", { method: "POST", headers: { "X-CSRFToken": csrfInput.value }, body: formData })
+            .then((response) => response.json().then((data) => ({ ok: response.ok, data })))
+            .then(({ ok, data }) => {
+                btn.disabled = false;
+                btn.textContent = originalText;
+                if (!ok) {
+                    errorBox.textContent = data.error || "Couldn't check that address right now.";
+                    errorBox.classList.remove("hidden");
+                    return;
+                }
+                if (data.available) {
+                    const row = document.createElement("div");
+                    row.className = "domain-check-row";
+                    const badge = document.createElement("span");
+                    badge.className = "badge badge-domain-available";
+                    badge.textContent = "Available";
+                    row.appendChild(badge);
+                    resultsList.appendChild(row);
+                    return;
+                }
+                // Taken - offer whatever free numbered variants /profile/check-slug came
+                // back with (pages.suggest_slug_alternatives), each one clickable straight
+                // into the field itself rather than a separate "chosen" value to track.
+                (data.suggestions || []).forEach((candidate) => {
+                    const row = document.createElement("div");
+                    row.className = "domain-check-row";
+
+                    const name = document.createElement("span");
+                    name.className = "domain-check-name";
+                    name.textContent = candidate;
+                    row.appendChild(name);
+
+                    const useBtn = document.createElement("button");
+                    useBtn.type = "button";
+                    useBtn.className = "domain-check-choose-btn";
+                    useBtn.textContent = "Use this";
+                    useBtn.addEventListener("click", () => {
+                        slugInput.value = candidate;
+                        resultsList.innerHTML = "";
+                    });
+                    row.appendChild(useBtn);
+
+                    resultsList.appendChild(row);
+                });
+            })
+            .catch(() => {
+                btn.disabled = false;
+                btn.textContent = originalText;
+                errorBox.textContent = "Couldn't check that address - check your connection and try again.";
+                errorBox.classList.remove("hidden");
+            });
+    }
+
     // Hidden until the field actually has something to check - same reasoning as the
     // password-toggle eye icon (see base.html), so it isn't sitting there inert over an
     // empty field.
@@ -1107,17 +1173,7 @@ if (document.readyState === "loading") {
     slugInput.addEventListener("input", syncHasValue);
     syncHasValue();
 
-    btn.addEventListener("click", () => checkDomains(slugInput.value.trim()));
-
-    // Right after a fresh AI draft suggests (or keeps) a web address, check its real
-    // domains automatically - so the owner sees this without having to remember to ask,
-    // same "AI does the legwork" spirit as the drafted tagline/about themselves.
-    // Disabled while the whole domain-check UI above is hidden (see its own comment) -
-    // firing this against a results box nobody can see would just waste an RDAP lookup
-    // on every AI draft. Re-enable alongside un-hiding that UI.
-    // {% if generate_description and page and page.slug %}
-    // checkDomains({{ page.slug|tojson }});
-    // {% endif %}
+    btn.addEventListener("click", () => checkSlug(slugInput.value.trim()));
 })();
 </script>
 {% endblock %}

@@ -1715,6 +1715,25 @@ def check_business_domains():
     return jsonify(domains=domain_lookup.check_domains(base_name))
 
 
+# AJAX-only (see settings.html's "Check" button/script on the "Web address" field) -
+# entirely separate from check_business_domains above despite the similar name: this
+# checks whether `slug` is free as THIS platform's own /p/<slug> address (a plain
+# database.page_by_slug lookup, nothing external, nothing to pay for), not a real
+# internet domain. exclude_business_id=session's own business_id so re-checking a
+# business's own already-saved slug never comes back "taken".
+@app.route("/profile/check-slug", methods=["POST"])
+@login_required
+@limiter.limit("30 per hour")
+def check_business_slug():
+    business_id = session["business_id"]
+    slug = pages.normalize_slug(request.form.get("slug"))
+    if not pages.is_valid_slug(slug):
+        return jsonify(error="Not a valid web address."), 400
+    if pages.slug_is_available(slug, exclude_business_id=business_id):
+        return jsonify(available=True)
+    return jsonify(available=False, suggestions=pages.suggest_slug_alternatives(slug, exclude_business_id=business_id))
+
+
 # Drafts tagline/about/hours/prices/faq from a short owner-written description
 # (page_generator.py) and re-renders settings.html with them pre-filled - same
 # "re-render the form with different values, don't redirect" shape as settings()'s own
