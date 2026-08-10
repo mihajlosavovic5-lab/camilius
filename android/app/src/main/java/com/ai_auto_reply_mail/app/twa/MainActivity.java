@@ -1,6 +1,7 @@
 package com.ai_auto_reply_mail.app.twa;
 
 import android.os.Bundle;
+import android.view.KeyEvent;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.IntentSenderRequest;
 import androidx.activity.result.contract.ActivityResultContracts;
@@ -32,6 +33,14 @@ public class MainActivity extends BridgeActivity {
     // base Context. Doing this eagerly here crashed every launch with a NullPointerException.
     AppUpdateManager appUpdateManager;
 
+    // Backs OverlayStatePlugin - whether mobile/app.js currently has a popup/sheet/
+    // lightbox open (see that plugin's own comment for the full reasoning). Plugin calls
+    // in Capacitor run on a background executor by default, not the UI thread that
+    // dispatchKeyEvent() (below) reads this from - volatile is enough to make each
+    // write visible to that read (a plain boolean, not a multi-step update, so there's
+    // no larger critical section to protect, just the single flag's visibility).
+    volatile boolean overlayOpen = false;
+
     // Must be registered before the Activity reaches STARTED - a field initializer
     // (runs during construction, well before onCreate) is the documented-safe place for
     // this. Handles both FLEXIBLE and IMMEDIATE update flows; a cancelled/failed
@@ -60,6 +69,7 @@ public class MainActivity extends BridgeActivity {
         // the plugin bridge (see its load()), so a plugin registered any later than this
         // never makes it in and capacitorPlugins.PlayUpdate (mobile/app.js) is undefined.
         registerPlugin(PlayUpdatePlugin.class);
+        registerPlugin(OverlayStatePlugin.class);
 
         SplashScreen splashScreen = SplashScreen.installSplashScreen(this);
         super.onCreate(savedInstanceState);
@@ -115,5 +125,41 @@ public class MainActivity extends BridgeActivity {
             // Nothing to recover - PlayUpdatePlugin's next checkForUpdate() call
             // re-offers it.
         }
+    }
+
+    // Lets a popup/sheet/lightbox (mobile/app.js's closeTopmostOverlay(), tracked here
+    // via OverlayStatePlugin/overlayOpen) close on the very first hardware back press
+    // WITHOUT also touching the on-screen keyboard, even when a text field behind/under
+    // it is still focused.
+    //
+    // Without this override, that first press never reaches app.js at all: for as long
+    // as a focused, editable element is showing the keyboard, the WebView's own key
+    // handling consumes BACK itself (both down and up) to dismiss the keyboard, the
+    // normal Android behavior for any focused editable view - Capacitor's own backButton
+    // JS event is only fired from onBackPressed(), which the framework only invokes once
+    // a key event bubbles all the way up unconsumed, so the WebView swallowing it here
+    // means onBackPressed() (and so the JS listener) never even runs for that press.
+    // Closing the popup then needed a second press, and even then, the keyboard the
+    // first press already hid stayed hidden - a side effect neither press was actually
+    // meant to cause, since dismissing a popup and dismissing the keyboard are two
+    // unrelated actions from the visitor's point of view.
+    //
+    // dispatchKeyEvent() runs before that normal descent into the WebView, so returning
+    // true here for BACK - only while overlayOpen is true - consumes the event at the
+    // very top, before the WebView (and so the keyboard) ever sees it, and closes the
+    // popup directly via a plain evaluateJavascript() call instead. Every other back
+    // press (overlayOpen false) falls through to super.dispatchKeyEvent() completely
+    // unchanged, so the existing keyboard-first-then-app-navigation behavior everywhere
+    // else in the app is untouched.
+    @Override
+    public boolean dispatchKeyEvent(KeyEvent event) {
+        if (overlayOpen && event.getKeyCode() == KeyEvent.KEYCODE_BACK) {
+            if (event.getAction() == KeyEvent.ACTION_UP && getBridge() != null && getBridge().getWebView() != null) {
+                getBridge().getWebView().evaluateJavascript(
+                    "window.closeTopmostOverlay && window.closeTopmostOverlay();", null);
+            }
+            return true;
+        }
+        return super.dispatchKeyEvent(event);
     }
 }
