@@ -299,6 +299,7 @@ button { font-family: inherit; -webkit-appearance: none; appearance: none; }
 .screen-settings .topbar-title h1,
 .screen-website-chat .topbar-title h1 {
     color: #fff;
+    font-size: 28px;
     -webkit-text-stroke: 1px rgba(0, 0, 0, .75);
     text-shadow: -1px -1px 0 rgba(0, 0, 0, .55), 1px -1px 0 rgba(0, 0, 0, .55), -1px 1px 0 rgba(0, 0, 0, .55), 1px 1px 0 rgba(0, 0, 0, .55);
 }
