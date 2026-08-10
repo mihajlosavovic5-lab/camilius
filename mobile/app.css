@@ -443,15 +443,16 @@ button { font-family: inherit; -webkit-appearance: none; appearance: none; }
 }
 .country-modal-list {
     position: relative; overflow-y: auto; box-sizing: border-box;
-    /* 220px tall (5 rows) with 88px ((220 - 44) / 2, i.e. two rows' worth) of blank
+    /* 132px tall (3 rows) with 44px ((132 - 44) / 2, i.e. one row's worth) of blank
        padding reserved above the first row and below the last - box-sizing: border-box
-       keeps the 220px a fixed VIEWPORT height (clientHeight, still exactly 5 rows) while
+       keeps the 132px a fixed VIEWPORT height (clientHeight, still exactly 3 rows) while
        the padding only grows the scrollable content (scrollHeight), giving the first and
        last real rows the same reachable centered position every other row already has.
-       Reaching all the way into that padding shows as blank rows above/below the wheel's
-       real ends once Afghanistan/Zimbabwe (etc.) IS centered - expected for a wheel with
-       nothing further to show, same as a native iOS/Android picker at its first or last
-       value, not a bug.
+       Reaching all the way into that padding shows as one blank row above/below the
+       wheel's real ends once Afghanistan/Zimbabwe (etc.) IS centered - expected for a
+       wheel with nothing further to show, same as a native iOS/Android picker at its
+       first or last value, not a bug. Kept deliberately small (one row, not two) so that
+       blank padding doesn't read as leftover empty space in the sheet.
        This same padding used to cause a real bug, back when nothing ever pulled the list
        out of it: CSS scroll-snap (scroll-snap-align: center) plus this padding was the
        original approach, but scroll-snap-type: mandatory had no valid snap point IN the
@@ -464,8 +465,8 @@ button { font-family: inherit; -webkit-appearance: none; appearance: none; }
        momentum have already stopped, so a swipe that overshoots into this padding still
        reaches the true edge first and gets nudged onto Afghanistan/Zimbabwe afterward,
        rather than ever being blocked from getting there. */
-    padding: 88px 0;
-    height: 220px;
+    padding: 44px 0;
+    height: 132px;
 }
 .country-option-btn {
     display: flex; align-items: center; gap: 10px; width: 100%;
