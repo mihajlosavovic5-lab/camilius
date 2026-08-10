@@ -3536,6 +3536,15 @@ async function openChoosePlan() {
 el("subscription-choose-plan-btn").addEventListener("click", openChoosePlan);
 el("subscription-choose-plan-btn-2").addEventListener("click", openChoosePlan);
 
+// Real-domain purchase isn't ready for customers yet (same reasoning as f74b25f, which
+// hid the Check/Choose UI itself) - flip this back to true once it is. Needed on top of
+// that UI hide because api_save_page's domain_checkout_required can still come back true
+// on its own for any business with a pending_custom_domain left in the DB from before the
+// UI was hidden (or from testing): every save that page does afterward - including the
+// silent 1.4s autosave that fires while just typing in Web address/Headline/About, see
+// triggerMysiteAutosave - would otherwise pop the checkout page open with no tap involved.
+const DOMAIN_PURCHASE_ENABLED = false;
+
 // Same "hand off to a web page" pattern as openChoosePlan above, for the $15/yr custom-
 // domain checkout (templates/domain_checkout.html) that api_save_page's
 // domain_checkout_required response triggers - the domain is billed to the business
@@ -4746,7 +4755,7 @@ el("mysite-save-btn").addEventListener("click", async () => {
         // domain isn't actually bought on Publish - the server just flags that a
         // checkout is still needed, same "hand off to a web page" pattern as
         // openChoosePlan() below.
-        if (result && result.domain_checkout_required) await openDomainCheckout(result.domain);
+        if (DOMAIN_PURCHASE_ENABLED && result && result.domain_checkout_required) await openDomainCheckout(result.domain);
     } catch (err) {
         errorBox.textContent = err.message || t("network.error");
         errorBox.classList.remove("hidden");
