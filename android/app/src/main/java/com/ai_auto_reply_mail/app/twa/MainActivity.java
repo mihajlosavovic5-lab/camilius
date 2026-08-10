@@ -2,6 +2,7 @@ package com.ai_auto_reply_mail.app.twa;
 
 import android.os.Bundle;
 import android.view.KeyEvent;
+import android.widget.Toast;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.IntentSenderRequest;
 import androidx.activity.result.contract.ActivityResultContracts;
@@ -153,6 +154,13 @@ public class MainActivity extends BridgeActivity {
     // else in the app is untouched.
     @Override
     public boolean dispatchKeyEvent(KeyEvent event) {
+        // TEMPORARY diagnostic - remove once we've confirmed whether dispatchKeyEvent()
+        // actually receives BACK at all in the keyboard-visible state, and what
+        // overlayOpen reads as at that moment. Toast rather than a log line since we
+        // have no adb access to the reporting device - this is visible on-screen instead.
+        if (event.getKeyCode() == KeyEvent.KEYCODE_BACK && event.getAction() == KeyEvent.ACTION_DOWN) {
+            Toast.makeText(this, "dispatchKeyEvent BACK, overlayOpen=" + overlayOpen, Toast.LENGTH_SHORT).show();
+        }
         if (overlayOpen && event.getKeyCode() == KeyEvent.KEYCODE_BACK) {
             if (event.getAction() == KeyEvent.ACTION_UP && getBridge() != null && getBridge().getWebView() != null) {
                 getBridge().getWebView().evaluateJavascript(
