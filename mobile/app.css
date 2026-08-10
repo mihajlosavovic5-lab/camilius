@@ -1960,7 +1960,17 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
    own plain --surface white, so the value still reads as a distinct field floating on
    the cream card instead of blending into it. */
 .mysite-field-modal-sheet { background: var(--primary-light); }
-.mysite-field-modal-sheet .book-modal-title { text-align: center; }
+/* Same white-with-black-outline treatment as the five screen-root page titles above
+   (.screen-mysite .topbar-title h1 etc.) - this modal's title (Web address/Headline/
+   About) sits on the same warm cream .mysite-field-modal-sheet background, so plain
+   dark text would look inconsistent right next to those, and plain white alone would
+   wash out the same way it did there before the outline was added. */
+.mysite-field-modal-sheet .book-modal-title {
+    text-align: center;
+    color: #fff;
+    -webkit-text-stroke: 1px rgba(0, 0, 0, .75);
+    text-shadow: -1px -1px 0 rgba(0, 0, 0, .55), 1px -1px 0 rgba(0, 0, 0, .55), -1px 1px 0 rgba(0, 0, 0, .55), 1px 1px 0 rgba(0, 0, 0, .55);
+}
 .mysite-field-modal-body { margin-top: 14px; }
 .mysite-field-modal-control { width: 100%; text-align: center; }
 /* Height is set by mysiteFieldModalAutoGrowTextarea (app.js) to match the actual value -
