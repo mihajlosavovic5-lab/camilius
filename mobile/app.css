@@ -511,7 +511,7 @@ input[type="text"], input[type="password"], input[type="email"], input[type="tel
     width: 100%; padding: 12px 13px; border: 1px solid var(--border); border-radius: 10px;
     font-family: inherit; font-size: 17px; color: var(--text); background: var(--surface);
 }
-input:focus, textarea:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(214,148,16,.18); }
+input:focus, textarea:focus { outline: none; }
 /* Warm placeholder tone instead of the browser's own default gray, which reads cold
    against the app's cream/gold palette everywhere else. */
 input::placeholder, textarea::placeholder { color: var(--text-muted); opacity: 1; }
@@ -1556,7 +1556,7 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
    this only targets ::placeholder, so the real auto-growing/wrapping textarea behavior
    above is unaffected. */
 .chat-compose-input::placeholder { color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.chat-compose-input:focus { outline: none; border-color: var(--primary); }
+.chat-compose-input:focus { outline: none; }
 /* Live waveform while the mic is recording - sits inside the compose field itself,
    covering the left side up to the mic/send icons (same footprint the typed text would
    occupy), so recording visibly takes over the input rather than living in a separate
@@ -2111,7 +2111,7 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
     width: 100%; padding: 10px 14px; border: 1px solid var(--border); border-radius: 10px;
     font-family: inherit; font-size: 16px; color: var(--text); background: var(--surface);
 }
-.search-input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(214,148,16,.18); }
+.search-input:focus { outline: none; }
 
 /* --- Skeleton loading --- */
 .skeleton-row { display: flex; align-items: center; gap: 12px; padding: 13px 10px; }
