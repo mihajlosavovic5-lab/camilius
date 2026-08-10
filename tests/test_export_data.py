@@ -12,8 +12,8 @@ def test_export_data_link_requires_auth(client):
     assert response.status_code == 401
 
 
-def test_export_data_mobile_flow_end_to_end(client, unique_username, unique_email):
-    token, _ = register_and_login(client, unique_username, unique_email)
+def test_export_data_mobile_flow_end_to_end(client, unique_email):
+    token, _ = register_and_login(client, unique_email)
 
     link_response = client.get("/api/export-data-link", headers={"Authorization": f"Bearer {token}"})
     assert link_response.status_code == 200
@@ -23,7 +23,7 @@ def test_export_data_mobile_flow_end_to_end(client, unique_username, unique_emai
     download = client.get(f"/export-data/{export_token}")
     assert download.status_code == 200
     data = download.get_json()
-    assert data["business"]["username"] == unique_username
+    assert data["business"]["contact_email"] == unique_email
     assert data["business"]["name"] == "Test Salon"
     assert data["conversations"] == []
     # Secrets must never end up in the export

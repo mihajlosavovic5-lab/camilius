@@ -7,9 +7,9 @@ import domain_lookup
 from conftest import register_business_web, web_post, get_csrf_token
 
 
-def test_check_domains_returns_results_for_each_default_tld(client, unique_username, unique_email, monkeypatch):
+def test_check_domains_returns_results_for_each_default_tld(client, unique_email, monkeypatch):
     monkeypatch.setattr(domain_lookup, "check_domain", lambda domain: domain_lookup.AVAILABLE)
-    register_business_web(client, unique_username, unique_email)
+    register_business_web(client, unique_email)
     csrf_token = get_csrf_token(client, "/profile")
 
     response = web_post(client, "/profile/check-domains", {"csrf_token": csrf_token, "name": "blue-star-cafe"})
@@ -18,8 +18,8 @@ def test_check_domains_returns_results_for_each_default_tld(client, unique_usern
     assert data["domains"] == [{"domain": f"blue-star-cafe{tld}", "status": domain_lookup.AVAILABLE} for tld in domain_lookup.DEFAULT_TLDS]
 
 
-def test_check_domains_requires_a_name(client, unique_username, unique_email):
-    register_business_web(client, unique_username, unique_email)
+def test_check_domains_requires_a_name(client, unique_email):
+    register_business_web(client, unique_email)
     csrf_token = get_csrf_token(client, "/profile")
 
     response = web_post(client, "/profile/check-domains", {"csrf_token": csrf_token, "name": "   "})
@@ -33,10 +33,10 @@ def test_check_domains_requires_login(client):
     assert "/login" in response.headers["Location"]
 
 
-def test_check_domains_never_writes_to_the_database(client, unique_username, unique_email, monkeypatch):
+def test_check_domains_never_writes_to_the_database(client, unique_email, monkeypatch):
     monkeypatch.setattr(domain_lookup, "check_domain", lambda domain: domain_lookup.TAKEN)
-    register_business_web(client, unique_username, unique_email)
-    business_id = database.business_by_username(unique_username)[0]
+    register_business_web(client, unique_email)
+    business_id = database.business_by_contact_email(unique_email)[0]
     csrf_token = get_csrf_token(client, "/profile")
 
     web_post(client, "/profile/check-domains", {"csrf_token": csrf_token, "name": "blue-star-cafe"})

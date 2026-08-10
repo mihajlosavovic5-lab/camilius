@@ -28,7 +28,6 @@ TABLE_RENAMES = [
 COLUMN_RENAMES = {
     "businesses": [
         ("naziv", "name"),
-        ("korisnicko_ime", "username"),
         ("lozinka", "password"),
         ("email_adresa", "email"),
         ("radno_vreme", "working_hours"),

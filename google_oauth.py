@@ -75,7 +75,7 @@ def fetch_user(code, redirect_uri):
 # _google_login_existing) doesn't get an account created on the spot anymore - it's handed
 # to the normal sign-up form as a name/email starting point, same as if the visitor had
 # typed them in by hand, and the account is only actually created once they finish that
-# form themselves (username, password, business details, terms). This short-lived signed
+# form themselves (password, business details, terms). This short-lived signed
 # token is how google_id survives that round trip without trusting a client-supplied value
 # outright: register()/api_register() re-verify it, and only link the account to Google
 # (skipping email confirmation - Google already proved it) if the token is still valid AND

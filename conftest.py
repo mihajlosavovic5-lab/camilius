@@ -64,11 +64,6 @@ def unique_email():
 
 
 @pytest.fixture()
-def unique_username():
-    return f"test_{uuid.uuid4().hex[:10]}"
-
-
-@pytest.fixture()
 def future_date():
     """ISO date string (YYYY-MM-DD) for a weekday safely in the future, no matter when
     the suite runs. Schedule tests used to hardcode a specific calendar date instead -
@@ -83,7 +78,7 @@ def future_date():
     return d.isoformat()
 
 
-def register_business(client, username, email, **overrides):
+def register_business(client, email, **overrides):
     """Shared helper for tests that need a real registered business - posts to the same
     /api/register endpoint the mobile app uses, so tests exercise the real code path
     rather than inserting rows directly.
@@ -94,7 +89,6 @@ def register_business(client, username, email, **overrides):
     registering don't need to know about that step themselves."""
     payload = {
         "name": "Test Salon",
-        "username": username,
         "password": "TestPassword123",
         "contact_email": email,
         "working_hours": "Mon-Fri 09:00-18:00",
@@ -109,15 +103,15 @@ def register_business(client, username, email, **overrides):
     return response
 
 
-def register_and_login(client, username, email, password="TestPassword123", **overrides):
+def register_and_login(client, email, password="TestPassword123", **overrides):
     """register_business() no longer hands back a usable bearer token directly - the
     account must confirm its email first (see register_business's own docstring above).
     This does both steps and returns (token, business_id), for tests that just need a
     working bearer token for a fresh business rather than exercising the registration
     response itself."""
-    reg = register_business(client, username, email, password=password, **overrides)
+    reg = register_business(client, email, password=password, **overrides)
     business_id = reg.get_json()["business_id"]
-    login = client.post("/api/login", json={"username": username, "password": password})
+    login = client.post("/api/login", json={"email": email, "password": password})
     return login.get_json()["token"], business_id
 
 
@@ -126,7 +120,7 @@ def _csrf_token_from_html(html):
     return match.group(1) if match else None
 
 
-def register_business_web(client, username, email, **overrides):
+def register_business_web(client, email, **overrides):
     """Web-form equivalent of register_business() above - posts to /register (not the
     JSON /api/register the mobile app uses), so the Flask test client's session cookie
     ends up logged in exactly like a browser would, for tests that need to exercise
@@ -146,7 +140,6 @@ def register_business_web(client, username, email, **overrides):
     form = {
         "csrf_token": csrf_token,
         "name": "Test Salon",
-        "username": username,
         "password": "TestPassword123",
         "confirm_password": "TestPassword123",
         "contact_email": email,
@@ -159,7 +152,7 @@ def register_business_web(client, username, email, **overrides):
     form.update(overrides)
     response = web_post(client, "/register", form)
     if response.status_code == 302:
-        business = database.business_by_username(username)
+        business = database.business_by_contact_email(email)
         database.mark_email_verified(business[0])
         with client.session_transaction() as session:
             session["business_id"] = business[0]

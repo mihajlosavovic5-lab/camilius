@@ -12,7 +12,7 @@ from database import (
     business_by_id, business_by_contact_email, replies_today_count, update_business, get_subscription_status,
     effective_subscription_active, has_pro_access, business_stats, log_event, save_push_token, log_client_error,
     add_business, delete_business, set_new_password, is_push_enabled, set_push_enabled,
-    username_taken, contact_email_taken, phone_number_taken,
+    contact_email_taken, phone_number_taken,
     archived_conversations_for_business, trashed_conversations_for_business,
     archive_conversation, unarchive_conversation, soft_delete_conversation, restore_conversation,
     get_upsell_pairs, set_upsell_pairs,
@@ -249,18 +249,18 @@ def _serialize_conversation(c):
 @limiter.limit("10 per 15 minutes")
 def api_login():
     data = request.get_json(silent=True) or {}
-    username = data.get("username", "")
+    email = data.get("email", "")
     password = data.get("password", "")
 
-    business = business_by_login_identifier(username)
-    if not business or not check_password_hash(business[3], password):
-        return jsonify(error="Wrong username or password."), 401
+    business = business_by_login_identifier(email)
+    if not business or not check_password_hash(business[2], password):
+        return jsonify(error="Wrong email or password."), 401
 
-    if not business[12]:  # email_verified
+    if not business[11]:  # email_verified
         from app import send_verification_email, EMAIL_VERIFY_RESEND_COOLDOWN_SECONDS  # deferred: avoid circular import at module load
 
         if not email_verify_sent_recently(business[0], EMAIL_VERIFY_RESEND_COOLDOWN_SECONDS):
-            send_verification_email(business[0], business[1], business[4])
+            send_verification_email(business[0], business[1], business[3])
         return jsonify(
             error="Please confirm your email first - we've sent a confirmation link to your inbox.",
             pending_verification=True,
@@ -294,13 +294,13 @@ def api_register():
     # "Forgot password" doesn't help either) - mirrors app.py's web register() route.
     # Resume the existing unverified account instead of blocking a second attempt.
     existing = business_by_contact_email(data.get("contact_email", ""))
-    if existing and not existing[12]:  # email_verified
+    if existing and not existing[11]:  # email_verified
         if not email_verify_sent_recently(existing[0], EMAIL_VERIFY_RESEND_COOLDOWN_SECONDS):
-            send_verification_email(existing[0], existing[1], existing[4])
+            send_verification_email(existing[0], existing[1], existing[3])
         return jsonify(
             pending_verification=True,
             business_id=existing[0],
-            contact_email=existing[4],
+            contact_email=existing[3],
             wait_seconds=email_verify_resend_wait_seconds(existing[0], EMAIL_VERIFY_RESEND_COOLDOWN_SECONDS),
         )
 
@@ -318,7 +318,6 @@ def api_register():
     try:
         new_id = add_business(
             name=data.get("name", ""),
-            username=data.get("username", ""),
             password=data.get("password", ""),
             contact_email=data.get("contact_email", ""),
             working_hours=data.get("working_hours", ""),
@@ -346,7 +345,7 @@ def api_register():
             email_verified=bool(google_id),
         )
     except UniqueViolation:
-        return jsonify(error="That username, contact email, or phone number is already taken."), 409
+        return jsonify(error="That contact email or phone number is already taken."), 409
 
     log_event("register_completed", business_id=new_id)
 
@@ -423,8 +422,8 @@ def api_resend_verification():
     business_id = data.get("business_id")
     business = business_by_id(business_id) if business_id else None
 
-    if business and not business[12] and not email_verify_sent_recently(business[0], EMAIL_VERIFY_RESEND_COOLDOWN_SECONDS):
-        send_verification_email(business[0], business[1], business[4])
+    if business and not business[11] and not email_verify_sent_recently(business[0], EMAIL_VERIFY_RESEND_COOLDOWN_SECONDS):
+        send_verification_email(business[0], business[1], business[3])
 
     # Same response whether or not business_id was real/already-verified - nothing here
     # should let a caller probe for valid account ids. A real business always reports the
@@ -433,7 +432,7 @@ def api_resend_verification():
     # back, indistinguishable from a real send just having happened.
     wait_seconds = (
         email_verify_resend_wait_seconds(business[0], EMAIL_VERIFY_RESEND_COOLDOWN_SECONDS)
-        if business and not business[12]
+        if business and not business[11]
         else EMAIL_VERIFY_RESEND_COOLDOWN_SECONDS
     )
     return jsonify(sent=True, wait_seconds=wait_seconds)
@@ -453,7 +452,7 @@ def api_verify_email_code():
     code = (data.get("code") or "").strip()
 
     business = business_by_id(business_id) if business_id else None
-    if business is None or business[12]:  # unknown account, or already verified - nothing to confirm
+    if business is None or business[11]:  # unknown account, or already verified - nothing to confirm
         return jsonify(error="Incorrect or expired code. Please try again."), 400
 
     if not business_email_verify_code_matches(business[0], code):
@@ -467,8 +466,7 @@ def api_verify_email_code():
 # Native forgot-password screen in the mobile app (replaces opening the website's
 # /forgot-password in an in-app browser tab). Reuses app.py's request_password_reset
 # helper (deferred import - avoids a circular import at module load) so the actual
-# lookup/email logic isn't duplicated between the web route and this one. Accepts either
-# an email or a username (field is labeled "Email or username" on the screen).
+# lookup/email logic isn't duplicated between the web route and this one.
 @api.route("/forgot-password", methods=["POST"])
 @limiter.limit("5 per hour")
 def api_forgot_password():
@@ -476,7 +474,7 @@ def api_forgot_password():
 
     data = request.get_json(silent=True) or {}
     if not request_password_reset(data.get("identifier", "")):
-        return jsonify(error="No account found with that email or username."), 404
+        return jsonify(error="No account found with that email."), 404
     return jsonify(message="We've sent a password reset link to the email on file.")
 
 
@@ -502,7 +500,6 @@ def api_forgot_password_phone():
 # without changing it never flags itself as taken. Same underlying checks as the web
 # /check-availability in app.py.
 _AVAILABILITY_CHECKS = {
-    "username": username_taken,
     "contact_email": contact_email_taken,
     "phone_number": phone_number_taken,
 }
@@ -532,7 +529,7 @@ def api_check_availability():
         # /check-availability route (see app.py), so the wizard's Next step doesn't stay
         # blocked on an email api_register() is about to let the user resume anyway.
         existing = business_by_contact_email(value)
-        return jsonify(taken=bool(existing and existing[12]))
+        return jsonify(taken=bool(existing and existing[11]))
 
     return jsonify(taken=check(value, exclude_business_id=exclude_id))
 
@@ -608,7 +605,7 @@ def api_schedule():
         return jsonify(locked=True)
 
     business = request.business
-    working_hours = business[8]
+    working_hours = business[7]
     tz = booking.tz_for(business)
     slot_minutes = get_slot_duration(business_id)
     today = booking.now_local(tz).date()
@@ -726,7 +723,7 @@ def api_create_appointment():
     end_dt = local_dt + timedelta(minutes=duration_minutes)
     is_bookable = (
         local_dt >= booking.now_local(tz)
-        and booking.slot_within_business_hours(business[8], local_dt, end_dt, tz)
+        and booking.slot_within_business_hours(business[7], local_dt, end_dt, tz)
         and booking.is_slot_free(business_id, local_dt, end_dt)
     )
     if not is_bookable:
@@ -911,13 +908,12 @@ def api_get_settings():
     business = business_by_id(request.business_id)
     return jsonify(
         name=business[1],
-        username=business[2],
-        contact_email=business[4],
-        working_hours=business[8],
-        price_list=business[9],
-        faq=business[10],
-        phone_number=business[11] or "",
-        phone_verified=business[13],
+        contact_email=business[3],
+        working_hours=business[7],
+        price_list=business[8],
+        faq=business[9],
+        phone_number=business[10] or "",
+        phone_verified=business[12],
         sms_verification_available=sms_configured(),
         phone_login_enabled=PHONE_LOGIN_ENABLED,
         upsell_pairs=get_upsell_pairs(request.business_id) or "",
@@ -935,34 +931,31 @@ def api_update_settings():
     business = business_by_id(business_id)
 
     name = data.get("name", business[1])
-    username = data.get("username", business[2]).strip()
-    contact_email = data.get("contact_email", business[4]).strip()
-    phone_number = data.get("phone_number", business[11] or "").strip()
-    working_hours = data.get("working_hours", business[8])
-    price_list = data.get("price_list", business[9])
-    faq = data.get("faq", business[10])
+    contact_email = data.get("contact_email", business[3]).strip()
+    phone_number = data.get("phone_number", business[10] or "").strip()
+    working_hours = data.get("working_hours", business[7])
+    price_list = data.get("price_list", business[8])
+    faq = data.get("faq", business[9])
 
-    if not username:
-        return jsonify(error="Username is required."), 400
     if not contact_email:
         return jsonify(error="Contact email is required."), 400
 
     new_password = data.get("new_password") or None
     if new_password:
-        if not check_password_hash(business[3], data.get("current_password", "")):
+        if not check_password_hash(business[2], data.get("current_password", "")):
             return jsonify(error="Current password is incorrect."), 400
         if len(new_password) < 8:
             return jsonify(error="New password must be at least 8 characters."), 400
 
     try:
-        update_business(business_id, name, username, contact_email, phone_number or None, working_hours, price_list, faq)
+        update_business(business_id, name, contact_email, phone_number or None, working_hours, price_list, faq)
     except UniqueViolation:
-        return jsonify(error="That username, contact email, or phone number is already taken."), 409
+        return jsonify(error="That contact email or phone number is already taken."), 409
 
-    # Mirrors update_business()'s own CASE-on-old-value logic (index 11 phone_number, 13
+    # Mirrors update_business()'s own CASE-on-old-value logic (index 10 phone_number, 12
     # phone_verified from the business row fetched above, before this update) instead of
     # an extra round-trip to re-fetch it.
-    phone_verified = business[13] and phone_number == (business[11] or "")
+    phone_verified = business[12] and phone_number == (business[10] or "")
 
     if new_password:
         set_new_password(business_id, new_password)
@@ -977,7 +970,7 @@ def api_update_settings():
         set_upsell_pairs(business_id, upsell_pairs)
 
     return jsonify(
-        message="Saved.", name=name, username=username, contact_email=contact_email,
+        message="Saved.", name=name, contact_email=contact_email,
         phone_number=phone_number, phone_verified=phone_verified,
         sms_verification_available=sms_configured(),
         phone_login_enabled=PHONE_LOGIN_ENABLED,
@@ -1087,8 +1080,8 @@ def api_get_page():
     return jsonify(
         page=page,
         upcoming_appointments=upcoming_appointments,
-        preferred_theme=business[23],
-        preferred_custom_theme_json=business[24],
+        preferred_theme=business[22],
+        preferred_custom_theme_json=business[23],
     )
 
 
@@ -1275,21 +1268,21 @@ def api_send_phone_verification():
     from app import send_phone_verification_email, send_phone_verification_sms, PHONE_VERIFY_RESEND_COOLDOWN_SECONDS  # deferred: avoid circular import at module load
 
     business = business_by_id(request.business_id)
-    if not business[11]:
+    if not business[10]:
         return jsonify(error="No phone number on file yet - add one first."), 400
-    if business[13]:
+    if business[12]:
         return jsonify(error="This phone number is already verified."), 400
 
     channel = "sms" if sms_configured() else "email"
     if not phone_verify_sent_recently(business[0], PHONE_VERIFY_RESEND_COOLDOWN_SECONDS):
         if channel == "sms":
             try:
-                send_phone_verification_sms(business[0], business[1], business[11])
+                send_phone_verification_sms(business[0], business[1], business[10])
             except Exception:
-                send_phone_verification_email(business[0], business[1], business[11], business[4])
+                send_phone_verification_email(business[0], business[1], business[10], business[3])
                 channel = "email"
         else:
-            send_phone_verification_email(business[0], business[1], business[11], business[4])
+            send_phone_verification_email(business[0], business[1], business[10], business[3])
     return jsonify(
         sent=True, channel=channel,
         wait_seconds=phone_verify_resend_wait_seconds(business[0], PHONE_VERIFY_RESEND_COOLDOWN_SECONDS),
@@ -1311,7 +1304,7 @@ def api_confirm_phone_verification():
     code = (data.get("code") or "").strip()
 
     business = business_by_id(request.business_id)
-    if business[13]:
+    if business[12]:
         return jsonify(error="This phone number is already verified."), 400
 
     if not business_phone_verify_code_matches(business[0], code):
@@ -1431,7 +1424,7 @@ def api_update_notification_preferences():
 def api_delete_account():
     data = request.get_json(silent=True) or {}
     business = business_by_id(request.business_id)
-    if not business or not check_password_hash(business[3], data.get("password", "")):
+    if not business or not check_password_hash(business[2], data.get("password", "")):
         return jsonify(error="Wrong password."), 400
 
     reason_category = data.get("reason_category", "")

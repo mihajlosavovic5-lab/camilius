@@ -1393,7 +1393,7 @@ body.auth {
     content: ""; flex: 1; height: 1px; background: var(--border);
 }
 
-/* Small circular caret button that returns from the username/password form (revealed by
+/* Small circular caret button that returns from the email/password form (revealed by
    "Continue with email") back to the Google/email choice screen - same 34px circle look
    as the mobile app's own .back-btn, kept as a separate class since the web page has no
    shared bundle with mobile/app.css to reuse it from directly. Pinned to the card's
@@ -1421,7 +1421,7 @@ body.auth {
 .auth-links a { display: block; margin-top: 8px; }
 
 /* A <button> that reads as a plain text link - used where a toggle needs a real button
-   (e.g. switching the forgot-password form between email/username and phone lookup)
+   (e.g. switching the forgot-password form between email and phone lookup)
    but should look identical to the .auth-links anchors around it. */
 .link-btn {
     display: block; margin-top: 8px; width: 100%; text-align: center;

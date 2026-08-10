@@ -37,8 +37,8 @@ def _upload(client, headers, role, filename="photo.jpg", content_type="image/jpe
     )
 
 
-def test_mobile_upload_list_and_delete(client, unique_username, unique_email, monkeypatch):
-    token, business_id = register_and_login(client, unique_username, unique_email)
+def test_mobile_upload_list_and_delete(client, unique_email, monkeypatch):
+    token, business_id = register_and_login(client, unique_email)
     headers = {"Authorization": f"Bearer {token}"}
     _mock_storage(monkeypatch)
 
@@ -60,8 +60,8 @@ def test_mobile_media_requires_auth(client):
     assert response.status_code == 401
 
 
-def test_mobile_upload_rejects_unsupported_role(client, unique_username, unique_email, monkeypatch):
-    token, _ = register_and_login(client, unique_username, unique_email)
+def test_mobile_upload_rejects_unsupported_role(client, unique_email, monkeypatch):
+    token, _ = register_and_login(client, unique_email)
     headers = {"Authorization": f"Bearer {token}"}
     _mock_storage(monkeypatch)
 

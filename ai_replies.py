@@ -76,9 +76,9 @@ def handle_incoming_message(business, business_id, channel, message_id, text, re
         # Always human-readable text for the AI prompt, regardless of which wire format
         # the stored value is actually in (see booking.parse_working_hours) - the model
         # is never shown the raw column value directly.
-        "working_hours": booking.working_hours_display_text(business[8]),
-        "price_list": business[9],
-        "faq": business[10],
+        "working_hours": booking.working_hours_display_text(business[7]),
+        "price_list": business[8],
+        "faq": business[9],
     }
 
     print(f"{prefix} Generating AI reply for text={text!r} from sender={sender_key!r}", flush=True)

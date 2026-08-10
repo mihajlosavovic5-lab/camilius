@@ -24,9 +24,9 @@ def restore_from_backup(path):
     for row in data["businesses"]:
         cursor.execute(
             """INSERT INTO businesses
-               (id, name, username, password, contact_email, instagram_account_id,
+               (id, name, password, contact_email, instagram_account_id,
                 instagram_username, instagram_access_token, working_hours, price_list, faq)
-               VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""",
+               VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""",
             tuple(row),
         )
 

@@ -39,9 +39,9 @@ def _upload(client, csrf_token, role, filename="photo.jpg", content_type="image/
     )
 
 
-def test_logo_upload_replaces_previous_logo_and_deletes_old_asset(client, unique_username, unique_email, monkeypatch):
-    register_business_web(client, unique_username, unique_email)
-    business_id = database.business_by_username(unique_username)[0]
+def test_logo_upload_replaces_previous_logo_and_deletes_old_asset(client, unique_email, monkeypatch):
+    register_business_web(client, unique_email)
+    business_id = database.business_by_contact_email(unique_email)[0]
     deleted = _mock_storage(monkeypatch)
 
     csrf_token = get_csrf_token(client, "/onboarding/website")
@@ -59,8 +59,8 @@ def test_logo_upload_replaces_previous_logo_and_deletes_old_asset(client, unique
     assert any(public_id.endswith("image-1") for public_id, _ in deleted)
 
 
-def test_gallery_cap_is_enforced_without_ever_uploading_the_rejected_file(client, unique_username, unique_email, monkeypatch):
-    register_business_web(client, unique_username, unique_email)
+def test_gallery_cap_is_enforced_without_ever_uploading_the_rejected_file(client, unique_email, monkeypatch):
+    register_business_web(client, unique_email)
     deleted = _mock_storage(monkeypatch)
     csrf_token = get_csrf_token(client, "/onboarding/website")
 
@@ -76,8 +76,8 @@ def test_gallery_cap_is_enforced_without_ever_uploading_the_rejected_file(client
     assert len(deleted) == 0
 
 
-def test_unknown_role_is_rejected(client, unique_username, unique_email, monkeypatch):
-    register_business_web(client, unique_username, unique_email)
+def test_unknown_role_is_rejected(client, unique_email, monkeypatch):
+    register_business_web(client, unique_email)
     _mock_storage(monkeypatch)
     csrf_token = get_csrf_token(client, "/onboarding/website")
 
@@ -85,9 +85,9 @@ def test_unknown_role_is_rejected(client, unique_username, unique_email, monkeyp
     assert response.status_code == 400
 
 
-def test_delete_removes_row_and_cloud_asset(client, unique_username, unique_email, monkeypatch):
-    register_business_web(client, unique_username, unique_email)
-    business_id = database.business_by_username(unique_username)[0]
+def test_delete_removes_row_and_cloud_asset(client, unique_email, monkeypatch):
+    register_business_web(client, unique_email)
+    business_id = database.business_by_contact_email(unique_email)[0]
     deleted = _mock_storage(monkeypatch)
     csrf_token = get_csrf_token(client, "/onboarding/website")
 
@@ -103,15 +103,15 @@ def test_delete_removes_row_and_cloud_asset(client, unique_username, unique_emai
     assert len(deleted) == 1
 
 
-def test_cannot_delete_another_businesss_media(client, unique_username, unique_email, monkeypatch):
-    other_username, other_email = f"{unique_username}-other", f"other-{unique_email}"
-    register_business_web(client, other_username, other_email)
+def test_cannot_delete_another_businesss_media(client, unique_email, monkeypatch):
+    other_email = f"other-{unique_email}"
+    register_business_web(client, other_email)
     _mock_storage(monkeypatch)
     csrf_token = get_csrf_token(client, "/onboarding/website")
     media_id = _upload(client, csrf_token, "gallery").get_json()["id"]
     client.get("/logout")
 
-    register_business_web(client, unique_username, unique_email)
+    register_business_web(client, unique_email)
     csrf_token = get_csrf_token(client, "/onboarding/website")
     response = client.delete(
         f"/api/onboarding/media/{media_id}",
@@ -130,9 +130,9 @@ def test_media_upload_requires_login(client):
     assert "/login" in response.headers["Location"]
 
 
-def test_public_page_renders_uploaded_logo_gallery_and_hero_video(client, unique_username, unique_email, monkeypatch):
-    register_business_web(client, unique_username, unique_email)
-    business_id = database.business_by_username(unique_username)[0]
+def test_public_page_renders_uploaded_logo_gallery_and_hero_video(client, unique_email, monkeypatch):
+    register_business_web(client, unique_email)
+    business_id = database.business_by_contact_email(unique_email)[0]
     _mock_storage(monkeypatch)
     csrf_token = get_csrf_token(client, "/onboarding/website")
 
@@ -140,7 +140,7 @@ def test_public_page_renders_uploaded_logo_gallery_and_hero_video(client, unique
     gallery_url = _upload(client, csrf_token, "gallery").get_json()["url"]
     video_url = _upload(client, csrf_token, "hero_video", filename="hero.mp4", content_type="video/mp4").get_json()["url"]
 
-    slug = f"media-page-{unique_username}"
+    slug = f"media-page-{business_id}"
     database.upsert_business_page(business_id, slug, True, "Tag", "About")
 
     html = client.get(f"/p/{slug}").get_data(as_text=True)

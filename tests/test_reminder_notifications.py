@@ -12,8 +12,8 @@ from booking import DEFAULT_TZ, now_local
 from conftest import register_business
 
 
-def test_owner_reminder_creates_notification_and_attempts_push_instead_of_email(client, unique_username, unique_email, monkeypatch):
-    reg = register_business(client, unique_username, unique_email)
+def test_owner_reminder_creates_notification_and_attempts_push_instead_of_email(client, unique_email, monkeypatch):
+    reg = register_business(client, unique_email)
     business_id = reg.get_json()["business_id"]
 
     database.set_owner_reminders_enabled(business_id, True)
@@ -34,7 +34,7 @@ def test_owner_reminder_creates_notification_and_attempts_push_instead_of_email(
     # Filtered to this test's own business rather than asserting on `pushes` as a whole -
     # this shares one real, un-truncated Postgres DB across the whole suite (see
     # conftest.py), so a still-"due" appointment left behind by an earlier run (business
-    # id differs every time via the unique_username/unique_email fixtures, but
+    # id differs every time via the unique_email fixture, but
     # send_appointment_reminders_if_needed() scans every business, not just this one)
     # can otherwise inflate this count without this test having done anything wrong.
     own_pushes = [call for call in pushes if call[0][0] == business_id]
@@ -51,7 +51,7 @@ def test_owner_reminder_creates_notification_and_attempts_push_instead_of_email(
     assert len(database.notifications_for_business(business_id)) == 1
 
 
-def test_owner_reminder_fires_under_beta_free_mode_without_real_pro_access(client, unique_username, unique_email, monkeypatch):
+def test_owner_reminder_fires_under_beta_free_mode_without_real_pro_access(client, unique_email, monkeypatch):
     # BETA_FREE_MODE unlocks the reminders toggle in Settings for every business
     # regardless of real subscription status (same as Schedule/upsell) - the send-time
     # re-check here must honor that too, not just has_pro_access() alone, or a
@@ -60,7 +60,7 @@ def test_owner_reminder_fires_under_beta_free_mode_without_real_pro_access(clien
     # launch) - this still needs covering, since the flag stays in the code for if
     # billing ever needs to go dormant again, same as its sibling test below pins False.
     monkeypatch.setattr(app_module, "BETA_FREE_MODE", True)
-    reg = register_business(client, unique_username, unique_email)
+    reg = register_business(client, unique_email)
     business_id = reg.get_json()["business_id"]
     database.link_subscription(business_id, "cust", "sub", "active", plan="starter")
     assert database.has_pro_access(business_id) is False
@@ -76,11 +76,11 @@ def test_owner_reminder_fires_under_beta_free_mode_without_real_pro_access(clien
     assert len(database.notifications_for_business(business_id)) == 1
 
 
-def test_owner_reminder_skipped_without_pro_access_when_beta_free_mode_is_off(client, unique_username, unique_email, monkeypatch):
+def test_owner_reminder_skipped_without_pro_access_when_beta_free_mode_is_off(client, unique_email, monkeypatch):
     # Once BETA_FREE_MODE is turned off (real launch), a non-Pro business must go back to
     # getting nothing - same real gating as every other Pro-only feature.
     monkeypatch.setattr(app_module, "BETA_FREE_MODE", False)
-    reg = register_business(client, unique_username, unique_email)
+    reg = register_business(client, unique_email)
     business_id = reg.get_json()["business_id"]
     database.link_subscription(business_id, "cust", "sub", "active", plan="starter")
 
@@ -108,11 +108,11 @@ def _safe_future_slot():
     return tomorrow.replace(hour=10, minute=0, second=0, microsecond=0)
 
 
-def test_ai_booking_notifies_owner_of_new_appointment(client, unique_username, unique_email, monkeypatch):
+def test_ai_booking_notifies_owner_of_new_appointment(client, unique_email, monkeypatch):
     # A customer booking themselves in via the AI chat (booking.attempt_ai_booking,
     # the AI's tool executor) should tell the owner right away - independent of the
     # "Remind me" reminder toggle/lead time, which is a separate, later notification.
-    reg = register_business(client, unique_username, unique_email, working_hours=_ALL_DAYS_OPEN)
+    reg = register_business(client, unique_email, working_hours=_ALL_DAYS_OPEN)
     business_id = reg.get_json()["business_id"]
     business = database.business_by_id(business_id)
 
@@ -134,8 +134,8 @@ def test_ai_booking_notifies_owner_of_new_appointment(client, unique_username, u
     assert pushes[0][0][0] == business_id
 
 
-def test_ai_booking_notification_respects_its_own_toggle(client, unique_username, unique_email, monkeypatch):
-    reg = register_business(client, unique_username, unique_email, working_hours=_ALL_DAYS_OPEN)
+def test_ai_booking_notification_respects_its_own_toggle(client, unique_email, monkeypatch):
+    reg = register_business(client, unique_email, working_hours=_ALL_DAYS_OPEN)
     business_id = reg.get_json()["business_id"]
     business = database.business_by_id(business_id)
     database.set_new_booking_notifications_enabled(business_id, False)

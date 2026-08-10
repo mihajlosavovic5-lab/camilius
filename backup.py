@@ -26,7 +26,7 @@ def create_backup():
     data = {"created_at": datetime.now().isoformat()}
 
     cursor.execute("""
-        SELECT id, name, username, password, contact_email, instagram_account_id,
+        SELECT id, name, password, contact_email, instagram_account_id,
                instagram_username, instagram_access_token, working_hours, price_list, faq
         FROM businesses ORDER BY id
     """)

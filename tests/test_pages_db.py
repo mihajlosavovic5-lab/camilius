@@ -66,8 +66,8 @@ def test_suggest_available_slug_falls_back_to_name_when_ai_slug_blank():
     assert result == f"fallback-name-{unique}"
 
 
-def test_suggest_available_slug_falls_back_to_name_when_ai_slug_taken(client, unique_username, unique_email):
-    _, business_id = register_and_login(client, unique_username, unique_email)
+def test_suggest_available_slug_falls_back_to_name_when_ai_slug_taken(client, unique_email):
+    _, business_id = register_and_login(client, unique_email)
     unique = uuid.uuid4().hex[:8]
     taken = f"taken-{unique}"
     database.upsert_business_page(business_id, taken, True, "T", "A")
@@ -76,8 +76,8 @@ def test_suggest_available_slug_falls_back_to_name_when_ai_slug_taken(client, un
     assert result == f"fallback-name-{unique}"
 
 
-def test_suggest_available_slug_returns_empty_when_nothing_available(client, unique_username, unique_email):
-    _, business_id = register_and_login(client, unique_username, unique_email)
+def test_suggest_available_slug_returns_empty_when_nothing_available(client, unique_email):
+    _, business_id = register_and_login(client, unique_email)
     unique = uuid.uuid4().hex[:8]
     taken = f"taken-{unique}"
     database.upsert_business_page(business_id, taken, True, "T", "A")
@@ -86,8 +86,8 @@ def test_suggest_available_slug_returns_empty_when_nothing_available(client, uni
     assert result == ""
 
 
-def test_suggest_available_slug_excludes_own_business(client, unique_username, unique_email):
-    _, business_id = register_and_login(client, unique_username, unique_email)
+def test_suggest_available_slug_excludes_own_business(client, unique_email):
+    _, business_id = register_and_login(client, unique_email)
     unique = uuid.uuid4().hex[:8]
     own_slug = f"my-own-slug-{unique}"
     database.upsert_business_page(business_id, own_slug, True, "T", "A")
@@ -98,14 +98,14 @@ def test_suggest_available_slug_excludes_own_business(client, unique_username, u
 
 # --- database.py: business_pages CRUD ---
 
-def test_get_business_page_returns_none_when_never_saved(client, unique_username, unique_email):
-    _, business_id = register_and_login(client, unique_username, unique_email)
+def test_get_business_page_returns_none_when_never_saved(client, unique_email):
+    _, business_id = register_and_login(client, unique_email)
     assert database.get_business_page(business_id) is None
     assert database.page_by_slug(f"nonexistent-{uuid.uuid4().hex[:8]}") is None
 
 
-def test_upsert_business_page_creates_then_updates(client, unique_username, unique_email):
-    _, business_id = register_and_login(client, unique_username, unique_email)
+def test_upsert_business_page_creates_then_updates(client, unique_email):
+    _, business_id = register_and_login(client, unique_email)
     slug = f"marko-{uuid.uuid4().hex[:8]}"
 
     database.upsert_business_page(business_id, slug, False, "Fresh cuts daily", "We've been open since 2019.")
@@ -126,11 +126,10 @@ def test_upsert_business_page_creates_then_updates(client, unique_username, uniq
     connection.close()
 
 
-def test_upsert_business_page_slug_collision_raises(client, unique_username, unique_email):
-    _, business_id_a = register_and_login(client, unique_username, unique_email)
-    other_username = f"{unique_username}_b"
+def test_upsert_business_page_slug_collision_raises(client, unique_email):
+    _, business_id_a = register_and_login(client, unique_email)
     other_email = f"b-{unique_email}"
-    _, business_id_b = register_and_login(client, other_username, other_email)
+    _, business_id_b = register_and_login(client, other_email)
 
     slug = f"shared-slug-{uuid.uuid4().hex[:8]}"
     database.upsert_business_page(business_id_a, slug, True, None, None)
@@ -139,18 +138,18 @@ def test_upsert_business_page_slug_collision_raises(client, unique_username, uni
         database.upsert_business_page(business_id_b, slug, True, None, None)
 
 
-def test_upsert_business_page_same_business_can_keep_its_own_slug(client, unique_username, unique_email):
+def test_upsert_business_page_same_business_can_keep_its_own_slug(client, unique_email):
     """Saving the form again without changing the slug must not trip the collision check
     against the business's own existing row."""
-    _, business_id = register_and_login(client, unique_username, unique_email)
+    _, business_id = register_and_login(client, unique_email)
     slug = f"marko-{uuid.uuid4().hex[:8]}"
     database.upsert_business_page(business_id, slug, True, "A", "B")
     database.upsert_business_page(business_id, slug, True, "A2", "B2")  # must not raise
     assert database.get_business_page(business_id)[4] == "A2"
 
 
-def test_page_by_slug_finds_it_regardless_of_published_state(client, unique_username, unique_email):
-    _, business_id = register_and_login(client, unique_username, unique_email)
+def test_page_by_slug_finds_it_regardless_of_published_state(client, unique_email):
+    _, business_id = register_and_login(client, unique_email)
     slug = f"draft-{uuid.uuid4().hex[:8]}"
     database.upsert_business_page(business_id, slug, False, None, None)
     found = database.page_by_slug(slug)
@@ -159,11 +158,10 @@ def test_page_by_slug_finds_it_regardless_of_published_state(client, unique_user
     assert found[3] is False  # unpublished - route decides whether that means 404
 
 
-def test_published_page_slugs_only_returns_published(client, unique_username, unique_email):
-    _, business_id_a = register_and_login(client, unique_username, unique_email)
-    other_username = f"{unique_username}_pub"
+def test_published_page_slugs_only_returns_published(client, unique_email):
+    _, business_id_a = register_and_login(client, unique_email)
     other_email = f"pub-{unique_email}"
-    _, business_id_b = register_and_login(client, other_username, other_email)
+    _, business_id_b = register_and_login(client, other_email)
 
     published_slug = f"pub-{uuid.uuid4().hex[:8]}"
     draft_slug = f"draft-{uuid.uuid4().hex[:8]}"
@@ -175,8 +173,8 @@ def test_published_page_slugs_only_returns_published(client, unique_username, un
     assert draft_slug not in slugs
 
 
-def test_delete_business_removes_its_page(client, unique_username, unique_email):
-    _, business_id = register_and_login(client, unique_username, unique_email)
+def test_delete_business_removes_its_page(client, unique_email):
+    _, business_id = register_and_login(client, unique_email)
     slug = f"deleteme-{uuid.uuid4().hex[:8]}"
     database.upsert_business_page(business_id, slug, True, None, None)
     assert database.page_by_slug(slug) is not None

@@ -2,7 +2,7 @@ import database
 from conftest import register_business
 
 
-def test_new_conversation_defaults_to_pending_status(client, unique_username, unique_email):
+def test_new_conversation_defaults_to_pending_status(client, unique_email):
     """Regression test: the conversations.status column's DEFAULT constraint was still
     the pre-migration literal 'na_cekanju' (Serbian) on the live production table -
     CREATE TABLE IF NOT EXISTS never applies to an already-existing table, so the
@@ -13,7 +13,7 @@ def test_new_conversation_defaults_to_pending_status(client, unique_username, un
     a reply of literally "None" for a message that was never actually sent. Fixed in
     create_database() (ALTER COLUMN status SET DEFAULT 'pending' + a one-time UPDATE for
     already-stuck rows)."""
-    reg = register_business(client, unique_username, unique_email)
+    reg = register_business(client, unique_email)
     business_id = reg.get_json()["business_id"]
 
     conversation_id = database.save_draft_reply(
@@ -29,13 +29,13 @@ def test_new_conversation_defaults_to_pending_status(client, unique_username, un
     assert conversations[0][6] == "pending"
 
 
-def test_expire_stale_pending_conversations_archives_only_conversations_past_24h(client, unique_username, unique_email):
+def test_expire_stale_pending_conversations_archives_only_conversations_past_24h(client, unique_email):
     """A conversation still 'pending' more than 24h after the customer's own last
     message is treated as unreplyable, so it should get swept
     out of the main Inbox automatically rather than sitting there forever. Checks both
     sides: a conversation older than 24h gets archived_at/expired_at set and disappears
     from conversations_for_business, while one still inside the window is untouched."""
-    reg = register_business(client, unique_username, unique_email)
+    reg = register_business(client, unique_email)
     business_id = reg.get_json()["business_id"]
 
     stale_id = database.save_draft_reply(
@@ -65,14 +65,14 @@ def test_expire_stale_pending_conversations_archives_only_conversations_past_24h
     assert archived[stale_id][9] is not None
 
 
-def test_expire_stale_pending_conversations_backfills_manually_archived_ones(client, unique_username, unique_email):
+def test_expire_stale_pending_conversations_backfills_manually_archived_ones(client, unique_email):
     """Regression test: a conversation a business archived manually while it was still
     pending (e.g. before this expiry feature existed) used to be excluded forever by the
     sweep's old `archived_at IS NULL` condition - already archived, so it never matched,
     so expired_at stayed NULL and the dashboard kept showing "Awaiting approval" on it
     indefinitely even though the 24h reply window had long since passed. The sweep must
     catch it too, without moving its original archived_at timestamp."""
-    reg = register_business(client, unique_username, unique_email)
+    reg = register_business(client, unique_email)
     business_id = reg.get_json()["business_id"]
 
     conversation_id = database.save_draft_reply(

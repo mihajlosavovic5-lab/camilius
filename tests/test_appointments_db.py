@@ -15,8 +15,8 @@ def _future_slot(hours_from_now=48):
     return start, start + timedelta(minutes=30)
 
 
-def test_create_appointment_shows_up_in_range_and_cancel_removes_it(client, unique_username, unique_email):
-    reg = register_business(client, unique_username, unique_email)
+def test_create_appointment_shows_up_in_range_and_cancel_removes_it(client, unique_email):
+    reg = register_business(client, unique_email)
     business_id = reg.get_json()["business_id"]
     start, end = _future_slot()
 
@@ -30,8 +30,8 @@ def test_create_appointment_shows_up_in_range_and_cancel_removes_it(client, uniq
     assert database.appointments_in_range(business_id, start, end) == []
 
 
-def test_appointments_in_range_only_returns_overlapping_confirmed_ones(client, unique_username, unique_email):
-    reg = register_business(client, unique_username, unique_email)
+def test_appointments_in_range_only_returns_overlapping_confirmed_ones(client, unique_email):
+    reg = register_business(client, unique_email)
     business_id = reg.get_json()["business_id"]
     start, end = _future_slot(hours_from_now=72)
 
@@ -45,8 +45,8 @@ def test_appointments_in_range_only_returns_overlapping_confirmed_ones(client, u
     assert found[0][1] == "Bob"
 
 
-def test_next_upcoming_appointment_for_sender(client, unique_username, unique_email):
-    reg = register_business(client, unique_username, unique_email)
+def test_next_upcoming_appointment_for_sender(client, unique_email):
+    reg = register_business(client, unique_email)
     business_id = reg.get_json()["business_id"]
     start, end = _future_slot(hours_from_now=24)
 
@@ -63,8 +63,8 @@ def test_next_upcoming_appointment_for_sender(client, unique_username, unique_em
     assert database.next_upcoming_appointment_for_sender(business_id, "igsid_dan") is None
 
 
-def test_slot_duration_default_and_round_trip(client, unique_username, unique_email):
-    reg = register_business(client, unique_username, unique_email)
+def test_slot_duration_default_and_round_trip(client, unique_email):
+    reg = register_business(client, unique_email)
     business_id = reg.get_json()["business_id"]
 
     assert database.get_slot_duration(business_id) == 30  # column default
@@ -72,8 +72,8 @@ def test_slot_duration_default_and_round_trip(client, unique_username, unique_em
     assert database.get_slot_duration(business_id) == 60
 
 
-def test_upsell_pairs_round_trip(client, unique_username, unique_email):
-    reg = register_business(client, unique_username, unique_email)
+def test_upsell_pairs_round_trip(client, unique_email):
+    reg = register_business(client, unique_email)
     business_id = reg.get_json()["business_id"]
 
     assert database.get_upsell_pairs(business_id) is None
@@ -81,8 +81,8 @@ def test_upsell_pairs_round_trip(client, unique_username, unique_email):
     assert database.get_upsell_pairs(business_id) == "Haircut -> Treatment"
 
 
-def test_owner_reminders_enabled_defaults_off_and_round_trips(client, unique_username, unique_email):
-    reg = register_business(client, unique_username, unique_email)
+def test_owner_reminders_enabled_defaults_off_and_round_trips(client, unique_email):
+    reg = register_business(client, unique_email)
     business_id = reg.get_json()["business_id"]
 
     assert database.is_owner_reminders_enabled(business_id) is False
@@ -90,10 +90,10 @@ def test_owner_reminders_enabled_defaults_off_and_round_trips(client, unique_use
     assert database.is_owner_reminders_enabled(business_id) is True
 
 
-def test_new_booking_notifications_enabled_defaults_on_and_round_trips(client, unique_username, unique_email):
+def test_new_booking_notifications_enabled_defaults_on_and_round_trips(client, unique_email):
     # Default ON since this is a continuation of the previously-unconditional new-booking
     # notification behavior, not something existing users need to opt into.
-    reg = register_business(client, unique_username, unique_email)
+    reg = register_business(client, unique_email)
     business_id = reg.get_json()["business_id"]
 
     assert database.is_new_booking_notifications_enabled(business_id) is True
@@ -101,8 +101,8 @@ def test_new_booking_notifications_enabled_defaults_on_and_round_trips(client, u
     assert database.is_new_booking_notifications_enabled(business_id) is False
 
 
-def test_owner_reminder_minutes_default_and_round_trip(client, unique_username, unique_email):
-    reg = register_business(client, unique_username, unique_email)
+def test_owner_reminder_minutes_default_and_round_trip(client, unique_email):
+    reg = register_business(client, unique_email)
     business_id = reg.get_json()["business_id"]
 
     assert database.get_owner_reminder_minutes(business_id) == 60  # column default: 1h
@@ -110,32 +110,32 @@ def test_owner_reminder_minutes_default_and_round_trip(client, unique_username, 
     assert database.get_owner_reminder_minutes(business_id) == 45
 
 
-def test_has_pro_access_during_self_serve_trial(client, unique_username, unique_email):
+def test_has_pro_access_during_self_serve_trial(client, unique_email):
     # A brand new account is 'trialing' with no plan chosen yet - gets full Pro-level
     # access for the length of the trial (see database.has_pro_access's docstring).
-    reg = register_business(client, unique_username, unique_email)
+    reg = register_business(client, unique_email)
     business_id = reg.get_json()["business_id"]
     assert database.get_subscription_status(business_id) == "trialing"
     assert database.has_pro_access(business_id) is True
 
 
-def test_has_pro_access_starter_plan_is_false(client, unique_username, unique_email):
-    reg = register_business(client, unique_username, unique_email)
+def test_has_pro_access_starter_plan_is_false(client, unique_email):
+    reg = register_business(client, unique_email)
     business_id = reg.get_json()["business_id"]
     database.link_subscription(business_id, "cust_1", "sub_1", "active", plan="starter")
     assert database.has_pro_access(business_id) is False
     assert database.effective_subscription_active(business_id) is True  # still a paying, active customer
 
 
-def test_has_pro_access_pro_plan_is_true(client, unique_username, unique_email):
-    reg = register_business(client, unique_username, unique_email)
+def test_has_pro_access_pro_plan_is_true(client, unique_email):
+    reg = register_business(client, unique_email)
     business_id = reg.get_json()["business_id"]
     database.link_subscription(business_id, "cust_2", "sub_2", "active", plan="pro")
     assert database.has_pro_access(business_id) is True
 
 
-def test_has_pro_access_canceled_subscription_is_false(client, unique_username, unique_email):
-    reg = register_business(client, unique_username, unique_email)
+def test_has_pro_access_canceled_subscription_is_false(client, unique_email):
+    reg = register_business(client, unique_email)
     business_id = reg.get_json()["business_id"]
     database.link_subscription(business_id, "cust_3", "sub_3", "active", plan="pro")
     database.update_subscription_status("sub_3", "canceled")
@@ -143,11 +143,11 @@ def test_has_pro_access_canceled_subscription_is_false(client, unique_username, 
     assert database.effective_subscription_active(business_id) is False
 
 
-def test_stripe_subscription_link_writes_shared_status_and_plan_columns(client, unique_username, unique_email):
+def test_stripe_subscription_link_writes_shared_status_and_plan_columns(client, unique_email):
     # link_stripe_subscription/update_stripe_subscription_status are a separate code
     # path from the Paddle ones above, but must land on the exact same processor-
     # agnostic subscription_status/subscription_plan columns has_pro_access() reads.
-    reg = register_business(client, unique_username, unique_email)
+    reg = register_business(client, unique_email)
     business_id = reg.get_json()["business_id"]
     database.link_stripe_subscription(business_id, "stripe_cust_1", "stripe_sub_1", "active", plan="pro")
     assert database.get_subscription_status(business_id) == "active"
@@ -160,8 +160,8 @@ def test_stripe_subscription_link_writes_shared_status_and_plan_columns(client, 
     assert database.has_pro_access(business_id) is False
 
 
-def test_notifications_round_trip_and_mark_read(client, unique_username, unique_email):
-    reg = register_business(client, unique_username, unique_email)
+def test_notifications_round_trip_and_mark_read(client, unique_email):
+    reg = register_business(client, unique_email)
     business_id = reg.get_json()["business_id"]
 
     assert database.notifications_for_business(business_id) == []
@@ -185,8 +185,8 @@ def test_notifications_round_trip_and_mark_read(client, unique_username, unique_
     assert database.unread_notification_count(business_id) == 0
 
 
-def test_delete_business_cascades_appointments(client, unique_username, unique_email):
-    reg = register_business(client, unique_username, unique_email)
+def test_delete_business_cascades_appointments(client, unique_email):
+    reg = register_business(client, unique_email)
     business_id = reg.get_json()["business_id"]
     start, end = _future_slot()
     database.create_appointment(business_id, "Eve", start, end)

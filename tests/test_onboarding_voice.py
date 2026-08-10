@@ -97,8 +97,8 @@ def _upload(client, csrf_token, audio_bytes=b"fake-audio-bytes", filename="recor
     )
 
 
-def test_voice_transcribe_route_returns_text(client, unique_username, unique_email, monkeypatch):
-    register_business_web(client, unique_username, unique_email)
+def test_voice_transcribe_route_returns_text(client, unique_email, monkeypatch):
+    register_business_web(client, unique_email)
     _mock_transcription(monkeypatch, text="A cozy cafe downtown, open 8 to 22, coffee and cakes.")
     csrf_token = get_csrf_token(client, "/onboarding/website")
 
@@ -117,8 +117,8 @@ def test_voice_transcribe_route_requires_login(client):
     assert "/login" in response.headers["Location"]
 
 
-def test_voice_transcribe_route_requires_an_audio_file(client, unique_username, unique_email):
-    register_business_web(client, unique_username, unique_email)
+def test_voice_transcribe_route_requires_an_audio_file(client, unique_email):
+    register_business_web(client, unique_email)
     csrf_token = get_csrf_token(client, "/onboarding/website")
 
     response = web_post(client, "/api/onboarding/voice-transcribe", {"csrf_token": csrf_token})
@@ -126,8 +126,8 @@ def test_voice_transcribe_route_requires_an_audio_file(client, unique_username, 
     assert "No recording" in response.get_json()["error"]
 
 
-def test_voice_transcribe_route_rejects_oversized_upload(client, unique_username, unique_email, monkeypatch):
-    register_business_web(client, unique_username, unique_email)
+def test_voice_transcribe_route_rejects_oversized_upload(client, unique_email, monkeypatch):
+    register_business_web(client, unique_email)
     _mock_transcription(monkeypatch)
     csrf_token = get_csrf_token(client, "/onboarding/website")
 
@@ -137,8 +137,8 @@ def test_voice_transcribe_route_rejects_oversized_upload(client, unique_username
     assert "too long" in response.get_json()["error"]
 
 
-def test_voice_transcribe_route_surfaces_transcription_failure_as_400(client, unique_username, unique_email, monkeypatch):
-    register_business_web(client, unique_username, unique_email)
+def test_voice_transcribe_route_surfaces_transcription_failure_as_400(client, unique_email, monkeypatch):
+    register_business_web(client, unique_email)
 
     def fake_create(**kwargs):
         raise RuntimeError("upstream error")
@@ -151,29 +151,29 @@ def test_voice_transcribe_route_surfaces_transcription_failure_as_400(client, un
     assert "error" in response.get_json()
 
 
-def test_voice_transcribe_route_does_not_touch_the_business_row(client, unique_username, unique_email, monkeypatch):
+def test_voice_transcribe_route_does_not_touch_the_business_row(client, unique_email, monkeypatch):
     """The endpoint only ever returns transcribed text - it never calls
     generate_page_draft or persists anything itself (that still only happens when the
     owner reviews the text and submits the normal /onboarding/website form)."""
-    register_business_web(client, unique_username, unique_email)
+    register_business_web(client, unique_email)
     _mock_transcription(monkeypatch, text="A cozy cafe downtown.")
     csrf_token = get_csrf_token(client, "/onboarding/website")
 
     import database
-    before = database.business_by_username(unique_username)
+    before = database.business_by_contact_email(unique_email)
 
     response = _upload(client, csrf_token, audio_bytes=b"unique-marker-bytes-12345")
     assert response.status_code == 200
 
-    after = database.business_by_username(unique_username)
+    after = database.business_by_contact_email(unique_email)
     assert before == after
 
 
-def test_voice_transcribe_route_transcript_flows_into_the_normal_describe_step(client, unique_username, unique_email, monkeypatch):
+def test_voice_transcribe_route_transcript_flows_into_the_normal_describe_step(client, unique_email, monkeypatch):
     """The whole point of returning plain text instead of generating the page draft
     directly: the owner can review/edit it, then it goes through the exact same
     onboarding_website_describe() POST as anything typed by hand."""
-    register_business_web(client, unique_username, unique_email)
+    register_business_web(client, unique_email)
     _mock_transcription(monkeypatch, text="A barbershop open weekdays 9-6, haircuts 20 EUR.")
     csrf_token = get_csrf_token(client, "/onboarding/website")
 

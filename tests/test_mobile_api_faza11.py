@@ -7,29 +7,29 @@ import database
 from conftest import register_and_login
 
 
-def _auth_header(client, username, email, **overrides):
-    token, business_id = register_and_login(client, username, email, **overrides)
+def _auth_header(client, email, **overrides):
+    token, business_id = register_and_login(client, email, **overrides)
     return {"Authorization": f"Bearer {token}"}, business_id
 
 
-def test_dashboard_reports_pro_access_during_trial(client, unique_username, unique_email):
-    headers, _ = _auth_header(client, unique_username, unique_email)
+def test_dashboard_reports_pro_access_during_trial(client, unique_email):
+    headers, _ = _auth_header(client, unique_email)
     response = client.get("/api/dashboard", headers=headers)
     assert response.status_code == 200
     assert response.get_json()["pro_access"] is True  # fresh account is trialing
 
 
-def test_dashboard_reports_no_pro_access_on_starter_plan(client, unique_username, unique_email, monkeypatch):
+def test_dashboard_reports_no_pro_access_on_starter_plan(client, unique_email, monkeypatch):
     monkeypatch.setattr(app_module, "BETA_FREE_MODE", False)
-    headers, business_id = _auth_header(client, unique_username, unique_email)
+    headers, business_id = _auth_header(client, unique_email)
     database.link_subscription(business_id, "cust", "sub", "active", plan="starter")
     response = client.get("/api/dashboard", headers=headers)
     assert response.get_json()["pro_access"] is False
 
 
-def test_notification_preferences_owner_reminders_pro_gated(client, unique_username, unique_email, monkeypatch):
+def test_notification_preferences_owner_reminders_pro_gated(client, unique_email, monkeypatch):
     monkeypatch.setattr(app_module, "BETA_FREE_MODE", False)
-    headers, business_id = _auth_header(client, unique_username, unique_email)
+    headers, business_id = _auth_header(client, unique_email)
     database.link_subscription(business_id, "cust", "sub", "active", plan="starter")
 
     response = client.post("/api/notification-preferences", headers=headers, json={"owner_reminders_enabled": True})
@@ -39,12 +39,12 @@ def test_notification_preferences_owner_reminders_pro_gated(client, unique_usern
     assert database.is_owner_reminders_enabled(business_id) is False
 
 
-def test_notification_preferences_new_booking_toggle_not_pro_gated(client, unique_username, unique_email, monkeypatch):
+def test_notification_preferences_new_booking_toggle_not_pro_gated(client, unique_email, monkeypatch):
     # Unlike owner_reminders_enabled, new_booking_notifications_enabled is a base feature
     # (same as push_enabled) - a Starter-plan business can still flip it, no Pro/
     # BETA_FREE_MODE check involved.
     monkeypatch.setattr(app_module, "BETA_FREE_MODE", False)
-    headers, business_id = _auth_header(client, unique_username, unique_email)
+    headers, business_id = _auth_header(client, unique_email)
     database.link_subscription(business_id, "cust", "sub", "active", plan="starter")
 
     get_response = client.get("/api/notification-preferences", headers=headers)
@@ -55,10 +55,10 @@ def test_notification_preferences_new_booking_toggle_not_pro_gated(client, uniqu
     assert database.is_new_booking_notifications_enabled(business_id) is False
 
 
-def test_api_notifications_list_and_mark_read(client, unique_username, unique_email):
+def test_api_notifications_list_and_mark_read(client, unique_email):
     # Owner appointment reminders (reminders.py) land in this table instead of an email -
     # this is the mobile app's own bell/notifications screen reading it back.
-    headers, business_id = _auth_header(client, unique_username, unique_email)
+    headers, business_id = _auth_header(client, unique_email)
     database.create_notification(business_id, "Upcoming appointment reminder", "You have an appointment with Ana in 1 hour.")
 
     get_response = client.get("/api/notifications", headers=headers)
@@ -73,8 +73,8 @@ def test_api_notifications_list_and_mark_read(client, unique_username, unique_em
     assert client.get("/api/notifications", headers=headers).get_json()["unread_count"] == 0
 
 
-def test_settings_includes_upsell_pairs(client, unique_username, unique_email):
-    headers, _ = _auth_header(client, unique_username, unique_email)
+def test_settings_includes_upsell_pairs(client, unique_email):
+    headers, _ = _auth_header(client, unique_email)
     get_response = client.get("/api/settings", headers=headers)
     assert get_response.get_json()["upsell_pairs"] == ""
 
@@ -83,9 +83,9 @@ def test_settings_includes_upsell_pairs(client, unique_username, unique_email):
     assert post_response.get_json()["upsell_pairs"] == "Haircut -> Treatment"
 
 
-def test_settings_upsell_pairs_ignored_on_starter_plan(client, unique_username, unique_email, monkeypatch):
+def test_settings_upsell_pairs_ignored_on_starter_plan(client, unique_email, monkeypatch):
     monkeypatch.setattr(app_module, "BETA_FREE_MODE", False)
-    headers, business_id = _auth_header(client, unique_username, unique_email)
+    headers, business_id = _auth_header(client, unique_email)
     database.link_subscription(business_id, "cust", "sub", "active", plan="starter")
 
     response = client.post("/api/settings", headers=headers, json={"upsell_pairs": "Haircut -> Treatment"})
@@ -98,8 +98,8 @@ def test_schedule_link_requires_auth(client):
     assert response.status_code == 401
 
 
-def test_schedule_link_bridges_to_a_logged_in_schedule_page(client, unique_username, unique_email):
-    headers, _ = _auth_header(client, unique_username, unique_email)
+def test_schedule_link_bridges_to_a_logged_in_schedule_page(client, unique_email):
+    headers, _ = _auth_header(client, unique_email)
     link_response = client.get("/api/schedule-link", headers=headers)
     assert link_response.status_code == 200
     url = link_response.get_json()["url"]
@@ -123,9 +123,9 @@ def test_site_preview_link_requires_auth(client):
     assert response.status_code == 401
 
 
-def test_site_preview_link_bridges_to_a_logged_in_preview(client, unique_username, unique_email):
-    headers, business_id = _auth_header(client, unique_username, unique_email)
-    database.upsert_business_page(business_id, f"draft-{unique_username}", False, "Fresh cuts daily", None)
+def test_site_preview_link_bridges_to_a_logged_in_preview(client, unique_email):
+    headers, business_id = _auth_header(client, unique_email)
+    database.upsert_business_page(business_id, f"draft-{business_id}", False, "Fresh cuts daily", None)
 
     link_response = client.get("/api/site-preview-link", headers=headers)
     assert link_response.status_code == 200

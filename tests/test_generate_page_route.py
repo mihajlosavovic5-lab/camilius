@@ -43,13 +43,13 @@ VALID_DRAFT = {
 }
 
 
-def test_generate_business_page_prefills_without_saving(client, unique_username, unique_email, monkeypatch):
+def test_generate_business_page_prefills_without_saving(client, unique_email, monkeypatch):
     monkeypatch.setattr(
         page_generator.client.chat.completions, "create",
         lambda **kwargs: _FakeResponse(json.dumps(VALID_DRAFT)),
     )
-    register_business_web(client, unique_username, unique_email)
-    business_id = database.business_by_username(unique_username)[0]
+    register_business_web(client, unique_email)
+    business_id = database.business_by_contact_email(unique_email)[0]
     original_working_hours = database.business_by_id(business_id)[8]
     csrf_token = get_csrf_token(client, "/profile")
 
@@ -71,8 +71,8 @@ def test_generate_business_page_prefills_without_saving(client, unique_username,
     assert database.get_business_page(business_id) is None
 
 
-def test_generate_business_page_requires_description(client, unique_username, unique_email):
-    register_business_web(client, unique_username, unique_email)
+def test_generate_business_page_requires_description(client, unique_email):
+    register_business_web(client, unique_email)
     csrf_token = get_csrf_token(client, "/profile")
 
     response = web_post(client, "/profile/generate-page", {"csrf_token": csrf_token, "description": "   "})
@@ -80,12 +80,12 @@ def test_generate_business_page_requires_description(client, unique_username, un
     assert "Describe your business first" in response.get_data(as_text=True)
 
 
-def test_generate_business_page_shows_error_on_bad_model_output(client, unique_username, unique_email, monkeypatch):
+def test_generate_business_page_shows_error_on_bad_model_output(client, unique_email, monkeypatch):
     monkeypatch.setattr(
         page_generator.client.chat.completions, "create",
         lambda **kwargs: _FakeResponse("not json"),
     )
-    register_business_web(client, unique_username, unique_email)
+    register_business_web(client, unique_email)
     csrf_token = get_csrf_token(client, "/profile")
 
     response = web_post(client, "/profile/generate-page", {
@@ -102,14 +102,14 @@ def test_generate_business_page_requires_login(client):
     assert "/login" in response.headers["Location"]
 
 
-def test_generate_business_page_prefills_suggested_slug_when_none_saved(client, unique_username, unique_email, monkeypatch):
+def test_generate_business_page_prefills_suggested_slug_when_none_saved(client, unique_email, monkeypatch):
     suggested_slug = f"the-blue-scissors-{uuid.uuid4().hex[:8]}"
     draft = dict(VALID_DRAFT, slug=suggested_slug)
     monkeypatch.setattr(
         page_generator.client.chat.completions, "create",
         lambda **kwargs: _FakeResponse(json.dumps(draft)),
     )
-    register_business_web(client, unique_username, unique_email)
+    register_business_web(client, unique_email)
     csrf_token = get_csrf_token(client, "/profile")
 
     response = web_post(client, "/profile/generate-page", {
@@ -120,15 +120,15 @@ def test_generate_business_page_prefills_suggested_slug_when_none_saved(client, 
     assert f'value="{suggested_slug}"' in html
 
 
-def test_generate_business_page_keeps_already_saved_slug(client, unique_username, unique_email, monkeypatch):
+def test_generate_business_page_keeps_already_saved_slug(client, unique_email, monkeypatch):
     existing_slug = f"already-chosen-{uuid.uuid4().hex[:8]}"
     draft = dict(VALID_DRAFT, slug=f"a-totally-different-{uuid.uuid4().hex[:8]}")
     monkeypatch.setattr(
         page_generator.client.chat.completions, "create",
         lambda **kwargs: _FakeResponse(json.dumps(draft)),
     )
-    register_business_web(client, unique_username, unique_email)
-    business_id = database.business_by_username(unique_username)[0]
+    register_business_web(client, unique_email)
+    business_id = database.business_by_contact_email(unique_email)[0]
     database.upsert_business_page(business_id, existing_slug, False, "Old tagline", "Old about")
     csrf_token = get_csrf_token(client, "/profile")
 
@@ -141,10 +141,10 @@ def test_generate_business_page_keeps_already_saved_slug(client, unique_username
     assert draft["slug"] not in html
 
 
-def test_generate_business_page_falls_back_to_business_name_slug_when_ai_slug_taken(client, unique_username, unique_email, monkeypatch):
+def test_generate_business_page_falls_back_to_business_name_slug_when_ai_slug_taken(client, unique_email, monkeypatch):
     taken_slug = f"taken-{uuid.uuid4().hex[:8]}"
-    register_business_web(client, "slug-owner-" + unique_username, "owner-" + unique_email)
-    owner_id = database.business_by_username("slug-owner-" + unique_username)[0]
+    register_business_web(client, "owner-" + unique_email)
+    owner_id = database.business_by_contact_email("owner-" + unique_email)[0]
     database.upsert_business_page(owner_id, taken_slug, True, "T", "A")
 
     draft = dict(VALID_DRAFT, slug=taken_slug)
@@ -152,7 +152,7 @@ def test_generate_business_page_falls_back_to_business_name_slug_when_ai_slug_ta
         page_generator.client.chat.completions, "create",
         lambda **kwargs: _FakeResponse(json.dumps(draft)),
     )
-    register_business_web(client, unique_username, unique_email)
+    register_business_web(client, unique_email)
     csrf_token = get_csrf_token(client, "/profile")
 
     response = web_post(client, "/profile/generate-page", {

@@ -25,13 +25,13 @@ from push_notifications import send_push_to_business
 
 DEFAULT_TZ = ZoneInfo("Europe/Belgrade")
 
-# Index 21 of the business row (see database.py's canonical row-shape comment). This is
+# Index 20 of the business row (see database.py's canonical row-shape comment). This is
 # deliberately the ONLY place that index is read: the row is indexed positionally in
 # well over a hundred places, and concentrating this one read means a future column
 # reshuffle breaks in a single spot instead of silently booking everyone in the wrong
 # country. Falls back rather than raising - a business row from before the column
 # existed, or with a name no longer in the tz database, must still be able to book.
-_BUSINESS_TIMEZONE_INDEX = 21
+_BUSINESS_TIMEZONE_INDEX = 20
 
 
 def tz_for(business):
@@ -361,7 +361,7 @@ def attempt_ai_booking(business, business_id, slot_minutes, requested_dt_str, cu
     business = a business_by_id()-shaped tuple (index 8 is working_hours, and tz_for()
     reads the timezone off it - the model's "tomorrow at 14:00" means 14:00 where the
     business is, not where the server is)."""
-    working_hours_text = business[8]
+    working_hours_text = business[7]
     tz = tz_for(business)
     try:
         requested = datetime.fromisoformat(requested_dt_str)
@@ -411,7 +411,7 @@ def attempt_ai_cancel_or_reschedule(business, business_id, slot_minutes, sender_
         cancel_appointment(existing_id)
         return {"status": "canceled", "canceled_start_time": existing_start.astimezone(tz).strftime("%A %Y-%m-%d %H:%M")}
 
-    working_hours_text = business[8]
+    working_hours_text = business[7]
     try:
         requested = datetime.fromisoformat(new_requested_datetime)
     except (ValueError, TypeError):

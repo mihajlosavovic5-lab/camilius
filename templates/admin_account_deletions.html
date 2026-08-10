@@ -16,14 +16,13 @@
         </div>
     {% endif %}
 
-    {% for id, business_id, business_name, username, contact_email, instagram_username, phone_number, reason_category, reason_details, source, created_at in deletions %}
+    {% for id, business_id, business_name, contact_email, instagram_username, phone_number, reason_category, reason_details, source, created_at in deletions %}
         <div class="card" style="margin-bottom: 14px;">
             <div style="display: flex; justify-content: space-between; gap: 10px; margin-bottom: 8px; flex-wrap: wrap;">
                 <strong>{{ business_name or "(unknown business)" }}</strong>
                 <span style="color: var(--text-muted); font-size: 12.5px; white-space: nowrap;">{{ created_at.strftime('%m/%d/%Y %H:%M') if created_at else '' }}</span>
             </div>
             <div style="color: var(--text-muted); font-size: 13px; margin-bottom: 10px;">
-                {% if username %}@{{ username }} &middot; {% endif %}
                 {% if contact_email %}{{ contact_email }} &middot; {% endif %}
                 {% if instagram_username %}IG @{{ instagram_username }} &middot; {% endif %}
                 {% if phone_number %}{{ phone_number }} &middot; {% endif %}

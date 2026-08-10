@@ -223,7 +223,6 @@ def create_database():
         CREATE TABLE IF NOT EXISTS businesses (
             id SERIAL PRIMARY KEY,
             name TEXT NOT NULL,
-            username TEXT NOT NULL UNIQUE,
             password TEXT NOT NULL,
             contact_email TEXT NOT NULL UNIQUE,
             instagram_account_id TEXT,
@@ -242,6 +241,10 @@ def create_database():
     # (instagram_account_id/instagram_username/instagram_access_token below). Checking
     # information_schema first (rather than try/except on the UPDATE) avoids leaving the
     # transaction in an aborted state on a fresh database that never had an "email" column.
+    # Username used to be a required, unique login identifier alongside contact email -
+    # dropped in favor of email-only login (with optional phone, see PHONE_LOGIN_ENABLED
+    # below). DROP COLUMN also removes its UNIQUE constraint automatically.
+    cursor.execute("ALTER TABLE businesses DROP COLUMN IF EXISTS username")
     cursor.execute("ALTER TABLE businesses ADD COLUMN IF NOT EXISTS contact_email TEXT")
     cursor.execute("""
         SELECT column_name FROM information_schema.columns
@@ -250,7 +253,7 @@ def create_database():
     if cursor.fetchone():
         cursor.execute("UPDATE businesses SET contact_email = email WHERE contact_email IS NULL")
         cursor.execute("ALTER TABLE businesses DROP COLUMN email")
-    # contact_email should be unique the same way username/phone_number are (see the two
+    # contact_email should be unique the same way phone_number is (see the two
     # unique indexes below) but never actually got one - the app only ever caught
     # duplicates reactively via UniqueViolation (see app.py's register()),
     # which never fired for this column since no DB constraint backed it. That let two
@@ -303,7 +306,7 @@ def create_database():
     # polling forever for something the server already forgot happened.
     cursor.execute("ALTER TABLE businesses ADD COLUMN IF NOT EXISTS instagram_connect_done_state TEXT")
 
-    # Optional phone number - lets a business log in with username, contact email, OR
+    # Optional phone number - lets a business log in with contact email OR
     # phone (same "any of these identify you" pattern most consumer apps use), without
     # requiring it at registration. Same unique-but-multiple-NULLs-allowed index pattern.
     cursor.execute("ALTER TABLE businesses ADD COLUMN IF NOT EXISTS phone_number TEXT")
@@ -635,7 +638,7 @@ def create_database():
     # Phone verification (Profile screen, mobile app only - the web Settings page doesn't
     # expose phone_number at all). Unlike email, this never blocks login overall - it only
     # gates whether phone_number itself is usable as a login identifier (see
-    # business_by_login_identifier's WHERE clause below); username/email login is
+    # business_by_login_identifier's WHERE clause below); email login is
     # unaffected. Same DEFAULT TRUE grandfathering as email_verified above - an existing
     # phone number that was already usable to log in stays usable. add_business() and
     # update_business() below flip this back to FALSE whenever a phone_number is newly set
@@ -734,7 +737,6 @@ def create_database():
             id SERIAL PRIMARY KEY,
             business_id INTEGER,
             business_name TEXT,
-            username TEXT,
             contact_email TEXT,
             instagram_username TEXT,
             phone_number TEXT,
@@ -745,6 +747,7 @@ def create_database():
         )
     """)
     cursor.execute("CREATE INDEX IF NOT EXISTS account_deletions_created_idx ON account_deletions (created_at DESC)")
+    cursor.execute("ALTER TABLE account_deletions DROP COLUMN IF EXISTS username")
 
     # The business's own hosted public page (camilius.com/p/<slug>) - see pages.py for
     # slug validation/reserved words, which stays out of this module the same way
@@ -879,31 +882,31 @@ def create_database():
 
 # --- Businesses ---
 #
-# Canonical row shape returned by business_by_id/business_by_username/
+# Canonical row shape returned by business_by_id/
 # business_by_instagram_account_id (and, plus subscription_status, all_businesses):
-#   0 id, 1 name, 2 username, 3 password (hashed), 4 contact_email, 5 instagram_account_id,
-#   6 instagram_username, 7 instagram_access_token (decrypted, None if not connected yet),
-#   8 working_hours, 9 price_list, 10 faq, 11 phone_number (None if never set),
-#   12 email_verified, 13 phone_verified, 14 pending_contact_email (None unless an email
+#   0 id, 1 name, 2 password (hashed), 3 contact_email, 4 instagram_account_id,
+#   5 instagram_username, 6 instagram_access_token (decrypted, None if not connected yet),
+#   7 working_hours, 8 price_list, 9 faq, 10 phone_number (None if never set),
+#   11 email_verified, 12 phone_verified, 13 pending_contact_email (None unless an email
 #   change confirmation is awaiting a click - see save_pending_email_change() below),
-#   15 whatsapp_phone_number_id, 16 whatsapp_display_number, 17 whatsapp_access_token
-#   (decrypted, None if not connected yet), 18 messenger_page_id, 19 messenger_page_name,
-#   20 messenger_page_access_token (decrypted, None if not connected yet), 21 timezone
-#   (IANA name, never NULL - see the column's DEFAULT), 22 google_id (None unless this
-#   account has ever signed in with Google - see business_by_google_id below), 23
-#   preferred_theme, 24 preferred_custom_theme_json (a Design pick made from the mobile
+#   14 whatsapp_phone_number_id, 15 whatsapp_display_number, 16 whatsapp_access_token
+#   (decrypted, None if not connected yet), 17 messenger_page_id, 18 messenger_page_name,
+#   19 messenger_page_access_token (decrypted, None if not connected yet), 20 timezone
+#   (IANA name, never NULL - see the column's DEFAULT), 21 google_id (None unless this
+#   account has ever signed in with Google - see business_by_google_id below), 22
+#   preferred_theme, 23 preferred_custom_theme_json (a Design pick made from the mobile
 #   app's My Site tab before this business has ever saved a business_pages row - see
 #   api.py's api_save_page blank-slug branch and set_preferred_theme below; both None
 #   until then, and never read again once a real page exists). The WhatsApp, Messenger,
 #   timezone, google_id, and preferred theme columns are appended at the END rather
 #   than grouped next to the related ones above, deliberately - this tuple is indexed
-#   positionally (business[5], business[7], ...) in well over a hundred places across
+#   positionally (business[4], business[6], ...) in well over a hundred places across
 #   app.py/api.py/booking.py, so inserting them in the middle would silently shift every
-#   existing index instead of just adding new ones. Read index 21 through booking.tz_for
+#   existing index instead of just adding new ones. Read index 20 through booking.tz_for
 #   (business) rather than directly, so there is exactly one place to fix if the shape
 #   ever does change.
 
-_BUSINESS_COLUMNS = """id, name, username, password, contact_email, instagram_account_id,
+_BUSINESS_COLUMNS = """id, name, password, contact_email, instagram_account_id,
                        instagram_username, instagram_access_token, working_hours, price_list, faq,
                        phone_number, email_verified, phone_verified, pending_contact_email,
                        whatsapp_phone_number_id, whatsapp_display_number, whatsapp_access_token,
@@ -919,20 +922,20 @@ _BUSINESS_COLUMN_COUNT = len(_BUSINESS_COLUMNS.split(","))
 
 
 def _decrypt_row_token(row):
-    # instagram_access_token (index 7), whatsapp_access_token (index 17), and
-    # messenger_page_access_token (index 20) all need decrypting before use - any of the
+    # instagram_access_token (index 6), whatsapp_access_token (index 16), and
+    # messenger_page_access_token (index 19) all need decrypting before use - any of the
     # three can be NULL (that channel not connected yet), not an encrypted empty string.
-    # The trailing row[21:] keeps everything appended after the tokens (timezone, and
-    # whatever comes next) instead of truncating the tuple at 21 the way an explicit
+    # The trailing row[20:] keeps everything appended after the tokens (timezone, and
+    # whatever comes next) instead of truncating the tuple at 20 the way an explicit
     # slice would - that truncation is exactly how a newly added column silently goes
     # missing from every business_by_* caller.
-    ig_token = decrypt(row[7]) if row[7] else None
-    wa_token = decrypt(row[17]) if row[17] else None
-    fb_token = decrypt(row[20]) if row[20] else None
-    return row[:7] + (ig_token,) + row[8:17] + (wa_token,) + row[18:20] + (fb_token,) + row[21:]
+    ig_token = decrypt(row[6]) if row[6] else None
+    wa_token = decrypt(row[16]) if row[16] else None
+    fb_token = decrypt(row[19]) if row[19] else None
+    return row[:6] + (ig_token,) + row[7:16] + (wa_token,) + row[17:19] + (fb_token,) + row[20:]
 
 
-def add_business(name, username, password, contact_email, working_hours, price_list, faq, phone_number=None, initial_status="trialing", push_enabled=True, auto_send=True, new_booking_notifications_enabled=True, reminders_enabled=False, google_id=None, email_verified=False):
+def add_business(name, password, contact_email, working_hours, price_list, faq, phone_number=None, initial_status="trialing", push_enabled=True, auto_send=True, new_booking_notifications_enabled=True, reminders_enabled=False, google_id=None, email_verified=False):
     """Creates the account itself. phone_number is optional - purely an extra way to log
     in later, not required.
 
@@ -971,9 +974,9 @@ def add_business(name, username, password, contact_email, working_hours, price_l
 
     _execute_or_raise_unique_violation(
         cursor,
-        """INSERT INTO businesses (name, username, password, contact_email, working_hours, price_list, faq, phone_number, subscription_status, email_verified, phone_verified, push_enabled, auto_send, new_booking_notifications_enabled, reminders_enabled, google_id)
-           VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, FALSE, %s, %s, %s, %s, %s) RETURNING id""",
-        (name, username, generate_password_hash(password), contact_email, working_hours, price_list, faq, phone_number or None, initial_status, email_verified, push_enabled, auto_send, new_booking_notifications_enabled, reminders_enabled, google_id),
+        """INSERT INTO businesses (name, password, contact_email, working_hours, price_list, faq, phone_number, subscription_status, email_verified, phone_verified, push_enabled, auto_send, new_booking_notifications_enabled, reminders_enabled, google_id)
+           VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, FALSE, %s, %s, %s, %s, %s) RETURNING id""",
+        (name, generate_password_hash(password), contact_email, working_hours, price_list, faq, phone_number or None, initial_status, email_verified, push_enabled, auto_send, new_booking_notifications_enabled, reminders_enabled, google_id),
     )
 
     new_id = cursor.fetchone()[0]
@@ -1005,23 +1008,6 @@ def business_by_id(business_id):
     return _decrypt_row_token(row)
 
 
-def business_by_username(username):
-    connection = connect()
-    cursor = connection.cursor()
-    cursor.execute(
-        f"SELECT {_BUSINESS_COLUMNS} FROM businesses WHERE username = %s",
-        (username,),
-    )
-    row = cursor.fetchone()
-    connection.close()
-
-    if row is None:
-        return None
-    # NOTE: 'password' (index 3) stays hashed - login checks it via check_password_hash,
-    # never decrypted.
-    return _decrypt_row_token(row)
-
-
 # Flip back to True to restore phone-number login (and, alongside it, the Profile
 # screen's phone verification prompts - see updatePhoneVerifyStatus() in mobile/app.js
 # and api.py's /api/settings). Nothing behind either is deleted: phone_verified, the
@@ -1035,25 +1021,25 @@ PHONE_LOGIN_ENABLED = False
 
 
 def business_by_login_identifier(identifier):
-    """Login accepts username or contact email, and - only while PHONE_LOGIN_ENABLED is
-    True - phone number too, same "any of these identifies you" pattern most consumer
-    apps use. One query checking all of them rather than separate round-trips.
+    """Login accepts contact email, and - only while PHONE_LOGIN_ENABLED is True - phone
+    number too, same "any of these identifies you" pattern most consumer apps use. One
+    query checking all of them rather than separate round-trips.
 
     The phone_number branch additionally requires phone_verified - an unconfirmed phone
     number can't be used to log in (see phone_verified's own comment in create_database()),
-    but this never affects the username/contact_email branches, so an account with an
-    unverified (or no) phone number can always still log in the normal way."""
+    but this never affects the contact_email branch, so an account with an unverified (or
+    no) phone number can always still log in the normal way."""
     connection = connect()
     cursor = connection.cursor()
     if PHONE_LOGIN_ENABLED:
         cursor.execute(
-            f"SELECT {_BUSINESS_COLUMNS} FROM businesses WHERE username = %s OR contact_email = %s OR (phone_number = %s AND phone_verified)",
-            (identifier, identifier, identifier),
+            f"SELECT {_BUSINESS_COLUMNS} FROM businesses WHERE contact_email = %s OR (phone_number = %s AND phone_verified)",
+            (identifier, identifier),
         )
     else:
         cursor.execute(
-            f"SELECT {_BUSINESS_COLUMNS} FROM businesses WHERE username = %s OR contact_email = %s",
-            (identifier, identifier),
+            f"SELECT {_BUSINESS_COLUMNS} FROM businesses WHERE contact_email = %s",
+            (identifier,),
         )
     row = cursor.fetchone()
     connection.close()
@@ -1395,23 +1381,11 @@ def business_by_phone_number(phone_number):
 
 # --- Live availability checks (Create Account + Profile "already taken" inline errors) ---
 #
-# Each mirrors one of the UNIQUE constraints on businesses (username, contact_email,
+# Each mirrors one of the UNIQUE constraints on businesses (contact_email,
 # phone_number) so the frontend can ask "is this taken?" before the user submits the
 # form, instead of only finding out from a UniqueViolation after the fact.
 # exclude_business_id lets the Profile screen check a field against everyone ELSE's
 # value without a business always seeing its own current value as "taken".
-
-def username_taken(username, exclude_business_id=None):
-    connection = connect()
-    cursor = connection.cursor()
-    cursor.execute(
-        "SELECT 1 FROM businesses WHERE username = %s AND id != %s",
-        (username, exclude_business_id or 0),
-    )
-    taken = cursor.fetchone() is not None
-    connection.close()
-    return taken
-
 
 def contact_email_taken(contact_email, exclude_business_id=None):
     connection = connect()
@@ -1615,7 +1589,7 @@ def business_by_email_verify_token(token):
     connection = connect()
     cursor = connection.cursor()
     cursor.execute(
-        "SELECT id, name, username, contact_email, pending_contact_email FROM businesses "
+        "SELECT id, name, contact_email, pending_contact_email FROM businesses "
         "WHERE email_verify_token = %s AND email_verify_expires > NOW()",
         (token,),
     )
@@ -1840,10 +1814,10 @@ def phone_verify_sent_recently(business_id, within_seconds):
     return phone_verify_resend_wait_seconds(business_id, within_seconds) > 0
 
 
-def update_business(business_id, name, username, contact_email, phone_number, working_hours, price_list, faq):
+def update_business(business_id, name, contact_email, phone_number, working_hours, price_list, faq):
     # Reconnecting Instagram is a separate OAuth round-trip (link_instagram_account), not
     # a settings-form field like the old Gmail app password was - nothing to branch on here.
-    # username/contact_email/phone_number share the same UNIQUE constraints as at
+    # contact_email/phone_number share the same UNIQUE constraints as at
     # registration - the caller is expected to catch UniqueViolation.
     #
     # The phone_verified/token CASE expressions compare against the row's OLD phone_number
@@ -1864,7 +1838,7 @@ def update_business(business_id, name, username, contact_email, phone_number, wo
     _execute_or_raise_unique_violation(
         cursor,
         """UPDATE businesses
-           SET name=%s, username=%s, contact_email=%s,
+           SET name=%s, contact_email=%s,
                phone_verified = CASE WHEN phone_number IS DISTINCT FROM %s THEN FALSE ELSE phone_verified END,
                phone_verify_token = CASE WHEN phone_number IS DISTINCT FROM %s THEN NULL ELSE phone_verify_token END,
                phone_verify_expires = CASE WHEN phone_number IS DISTINCT FROM %s THEN NULL ELSE phone_verify_expires END,
@@ -1875,7 +1849,7 @@ def update_business(business_id, name, username, contact_email, phone_number, wo
                working_hours=%s, price_list=%s, faq=%s
            WHERE id=%s""",
         (
-            name, username, contact_email,
+            name, contact_email,
             phone_number or None, phone_number or None, phone_number or None, phone_number or None,
             phone_number or None, phone_number or None, phone_number or None,
             working_hours, price_list, faq, business_id,
@@ -1930,16 +1904,15 @@ def record_account_deletion(business_id, reason_category, reason_details, source
     cursor = connection.cursor()
     cursor.execute(
         """INSERT INTO account_deletions
-               (business_id, business_name, username, contact_email, instagram_username,
+               (business_id, business_name, contact_email, instagram_username,
                 phone_number, reason_category, reason_details, source)
-           VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)""",
+           VALUES (%s, %s, %s, %s, %s, %s, %s, %s)""",
         (
             business_id,
             business[1] if business else None,
-            business[2] if business else None,
-            business[4] if business else None,
-            business[6] if business else None,
-            business[11] if business else None,
+            business[3] if business else None,
+            business[5] if business else None,
+            business[10] if business else None,
             reason_category,
             reason_details or None,
             source,
@@ -1953,7 +1926,7 @@ def recent_account_deletions(limit=200):
     connection = connect()
     cursor = connection.cursor()
     cursor.execute(
-        """SELECT id, business_id, business_name, username, contact_email, instagram_username,
+        """SELECT id, business_id, business_name, contact_email, instagram_username,
                   phone_number, reason_category, reason_details, source, created_at
            FROM account_deletions ORDER BY created_at DESC LIMIT %s""",
         (limit,),
@@ -2195,7 +2168,7 @@ def _comp_account_emails():
 
 def is_comp_account(business_id):
     business = business_by_id(business_id)
-    return bool(business) and business[4].strip().lower() in _comp_account_emails()
+    return bool(business) and business[3].strip().lower() in _comp_account_emails()
 
 
 def effective_subscription_active(business_id):

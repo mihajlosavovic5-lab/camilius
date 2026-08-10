@@ -69,9 +69,9 @@ def _run_describe_step(client, monkeypatch):
     })
 
 
-def test_wizard_happy_path_publishes_a_page_and_completes_onboarding(client, unique_username, unique_email, monkeypatch):
-    register_business_web(client, unique_username, unique_email)
-    business_id = database.business_by_username(unique_username)[0]
+def test_wizard_happy_path_publishes_a_page_and_completes_onboarding(client, unique_email, monkeypatch):
+    register_business_web(client, unique_email)
+    business_id = database.business_by_contact_email(unique_email)[0]
 
     # Step 1: describe -> AI draft, redirects to the design step.
     response = _run_describe_step(client, monkeypatch)
@@ -113,14 +113,14 @@ def test_wizard_happy_path_publishes_a_page_and_completes_onboarding(client, uni
     assert page[9] == "bold"  # theme
 
     business = database.business_by_id(business_id)
-    assert "Haircut: 20 EUR" in business[9]  # price_list, AI-drafted
+    assert "Haircut: 20 EUR" in business[8]  # price_list, AI-drafted
 
     assert database.onboarding_completed(business_id) is True
     assert client.get("/").status_code == 200
 
 
-def test_onboarding_address_prefills_ai_suggested_slug(client, unique_username, unique_email, monkeypatch):
-    register_business_web(client, unique_username, unique_email)
+def test_onboarding_address_prefills_ai_suggested_slug(client, unique_email, monkeypatch):
+    register_business_web(client, unique_email)
     draft = dict(VALID_DRAFT, slug="the-fade-room")
     monkeypatch.setattr(
         page_generator.client.chat.completions, "create",
@@ -138,8 +138,8 @@ def test_onboarding_address_prefills_ai_suggested_slug(client, unique_username, 
     assert 'value="the-fade-room"' in address_html
 
 
-def test_onboarding_describe_requires_a_description(client, unique_username, unique_email):
-    register_business_web(client, unique_username, unique_email)
+def test_onboarding_describe_requires_a_description(client, unique_email):
+    register_business_web(client, unique_email)
     csrf_token = get_csrf_token(client, "/onboarding/website")
 
     response = web_post(client, "/onboarding/website", {"csrf_token": csrf_token, "description": "   "})
@@ -147,8 +147,8 @@ def test_onboarding_describe_requires_a_description(client, unique_username, uni
     assert "Describe your business first" in response.get_data(as_text=True)
 
 
-def test_onboarding_design_rejects_unknown_theme(client, unique_username, unique_email, monkeypatch):
-    register_business_web(client, unique_username, unique_email)
+def test_onboarding_design_rejects_unknown_theme(client, unique_email, monkeypatch):
+    register_business_web(client, unique_email)
     _run_describe_step(client, monkeypatch)
 
     csrf_token = get_csrf_token(client, "/onboarding/website/design")
@@ -180,8 +180,8 @@ def _run_describe_step_with_ai_theme_options(client, monkeypatch, options):
     })
 
 
-def test_onboarding_design_shows_ai_suggested_options(client, unique_username, unique_email, monkeypatch):
-    register_business_web(client, unique_username, unique_email)
+def test_onboarding_design_shows_ai_suggested_options(client, unique_email, monkeypatch):
+    register_business_web(client, unique_email)
     _run_describe_step_with_ai_theme_options(client, monkeypatch, [_AI_THEME_OPTION])
 
     html = client.get("/onboarding/website/design").get_data(as_text=True)
@@ -189,8 +189,8 @@ def test_onboarding_design_shows_ai_suggested_options(client, unique_username, u
     assert 'value="ai:0"' in html
 
 
-def test_onboarding_design_no_ai_options_falls_back_to_classic_only(client, unique_username, unique_email, monkeypatch):
-    register_business_web(client, unique_username, unique_email)
+def test_onboarding_design_no_ai_options_falls_back_to_classic_only(client, unique_email, monkeypatch):
+    register_business_web(client, unique_email)
     _run_describe_step_with_ai_theme_options(client, monkeypatch, [])
 
     html = client.get("/onboarding/website/design").get_data(as_text=True)
@@ -198,9 +198,9 @@ def test_onboarding_design_no_ai_options_falls_back_to_classic_only(client, uniq
     assert 'value="minimal"' in html
 
 
-def test_onboarding_can_publish_with_an_ai_suggested_theme(client, unique_username, unique_email, monkeypatch):
-    register_business_web(client, unique_username, unique_email)
-    business_id = database.business_by_username(unique_username)[0]
+def test_onboarding_can_publish_with_an_ai_suggested_theme(client, unique_email, monkeypatch):
+    register_business_web(client, unique_email)
+    business_id = database.business_by_contact_email(unique_email)[0]
     _run_describe_step_with_ai_theme_options(client, monkeypatch, [_AI_THEME_OPTION])
 
     csrf_token = get_csrf_token(client, "/onboarding/website/design")
@@ -226,17 +226,16 @@ def test_onboarding_can_publish_with_an_ai_suggested_theme(client, unique_userna
     assert "#111111" in public_html
 
 
-def test_onboarding_address_rejects_invalid_and_taken_slugs(client, unique_username, unique_email, monkeypatch):
+def test_onboarding_address_rejects_invalid_and_taken_slugs(client, unique_email, monkeypatch):
     # Another business already publishing under this slug.
-    other_username = f"{unique_username}-other"
     other_email = f"other-{unique_email}"
-    register_business_web(client, other_username, other_email)
-    other_id = database.business_by_username(other_username)[0]
+    register_business_web(client, other_email)
+    other_id = database.business_by_contact_email(other_email)[0]
     taken_slug = f"taken-{uuid.uuid4().hex[:8]}"
     database.upsert_business_page(other_id, taken_slug, True, "Tag", "About")
     client.get("/logout")
 
-    register_business_web(client, unique_username, unique_email)
+    register_business_web(client, unique_email)
     _run_describe_step(client, monkeypatch)
     csrf_token = get_csrf_token(client, "/onboarding/website/design")
     web_post(client, "/onboarding/website/design", {"csrf_token": csrf_token, "theme": "minimal"})
@@ -252,8 +251,8 @@ def test_onboarding_address_rejects_invalid_and_taken_slugs(client, unique_usern
     assert "already taken" in response.get_data(as_text=True)
 
 
-def test_onboarding_steps_bounce_back_when_the_draft_is_missing(client, unique_username, unique_email):
-    register_business_web(client, unique_username, unique_email)
+def test_onboarding_steps_bounce_back_when_the_draft_is_missing(client, unique_email):
+    register_business_web(client, unique_email)
 
     # Jumping straight to a later step without the earlier one's session state redirects
     # back to the start, rather than 500ing on a missing session key.
@@ -265,8 +264,8 @@ def test_onboarding_steps_bounce_back_when_the_draft_is_missing(client, unique_u
     assert client.get("/onboarding/website/preview").status_code == 404
 
 
-def test_onboarding_preview_renders_the_chosen_theme_without_chat(client, unique_username, unique_email, monkeypatch):
-    register_business_web(client, unique_username, unique_email)
+def test_onboarding_preview_renders_the_chosen_theme_without_chat(client, unique_email, monkeypatch):
+    register_business_web(client, unique_email)
     _run_describe_step(client, monkeypatch)
     csrf_token = get_csrf_token(client, "/onboarding/website/design")
     web_post(client, "/onboarding/website/design", {"csrf_token": csrf_token, "theme": "luxury"})
@@ -285,13 +284,13 @@ def test_onboarding_preview_renders_the_chosen_theme_without_chat(client, unique
     assert themes.THEMES["nature"]["base"]["primary"] in html
 
 
-def test_onboarding_design_csp_allows_its_own_preview_iframes(client, unique_username, unique_email, monkeypatch):
+def test_onboarding_design_csp_allows_its_own_preview_iframes(client, unique_email, monkeypatch):
     """The design step embeds this site's own /onboarding/website/preview in an
     <iframe> per theme card (see onboarding_design.html). A CSP frame-src without
     'self' silently blocks that same-origin iframe in a real browser (chrome-error://
     chromewebdata) even though a plain GET/fetch of the same URL succeeds fine - only
     caught visually, not by response.status_code, so this pins the header directly."""
-    register_business_web(client, unique_username, unique_email)
+    register_business_web(client, unique_email)
     _run_describe_step(client, monkeypatch)
 
     response = client.get("/onboarding/website/design")

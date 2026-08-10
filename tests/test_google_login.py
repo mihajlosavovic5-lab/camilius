@@ -139,12 +139,12 @@ def test_auth_google_callback_new_identity_with_login_intent_shows_error_not_sig
     assert "doesn&#39;t exist" in html or "isn&#39;t linked" in html or "No Camilius account" in html or "no account" in html.lower()
 
 
-def test_auth_google_callback_existing_account_with_login_intent_still_logs_in(client, monkeypatch, unique_username, unique_email):
+def test_auth_google_callback_existing_account_with_login_intent_still_logs_in(client, monkeypatch, unique_email):
     """intent=login must not change anything for a Google identity that DOES match an
     existing account - it should log straight in exactly like before."""
     from conftest import register_business
 
-    register_business(client, unique_username, unique_email)
+    register_business(client, unique_email)
 
     _configure_google(monkeypatch)
     state = _start_web_google_auth_login(client)
@@ -160,7 +160,7 @@ def test_auth_google_callback_existing_account_with_login_intent_still_logs_in(c
         assert sess.get("business_id") is not None
 
 
-def test_register_with_valid_google_link_token_creates_verified_linked_account(client, monkeypatch, unique_username, unique_email):
+def test_register_with_valid_google_link_token_creates_verified_linked_account(client, monkeypatch, unique_email):
     _configure_google(monkeypatch)
     state = _start_web_google_auth(client)
     sub = _unique_sub()
@@ -175,7 +175,6 @@ def test_register_with_valid_google_link_token_creates_verified_linked_account(c
         "csrf_token": csrf,
         "google_link_token": link_token,
         "name": "Jane's Salon",
-        "username": unique_username,
         "password": "TestPassword123",
         "confirm_password": "TestPassword123",
         "contact_email": unique_email,  # same email the token was issued for
@@ -189,8 +188,8 @@ def test_register_with_valid_google_link_token_creates_verified_linked_account(c
 
     business = database.business_by_contact_email(unique_email)
     assert business is not None
-    assert business[12] is True  # email_verified - Google already proved it, no confirmation link needed
-    assert business[22] == sub  # google_id linked
+    assert business[11] is True  # email_verified - Google already proved it, no confirmation link needed
+    assert business[21] == sub  # google_id linked
 
     # Logged straight in - no verify_pending detour.
     with client.session_transaction() as sess:
@@ -198,7 +197,7 @@ def test_register_with_valid_google_link_token_creates_verified_linked_account(c
         assert sess.get("pending_verify_business_id") is None
 
 
-def test_register_with_mismatched_email_ignores_google_link_token(client, monkeypatch, unique_username, unique_email):
+def test_register_with_mismatched_email_ignores_google_link_token(client, monkeypatch, unique_email):
     """Visitor changed the pre-filled email before submitting - the token was issued for a
     different address, so it must NOT silently attach to whatever they typed instead."""
     _configure_google(monkeypatch)
@@ -215,7 +214,6 @@ def test_register_with_mismatched_email_ignores_google_link_token(client, monkey
         "csrf_token": csrf,
         "google_link_token": link_token,
         "name": "Jane's Salon",
-        "username": unique_username,
         "password": "TestPassword123",
         "confirm_password": "TestPassword123",
         "contact_email": unique_email,  # NOT the email the token was issued for
@@ -228,8 +226,8 @@ def test_register_with_mismatched_email_ignores_google_link_token(client, monkey
 
     business = database.business_by_contact_email(unique_email)
     assert business is not None
-    assert business[12] is False  # not auto-verified - normal email confirmation still required
-    assert business[22] is None  # not linked to the Google account
+    assert business[11] is False  # not auto-verified - normal email confirmation still required
+    assert business[21] is None  # not linked to the Google account
 
     with client.session_transaction() as sess:
         assert sess.get("pending_verify_business_id") == business[0]  # normal verify_pending flow
@@ -237,12 +235,12 @@ def test_register_with_mismatched_email_ignores_google_link_token(client, monkey
 
 # --- Web flow: a Google identity that's already linked (or matches by email) ---
 
-def test_auth_google_callback_links_existing_account_by_email(client, monkeypatch, unique_username, unique_email):
+def test_auth_google_callback_links_existing_account_by_email(client, monkeypatch, unique_email):
     from conftest import register_business
 
-    register_business(client, unique_username, unique_email)
+    register_business(client, unique_email)
     existing = database.business_by_contact_email(unique_email)
-    assert existing[22] is None  # not linked yet
+    assert existing[21] is None  # not linked yet
 
     _configure_google(monkeypatch)
     state = _start_web_google_auth(client)
@@ -254,14 +252,14 @@ def test_auth_google_callback_links_existing_account_by_email(client, monkeypatc
     assert "/register" not in response.headers["Location"]
 
     linked = database.business_by_id(existing[0])
-    assert linked[22] == sub
-    assert linked[12] is True  # now verified via Google, even though the original signup wasn't
+    assert linked[21] == sub
+    assert linked[11] is True  # now verified via Google, even though the original signup wasn't
 
     with client.session_transaction() as sess:
         assert sess.get("business_id") == existing[0]
 
 
-def test_auth_google_callback_reuses_existing_google_link(client, monkeypatch, unique_username, unique_email):
+def test_auth_google_callback_reuses_existing_google_link(client, monkeypatch, unique_email):
     """Same Google account signs in a second time, after already completing sign-up once -
     should log straight in, not redirect to register again."""
     _configure_google(monkeypatch)
@@ -278,7 +276,6 @@ def test_auth_google_callback_reuses_existing_google_link(client, monkeypatch, u
         "csrf_token": csrf,
         "google_link_token": link_token,
         "name": "Jane's Salon",
-        "username": unique_username,
         "password": "TestPassword123",
         "confirm_password": "TestPassword123",
         "contact_email": unique_email,
@@ -375,10 +372,10 @@ def test_mobile_google_login_new_identity_with_login_intent_status_is_no_account
     assert status_again["status"] == "expired"
 
 
-def test_mobile_google_login_existing_account_with_login_intent_status_is_done(client, monkeypatch, unique_username, unique_email):
+def test_mobile_google_login_existing_account_with_login_intent_status_is_done(client, monkeypatch, unique_email):
     from conftest import register_business
 
-    register_business(client, unique_username, unique_email)
+    register_business(client, unique_email)
 
     _configure_google(monkeypatch)
     start = client.post("/api/google-login/start", json={"intent": "login"}).get_json()
@@ -391,7 +388,7 @@ def test_mobile_google_login_existing_account_with_login_intent_status_is_done(c
     assert status["token"]
 
 
-def test_mobile_api_register_with_valid_google_link_token_returns_token_directly(client, monkeypatch, unique_username, unique_email):
+def test_mobile_api_register_with_valid_google_link_token_returns_token_directly(client, monkeypatch, unique_email):
     _configure_google(monkeypatch)
     start = client.post("/api/google-login/start").get_json()
     sub = _unique_sub()
@@ -402,7 +399,6 @@ def test_mobile_api_register_with_valid_google_link_token_returns_token_directly
 
     response = client.post("/api/register", json={
         "name": "Jane's Salon",
-        "username": unique_username,
         "password": "TestPassword123",
         "contact_email": unique_email,
         "working_hours": "Mon-Fri 09:00-18:00",
@@ -417,16 +413,16 @@ def test_mobile_api_register_with_valid_google_link_token_returns_token_directly
     assert "pending_verification" not in data or not data["pending_verification"]
 
     business = database.business_by_contact_email(unique_email)
-    assert business[12] is True
-    assert business[22] == sub
+    assert business[11] is True
+    assert business[21] == sub
 
 
-def test_mobile_google_login_existing_account_status_is_done(client, monkeypatch, unique_username, unique_email):
+def test_mobile_google_login_existing_account_status_is_done(client, monkeypatch, unique_email):
     """A Google identity that already completed sign-up once logs straight in on a later
     attempt, same as the web equivalent test above."""
     from conftest import register_business
 
-    register_business(client, unique_username, unique_email)
+    register_business(client, unique_email)
 
     _configure_google(monkeypatch)
     start = client.post("/api/google-login/start").get_json()
@@ -440,7 +436,7 @@ def test_mobile_google_login_existing_account_status_is_done(client, monkeypatch
     assert status["business_id"]
 
 
-def test_mobile_google_login_success_callback_redirects_to_app_link_bridge(client, monkeypatch, unique_username, unique_email):
+def test_mobile_google_login_success_callback_redirects_to_app_link_bridge(client, monkeypatch, unique_email):
     """A plain successful mobile login (existing account, no signup/error to report)
     redirects to /auth/google/done with no outcome param - the verified Android App Link
     target (see AndroidManifest.xml) that a signed APK with the matching manifest entry
@@ -451,7 +447,7 @@ def test_mobile_google_login_success_callback_redirects_to_app_link_bridge(clien
     language picker, brand logo, etc.) has a chance to flash on screen."""
     from conftest import register_business
 
-    register_business(client, unique_username, unique_email)
+    register_business(client, unique_email)
 
     _configure_google(monkeypatch)
     start = client.post("/api/google-login/start").get_json()

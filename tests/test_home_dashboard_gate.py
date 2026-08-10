@@ -19,17 +19,17 @@ import database
 from conftest import register_business_web
 
 
-def test_fresh_business_is_sent_to_the_onboarding_wizard(client, unique_username, unique_email):
-    register_business_web(client, unique_username, unique_email)
+def test_fresh_business_is_sent_to_the_onboarding_wizard(client, unique_email):
+    register_business_web(client, unique_email)
 
     response = client.get("/")
     assert response.status_code == 302
     assert response.headers["Location"] == "/onboarding/website"
 
 
-def test_dashboard_reachable_once_onboarding_is_done(client, unique_username, unique_email):
-    register_business_web(client, unique_username, unique_email)
-    business = database.business_by_username(unique_username)
+def test_dashboard_reachable_once_onboarding_is_done(client, unique_email):
+    register_business_web(client, unique_email)
+    business = database.business_by_contact_email(unique_email)
     database.mark_onboarding_completed(business[0])
 
     response = client.get("/")

@@ -5,9 +5,9 @@ import database
 from conftest import get_csrf_token, register_business_web, web_post
 
 
-def test_web_notifications_list_and_mark_read(client, unique_username, unique_email):
-    register_business_web(client, unique_username, unique_email)
-    business_id = database.business_by_username(unique_username)[0]
+def test_web_notifications_list_and_mark_read(client, unique_email):
+    register_business_web(client, unique_email)
+    business_id = database.business_by_contact_email(unique_email)[0]
     database.create_notification(business_id, "Upcoming appointment reminder", "You have an appointment with Ana in 1 hour.")
 
     get_response = client.get("/notifications")
@@ -33,9 +33,9 @@ def test_web_notifications_requires_login(client):
     assert response.status_code in (302, 401)
 
 
-def test_web_settings_new_booking_toggle(client, unique_username, unique_email):
-    register_business_web(client, unique_username, unique_email)
-    business_id = database.business_by_username(unique_username)[0]
+def test_web_settings_new_booking_toggle(client, unique_email):
+    register_business_web(client, unique_email)
+    business_id = database.business_by_contact_email(unique_email)[0]
     assert database.is_new_booking_notifications_enabled(business_id) is True  # column default
 
     csrf_token = get_csrf_token(client, "/settings")

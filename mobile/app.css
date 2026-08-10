@@ -522,7 +522,7 @@ input::placeholder, textarea::placeholder { color: var(--text-muted); opacity: 1
 textarea { resize: vertical; line-height: 1.4; padding-top: 9px; }
 input[readonly] { background: var(--background); color: var(--text-muted); }
 .screen-login input[type="text"], .screen-login input[type="password"] { border-radius: 16px; padding: 14px 16px; margin-bottom: 12px; }
-/* Floating labels (login username/password) - label sits centered like a placeholder
+/* Floating labels (login email/password) - label sits centered like a placeholder
    when the field is empty and unfocused, then rises to a small caption at the top of
    the same box (freeing up the rest of the field for the value) on focus or once
    something's typed - the pattern Meta's own login screens use. */
@@ -729,7 +729,7 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
 .button-google:disabled { background: #fff; }
 .button-google-icon { width: 18px; height: 18px; flex-shrink: 0; }
 /* Same "short caption breaks up a lone floating button" idea as .login-signup-divider
-   above, reused here between the Google button and the username/password form. */
+   above, reused here between the Google button and the email/password form. */
 /* Bigger, bolder "or" flanked by short lines on each side, instead of a plain small
    caption - reads more like a real divider between two equally-weighted buttons (Google/
    email) than a throwaway label. Same treatment as the website's .auth-or-divider. */
@@ -741,7 +741,7 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
 .login-google-divider::before, .login-google-divider::after {
     content: ""; flex: 1; height: 1px; background: var(--border);
 }
-/* Returns from the revealed username/password form (see #login-email-btn/
+/* Returns from the revealed email/password form (see #login-email-btn/
    #login-email-back-btn in app.js) back to the Google/email choice screen - reuses
    .back-btn's plain 34px circle look, pinned to the screen's actual top-left corner
    (inset by the same padding as .login-wrap itself, not flush against the edge) rather

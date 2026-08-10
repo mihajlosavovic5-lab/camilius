@@ -22,8 +22,8 @@ from database import (
     effective_subscription_active, has_pro_access,
     business_stats, log_event, event_funnel, recent_client_errors, log_client_error,
     raw_conversation_rows,
-    business_by_username, business_by_phone_number,
-    username_taken, contact_email_taken, phone_number_taken,
+    business_by_phone_number,
+    contact_email_taken, phone_number_taken,
     business_by_google_id, link_google_account,
     create_oauth_login_session, complete_oauth_login_session, fail_oauth_login_session,
     complete_oauth_login_session_needs_signup, oauth_login_session_exists, oauth_login_session_intent,
@@ -385,7 +385,7 @@ def _google_login_existing(google_user):
     account has never been seen here before. The caller (auth_google_callback below) sends
     that case to the ordinary sign-up form instead, pre-filled with whatever Google handed
     over - "Continue with Google" is a shortcut INTO the normal flow for a first-time
-    visitor, not a way to skip filling in the rest of the account (username, password,
+    visitor, not a way to skip filling in the rest of the account (password,
     business details) that a manual sign-up would ask for anyway.
 
     Two cases, in order:
@@ -562,22 +562,22 @@ def auth_google_done():
 @limiter.limit("10 per 15 minutes", methods=["POST"])
 def login():
     if request.method == "POST":
-        username = request.form["username"]
+        email = request.form["email"]
         password = request.form["password"]
 
-        business = business_by_login_identifier(username)
+        business = business_by_login_identifier(email)
 
-        if business and check_password_hash(business[3], password):
-            if not business[12]:  # email_verified
+        if business and check_password_hash(business[2], password):
+            if not business[11]:  # email_verified
                 if not email_verify_sent_recently(business[0], EMAIL_VERIFY_RESEND_COOLDOWN_SECONDS):
-                    send_verification_email(business[0], business[1], business[4])
+                    send_verification_email(business[0], business[1], business[3])
                 session["pending_verify_business_id"] = business[0]
                 return redirect(url_for("verify_pending"))
             session["business_id"] = business[0]
             session["business_name"] = business[1]
             return redirect(url_for("home"))
 
-        return render_template("login.html", error="Wrong username or password.", message=None)
+        return render_template("login.html", error="Wrong email or password.", message=None)
 
     return render_template(
         "login.html", error=request.args.get("error"), message=request.args.get("message"),
@@ -606,21 +606,21 @@ def register():
         # existing unverified signup - resend the confirmation link and drop them back
         # into verify_pending - instead of blocking a second time.
         existing = business_by_contact_email(request.form["contact_email"])
-        if existing and not existing[12]:  # email_verified
+        if existing and not existing[11]:  # email_verified
             if not email_verify_sent_recently(existing[0], EMAIL_VERIFY_RESEND_COOLDOWN_SECONDS):
-                send_verification_email(existing[0], existing[1], existing[4])
+                send_verification_email(existing[0], existing[1], existing[3])
             session["pending_verify_business_id"] = existing[0]
             return redirect(url_for("verify_pending"))
 
         # Explicit pre-check rather than relying solely on the UniqueViolation catch below -
-        # contact_email has no actual UNIQUE index at the DB level (unlike username/
-        # phone_number, which do - see database.py's create_database), a gap that let two
+        # contact_email has no actual UNIQUE index at the DB level (unlike
+        # phone_number, which does - see database.py's create_database), a gap that let two
         # businesses register with the identical contact_email and silently broke login
-        # (business_by_login_identifier's OR-across-three-columns query started matching
+        # (business_by_login_identifier's OR-across-columns query started matching
         # both rows, returning whichever one Postgres felt like). This is the real fix
         # until that index exists; see also contact_email_taken's own docstring.
         if existing or contact_email_taken(request.form["contact_email"]):
-            return render_template("register.html", error="That username, contact email, or phone number is already taken.", data=request.form)
+            return render_template("register.html", error="That contact email or phone number is already taken.", data=request.form)
 
         # "Continue with Google" prefilled this form (see auth_google_callback) rather
         # than creating an account outright - the hidden google_link_token field carries
@@ -637,7 +637,6 @@ def register():
         try:
             new_id = add_business(
                 name=request.form["name"],
-                username=request.form["username"],
                 password=request.form["password"],
                 contact_email=request.form["contact_email"],
                 working_hours=request.form["working_hours"],
@@ -655,7 +654,7 @@ def register():
                 email_verified=bool(google_id),
             )
         except UniqueViolation:
-            return render_template("register.html", error="That username, contact email, or phone number is already taken.", data=request.form)
+            return render_template("register.html", error="That contact email or phone number is already taken.", data=request.form)
 
         log_event("register_completed", business_id=new_id)
 
@@ -679,7 +678,7 @@ def register():
     # Prefill data from a "Continue with Google" redirect (see auth_google_callback) - a
     # first-time Google identity with no account yet lands here instead of one being
     # created outright, with whatever Google handed over as a starting point for the
-    # fields it can actually cover (name/email); the rest (username, password, business
+    # fields it can actually cover (name/email); the rest (password, business
     # details) is still entered by hand exactly like a normal sign-up. google_link_token
     # is echoed back as a hidden field (see register.html) purely to survive this one
     # render - it's re-verified server-side on submit, never trusted as-is.
@@ -699,11 +698,11 @@ def verify_pending():
     if not business_id:
         return redirect(url_for("login"))
     business = business_by_id(business_id)
-    if business is None or business[12]:  # already verified (or account gone) - nothing pending
+    if business is None or business[11]:  # already verified (or account gone) - nothing pending
         session.pop("pending_verify_business_id", None)
         return redirect(url_for("login"))
     wait_seconds = email_verify_resend_wait_seconds(business_id, EMAIL_VERIFY_RESEND_COOLDOWN_SECONDS)
-    return render_template("verify_pending.html", contact_email=business[4], resent=False, resend_wait_seconds=wait_seconds, error=None)
+    return render_template("verify_pending.html", contact_email=business[3], resent=False, resend_wait_seconds=wait_seconds, error=None)
 
 
 @app.route("/verify-pending/resend", methods=["POST"])
@@ -713,13 +712,13 @@ def verify_pending_resend():
     if not business_id:
         return redirect(url_for("login"))
     business = business_by_id(business_id)
-    if business is None or business[12]:
+    if business is None or business[11]:
         session.pop("pending_verify_business_id", None)
         return redirect(url_for("login"))
     if not email_verify_sent_recently(business_id, EMAIL_VERIFY_RESEND_COOLDOWN_SECONDS):
-        send_verification_email(business[0], business[1], business[4])
+        send_verification_email(business[0], business[1], business[3])
     wait_seconds = email_verify_resend_wait_seconds(business_id, EMAIL_VERIFY_RESEND_COOLDOWN_SECONDS)
-    return render_template("verify_pending.html", contact_email=business[4], resent=True, resend_wait_seconds=wait_seconds, error=None)
+    return render_template("verify_pending.html", contact_email=business[3], resent=True, resend_wait_seconds=wait_seconds, error=None)
 
 
 # Redeems the code emailed by send_verification_email() - the typed-code counterpart to
@@ -734,7 +733,7 @@ def verify_pending_confirm():
     if not business_id:
         return redirect(url_for("login"))
     business = business_by_id(business_id)
-    if business is None or business[12]:  # already verified (or account gone) - nothing pending
+    if business is None or business[11]:  # already verified (or account gone) - nothing pending
         session.pop("pending_verify_business_id", None)
         return redirect(url_for("login"))
 
@@ -742,7 +741,7 @@ def verify_pending_confirm():
     if not business_email_verify_code_matches(business_id, code):
         wait_seconds = email_verify_resend_wait_seconds(business_id, EMAIL_VERIFY_RESEND_COOLDOWN_SECONDS)
         return render_template(
-            "verify_pending.html", contact_email=business[4], resent=False, resend_wait_seconds=wait_seconds,
+            "verify_pending.html", contact_email=business[3], resent=False, resend_wait_seconds=wait_seconds,
             error="Incorrect or expired code. Please try again.",
         )
 
@@ -760,7 +759,7 @@ def verify_email(token):
     if row is None:
         return render_template("verify_email.html", success=False)
 
-    business_id, name, _username, _contact_email, pending_contact_email = row
+    business_id, name, _contact_email, pending_contact_email = row
 
     if pending_contact_email:
         # An already-verified account requested an email change from Settings (see
@@ -797,7 +796,7 @@ def verify_phone(token):
     return render_template("verify_phone.html", success=True)
 
 
-def _password_reset_email_html(business_name, username, link):
+def _password_reset_email_html(business_name, link):
     """HTML companion to the plain-text body below - same copy, laid out as a branded
     card (logo, amber CTA button, muted footer) so the reset email reads like the rest
     of the product instead of a bare-bones system notice."""
@@ -826,9 +825,6 @@ def _password_reset_email_html(business_name, username, link):
               <h1 style="font-size:20px; color:#2b2013; margin:0 0 16px;">Reset your password</h1>
               <p style="font-size:15px; line-height:1.6; color:#463824; margin:0 0 16px;">
                 Someone (hopefully you) requested a password reset for <strong>{business_name}</strong>.
-              </p>
-              <p style="font-size:15px; line-height:1.6; color:#463824; margin:0 0 24px;">
-                Your username is <strong>{username}</strong>.
               </p>
               <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 auto 24px;">
                 <tr>
@@ -861,8 +857,8 @@ def _password_reset_email_html(business_name, username, link):
 
 
 def _email_password_reset_link(business):
-    """Shared final step once an account has been found by whichever lookup (email,
-    username, or phone number) - issues a fresh single-use token and emails the link to
+    """Shared final step once an account has been found by whichever lookup (email
+    or phone number) - issues a fresh single-use token and emails the link to
     the account's contact email (the only channel we can actually deliver it through -
     there's no SMS integration, so even the phone-number lookup path ends here)."""
     token = secrets.token_urlsafe(32)
@@ -871,18 +867,17 @@ def _email_password_reset_link(business):
 
     link = url_for("reset_password", token=token, _external=True)
     send_email(
-        recipient=business[4],
+        recipient=business[3],
         subject="Password reset - Camilius",
         body=(
             f"Hi,\n\n"
             f"Someone (hopefully you) requested a password reset for '{business[1]}'.\n\n"
-            f"Your username is: {business[2]}\n\n"
             f"Click the link to set a new password (valid for 1 hour):\n{link}\n\n"
             f"If this wasn't you, feel free to ignore this email."
         ),
         business_name="Camilius",
-        reply_to=os.getenv("ALERT_EMAIL") or business[4],
-        html=_password_reset_email_html(business[1], business[2], link),
+        reply_to=os.getenv("ALERT_EMAIL") or business[3],
+        html=_password_reset_email_html(business[1], link),
     )
 
 
@@ -1127,7 +1122,7 @@ def _phone_verification_email_html(business_name, phone_number, link):
             <td style="padding:0 40px;">
               <h1 style="font-size:20px; color:#2b2013; margin:0 0 16px;">Confirm your phone number</h1>
               <p style="font-size:15px; line-height:1.6; color:#463824; margin:0 0 24px;">
-                Confirm <strong>{business_name}</strong>'s phone number (<strong>{phone_number}</strong>) so you can use it to log in later, in addition to your username and email.
+                Confirm <strong>{business_name}</strong>'s phone number (<strong>{phone_number}</strong>) so you can use it to log in later, in addition to your email.
               </p>
               <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 24px;">
                 <tr>
@@ -1178,7 +1173,7 @@ def send_phone_verification_email(business_id, business_name, phone_number, reci
         body=(
             f"Hi,\n\n"
             f"Confirm '{business_name}'s phone number ({phone_number}) so you can use it to log in later, "
-            f"in addition to your username and email.\n\n"
+            f"in addition to your email.\n\n"
             f"Click the link to confirm (valid for 24 hours):\n{link}\n\n"
             f"If you didn't request this, you can safely ignore this email - your account is unaffected either way."
         ),
@@ -1209,11 +1204,10 @@ def send_phone_verification_sms(business_id, business_name, phone_number):
 
 def request_password_reset(identifier):
     """Shared by the web /forgot-password route and the mobile app's /api/forgot-password.
-    The field is labeled "Email or username" - looks up the account by either, and if
-    found, emails a reset link. Returns True/False so the caller can tell the user
-    whether that email/username is actually registered (a deliberate product choice -
-    see the callers for the tradeoff)."""
-    business = business_by_contact_email(identifier) or business_by_username(identifier)
+    Looks up the account by its contact email, and if found, emails a reset link.
+    Returns True/False so the caller can tell the user whether that email is actually
+    registered (a deliberate product choice - see the callers for the tradeoff)."""
+    business = business_by_contact_email(identifier)
     if not business:
         return False
     _email_password_reset_link(business)
@@ -1240,7 +1234,7 @@ def forgot_password():
         if not request_password_reset(identifier):
             return render_template(
                 "forgot_password.html",
-                error="No account found with that email or username.",
+                error="No account found with that email.",
                 identifier=identifier,
             )
         return render_template(
@@ -1278,7 +1272,7 @@ def forgot_password_phone():
 # a UniqueViolation after submitting. Session-aware: a logged-in caller's OWN current
 # value is excluded so editing a field without changing it never flags itself as taken.
 def _slug_taken(value, exclude_business_id=None):
-    """Same (value, exclude_business_id=...) -> bool shape as username_taken/
+    """Same (value, exclude_business_id=...) -> bool shape as
     contact_email_taken/phone_number_taken above, so it slots into
     _AVAILABILITY_CHECKS unchanged - backs both the onboarding wizard's live web-address
     check (onboarding_website_address) and settings.html's own page-address field. An
@@ -1295,7 +1289,6 @@ def _slug_taken(value, exclude_business_id=None):
 
 
 _AVAILABILITY_CHECKS = {
-    "username": username_taken,
     "contact_email": contact_email_taken,
     "phone_number": phone_number_taken,
     "slug": _slug_taken,
@@ -1323,7 +1316,7 @@ def check_availability():
         # comment above). Only a genuinely confirmed account should hold this field
         # "taken" and keep the wizard's Next button disabled.
         existing = business_by_contact_email(value)
-        return jsonify(taken=bool(existing and existing[12]))
+        return jsonify(taken=bool(existing and existing[11]))
 
     return jsonify(taken=check(value, exclude_business_id=business_id))
 
@@ -1359,11 +1352,10 @@ def logout():
 def settings():
     business_id = session["business_id"]
     business = business_by_id(business_id)
-    # indices: 0 id, 1 name, 2 username, 4 contact_email, 8 working_hours, 9 price_list,
-    # 10 faq, 11 phone_number, 14 pending_contact_email
-    username = business[2]
-    contact_email = business[4]
-    pending_contact_email = business[14]
+    # indices: 0 id, 1 name, 3 contact_email, 7 working_hours, 8 price_list,
+    # 9 faq, 10 phone_number, 13 pending_contact_email
+    contact_email = business[3]
+    pending_contact_email = business[13]
     pro_access = BETA_FREE_MODE or has_pro_access(business_id)
     # get_business_page returns a plain positional row (id, business_id, slug,
     # published, tagline, about, created_at, updated_at, widget_domain, theme,
@@ -1379,13 +1371,12 @@ def settings():
 
     if request.method == "POST":
         name = request.form["name"]
-        submitted_username = request.form["username"].strip()
         submitted_email = request.form["contact_email"].strip()
         working_hours = request.form["working_hours"]
         price_list = request.form["price_list"]
         # No longer an editable field on this page - carry the existing value through
         # unchanged (same pattern as phone_number below) instead of wiping it on every save.
-        faq = business[10]
+        faq = business[9]
         current_password = request.form.get("current_password", "")
         new_password = request.form.get("new_password", "")
 
@@ -1403,26 +1394,15 @@ def settings():
                 media=business_media.list_media(business_id),
                 max_gallery_images=business_media.MAX_GALLERY_IMAGES,
                 business={
-                    "name": name, "username": username, "contact_email": contact_email,
+                    "name": name, "contact_email": contact_email,
                     "pending_contact_email": pending_contact_email,
                                         "working_hours": working_hours, "price_list": price_list, "faq": faq,
                     "upsell_pairs": get_upsell_pairs(business_id),
                 },
             )
 
-        if not submitted_username:
-            return _rerender("Username is required.")
         if not submitted_email:
             return _rerender("Contact email is required.")
-
-        # Username applies immediately, unlike contact email below - it isn't a
-        # communication channel that could strand the account if mistyped, so there's
-        # nothing to confirm. settings.html's own JS already warns about a taken username
-        # as the user types; this is the authoritative check the client-side one mirrors.
-        if submitted_username != username:
-            if username_taken(submitted_username, exclude_business_id=business_id):
-                return _rerender("That username is already taken.")
-            username = submitted_username
 
         # A changed email doesn't take effect immediately - it's staged as
         # pending_contact_email and only swapped onto the real contact_email once a
@@ -1443,14 +1423,14 @@ def settings():
         # rule as the mobile app's own Profile screen (see api.py's api_update_settings).
         # An empty new_password field means the user isn't touching their password at all.
         if new_password:
-            if not check_password_hash(business[3], current_password):
+            if not check_password_hash(business[2], current_password):
                 return _rerender("Current password is incorrect.")
             if len(new_password) < 8:
                 return _rerender("New password must be at least 8 characters.")
 
         # Phone isn't editable from this page (the mobile app's Profile screen is where
         # that lives) - carry the existing value through unchanged.
-        update_business(business_id, name, username, contact_email, business[11], working_hours, price_list, faq)
+        update_business(business_id, name, contact_email, business[10], working_hours, price_list, faq)
         session["business_name"] = name
 
         if new_password:
@@ -1477,7 +1457,7 @@ def settings():
             media=business_media.list_media(business_id),
             max_gallery_images=business_media.MAX_GALLERY_IMAGES,
             business={
-                "name": name, "username": username, "contact_email": contact_email,
+                "name": name, "contact_email": contact_email,
                 "pending_contact_email": pending_contact_email,
                                 "working_hours": working_hours, "price_list": price_list, "faq": faq, "upsell_pairs": upsell_pairs,
             },
@@ -1496,9 +1476,9 @@ def settings():
         media=business_media.list_media(business_id),
         max_gallery_images=business_media.MAX_GALLERY_IMAGES,
         business={
-            "name": business[1], "username": username, "contact_email": contact_email,
+            "name": business[1], "contact_email": contact_email,
             "pending_contact_email": pending_contact_email,
-                        "working_hours": business[8], "price_list": business[9], "faq": business[10],
+                        "working_hours": business[7], "price_list": business[8], "faq": business[9],
             "upsell_pairs": get_upsell_pairs(business_id),
         },
     )
@@ -1655,9 +1635,9 @@ def save_business_page():
             media=business_media.list_media(business_id),
             max_gallery_images=business_media.MAX_GALLERY_IMAGES,
             business={
-                "name": business[1], "username": business[2], "contact_email": business[4],
-                "pending_contact_email": business[14],
-                "working_hours": business[8], "price_list": business[9], "faq": business[10],
+                "name": business[1], "contact_email": business[3],
+                "pending_contact_email": business[13],
+                "working_hours": business[7], "price_list": business[8], "faq": business[9],
                 "upsell_pairs": get_upsell_pairs(business_id),
             },
         )
@@ -1731,9 +1711,8 @@ def check_business_domains():
 def generate_business_page():
     business_id = session["business_id"]
     business = business_by_id(business_id)
-    username = business[2]
-    contact_email = business[4]
-    pending_contact_email = business[14]
+    contact_email = business[3]
+    pending_contact_email = business[13]
     pro_access = BETA_FREE_MODE or has_pro_access(business_id)
     page_row = get_business_page(business_id)
     saved_page = None if page_row is None else {
@@ -1754,15 +1733,15 @@ def generate_business_page():
 
     if draft is None:
         business_view = {
-            "name": business[1], "username": username, "contact_email": contact_email,
+            "name": business[1], "contact_email": contact_email,
             "pending_contact_email": pending_contact_email,
-                        "working_hours": business[8], "price_list": business[9], "faq": business[10],
+                        "working_hours": business[7], "price_list": business[8], "faq": business[9],
             "upsell_pairs": get_upsell_pairs(business_id),
         }
         page_view = saved_page
     else:
         business_view = {
-            "name": business[1], "username": username, "contact_email": contact_email,
+            "name": business[1], "contact_email": contact_email,
             "pending_contact_email": pending_contact_email,
                         "working_hours": format_working_hours(draft["hours"]),
             "price_list": format_price_list(draft["services"]),
@@ -2089,10 +2068,10 @@ def onboarding_website_review():
 
     if request.method == "POST":
         business = business_by_id(business_id)
-        # phone_number (business[11]) carried through unchanged, same as settings()'s
+        # phone_number (business[10]) carried through unchanged, same as settings()'s
         # own update_business() call - this step never touches it.
         update_business(
-            business_id, business[1], business[2], business[4], business[11],
+            business_id, business[1], business[3], business[10],
             draft["working_hours"], draft["price_list"], draft["faq"],
         )
         try:
@@ -2185,13 +2164,13 @@ def site_preview():
     return render_template(
         "public_page.html",
         business_name=business[1],
-        working_hours=business[8],
-        price_list=business[9],
-        faq=business[10],
+        working_hours=business[7],
+        price_list=business[8],
+        faq=business[9],
         tagline=page_row[4],
         about=page_row[5],
         opening_hours_schema=[],
-        opening_hours_display=pages.opening_hours_display(business[8]),
+        opening_hours_display=pages.opening_hours_display(business[7]),
         page_url="",
         chat_url="",
         slug=page_row[2],
@@ -2301,7 +2280,7 @@ def delete_account():
         )
 
     business = business_by_id(business_id)
-    if not business or not check_password_hash(business[3], password):
+    if not business or not check_password_hash(business[2], password):
         return render_template(
             "delete_account_step3.html", reason_category=reason_category, reason_details=reason_details,
             error="Wrong password. Please try again.",
@@ -2325,11 +2304,10 @@ def business_export_data(business_id):
     return {
         "business": {
             "name": business[1],
-            "username": business[2],
-            "contact_email": business[4],
-            "working_hours": business[8],
-            "price_list": business[9],
-            "faq": business[10],
+            "contact_email": business[3],
+            "working_hours": business[7],
+            "price_list": business[8],
+            "faq": business[9],
         },
         "conversations": [
             {
@@ -2428,19 +2406,19 @@ def public_page(slug):
     # can't book that" would be worse than no section at all.
     booking_enabled = (
         (BETA_FREE_MODE or has_pro_access(page[1]))
-        and any(booking.parse_working_hours(business[8]).values())
+        and any(booking.parse_working_hours(business[7]).values())
     )
     media = business_media.media_for_page(page[1])
     return render_template(
         "public_page.html",
         business_name=business[1],
-        working_hours=business[8],
-        price_list=business[9],
-        faq=business[10],
+        working_hours=business[7],
+        price_list=business[8],
+        faq=business[9],
         tagline=page[4],
         about=page[5],
-        opening_hours_schema=pages.opening_hours_schema(business[8]),
-        opening_hours_display=pages.opening_hours_display(business[8]),
+        opening_hours_schema=pages.opening_hours_schema(business[7]),
+        opening_hours_display=pages.opening_hours_display(business[7]),
         page_url=url_for("public_page", slug=slug, _external=True),
         chat_url=url_for("public_page_chat", slug=slug),
         slug=slug,
@@ -2486,7 +2464,7 @@ def public_page_availability(slug):
     if business is None or not (BETA_FREE_MODE or has_pro_access(business_id)):
         abort(404)
 
-    working_hours = business[8]
+    working_hours = business[7]
     tz = booking.tz_for(business)
     slot_minutes = get_slot_duration(business_id)
     now = booking.now_local(tz)
@@ -2735,22 +2713,21 @@ def admin_businesses():
     search = (request.args.get("q") or "").strip().lower()
     result = []
     for business in all_businesses_unfiltered():
-        # indices: 0 id, 1 name, 2 username, 4 contact_email, 11 phone_number,
-        # 12 email_verified, 13 phone_verified, 14 pending_contact_email. subscription_status
+        # indices: 0 id, 1 name, 3 contact_email, 10 phone_number,
+        # 11 email_verified, 12 phone_verified, 13 pending_contact_email. subscription_status
         # and created_at are the two extras all_businesses_unfiltered() appends AFTER the
         # business columns, so they're read from the END (-2, -1) rather than by absolute
         # index: every time _BUSINESS_COLUMNS grows, an absolute index here silently
         # points at the wrong column, which is exactly how this route broke once before.
-        if search and search not in business[1].lower() and search not in business[2].lower() and search not in business[4].lower():
+        if search and search not in business[1].lower() and search not in business[3].lower():
             continue
         result.append({
             "id": business[0],
             "name": business[1],
-            "username": business[2],
-            "contact_email": business[4],
-            "phone_number": business[11],
-            "email_verified": business[12],
-            "phone_verified": business[13],
+            "contact_email": business[3],
+            "phone_number": business[10],
+            "email_verified": business[11],
+            "phone_verified": business[12],
             "subscription_status": business[-2],
             "created_at": business[-1].isoformat() if business[-1] else None,
         })
@@ -3103,7 +3080,7 @@ def schedule():
         return render_template("schedule.html", locked=True)
 
     business = business_by_id(business_id)
-    working_hours = business[8]
+    working_hours = business[7]
     tz = booking.tz_for(business)
     slot_minutes = get_slot_duration(business_id)
 
@@ -3231,7 +3208,7 @@ def create_appointment_route():
         end_dt = local_dt + timedelta(minutes=duration_minutes)
         is_bookable = (
             local_dt >= booking.now_local(tz)
-            and booking.slot_within_business_hours(business[8], local_dt, end_dt, tz)
+            and booking.slot_within_business_hours(business[7], local_dt, end_dt, tz)
             and booking.is_slot_free(business_id, local_dt, end_dt)
         )
         if is_bookable:
@@ -3315,7 +3292,7 @@ def _subscription_response(business_id, hide_nav=False, trial_ended=False):
             "pro_yearly": paddle_billing.price_id_for("pro", "yearly"),
         },
         business_id=business_id,
-        email=business[4],
+        email=business[3],
         status=status,
         active=active,
         pro_access=BETA_FREE_MODE or has_pro_access(business_id),
@@ -3410,7 +3387,7 @@ def domain_checkout(token):
         paddle_environment=paddle_billing.environment(),
         paddle_domain_price=paddle_billing.domain_price_id(),
         business_id=business_id,
-        email=business[4],
+        email=business[3],
         domain=domain,
     )
 
@@ -3435,7 +3412,7 @@ def stripe_checkout():
     # otherwise a canceled account could just re-checkout for another free trial.
     is_first_checkout = not get_stripe_customer_id(business_id)
     checkout_url = stripe_billing.create_checkout_session(
-        business_id, business[4], plan, interval,
+        business_id, business[3], plan, interval,
         success_url=url_for("home", _external=True),
         cancel_url=url_for("subscription", _external=True),
         trial_period_days=14 if is_first_checkout else None,
@@ -3510,7 +3487,7 @@ def stripe_webhook():
                 if trial_end else "in a few days"
             )
             send_email(
-                recipient=business[4],
+                recipient=business[3],
                 subject="Your Camilius trial is ending soon",
                 body=(
                     f"Hi {business[1]},\n\n"
@@ -3524,7 +3501,7 @@ def stripe_webhook():
                     f"- Camilius"
                 ),
                 business_name="Camilius",
-                reply_to=os.getenv("ALERT_EMAIL") or business[4],
+                reply_to=os.getenv("ALERT_EMAIL") or business[3],
             )
 
     # Stripe expects a 2xx to consider the webhook delivered; otherwise it retries

@@ -10,9 +10,9 @@ import pages
 from conftest import register_business_web, web_post, get_csrf_token
 
 
-def _publish_page(client, username, email, widget_domain=None):
-    register_business_web(client, username, email)
-    business_id = database.business_by_username(username)[0]
+def _publish_page(client, email, widget_domain=None):
+    register_business_web(client, email)
+    business_id = database.business_by_contact_email(email)[0]
     slug = f"widget-{uuid.uuid4().hex[:8]}"
     database.upsert_business_page(business_id, slug, True, "Fresh cuts daily", "Since 2019.", widget_domain)
     return business_id, slug
@@ -83,12 +83,12 @@ def test_normalize_widget_domain_caps_length_instead_of_storing_unbounded_input(
 
 # --- POST /profile/page saves widget_domain ---
 
-def test_save_business_page_does_not_500_on_malformed_widget_domain(client, unique_username, unique_email):
+def test_save_business_page_does_not_500_on_malformed_widget_domain(client, unique_email):
     """Route-level regression test for the same bug the unit tests above cover directly
     - this is what actually failed (a raw 500) before normalize_widget_domain stopped
     letting urlparse's ValueError escape."""
-    register_business_web(client, unique_username, unique_email)
-    business_id = database.business_by_username(unique_username)[0]
+    register_business_web(client, unique_email)
+    business_id = database.business_by_contact_email(unique_email)[0]
     slug = f"slug-{uuid.uuid4().hex[:8]}"
     csrf_token = get_csrf_token(client, "/profile")
 
@@ -99,9 +99,9 @@ def test_save_business_page_does_not_500_on_malformed_widget_domain(client, uniq
     assert database.get_business_page(business_id)[8] is None
 
 
-def test_save_business_page_persists_normalized_widget_domain(client, unique_username, unique_email):
-    register_business_web(client, unique_username, unique_email)
-    business_id = database.business_by_username(unique_username)[0]
+def test_save_business_page_persists_normalized_widget_domain(client, unique_email):
+    register_business_web(client, unique_email)
+    business_id = database.business_by_contact_email(unique_email)[0]
     slug = f"slug-{uuid.uuid4().hex[:8]}"
     csrf_token = get_csrf_token(client, "/profile")
 
@@ -113,9 +113,9 @@ def test_save_business_page_persists_normalized_widget_domain(client, unique_use
     assert page[8] == "https://example.com"
 
 
-def test_save_business_page_clears_widget_domain_when_left_blank(client, unique_username, unique_email):
-    register_business_web(client, unique_username, unique_email)
-    business_id = database.business_by_username(unique_username)[0]
+def test_save_business_page_clears_widget_domain_when_left_blank(client, unique_email):
+    register_business_web(client, unique_email)
+    business_id = database.business_by_contact_email(unique_email)[0]
     slug = f"slug-{uuid.uuid4().hex[:8]}"
     csrf_token = get_csrf_token(client, "/profile")
     web_post(client, "/profile/page", {"csrf_token": csrf_token, "slug": slug, "widget_domain": "example.com"})
@@ -128,18 +128,18 @@ def test_save_business_page_clears_widget_domain_when_left_blank(client, unique_
 
 # --- GET /w/<slug> ---
 
-def test_widget_frame_404s_for_unknown_or_unpublished_slug(client, unique_username, unique_email):
+def test_widget_frame_404s_for_unknown_or_unpublished_slug(client, unique_email):
     assert client.get(f"/w/does-not-exist-{uuid.uuid4().hex[:8]}").status_code == 404
 
-    register_business_web(client, unique_username, unique_email)
-    business_id = database.business_by_username(unique_username)[0]
+    register_business_web(client, unique_email)
+    business_id = database.business_by_contact_email(unique_email)[0]
     slug = f"draft-{uuid.uuid4().hex[:8]}"
     database.upsert_business_page(business_id, slug, False, None, None)
     assert client.get(f"/w/{slug}").status_code == 404
 
 
-def test_widget_frame_renders_and_denies_framing_with_no_domain_approved(client, unique_username, unique_email):
-    _, slug = _publish_page(client, unique_username, unique_email, widget_domain=None)
+def test_widget_frame_renders_and_denies_framing_with_no_domain_approved(client, unique_email):
+    _, slug = _publish_page(client, unique_email, widget_domain=None)
 
     response = client.get(f"/w/{slug}")
     assert response.status_code == 200
@@ -148,8 +148,8 @@ def test_widget_frame_renders_and_denies_framing_with_no_domain_approved(client,
     assert "X-Frame-Options" not in response.headers
 
 
-def test_widget_frame_allows_framing_from_the_approved_domain(client, unique_username, unique_email):
-    _, slug = _publish_page(client, unique_username, unique_email, widget_domain="https://example.com")
+def test_widget_frame_allows_framing_from_the_approved_domain(client, unique_email):
+    _, slug = _publish_page(client, unique_email, widget_domain="https://example.com")
 
     response = client.get(f"/w/{slug}")
     assert response.status_code == 200

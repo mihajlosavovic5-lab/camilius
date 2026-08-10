@@ -17,9 +17,9 @@ import database
 from conftest import get_csrf_token, register_business, register_business_web
 
 
-def test_add_business_initial_status_none_grants_no_access(client, unique_username, unique_email):
+def test_add_business_initial_status_none_grants_no_access(client, unique_email):
     business_id = database.add_business(
-        name="Test Salon", username=unique_username, password="TestPassword123",
+        name="Test Salon", password="TestPassword123",
         contact_email=unique_email, working_hours="", price_list="", faq="",
         initial_status="none",
     )
@@ -27,9 +27,9 @@ def test_add_business_initial_status_none_grants_no_access(client, unique_userna
     assert database.effective_subscription_active(business_id) is False
 
 
-def test_trial_expired_ignores_self_serve_cutoff_once_a_paddle_subscription_is_linked(client, unique_username, unique_email):
-    register_business_web(client, unique_username, unique_email)
-    business_id = database.business_by_username(unique_username)[0]
+def test_trial_expired_ignores_self_serve_cutoff_once_a_paddle_subscription_is_linked(client, unique_email):
+    register_business_web(client, unique_email)
+    business_id = database.business_by_contact_email(unique_email)[0]
 
     # Backdate created_at well past the 14-day self-serve cutoff - without a linked
     # processor subscription this alone is what trial_expired() keys off.
@@ -48,14 +48,14 @@ def test_trial_expired_ignores_self_serve_cutoff_once_a_paddle_subscription_is_l
     assert database.effective_subscription_active(business_id) is True
 
 
-def test_subscription_required_does_not_claim_a_trial_ended_for_a_never_started_account(client, unique_username, unique_email):
+def test_subscription_required_does_not_claim_a_trial_ended_for_a_never_started_account(client, unique_email):
     business_id = database.add_business(
-        name="Test Salon", username=unique_username, password="TestPassword123",
+        name="Test Salon", password="TestPassword123",
         contact_email=unique_email, working_hours="", price_list="", faq="",
         initial_status="none",
     )
     login_csrf = get_csrf_token(client, "/login")
-    client.post("/login", data={"csrf_token": login_csrf, "username": unique_username, "password": "TestPassword123"})
+    client.post("/login", data={"csrf_token": login_csrf, "email": unique_email, "password": "TestPassword123"})
 
     response = client.get("/", follow_redirects=True)
     assert response.status_code == 200
@@ -63,7 +63,7 @@ def test_subscription_required_does_not_claim_a_trial_ended_for_a_never_started_
     assert "Your 14-day free trial has ended" not in body
 
 
-def test_pricing_page_shows_paddle_checkout_once_configured(client, unique_username, unique_email, monkeypatch):
+def test_pricing_page_shows_paddle_checkout_once_configured(client, unique_email, monkeypatch):
     monkeypatch.setattr(app_module, "BETA_FREE_MODE", False)
     monkeypatch.setattr(app_module.paddle_billing, "is_configured", lambda: True)
     monkeypatch.setattr(app_module.paddle_billing, "client_token", lambda: "test_client_token")
@@ -71,13 +71,13 @@ def test_pricing_page_shows_paddle_checkout_once_configured(client, unique_usern
     monkeypatch.setattr(app_module.paddle_billing, "price_id_for", lambda plan, interval: f"pri_{plan}_{interval}")
 
     business_id = database.add_business(
-        name="Test Salon", username=unique_username, password="TestPassword123",
+        name="Test Salon", password="TestPassword123",
         contact_email=unique_email, working_hours="", price_list="", faq="",
         initial_status="none",
     )
     database.mark_email_verified(business_id)  # login() redirects to /verify-pending otherwise
     login_csrf = get_csrf_token(client, "/login")
-    client.post("/login", data={"csrf_token": login_csrf, "username": unique_username, "password": "TestPassword123"})
+    client.post("/login", data={"csrf_token": login_csrf, "email": unique_email, "password": "TestPassword123"})
 
     response = client.get("/subscription")
     body = response.get_data(as_text=True)
@@ -86,16 +86,16 @@ def test_pricing_page_shows_paddle_checkout_once_configured(client, unique_usern
     assert "Coming soon" not in body
 
 
-def test_pricing_page_shows_coming_soon_when_paddle_not_configured(client, unique_username, unique_email, monkeypatch):
+def test_pricing_page_shows_coming_soon_when_paddle_not_configured(client, unique_email, monkeypatch):
     monkeypatch.setattr(app_module, "BETA_FREE_MODE", False)
     business_id = database.add_business(
-        name="Test Salon", username=unique_username, password="TestPassword123",
+        name="Test Salon", password="TestPassword123",
         contact_email=unique_email, working_hours="", price_list="", faq="",
         initial_status="none",
     )
     database.mark_email_verified(business_id)  # login() redirects to /verify-pending otherwise
     login_csrf = get_csrf_token(client, "/login")
-    client.post("/login", data={"csrf_token": login_csrf, "username": unique_username, "password": "TestPassword123"})
+    client.post("/login", data={"csrf_token": login_csrf, "email": unique_email, "password": "TestPassword123"})
 
     response = client.get("/subscription")
     body = response.get_data(as_text=True)
@@ -110,10 +110,10 @@ def _sign_paddle_payload(raw_body, secret):
     return f"ts={ts};h1={h1}"
 
 
-def test_paddle_webhook_links_subscription_and_captures_trial_end(client, unique_username, unique_email, monkeypatch):
+def test_paddle_webhook_links_subscription_and_captures_trial_end(client, unique_email, monkeypatch):
     monkeypatch.setenv("PADDLE_WEBHOOK_SECRET", "test-paddle-webhook-secret")
-    register_business_web(client, unique_username, unique_email)
-    business_id = database.business_by_username(unique_username)[0]
+    register_business_web(client, unique_email)
+    business_id = database.business_by_contact_email(unique_email)[0]
 
     next_billed_at = (datetime.utcnow() + timedelta(days=14)).strftime("%Y-%m-%dT%H:%M:%S.000Z")
     payload = (
@@ -139,9 +139,9 @@ def test_paddle_webhook_links_subscription_and_captures_trial_end(client, unique
     assert abs((trial_ends_at - (datetime.utcnow() + timedelta(days=14))).total_seconds()) < 60
 
 
-def test_businesses_needing_trial_warning_and_dedup(client, unique_username, unique_email):
-    register_business_web(client, unique_username, unique_email)
-    business_id = database.business_by_username(unique_username)[0]
+def test_businesses_needing_trial_warning_and_dedup(client, unique_email):
+    register_business_web(client, unique_email)
+    business_id = database.business_by_contact_email(unique_email)[0]
 
     # Trial ending in 1 day is within the 3-day warning window.
     soon = datetime.utcnow() + timedelta(days=1)
@@ -155,9 +155,9 @@ def test_businesses_needing_trial_warning_and_dedup(client, unique_username, uni
     assert not any(row[0] == business_id for row in matches_after)
 
 
-def test_businesses_needing_trial_warning_excludes_far_off_trials(client, unique_username, unique_email):
-    register_business_web(client, unique_username, unique_email)
-    business_id = database.business_by_username(unique_username)[0]
+def test_businesses_needing_trial_warning_excludes_far_off_trials(client, unique_email):
+    register_business_web(client, unique_email)
+    business_id = database.business_by_contact_email(unique_email)[0]
 
     far_off = datetime.utcnow() + timedelta(days=10)
     database.link_subscription(business_id, "cust_far", "sub_far", "trialing", plan="pro", trial_ends_at=far_off)
@@ -166,9 +166,9 @@ def test_businesses_needing_trial_warning_excludes_far_off_trials(client, unique
     assert not any(row[0] == business_id for row in matches)
 
 
-def test_send_trial_ending_warnings_if_needed_sends_and_dedupes(client, unique_username, unique_email, monkeypatch):
-    register_business_web(client, unique_username, unique_email)
-    business_id = database.business_by_username(unique_username)[0]
+def test_send_trial_ending_warnings_if_needed_sends_and_dedupes(client, unique_email, monkeypatch):
+    register_business_web(client, unique_email)
+    business_id = database.business_by_contact_email(unique_email)[0]
     soon = datetime.utcnow() + timedelta(days=2)
     database.link_subscription(business_id, "cust_warn", "sub_warn", "trialing", plan="pro", trial_ends_at=soon)
 
@@ -186,19 +186,19 @@ def test_send_trial_ending_warnings_if_needed_sends_and_dedupes(client, unique_u
     assert len(sent) == 1
 
 
-def test_mobile_register_gets_card_free_trial_when_paddle_not_configured(client, unique_username, unique_email):
+def test_mobile_register_gets_card_free_trial_when_paddle_not_configured(client, unique_email):
     # Default test env has no PADDLE_CLIENT_TOKEN - api_register() must behave exactly
     # like before (unaffected businesses shouldn't need a card at all).
-    reg = register_business(client, unique_username, unique_email)
+    reg = register_business(client, unique_email)
     business_id = reg.get_json()["business_id"]
     assert database.get_subscription_status(business_id) == "trialing"
 
 
-def test_mobile_register_requires_a_card_once_paddle_is_configured(client, unique_username, unique_email, monkeypatch):
+def test_mobile_register_requires_a_card_once_paddle_is_configured(client, unique_email, monkeypatch):
     # Mirrors register()'s web behavior (see app.py) - api_register() must gate on the
     # same paddle_billing.is_configured() check, not silently keep the old free trial.
     monkeypatch.setattr(api_module.paddle_billing, "is_configured", lambda: True)
-    reg = register_business(client, unique_username, unique_email)
+    reg = register_business(client, unique_email)
     business_id = reg.get_json()["business_id"]
     assert database.get_subscription_status(business_id) == "none"
     assert database.effective_subscription_active(business_id) is False
@@ -207,19 +207,19 @@ def test_mobile_register_requires_a_card_once_paddle_is_configured(client, uniqu
 # --- Stripe path stays wired in the backend (dormant, unlinked from the pricing UI) -
 # keeping a couple of tests so a future refactor doesn't silently break it. ---
 
-def test_stripe_subscription_link_still_works_as_a_dormant_path(client, unique_username, unique_email):
-    register_business_web(client, unique_username, unique_email)
-    business_id = database.business_by_username(unique_username)[0]
+def test_stripe_subscription_link_still_works_as_a_dormant_path(client, unique_email):
+    register_business_web(client, unique_email)
+    business_id = database.business_by_contact_email(unique_email)[0]
     database.link_stripe_subscription(business_id, "stripe_cust_1", "stripe_sub_1", "trialing", plan="pro")
     assert database.get_subscription_status(business_id) == "trialing"
     assert database.trial_expired(business_id) is False
 
 
-def test_stripe_trial_will_end_webhook_still_emails_the_business(client, unique_username, unique_email, monkeypatch):
-    register_business_web(client, unique_username, unique_email)
-    business_id = database.business_by_username(unique_username)[0]
-    subscription_id = f"sub_trial_{unique_username}"
-    database.link_stripe_subscription(business_id, f"cust_{unique_username}", subscription_id, "trialing", plan="pro")
+def test_stripe_trial_will_end_webhook_still_emails_the_business(client, unique_email, monkeypatch):
+    register_business_web(client, unique_email)
+    business_id = database.business_by_contact_email(unique_email)[0]
+    subscription_id = f"sub_trial_{business_id}"
+    database.link_stripe_subscription(business_id, f"cust_{business_id}", subscription_id, "trialing", plan="pro")
 
     sent = {}
     monkeypatch.setattr(app_module, "send_email", lambda **kwargs: sent.update(kwargs))

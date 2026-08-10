@@ -15,8 +15,8 @@ def test_schedule_requires_login(client):
     assert "/login" in response.headers["Location"]
 
 
-def test_schedule_unlocked_during_trial(client, unique_username, unique_email):
-    reg = register_business_web(client, unique_username, unique_email)
+def test_schedule_unlocked_during_trial(client, unique_email):
+    reg = register_business_web(client, unique_email)
     assert reg.status_code == 302  # -> /verify-pending, but the session is now logged in
 
     response = client.get("/schedule")
@@ -26,10 +26,10 @@ def test_schedule_unlocked_during_trial(client, unique_username, unique_email):
     assert "schedule-timeline" in body or "Closed on this day" in body
 
 
-def test_schedule_locked_for_starter_plan(client, unique_username, unique_email, monkeypatch):
+def test_schedule_locked_for_starter_plan(client, unique_email, monkeypatch):
     monkeypatch.setattr(app_module, "BETA_FREE_MODE", False)
-    register_business_web(client, unique_username, unique_email)
-    business_id = database.business_by_username(unique_username)[0]
+    register_business_web(client, unique_email)
+    business_id = database.business_by_contact_email(unique_email)[0]
     database.link_subscription(business_id, "cust", "sub", "active", plan="starter")
 
     response = client.get("/schedule")
@@ -39,14 +39,14 @@ def test_schedule_locked_for_starter_plan(client, unique_username, unique_email,
     assert "schedule-timeline" not in body
 
 
-def test_schedule_locked_starter_cannot_bypass_via_post(client, unique_username, unique_email, monkeypatch, future_date):
+def test_schedule_locked_starter_cannot_bypass_via_post(client, unique_email, monkeypatch, future_date):
     monkeypatch.setattr(app_module, "BETA_FREE_MODE", False)
-    register_business_web(client, unique_username, unique_email)
+    register_business_web(client, unique_email)
     # CSRF token pulled from /settings, not the now-locked /schedule page - the
     # locked page has no form on it at all (see schedule.html), so no token to extract;
     # CSRF tokens are session-scoped, so any other page's token works here regardless.
     csrf_token = get_csrf_token(client, "/settings")
-    business_id = database.business_by_username(unique_username)[0]
+    business_id = database.business_by_contact_email(unique_email)[0]
     database.link_subscription(business_id, "cust", "sub", "active", plan="starter")
 
     response = web_post(client, "/schedule/appointments", {
@@ -55,8 +55,8 @@ def test_schedule_locked_starter_cannot_bypass_via_post(client, unique_username,
     assert response.status_code == 403
 
 
-def test_book_and_cancel_appointment_via_web(client, unique_username, unique_email, future_date):
-    register_business_web(client, unique_username, unique_email)
+def test_book_and_cancel_appointment_via_web(client, unique_email, future_date):
+    register_business_web(client, unique_email)
     csrf_token = get_csrf_token(client, "/schedule")
 
     # future_date is a weekday - the test business's working_hours (see
@@ -87,8 +87,8 @@ def test_book_and_cancel_appointment_via_web(client, unique_username, unique_ema
     assert "Test Customer" not in after_cancel
 
 
-def test_double_booking_the_same_slot_is_rejected(client, unique_username, unique_email, future_date):
-    register_business_web(client, unique_username, unique_email)
+def test_double_booking_the_same_slot_is_rejected(client, unique_email, future_date):
+    register_business_web(client, unique_email)
 
     csrf_1 = get_csrf_token(client, "/schedule")
     first = web_post(client, "/schedule/appointments", {
@@ -108,8 +108,8 @@ def test_double_booking_the_same_slot_is_rejected(client, unique_username, uniqu
     assert "First Customer" in body
 
 
-def test_book_appointment_with_custom_duration_blocks_the_slots_it_covers(client, unique_username, unique_email, future_date):
-    register_business_web(client, unique_username, unique_email)
+def test_book_appointment_with_custom_duration_blocks_the_slots_it_covers(client, unique_email, future_date):
+    register_business_web(client, unique_email)
     csrf_token = get_csrf_token(client, "/schedule")
 
     # 90-minute booking at 09:00 on a 30-minute grid (the test business's default, see
@@ -133,8 +133,8 @@ def test_book_appointment_with_custom_duration_blocks_the_slots_it_covers(client
     assert "book_error=1" in second.headers["Location"]
 
 
-def test_book_appointment_with_custom_duration_field(client, unique_username, unique_email, future_date):
-    register_business_web(client, unique_username, unique_email)
+def test_book_appointment_with_custom_duration_field(client, unique_email, future_date):
+    register_business_web(client, unique_email)
     csrf_token = get_csrf_token(client, "/schedule")
 
     # duration="custom" defers to duration_custom, same as the "Custom" option on the
@@ -149,8 +149,8 @@ def test_book_appointment_with_custom_duration_field(client, unique_username, un
     assert "09:00" in body and "09:20" in body
 
 
-def test_update_slot_duration_accepts_custom_value(client, unique_username, unique_email, future_date):
-    register_business_web(client, unique_username, unique_email)
+def test_update_slot_duration_accepts_custom_value(client, unique_email, future_date):
+    register_business_web(client, unique_email)
     csrf_token = get_csrf_token(client, "/schedule")
 
     response = web_post(client, "/schedule/slot-duration", {
@@ -158,26 +158,26 @@ def test_update_slot_duration_accepts_custom_value(client, unique_username, uniq
     })
     assert response.status_code == 302
 
-    business_id = database.business_by_username(unique_username)[0]
+    business_id = database.business_by_contact_email(unique_email)[0]
     assert database.get_slot_duration(business_id) == 50
 
 
-def test_update_slot_duration_rejects_out_of_range_value(client, unique_username, unique_email, future_date):
-    register_business_web(client, unique_username, unique_email)
+def test_update_slot_duration_rejects_out_of_range_value(client, unique_email, future_date):
+    register_business_web(client, unique_email)
     csrf_token = get_csrf_token(client, "/schedule")
 
     web_post(client, "/schedule/slot-duration", {
         "csrf_token": csrf_token, "slot_duration": "9999", "date": future_date,
     })
 
-    business_id = database.business_by_username(unique_username)[0]
+    business_id = database.business_by_contact_email(unique_email)[0]
     assert database.get_slot_duration(business_id) == 30  # falls back to the default
 
 
-def test_home_redirects_to_subscription_once_access_lapses(client, unique_username, unique_email, monkeypatch):
+def test_home_redirects_to_subscription_once_access_lapses(client, unique_email, monkeypatch):
     monkeypatch.setattr(app_module, "BETA_FREE_MODE", False)
-    register_business_web(client, unique_username, unique_email)
-    business_id = database.business_by_username(unique_username)[0]
+    register_business_web(client, unique_email)
+    business_id = database.business_by_contact_email(unique_email)[0]
     # This test is about the subscription gate, not the (Faza 13) onboarding one that
     # now also sits in front of home() - complete it here so home()'s redirect below is
     # unambiguously the subscription gate firing, not the wizard.

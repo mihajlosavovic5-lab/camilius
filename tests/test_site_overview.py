@@ -18,18 +18,18 @@ def _future_slot(hours_from_now=48):
     return start, start + timedelta(minutes=30)
 
 
-def test_site_overview_shows_no_website_cta_when_nothing_saved(client, unique_username, unique_email):
-    register_business_web(client, unique_username, unique_email)
-    business = database.business_by_username(unique_username)
+def test_site_overview_shows_no_website_cta_when_nothing_saved(client, unique_email):
+    register_business_web(client, unique_email)
+    business = database.business_by_contact_email(unique_email)
     database.mark_onboarding_completed(business[0])
 
     html = client.get("/").get_data(as_text=True)
     assert "haven&#39;t set up your website" in html or "haven't set up your website" in html
 
 
-def test_site_overview_shows_tagline_and_live_link_for_a_published_page(client, unique_username, unique_email):
-    register_business_web(client, unique_username, unique_email)
-    business = database.business_by_username(unique_username)
+def test_site_overview_shows_tagline_and_live_link_for_a_published_page(client, unique_email):
+    register_business_web(client, unique_email)
+    business = database.business_by_contact_email(unique_email)
     database.mark_onboarding_completed(business[0])
     slug = f"cool-salon-{uuid.uuid4().hex[:8]}"
     database.upsert_business_page(business[0], slug, True, "Fresh cuts, fair prices", "A great salon.", None, "warm")
@@ -39,9 +39,9 @@ def test_site_overview_shows_tagline_and_live_link_for_a_published_page(client, 
     assert f"/p/{slug}" in html
 
 
-def test_site_overview_lists_upcoming_appointments(client, unique_username, unique_email):
-    register_business_web(client, unique_username, unique_email)
-    business = database.business_by_username(unique_username)
+def test_site_overview_lists_upcoming_appointments(client, unique_email):
+    register_business_web(client, unique_email)
+    business = database.business_by_contact_email(unique_email)
     database.mark_onboarding_completed(business[0])
     start, end = _future_slot()
     database.create_appointment(business[0], "Ana", start, end, service="Haircut")
@@ -51,9 +51,9 @@ def test_site_overview_lists_upcoming_appointments(client, unique_username, uniq
     assert "Haircut" in html
 
 
-def test_site_overview_appointments_stat_reflects_count(client, unique_username, unique_email):
-    register_business_web(client, unique_username, unique_email)
-    business = database.business_by_username(unique_username)
+def test_site_overview_appointments_stat_reflects_count(client, unique_email):
+    register_business_web(client, unique_email)
+    business = database.business_by_contact_email(unique_email)
     database.mark_onboarding_completed(business[0])
     start, end = _future_slot()
     database.create_appointment(business[0], "Ana", start, end)
@@ -66,9 +66,9 @@ def test_site_overview_appointments_stat_reflects_count(client, unique_username,
     assert "Ana" in html and "Bob" in html
 
 
-def test_nav_shows_my_website_link(client, unique_username, unique_email):
-    register_business_web(client, unique_username, unique_email)
-    business = database.business_by_username(unique_username)
+def test_nav_shows_my_website_link(client, unique_email):
+    register_business_web(client, unique_email)
+    business = database.business_by_contact_email(unique_email)
     database.mark_onboarding_completed(business[0])
 
     html = client.get("/").get_data(as_text=True)

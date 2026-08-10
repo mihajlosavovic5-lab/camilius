@@ -409,7 +409,7 @@
       <div id="login-error" class="alert alert-error hidden"></div>
 
       <!-- Two-phase login: Google/email as equal-weight starting choices, with the
-           actual username+password form only revealed once "Continue with email" is
+           actual email+password form only revealed once "Continue with email" is
            picked (see #login-email-btn/#login-email-back-btn in app.js). showScreen()
            resets back to this choice view every time the Login screen is navigated TO
            (logout, back button, etc.) - see app.js. -->
@@ -440,8 +440,8 @@
       <div class="login-email-form" id="login-email-form">
         <form id="login-form">
           <div class="floating-field">
-            <input type="text" id="login-username" placeholder=" " autocomplete="username" autocapitalize="off" autocorrect="off">
-            <label for="login-username" data-i18n="login.username">Username or email</label>
+            <input type="email" id="login-email" placeholder=" " autocomplete="email" autocapitalize="off" autocorrect="off">
+            <label for="login-email" data-i18n="login.email">Email</label>
           </div>
           <div class="floating-field floating-field-password">
             <input type="password" id="login-password" placeholder=" " autocomplete="current-password">
@@ -479,11 +479,11 @@
       <div id="forgot-success" class="alert alert-success hidden" data-i18n="forgot.success">If that account exists, we've sent a password reset link to the email on file.</div>
 
       <div id="forgot-identifier-mode">
-        <p class="screen-subtitle" data-i18n="forgot.subtitle">Enter the email or username you registered with and we'll send a link to set a new password.</p>
+        <p class="screen-subtitle" data-i18n="forgot.subtitle">Enter the email you registered with and we'll send a link to set a new password.</p>
         <form id="forgot-form">
           <div class="floating-field">
-            <input type="text" id="forgot-identifier" placeholder=" " autocomplete="username" autocapitalize="off" required>
-            <label for="forgot-identifier" data-i18n="forgot.identifierLabel">Email or username</label>
+            <input type="email" id="forgot-identifier" placeholder=" " autocomplete="email" autocapitalize="off" required>
+            <label for="forgot-identifier" data-i18n="forgot.identifierLabel">Email</label>
           </div>
           <button class="button button-full button-pill" type="submit" id="forgot-submit" data-i18n="forgot.submit">Send reset link</button>
         </form>
@@ -505,7 +505,7 @@
           </div>
           <button class="button button-full button-pill" type="submit" id="forgot-phone-submit" data-i18n="forgot.phoneSubmit">Find account</button>
         </form>
-        <button type="button" class="button button-secondary button-full button-pill button-primary-outline" id="forgot-show-identifier" style="margin-top: 12px;" data-i18n="forgot.backToIdentifier">Use email or username instead</button>
+        <button type="button" class="button button-secondary button-full button-pill button-primary-outline" id="forgot-show-identifier" style="margin-top: 12px;" data-i18n="forgot.backToIdentifier">Use email instead</button>
       </div>
     </div>
   </section>
@@ -544,12 +544,6 @@
                 <input type="text" id="register-name" placeholder=" " required>
                 <label for="register-name" data-i18n="register.name">Business name</label>
               </div>
-
-              <div class="floating-field">
-                <input type="text" id="register-username" placeholder=" " autocomplete="username" autocapitalize="off" autocorrect="off" required>
-                <label for="register-username" data-i18n="register.username">Username</label>
-              </div>
-              <p class="field-error hidden" id="register-username-error"></p>
 
               <div class="floating-field floating-field-password">
                 <input type="password" id="register-password" placeholder=" " autocomplete="new-password" required>
@@ -1022,12 +1016,6 @@
         </div>
 
         <div class="floating-field">
-          <input type="text" id="settings-username" placeholder=" " autocapitalize="off" autocorrect="off">
-          <label for="settings-username" data-i18n="settings.username">Username</label>
-        </div>
-        <p class="field-error hidden" id="settings-username-error"></p>
-
-        <div class="floating-field">
           <input type="email" id="settings-contact-email" placeholder=" " autocapitalize="off" autocorrect="off">
           <label for="settings-contact-email" data-i18n="settings.contactEmail">Contact email</label>
         </div>
@@ -1416,7 +1404,7 @@
         <li>You're responsible for the accuracy of the data you enter (working hours, price list, FAQ) - AI replies rely on that data.</li>
         <li>You're responsible for checking that AI-generated content is accurate and appropriate - we don't guarantee its accuracy. Replies are sent automatically and immediately, with no manual review step.</li>
         <li>You agree not to use the service to send inappropriate, misleading, or unlawful content.</li>
-        <li>You're responsible for the security of your account credentials (username, password).</li>
+        <li>You're responsible for the security of your account credentials (email, password).</li>
       </ul>
       <h2>Limitation of liability</h2>
       <p>The service is provided "as is", without a guarantee of uninterrupted operation or freedom from errors. We are not liable for damages arising from an inaccurate AI reply, service downtime, or data loss. You use the service at your own risk.</p>
@@ -1447,7 +1435,7 @@
       <h2>What data we collect</h2>
       <p>From the business owner, at registration:</p>
       <ul>
-        <li>Business name, username, and password (the password is stored hashed, never in readable form)</li>
+        <li>Business name and password (the password is stored hashed, never in readable form)</li>
         <li>A contact email address, used only for account recovery (password resets) and important account notices</li>
         <li>The working hours, price list, and FAQ you enter</li>
       </ul>

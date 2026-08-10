@@ -17,8 +17,8 @@ _AI_THEME_OPTION = {
 }
 
 
-def test_suggest_themes_returns_options(client, unique_username, unique_email, monkeypatch):
-    register_business_web(client, unique_username, unique_email)
+def test_suggest_themes_returns_options(client, unique_email, monkeypatch):
+    register_business_web(client, unique_email)
     monkeypatch.setattr(ai_theme, "generate_theme_options", lambda *args, **kwargs: [_AI_THEME_OPTION])
     csrf_token = get_csrf_token(client, "/profile")
 
@@ -28,8 +28,8 @@ def test_suggest_themes_returns_options(client, unique_username, unique_email, m
     assert data["themes"][0]["label"] == "Calm Clinic"
 
 
-def test_suggest_themes_requires_description(client, unique_username, unique_email):
-    register_business_web(client, unique_username, unique_email)
+def test_suggest_themes_requires_description(client, unique_email):
+    register_business_web(client, unique_email)
     csrf_token = get_csrf_token(client, "/profile")
 
     response = web_post(client, "/profile/suggest-themes", {"csrf_token": csrf_token, "description": "   "})
@@ -37,8 +37,8 @@ def test_suggest_themes_requires_description(client, unique_username, unique_ema
     assert "Describe your business" in response.get_json()["error"]
 
 
-def test_suggest_themes_reports_error_when_ai_returns_nothing(client, unique_username, unique_email, monkeypatch):
-    register_business_web(client, unique_username, unique_email)
+def test_suggest_themes_reports_error_when_ai_returns_nothing(client, unique_email, monkeypatch):
+    register_business_web(client, unique_email)
     monkeypatch.setattr(ai_theme, "generate_theme_options", lambda *args, **kwargs: [])
     csrf_token = get_csrf_token(client, "/profile")
 

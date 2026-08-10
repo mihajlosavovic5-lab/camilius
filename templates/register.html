@@ -45,12 +45,6 @@
                         <label for="register-name-input" data-i18n="register.businessName">Business name</label>
                     </div>
 
-                    <div class="floating-field">
-                        <input type="text" id="register-username-input" name="username" value="{{ data.get('username', '') }}" placeholder=" " autocomplete="username" required>
-                        <label for="register-username-input" data-i18n="register.username">Username</label>
-                    </div>
-                    <p class="field-error hidden" id="register-username-error"></p>
-
                     <div class="floating-field floating-field-password">
                         <input type="password" id="register-password-input" name="password" placeholder=" " autocomplete="new-password" minlength="8" required>
                         <label for="register-password-input" data-i18n="register.password">Password</label>
@@ -258,14 +252,13 @@ document.addEventListener("DOMContentLoaded", function () {
     passwordInput.addEventListener("input", updateConfirmPasswordError);
     confirmPasswordInput.addEventListener("input", updateConfirmPasswordError);
 
-    // --- Live "already taken" checks (username, contact email, phone number) - step 1
+    // --- Live "already taken" checks (contact email, phone number) - step 1
     // only, same fields the mobile app's own wizard gates its first arrow on. ---
 
     var csrfToken = document.querySelector('input[name="csrf_token"]').value;
     var form = document.getElementById("register-form");
 
     var fields = {
-        username: { input: document.getElementById("register-username-input"), error: document.getElementById("register-username-error"), required: true, status: "unknown" },
         contact_email: { input: document.getElementById("register-contact-email-input"), error: document.getElementById("register-contact-email-error"), required: true, status: "unknown" },
         phone_number: { input: document.getElementById("register-phone-input"), error: document.getElementById("register-phone-error"), required: false, status: "unknown" },
     };
@@ -334,7 +327,6 @@ document.addEventListener("DOMContentLoaded", function () {
             });
     }
 
-    fields.username.errorText = t("register.usernameTaken");
     fields.contact_email.errorText = t("register.emailTaken");
     fields.phone_number.errorText = t("register.phoneTaken");
 
@@ -363,7 +355,7 @@ document.addEventListener("DOMContentLoaded", function () {
         errorBox.classList.remove("hidden");
     }
 
-    // Step 1 has its named condition (all required fields filled, none of username/
+    // Step 1 has its named condition (all required fields filled, none of
     // contact email/phone number taken) genuinely gate the arrow via .disabled - the
     // inline field errors above already explain "why" for the taken case. Steps 2/3 stay
     // dim-only-but-tappable instead, since tapping is what surfaces the specific reason

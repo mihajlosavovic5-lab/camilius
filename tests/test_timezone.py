@@ -26,12 +26,12 @@ WORKING_HOURS = "\n".join([
 ])
 
 # The business row is indexed positionally (see database.py's canonical row-shape
-# comment); index 21 is the timezone. Built by length rather than by spelling out 21
+# comment); index 20 is the timezone. Built by length rather than by spelling out 20
 # placeholders so this doesn't need editing every time an unrelated column is appended.
 def _business_row(timezone_name, working_hours=WORKING_HOURS):
-    row = [None] * 22
-    row[8] = working_hours
-    row[21] = timezone_name
+    row = [None] * 21
+    row[7] = working_hours
+    row[20] = timezone_name
     return tuple(row)
 
 
@@ -47,7 +47,7 @@ def test_tz_for_falls_back_rather_than_raising():
     assert booking.tz_for(_business_row(None)) == booking.DEFAULT_TZ
     assert booking.tz_for(_business_row("")) == booking.DEFAULT_TZ
     assert booking.tz_for(_business_row("Not/A_Real_Zone")) == booking.DEFAULT_TZ
-    assert booking.tz_for(tuple([None] * 21)) == booking.DEFAULT_TZ
+    assert booking.tz_for(tuple([None] * 20)) == booking.DEFAULT_TZ
 
 
 def test_day_slots_are_local_to_the_business_timezone():

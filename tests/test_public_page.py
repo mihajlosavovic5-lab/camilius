@@ -18,15 +18,15 @@ def _follow(client, response):
     return client.get(response.headers["Location"])
 
 
-def test_profile_page_renders_with_no_page_saved_yet(client, unique_username, unique_email):
-    register_business_web(client, unique_username, unique_email)
+def test_profile_page_renders_with_no_page_saved_yet(client, unique_email):
+    register_business_web(client, unique_email)
     response = client.get("/profile")
     assert response.status_code == 200
     assert "Your public page" in response.get_data(as_text=True)
 
 
-def test_save_business_page_then_shows_saved_values(client, unique_username, unique_email):
-    register_business_web(client, unique_username, unique_email)
+def test_save_business_page_then_shows_saved_values(client, unique_email):
+    register_business_web(client, unique_email)
     slug = f"marko-{uuid.uuid4().hex[:8]}"
     csrf_token = get_csrf_token(client, "/profile")
 
@@ -43,8 +43,8 @@ def test_save_business_page_then_shows_saved_values(client, unique_username, uni
     assert "Family-run since 2019." in profile
 
 
-def test_save_business_page_rejects_invalid_slug(client, unique_username, unique_email):
-    register_business_web(client, unique_username, unique_email)
+def test_save_business_page_rejects_invalid_slug(client, unique_email):
+    register_business_web(client, unique_email)
     csrf_token = get_csrf_token(client, "/profile")
 
     response = web_post(client, "/profile/page", {
@@ -58,11 +58,11 @@ def test_save_business_page_rejects_invalid_slug(client, unique_username, unique
     assert "lowercase letters" in page
     assert "not a valid slug!" in page  # normalize_slug lowercases before re-rendering
     assert "Fresh cuts daily" in page
-    assert database.get_business_page(database.business_by_username(unique_username)[0]) is None
+    assert database.get_business_page(database.business_by_contact_email(unique_email)[0]) is None
 
 
-def test_save_business_page_rejects_reserved_slug(client, unique_username, unique_email):
-    register_business_web(client, unique_username, unique_email)
+def test_save_business_page_rejects_reserved_slug(client, unique_email):
+    register_business_web(client, unique_email)
     csrf_token = get_csrf_token(client, "/profile")
 
     response = web_post(client, "/profile/page", {
@@ -72,15 +72,14 @@ def test_save_business_page_rejects_reserved_slug(client, unique_username, uniqu
     assert "lowercase letters" in response.get_data(as_text=True)
 
 
-def test_save_business_page_rejects_slug_taken_by_another_business(client, unique_username, unique_email):
-    register_business_web(client, unique_username, unique_email)
-    business_id = database.business_by_username(unique_username)[0]
+def test_save_business_page_rejects_slug_taken_by_another_business(client, unique_email):
+    register_business_web(client, unique_email)
+    business_id = database.business_by_contact_email(unique_email)[0]
     taken_slug = f"taken-{uuid.uuid4().hex[:8]}"
     database.upsert_business_page(business_id, taken_slug, True, None, None)
 
-    other_username = f"{unique_username}_other"
     other_email = f"other-{unique_email}"
-    register_business_web(client, other_username, other_email)
+    register_business_web(client, other_email)
     csrf_token = get_csrf_token(client, "/profile")
 
     response = web_post(client, "/profile/page", {
@@ -92,8 +91,8 @@ def test_save_business_page_rejects_slug_taken_by_another_business(client, uniqu
     assert taken_slug in page
 
 
-def test_save_business_page_same_business_can_resave_its_own_slug(client, unique_username, unique_email):
-    register_business_web(client, unique_username, unique_email)
+def test_save_business_page_same_business_can_resave_its_own_slug(client, unique_email):
+    register_business_web(client, unique_email)
     slug = f"marko-{uuid.uuid4().hex[:8]}"
     csrf_token = get_csrf_token(client, "/profile")
     web_post(client, "/profile/page", {"csrf_token": csrf_token, "slug": slug, "tagline": "A", "about": ""})
@@ -110,9 +109,9 @@ def test_public_page_404s_for_unknown_slug(client):
     assert response.status_code == 404
 
 
-def test_public_page_404s_when_not_published(client, unique_username, unique_email):
-    register_business_web(client, unique_username, unique_email)
-    business_id = database.business_by_username(unique_username)[0]
+def test_public_page_404s_when_not_published(client, unique_email):
+    register_business_web(client, unique_email)
+    business_id = database.business_by_contact_email(unique_email)[0]
     slug = f"draft-{uuid.uuid4().hex[:8]}"
     database.upsert_business_page(business_id, slug, False, "Should not be visible", None)
 
@@ -120,9 +119,9 @@ def test_public_page_404s_when_not_published(client, unique_username, unique_ema
     assert response.status_code == 404
 
 
-def test_public_page_renders_when_published(client, unique_username, unique_email):
-    register_business_web(client, unique_username, unique_email)
-    business_id = database.business_by_username(unique_username)[0]
+def test_public_page_renders_when_published(client, unique_email):
+    register_business_web(client, unique_email)
+    business_id = database.business_by_contact_email(unique_email)[0]
     slug = f"live-{uuid.uuid4().hex[:8]}"
     database.upsert_business_page(business_id, slug, True, "Fresh cuts daily", "We opened in 2019.")
 
@@ -138,13 +137,13 @@ def test_public_page_renders_when_published(client, unique_username, unique_emai
     assert "https://schema.org/Monday" in html
 
 
-def test_public_page_hides_badge_during_active_trial(client, unique_username, unique_email):
+def test_public_page_hides_badge_during_active_trial(client, unique_email):
     """F4: every business gets a real 14-day trial on signup (add_business's own
     initial_status="trialing" default) - the "Powered by Camilius" badge is gone from
     day one, same as has_pro_access() already treats a self-serve trial as full access,
     not just a paid plan."""
-    register_business_web(client, unique_username, unique_email)
-    business_id = database.business_by_username(unique_username)[0]
+    register_business_web(client, unique_email)
+    business_id = database.business_by_contact_email(unique_email)[0]
     slug = f"trial-{uuid.uuid4().hex[:8]}"
     database.upsert_business_page(business_id, slug, True, None, None)
 
@@ -152,9 +151,9 @@ def test_public_page_hides_badge_during_active_trial(client, unique_username, un
     assert "Powered by Camilius" not in response.get_data(as_text=True)
 
 
-def test_public_page_shows_badge_once_trial_expired_with_no_paid_plan(client, unique_username, unique_email):
-    register_business_web(client, unique_username, unique_email)
-    business_id = database.business_by_username(unique_username)[0]
+def test_public_page_shows_badge_once_trial_expired_with_no_paid_plan(client, unique_email):
+    register_business_web(client, unique_email)
+    business_id = database.business_by_contact_email(unique_email)[0]
     slug = f"expired-{uuid.uuid4().hex[:8]}"
     database.upsert_business_page(business_id, slug, True, None, None)
 
@@ -169,9 +168,9 @@ def test_public_page_shows_badge_once_trial_expired_with_no_paid_plan(client, un
     assert "Powered by Camilius" in response.get_data(as_text=True)
 
 
-def test_public_page_hides_badge_for_a_real_paid_subscription(client, unique_username, unique_email):
-    register_business_web(client, unique_username, unique_email)
-    business_id = database.business_by_username(unique_username)[0]
+def test_public_page_hides_badge_for_a_real_paid_subscription(client, unique_email):
+    register_business_web(client, unique_email)
+    business_id = database.business_by_contact_email(unique_email)[0]
     slug = f"paid-{uuid.uuid4().hex[:8]}"
     database.upsert_business_page(business_id, slug, True, None, None)
     database.link_subscription(business_id, "cust_1", "sub_1", "active", plan="pro")
@@ -180,10 +179,10 @@ def test_public_page_hides_badge_for_a_real_paid_subscription(client, unique_use
     assert "Powered by Camilius" not in response.get_data(as_text=True)
 
 
-def test_public_page_is_reachable_by_anyone_without_a_session(client, unique_username, unique_email):
+def test_public_page_is_reachable_by_anyone_without_a_session(client, unique_email):
     """The whole point of the page - no login, no session, no cookie required."""
-    register_business_web(client, unique_username, unique_email)
-    business_id = database.business_by_username(unique_username)[0]
+    register_business_web(client, unique_email)
+    business_id = database.business_by_contact_email(unique_email)[0]
     slug = f"anon-{uuid.uuid4().hex[:8]}"
     database.upsert_business_page(business_id, slug, True, None, None)
 
@@ -193,16 +192,15 @@ def test_public_page_is_reachable_by_anyone_without_a_session(client, unique_use
     assert response.status_code == 200
 
 
-def test_sitemap_lists_published_pages_only(client, unique_username, unique_email):
-    register_business_web(client, unique_username, unique_email)
-    business_id = database.business_by_username(unique_username)[0]
+def test_sitemap_lists_published_pages_only(client, unique_email):
+    register_business_web(client, unique_email)
+    business_id = database.business_by_contact_email(unique_email)[0]
     published_slug = f"pub-{uuid.uuid4().hex[:8]}"
     database.upsert_business_page(business_id, published_slug, True, None, None)
 
-    other_username = f"{unique_username}_draft"
     other_email = f"draft-{unique_email}"
-    register_business_web(client, other_username, other_email)
-    draft_business_id = database.business_by_username(other_username)[0]
+    register_business_web(client, other_email)
+    draft_business_id = database.business_by_contact_email(other_email)[0]
     draft_slug = f"draft-{uuid.uuid4().hex[:8]}"
     database.upsert_business_page(draft_business_id, draft_slug, False, None, None)
 
@@ -217,18 +215,18 @@ def test_site_preview_requires_login(client):
     assert response.headers["Location"] == "/login"
 
 
-def test_site_preview_404s_with_no_page_saved_yet(client, unique_username, unique_email):
-    register_business_web(client, unique_username, unique_email)
+def test_site_preview_404s_with_no_page_saved_yet(client, unique_email):
+    register_business_web(client, unique_email)
     response = client.get("/site/preview")
     assert response.status_code == 404
 
 
-def test_site_preview_renders_unpublished_page(client, unique_username, unique_email):
+def test_site_preview_renders_unpublished_page(client, unique_email):
     """The whole point of this route (see app.py's site_preview docstring): unlike
     /p/<slug>, an unpublished page still renders here so the owner can see the complete
     site Camilius built before ever choosing to publish it."""
-    register_business_web(client, unique_username, unique_email)
-    business_id = database.business_by_username(unique_username)[0]
+    register_business_web(client, unique_email)
+    business_id = database.business_by_contact_email(unique_email)[0]
     slug = f"draft-{uuid.uuid4().hex[:8]}"
     database.upsert_business_page(business_id, slug, False, "Fresh cuts daily", "We opened in 2019.")
 
@@ -241,9 +239,9 @@ def test_site_preview_renders_unpublished_page(client, unique_username, unique_e
     assert 'name="robots" content="noindex, nofollow"' in html  # preview=True, never indexed
 
 
-def test_site_preview_renders_published_page_too(client, unique_username, unique_email):
-    register_business_web(client, unique_username, unique_email)
-    business_id = database.business_by_username(unique_username)[0]
+def test_site_preview_renders_published_page_too(client, unique_email):
+    register_business_web(client, unique_email)
+    business_id = database.business_by_contact_email(unique_email)[0]
     slug = f"live-{uuid.uuid4().hex[:8]}"
     database.upsert_business_page(business_id, slug, True, "Fresh cuts daily", None)
 

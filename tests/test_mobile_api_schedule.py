@@ -10,9 +10,9 @@ WORKING_HOURS = ("Monday: 09:00-18:00\nTuesday: 09:00-18:00\nWednesday: 09:00-18
                   "Thursday: 09:00-18:00\nFriday: 09:00-18:00\nSaturday: closed\nSunday: closed")
 
 
-def _auth_header(client, username, email, **overrides):
+def _auth_header(client, email, **overrides):
     overrides.setdefault("working_hours", WORKING_HOURS)
-    token, business_id = register_and_login(client, username, email, **overrides)
+    token, business_id = register_and_login(client, email, **overrides)
     return {"Authorization": f"Bearer {token}"}, business_id
 
 
@@ -21,9 +21,9 @@ def test_schedule_requires_auth(client):
     assert response.status_code == 401
 
 
-def test_schedule_locked_for_starter_plan(client, unique_username, unique_email, monkeypatch):
+def test_schedule_locked_for_starter_plan(client, unique_email, monkeypatch):
     monkeypatch.setattr(app_module, "BETA_FREE_MODE", False)
-    headers, business_id = _auth_header(client, unique_username, unique_email)
+    headers, business_id = _auth_header(client, unique_email)
     database.link_subscription(business_id, "cust", "sub", "active", plan="starter")
 
     response = client.get("/api/schedule", headers=headers)
@@ -31,8 +31,8 @@ def test_schedule_locked_for_starter_plan(client, unique_username, unique_email,
     assert response.get_json()["locked"] is True
 
 
-def test_schedule_day_view_unlocked_during_trial(client, unique_username, unique_email, future_date):
-    headers, _ = _auth_header(client, unique_username, unique_email)
+def test_schedule_day_view_unlocked_during_trial(client, unique_email, future_date):
+    headers, _ = _auth_header(client, unique_email)
 
     # future_date is a weekday - within the test business's working hours (09:00-18:00).
     response = client.get(f"/api/schedule?view=day&date={future_date}", headers=headers)
@@ -46,8 +46,8 @@ def test_schedule_day_view_unlocked_during_trial(client, unique_username, unique
     assert all(row["appointment"] is None for row in data["slot_rows"])
 
 
-def test_schedule_week_view(client, unique_username, unique_email, future_date):
-    headers, _ = _auth_header(client, unique_username, unique_email)
+def test_schedule_week_view(client, unique_email, future_date):
+    headers, _ = _auth_header(client, unique_email)
 
     response = client.get(f"/api/schedule?view=week&date={future_date}", headers=headers)
     assert response.status_code == 200
@@ -59,8 +59,8 @@ def test_schedule_week_view(client, unique_username, unique_email, future_date):
     assert len(closed_days) == 2
 
 
-def test_book_and_cancel_appointment(client, unique_username, unique_email, future_date):
-    headers, _ = _auth_header(client, unique_username, unique_email)
+def test_book_and_cancel_appointment(client, unique_email, future_date):
+    headers, _ = _auth_header(client, unique_email)
 
     create = client.post("/api/schedule/appointments", headers=headers, json={
         "date": future_date, "time": "10:00", "customer_name": "Test Customer", "service": "Haircut",
@@ -83,8 +83,8 @@ def test_book_and_cancel_appointment(client, unique_username, unique_email, futu
     assert freed_row["appointment"] is None
 
 
-def test_double_booking_the_same_slot_is_rejected(client, unique_username, unique_email, future_date):
-    headers, _ = _auth_header(client, unique_username, unique_email)
+def test_double_booking_the_same_slot_is_rejected(client, unique_email, future_date):
+    headers, _ = _auth_header(client, unique_email)
 
     first = client.post("/api/schedule/appointments", headers=headers, json={
         "date": future_date, "time": "11:00", "customer_name": "First Customer",
@@ -98,9 +98,9 @@ def test_double_booking_the_same_slot_is_rejected(client, unique_username, uniqu
     assert second.get_json()["error"] == "book_error"
 
 
-def test_book_appointment_forbidden_on_starter_plan(client, unique_username, unique_email, monkeypatch, future_date):
+def test_book_appointment_forbidden_on_starter_plan(client, unique_email, monkeypatch, future_date):
     monkeypatch.setattr(app_module, "BETA_FREE_MODE", False)
-    headers, business_id = _auth_header(client, unique_username, unique_email)
+    headers, business_id = _auth_header(client, unique_email)
     database.link_subscription(business_id, "cust", "sub", "active", plan="starter")
 
     response = client.post("/api/schedule/appointments", headers=headers, json={
@@ -109,8 +109,8 @@ def test_book_appointment_forbidden_on_starter_plan(client, unique_username, uni
     assert response.status_code == 403
 
 
-def test_update_slot_duration(client, unique_username, unique_email, future_date):
-    headers, business_id = _auth_header(client, unique_username, unique_email)
+def test_update_slot_duration(client, unique_email, future_date):
+    headers, business_id = _auth_header(client, unique_email)
 
     response = client.post("/api/schedule/slot-duration", headers=headers, json={"slot_duration": 60})
     assert response.status_code == 200
@@ -121,8 +121,8 @@ def test_update_slot_duration(client, unique_username, unique_email, future_date
     assert schedule["slot_minutes"] == 60
 
 
-def test_update_slot_duration_accepts_custom_value(client, unique_username, unique_email):
-    headers, business_id = _auth_header(client, unique_username, unique_email)
+def test_update_slot_duration_accepts_custom_value(client, unique_email):
+    headers, business_id = _auth_header(client, unique_email)
 
     response = client.post("/api/schedule/slot-duration", headers=headers, json={"slot_duration": 50})
     assert response.status_code == 200
@@ -130,15 +130,15 @@ def test_update_slot_duration_accepts_custom_value(client, unique_username, uniq
     assert database.get_slot_duration(business_id) == 50
 
 
-def test_update_slot_duration_rejects_out_of_range_value(client, unique_username, unique_email):
-    headers, business_id = _auth_header(client, unique_username, unique_email)
+def test_update_slot_duration_rejects_out_of_range_value(client, unique_email):
+    headers, business_id = _auth_header(client, unique_email)
 
     client.post("/api/schedule/slot-duration", headers=headers, json={"slot_duration": 9999})
     assert database.get_slot_duration(business_id) == 30  # falls back to the default
 
 
-def test_book_appointment_with_custom_duration_blocks_the_slots_it_covers(client, unique_username, unique_email, future_date):
-    headers, _ = _auth_header(client, unique_username, unique_email)
+def test_book_appointment_with_custom_duration_blocks_the_slots_it_covers(client, unique_email, future_date):
+    headers, _ = _auth_header(client, unique_email)
 
     # 90-minute booking at 09:00 on the 30-minute default grid should end at 10:30 and
     # swallow the 09:30 row too.
@@ -164,8 +164,8 @@ def test_book_appointment_with_custom_duration_blocks_the_slots_it_covers(client
     assert overlap.status_code == 409
 
 
-def test_book_appointment_with_out_of_range_duration_falls_back_to_business_default(client, unique_username, unique_email, future_date):
-    headers, _ = _auth_header(client, unique_username, unique_email)
+def test_book_appointment_with_out_of_range_duration_falls_back_to_business_default(client, unique_email, future_date):
+    headers, _ = _auth_header(client, unique_email)
 
     create = client.post("/api/schedule/appointments", headers=headers, json={
         "date": future_date, "time": "09:00", "customer_name": "Ivan", "duration": 9999,

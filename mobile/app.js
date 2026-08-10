@@ -1148,7 +1148,7 @@ attachLivePhoneCountryDetection(el("forgot-phone"), el("forgot-phone-country-fla
 // --- Live "already taken" checks (Create Account step 1 + Profile) ---
 //
 // Debounced calls to /api/check-availability (api.py) as the user types into a
-// username/contact-email/phone field. Before login (Create Account) there's no Bearer
+// contact-email/phone field. Before login (Create Account) there's no Bearer
 // token, so the server checks against every account; once logged in (Profile), the
 // server excludes the caller's own current value automatically via the token - see
 // api.py's api_check_availability. getValue is a function rather than reading
@@ -1393,7 +1393,7 @@ function showErrorBox(errorBox, message) {
 
 el("login-form").addEventListener("submit", async (event) => {
     event.preventDefault();
-    const username = el("login-username").value.trim();
+    const email = el("login-email").value.trim();
     const password = el("login-password").value;
     const errorBox = el("login-error");
     const submitBtn = el("login-submit");
@@ -1404,7 +1404,7 @@ el("login-form").addEventListener("submit", async (event) => {
     submitBtn.textContent = t("login.submitLoading");
 
     try {
-        const data = await api("/api/login", { method: "POST", body: { username, password } });
+        const data = await api("/api/login", { method: "POST", body: { email, password } });
         state.token = data.token;
         state.businessName = data.business_name;
         // enterApp() only ever reads state.token/state.businessName (kept in memory) -
@@ -1536,7 +1536,7 @@ async function checkGoogleLoginStatusOnce(attempt, { closeBrowser = true } = {})
         // First time this Google identity has been seen - not logged in, just handed to
         // the normal Create Account wizard with a name/email starting point (see
         // openRegisterScreen) and a banner explaining why they landed here unprompted.
-        // Username, password and business details are still filled in by hand exactly
+        // Password and business details are still filled in by hand exactly
         // like any other sign-up.
         openRegisterScreen({
             name: data.google_name,
@@ -1660,7 +1660,7 @@ if (capacitorPlugins && capacitorPlugins.App) {
     });
 }
 
-// --- Two-phase login (Google/email choice -> revealed username+password form) ---
+// --- Two-phase login (Google/email choice -> revealed email+password form) ---
 
 function resetLoginPhase() {
     // See .login-wrap-form-phase in app.css - this one class alone drives which panel
@@ -1736,7 +1736,7 @@ el("forgot-form").addEventListener("submit", async (event) => {
     }
 });
 
-// "Find by mobile number" - same success/error UI as the email-or-username path above,
+// "Find by mobile number" - same success/error UI as the email path above,
 // just looked up by phone_number instead (see api.py's /api/forgot-password/phone). The
 // reset link still only ever goes out by email - there's no SMS channel.
 el("forgot-phone-form").addEventListener("submit", async (event) => {
@@ -1812,15 +1812,11 @@ function showRegisterStep(n) {
     registerStepResizeObserver.observe(activeStep);
 }
 
-// Live "already taken" checks for step 1's three unique fields - see
+// Live "already taken" checks for step 1's unique fields - see
 // setupAvailabilityField() above. Unlike steps 2/3 (still just a dimmed-but-tappable
 // arrow that explains what's missing on tap), step 1's arrow is genuinely disabled once
 // any of these comes back taken, or while a check is still in flight - see
 // updateRegisterNextButtonValidity() below.
-const registerUsernameAvailability = setupAvailabilityField(
-    el("register-username"), el("register-username-error"), "username", "register.usernameTaken",
-    () => el("register-username").value.trim(), updateRegisterNextButtonValidity,
-);
 const registerEmailAvailability = setupAvailabilityField(
     el("register-contact-email"), el("register-contact-email-error"), "contact_email", "register.emailTaken",
     () => el("register-contact-email").value.trim(), updateRegisterNextButtonValidity,
@@ -1833,11 +1829,10 @@ const registerPhoneAvailability = setupAvailabilityField(
 // Returns a specific error message if step 1 isn't ready to advance, or null if it is.
 function registerStep1ValidationError() {
     const name = el("register-name").value.trim();
-    const username = el("register-username").value.trim();
     const password = el("register-password").value;
     const confirmPassword = el("register-confirm-password").value;
     const emailField = el("register-contact-email");
-    if (!name || !username) return t("register.errorFillRequired");
+    if (!name) return t("register.errorFillRequired");
     if (password.length < 8) return t("register.errorPasswordLength");
     if (password !== confirmPassword) return t("register.errorPasswordMismatch");
     if (!emailField.value.trim() || !emailField.checkValidity()) return t("register.errorFillRequired");
@@ -1859,7 +1854,7 @@ function updatePasswordLengthError() {
 }
 
 // Live red inline warning under "Confirm password" the moment the two fields disagree -
-// same field-error treatment as the username/email/phone "already taken" checks above,
+// same field-error treatment as the email/phone "already taken" checks above,
 // but purely local (no availability request needed to compare two strings). Empty confirm
 // field stays quiet - only complain once the user has actually typed something that
 // doesn't match, not while they're still on the way to typing it.
@@ -1899,7 +1894,7 @@ function currentRegisterStepError() {
 }
 
 // Step 1 (Account) has its two named conditions (all required fields filled, and none
-// of username/contact email/phone number taken) genuinely gate the arrow via .disabled -
+// of contact email/phone number taken) genuinely gate the arrow via .disabled -
 // the inline field errors above already explain "why" for the taken case, and empty
 // required fields are visually obvious, so there's no need to keep it tappable-but-dim
 // there. Steps 2/3 (hours/prices/terms) keep the original behavior: dim only, still
@@ -1909,7 +1904,6 @@ function updateRegisterNextButtonValidity() {
     const btn = el("register-next-btn");
     if (registerStep === 1) {
         const blocked = !!registerStep1ValidationError()
-            || registerUsernameAvailability.isBlocking()
             || registerEmailAvailability.isBlocking()
             || registerPhoneAvailability.isBlocking();
         btn.classList.toggle("register-next-btn-dim", blocked);
@@ -1919,7 +1913,7 @@ function updateRegisterNextButtonValidity() {
         btn.disabled = false;
     }
 }
-["register-name", "register-username", "register-password", "register-confirm-password", "register-contact-email"].forEach((id) => {
+["register-name", "register-password", "register-confirm-password", "register-contact-email"].forEach((id) => {
     el(id).addEventListener("input", updateRegisterNextButtonValidity);
 });
 el("register-password").addEventListener("input", updatePasswordLengthError);
@@ -1965,7 +1959,7 @@ function openRegisterScreen({ name, contactEmail, googleLinkToken, notice } = {}
     // HTML attribute set, so a native form reset would revert them to the browser's own
     // default (first option / unchecked) instead of our intended defaults. Clear the
     // plain fields by hand and use each picker's own .reset()/.setValue("") instead.
-    ["register-name", "register-username", "register-password", "register-confirm-password", "register-contact-email", "register-phone"].forEach((id) => {
+    ["register-name", "register-password", "register-confirm-password", "register-contact-email", "register-phone"].forEach((id) => {
         el(id).value = "";
     });
     el("register-terms").checked = false;
@@ -1973,7 +1967,6 @@ function openRegisterScreen({ name, contactEmail, googleLinkToken, notice } = {}
     el("register-new-booking-toggle").checked = true;
     registerHoursPicker.reset();
     registerPricesPicker.setValue("");
-    registerUsernameAvailability.reset();
     registerEmailAvailability.reset();
     registerPhoneAvailability.reset();
     el("register-password-error").classList.add("hidden");
@@ -2057,7 +2050,6 @@ el("register-form").addEventListener("submit", async (event) => {
             method: "POST",
             body: {
                 name: el("register-name").value.trim(),
-                username: el("register-username").value.trim(),
                 password: el("register-password").value,
                 contact_email: el("register-contact-email").value.trim(),
                 phone_number: composePhoneNumber(el("register-phone"), selectedPhoneCountry),
@@ -2837,7 +2829,6 @@ let profileFormSnapshot = null;
 function serializeProfileForm() {
     return JSON.stringify({
         name: el("settings-name").value,
-        username: el("settings-username").value,
         contactEmail: el("settings-contact-email").value,
         phone: composePhoneNumber(el("settings-phone"), selectedProfilePhoneCountry),
         hours: profileHoursPicker.getValue(),
@@ -2853,14 +2844,13 @@ function serializeProfileForm() {
 // the server exclude this business's own current value automatically (editing a field
 // without changing it never flags itself as taken).
 function isProfileFormValid() {
-    const username = el("settings-username").value.trim();
     const contactEmailField = el("settings-contact-email");
     const contactEmail = contactEmailField.value.trim();
     const newPassword = el("settings-new-password").value;
     const currentPassword = el("settings-current-password").value;
 
-    if (!username || !contactEmail || !contactEmailField.checkValidity()) return false;
-    if (profileUsernameAvailability.isBlocking() || profileEmailAvailability.isBlocking() || profilePhoneAvailability.isBlocking()) return false;
+    if (!contactEmail || !contactEmailField.checkValidity()) return false;
+    if (profileEmailAvailability.isBlocking() || profilePhoneAvailability.isBlocking()) return false;
     if (newPassword && !currentPassword) return false;
     if (newPassword && newPassword.length < 8) return false;
     if (!profileHoursPicker.validate()) return false;
@@ -2888,10 +2878,6 @@ function updateSettingsSaveValidity() {
     el("screen-profile").addEventListener(evt, updateSettingsSaveValidity);
 });
 
-const profileUsernameAvailability = setupAvailabilityField(
-    el("settings-username"), el("settings-username-error"), "username", "register.usernameTaken",
-    () => el("settings-username").value.trim(), updateSettingsSaveValidity,
-);
 const profileEmailAvailability = setupAvailabilityField(
     el("settings-contact-email"), el("settings-contact-email-error"), "contact_email", "register.emailTaken",
     () => el("settings-contact-email").value.trim(), updateSettingsSaveValidity,
@@ -2932,7 +2918,6 @@ async function loadSettingsIntoForm() {
     try {
         const data = await api("/api/settings");
         el("settings-name").value = data.name;
-        el("settings-username").value = data.username;
         el("settings-contact-email").value = data.contact_email;
         const { country, rest } = splitStoredPhoneNumber(data.phone_number);
         setProfilePhoneCountry(country);
@@ -3190,18 +3175,17 @@ async function saveProfileForm() {
     const errorBox = el("settings-error");
     errorBox.classList.add("hidden");
 
-    const username = el("settings-username").value.trim();
     const contactEmailField = el("settings-contact-email");
     const contactEmail = contactEmailField.value.trim();
     const newPassword = el("settings-new-password").value;
     const currentPassword = el("settings-current-password").value;
 
-    if (!username || !contactEmail || !contactEmailField.checkValidity()) {
+    if (!contactEmail || !contactEmailField.checkValidity()) {
         errorBox.textContent = t("register.errorFillRequired");
         errorBox.classList.remove("hidden");
         return;
     }
-    if (profileUsernameAvailability.isBlocking() || profileEmailAvailability.isBlocking() || profilePhoneAvailability.isBlocking()) {
+    if (profileEmailAvailability.isBlocking() || profilePhoneAvailability.isBlocking()) {
         errorBox.textContent = t("settings.errorFieldTaken");
         errorBox.classList.remove("hidden");
         return;
@@ -3235,7 +3219,6 @@ async function saveProfileForm() {
             method: "POST",
             body: {
                 name: el("settings-name").value,
-                username,
                 contact_email: contactEmail,
                 phone_number: composePhoneNumber(el("settings-phone"), selectedProfilePhoneCountry),
                 working_hours: profileHoursPicker.getValue(),

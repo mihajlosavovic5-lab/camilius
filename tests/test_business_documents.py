@@ -39,9 +39,9 @@ def _upload(client, csrf_token, filename="menu.pdf", content_type="application/p
     )
 
 
-def test_document_upload_stores_row_and_extracted_text(client, unique_username, unique_email, monkeypatch):
-    register_business_web(client, unique_username, unique_email)
-    business_id = database.business_by_username(unique_username)[0]
+def test_document_upload_stores_row_and_extracted_text(client, unique_email, monkeypatch):
+    register_business_web(client, unique_email)
+    business_id = database.business_by_contact_email(unique_email)[0]
     _mock_storage(monkeypatch)
     csrf_token = get_csrf_token(client, "/onboarding/website")
 
@@ -56,8 +56,8 @@ def test_document_upload_stores_row_and_extracted_text(client, unique_username, 
     assert rows[0][6] == "Haircut: 20 EUR\nOpen Mon-Fri 9-18"  # extracted_text
 
 
-def test_document_upload_rejects_no_file(client, unique_username, unique_email, monkeypatch):
-    register_business_web(client, unique_username, unique_email)
+def test_document_upload_rejects_no_file(client, unique_email, monkeypatch):
+    register_business_web(client, unique_email)
     _mock_storage(monkeypatch)
     csrf_token = get_csrf_token(client, "/onboarding/website")
 
@@ -70,8 +70,8 @@ def test_document_upload_rejects_no_file(client, unique_username, unique_email, 
     assert response.status_code == 400
 
 
-def test_document_upload_rejects_unsupported_type(client, unique_username, unique_email, monkeypatch):
-    register_business_web(client, unique_username, unique_email)
+def test_document_upload_rejects_unsupported_type(client, unique_email, monkeypatch):
+    register_business_web(client, unique_email)
     _mock_storage(monkeypatch)
     monkeypatch.setattr(storage, "upload_document", lambda file_storage, folder: (_ for _ in ()).throw(storage.UnsupportedFileType()))
     csrf_token = get_csrf_token(client, "/onboarding/website")
@@ -80,8 +80,8 @@ def test_document_upload_rejects_unsupported_type(client, unique_username, uniqu
     assert response.status_code == 400
 
 
-def test_document_extraction_failure_is_reported_before_any_upload(client, unique_username, unique_email, monkeypatch):
-    register_business_web(client, unique_username, unique_email)
+def test_document_extraction_failure_is_reported_before_any_upload(client, unique_email, monkeypatch):
+    register_business_web(client, unique_email)
     deleted = _mock_storage(monkeypatch)
     monkeypatch.setattr(document_extract, "extract_text", lambda data, content_type: (_ for _ in ()).throw(document_extract.DocumentExtractionError("no text found")))
     uploaded = []
@@ -97,8 +97,8 @@ def test_document_extraction_failure_is_reported_before_any_upload(client, uniqu
     assert deleted == []
 
 
-def test_document_cap_is_enforced(client, unique_username, unique_email, monkeypatch):
-    register_business_web(client, unique_username, unique_email)
+def test_document_cap_is_enforced(client, unique_email, monkeypatch):
+    register_business_web(client, unique_email)
     _mock_storage(monkeypatch)
     csrf_token = get_csrf_token(client, "/onboarding/website")
 
@@ -111,9 +111,9 @@ def test_document_cap_is_enforced(client, unique_username, unique_email, monkeyp
     assert "up to" in response.get_json()["error"].lower()
 
 
-def test_delete_removes_row_and_cloud_asset(client, unique_username, unique_email, monkeypatch):
-    register_business_web(client, unique_username, unique_email)
-    business_id = database.business_by_username(unique_username)[0]
+def test_delete_removes_row_and_cloud_asset(client, unique_email, monkeypatch):
+    register_business_web(client, unique_email)
+    business_id = database.business_by_contact_email(unique_email)[0]
     deleted = _mock_storage(monkeypatch)
     csrf_token = get_csrf_token(client, "/onboarding/website")
 
@@ -128,15 +128,15 @@ def test_delete_removes_row_and_cloud_asset(client, unique_username, unique_emai
     assert deleted == [(f"business/{business_id}/documents/doc-1", "raw")]
 
 
-def test_cannot_delete_another_businesss_document(client, unique_username, unique_email, monkeypatch):
-    other_username, other_email = f"{unique_username}-other", f"other-{unique_email}"
-    register_business_web(client, other_username, other_email)
+def test_cannot_delete_another_businesss_document(client, unique_email, monkeypatch):
+    other_email = f"other-{unique_email}"
+    register_business_web(client, other_email)
     _mock_storage(monkeypatch)
     csrf_token = get_csrf_token(client, "/onboarding/website")
     document_id = _upload(client, csrf_token).get_json()["id"]
     client.get("/logout")
 
-    register_business_web(client, unique_username, unique_email)
+    register_business_web(client, unique_email)
     csrf_token = get_csrf_token(client, "/onboarding/website")
     response = client.delete(
         f"/api/onboarding/document/{document_id}",
@@ -152,9 +152,9 @@ def test_document_upload_requires_login(client):
     assert "/login" in response.headers["Location"]
 
 
-def test_combined_document_text_joins_multiple_documents(client, unique_username, unique_email, monkeypatch):
-    register_business_web(client, unique_username, unique_email)
-    business_id = database.business_by_username(unique_username)[0]
+def test_combined_document_text_joins_multiple_documents(client, unique_email, monkeypatch):
+    register_business_web(client, unique_email)
+    business_id = database.business_by_contact_email(unique_email)[0]
     _mock_storage(monkeypatch)
     csrf_token = get_csrf_token(client, "/onboarding/website")
 
@@ -166,13 +166,13 @@ def test_combined_document_text_joins_multiple_documents(client, unique_username
     assert "---" in combined
 
 
-def test_website_generation_uses_uploaded_document_as_extra_context(client, unique_username, unique_email, monkeypatch):
+def test_website_generation_uses_uploaded_document_as_extra_context(client, unique_email, monkeypatch):
     """The whole point of the feature: generate_page_draft() must receive the extracted
     document text alongside the typed description when the onboarding "Generate my
     website" step runs."""
     import page_generator
 
-    register_business_web(client, unique_username, unique_email)
+    register_business_web(client, unique_email)
     _mock_storage(monkeypatch)
     csrf_token = get_csrf_token(client, "/onboarding/website")
     _upload(client, csrf_token)

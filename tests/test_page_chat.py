@@ -10,9 +10,9 @@ import ai_replies
 from conftest import register_business_web
 
 
-def _publish_page(client, username, email):
-    register_business_web(client, username, email)
-    business_id = database.business_by_username(username)[0]
+def _publish_page(client, email):
+    register_business_web(client, email)
+    business_id = database.business_by_contact_email(email)[0]
     slug = f"page-{uuid.uuid4().hex[:8]}"
     database.upsert_business_page(business_id, slug, True, "Fresh cuts daily", "Family-run since 2019.")
     return business_id, slug
@@ -40,8 +40,8 @@ def _stub_ai(monkeypatch, replies):
     return calls
 
 
-def test_page_chat_returns_reply_and_saves_sent_conversation(client, unique_username, unique_email, monkeypatch):
-    business_id, slug = _publish_page(client, unique_username, unique_email)
+def test_page_chat_returns_reply_and_saves_sent_conversation(client, unique_email, monkeypatch):
+    business_id, slug = _publish_page(client, unique_email)
     calls = _stub_ai(monkeypatch, ["We're open 9-6, come by any time!"])
     monkeypatch.setattr(ai_replies, "send_push_to_business", lambda *a, **k: None)
     session_id = _session_id()
@@ -65,9 +65,9 @@ def test_page_chat_404s_for_unknown_slug(client):
     assert response.status_code == 404
 
 
-def test_page_chat_404s_when_not_published(client, unique_username, unique_email):
-    register_business_web(client, unique_username, unique_email)
-    business_id = database.business_by_username(unique_username)[0]
+def test_page_chat_404s_when_not_published(client, unique_email):
+    register_business_web(client, unique_email)
+    business_id = database.business_by_contact_email(unique_email)[0]
     slug = f"draft-{uuid.uuid4().hex[:8]}"
     database.upsert_business_page(business_id, slug, False, None, None)
 
@@ -75,16 +75,16 @@ def test_page_chat_404s_when_not_published(client, unique_username, unique_email
     assert response.status_code == 404
 
 
-def test_page_chat_rejects_missing_message_or_session_id(client, unique_username, unique_email):
-    _, slug = _publish_page(client, unique_username, unique_email)
+def test_page_chat_rejects_missing_message_or_session_id(client, unique_email):
+    _, slug = _publish_page(client, unique_email)
 
     assert client.post(f"/p/{slug}/chat", json={"session_id": _session_id()}).status_code == 400
     assert client.post(f"/p/{slug}/chat", json={"message": "hi"}).status_code == 400
     assert client.post(f"/p/{slug}/chat", json={"message": "  ", "session_id": _session_id()}).status_code == 400
 
 
-def test_page_chat_remembers_history_within_same_session(client, unique_username, unique_email, monkeypatch):
-    _, slug = _publish_page(client, unique_username, unique_email)
+def test_page_chat_remembers_history_within_same_session(client, unique_email, monkeypatch):
+    _, slug = _publish_page(client, unique_email)
     calls = _stub_ai(monkeypatch, ["We're open 9-6.", "Yes, Saturdays too."])
     monkeypatch.setattr(ai_replies, "send_push_to_business", lambda *a, **k: None)
     session_id = _session_id()
@@ -97,8 +97,8 @@ def test_page_chat_remembers_history_within_same_session(client, unique_username
     assert calls[1]["history"] == [("Are you open?", "We're open 9-6.")]
 
 
-def test_page_chat_does_not_leak_history_across_different_sessions(client, unique_username, unique_email, monkeypatch):
-    _, slug = _publish_page(client, unique_username, unique_email)
+def test_page_chat_does_not_leak_history_across_different_sessions(client, unique_email, monkeypatch):
+    _, slug = _publish_page(client, unique_email)
     calls = _stub_ai(monkeypatch, ["We're open 9-6.", "Sure, haircuts are 20 EUR."])
     monkeypatch.setattr(ai_replies, "send_push_to_business", lambda *a, **k: None)
 
@@ -108,8 +108,8 @@ def test_page_chat_does_not_leak_history_across_different_sessions(client, uniqu
     assert calls[1]["history"] == []  # a different visitor - must start with no memory of the first one
 
 
-def test_page_chat_enforces_per_session_daily_cap(client, unique_username, unique_email, monkeypatch):
-    _, slug = _publish_page(client, unique_username, unique_email)
+def test_page_chat_enforces_per_session_daily_cap(client, unique_email, monkeypatch):
+    _, slug = _publish_page(client, unique_email)
     monkeypatch.setattr("app.PAGE_CHAT_SESSION_DAILY_LIMIT", 1)
     calls = _stub_ai(monkeypatch, ["First reply.", "should not be reached"])
     monkeypatch.setattr(ai_replies, "send_push_to_business", lambda *a, **k: None)
@@ -124,8 +124,8 @@ def test_page_chat_enforces_per_session_daily_cap(client, unique_username, uniqu
     assert len(calls) == 1  # the capped message never reached the AI - the actual cost protection
 
 
-def test_page_chat_books_an_appointment_with_session_id_as_sender_key(client, unique_username, unique_email, monkeypatch, future_date):
-    business_id, slug = _publish_page(client, unique_username, unique_email)
+def test_page_chat_books_an_appointment_with_session_id_as_sender_key(client, unique_email, monkeypatch, future_date):
+    business_id, slug = _publish_page(client, unique_email)
     monkeypatch.setattr(ai_replies, "send_push_to_business", lambda *a, **k: None)
     session_id = _session_id()
 
@@ -144,14 +144,14 @@ def test_page_chat_books_an_appointment_with_session_id_as_sender_key(client, un
     assert appointments[0][0] == f"Web visitor #{session_id[-6:]}"
 
 
-def test_send_channel_reply_is_a_noop_for_web_channel(client, unique_username, unique_email):
+def test_send_channel_reply_is_a_noop_for_web_channel(client, unique_email):
     """A page-chat conversation always reaches sent status the moment it's created (see
     ai_replies.handle_incoming_message) - a manual /send should never actually need to
     deliver anything, so send_channel_reply is unconditionally a no-op."""
     import app as app_module
 
-    register_business_web(client, unique_username, unique_email)
-    business_id = database.business_by_username(unique_username)[0]
+    register_business_web(client, unique_email)
+    business_id = database.business_by_contact_email(unique_email)[0]
     business = database.business_by_id(business_id)
 
     # get_conversation()'s own row shape: id, business_id, sender, subject, question,
