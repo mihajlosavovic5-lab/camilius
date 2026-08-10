@@ -1464,19 +1464,20 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
     display: flex; align-items: center; justify-content: center; padding: 0;
 }
 
-/* "Draft this with AI" description field (My Site tab) - a real chat-input bar instead of
-   the app's usual floating-label field: starts one line tall (same as the ChatGPT-style
-   reference this was modeled on) and grows with the text (see the "input" listener on
-   #mysite-description in app.js, capped by max-height below, then scrolls) rather than
-   opening at a fixed 3-row height nobody asked for. Right padding reserves room for the
-   mic + send icons pinned in its bottom-right corner so typed text never runs under them. */
+/* Chat-input compose bar (currently just the "Draft this with AI" screen,
+   screen-website-chat) - a real chat-input bar instead of the app's usual floating-label
+   field: starts one line tall (same as the ChatGPT-style reference this was modeled on)
+   and grows with the text (see the "input" listener on the compose textarea in app.js,
+   capped by max-height below, then scrolls) rather than opening at a fixed 3-row height
+   nobody asked for. Right padding reserves room for the mic + send icons pinned in its
+   bottom-right corner so typed text never runs under them. */
 .chat-compose { position: relative; margin-top: 14px; }
 /* Attach button (+) - lives inside the same pill as the field (mirrors how mic/send sit
    inside its right side), not a separate circle floating to the left of it, so the whole
-   row reads as one bar. Opens the native photo/video/file picker (see mysite-attach-input,
-   app.js). While the mic is recording it swaps to a cancel (X) in the exact same spot
-   instead of disappearing, so there's always an obvious way to back out of a recording
-   without sending anything. */
+   row reads as one bar. Opens the native photo/video/file picker (see the compose bar's
+   hidden file inputs, app.js). While the mic is recording it swaps to a cancel (X) in the
+   exact same spot instead of disappearing, so there's always an obvious way to back out
+   of a recording without sending anything. */
 .compose-attach-btn {
     position: absolute; left: 8px; bottom: 7px; width: 36px; height: 36px;
     display: flex; align-items: center; justify-content: center;
@@ -1595,8 +1596,8 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
 .textarea-send-btn.has-text:active { background: var(--primary-dark); }
 .textarea-send-btn:disabled { border-color: #cabfa4; color: #cabfa4; background: transparent; box-shadow: none; }
 .textarea-send-btn.has-text:disabled { background: #cabfa4; color: #fff; box-shadow: none; }
-/* Swaps the arrow icon for a spinning ring while mysiteSubmitDescription()'s request is
-   in flight - deliberately NOT the :disabled rules above (those dull the circle to a
+/* Swaps the arrow icon for a spinning ring while a compose bar's send request is in
+   flight - deliberately NOT the :disabled rules above (those dull the circle to a
    grayed-out color/lose its shadow), since the point here is the opposite: same gold
    circle, same size, just a spinner in place of the arrow. pointer-events blocks a
    second tap the way :disabled normally would.
@@ -1617,15 +1618,20 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
 .voice-status.voice-status-error { color: var(--danger); }
 .voice-status:empty { display: none; }
 
-/* --- "Draft this with AI" launcher card (Faza 16) - the My Site tab's compose box
-   (id="mysite-draft-card") is now a tap target into screen-website-chat rather than an
-   inline one-shot generator; app.js intercepts every click inside it in the capture
-   phase before mic/attach/send's own listeners ever see it (see mysiteDraftCard wiring),
-   so nothing here removes those elements or their listeners - just makes them
-   unreachable through this card, same non-destructive approach as the web dashboard's
-   equivalent card. This is purely a visual "this is tappable" affordance. */
+/* --- "Draft this with AI" launcher card (Faza 16) - a static tap target into
+   screen-website-chat (see the draftCard wiring in app.js), styled to still read as the
+   compose box it used to literally be, so tapping it feels continuous rather than a
+   bait-and-switch. Same shape as the web dashboard's own .draft-chat-launcher. --- */
 #mysite-draft-card { cursor: pointer; }
-#mysite-draft-card .chat-compose-input { cursor: pointer; }
+.draft-chat-launcher {
+    display: flex; align-items: center; gap: 10px;
+    padding: 13px 16px;
+    border: 1px solid var(--border); border-radius: 20px;
+    background: var(--surface); color: var(--text-muted);
+}
+.draft-chat-launcher-text { flex: 1; font-size: 15.5px; }
+.draft-chat-launcher-arrow { flex-shrink: 0; width: 20px; height: 20px; color: var(--primary); }
+.draft-chat-launcher-arrow svg { width: 100%; height: 100%; }
 
 /* --- Full-page "Draft this with AI" chat (Faza 16, screen-website-chat) - a real
    back-and-forth about the business's own website, replacing the My Site tab's old

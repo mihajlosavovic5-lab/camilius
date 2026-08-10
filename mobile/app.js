@@ -4349,12 +4349,6 @@ const CLASSIC_THEMES = [
 
 let mysiteSelectedCustomTheme = null; // a previously-saved custom theme object, if one is currently selected
 
-// Set by the attach-button IIFE further down (mysite-attach-btn) - uploads whatever
-// photos/video/documents the owner has attached to the compose bar but not yet sent.
-// Declared up here so mysiteSubmitDescription (defined before that IIFE runs) can call
-// it without the two being coupled by file order.
-let mysiteFlushStagedAttachments = null;
-
 // Same "hidden until dirty" floating Save button as Profile/Settings (see
 // updateSettingsSaveValidity above) - only the website's own fields count, not the
 // separate "Draft this with AI" description/voice controls below them, which don't
@@ -4651,41 +4645,6 @@ el("mysite-save-btn").addEventListener("click", async () => {
     }
 });
 
-// Chat-style auto-growing textarea (My Site's description field only) - starts one line
-// tall and expands to fit what's typed, up to .chat-compose-input's own max-height (see
-// app.css) beyond which it scrolls instead of growing further. Exported as a plain
-// function (not tucked inside the voice IIFE below) since the voice transcription result
-// also needs to trigger it after setting .value directly, which fires no "input" event.
-function mysiteAutoGrowDescription() {
-    const textarea = el("mysite-description");
-    textarea.style.height = "auto";
-    textarea.style.height = textarea.scrollHeight + "px";
-}
-el("mysite-description").addEventListener("input", mysiteAutoGrowDescription);
-
-// Send button fills solid gold once there's text to send (starts as an empty gold-outline
-// circle); the mic button hides the moment typing starts, since voice and typed input are
-// alternate ways to fill the same field, not both needed at once. Left alone mid-recording
-// (recordBtn's own "recording" class) so the record indicator doesn't vanish under the user.
-function mysiteUpdateComposeButtons() {
-    const hasText = el("mysite-description").value.trim().length > 0;
-    el("mysite-send-btn").classList.toggle("has-text", hasText);
-    const recordBtn = el("mysite-voice-btn");
-    if (recordBtn && !recordBtn.classList.contains("recording")) {
-        recordBtn.classList.toggle("mic-typing-hidden", hasText);
-    }
-}
-el("mysite-description").addEventListener("input", mysiteUpdateComposeButtons);
-
-// Overridden by the voice-recording IIFE below, only on devices where recording is actually
-// supported - stays this no-op otherwise, so the click listener beneath it degrades to a
-// plain send with no recording-shortcut branch on a device that can't record at all.
-let mysiteStopRecordingIfActive = () => false;
-// Same idea, but for the attach button's "cancel recording" click (see the attach IIFE
-// below) - overridden alongside mysiteStopRecordingIfActive by the same voice-recording
-// IIFE, and just as much a no-op on devices where recording isn't supported at all.
-let mysiteCancelRecordingIfActive = () => false;
-
 // The real, independently-registrable domain (mihajlo-prodaja.com) the owner picked via
 // a "Choose" button below - null until they choose one. Kept separate from mysite-slug
 // (that field is strictly the platform's own /p/<slug> path, see MYSITE_SLUG_RE, and
@@ -4720,9 +4679,9 @@ el("mysite-chosen-domain-clear").addEventListener("click", () => mysiteChooseDom
 // name is free. Only "available" candidates are ever rendered - a domain the owner
 // can't actually have isn't worth showing here, unlike the parallel desktop version
 // (templates/settings.html) which is a plainer read-only status list. A plain function
-// declaration, not just a click listener, so mysiteSubmitDescription below can also
-// call it once a draft suggests (or keeps) a web address, same "AI does the legwork"
-// spirit as the drafted tagline/about themselves.
+// declaration, not just a click listener, so it can be called from more than one place
+// once a draft suggests (or keeps) a web address, same "AI does the legwork" spirit as
+// the drafted tagline/about themselves.
 async function mysiteCheckDomains(baseName) {
     if (!baseName) return;
     const btn = el("mysite-domain-check-btn");
@@ -4771,621 +4730,23 @@ el("mysite-domain-check-btn").addEventListener("click", () => mysiteCheckDomains
 // Hidden until the field actually has something to check - same reasoning as the
 // password-toggle eye icon, so it isn't sitting there inert over an empty field. Not
 // just an "input" listener: mysite-slug's value is also set programmatically (loadMySite
-// loading a saved page, mysiteSubmitDescription prefilling an AI-suggested address),
-// which never fires "input" - callers of those must call this themselves too.
+// loading a saved page), which never fires "input" - callers of that must call this
+// themselves too.
 function mysiteSyncDomainCheckBtnVisibility() {
     el("mysite-domain-check-btn").classList.toggle("has-value", el("mysite-slug").value.trim().length > 0);
 }
 el("mysite-slug").addEventListener("input", mysiteSyncDomainCheckBtnVisibility);
 mysiteSyncDomainCheckBtnVisibility();
 
-// Single "send" action (chat-input style, next to the mic button above) that replaces
-// the old separate "Generate draft" button - one description drives the tagline/about/FAQ
-// draft.
-//
-// A plain function declaration (not the click listener directly) so the voice-recording
-// IIFE below can also call it - tapping send mid-recording stops the recording and, once
-// its transcription lands, submits immediately instead of just parking the text for review.
-async function mysiteSubmitDescription() {
-    const errorBox = el("mysite-draft-error");
-    errorBox.classList.add("hidden");
-    const description = el("mysite-description").value.trim();
-    if (!description) {
-        errorBox.textContent = t("mysite.draft.emptyError") || "Describe your business first.";
-        errorBox.classList.remove("hidden");
-        return;
-    }
-    const button = el("mysite-send-btn");
-    // Not button.disabled = true: that flips on the button's :disabled CSS (dulls it to
-    // the grayed-out "can't tap this" look), which is the opposite of what a loading
-    // spinner should communicate. The "send-loading" class's own pointer-events: none
-    // (see app.css) blocks a second tap just as well, without touching the button's
-    // color. Named "send-loading", not the generic "loading" helper class used
-    // elsewhere in app.css for list placeholders - that class carries its own
-    // padding/flex rules which leaked onto this button and ballooned it when reused.
-    button.classList.add("send-loading");
-    button.setAttribute("aria-busy", "true");
-    try {
-        // Photos/video/documents attached to the compose bar were only staged locally
-        // (see the mysite-attach-btn IIFE below) - this is the point they actually
-        // upload, same as a normal chat only sending attachments once you tap send.
-        // Awaited before the draft call, not just alongside it: a staged document's
-        // text needs to already be saved server-side for /api/generate-page to pick it
-        // up (business_documents.combined_document_text) - an individual file's own
-        // upload failure still just reports its own toast rather than rejecting here,
-        // so one bad attachment never blocks the draft itself from generating.
-        if (mysiteFlushStagedAttachments) await mysiteFlushStagedAttachments();
-        const draft = await api("/api/generate-page", { method: "POST", body: { description } });
-        el("mysite-tagline-input").value = draft.tagline || "";
-        el("mysite-about-input").value = draft.about || "";
-        // Only pre-fill the web address if the owner hasn't already got one (typed or
-        // already saved) - never nudge them off an address they picked themselves.
-        const slugInput = el("mysite-slug");
-        if (draft.slug && !slugInput.value.trim()) {
-            slugInput.value = draft.slug;
-            mysiteSyncDomainCheckBtnVisibility();
-        }
-        // Best-effort, not awaited - a slow/failed RDAP check must never hold up the
-        // draft itself finishing (see mysiteCheckDomains's own try/catch for its
-        // failure handling).
-        if (slugInput.value.trim()) mysiteCheckDomains(slugInput.value.trim());
-        el("mysite-draft-result").classList.remove("hidden");
-        // Setting .value directly above doesn't dispatch "input"/"change", so the
-        // delegated listener that normally reveals the Save button (see
-        // updateMysiteSaveValidity above) never fires on its own - poke it here instead.
-        updateMysiteSaveValidity();
-        // Hours/prices live in the Profile tab's own fields, not here (the AI still
-        // drafts them - see api_generate_page - but this screen only owns the page's own
-        // presentation fields), so they go through Profile's own pickers, which the owner
-        // is pointed at via mysite.draft.reviewHint above rather than this screen reaching
-        // into them.
-        showToast(t("mysite.draft.ready") || "Draft ready - review it above.");
-    } catch (err) {
-        errorBox.textContent = (err && err.message) || t("network.error");
-        errorBox.classList.remove("hidden");
-    } finally {
-        button.classList.remove("send-loading");
-        button.removeAttribute("aria-busy");
-    }
-}
-el("mysite-send-btn").addEventListener("click", () => {
-    if (mysiteStopRecordingIfActive()) return;
-    mysiteSubmitDescription();
-});
-
-// Voice input for the description above - same MediaRecorder/Whisper round trip the
-// website's onboarding wizard and Settings page use, ported here since mobile never had
-// a voice-input feature at all before Faza 15.
-(function () {
-    const recordBtn = el("mysite-voice-btn");
-    const btnLabel = el("mysite-voice-btn-label");
-    const status = el("mysite-voice-status");
-    const textarea = el("mysite-description");
-    const waveformCanvas = el("mysite-voice-waveform");
-    const attachBtn = el("mysite-attach-btn");
-    if (!recordBtn || !textarea) return;
-
-    const supported = !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia && window.MediaRecorder);
-    if (!supported) return;
-    recordBtn.hidden = false;
-
-    function setStatus(text, isError) {
-        status.textContent = text || "";
-        status.classList.toggle("voice-status-error", !!isError);
-    }
-
-    const MAX_RECORD_MS = 90 * 1000;
-    let mediaRecorder = null;
-    let mediaStream = null;
-    let chunks = [];
-    let maxLengthTimer = null;
-    let busy = false;
-    // Set when send is tapped while recording is in progress (see the send button's own
-    // listener below) - stopRecording() is async (waits for the "stop" event, then upload +
-    // transcription), so this just marks the intent; uploadRecording's success handler is
-    // what actually fires mysiteSubmitDescription() once the transcribed text is in hand.
-    let pendingAutoSend = false;
-    // Set by cancelRecording() just before stop() - the "stop" event handler checks this
-    // first and, if set, discards everything instead of transcribing, no matter how much
-    // was captured. This is the attach button's "throw it away" exit from recording,
-    // distinct from the mic/stop button's own "stop and keep it" click.
-    let cancelled = false;
-
-    // Live waveform: a separate AnalyserNode tapping the same mic stream, purely visual -
-    // it never touches the recorded audio or the MediaRecorder above. Drawn with
-    // getByteTimeDomainData so the line sits flat at rest and swings with the incoming
-    // sound, so the compose bar visibly reads as "listening" while recording.
-    let audioCtx = null;
-    let analyser = null;
-    let waveformSource = null;
-    let waveformRAF = null;
-
-    function startWaveform(stream) {
-        if (!waveformCanvas || !(window.AudioContext || window.webkitAudioContext)) return;
-        const Ctx = window.AudioContext || window.webkitAudioContext;
-        audioCtx = new Ctx();
-        analyser = audioCtx.createAnalyser();
-        analyser.fftSize = 1024;
-        waveformSource = audioCtx.createMediaStreamSource(stream);
-        waveformSource.connect(analyser);
-
-        // The canvas is sized by CSS (fills the field's left side, see .chat-compose-waveform),
-        // not fixed HTML attributes - match its backing store to the rendered box, scaled for
-        // devicePixelRatio, right before the first frame so the line draws crisp, not blurry.
-        waveformCanvas.classList.add("active");
-        const dpr = window.devicePixelRatio || 1;
-        const w = waveformCanvas.clientWidth;
-        const h = waveformCanvas.clientHeight;
-        waveformCanvas.width = w * dpr;
-        waveformCanvas.height = h * dpr;
-        const data = new Uint8Array(analyser.fftSize);
-        const ctx2d = waveformCanvas.getContext("2d");
-        ctx2d.scale(dpr, dpr);
-        const lineColor = getComputedStyle(document.documentElement).getPropertyValue("--text-muted").trim() || "#7a6c52";
-
-        // Bar-style meter (ChatGPT voice-input look) instead of a continuous oscilloscope
-        // trace: each frame's peak level becomes one bar, pushed onto a rolling history that
-        // scrolls left as new ones arrive on the right - a fixed number of bars sized to fit
-        // the canvas, redrawn as short rounded-cap strokes rather than filled rects.
-        const barWidth = 3;
-        const barStep = 6;
-        // One extra bar beyond what's visible so there's always one ready to slide in from
-        // the right edge as scrollOffset wraps, instead of a gap flashing into view.
-        const barCount = Math.max(1, Math.ceil(w / barStep)) + 2;
-        const history = new Array(barCount).fill(0.04);
-        // Sampling a new bar every 70ms but sliding it into place gradually, frame by frame
-        // (scrollOffset), rather than snapping the whole row left in one 6px jump every 70ms -
-        // the jump read as a stutter/glitch even though the sample rate itself was fine.
-        const PUSH_INTERVAL_MS = 70;
-        const scrollSpeed = barStep / PUSH_INTERVAL_MS; // px per ms
-        let scrollOffset = 0;
-        let lastFrameTime = null;
-
-        function draw(now) {
-            waveformRAF = requestAnimationFrame(draw);
-            if (lastFrameTime === null) lastFrameTime = now;
-            scrollOffset += scrollSpeed * (now - lastFrameTime);
-            lastFrameTime = now;
-            while (scrollOffset >= barStep) {
-                scrollOffset -= barStep;
-                analyser.getByteTimeDomainData(data);
-                let maxDev = 0;
-                for (let i = 0; i < data.length; i++) {
-                    const dev = Math.abs(data[i] - 128);
-                    if (dev > maxDev) maxDev = dev;
-                }
-                history.push(Math.min(1, maxDev / 110));
-                history.shift();
-            }
-
-            ctx2d.clearRect(0, 0, w, h);
-            ctx2d.lineWidth = barWidth;
-            ctx2d.lineCap = "round";
-            ctx2d.strokeStyle = lineColor;
-            ctx2d.beginPath();
-            for (let j = 0; j < history.length; j++) {
-                const barH = Math.max(barWidth, history[j] * h);
-                const x = j * barStep - scrollOffset + barWidth / 2;
-                const yTop = (h - barH) / 2;
-                ctx2d.moveTo(x, yTop);
-                ctx2d.lineTo(x, yTop + barH);
-            }
-            ctx2d.stroke();
-        }
-        waveformRAF = requestAnimationFrame(draw);
-    }
-
-    function stopWaveform() {
-        if (waveformRAF) cancelAnimationFrame(waveformRAF);
-        waveformRAF = null;
-        if (waveformSource) { waveformSource.disconnect(); waveformSource = null; }
-        if (audioCtx) { audioCtx.close(); audioCtx = null; }
-        analyser = null;
-        if (waveformCanvas) {
-            waveformCanvas.classList.remove("active");
-            const ctx2d = waveformCanvas.getContext("2d");
-            ctx2d.setTransform(1, 0, 0, 1, 0, 0);
-            ctx2d.clearRect(0, 0, waveformCanvas.width, waveformCanvas.height);
-        }
-    }
-
-    function stopStream() {
-        if (mediaStream) {
-            mediaStream.getTracks().forEach((track) => track.stop());
-            mediaStream = null;
-        }
-    }
-    function setRecordingUI(isRecording) {
-        recordBtn.classList.toggle("recording", isRecording);
-        if (attachBtn) attachBtn.classList.toggle("recording", isRecording);
-        btnLabel.textContent = isRecording
-            ? (t("onboarding.describe.recordStop") || "Stop recording")
-            : (t("onboarding.describe.recordStart") || "Record instead of typing");
-        // The send button fills solid gold the instant recording starts, same as if text
-        // were already typed - tapping it mid-recording is a valid "stop and send now"
-        // shortcut (see below), not just a no-op on an empty field. Once recording ends,
-        // hand back to mysiteUpdateComposeButtons() to reflect whatever's actually in the
-        // field (transcribed text, or empty if the recording failed/was too short).
-        if (isRecording) el("mysite-send-btn").classList.add("has-text");
-        else mysiteUpdateComposeButtons();
-    }
-    function startRecording() {
-        busy = true;
-        recordBtn.disabled = true;
-        setStatus(null);
-        navigator.mediaDevices.getUserMedia({ audio: true }).then((stream) => {
-            mediaStream = stream;
-            chunks = [];
-            const options = MediaRecorder.isTypeSupported("audio/webm") ? { mimeType: "audio/webm" } : undefined;
-            mediaRecorder = new MediaRecorder(stream, options);
-            mediaRecorder.addEventListener("dataavailable", (event) => {
-                if (event.data && event.data.size > 0) chunks.push(event.data);
-            });
-            mediaRecorder.addEventListener("stop", () => {
-                stopStream();
-                stopWaveform();
-                clearTimeout(maxLengthTimer);
-                setRecordingUI(false);
-                if (cancelled || chunks.length === 0) {
-                    busy = false;
-                    recordBtn.disabled = false;
-                    pendingAutoSend = false;
-                    cancelled = false;
-                    return;
-                }
-                uploadRecording(new Blob(chunks, { type: mediaRecorder.mimeType || "audio/webm" }));
-            });
-            mediaRecorder.start();
-            startWaveform(stream);
-            busy = false;
-            recordBtn.disabled = false;
-            setRecordingUI(true);
-            setStatus(t("onboarding.describe.recording") || "Listening... tap to stop");
-            maxLengthTimer = setTimeout(() => {
-                if (mediaRecorder && mediaRecorder.state === "recording") mediaRecorder.stop();
-            }, MAX_RECORD_MS);
-        }).catch((err) => {
-            busy = false;
-            recordBtn.disabled = false;
-            if (err && (err.name === "NotAllowedError" || err.name === "PermissionDeniedError")) {
-                setStatus(t("onboarding.describe.micPermission") || "Please allow microphone access to record your description.", true);
-            } else {
-                setStatus(t("onboarding.describe.micError") || "Couldn't access the microphone - check your permissions and try again.", true);
-            }
-        });
-    }
-    function stopRecording() {
-        if (mediaRecorder && mediaRecorder.state === "recording") mediaRecorder.stop();
-    }
-    function cancelRecording() {
-        if (!(mediaRecorder && mediaRecorder.state === "recording")) return;
-        cancelled = true;
-        mediaRecorder.stop();
-    }
-    function uploadRecording(blob) {
-        busy = true;
-        recordBtn.disabled = true;
-        setStatus(t("onboarding.describe.transcribing") || "Transcribing...");
-        const extension = (blob.type || "").indexOf("mp4") !== -1 ? "m4a" : "webm";
-        const formData = new FormData();
-        formData.append("audio", blob, "mysite-description." + extension);
-        fetch(API_BASE + "/api/voice-transcribe", {
-            method: "POST",
-            headers: state.token ? { Authorization: "Bearer " + state.token } : {},
-            body: formData,
-        }).then((response) => response.json().catch(() => ({})).then((data) => ({ ok: response.ok, data })))
-            .then(({ ok, data }) => {
-                busy = false;
-                recordBtn.disabled = false;
-                if (!ok) {
-                    pendingAutoSend = false;
-                    setStatus(data.error || (t("onboarding.describe.transcribeError") || "Couldn't understand that recording - please try again."), true);
-                    return;
-                }
-                textarea.value = data.text || "";
-                mysiteAutoGrowDescription();
-                mysiteUpdateComposeButtons();
-                textarea.focus();
-                setStatus(null);
-                if (pendingAutoSend) {
-                    pendingAutoSend = false;
-                    mysiteSubmitDescription();
-                }
-            }).catch(() => {
-                busy = false;
-                recordBtn.disabled = false;
-                pendingAutoSend = false;
-                setStatus(t("onboarding.describe.transcribeError") || "Couldn't understand that recording - please try again.", true);
-            });
-    }
-
-    recordBtn.addEventListener("click", () => {
-        if (busy) return;
-        if (mediaRecorder && mediaRecorder.state === "recording") stopRecording();
-        else startRecording();
-    });
-    // Tapping send while recording is a shortcut: stop, transcribe, and submit immediately
-    // instead of requiring stop-then-review-then-send as three separate taps - wired into
-    // the send button's own click listener (declared alongside mysiteSubmitDescription
-    // above) via this override, rather than a second listener on the same button.
-    mysiteStopRecordingIfActive = () => {
-        if (!(mediaRecorder && mediaRecorder.state === "recording")) return false;
-        pendingAutoSend = true;
-        stopRecording();
-        return true;
-    };
-    // The attach button's other exit from recording - cancel instead of send (see the
-    // attach IIFE below, which calls this before falling back to opening the file picker).
-    mysiteCancelRecordingIfActive = () => {
-        if (!(mediaRecorder && mediaRecorder.state === "recording")) return false;
-        cancelRecording();
-        return true;
-    };
-    window.addEventListener("beforeunload", () => {
-        stopStream();
-        stopWaveform();
-    });
-})();
-
-// Attach button (compose bar, My Site tab) - lets the owner add photos/video/documents
-// straight from the chat instead of hunting through Profile's own media/document
-// sections. Reuses those same endpoints (api.py's /api/media and /api/documents,
-// business_media.py/business_documents.py) rather than inventing a third upload path.
-// Nothing picked here hits the server the instant it's picked - every kind is held
-// client-side ("staged", see stageFile/mysiteFlushStagedAttachments below) and only
-// actually uploaded once the owner taps Send, same as any normal chat only sending
-// attachments once you hit send. Documents are flushed strictly before the
-// /api/generate-page call (not just alongside it) since that call reads their
-// already-extracted text the moment it runs (business_documents.combined_document_text) -
-// see mysiteSubmitDescription, which awaits the whole flush first. While the mic is
-// recording, this same button is a cancel (X) instead - the send button already covers
-// "stop and use" (mysiteStopRecordingIfActive), so this is deliberately the other exit: stop and
-// throw away everything recorded so far.
-(function () {
-    const attachBtn = el("mysite-attach-btn");
-    const cameraInput = el("mysite-attach-input-camera");
-    const photosInput = el("mysite-attach-input-photos");
-    const filesInput = el("mysite-attach-input-files");
-    const list = el("mysite-attachment-list");
-    if (!attachBtn || !cameraInput || !photosInput || !filesInput || !list) return;
-
-    // Camera / Photos / Files popover - see #attach-options-modal in index.html, same
-    // fixed-overlay pattern as openRowActions(), but positioned as a small card right
-    // above the "+" (same anchoring technique as i18n.js's openPicker()) instead of a
-    // full-width sheet. Picking an option closes it and clicks that option's own hidden
-    // file input.
-    const sheet = el("attach-options-modal");
-    const sheetCard = el("attach-options-sheet");
-    function openAttachSheet() {
-        if (!sheet || !sheetCard) return;
-        const rect = attachBtn.getBoundingClientRect();
-        const gap = 10;
-        sheetCard.style.left = `${rect.left}px`;
-        sheetCard.style.bottom = `${window.innerHeight - rect.top + gap}px`;
-        sheet.classList.add("open");
-    }
-    function closeAttachSheet() {
-        if (sheet) sheet.classList.remove("open");
-    }
-    if (sheet) {
-        el("attach-options-backdrop").addEventListener("click", closeAttachSheet);
-        el("attach-option-camera").addEventListener("click", () => { closeAttachSheet(); cameraInput.click(); });
-        el("attach-option-photos").addEventListener("click", () => { closeAttachSheet(); photosInput.click(); });
-        el("attach-option-files").addEventListener("click", () => { closeAttachSheet(); filesInput.click(); });
-    }
-
-    function kindFor(file) {
-        const type = (file.type || "").toLowerCase();
-        if (type === "application/pdf") return "document";
-        if (type.indexOf("wordprocessingml") !== -1 || /\.docx?$/i.test(file.name || "")) return "document";
-        if (type.indexOf("video/") === 0) return "video";
-        if (type.indexOf("image/") === 0) return "image";
-        return null;
-    }
-
-    // Generic "photo/video/file" stand-ins, never the picked file's own name - a phone's
-    // camera-generated filename is meaningless to read and often long enough to overflow
-    // the chip on its own, so neither the in-flight placeholder below nor the finished
-    // chip (see makeChip's own name.textContent fallback) ever shows it for images/video.
-    function iconFor(kind) {
-        return kind === "video" ? "▶" : kind === "image" ? "🖼" : "📄";
-    }
-    function labelFor(kind) {
-        return kind === "video" ? "Video" : kind === "image" ? "Photo" : "File";
-    }
-
-    // Builds a chip's contents (thumbnail/icon + name + remove button) for an item
-    // that's actually been uploaded - shared by makeChip (documents, uploaded the
-    // instant they're picked) and persistStagedEntry's success path (photos/video,
-    // once Send has actually flushed them). Appends into whatever chip is passed in
-    // rather than creating one, so persistStagedEntry can reuse the same chip element
-    // a staged item was already showing instead of it jumping to a new position in the
-    // list once uploaded.
-    function fillUploadedChip(chip, kind, item) {
-        if (kind === "image") {
-            const img = document.createElement("img");
-            img.src = item.url;
-            img.alt = "";
-            img.style.cursor = "zoom-in";
-            img.addEventListener("click", (event) => {
-                event.stopPropagation();
-                openImageLightbox(item.url);
-            });
-            chip.appendChild(img);
-        } else {
-            const icon = document.createElement("span");
-            icon.className = "chip-icon";
-            icon.textContent = iconFor(kind);
-            chip.appendChild(icon);
-        }
-
-        const name = document.createElement("span");
-        name.className = "chip-name";
-        name.textContent = item.filename || labelFor(kind);
-        chip.appendChild(name);
-
-        const removeBtn = document.createElement("button");
-        removeBtn.type = "button";
-        removeBtn.className = "chip-remove";
-        removeBtn.setAttribute("aria-label", "Remove");
-        removeBtn.textContent = "×";
-        removeBtn.addEventListener("click", () => removeAttachment(kind, item.id, chip));
-        chip.appendChild(removeBtn);
-    }
-
-    function removeAttachment(kind, id, chip) {
-        chip.classList.add("uploading");
-        const path = kind === "document" ? "/api/documents/" + id : "/api/media/" + id;
-        fetch(API_BASE + path, {
-            method: "DELETE",
-            headers: state.token ? { Authorization: "Bearer " + state.token } : {},
-        }).then((response) => {
-            if (!response.ok) throw new Error();
-            chip.remove();
-        }).catch(() => {
-            chip.classList.remove("uploading");
-            showToast(t("settings.media.removeError") || "Couldn't remove that - please try again.");
-        });
-    }
-
-    // Every kind attached to the compose bar but not yet sent - each entry's chip
-    // already sits in the DOM (with a local, not-yet-uploaded preview/icon), so removing
-    // a staged entry before Send is just a client-side splice, no request needed.
-    const staged = [];
-
-    function stageFile(kind, file) {
-        const chip = document.createElement("span");
-        chip.className = "compose-attachment-chip";
-
-        let previewUrl = null;
-        if (kind === "image") {
-            previewUrl = URL.createObjectURL(file);
-            const img = document.createElement("img");
-            img.src = previewUrl;
-            img.alt = "";
-            chip.appendChild(img);
-        } else {
-            const icon = document.createElement("span");
-            icon.className = "chip-icon";
-            icon.textContent = iconFor(kind);
-            chip.appendChild(icon);
-        }
-
-        const name = document.createElement("span");
-        name.className = "chip-name";
-        name.textContent = labelFor(kind);
-        chip.appendChild(name);
-
-        const entry = { kind, file, chip, previewUrl };
-
-        const removeBtn = document.createElement("button");
-        removeBtn.type = "button";
-        removeBtn.className = "chip-remove";
-        removeBtn.setAttribute("aria-label", "Remove");
-        removeBtn.textContent = "×";
-        removeBtn.addEventListener("click", () => {
-            const idx = staged.indexOf(entry);
-            if (idx !== -1) staged.splice(idx, 1);
-            if (entry.previewUrl) URL.revokeObjectURL(entry.previewUrl);
-            chip.remove();
-        });
-        chip.appendChild(removeBtn);
-
-        list.appendChild(chip);
-        staged.push(entry);
-    }
-
-    // Actually uploads one staged entry, in place - swaps its local preview for the
-    // same in-flight spinner look uploadFile uses, then fills in the real thumbnail/
-    // remove button (now wired to a real DELETE via removeAttachment) once it lands.
-    // Never rejects - a failed upload reports its own toast and drops the chip, same
-    // as uploadFile's failure path, so callers can Promise.all a whole batch of these
-    // without one failure losing the rest.
-    function persistStagedEntry(entry) {
-        const { kind, file, chip, previewUrl } = entry;
-        chip.classList.add("uploading");
-        chip.innerHTML = "";
-
-        const icon = document.createElement("span");
-        icon.className = "chip-icon";
-        const spinner = document.createElement("span");
-        spinner.className = "chip-spinner";
-        icon.appendChild(spinner);
-        chip.appendChild(icon);
-
-        const name = document.createElement("span");
-        name.className = "chip-name";
-        name.textContent = labelFor(kind);
-        chip.appendChild(name);
-
-        const isDocument = kind === "document";
-        const formData = new FormData();
-        formData.append("file", file);
-        if (!isDocument) formData.append("role", kind === "video" ? "hero_video" : "gallery");
-        const path = isDocument ? "/api/documents" : "/api/media";
-        const errorKey = isDocument ? "settings.documents.error" : "settings.media.error";
-
-        return fetch(API_BASE + path, {
-            method: "POST",
-            headers: state.token ? { Authorization: "Bearer " + state.token } : {},
-            body: formData,
-        }).then((response) => response.json().catch(() => ({})).then((data) => ({ ok: response.ok, data })))
-            .then(({ ok, data }) => {
-                if (previewUrl) URL.revokeObjectURL(previewUrl);
-                if (!ok) {
-                    chip.remove();
-                    showToast(data.error || t(errorKey) || "Couldn't upload that - please try again.");
-                    return;
-                }
-                chip.classList.remove("uploading");
-                chip.innerHTML = "";
-                fillUploadedChip(chip, kind, data);
-            }).catch(() => {
-                if (previewUrl) URL.revokeObjectURL(previewUrl);
-                chip.remove();
-                showToast(t(errorKey) || "Couldn't upload that - please try again.");
-            });
-    }
-
-    // Exposed for mysiteSubmitDescription (see the top-level `let` declared near
-    // mysiteFormSnapshot) - called once Send is actually tapped. Drains `staged` up
-    // front so a second Send while these are still uploading, or one that runs after
-    // they've already landed, never re-uploads the same file.
-    mysiteFlushStagedAttachments = function () {
-        const toFlush = staged.splice(0, staged.length);
-        return Promise.all(toFlush.map(persistStagedEntry));
-    };
-
-    function handlePicked(input) {
-        const files = Array.prototype.slice.call(input.files || []);
-        input.value = "";
-        files.forEach((file) => {
-            const kind = kindFor(file);
-            if (!kind) {
-                showToast("That file type isn't supported here.");
-                return;
-            }
-            stageFile(kind, file);
-        });
-    }
-    cameraInput.addEventListener("change", () => handlePicked(cameraInput));
-    photosInput.addEventListener("change", () => handlePicked(photosInput));
-    filesInput.addEventListener("change", () => handlePicked(filesInput));
-
-    attachBtn.addEventListener("click", () => {
-        if (mysiteCancelRecordingIfActive()) return;
-        openAttachSheet();
-    });
-})();
-
 // "Draft this with AI" chat (Faza 16) - see screen-website-chat in index.html and
 // website_assistant.py's module docstring for the persona/scope this is restricted to.
 // Tapping anywhere on the My Site tab's compose card (id="mysite-draft-card", above)
 // opens this screen instead of that card doing anything inline now - the capture-phase
-// listener below runs before mic/attach/send's own click listeners (registered directly
-// on those buttons, further up this file) ever see the event, so this needs no changes
-// to that wiring or the "readonly" textarea inside it: everything there is just
-// unreachable through a tap on the card now, not removed.
+// listener below runs before that (now purely visual/static) card can do anything else
+// with the tap. The compose bar here (attach + mic + send) is the exact functionality
+// that card used to have inline before Faza 16 - moved here wholesale, not duplicated,
+// since mysite-draft-card no longer has any of those controls left to be reachable
+// through (see index.html) - this is the only place it lives/works now.
 (function () {
     const draftCard = el("mysite-draft-card");
     const backBtn = el("website-chat-back");
@@ -5394,8 +4755,13 @@ el("mysite-send-btn").addEventListener("click", () => {
     const sendBtn = el("website-chat-send-btn");
     if (!draftCard || !backBtn || !messagesEl || !input || !sendBtn) return;
 
+    const attachBtn = el("website-chat-attach-btn");
+    const recordBtn = el("website-chat-voice-btn");
+
     let history = [];
     let greeted = false;
+
+    // --- Messages ---
 
     // Same textContent-only <p>/<ul> rendering the web dashboard's own website_chat.html
     // uses (and, before that, the support-chat widget) - one fact/line, "- " lists become
@@ -5444,10 +4810,540 @@ el("mysite-send-btn").addEventListener("click", () => {
         addMessage("bot", t("websiteChat.greeting") || "Hi! Tell me about your business and let's figure out your website together.");
     }
 
+    // --- Compose bar: auto-grow + send-button fill state, same behavior the old
+    // mysite-description field had (see mysiteAutoGrowDescription/mysiteUpdateComposeButtons,
+    // before Faza 16 - removed alongside that field itself, this is their replacement). ---
+
+    function autoGrowInput() {
+        input.style.height = "auto";
+        input.style.height = input.scrollHeight + "px";
+    }
+    function updateComposeButtons() {
+        const hasText = input.value.trim().length > 0;
+        sendBtn.classList.toggle("has-text", hasText);
+        if (recordBtn && !recordBtn.classList.contains("recording")) {
+            recordBtn.classList.toggle("mic-typing-hidden", hasText);
+        }
+    }
+    input.addEventListener("input", autoGrowInput);
+    input.addEventListener("input", updateComposeButtons);
+
+    // --- Attachments (photos/video/documents) - staged client-side, uploaded on Send.
+    // Same /api/media//api/documents round trip as before Faza 16 (see removeAttachment/
+    // persistStagedEntry below), just targeting this screen's own elements. ---
+
+    let flushStagedAttachments = () => Promise.resolve();
+    let cancelRecordingIfActive = () => false;
+
+    (function setupAttachments() {
+        const cameraInput = el("website-chat-attach-input-camera");
+        const photosInput = el("website-chat-attach-input-photos");
+        const filesInput = el("website-chat-attach-input-files");
+        const list = el("website-chat-attachment-list");
+        if (!attachBtn || !cameraInput || !photosInput || !filesInput || !list) return;
+
+        // Camera / Photos / Files popover - see #attach-options-modal in index.html, same
+        // fixed-overlay pattern as openRowActions(), but positioned as a small card right
+        // above the "+" (same anchoring technique as i18n.js's openPicker()) instead of a
+        // full-width sheet. Picking an option closes it and clicks that option's own
+        // hidden file input.
+        const sheet = el("attach-options-modal");
+        const sheetCard = el("attach-options-sheet");
+        function openAttachSheet() {
+            if (!sheet || !sheetCard) return;
+            const rect = attachBtn.getBoundingClientRect();
+            const gap = 10;
+            sheetCard.style.left = `${rect.left}px`;
+            sheetCard.style.bottom = `${window.innerHeight - rect.top + gap}px`;
+            sheet.classList.add("open");
+        }
+        function closeAttachSheet() {
+            if (sheet) sheet.classList.remove("open");
+        }
+        if (sheet) {
+            el("attach-options-backdrop").addEventListener("click", closeAttachSheet);
+            el("attach-option-camera").addEventListener("click", () => { closeAttachSheet(); cameraInput.click(); });
+            el("attach-option-photos").addEventListener("click", () => { closeAttachSheet(); photosInput.click(); });
+            el("attach-option-files").addEventListener("click", () => { closeAttachSheet(); filesInput.click(); });
+        }
+
+        function kindFor(file) {
+            const type = (file.type || "").toLowerCase();
+            if (type === "application/pdf") return "document";
+            if (type.indexOf("wordprocessingml") !== -1 || /\.docx?$/i.test(file.name || "")) return "document";
+            if (type.indexOf("video/") === 0) return "video";
+            if (type.indexOf("image/") === 0) return "image";
+            return null;
+        }
+        function iconFor(kind) {
+            return kind === "video" ? "▶" : kind === "image" ? "🖼" : "📄";
+        }
+        function labelFor(kind) {
+            return kind === "video" ? "Video" : kind === "image" ? "Photo" : "File";
+        }
+
+        function fillUploadedChip(chip, kind, item) {
+            if (kind === "image") {
+                const img = document.createElement("img");
+                img.src = item.url;
+                img.alt = "";
+                img.style.cursor = "zoom-in";
+                img.addEventListener("click", (event) => {
+                    event.stopPropagation();
+                    openImageLightbox(item.url);
+                });
+                chip.appendChild(img);
+            } else {
+                const icon = document.createElement("span");
+                icon.className = "chip-icon";
+                icon.textContent = iconFor(kind);
+                chip.appendChild(icon);
+            }
+
+            const name = document.createElement("span");
+            name.className = "chip-name";
+            name.textContent = item.filename || labelFor(kind);
+            chip.appendChild(name);
+
+            const removeBtn = document.createElement("button");
+            removeBtn.type = "button";
+            removeBtn.className = "chip-remove";
+            removeBtn.setAttribute("aria-label", "Remove");
+            removeBtn.textContent = "×";
+            removeBtn.addEventListener("click", () => removeAttachment(kind, item.id, chip));
+            chip.appendChild(removeBtn);
+        }
+
+        function removeAttachment(kind, id, chip) {
+            chip.classList.add("uploading");
+            const path = kind === "document" ? "/api/documents/" + id : "/api/media/" + id;
+            fetch(API_BASE + path, {
+                method: "DELETE",
+                headers: state.token ? { Authorization: "Bearer " + state.token } : {},
+            }).then((response) => {
+                if (!response.ok) throw new Error();
+                chip.remove();
+            }).catch(() => {
+                chip.classList.remove("uploading");
+                showToast(t("settings.media.removeError") || "Couldn't remove that - please try again.");
+            });
+        }
+
+        // Every kind attached to the compose bar but not yet sent - each entry's chip
+        // already sits in the DOM (with a local, not-yet-uploaded preview/icon), so
+        // removing a staged entry before Send is just a client-side splice, no request
+        // needed.
+        const staged = [];
+
+        function stageFile(kind, file) {
+            const chip = document.createElement("span");
+            chip.className = "compose-attachment-chip";
+
+            let previewUrl = null;
+            if (kind === "image") {
+                previewUrl = URL.createObjectURL(file);
+                const img = document.createElement("img");
+                img.src = previewUrl;
+                img.alt = "";
+                chip.appendChild(img);
+            } else {
+                const icon = document.createElement("span");
+                icon.className = "chip-icon";
+                icon.textContent = iconFor(kind);
+                chip.appendChild(icon);
+            }
+
+            const name = document.createElement("span");
+            name.className = "chip-name";
+            name.textContent = labelFor(kind);
+            chip.appendChild(name);
+
+            const entry = { kind, file, chip, previewUrl };
+
+            const removeBtn = document.createElement("button");
+            removeBtn.type = "button";
+            removeBtn.className = "chip-remove";
+            removeBtn.setAttribute("aria-label", "Remove");
+            removeBtn.textContent = "×";
+            removeBtn.addEventListener("click", () => {
+                const idx = staged.indexOf(entry);
+                if (idx !== -1) staged.splice(idx, 1);
+                if (entry.previewUrl) URL.revokeObjectURL(entry.previewUrl);
+                chip.remove();
+            });
+            chip.appendChild(removeBtn);
+
+            list.appendChild(chip);
+            staged.push(entry);
+        }
+
+        // Actually uploads one staged entry, in place - swaps its local preview for the
+        // same in-flight spinner look uploadFile uses, then fills in the real thumbnail/
+        // remove button (now wired to a real DELETE via removeAttachment) once it lands.
+        // Never rejects - a failed upload reports its own toast and drops the chip, same
+        // as uploadFile's failure path, so callers can Promise.all a whole batch of these
+        // without one failure losing the rest.
+        function persistStagedEntry(entry) {
+            const { kind, file, chip, previewUrl } = entry;
+            chip.classList.add("uploading");
+            chip.innerHTML = "";
+
+            const icon = document.createElement("span");
+            icon.className = "chip-icon";
+            const spinner = document.createElement("span");
+            spinner.className = "chip-spinner";
+            icon.appendChild(spinner);
+            chip.appendChild(icon);
+
+            const name = document.createElement("span");
+            name.className = "chip-name";
+            name.textContent = labelFor(kind);
+            chip.appendChild(name);
+
+            const isDocument = kind === "document";
+            const formData = new FormData();
+            formData.append("file", file);
+            if (!isDocument) formData.append("role", kind === "video" ? "hero_video" : "gallery");
+            const path = isDocument ? "/api/documents" : "/api/media";
+            const errorKey = isDocument ? "settings.documents.error" : "settings.media.error";
+
+            return fetch(API_BASE + path, {
+                method: "POST",
+                headers: state.token ? { Authorization: "Bearer " + state.token } : {},
+                body: formData,
+            }).then((response) => response.json().catch(() => ({})).then((data) => ({ ok: response.ok, data })))
+                .then(({ ok, data }) => {
+                    if (previewUrl) URL.revokeObjectURL(previewUrl);
+                    if (!ok) {
+                        chip.remove();
+                        showToast(data.error || t(errorKey) || "Couldn't upload that - please try again.");
+                        return;
+                    }
+                    chip.classList.remove("uploading");
+                    chip.innerHTML = "";
+                    fillUploadedChip(chip, kind, data);
+                }).catch(() => {
+                    if (previewUrl) URL.revokeObjectURL(previewUrl);
+                    chip.remove();
+                    showToast(t(errorKey) || "Couldn't upload that - please try again.");
+                });
+        }
+
+        // Called once Send is actually tapped, before the message itself goes out - drains
+        // `staged` up front so a second Send while these are still uploading, or one that
+        // runs after they've already landed, never re-uploads the same file.
+        flushStagedAttachments = function () {
+            const toFlush = staged.splice(0, staged.length);
+            return Promise.all(toFlush.map(persistStagedEntry));
+        };
+
+        function handlePicked(pickedInput) {
+            const files = Array.prototype.slice.call(pickedInput.files || []);
+            pickedInput.value = "";
+            files.forEach((file) => {
+                const kind = kindFor(file);
+                if (!kind) {
+                    showToast("That file type isn't supported here.");
+                    return;
+                }
+                stageFile(kind, file);
+            });
+        }
+        cameraInput.addEventListener("change", () => handlePicked(cameraInput));
+        photosInput.addEventListener("change", () => handlePicked(photosInput));
+        filesInput.addEventListener("change", () => handlePicked(filesInput));
+
+        // While the mic is recording, this same button is a cancel (X) instead - the send
+        // button already covers "stop and use" (see stopRecordingIfActive below), so this
+        // is deliberately the other exit: stop and throw away everything recorded so far.
+        attachBtn.addEventListener("click", () => {
+            if (cancelRecordingIfActive()) return;
+            openAttachSheet();
+        });
+    })();
+
+    // --- Voice input - same MediaRecorder/Whisper round trip the onboarding wizard and
+    // Settings page use. ---
+
+    let stopRecordingIfActive = () => false;
+
+    (function setupVoice() {
+        const btnLabel = el("website-chat-voice-btn-label");
+        const status = el("website-chat-voice-status");
+        const waveformCanvas = el("website-chat-voice-waveform");
+        if (!recordBtn) return;
+
+        const supported = !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia && window.MediaRecorder);
+        if (!supported) return;
+        recordBtn.hidden = false;
+
+        function setStatus(text, isError) {
+            status.textContent = text || "";
+            status.classList.toggle("voice-status-error", !!isError);
+        }
+
+        const MAX_RECORD_MS = 90 * 1000;
+        let mediaRecorder = null;
+        let mediaStream = null;
+        let chunks = [];
+        let maxLengthTimer = null;
+        let busy = false;
+        // Set when send is tapped while recording is in progress - stopRecording() is
+        // async (waits for the "stop" event, then upload + transcription), so this just
+        // marks the intent; uploadRecording's success handler is what actually calls
+        // send() once the transcribed text is in hand.
+        let pendingAutoSend = false;
+        // Set by cancelRecording() just before stop() - the "stop" event handler checks
+        // this first and, if set, discards everything instead of transcribing, no matter
+        // how much was captured. This is the attach button's "throw it away" exit from
+        // recording, distinct from the mic/stop button's own "stop and keep it" click.
+        let cancelled = false;
+
+        // Live waveform: a separate AnalyserNode tapping the same mic stream, purely
+        // visual - it never touches the recorded audio or the MediaRecorder above. Drawn
+        // with getByteTimeDomainData so the line sits flat at rest and swings with the
+        // incoming sound, so the compose bar visibly reads as "listening" while recording.
+        let audioCtx = null;
+        let analyser = null;
+        let waveformSource = null;
+        let waveformRAF = null;
+
+        function startWaveform(stream) {
+            if (!waveformCanvas || !(window.AudioContext || window.webkitAudioContext)) return;
+            const Ctx = window.AudioContext || window.webkitAudioContext;
+            audioCtx = new Ctx();
+            analyser = audioCtx.createAnalyser();
+            analyser.fftSize = 1024;
+            waveformSource = audioCtx.createMediaStreamSource(stream);
+            waveformSource.connect(analyser);
+
+            // The canvas is sized by CSS (fills the field's left side, see
+            // .chat-compose-waveform), not fixed HTML attributes - match its backing
+            // store to the rendered box, scaled for devicePixelRatio, right before the
+            // first frame so the line draws crisp, not blurry.
+            waveformCanvas.classList.add("active");
+            const dpr = window.devicePixelRatio || 1;
+            const w = waveformCanvas.clientWidth;
+            const h = waveformCanvas.clientHeight;
+            waveformCanvas.width = w * dpr;
+            waveformCanvas.height = h * dpr;
+            const data = new Uint8Array(analyser.fftSize);
+            const ctx2d = waveformCanvas.getContext("2d");
+            ctx2d.scale(dpr, dpr);
+            const lineColor = getComputedStyle(document.documentElement).getPropertyValue("--text-muted").trim() || "#7a6c52";
+
+            // Bar-style meter (ChatGPT voice-input look) instead of a continuous
+            // oscilloscope trace: each frame's peak level becomes one bar, pushed onto a
+            // rolling history that scrolls left as new ones arrive on the right - a fixed
+            // number of bars sized to fit the canvas, redrawn as short rounded-cap
+            // strokes rather than filled rects.
+            const barWidth = 3;
+            const barStep = 6;
+            // One extra bar beyond what's visible so there's always one ready to slide in
+            // from the right edge as scrollOffset wraps, instead of a gap flashing into view.
+            const barCount = Math.max(1, Math.ceil(w / barStep)) + 2;
+            const history = new Array(barCount).fill(0.04);
+            // Sampling a new bar every 70ms but sliding it into place gradually, frame by
+            // frame (scrollOffset), rather than snapping the whole row left in one 6px
+            // jump every 70ms - the jump read as a stutter/glitch even though the sample
+            // rate itself was fine.
+            const PUSH_INTERVAL_MS = 70;
+            const scrollSpeed = barStep / PUSH_INTERVAL_MS; // px per ms
+            let scrollOffset = 0;
+            let lastFrameTime = null;
+
+            function draw(now) {
+                waveformRAF = requestAnimationFrame(draw);
+                if (lastFrameTime === null) lastFrameTime = now;
+                scrollOffset += scrollSpeed * (now - lastFrameTime);
+                lastFrameTime = now;
+                while (scrollOffset >= barStep) {
+                    scrollOffset -= barStep;
+                    analyser.getByteTimeDomainData(data);
+                    let maxDev = 0;
+                    for (let i = 0; i < data.length; i++) {
+                        const dev = Math.abs(data[i] - 128);
+                        if (dev > maxDev) maxDev = dev;
+                    }
+                    history.push(Math.min(1, maxDev / 110));
+                    history.shift();
+                }
+
+                ctx2d.clearRect(0, 0, w, h);
+                ctx2d.lineWidth = barWidth;
+                ctx2d.lineCap = "round";
+                ctx2d.strokeStyle = lineColor;
+                ctx2d.beginPath();
+                for (let j = 0; j < history.length; j++) {
+                    const barH = Math.max(barWidth, history[j] * h);
+                    const x = j * barStep - scrollOffset + barWidth / 2;
+                    const yTop = (h - barH) / 2;
+                    ctx2d.moveTo(x, yTop);
+                    ctx2d.lineTo(x, yTop + barH);
+                }
+                ctx2d.stroke();
+            }
+            waveformRAF = requestAnimationFrame(draw);
+        }
+
+        function stopWaveform() {
+            if (waveformRAF) cancelAnimationFrame(waveformRAF);
+            waveformRAF = null;
+            if (waveformSource) { waveformSource.disconnect(); waveformSource = null; }
+            if (audioCtx) { audioCtx.close(); audioCtx = null; }
+            analyser = null;
+            if (waveformCanvas) {
+                waveformCanvas.classList.remove("active");
+                const ctx2d = waveformCanvas.getContext("2d");
+                ctx2d.setTransform(1, 0, 0, 1, 0, 0);
+                ctx2d.clearRect(0, 0, waveformCanvas.width, waveformCanvas.height);
+            }
+        }
+
+        function stopStream() {
+            if (mediaStream) {
+                mediaStream.getTracks().forEach((track) => track.stop());
+                mediaStream = null;
+            }
+        }
+        function setRecordingUI(isRecording) {
+            recordBtn.classList.toggle("recording", isRecording);
+            if (attachBtn) attachBtn.classList.toggle("recording", isRecording);
+            btnLabel.textContent = isRecording
+                ? (t("onboarding.describe.recordStop") || "Stop recording")
+                : (t("onboarding.describe.recordStart") || "Record instead of typing");
+            // The send button fills solid gold the instant recording starts, same as if
+            // text were already typed - tapping it mid-recording is a valid "stop and
+            // send now" shortcut (see below), not just a no-op on an empty field. Once
+            // recording ends, hand back to updateComposeButtons() to reflect whatever's
+            // actually in the field (transcribed text, or empty if the recording
+            // failed/was too short).
+            if (isRecording) sendBtn.classList.add("has-text");
+            else updateComposeButtons();
+        }
+        function startRecording() {
+            busy = true;
+            recordBtn.disabled = true;
+            setStatus(null);
+            navigator.mediaDevices.getUserMedia({ audio: true }).then((stream) => {
+                mediaStream = stream;
+                chunks = [];
+                const options = MediaRecorder.isTypeSupported("audio/webm") ? { mimeType: "audio/webm" } : undefined;
+                mediaRecorder = new MediaRecorder(stream, options);
+                mediaRecorder.addEventListener("dataavailable", (event) => {
+                    if (event.data && event.data.size > 0) chunks.push(event.data);
+                });
+                mediaRecorder.addEventListener("stop", () => {
+                    stopStream();
+                    stopWaveform();
+                    clearTimeout(maxLengthTimer);
+                    setRecordingUI(false);
+                    if (cancelled || chunks.length === 0) {
+                        busy = false;
+                        recordBtn.disabled = false;
+                        pendingAutoSend = false;
+                        cancelled = false;
+                        return;
+                    }
+                    uploadRecording(new Blob(chunks, { type: mediaRecorder.mimeType || "audio/webm" }));
+                });
+                mediaRecorder.start();
+                startWaveform(stream);
+                busy = false;
+                recordBtn.disabled = false;
+                setRecordingUI(true);
+                setStatus(t("onboarding.describe.recording") || "Listening... tap to stop");
+                maxLengthTimer = setTimeout(() => {
+                    if (mediaRecorder && mediaRecorder.state === "recording") mediaRecorder.stop();
+                }, MAX_RECORD_MS);
+            }).catch((err) => {
+                busy = false;
+                recordBtn.disabled = false;
+                if (err && (err.name === "NotAllowedError" || err.name === "PermissionDeniedError")) {
+                    setStatus(t("onboarding.describe.micPermission") || "Please allow microphone access to record your description.", true);
+                } else {
+                    setStatus(t("onboarding.describe.micError") || "Couldn't access the microphone - check your permissions and try again.", true);
+                }
+            });
+        }
+        function stopRecording() {
+            if (mediaRecorder && mediaRecorder.state === "recording") mediaRecorder.stop();
+        }
+        function cancelRecording() {
+            if (!(mediaRecorder && mediaRecorder.state === "recording")) return;
+            cancelled = true;
+            mediaRecorder.stop();
+        }
+        function uploadRecording(blob) {
+            busy = true;
+            recordBtn.disabled = true;
+            setStatus(t("onboarding.describe.transcribing") || "Transcribing...");
+            const extension = (blob.type || "").indexOf("mp4") !== -1 ? "m4a" : "webm";
+            const formData = new FormData();
+            formData.append("audio", blob, "website-chat-message." + extension);
+            fetch(API_BASE + "/api/voice-transcribe", {
+                method: "POST",
+                headers: state.token ? { Authorization: "Bearer " + state.token } : {},
+                body: formData,
+            }).then((response) => response.json().catch(() => ({})).then((data) => ({ ok: response.ok, data })))
+                .then(({ ok, data }) => {
+                    busy = false;
+                    recordBtn.disabled = false;
+                    if (!ok) {
+                        pendingAutoSend = false;
+                        setStatus(data.error || (t("onboarding.describe.transcribeError") || "Couldn't understand that recording - please try again."), true);
+                        return;
+                    }
+                    input.value = data.text || "";
+                    autoGrowInput();
+                    updateComposeButtons();
+                    input.focus();
+                    setStatus(null);
+                    if (pendingAutoSend) {
+                        pendingAutoSend = false;
+                        send();
+                    }
+                }).catch(() => {
+                    busy = false;
+                    recordBtn.disabled = false;
+                    pendingAutoSend = false;
+                    setStatus(t("onboarding.describe.transcribeError") || "Couldn't understand that recording - please try again.", true);
+                });
+        }
+
+        recordBtn.addEventListener("click", () => {
+            if (busy) return;
+            if (mediaRecorder && mediaRecorder.state === "recording") stopRecording();
+            else startRecording();
+        });
+        // Tapping send while recording is a shortcut: stop, transcribe, and submit
+        // immediately instead of requiring stop-then-review-then-send as three separate
+        // taps (see the send button's own listener below).
+        stopRecordingIfActive = () => {
+            if (!(mediaRecorder && mediaRecorder.state === "recording")) return false;
+            pendingAutoSend = true;
+            stopRecording();
+            return true;
+        };
+        cancelRecordingIfActive = () => {
+            if (!(mediaRecorder && mediaRecorder.state === "recording")) return false;
+            cancelRecording();
+            return true;
+        };
+        window.addEventListener("beforeunload", () => {
+            stopStream();
+            stopWaveform();
+        });
+    })();
+
+    // --- Send ---
+
     async function send() {
         const text = input.value.trim();
         if (!text) return;
         input.value = "";
+        autoGrowInput();
+        updateComposeButtons();
         input.disabled = true;
         sendBtn.classList.add("send-loading");
         addMessage("user", text);
@@ -5455,6 +5351,10 @@ el("mysite-send-btn").addEventListener("click", () => {
         const typingEl = addMessage("bot", "...");
         typingEl.classList.add("website-chat-msg-typing");
         try {
+            // Photos/video/documents attached to the compose bar were only staged
+            // locally - this is the point they actually upload, same as a normal chat
+            // only sending attachments once you hit send.
+            await flushStagedAttachments();
             const data = await api("/api/website-chat", { method: "POST", body: { message: text, history: history.slice(0, -1) } });
             typingEl.remove();
             const reply = data.reply || t("websiteChat.error");
@@ -5469,6 +5369,8 @@ el("mysite-send-btn").addEventListener("click", () => {
             input.focus();
         }
     }
+
+    // --- Wiring ---
 
     draftCard.addEventListener("click", (event) => {
         event.preventDefault();
@@ -5485,7 +5387,10 @@ el("mysite-send-btn").addEventListener("click", () => {
         showTabbar(true);
         showScreen("mysite");
     });
-    sendBtn.addEventListener("click", send);
+    sendBtn.addEventListener("click", () => {
+        if (stopRecordingIfActive()) return;
+        send();
+    });
     input.addEventListener("keydown", (event) => {
         if (event.key === "Enter" && !event.shiftKey) {
             event.preventDefault();
