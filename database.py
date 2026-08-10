@@ -2722,6 +2722,26 @@ def page_by_slug(slug):
     return result
 
 
+def page_by_custom_domain(domain):
+    """Looked up by app.py's Host-header dispatch (a visitor opening a business's own
+    purchased domain directly, not this platform's /p/<slug>) - `domain` must already be
+    lowercased by the caller, matching how domain_lookup.normalize_pending_domain
+    lowercased it when the pick was first saved. Only 'active' counts as servable here
+    (not 'purchasing' or 'failed' - see resolve_custom_domain_purchase) since those mean
+    the domain isn't actually pointed at this platform yet, or never finished purchasing
+    at all - unlike page_by_slug, there's no "unpublished" state worth distinguishing to
+    a caller for a domain that isn't live regardless."""
+    connection = connect()
+    cursor = connection.cursor()
+    cursor.execute(
+        "SELECT id, business_id, slug, published, tagline, about, created_at, updated_at, widget_domain, theme, custom_theme_json, pending_custom_domain, custom_domain, custom_domain_status, domain_paddle_subscription_id, domain_subscription_status FROM business_pages WHERE custom_domain = %s AND custom_domain_status = 'active'",
+        (domain,),
+    )
+    result = cursor.fetchone()
+    connection.close()
+    return result
+
+
 def upsert_business_page(business_id, slug, published, tagline, about, widget_domain=None, theme=None, custom_theme_json=None, pending_custom_domain=None):
     """Creates the business's page on first save, updates it on every save after - one
     row per business (business_pages_business_id_idx), so this is a plain upsert rather

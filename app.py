@@ -44,7 +44,7 @@ from database import (
     notifications_for_business, unread_notification_count, mark_notifications_read,
     is_new_booking_notifications_enabled, set_new_booking_notifications_enabled,
     record_account_deletion, recent_account_deletions, ACCOUNT_DELETION_REASONS,
-    get_business_page, page_by_slug, upsert_business_page, published_page_slugs,
+    get_business_page, page_by_slug, page_by_custom_domain, upsert_business_page, published_page_slugs,
     set_domain_subscription, set_custom_domain_purchasing, resolve_custom_domain_purchase,
     page_chat_session_messages_today,
     onboarding_completed, mark_onboarding_completed,
@@ -255,6 +255,19 @@ def no_store_authenticated_pages(response):
 # a plain fetch() of the same URL succeeds fine, since that's governed by connect-src,
 # not frame-src) - caught visually in a real browser, not by the route/template tests.
 # {frame_ancestors} is filled in by set_security_headers below - 'self' for every normal
+# The app's own canonical hostname - distinct from any business's own purchased
+# custom_domain (see page_by_custom_domain/dispatch_custom_domain_page below). Used both
+# to recognize "this request is the platform itself, not someone's custom domain" and to
+# build public_page.html's own chat_url/availability_url (_render_public_page) so they
+# always resolve here regardless of which Host actually served the page - and, right
+# below, so the CSP connect-src allowance covers fetching them even when 'self' means a
+# business's custom domain instead of this one.
+PRIMARY_APP_HOST = "app.ai-auto-reply-mail.com"
+# localhost/127.0.0.1 included so local dev/testing (no real Host header matching the
+# production domain) never accidentally trips the custom-domain dispatch below.
+PRIMARY_HOSTS = {PRIMARY_APP_HOST, "localhost", "127.0.0.1"}
+
+
 # response, but the one exception (GET /w/<slug>, the F5 embeddable widget - see
 # widget_frame()) needs a per-business external origin instead, since that response is
 # supposed to be framed by someone else's page.
@@ -267,7 +280,12 @@ _CSP_TEMPLATE = (
     # visitor's language from their country (static/site-i18n.js's detectLanguageFromLocation)
     # - without this allowance every one of those requests was silently CSP-blocked, so the
     # feature never actually worked (caught testing this, not by design).
-    "connect-src 'self' https://*.paddle.com https://ipapi.co; "
+    # PRIMARY_APP_HOST: public_page.html's own chat/availability fetch()es always target
+    # this host (see _render_public_page) - 'self' alone only covers that when the page's
+    # own origin already IS this host; a page served from a business's custom domain
+    # needs it listed explicitly or the browser blocks the fetch before CORS even enters
+    # the picture (see public_page_chat/_availability's own CORS handling for that half).
+    f"connect-src 'self' https://*.paddle.com https://ipapi.co https://{PRIMARY_APP_HOST}; "
     "frame-src 'self' https://*.paddle.com; "
     "frame-ancestors {frame_ancestors}; "
     "base-uri 'self'; "
@@ -2389,27 +2407,25 @@ def robots_txt():
 
 # Renders a business's own hosted public page - the delivery vehicle/SEO surface a
 # business gets automatically alongside the AI that answers their customers (see
-# save_business_page() above and pages.py). page_by_slug() returns an unpublished page
-# too (see its own docstring), so "no such slug" and "not published yet" 404 identically
-# here rather than leaking which one it was.
-@app.route("/p/<slug>")
-def public_page(slug):
-    page = page_by_slug(slug)
-    if page is None or not page[3]:
-        abort(404)
-    business = business_by_id(page[1])
-    if business is None:
-        abort(404)
+# save_business_page() above and pages.py). Shared by the platform's own /p/<slug> route
+# below and dispatch_custom_domain_page's Host-based dispatch (a visitor opening a
+# business's own purchased domain directly) - one render path so booking/media/theme
+# logic can't drift between the two ways of reaching the same page. `page_url` is passed
+# in rather than derived here since it means something different in each caller: the
+# platform's own /p/<slug> URL in one case, the custom domain's own root in the other.
+def _render_public_page(page, business, page_url):
+    business_id = page[1]
+    slug = page[2]
     # Booking is only ever offered where the AI chat tool itself is allowed to actually
     # book (see ai_replies.handle_incoming_message's identical has_pro_access/
     # BETA_FREE_MODE check) and where there's at least one open day to show a slot for -
     # a visible "Book an appointment" section that leads to a chat reply of "sorry, I
     # can't book that" would be worse than no section at all.
     booking_enabled = (
-        (BETA_FREE_MODE or has_pro_access(page[1]))
+        (BETA_FREE_MODE or has_pro_access(business_id))
         and any(booking.parse_working_hours(business[7]).values())
     )
-    media = business_media.media_for_page(page[1])
+    media = business_media.media_for_page(business_id)
     return render_template(
         "public_page.html",
         business_name=business[1],
@@ -2420,23 +2436,69 @@ def public_page(slug):
         about=page[5],
         opening_hours_schema=pages.opening_hours_schema(business[7]),
         opening_hours_display=pages.opening_hours_display(business[7]),
-        page_url=url_for("public_page", slug=slug, _external=True),
-        chat_url=url_for("public_page_chat", slug=slug),
+        page_url=page_url,
+        # Absolute, and always pointed at the platform's own primary host - never
+        # url_for's default of "whatever Host this particular request came in on" -
+        # since neither of these two routes is ever served from a business's own custom
+        # domain (see dispatch_custom_domain_page's own docstring for why that's out of
+        # scope for now), only /p/<slug> on the platform's own domain is.
+        chat_url=f"https://{PRIMARY_APP_HOST}" + url_for("public_page_chat", slug=slug),
         slug=slug,
         theme=themes.resolve_theme(page[9], page[10]),
         preview=False,
         booking_enabled=booking_enabled,
-        availability_url=url_for("public_page_availability", slug=slug) if booking_enabled else None,
+        availability_url=(f"https://{PRIMARY_APP_HOST}" + url_for("public_page_availability", slug=slug)) if booking_enabled else None,
         # F4: the "Powered by Camilius" footer disappears once this business has any
         # active access - including its own free trial, same as has_pro_access() already
         # treats a self-serve trial as full access, not just a paid plan. One source of
         # truth (effective_subscription_active) rather than a second "is this really
         # paid, not just trialing" check that could quietly drift from it.
-        show_badge=not effective_subscription_active(page[1]),
+        show_badge=not effective_subscription_active(business_id),
         logo_url=media["logo_url"],
         gallery_urls=media["gallery_urls"],
         hero_video_url=media["hero_video_url"],
     )
+
+
+# page_by_slug() returns an unpublished page too (see its own docstring), so "no such
+# slug" and "not published yet" 404 identically here rather than leaking which one it was.
+@app.route("/p/<slug>")
+def public_page(slug):
+    page = page_by_slug(slug)
+    if page is None or not page[3]:
+        abort(404)
+    business = business_by_id(page[1])
+    if business is None:
+        abort(404)
+    return _render_public_page(page, business, url_for("public_page", slug=slug, _external=True))
+
+
+# Faza 4 of "Automatska kupovina domena" (see domain_registrar.py's own module
+# docstring): once a business's chosen domain is actually registered and pointed at this
+# platform (still unbuilt - see that file's TODO), a visitor opening it directly should
+# see the same page /p/<slug> shows, not a 404. Runs before routing settles on a view
+# (Flask still gives before_request a chance to short-circuit even when the path has no
+# matching route - the routing 404 is only raised once dispatch actually reaches
+# dispatch_request), so this works whether or not "/" itself is registered for the host
+# in question. Scoped to the bare root path only: chat_url/availability_url above already
+# resolve to the platform's own domain regardless of which Host served this page, so
+# there's no other path under a custom domain's own origin that needs a matching route
+# yet - see public_page_chat/public_page_availability's own CORS handling for the other
+# half of making those calls actually reach here from a foreign origin.
+@app.before_request
+def dispatch_custom_domain_page():
+    if request.method != "GET" or request.path != "/":
+        return None
+    host = request.host.split(":", 1)[0].lower()
+    if host in PRIMARY_HOSTS:
+        return None
+    page = page_by_custom_domain(host)
+    if page is None or not page[3]:
+        return None
+    business = business_by_id(page[1])
+    if business is None:
+        return None
+    return _render_public_page(page, business, f"https://{host}/")
 
 
 # How many upcoming days public_page_availability looks across for a free slot - a
@@ -2444,6 +2506,43 @@ def public_page(slug):
 # find_next_free_slots (which stops as soon as it has 2 alternatives to offer), but this
 # is still a bounded read, same spirit as that function's own search_days cap.
 PAGE_AVAILABILITY_DAYS = 14
+
+
+# _render_public_page's chat_url/availability_url always point at PRIMARY_APP_HOST
+# regardless of which Host actually served the page (see that function's own comment) -
+# fine for a same-origin fetch when the visitor's on /p/<slug> itself, but a page served
+# from a business's own custom domain (dispatch_custom_domain_page) makes these two
+# routes' own fetch() calls cross-origin, which the browser blocks without an explicit
+# CORS allowance. Only ever allows the exact origin a business itself registered as its
+# own purchased domain (page[12], custom_domain) - never reflects an arbitrary incoming
+# Origin header back, same "only what this business actually approved" rule
+# set_security_headers already applies to widget_domain's CSP frame-ancestors. None (no
+# CORS header at all) if this business has no active custom domain, or the request's
+# Origin doesn't match it - a same-origin call from /p/<slug> itself never needed CORS in
+# the first place, so it's unaffected either way.
+def _custom_domain_cors_origin(page):
+    custom_domain = page[12]
+    if not custom_domain:
+        return None
+    origin = request.headers.get("Origin")
+    if origin != f"https://{custom_domain}":
+        return None
+    return origin
+
+
+# jsonify() plus _custom_domain_cors_origin's header, in one place - every return point in
+# public_page_chat/public_page_availability below goes through this so none of them can
+# forget the header and silently break the widget on a custom domain.
+def _json_with_cors(origin, **kwargs):
+    resp = jsonify(**kwargs)
+    if origin:
+        resp.headers["Access-Control-Allow-Origin"] = origin
+        # Without this, a shared/CDN cache in front of this response could serve one
+        # origin's CORS-approved response to a different origin's request for the same
+        # URL - unlikely here (no cache sits in front of this app today) but cheap to get
+        # right regardless.
+        resp.headers["Vary"] = "Origin"
+    return resp
 
 
 # Read-only free/busy for the public page's own "Book an appointment" calendar (see
@@ -2464,6 +2563,7 @@ def public_page_availability(slug):
     business = business_by_id(business_id)
     if business is None or not (BETA_FREE_MODE or has_pro_access(business_id)):
         abort(404)
+    origin = _custom_domain_cors_origin(page)
 
     working_hours = business[7]
     tz = booking.tz_for(business)
@@ -2484,7 +2584,7 @@ def public_page_availability(slug):
             "slots": [s.strftime("%H:%M") for s in free],
         })
 
-    return jsonify(days=days)
+    return _json_with_cors(origin, days=days)
 
 
 # How many page-chat messages one anonymous visitor session (the browser's own
@@ -2508,7 +2608,7 @@ def _valid_page_chat_session_id(value):
     return isinstance(value, str) and 8 <= len(value) <= 128
 
 
-@app.route("/p/<slug>/chat", methods=["POST"])
+@app.route("/p/<slug>/chat", methods=["POST", "OPTIONS"])
 @csrf.exempt  # anonymous page visitor, no session/CSRF token of ours - rate-limited below instead
 @limiter.limit("20 per hour")  # per IP (Flask-Limiter's default key)
 @limiter.limit("300 per hour", key_func=lambda: request.view_args.get("slug", ""))  # per business page, across all visitors
@@ -2516,6 +2616,24 @@ def public_page_chat(slug):
     page = page_by_slug(slug)
     if page is None or not page[3]:
         abort(404)
+    origin = _custom_domain_cors_origin(page)
+
+    if request.method == "OPTIONS":
+        # The browser's preflight, sent ahead of the real POST below because
+        # Content-Type: application/json isn't a "simple" cross-origin request type -
+        # only reached at all when this page was served from a business's own custom
+        # domain (a same-origin POST, like /p/<slug> itself gets, never triggers one).
+        # Access-Control-Max-Age keeps a given visitor's browser from repeating this on
+        # every single message.
+        resp = Response(status=204)
+        if origin:
+            resp.headers["Access-Control-Allow-Origin"] = origin
+            resp.headers["Access-Control-Allow-Methods"] = "POST"
+            resp.headers["Access-Control-Allow-Headers"] = "Content-Type"
+            resp.headers["Access-Control-Max-Age"] = "86400"
+            resp.headers["Vary"] = "Origin"
+        return resp
+
     business_id = page[1]
     business = business_by_id(business_id)
     if business is None:
@@ -2528,7 +2646,7 @@ def public_page_chat(slug):
         abort(400)
 
     if page_chat_session_messages_today(business_id, session_id) >= PAGE_CHAT_SESSION_DAILY_LIMIT:
-        return jsonify(reply="I've answered a lot of questions today - please contact us directly for anything else.")
+        return _json_with_cors(origin, reply="I've answered a lot of questions today - please contact us directly for anything else.")
 
     def resolve_sender():
         # No real name to resolve - sender_display only
@@ -2550,8 +2668,8 @@ def public_page_chat(slug):
         # Gated (subscription inactive, or replies_today_count's business-wide daily cap
         # already reached by this or any other channel) - still a normal chat reply as
         # far as the widget is concerned, not an error it needs to handle specially.
-        return jsonify(reply="I'm not able to answer right now - please try again later or contact us directly.")
-    return jsonify(reply=result["reply_text"])
+        return _json_with_cors(origin, reply="I'm not able to answer right now - please try again later or contact us directly.")
+    return _json_with_cors(origin, reply=result["reply_text"])
 
 
 # F5: the embeddable widget for a business that already has its own site - a small

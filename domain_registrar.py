@@ -56,13 +56,35 @@ def purchase_domain(domain):
     if not _verified():
         return False, "Domain registrar integration hasn't been verified yet - refusing to spend real money on an untested call."
 
-    # TODO once Dynadot's REST API contract is confirmed (see module docstring):
+    # TODO once Dynadot's REST API contract is confirmed (see module docstring - still
+    # blocked as of this writing: no environment this has been worked on from has had
+    # outbound network access to dynadot.com or its docs to verify against). What
+    # research *could* reach (public search results, third-party client libraries -
+    # nothing fetched directly from dynadot.com itself) suggests Dynadot's v2 REST API
+    # exposes separate register-domain and set-DNS-record commands, but the exact
+    # endpoint path, auth header format, and request/response shape are NOT confirmed -
+    # do not trust this comment's phrasing as a spec, only as a starting point:
     #   1. Re-check availability/price for `domain` right now (the RDAP check that got
     #      it onto the "available" list in the first place could be stale by the time
     #      Publish is tapped).
     #   2. Register `domain` for 1 year with auto-renew on (renewal should follow this
     #      domain's own Paddle subscription staying paid - see database.
     #      domain_subscription_status - not the business's unrelated app plan).
-    #   3. Point its DNS at wherever this platform actually serves custom domains from
-    #      (see app.py's Host-header routing, still to be built - Faza 4 of the plan).
+    #   3. Point its DNS at wherever this platform actually serves custom domains from.
+    #      app.py's Host-header routing (dispatch_custom_domain_page) now exists and
+    #      will render the business's page for any request whose Host matches this
+    #      domain once custom_domain_status is 'active' - what's still missing is
+    #      getting real DNS + TLS pointed at this app's own deployment in the first
+    #      place. This app is hosted on Railway (see .railway/railway.ts), which
+    #      supports attaching custom domains to a service via its own GraphQL Public
+    #      API (https://backboard.railway.com/graphql/v2, a `customDomainCreate`
+    #      mutation per search results - again unverified directly against Railway's
+    #      own docs, same network-access block as Dynadot above) and auto-provisions
+    #      TLS once DNS is confirmed. The natural order once BOTH contracts are
+    #      verified: register the domain here -> call Railway's customDomainCreate to
+    #      get back a CNAME target (+ TXT verification record) -> set those records via
+    #      Dynadot's DNS API -> only mark custom_domain_status='active' (unblocking
+    #      dispatch_custom_domain_page) once Railway reports the domain verified, not
+    #      before - a domain pointed at nothing yet should keep 404ing, not silently
+    #      swap in for the wrong page.
     return False, "Not implemented yet."
