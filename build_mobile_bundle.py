@@ -88,10 +88,30 @@ def update_font_references(stamp):
     INDEX_HTML.write_text(restamp(INDEX_HTML.read_text(encoding="utf-8")), encoding="utf-8")
 
 
+def _index_html_content_for_stamp():
+    # index.html carries stamps written by a previous run (per-file "?v=" cache
+    # busters and the data-bundle-version attribute) - hashing it as-is would make
+    # the stamp depend on the last stamp rather than on actual content, breaking
+    # the idempotency the other stamp writers here rely on (see BUNDLE_VERSION_ATTR_RE's
+    # and FONT_REF_RE's comments). Strip those back out first so only genuine edits to
+    # index.html (like the markup itself, not the query strings this script wrote) can
+    # change the result - this is also what makes those edits actually reach the OTA
+    # version at all, since previously index.html wasn't part of this hash and a
+    # content-only change here never bumped the version the app checks.
+    html = INDEX_HTML.read_text(encoding="utf-8")
+    html = BUNDLE_VERSION_ATTR_RE.sub(r"\1", html, count=1)
+    for name in CACHE_BUSTED_FILES:
+        pattern = re.compile(r'((?:href|src)=")' + re.escape(name) + r'(?:\?v=[a-f0-9]+)?(")')
+        html = pattern.sub(r"\g<1>" + name + r"\g<2>", html)
+    html = FONT_REF_RE.sub(lambda m: m.group(0).split("?")[0], html)
+    return html
+
+
 def compute_cache_bust_stamp():
     hasher = hashlib.sha256()
     for name in CACHE_BUSTED_FILES:
         hasher.update((MOBILE_DIR / name).read_bytes())
+    hasher.update(_index_html_content_for_stamp().encode("utf-8"))
     return hasher.hexdigest()[:12]
 
 
