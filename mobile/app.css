@@ -412,15 +412,20 @@ button { font-family: inherit; -webkit-appearance: none; appearance: none; }
 }
 .lang-modal.open .lang-modal-sheet { transform: translateY(0) scale(1); opacity: 1; }
 
-/* --- Wheel-style picker (language, country-code, and the working-hours/currency/
+/* --- Option-list picker (language, country-code, and the working-hours/currency/
    duration/lead-time fields via #option-modal) - a small sheet that zooms in centered
-   on screen with a dimmed backdrop, sized to show exactly 5 rows. Opens with the
-   current value already scrolled to the list's own center, a static highlight band
-   (.wheel-center-band) marks that center row, and every option's opacity/weight fades
-   the further it scrolls from center (setupWheelFade() in app.js, run on scroll) -
-   reads as a real spin wheel rather than a plain scrolling list. Every field backed by
-   one of these three modals opens the exact same kind of moment, rather than each
-   reading as its own one-off dropdown. --- */
+   on screen with a dimmed backdrop. Opens already scrolled so the current value is
+   in view and marked with the bold/primary-color "selected" look (markActiveOption()
+   in app.js). Every field backed by one of these three modals opens the exact same
+   kind of moment, rather than each reading as its own one-off dropdown.
+   This used to be a spin-wheel style picker instead - a fixed highlight band always
+   at the list's vertical center, with the list scrolling under it and each option
+   fading by distance from center. That needed blank padding reserved above the first
+   row and below the last so they could reach the center band too, same as a native
+   iOS/Android wheel picker at its first/last value - see git history on this comment
+   and on .country-modal-list below. That reserved padding read as leftover empty
+   space in the sheet, so the wheel/center-band approach was dropped for this plainer
+   one, which has no such padding to reserve. --- */
 /* The shared option list (working-hours times, price currency, and the Schedule tab's
    duration pickers) can be opened from a field that itself lives inside another
    already-open bottom sheet (the Book modal's own duration picker) - since every
@@ -436,37 +441,19 @@ button { font-family: inherit; -webkit-appearance: none; appearance: none; }
     display: flex; flex-direction: column;
 }
 .lang-modal.open .country-modal-sheet { transform: translate(-50%, -50%) scale(1); }
-.wheel-center-band {
-    position: absolute; left: 8px; right: 8px; top: 50%; height: 44px;
-    transform: translateY(-50%); background: var(--primary-light);
-    border-radius: 10px; pointer-events: none; z-index: 0;
-}
 .country-modal-list {
     position: relative; overflow-y: auto; box-sizing: border-box;
-    /* 132px tall (3 rows) with 44px ((132 - 44) / 2, i.e. one row's worth) of blank
-       padding reserved above the first row and below the last - box-sizing: border-box
-       keeps the 132px a fixed VIEWPORT height (clientHeight, still exactly 3 rows) while
-       the padding only grows the scrollable content (scrollHeight), giving the first and
-       last real rows the same reachable centered position every other row already has.
-       Reaching all the way into that padding shows as one blank row above/below the
-       wheel's real ends once Afghanistan/Zimbabwe (etc.) IS centered - expected for a
-       wheel with nothing further to show, same as a native iOS/Android picker at its
-       first or last value, not a bug. Kept deliberately small (one row, not two) so that
-       blank padding doesn't read as leftover empty space in the sheet.
-       This same padding used to cause a real bug, back when nothing ever pulled the list
-       out of it: CSS scroll-snap (scroll-snap-align: center) plus this padding was the
-       original approach, but scroll-snap-type: mandatory had no valid snap point IN the
-       padding itself, so a scroll gesture aimed at the very edge stopped short of it
-       instead of reaching bottom/top. Dropping the padding "fixed" that by removing the
-       first/last rows' reachable center instead (see setupWheelFade()'s own history in
-       app.js) - which is the bug this padding is back to fix. What makes it safe to
-       bring back now is setupWheelFade()'s 'scrollend' nudge (not scroll-snap): it only
-       pulls the resting scroll position back onto a real row once touch input and all
-       momentum have already stopped, so a swipe that overshoots into this padding still
-       reaches the true edge first and gets nudged onto Afghanistan/Zimbabwe afterward,
-       rather than ever being blocked from getting there. */
-    padding: 44px 0;
-    height: 132px;
+    /* No padding, and height caps at 5 rows (44px each) instead of being fixed to it -
+       a short list (e.g. a handful of duration options) is only as tall as its real
+       rows, and a long one (countries, languages) scrolls past 220px. Either way there
+       is no reserved blank space at the top/bottom: the previous wheel/center-band
+       version fixed this to exactly 220px AND padded 88px above/below the real rows
+       (later shrunk to 44px) so the first/last option could still reach dead center
+       under the highlight band - seen as empty space at either end of the sheet once
+       an end value was selected. Dropping the center-band concept entirely (see the
+       comment above this rule) means there's nothing left that padding needed to
+       reach, so it's gone rather than just shrunk further. */
+    max-height: 220px;
 }
 .country-option-btn {
     display: flex; align-items: center; gap: 10px; width: 100%;
@@ -941,10 +928,10 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
 .button-danger { background: var(--danger); color: #fff; }
 .button-danger:active { background: var(--danger); opacity: .85; }
 
-/* --- Shared wheel-picker button (Faza 4) - used for the working-hours time fields
+/* --- Shared option-picker button (Faza 4) - used for the working-hours time fields
    and the price-list currency field (see createOptionButton()/optionPicker in app.js).
    Looks like the old native <select> it replaces, but opens the shared #option-modal
-   as a centered wheel picker instead. --- */
+   as a scrollable option list instead. --- */
 .picker-btn {
     display: flex; align-items: center; justify-content: space-between; gap: 10px;
     padding: 9px 10px; border: 1px solid var(--border); border-radius: 8px;
@@ -1308,7 +1295,7 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
 .row-action-danger { color: var(--danger); }
 .row-action-cancel { color: var(--text-muted); border-top: 1px solid var(--border); margin-top: 4px; padding-top: 14px; border-radius: 0; }
 /* Currently-applied design in the sheet below - same "bold + primary color" treatment
-   .country-option-btn.wheel-active uses for the wheel pickers' centered value. */
+   .country-option-btn.wheel-active uses for the option pickers' selected value. */
 .row-action-btn.selected { color: var(--primary-ink); font-weight: 700; }
 
 /* --- Design (website theme) picker sheet, My Site tab (see #design-modal in index.html) -

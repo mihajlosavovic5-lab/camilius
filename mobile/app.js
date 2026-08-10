@@ -524,66 +524,25 @@ if (capacitorPlugins) {
 // same wire format the backend/AI already expect - JSON for working hours (see
 // hours-picker.js), plain text for the price list - so nothing else has to change) ---
 
-// Shared by every wheel-style list (#option-modal, #country-modal, #lang-modal):
-// fades each option's opacity/weight by how far it's scrolled from the wheel's own
-// center band (.wheel-center-band in app.css - a static highlight, always at the
-// list's vertical middle) and marks whichever option currently sits closest with
-// .wheel-active for the bold/primary-color "selected" look. Row height is fixed (see
-// .country-modal-list's own CSS), so distance converts to "rows away" directly rather
-// than needing to measure anything but each button's own position. Returns the update
-// function so a caller can also invoke it directly right after scrolling to a target
-// (e.g. on open), instead of waiting for a scroll event to fire first.
+// Shared by every option-list picker (#option-modal, #country-modal, #lang-modal):
+// marks whichever option row is the field's current value with .wheel-active (the
+// bold/primary-color "selected" look) and scrolls it into view.
 //
-// While a swipe is actually moving, this only reacts to the scroll position - it used
-// to also force a smooth-scroll to re-center the closest row on every scroll pause
-// (CSS scroll-snap's job, before that needed list padding that showed as empty space
-// at either end - see .country-modal-list's own CSS/git history). That fought a real,
-// multi-flick touch swipe: each flick's momentum has its own brief pause before the
-// next one, which a plain 'scroll' debounce couldn't tell apart from "the gesture is
-// done", so it kept smooth-scrolling part-way back toward center, over and over, and a
-// swipe could never actually make it from one end of the list to the other.
-//
-// 'scrollend' (unlike a 'scroll' debounce) is exactly the signal that was missing: the
-// browser itself only fires it once touch input and any resulting momentum have both
-// fully settled, so it never fires mid-flick the way a fixed timeout guessed at. Once
-// it does fire, the list is genuinely at rest and free to nudge that resting position
-// the last few pixels so exactly one row - not half of two - ends up under the band,
-// without ever fighting a swipe still in progress (a new touch on the list cancels the
-// resulting programmatic scroll the same way it would cancel any other smooth-scroll).
-function setupWheelFade(list, rowHeight) {
-    function updateWheelFade() {
-        const centerY = list.getBoundingClientRect().top + list.clientHeight / 2;
-        let closestBtn = null;
-        let closestDist = Infinity;
-        Array.from(list.children).forEach((btn) => {
-            const dist = Math.abs(btn.getBoundingClientRect().top + btn.offsetHeight / 2 - centerY);
-            if (dist < closestDist) { closestDist = dist; closestBtn = btn; }
-            btn.style.opacity = Math.max(0.16, 1 - (dist / rowHeight) * 0.4).toFixed(2);
-            btn.classList.remove("wheel-active");
-        });
-        if (closestBtn) closestBtn.classList.add("wheel-active");
-    }
-    // rAF-throttled - scroll fires far more often than a frame needs re-painting for.
-    let wheelFadeTicking = false;
-    list.addEventListener("scroll", () => {
-        if (wheelFadeTicking) return;
-        wheelFadeTicking = true;
-        requestAnimationFrame(() => {
-            updateWheelFade();
-            wheelFadeTicking = false;
-        });
-    }, { passive: true });
-    // Feature-detected rather than assumed - on a WebView old enough to lack it, the
-    // list just keeps the pre-snap behavior (still fully usable) instead of throwing.
-    if ("onscrollend" in window) {
-        list.addEventListener("scrollend", () => {
-            const active = list.querySelector(".wheel-active");
-            if (!active) return;
-            const target = active.offsetTop - (list.clientHeight - active.offsetHeight) / 2;
-            if (Math.abs(list.scrollTop - target) > 1) list.scrollTo({ top: target, behavior: "smooth" });
-        }, { passive: true });
-    }
-    return updateWheelFade;
+// This list used to be a spin-wheel: a fixed highlight band always at the list's
+// vertical center, with the currently-scrolled-to row detected by proximity to that
+// center and re-centered on scroll pause, and every option's opacity fading by
+// distance from it. That needed blank padding reserved above the first row and below
+// the last so they could reach dead center under the band too, which read as leftover
+// empty space in the sheet once an end value was selected/scrolled to - see git
+// history on this function and on .country-modal-list's CSS. This plain version
+// doesn't track scroll position at all: the selection only changes when a row is
+// actually tapped (each option's own click handler, set up by each picker's caller),
+// so there's nothing to detect or re-center and nothing to reserve space for.
+function markActiveOption(list, activeBtn) {
+    list.querySelectorAll(".wheel-active").forEach((btn) => btn.classList.remove("wheel-active"));
+    if (!activeBtn) return;
+    activeBtn.classList.add("wheel-active");
+    activeBtn.scrollIntoView({ block: "nearest" });
 }
 
 // Shared option-list picker (Faza 4, re-centered later) - replaces native <select>
@@ -603,8 +562,6 @@ function createAnchoredListPicker(modalId) {
     const list = modal.querySelector(".country-modal-list");
     let openTriggerBtn = null;
 
-    const updateWheelFade = setupWheelFade(list, 44);
-
     function open(triggerBtn, options, currentValue, onSelect) {
         openTriggerBtn = triggerBtn;
         list.innerHTML = "";
@@ -623,25 +580,18 @@ function createAnchoredListPicker(modalId) {
         });
 
         modal.classList.add("open");
-        // Opens with the current value already scrolled to the wheel's own center,
-        // rather than at the top of the list - offsetTop needs a layout pass first
-        // (list.innerHTML was just rebuilt above), hence the rAF.
-        requestAnimationFrame(() => {
-            const target = selectedBtn || list.firstElementChild;
-            if (target) list.scrollTop = target.offsetTop - (list.clientHeight - target.offsetHeight) / 2;
-            updateWheelFade();
-        });
+        // Marking/scrolling needs a layout pass first (list.innerHTML was just
+        // rebuilt above), hence the rAF.
+        requestAnimationFrame(() => markActiveOption(list, selectedBtn || list.firstElementChild));
     }
     function close() {
         modal.classList.remove("open");
         openTriggerBtn = null;
     }
-    // Tapping the backdrop commits whichever option the wheel is currently centered
-    // on - the same as tapping that option directly (its own click listener, set up
-    // in open() above, already does both the onSelect(opt) call and close()) - rather
-    // than discarding a scroll and leaving the field's old value in place. Scrolling
-    // to a value and tapping away is the whole point of a wheel picker; requiring an
-    // exact tap on the row too, on top of that, was the part that felt broken.
+    // Tapping the backdrop commits whichever option is currently marked selected -
+    // the same as tapping that option directly (its own click listener, set up in
+    // open() above, already does both the onSelect(opt) call and close()) - rather
+    // than discarding the picker and leaving the field's old value in place.
     backdrop.addEventListener("click", () => {
         const active = list.querySelector(".wheel-active");
         if (active) active.click(); else close();
@@ -1092,11 +1042,9 @@ function setupCountryPicker() {
     ];
     let active = null;
 
-    const updateWheelFade = setupWheelFade(list, 44);
-
     // Rendered once - no search, so the list never changes after this. data-code lets
     // openCountryModal() below find the row for whichever country is currently selected
-    // on the field that was tapped, to scroll it to the wheel's own center on open.
+    // on the field that was tapped, to mark/scroll it into view on open.
     COUNTRIES.forEach((c) => {
         const row = document.createElement("button");
         row.type = "button";
@@ -1123,14 +1071,10 @@ function setupCountryPicker() {
 
     function openCountryModal(binding) {
         active = binding;
-        // Centered zoom-in, same wheel treatment as the working-hours/currency/duration
-        // picker (#option-modal): opens with the field's current country already
-        // scrolled to the wheel's own center rather than at the top of the list.
         modal.classList.add("open");
         requestAnimationFrame(() => {
             const target = list.querySelector(`[data-code="${binding.getCurrent().code}"]`) || list.firstElementChild;
-            if (target) list.scrollTop = target.offsetTop - (list.clientHeight - target.offsetHeight) / 2;
-            updateWheelFade();
+            markActiveOption(list, target);
         });
     }
     function closeCountryModal() {
@@ -1144,9 +1088,8 @@ function setupCountryPicker() {
             else openCountryModal(binding);
         });
     });
-    // Tapping the backdrop commits whichever country the wheel is currently centered
-    // on, same as the working-hours/currency/duration picker's backdrop - scrolling to
-    // a value and tapping away is the whole point of a wheel picker.
+    // Tapping the backdrop commits whichever country is currently marked selected,
+    // same as the working-hours/currency/duration picker's backdrop.
     backdrop.addEventListener("click", () => {
         const activeRow = list.querySelector(".wheel-active");
         if (activeRow) activeRow.click(); else closeCountryModal();

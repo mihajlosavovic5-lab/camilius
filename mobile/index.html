@@ -1,5 +1,5 @@
 <!doctype html>
-<html data-bundle-version="c0af251339e9" lang="en">
+<html data-bundle-version="e0d1fadafebb" lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
@@ -16,7 +16,7 @@
 <link rel="preload" href="fonts/lora-latin-ext.woff2?v=e8c32fe92ded" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="fonts/familjen-grotesk-latin.woff2?v=e8c32fe92ded" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="fonts/familjen-grotesk-latin-ext.woff2?v=e8c32fe92ded" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="app.css?v=c0af251339e9">
+<link rel="stylesheet" href="app.css?v=e0d1fadafebb">
 </head>
 <body>
 
@@ -88,13 +88,12 @@
 <!-- Language picker - lives outside #app so its position:fixed isn't affected by any
      ancestor .screen's transform (a CSS transform creates a new containing block for
      fixed descendants, which would otherwise break this). Closed/open state is the
-     "open" class (not "hidden") so CSS transitions can animate it. Same centered wheel
+     "open" class (not "hidden") so CSS transitions can animate it. Same option-list
      treatment as the country-code and working-hours/currency/duration pickers below -
-     see openPicker() in i18n.js and .wheel-center-band's CSS. -->
+     see openPicker() in i18n.js and .country-modal-list's own CSS. -->
 <div id="lang-modal" class="lang-modal">
   <div class="lang-modal-backdrop" id="lang-modal-backdrop"></div>
   <div class="lang-modal-sheet country-modal-sheet">
-    <div class="wheel-center-band" aria-hidden="true"></div>
     <div id="lang-modal-list" class="country-modal-list"></div>
   </div>
 </div>
@@ -102,12 +101,11 @@
 <!-- Country code picker (phone number field on Create Account) - same fixed-overlay
      mechanism as the language modal above, its own instance since each phone field
      needs its own selected-country state (see setupCountryPicker() in app.js). Same
-     centered wheel treatment as the language and working-hours/currency/duration
-     pickers - no search, just a scrollable wheel list. -->
+     option-list treatment as the language and working-hours/currency/duration
+     pickers - no search, just a scrollable list. -->
 <div id="country-modal" class="lang-modal">
   <div class="lang-modal-backdrop" id="country-modal-backdrop"></div>
   <div class="lang-modal-sheet country-modal-sheet">
-    <div class="wheel-center-band" aria-hidden="true"></div>
     <div id="country-modal-list" class="country-modal-list"></div>
   </div>
 </div>
@@ -116,15 +114,13 @@
      mechanism as the country picker above, shared by every working-hours time button,
      the price list's currency button, and the duration/lead-time fields (see
      createAnchoredListPicker() in app.js). Replaces what used to be native <select>
-     elements for these fields. Styled as a scroll wheel (see .country-modal-list's own
-     CSS, shared by this and the country/language pickers above) - .wheel-center-band is
-     a static highlight sitting at the list's vertical center, behind whichever option
-     has scrolled there; the list itself (and each option's fade as it scrolls away from
-     center) is what actually moves. -->
+     elements for these fields. Styled as a plain scrollable list (see
+     .country-modal-list's own CSS, shared by this and the country/language pickers
+     above) with whichever option is currently selected marked/scrolled into view - see
+     markActiveOption() in app.js. -->
 <div id="option-modal" class="lang-modal">
   <div class="lang-modal-backdrop" id="option-modal-backdrop"></div>
   <div class="lang-modal-sheet country-modal-sheet" id="option-modal-sheet">
-    <div class="wheel-center-band" aria-hidden="true"></div>
     <div id="option-modal-list" class="country-modal-list"></div>
   </div>
 </div>
@@ -1546,8 +1542,8 @@
   </button>
 </nav>
 
-<script src="i18n.js?v=c0af251339e9"></script>
-<script src="hours-picker.js?v=c0af251339e9"></script>
-<script src="app.js?v=c0af251339e9"></script>
+<script src="i18n.js?v=e0d1fadafebb"></script>
+<script src="hours-picker.js?v=e0d1fadafebb"></script>
+<script src="app.js?v=e0d1fadafebb"></script>
 </body>
 </html>

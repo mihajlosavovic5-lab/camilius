@@ -3287,21 +3287,16 @@ function setupLanguagePicker() {
     const list = document.getElementById("lang-modal-list");
     if (!triggers.length || !modal || !sheet || !list) return;
 
-    // setupWheelFade() is defined in app.js - safe to use here since setupLanguagePicker()
-    // is only ever called from app.js (after it has fully loaded), not at i18n.js's own
-    // load time, even though i18n.js itself loads before app.js in index.html.
-    const updateWheelFade = setupWheelFade(list, 44);
-
-    // Centered zoom-in, same wheel treatment as the country-code picker and the
-    // working-hours/currency/duration picker (#option-modal): opens with the current
-    // language already scrolled to the wheel's own center rather than at the list's top.
+    // markActiveOption() is defined in app.js - safe to use here since
+    // setupLanguagePicker() is only ever called from app.js (after it has fully
+    // loaded), not at i18n.js's own load time, even though i18n.js itself loads
+    // before app.js in index.html.
     const openPicker = () => {
         modal.classList.add("open");
         triggers.forEach((t) => t.classList.add("active"));
         requestAnimationFrame(() => {
             const target = list.querySelector(`[data-code="${currentLang}"]`) || list.firstElementChild;
-            if (target) list.scrollTop = target.offsetTop - (list.clientHeight - target.offsetHeight) / 2;
-            updateWheelFade();
+            markActiveOption(list, target);
         });
     };
     const closePicker = () => {
@@ -3329,8 +3324,8 @@ function setupLanguagePicker() {
             else openPicker();
         });
     });
-    // Tapping the backdrop commits whichever language the wheel is currently centered
-    // on, same as the working-hours/currency/duration picker's backdrop.
+    // Tapping the backdrop commits whichever language is currently marked selected,
+    // same as the working-hours/currency/duration picker's backdrop.
     backdrop.addEventListener("click", () => {
         const activeRow = list.querySelector(".wheel-active");
         if (activeRow) activeRow.click(); else closePicker();
