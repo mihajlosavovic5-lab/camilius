@@ -8,12 +8,24 @@
          back to Login once the dead session was rejected server-side) and the old
          onboardingSeen (skipping the onboarding slides on what should look like a fresh
          install). -->
+    <!-- Opts out of Android 16's predictive-back default (targetSdkVersion 36, see
+         variables.gradle) - on a device running Android 16+, leaving this unset means
+         onBackPressed()/dispatchKeyEvent() stop being called and KeyEvent.KEYCODE_BACK
+         is never dispatched at all (per Android's own Android 16 behavior-change docs),
+         which silently breaks MainActivity.dispatchKeyEvent()'s overlay-vs-keyboard fix
+         (see that method's own comment) - it simply never runs, and the app falls back
+         to the WebView eating the first back press to hide the keyboard, needing a
+         second press to close the popup. Capacitor's own backButton handling (AppPlugin,
+         registered via OnBackPressedCallback/getOnBackPressedDispatcher()) is documented
+         to run "regardless of the value of android:enableOnBackInvokedCallback", so this
+         only restores the legacy KeyEvent path our own code depends on. -->
     <application
         android:allowBackup="false"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
+        android:enableOnBackInvokedCallback="false"
         android:theme="@style/AppTheme">
 
         <activity
