@@ -261,6 +261,7 @@ if (capacitorPlugins) {
         } else if (screens.help.classList.contains("active") || screens.subscription.classList.contains("active")) {
             showScreen("settings");
         } else if (screens.websiteChat.classList.contains("active")) {
+            showTabbar(true);
             showScreen("mysite");
         } else if (screens.deleteWarning.classList.contains("active")) {
             showScreen("settings");
@@ -5472,11 +5473,18 @@ el("mysite-send-btn").addEventListener("click", () => {
     draftCard.addEventListener("click", (event) => {
         event.preventDefault();
         event.stopPropagation();
+        // Hides the tabbar for this screen (unlike Detail/Help/Subscription, which stay
+        // under it) - the chat is meant to read as its own independent window, not
+        // another tab of the Home page, restored the moment the owner leaves it below.
+        showTabbar(false);
         showScreen("websiteChat");
         ensureGreeting();
     }, true);
 
-    backBtn.addEventListener("click", () => showScreen("mysite"));
+    backBtn.addEventListener("click", () => {
+        showTabbar(true);
+        showScreen("mysite");
+    });
     sendBtn.addEventListener("click", send);
     input.addEventListener("keydown", (event) => {
         if (event.key === "Enter" && !event.shiftKey) {
