@@ -4471,7 +4471,6 @@ async function loadMySite() {
             el("mysite-slug").value = page.slug || "";
             mysiteSyncDomainCheckBtnVisibility();
             mysiteChosenDomain = page.pending_custom_domain || null;
-            mysiteRenderChosenDomain();
             el("mysite-tagline-input").value = page.tagline || "";
             el("mysite-about-input").value = page.about || "";
             el("mysite-published").checked = !!page.published;
@@ -4669,37 +4668,22 @@ el("mysite-save-btn").addEventListener("click", async () => {
 // *pending* pick, purchased automatically once the owner publishes (not yet owned).
 let mysiteChosenDomain = null;
 
-// No visible confirmation beyond the Check button's own checkmark/"Change" state (see
+// No visible confirmation beyond the Check button's own checkmark (see
 // mysiteFinishDomainCheck) - the owner's real "is this really the domain I want, and am I
 // sure I want to pay for it" confirmation is the dedicated checkout page
 // (templates/domain_checkout.html, opened from Publish) that names the domain and price
 // before anything is charged, so an inline chip here would just be a second, redundant
 // readout of the same pick.
-function mysiteRenderChosenDomain() {
-    // A domain already on file (picked in an earlier session, or during a live check just
-    // above this call - see mysiteChooseDomain) means the button's job from here on is
-    // changing it, not checking for the first time - covers loadMySite/the boot cache
-    // restore too, not just the live check flow (mysiteFinishDomainCheck handles that
-    // one's own checkmark-then-label timing on top of this).
-    const btn = el("mysite-domain-check-btn");
-    if (mysiteChosenDomain && btn && btn.getAttribute("data-i18n") !== "mysite.website.changeDomainBtn") {
-        btn.setAttribute("data-i18n", "mysite.website.changeDomainBtn");
-        btn.textContent = t("mysite.website.changeDomainBtn") || "Change";
-    }
-}
-
 function mysiteChooseDomain(domain) {
     mysiteChosenDomain = domain;
-    mysiteRenderChosenDomain();
 }
 
 // Swaps the loading dots for a small green checkmark - the "yes, that's yours" signal in
 // place of a badge the owner has to read - then, once it's had a moment to register,
-// swaps the button itself over to "Change" for every check from here on (see
-// mysite.website.changeDomainBtn: only the very first check ever should still say
-// "Check", since every later one is changing a domain that's already on file). Shared by
-// both call sites in mysiteCheckDomains below: the single-match auto-pick and the
-// multi-match "Choose" click, so the confirmation reads identically either way.
+// reverts the button back to "Check" (always - re-checking an already-chosen domain
+// still reads as "Check", not "Change"). Shared by both call sites in mysiteCheckDomains
+// below: the single-match auto-pick and the multi-match "Choose" click, so the
+// confirmation reads identically either way.
 function mysiteFinishDomainCheck(btn) {
     btn.disabled = true;
     // Drops the button's own pill border/background while the checkmark shows - see
@@ -4709,8 +4693,7 @@ function mysiteFinishDomainCheck(btn) {
     btn.innerHTML = '<svg class="field-inline-btn-check" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.3" pathLength="1"/><path d="M4.7 8.4l2.1 2.1 4.4-4.9" pathLength="1"/></svg>';
     setTimeout(() => {
         btn.classList.remove("field-inline-btn-success");
-        btn.setAttribute("data-i18n", "mysite.website.changeDomainBtn");
-        btn.textContent = t("mysite.website.changeDomainBtn") || "Change";
+        btn.textContent = t("mysite.website.checkDomainsShort") || "Check";
         btn.disabled = false;
     }, 1500);
 }
@@ -5566,7 +5549,6 @@ updateOfflineBanner();
         el("mysite-about-input").value = mysiteAbout || "";
         mysiteSyncDomainCheckBtnVisibility();
         mysiteChosenDomain = mysiteChosenDomainCached || null;
-        mysiteRenderChosenDomain();
     }
 
     await waitForLayoutSettle();
