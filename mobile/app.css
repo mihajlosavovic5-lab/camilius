@@ -455,13 +455,14 @@ button { font-family: inherit; -webkit-appearance: none; appearance: none; }
        multi-flick touch swipe has its own brief pause between flicks that a debounce
        reads as "the gesture settled", so it kept smooth-scrolling part-way back before
        the next flick could continue - same trapped-short-of-the-edge symptom, just via
-       JS instead of scroll-snap. setupWheelFade() (app.js) now only ever reports which
-       row is closest to center (for the fade/highlight) - it never touches the scroll
-       position itself, so nothing is fighting the user's swipe and it always reaches
-       the true top/bottom. Trade-off: a value within roughly the first/last 2 rows
-       can't reach exact center (there's no room left to scroll it there), so opening
-       the picker on one of those values won't highlight it under the band - it's still
-       fully visible and one tap away, just not shown as "centered". */
+       JS instead of scroll-snap. setupWheelFade() (app.js) reports whichever row is
+       closest to center on every scroll (for the fade/highlight), and separately nudges
+       the list to that row's exact center on 'scrollend' - a resting position, not a
+       gesture pause, so it never fights an in-progress swipe the way the debounce did,
+       but still stops the band from settling half over two rows. Trade-off: a value
+       within roughly the first/last 2 rows can't reach exact center (there's no room
+       left to scroll it there, so the 'scrollend' nudge clamps at the true edge instead)
+       - it's still fully visible and one tap away, just not shown as "centered". */
     height: 220px;
 }
 .country-option-btn {

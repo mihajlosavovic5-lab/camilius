@@ -534,17 +534,22 @@ if (capacitorPlugins) {
 // function so a caller can also invoke it directly right after scrolling to a target
 // (e.g. on open), instead of waiting for a scroll event to fire first.
 //
-// Purely reactive to whatever the user is already doing with the scroll position -
-// this used to also force a smooth-scroll to re-center the closest row once a scroll
-// gesture paused for a moment (CSS scroll-snap's job, before that needed list padding
-// that showed as empty space at either end - see .country-modal-list's own CSS/git
-// history). That fought a real, multi-flick touch swipe: each flick's momentum has its
-// own brief pause before the next one, which the debounce read as "gesture settled"
-// and smooth-scrolled part-way back toward center, over and over, so a swipe could
-// never actually make it from one end of the list to the other. Letting the scroll
-// position be is what makes a normal swipe reach the true top/bottom edge - the
-// highlight/fade below just reports whatever's currently closest to center, it never
-// moves the list itself.
+// While a swipe is actually moving, this only reacts to the scroll position - it used
+// to also force a smooth-scroll to re-center the closest row on every scroll pause
+// (CSS scroll-snap's job, before that needed list padding that showed as empty space
+// at either end - see .country-modal-list's own CSS/git history). That fought a real,
+// multi-flick touch swipe: each flick's momentum has its own brief pause before the
+// next one, which a plain 'scroll' debounce couldn't tell apart from "the gesture is
+// done", so it kept smooth-scrolling part-way back toward center, over and over, and a
+// swipe could never actually make it from one end of the list to the other.
+//
+// 'scrollend' (unlike a 'scroll' debounce) is exactly the signal that was missing: the
+// browser itself only fires it once touch input and any resulting momentum have both
+// fully settled, so it never fires mid-flick the way a fixed timeout guessed at. Once
+// it does fire, the list is genuinely at rest and free to nudge that resting position
+// the last few pixels so exactly one row - not half of two - ends up under the band,
+// without ever fighting a swipe still in progress (a new touch on the list cancels the
+// resulting programmatic scroll the same way it would cancel any other smooth-scroll).
 function setupWheelFade(list, rowHeight) {
     function updateWheelFade() {
         const centerY = list.getBoundingClientRect().top + list.clientHeight / 2;
@@ -568,6 +573,16 @@ function setupWheelFade(list, rowHeight) {
             wheelFadeTicking = false;
         });
     }, { passive: true });
+    // Feature-detected rather than assumed - on a WebView old enough to lack it, the
+    // list just keeps the pre-snap behavior (still fully usable) instead of throwing.
+    if ("onscrollend" in window) {
+        list.addEventListener("scrollend", () => {
+            const active = list.querySelector(".wheel-active");
+            if (!active) return;
+            const target = active.offsetTop - (list.clientHeight - active.offsetHeight) / 2;
+            if (Math.abs(list.scrollTop - target) > 1) list.scrollTo({ top: target, behavior: "smooth" });
+        }, { passive: true });
+    }
     return updateWheelFade;
 }
 
