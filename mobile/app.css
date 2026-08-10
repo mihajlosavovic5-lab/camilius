@@ -501,7 +501,6 @@ button { font-family: inherit; -webkit-appearance: none; appearance: none; }
     background: var(--surface); font-family: inherit; font-size: 16px; color: var(--text); cursor: pointer;
 }
 .phone-country-flag { font-size: 18px; }
-.phone-country-chevron { font-size: 12px; color: var(--text-muted); }
 .phone-input-row .floating-field { flex: 1; min-width: 0; }
 
 /* --- Forms --- */
