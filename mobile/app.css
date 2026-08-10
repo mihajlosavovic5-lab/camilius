@@ -287,26 +287,35 @@ button { font-family: inherit; -webkit-appearance: none; appearance: none; }
 /* White page titles - the 4 tab roots (Home/Schedule/Profile/Settings) plus the "Draft
    this with AI" chat's own Camilius header. .topbar itself stays transparent (no colored
    band behind it - tried that first, read as a bolted-on slab), so plain white nearly
-   vanished against the screen's own light cream wash on its own too - the outline
-   (text-stroke, with a soft text-shadow fallback for engines that ignore
-   -webkit-text-stroke) is what actually keeps the letterforms readable. Scoped to just
+   vanished against the screen's own light cream wash on its own too - the 8-direction
+   text-shadow ring below is what actually keeps the letterforms readable. Scoped to just
    these five screens (via their own .screen-* class) - every other back-button detail
    screen (Help, Subscription, Delete account, ...) keeps its own dark title text.
-   Used to be a 1px stroke plus four hard 1px-offset shadow copies (no blur); on this
-   bold condensed heading font the un-blurred copies didn't fully overlap on tight
-   junctions and diagonals (M/W/S and the like), so the outline read as doubled,
-   crossing lines instead of one clean edge - same root cause the field-editor modal
-   title had at its own size (see .mysite-field-modal-sheet .book-modal-title below).
-   A single soft (blurred) shadow behind a slightly thinner stroke keeps one crisp
-   edge at every letterform instead. */
+   Deliberately NOT -webkit-text-stroke (tried that first, in two different weights):
+   a stroked outline is drawn along the glyph's own outline path, and at a sharp join
+   like the crossbar meeting the diagonals in "A" or the crossbar meeting the stem in
+   "t", the stroke's corner miter overshoots past the actual corner - so the horizontal
+   stroke visibly runs on past the point where it should stop, reading as crossing lines
+   rather than one clean corner. A ring of small blurred shadow copies has no such join:
+   each copy is just the whole filled glyph nudged a little in one of 8 directions, so
+   overlapping copies build up a uniformly rounded halo with no per-corner geometry to
+   go wrong. Same fix shape as .mysite-field-modal-sheet .book-modal-title below, scaled
+   up for this rule's larger 28px font. */
 .screen-mysite .topbar-title h1,
 .screen-schedule .topbar-title h1,
 .screen-profile .topbar-title h1,
 .screen-settings .topbar-title h1,
 .screen-website-chat .topbar-title h1 {
     color: #fff;
-    -webkit-text-stroke: 0.75px rgba(0, 0, 0, .8);
-    text-shadow: 0 1px 2px rgba(0, 0, 0, .5);
+    text-shadow:
+        1.3px 0 0.6px rgba(0, 0, 0, .7),
+        -1.3px 0 0.6px rgba(0, 0, 0, .7),
+        0 1.3px 0.6px rgba(0, 0, 0, .7),
+        0 -1.3px 0.6px rgba(0, 0, 0, .7),
+        0.9px 0.9px 0.6px rgba(0, 0, 0, .7),
+        -0.9px 0.9px 0.6px rgba(0, 0, 0, .7),
+        0.9px -0.9px 0.6px rgba(0, 0, 0, .7),
+        -0.9px -0.9px 0.6px rgba(0, 0, 0, .7);
     font-size: 28px;
 }
 
@@ -1967,18 +1976,30 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
    own plain --surface white, so the value still reads as a distinct field floating on
    the cream card instead of blending into it. */
 .mysite-field-modal-sheet { background: var(--primary-light); }
-/* Same white-with-black-outline idea as the five screen-root page titles above
+/* Same white-with-outline idea as the five screen-root page titles above
    (.screen-mysite .topbar-title h1 etc.) - this modal's title (Web address/Headline/
    About) sits on the same warm cream .mysite-field-modal-sheet background, so plain
    dark text would look inconsistent right next to those, and plain white alone would
-   wash out the same way it did there before the outline was added. Thinner stroke
-   here since this title runs much smaller (17.5px vs. 28px) and a proportionally
-   thick stroke eats a bigger share of each letterform at small sizes. */
+   wash out the same way it did there before the outline was added. Same 8-direction
+   shadow-ring technique as that rule too, not -webkit-text-stroke - a stroked outline
+   follows the glyph's own outline path, and at a sharp join (the crossbar meeting the
+   diagonals in "A", the crossbar meeting the stem in "t") the stroke's corner miter
+   overshoots past the actual corner, reading as crossing lines rather than one clean
+   edge. The shadow ring has no such join since each copy is just the whole filled
+   glyph nudged in one of 8 directions. Smaller radius/blur than the page-title rule
+   since this title runs much smaller (17.5px vs. 28px). */
 .mysite-field-modal-sheet .book-modal-title {
     text-align: center;
     color: #fff;
-    -webkit-text-stroke: 0.6px rgba(0, 0, 0, .8);
-    text-shadow: 0 0.5px 1.5px rgba(0, 0, 0, .5);
+    text-shadow:
+        0.8px 0 0.4px rgba(0, 0, 0, .7),
+        -0.8px 0 0.4px rgba(0, 0, 0, .7),
+        0 0.8px 0.4px rgba(0, 0, 0, .7),
+        0 -0.8px 0.4px rgba(0, 0, 0, .7),
+        0.6px 0.6px 0.4px rgba(0, 0, 0, .7),
+        -0.6px 0.6px 0.4px rgba(0, 0, 0, .7),
+        0.6px -0.6px 0.4px rgba(0, 0, 0, .7),
+        -0.6px -0.6px 0.4px rgba(0, 0, 0, .7);
 }
 .mysite-field-modal-body { margin-top: 14px; }
 .mysite-field-modal-control { width: 100%; text-align: center; }
