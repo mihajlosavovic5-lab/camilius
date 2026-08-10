@@ -1889,14 +1889,12 @@ body.auth {
    effectively only for "today" - see schedule.html. */
 .schedule-past-toggle { margin: 0 0 10px; }
 .schedule-past-summary {
-    display: flex; justify-content: center; align-items: center; gap: 6px; cursor: pointer; list-style: none;
+    display: flex; justify-content: center; align-items: center; cursor: pointer; list-style: none;
     padding: 6px 4px; font-size: 13px; font-weight: 600; color: var(--text-muted);
     -webkit-tap-highlight-color: transparent;
 }
 .schedule-past-summary::-webkit-details-marker { display: none; }
 .schedule-past-summary:hover { color: var(--text); }
-.schedule-past-chevron { display: inline-block; font-size: 10px; transition: transform .15s ease; }
-.schedule-past-toggle[open] .schedule-past-chevron { transform: rotate(90deg); }
 .schedule-timeline-past { margin-top: 6px; }
 
 .schedule-slot { display: flex; align-items: center; gap: 12px; padding: 10px 14px; border-radius: 10px; border: 1px solid var(--border-soft); background: var(--surface); }
