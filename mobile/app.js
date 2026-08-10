@@ -4424,7 +4424,6 @@ function mysitePopulateThemeSelect(currentThemeId) {
 }
 
 async function loadMySite() {
-    el("mysite-business-name").textContent = state.businessName || "";
     el("mysite-error").classList.add("hidden");
     try {
         const data = await api("/api/page");
