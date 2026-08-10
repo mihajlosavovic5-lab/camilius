@@ -1102,14 +1102,6 @@ input.search-input {
     background: var(--surface);
     transition: border-color .15s, box-shadow .15s, transform .15s cubic-bezier(.2,.9,.3,1.3);
 }
-/* Search box grew a floating label (placeholder=" " + <label>, same mechanism as
-   .floating-field elsewhere - see the shared rules below) to match the mobile app's
-   inbox search field. The wrapping .floating-field itself needs the same flex sizing
-   .search-input had directly before, and its input needs the pill's own padding/radius
-   back (beats the generic .floating-field input[type="text"] rule on specificity). */
-.search-row .floating-field { flex: 1 1 260px; max-width: 420px; margin-top: 0; }
-.search-row .floating-field label { left: 18px; right: 18px; }
-.search-row .floating-field input.search-input[type="text"] { padding: 19px 18px 5px; }
 /* Same card lift as the nav pills/filter tabs/donation strip, for a consistent hover feel. */
 .search-input:hover {
     transform: translateY(-1px);

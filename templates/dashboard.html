@@ -39,10 +39,7 @@
     {% endif %}
 
     <div class="search-row">
-        <div class="floating-field">
-            <input type="text" id="dashboard-search" class="search-input" autocomplete="off" placeholder=" ">
-            <label for="dashboard-search" data-i18n="dashboard.searchPlaceholder">Search conversations</label>
-        </div>
+        <input type="text" id="dashboard-search" class="search-input" autocomplete="off" placeholder="Search conversations" data-i18n-placeholder="dashboard.searchPlaceholder">
 
         {% if donation_link %}
             <div class="donation-strip">

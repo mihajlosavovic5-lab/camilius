@@ -538,7 +538,6 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
    by-side pair, the phone-number row's own margin-top above) - cancel the default
    top margin there so it isn't double-spaced. */
 .screen-login .floating-field,
-.search-row .floating-field,
 .price-row .floating-field,
 .upsell-row .floating-field,
 .phone-input-row .floating-field {
@@ -587,17 +586,6 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
 .floating-field input[type="tel"],
 .floating-field input[type="number"] {
     padding: 20px 13px 6px;
-}
-
-/* Search conversations (inbox) - same floating mechanism, compact sizing to match the
-   search bar's original height instead of the taller login/forgot-password fields. */
-.search-row .floating-field input[type="text"] {
-    padding: 17px 14px 5px; font-size: 16px; border-radius: 10px;
-}
-.search-row .floating-field label { font-size: 16px; }
-.search-row .floating-field input:focus + label,
-.search-row .floating-field input:not(:placeholder-shown) + label {
-    height: 20px; font-size: 11px;
 }
 
 /* Price list rows (Service / Price) - two floating fields side by side, compact to fit
