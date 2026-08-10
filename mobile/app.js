@@ -4048,7 +4048,6 @@ async function loadNotificationPreferences() {
         el("settings-new-booking-toggle").checked = !!data.new_booking_notifications_enabled;
         el("settings-reminders-owner-toggle").checked = !!data.owner_reminders_enabled;
         state.reminderOwnerMinutes = data.owner_reminder_minutes || 60;
-        el("settings-reminders-owner-lead-label").textContent = reminderLeadLabel(state.reminderOwnerMinutes);
         applyProAccessLocks();
         appSettingsSnapshot = serializeAppSettingsForm();
         updateAppSettingsSaveState();
@@ -4096,36 +4095,31 @@ function updateAppSettingsSaveState() {
 // Reminder lead-time picker - same optionPicker (centered on screen, see
 // createOptionButton's comment above) + "Custom" -> duration-modal pattern as the
 // Schedule tab's own duration buttons above, just with the reminder presets instead
-// of slot-duration ones. Returns the open function too, so the owner-reminders toggle
-// below can trigger the same centered picker the instant it's switched on, instead of
-// making the user hunt for the small "Send Xh before" row underneath it.
-function wireReminderLeadPicker(buttonId, labelId, getMinutes, setMinutes) {
-    const openPicker = () => {
-        const btn = el(buttonId);
-        if (optionPicker.isOpenFor(btn)) { optionPicker.close(); return; }
-        const customLabel = t("schedule.custom");
-        const options = REMINDER_LEAD_CHOICES.map(reminderLeadLabel).concat(customLabel);
-        const currentLabel = REMINDER_LEAD_CHOICES.includes(getMinutes()) ? reminderLeadLabel(getMinutes()) : customLabel;
-        optionPicker.open(btn, options, currentLabel, async (chosen) => {
-            let minutes;
-            if (chosen === customLabel) {
-                minutes = await promptForCustomDuration(getMinutes(), REMINDER_LEAD_MIN_MINUTES, REMINDER_LEAD_MAX_MINUTES, REMINDER_LEAD_CHOICES);
-                if (minutes == null) return;
-            } else {
-                minutes = REMINDER_LEAD_CHOICES[options.indexOf(chosen)];
-            }
-            setMinutes(minutes);
-            el(labelId).textContent = reminderLeadLabel(minutes);
-            updateAppSettingsSaveState();
-        });
-    };
-    el(buttonId).addEventListener("click", openPicker);
-    return openPicker;
+// of slot-duration ones. There's no persistent button/label for this anymore (the
+// "Send Xh before" row was removed - see settings-reminders-owner-row below): flipping
+// "Remind me" on is now the only way to reach it, so it's asked once right there
+// instead of leaving a second control sitting under the toggle. The toggle row itself
+// is passed as the picker's anchor purely so optionPicker.isOpenFor has some element to
+// track; it plays no part in the (centered, not anchored) modal's positioning.
+function openReminderOwnerLeadPicker() {
+    const anchor = el("settings-reminders-owner-row");
+    if (optionPicker.isOpenFor(anchor)) { optionPicker.close(); return; }
+    const customLabel = t("schedule.custom");
+    const options = REMINDER_LEAD_CHOICES.map(reminderLeadLabel).concat(customLabel);
+    const currentLabel = REMINDER_LEAD_CHOICES.includes(state.reminderOwnerMinutes)
+        ? reminderLeadLabel(state.reminderOwnerMinutes) : customLabel;
+    optionPicker.open(anchor, options, currentLabel, async (chosen) => {
+        let minutes;
+        if (chosen === customLabel) {
+            minutes = await promptForCustomDuration(state.reminderOwnerMinutes, REMINDER_LEAD_MIN_MINUTES, REMINDER_LEAD_MAX_MINUTES, REMINDER_LEAD_CHOICES);
+            if (minutes == null) return;
+        } else {
+            minutes = REMINDER_LEAD_CHOICES[options.indexOf(chosen)];
+        }
+        state.reminderOwnerMinutes = minutes;
+        updateAppSettingsSaveState();
+    });
 }
-const openReminderOwnerLeadPicker = wireReminderLeadPicker(
-    "settings-reminders-owner-lead-btn", "settings-reminders-owner-lead-label",
-    () => state.reminderOwnerMinutes, (m) => { state.reminderOwnerMinutes = m; },
-);
 
 // Flipping "Remind me" on immediately surfaces the lead-time picker (centered on
 // screen, per createOptionButton's comment above) so choosing "how long before" reads
@@ -4145,13 +4139,9 @@ el("settings-reminders-owner-toggle").addEventListener("change", (event) => {
 function applyProAccessLocks() {
     const ownerToggle = el("settings-reminders-owner-toggle");
     const ownerRow = el("settings-reminders-owner-row");
-    const ownerLeadRow = el("settings-reminders-owner-lead-row");
-    const ownerLeadBtn = el("settings-reminders-owner-lead-btn");
     if (ownerToggle && ownerRow) {
         ownerToggle.disabled = !state.proAccess;
         ownerRow.classList.toggle("pro-locked", !state.proAccess);
-        if (ownerLeadRow) ownerLeadRow.classList.toggle("pro-locked", !state.proAccess);
-        if (ownerLeadBtn) ownerLeadBtn.disabled = !state.proAccess;
         if (!state.proAccess) ownerToggle.checked = false;
     }
     const upsellPicker = el("settings-upsell-picker");

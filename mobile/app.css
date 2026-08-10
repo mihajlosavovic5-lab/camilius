@@ -921,23 +921,6 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
 .settings-row.pro-locked { opacity: .5; cursor: default; }
 .settings-row.pro-locked:active { background: none; }
 
-/* Customer/owner no-show reminder lead-time row (Faza 13) - sits directly under each
-   reminder toggle: an inline label + the shared anchored .picker-btn dropdown (same
-   widget as the working-hours time fields) + the "before the appointment" hint, all on
-   one line - wraps onto a second line rather than overflowing if a narrow screen and a
-   longer translated hint don't both fit. */
-/* The toggle row and its own reminder-lead-row directly below it read as one group
-   (the lead-row is just that toggle's "how long before" setting) - now that the hint
-   paragraph that used to separate them is gone, .settings-row's own border-bottom
-   would otherwise cut a line straight through the middle of that single group instead
-   of just closing it off before the next one (which the lead-row's own border-bottom
-   already does). */
-#settings-reminders-owner-row { border-bottom: none; }
-.reminder-lead-row { padding-top: 4px; padding-bottom: 16px; }
-.reminder-lead-inline { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; }
-.reminder-lead-row .picker-btn { width: auto; min-width: 90px; }
-.reminder-lead-row .field-hint { margin: 0; }
-
 .theme-toggle { display: flex; background: var(--background); border-radius: 10px; padding: 3px; gap: 3px; }
 .theme-option {
     flex: 1; background: none; border: none; padding: 9px 6px; border-radius: 8px;
