@@ -1734,8 +1734,8 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
 .mysite-domain-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 /* "Choose" button per available domain row - picks that real, independently-registrable
-   domain to be purchased automatically once the owner publishes (see mysite-chosen-domain
-   below). Small pill button, same size as the badge next to it but interactive/primary-
+   domain to be purchased automatically once the owner publishes (see mysiteChosenDomain
+   in app.js). Small pill button, same size as the badge next to it but interactive/primary-
    colored so it doesn't get mistaken for another status tag. Clicking it clears the whole
    results list right away (see mysiteCheckDomains in app.js) - there's never a moment
    where more than one row is on screen to tell "chosen" apart from the rest, so unlike an
@@ -1745,26 +1745,6 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
     background: none; color: var(--primary-ink); font-size: 13px; font-weight: 600; cursor: pointer;
 }
 .mysite-domain-choose-btn:active { background: var(--primary-light); }
-
-/* Confirmation chip once a real domain's been chosen - sits right under the Web address
-   field (the platform's own /p/<slug> path field, which can't hold a dotted domain name -
-   see MYSITE_SLUG_RE) so the pick is visible right where the owner is looking, without
-   conflating the two different addresses. Cleared state removes it and reverts to the
-   platform address alone. */
-.mysite-chosen-domain {
-    display: flex; align-items: center; gap: 10px;
-    padding: 6px 12px; margin: 10px 0 14px; border-radius: 10px;
-    background: var(--success-bg); border: 1px solid var(--success-border);
-}
-.mysite-chosen-domain-icon { font-size: 15px; flex-shrink: 0; }
-.mysite-chosen-domain-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 0; }
-.mysite-chosen-domain-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .4px; color: var(--success); }
-.mysite-chosen-domain-name { font-size: 14px; font-weight: 600; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.mysite-chosen-domain-clear {
-    flex-shrink: 0; width: 22px; height: 22px; border-radius: 50%; border: none;
-    background: none; color: var(--text-muted); font-size: 16px; line-height: 1; cursor: pointer;
-}
-.mysite-chosen-domain-clear:active { background: rgba(43, 32, 19, .08); }
 
 /* Sits right under the About field, so it takes the same top spacing as the floating
    fields above it (14px, not .button's own larger default) and a slimmer vertical

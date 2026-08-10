@@ -4669,10 +4669,13 @@ el("mysite-save-btn").addEventListener("click", async () => {
 // *pending* pick, purchased automatically once the owner publishes (not yet owned).
 let mysiteChosenDomain = null;
 
+// No visible confirmation beyond the Check button's own checkmark/"Change" state (see
+// mysiteFinishDomainCheck) - the owner's real "is this really the domain I want, and am I
+// sure I want to pay for it" confirmation is the dedicated checkout page
+// (templates/domain_checkout.html, opened from Publish) that names the domain and price
+// before anything is charged, so an inline chip here would just be a second, redundant
+// readout of the same pick.
 function mysiteRenderChosenDomain() {
-    const chip = el("mysite-chosen-domain");
-    el("mysite-chosen-domain-name").textContent = mysiteChosenDomain || "";
-    chip.classList.toggle("hidden", !mysiteChosenDomain);
     // A domain already on file (picked in an earlier session, or during a live check just
     // above this call - see mysiteChooseDomain) means the button's job from here on is
     // changing it, not checking for the first time - covers loadMySite/the boot cache
@@ -4689,7 +4692,6 @@ function mysiteChooseDomain(domain) {
     mysiteChosenDomain = domain;
     mysiteRenderChosenDomain();
 }
-el("mysite-chosen-domain-clear").addEventListener("click", () => mysiteChooseDomain(null));
 
 // Swaps the loading dots for a small green checkmark - the "yes, that's yours" signal in
 // place of a badge the owner has to read - then, once it's had a moment to register,
