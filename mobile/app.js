@@ -5023,6 +5023,7 @@ function openMysiteFieldModal(fieldId) {
     if (source.maxLength >= 0) active.maxLength = source.maxLength; else active.removeAttribute("maxlength");
     active.value = source.value;
     if (showTextarea) mysiteFieldModalAutoGrowTextarea();
+    mysiteUpdateFieldModalDeleteBtnVisibility();
     source.blur();
     pinModalCenter(el("mysite-field-modal"));
     el("mysite-field-modal").classList.add("open");
@@ -5048,6 +5049,14 @@ function mysiteFieldModalSync() {
     source.dispatchEvent(new Event("input", { bubbles: true }));
     mysiteUpdateFieldFade(source);
     if (active === el("mysite-field-modal-textarea")) mysiteFieldModalAutoGrowTextarea();
+    mysiteUpdateFieldModalDeleteBtnVisibility();
+}
+
+// Delete badge only makes sense once there's something to delete - hidden on an empty
+// field (nothing circled/typed yet) and revealed the moment a keystroke gives it a
+// value, rather than sitting there as a dead tap-target over blank fields.
+function mysiteUpdateFieldModalDeleteBtnVisibility() {
+    el("mysite-field-modal-delete-btn").classList.toggle("hidden", mysiteFieldModalActiveControl().value.length === 0);
 }
 el("mysite-field-modal-input").addEventListener("input", mysiteFieldModalSync);
 el("mysite-field-modal-textarea").addEventListener("input", mysiteFieldModalSync);
