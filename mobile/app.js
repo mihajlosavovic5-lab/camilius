@@ -6328,6 +6328,19 @@ el("mysite-field-modal-input").addEventListener("input", mysiteFieldModalSync);
 el("mysite-field-modal-textarea").addEventListener("input", mysiteFieldModalSync);
 el("mysite-field-modal-backdrop").addEventListener("click", closeMysiteFieldModal);
 
+// Web address only - the fixed "https://.../p/" prefix (see MYSITE_SLUG_LINK_PREFIX
+// above) isn't itself an input, so tapping it did nothing: no keyboard, no scroll. A tap
+// anywhere in the row that isn't the copy button or the real editable slug now scrolls
+// the row so that slug comes fully into view on the right and focuses it directly,
+// opening the keyboard exactly where typing actually lands - same destination a manual
+// swipe-then-tap would have reached, just in one tap.
+el("mysite-field-modal-input-row").addEventListener("click", (event) => {
+    if (event.target.closest(".mysite-field-modal-copy-btn, .mysite-field-modal-control, .mysite-field-modal-password-toggle")) return;
+    const inputRow = el("mysite-field-modal-input-row");
+    inputRow.scrollLeft = inputRow.scrollWidth;
+    el("mysite-field-modal-input").focus();
+});
+
 // Copies the full address (MYSITE_SLUG_LINK_PREFIX + whatever slug is currently typed)
 // to the clipboard, so the owner can hand it to someone else without retyping/assembling
 // it themselves. Same try navigator.clipboard/fall back to a temp-input pattern as
