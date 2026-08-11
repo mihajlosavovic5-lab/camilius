@@ -1404,14 +1404,14 @@
     var BOOK_DAY_CHEVRON = '<svg class="book-day-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 9l6 6 6-6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
     // Whether a day's slots should show or stay collapsed - one shared preference
-    // carried across the whole carousel, not a per-card default. Starts true (a day
-    // shows its slots without a tap), but the moment a visitor collapses whichever day
+    // carried across the whole carousel, not a per-card default. Starts false (a day
+    // stays collapsed until tapped), but the moment a visitor expands whichever day
     // they're looking at, that becomes the new preference: swiping to another day
-    // shows it in that same collapsed state instead of popping back open on its own,
-    // and stays that way until they expand one again. Updated by each card's own
+    // shows it in that same expanded state instead of collapsing back on its own,
+    // and stays that way until they collapse one again. Updated by each card's own
     // "toggle" listener below and applied to whichever card is newly in view by
     // syncBookListHeight further down.
-    var bookSlotsExpanded = true;
+    var bookSlotsExpanded = false;
 
     function renderBookList(days) {
         bookListEl.innerHTML = "";
