@@ -199,6 +199,28 @@
     }
     .nav-menu-backdrop.open { opacity: 1; pointer-events: auto; }
 
+    /* --- Top-bar fill - transparent over the page's own gradient at rest, then the
+       identical frosted-glass fill/blur/shadow the logged-in app's own sticky navbar
+       picks up once scrolled (.navbar/.navbar-scrolled in style.css), applied here to
+       the whole fixed hamburger+title+flag row instead of just one of them. Sits behind
+       all three (lower z-index) as its own element rather than a shared ancestor's
+       background, since .nav-menu-btn/.top-bar-title/.lang-btn are each independently
+       position: fixed and a filter on a real ancestor would hijack them as its
+       containing block (same reasoning as style.css's .navbar::before comment) -
+       toggled via the script at the bottom of this page. */
+    .top-bar-fill {
+        position: fixed; top: 0; left: 0; right: 0; z-index: 949; height: 60px;
+        background: transparent; border-bottom: 1px solid transparent;
+        transition: background .25s ease, border-color .25s ease, box-shadow .25s ease;
+        pointer-events: none;
+    }
+    .top-bar-fill.scrolled {
+        background: color-mix(in srgb, var(--surface) 85%, transparent);
+        backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+        border-bottom-color: var(--border);
+        box-shadow: 0 4px 20px rgba(38, 32, 20, .05);
+    }
+
     /* --- Top-bar title - the business name, centered between .nav-menu-btn (fixed
        top-left, 18px + 34px wide) and .lang-btn (fixed top-right, 16px + 40px wide)
        once the hamburger takes over below the 880px breakpoint. On mobile this
@@ -623,6 +645,7 @@
 </head>
 <body>
 <div id="page-progress"></div>
+<div class="top-bar-fill" id="top-bar-fill"></div>
 <button type="button" class="nav-menu-btn" id="nav-menu-btn" aria-label="Menu" aria-expanded="false" aria-controls="side-nav">
     <span class="nav-menu-btn-bar"></span>
     <span class="nav-menu-btn-bar"></span>
@@ -871,6 +894,21 @@
         if (!progressTicking) { window.requestAnimationFrame(updateProgress); progressTicking = true; }
     }, { passive: true });
     updateProgress();
+
+    // Top-bar fill - mirrors base.html's own .navbar-scrolled toggle (same threshold,
+    // same rAF throttling), just aimed at .top-bar-fill instead of .navbar since this
+    // standalone page doesn't load base.html.
+    var topBarFill = document.getElementById("top-bar-fill");
+    var topBarTicking = false;
+    function updateTopBarFill() {
+        var scrollTop = window.scrollY || document.documentElement.scrollTop;
+        topBarFill.classList.toggle("scrolled", scrollTop > 12);
+        topBarTicking = false;
+    }
+    window.addEventListener("scroll", function () {
+        if (!topBarTicking) { window.requestAnimationFrame(updateTopBarFill); topBarTicking = true; }
+    }, { passive: true });
+    updateTopBarFill();
 
     // Reveal-on-scroll for the header/CTA/each section - see landing.html's identical
     // .lp-reveal/.lp-visible pattern.
