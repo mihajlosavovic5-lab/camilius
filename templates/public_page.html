@@ -198,6 +198,17 @@
         opacity: 0; pointer-events: none; transition: opacity .3s ease;
     }
     .nav-menu-backdrop.open { opacity: 1; pointer-events: auto; }
+    /* .top-bar-title and .lang-btn sit above the backdrop (z-index 951/952 vs its 950)
+       so they'd otherwise stay full-brightness and tappable while it dims everything
+       else - fade + disable them in step via this adjacent-sibling hook (backdrop is
+       their immediately preceding sibling in the markup below) instead of raising the
+       backdrop's own z-index, which would bury it under .side-nav too. */
+    .nav-menu-backdrop.open ~ .top-bar-title,
+    .nav-menu-backdrop.open ~ .lang-btn {
+        opacity: .35;
+        pointer-events: none;
+        transition: opacity .3s ease;
+    }
 
     /* --- Top-bar fill - transparent over the page's own gradient at rest, then the
        identical frosted-glass fill/blur/shadow the logged-in app's own sticky navbar
