@@ -670,11 +670,12 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
 .password-toggle.is-visible { color: var(--primary-ink); }
 .password-toggle.is-visible .password-toggle-slash { opacity: 0; }
 
-/* "Check" button inline in the Web address field (My Site tab) - same "absolutely
-   positioned inside an already position:relative .floating-field" mechanic as
-   .password-toggle above, just a short text pill instead of an icon. */
-.floating-field-domain-check input { padding-right: 64px; }
-.floating-field-domain-check label { max-width: calc(100% - 74px); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* Availability status badge inline in the Web address field (My Site tab) - same
+   "absolutely positioned inside an already position:relative .floating-field" mechanic
+   as .password-toggle above. Narrower reserved space than the old "Check" button/pill
+   needed, since this is just a small icon now. */
+.floating-field-domain-check input { padding-right: 40px; }
+.floating-field-domain-check label { max-width: calc(100% - 50px); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 /* Web address/Headline/About fields (My Site tab) are readonly, tap-to-open-modal
    preview fields now (see openMysiteFieldModal in app.js) - a pointer cursor hints
@@ -692,28 +693,19 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
     -webkit-mask-image: linear-gradient(to right, #000 85%, transparent 100%);
     mask-image: linear-gradient(to right, #000 85%, transparent 100%);
 }
-.field-inline-btn {
-    position: absolute; top: 50%; right: 6px; transform: translateY(-50%);
-    padding: 5px 12px; border-radius: 99px; border: 1px solid var(--border);
-    background: var(--surface); color: var(--text); font-size: 13px; font-weight: 600;
-    cursor: pointer; display: none;
+/* mysite-slug-status (index.html) - the checkmark/x badge mysiteCheckSlug (app.js) shows
+   once its automatic check resolves, in place of the "Check" button/pill this used to be
+   (see .field-inline-btn-dots/.field-inline-btn-check right below, both still reused here
+   as-is - only the button chrome around them is gone). Hidden by default via the shared
+   .hidden utility class on the element itself; mysiteResetSlugStatus re-hides it the
+   moment the slug changes again, since a stale result is worse than none. */
+.mysite-slug-status {
+    position: absolute; top: 50%; right: 12px; transform: translateY(-50%);
+    display: flex; align-items: center; justify-content: center; width: 22px; height: 22px;
 }
-/* Hidden until there's something to check - same reasoning as .password-toggle.has-value. */
-.field-inline-btn.has-value { display: block; }
-.field-inline-btn:active { border-color: var(--primary); color: var(--primary-ink); }
-.field-inline-btn:disabled { opacity: .6; }
-
-/* Set only while the checkmark below is showing (see mysiteFinishDomainCheck in app.js) -
-   drops the pill's own border/background so the checkmark reads as a plain icon floating
-   next to the field, not a shape boxed inside another shape. Nudged in from the field's
-   edge (the plain pill above sits at right:6px too, but its own padding was doing this
-   same job of keeping its content off the edge - gone now along with the padding) and
-   sized up, since a borderless icon at the original 14px/flush-right read as an
-   accidental stray mark rather than a deliberate checkmark. Also cancels the general
-   :disabled dimming above so it still reads as a crisp, full-strength green while the
-   button's briefly unclickable during the hold before "Change" appears. */
-.field-inline-btn.field-inline-btn-success { padding: 0; border: none; background: none; right: 14px; }
-.field-inline-btn.field-inline-btn-success:disabled { opacity: 1; }
+.mysite-slug-status svg { width: 18px; height: 18px; }
+.mysite-slug-status.checking { color: var(--text-muted); }
+.mysite-slug-status.taken { color: var(--danger); }
 
 /* Loading state (mysiteCheckDomains in app.js swaps the button's text for this while its
    /api/check-domains call is in flight) - three dots bouncing in sequence, same bounce

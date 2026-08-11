@@ -1,5 +1,5 @@
 <!doctype html>
-<html data-bundle-version="a57e0fee2554" lang="en">
+<html data-bundle-version="c52c17736117" lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
@@ -16,7 +16,7 @@
 <link rel="preload" href="fonts/lora-latin-ext.woff2?v=e8c32fe92ded" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="fonts/familjen-grotesk-latin.woff2?v=e8c32fe92ded" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="fonts/familjen-grotesk-latin-ext.woff2?v=e8c32fe92ded" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="app.css?v=a57e0fee2554">
+<link rel="stylesheet" href="app.css?v=c52c17736117">
 </head>
 <body>
 
@@ -866,11 +866,14 @@
         <div class="profile-section-header">
           <p class="profile-section-title" data-i18n="mysite.website.title">Your website</p>
         </div>
-        <!-- The Check button here checks slug availability against THIS platform's own
-             database only (mysiteCheckSlug in app.js -> /api/check-slug ->
-             pages.slug_is_available) - never a real internet domain, never anything paid
-             (see the now-unused mysiteCheckDomains right above it in app.js, kept but not
-             wired up, for the Dynadot-purchase version of this same button). -->
+        <!-- Availability against THIS platform's own database only (mysiteCheckSlug in
+             app.js -> /api/check-slug -> pages.slug_is_available) - never a real internet
+             domain, never anything paid (see the now-unused mysiteCheckDomains further
+             down in app.js, kept but not wired up, for the Dynadot-purchase version this
+             same status badge used to be a "Check" button for). Runs automatically the
+             moment the Web address editor below closes - no button to tap - and shows up
+             here as a checkmark/x badge (mysite-slug-status) instead of a transient
+             success flash on a button, since there's no button anymore for it to flash on. -->
         <!-- slug/tagline/about are readonly here - a tap opens mysite-field-modal below
              (see openMysiteFieldModal in app.js) instead of focusing in place, which is
              the only reliable cross-WebView way to let the field itself be tapped without
@@ -881,7 +884,7 @@
         <div class="floating-field floating-field-domain-check">
           <input type="text" id="mysite-slug" placeholder=" " autocapitalize="off" autocorrect="off" readonly>
           <label for="mysite-slug" data-i18n="mysite.website.slug">Web address</label>
-          <button type="button" class="field-inline-btn" id="mysite-domain-check-btn" data-i18n="mysite.website.checkDomainsShort">Check</button>
+          <span class="mysite-slug-status hidden" id="mysite-slug-status" aria-hidden="true"></span>
         </div>
         <p class="field-error hidden" id="mysite-domain-check-error"></p>
         <div id="mysite-domain-check-results" style="margin: 0 0 14px;"></div>
@@ -1694,8 +1697,8 @@
   </button>
 </nav>
 
-<script src="i18n.js?v=a57e0fee2554"></script>
-<script src="hours-picker.js?v=a57e0fee2554"></script>
-<script src="app.js?v=a57e0fee2554"></script>
+<script src="i18n.js?v=c52c17736117"></script>
+<script src="hours-picker.js?v=c52c17736117"></script>
+<script src="app.js?v=c52c17736117"></script>
 </body>
 </html>

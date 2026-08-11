@@ -5613,7 +5613,7 @@ async function loadMySite() {
         storageSet("mysiteHasPage", page ? "1" : "").catch(() => {});
         if (page) {
             el("mysite-slug").value = page.slug || "";
-            mysiteSyncDomainCheckBtnVisibility();
+            mysiteResetSlugStatus();
             mysiteChosenDomain = page.pending_custom_domain || null;
             el("mysite-tagline-input").value = page.tagline || "";
             el("mysite-about-input").value = page.about || "";
@@ -5937,33 +5937,39 @@ async function mysiteCheckDomains(baseName) {
     }
 }
 
-// The Check button's actual current job (mysiteCheckDomains above - real, purchasable
-// internet domains via Dynadot/RDAP - is unused for now, see mobile/index.html's own
-// comment on the now-hidden purchase UI): whether `slug` is free as THIS platform's own
-// /p/<slug> address. A plain database lookup on our own side (see /api/check-slug ->
-// pages.slug_is_available), nothing external, nothing to ever pay for - reuses the same
-// checkmark/pick-list UI language as mysiteCheckDomains purely for consistency, not
-// because the two features are related. Picking a suggestion here writes straight into
+// Whether `slug` is free as THIS platform's own /p/<slug> address - a plain database
+// lookup on our own side (see /api/check-slug -> pages.slug_is_available), nothing
+// external, nothing to ever pay for (entirely separate from mysiteCheckDomains above,
+// real purchasable internet domains via Dynadot/RDAP, unused for now). Runs
+// automatically once the Web address editor closes (see closeMysiteFieldModal) - no
+// button to tap anymore, so the result shows up as a persistent checkmark/x badge on the
+// field itself (mysite-slug-status) instead of a button's own transient success flash;
+// mysiteResetSlugStatus (wired to #mysite-slug's own "input" event) is what invalidates
+// it the moment the slug changes again. Picking a suggestion here writes straight into
 // mysite-slug itself (there's no separate "chosen" value to track, unlike a purchasable
 // domain) - the owner still has to hit Save/Publish same as if they'd typed it themselves.
 async function mysiteCheckSlug(slug) {
     if (!slug) return;
-    const btn = el("mysite-domain-check-btn");
+    const status = el("mysite-slug-status");
     const resultsList = el("mysite-domain-check-results");
     const errorBox = el("mysite-domain-check-error");
-    if (!btn || !resultsList || !errorBox) return;
+    if (!status || !resultsList || !errorBox) return;
     errorBox.classList.add("hidden");
     resultsList.innerHTML = "";
-    btn.disabled = true;
-    btn.classList.remove("field-inline-btn-success");
-    const idleLabel = t(btn.getAttribute("data-i18n")) || btn.textContent;
-    btn.innerHTML = '<span class="field-inline-btn-dots"><span></span><span></span><span></span></span>';
+    status.className = "mysite-slug-status checking";
+    status.innerHTML = '<span class="field-inline-btn-dots"><span></span><span></span><span></span></span>';
     try {
         const data = await api("/api/check-slug", { method: "POST", body: { slug } });
         if (data.available) {
-            mysiteFinishDomainCheck(btn);
+            mysiteMarkSlugAvailable(status);
             return;
         }
+        status.className = "mysite-slug-status taken";
+        status.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" stroke-linecap="round"/></svg>';
+        // Up to a handful of already-confirmed-free alternatives (data.suggestions) -
+        // picking one both fills the slug back in and marks it available immediately
+        // (this same response already confirmed it free, no need to check it again),
+        // and clears the list per its own "once picked, it's decided" reasoning.
         (data.suggestions || []).forEach((candidate) => {
             const row = document.createElement("div");
             row.className = "mysite-domain-row";
@@ -5981,33 +5987,43 @@ async function mysiteCheckSlug(slug) {
                 resultsList.innerHTML = "";
                 el("mysite-slug").value = candidate;
                 mysiteUpdateFieldFade(el("mysite-slug"));
-                mysiteFinishDomainCheck(btn);
+                mysiteMarkSlugAvailable(status);
             });
             row.appendChild(chooseBtn);
 
             resultsList.appendChild(row);
         });
-        btn.disabled = false;
-        btn.textContent = idleLabel;
     } catch (err) {
-        btn.disabled = false;
-        btn.textContent = idleLabel;
+        status.className = "mysite-slug-status hidden";
+        status.innerHTML = "";
         errorBox.textContent = (err && err.message) || t("mysite.website.checkDomainsError") || t("network.error");
         errorBox.classList.remove("hidden");
     }
 }
-el("mysite-domain-check-btn").addEventListener("click", () => mysiteCheckSlug(el("mysite-slug").value.trim()));
 
-// Hidden until the field actually has something to check - same reasoning as the
-// password-toggle eye icon, so it isn't sitting there inert over an empty field. Not
-// just an "input" listener: mysite-slug's value is also set programmatically (loadMySite
-// loading a saved page), which never fires "input" - callers of that must call this
-// themselves too.
-function mysiteSyncDomainCheckBtnVisibility() {
-    el("mysite-domain-check-btn").classList.toggle("has-value", el("mysite-slug").value.trim().length > 0);
+// Same circle-then-check draw-in mysiteFinishDomainCheck used to swap the old "Check"
+// button's dots for - reused as-is (see .field-inline-btn-check in app.css, already
+// styled var(--success) regardless of which element it's dropped into) - just left
+// showing here instead of reverting after a timeout, since this is a standing "yes, this
+// address is yours" badge now, not feedback for a button press.
+function mysiteMarkSlugAvailable(status) {
+    status.className = "mysite-slug-status available";
+    status.innerHTML = '<svg class="field-inline-btn-check" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.3" pathLength="1"/><path d="M4.7 8.4l2.1 2.1 4.4-4.9" pathLength="1"/></svg>';
 }
-el("mysite-slug").addEventListener("input", mysiteSyncDomainCheckBtnVisibility);
-mysiteSyncDomainCheckBtnVisibility();
+// A stale available/taken badge (mysite-slug-status) or leftover suggestion list is worse
+// than none - both belonged to whatever slug was last actually checked, not necessarily
+// this one anymore. Not just an "input" listener: mysite-slug's value is also set
+// programmatically (loadMySite loading a saved page, picking a suggestion below), which
+// never fires "input" on its own - callers of that must call this themselves too.
+function mysiteResetSlugStatus() {
+    const status = el("mysite-slug-status");
+    status.className = "mysite-slug-status hidden";
+    status.innerHTML = "";
+    el("mysite-domain-check-results").innerHTML = "";
+    el("mysite-domain-check-error").classList.add("hidden");
+}
+el("mysite-slug").addEventListener("input", mysiteResetSlugStatus);
+mysiteResetSlugStatus();
 
 // Fade-to-transparent for a clipped Web address/Headline/About value - same
 // "scrollWidth > clientWidth after layout" measurement the Inbox list uses for its own
@@ -6104,14 +6120,22 @@ function closeMysiteFieldModal() {
     el("mysite-field-modal").classList.remove("open");
     el("mysite-field-modal-input").blur();
     el("mysite-field-modal-textarea").blur();
+    // Web address only - runs the availability check the moment the editor closes
+    // (tapping the backdrop, below), instead of a separate "Check" button the owner had
+    // to remember to tap themselves. Checked before mysiteFieldModalTargetId is cleared
+    // just below, same reason mysiteCheckSlug needs the value: it's already gone by then.
+    if (mysiteFieldModalTargetId === "mysite-slug") {
+        const slug = el("mysite-slug").value.trim();
+        if (slug) mysiteCheckSlug(slug);
+    }
     mysiteFieldModalTargetId = null;
 }
 
 // Mirrors every keystroke straight back onto the real (hidden) field, dispatching the
 // same "input" event it would fire itself if it were focused directly - the existing
 // autosave/validation (updateMysiteSaveValidity's delegated listener on #screen-mysite,
-// mysiteSyncDomainCheckBtnVisibility on #mysite-slug) already listen for exactly that,
-// so this modal needed no changes of its own to either.
+// mysiteResetSlugStatus on #mysite-slug) already listen for exactly that, so this modal
+// needed no changes of its own to either.
 function mysiteFieldModalSync() {
     if (!mysiteFieldModalTargetId) return;
     const source = el(mysiteFieldModalTargetId);
@@ -6143,7 +6167,7 @@ el("mysite-field-modal-backdrop").addEventListener("click", closeMysiteFieldModa
 // it themselves. Same try navigator.clipboard/fall back to a temp-input pattern as
 // help-copy-btn above - some WebView configs don't expose the Clipboard API. Briefly
 // swaps its own icon for a checkmark as the only feedback (no separate toast), same
-// spirit as mysiteFinishDomainCheck's own success swap on the Check button.
+// spirit as mysiteMarkSlugAvailable's own checkmark swap on the slug status badge.
 el("mysite-field-modal-copy-btn").addEventListener("click", async (event) => {
     const btn = event.currentTarget;
     const slug = el("mysite-field-modal-input").value.trim();
@@ -7112,7 +7136,7 @@ updateOfflineBanner();
         el("mysite-slug").value = mysiteSlug || "";
         el("mysite-tagline-input").value = mysiteTagline || "";
         el("mysite-about-input").value = mysiteAbout || "";
-        mysiteSyncDomainCheckBtnVisibility();
+        mysiteResetSlugStatus();
         mysiteUpdateAllFieldFades();
         mysiteChosenDomain = mysiteChosenDomainCached || null;
     }
