@@ -1637,26 +1637,19 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
     background: rgba(0, 0, 0, .35);
     display: flex; align-items: center; justify-content: center;
 }
-/* Image/video: a big square thumbnail, same footprint as a picked-photo preview in a chat
-   app's compose bar - no filename alongside it, the picture (or, for video, its icon) is
-   the whole card. */
-.compose-attachment-chip.kind-image, .compose-attachment-chip.kind-video {
+/* Image/video/document: all three are the same big square thumbnail footprint, same as a
+   picked-photo preview in a chat app's compose bar - no filename alongside it, the
+   picture (or, for video/document, its icon) is the whole card. Documents used to get
+   their own wider card with a filename next to the icon; simplified to match image/video
+   exactly so every attachment kind reads and animates the same way. */
+.compose-attachment-chip.kind-image, .compose-attachment-chip.kind-video, .compose-attachment-chip.kind-document {
     width: 84px; height: 84px; flex-shrink: 0;
 }
 .compose-attachment-chip.kind-image img {
     width: 100%; height: 100%; border-radius: 16px; object-fit: cover; display: block;
 }
-.compose-attachment-chip.kind-video .chip-icon {
+.compose-attachment-chip.kind-video .chip-icon, .compose-attachment-chip.kind-document .chip-icon {
     width: 100%; height: 100%; border-radius: 16px; font-size: 26px;
-}
-/* Document: a wider horizontal card - icon block on the left, filename (plus its PDF/DOCX
-   type underneath) stacked to the right - the shape a picked file gets in a chat app's
-   compose bar rather than a pill squeezing everything onto one line. */
-.compose-attachment-chip.kind-document {
-    width: auto; max-width: 220px; height: 60px; padding: 0 14px 0 0;
-}
-.compose-attachment-chip.kind-document .chip-icon {
-    width: 60px; height: 60px; border-radius: 16px 0 0 16px; font-size: 24px; flex-shrink: 0;
 }
 .compose-attachment-chip .chip-icon {
     display: flex; align-items: center; justify-content: center;
@@ -1670,17 +1663,6 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
     border-radius: 50%; border: 2px solid var(--border); border-top-color: var(--primary);
     animation: ota-spin .7s linear infinite;
 }
-/* Filename (and, once known, its PDF/DOCX type below it) only make sense next to the
-   document card's icon block - image/video are the picture itself, nothing to caption. */
-.compose-attachment-chip .chip-text { display: none; }
-.compose-attachment-chip.kind-document .chip-text {
-    display: flex; flex-direction: column; justify-content: center; min-width: 0; overflow: hidden;
-}
-.compose-attachment-chip .chip-name {
-    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-    font-size: 13.5px; color: var(--text);
-}
-.compose-attachment-chip .chip-sub { font-size: 11.5px; color: var(--text-muted); margin-top: 1px; }
 /* Round remove badge pinned to the card's own top-right corner, same treatment as the
    My Site field editor's own corner delete badge - overlaps the card rather than sitting
    inline, so it reads as "remove this attachment" and not just another piece of its content. */
