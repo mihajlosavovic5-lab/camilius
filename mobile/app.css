@@ -2122,6 +2122,13 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
     overflow-x: auto; -webkit-overflow-scrolling: touch;
 }
 .mysite-field-modal-input-row-slug:focus-within { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(214,148,16,.18); }
+/* WebView's default horizontal scrollbar for the row above (the thin bar that fades in
+   while scrolling and back out at rest) draws with rounded ends/track by default - flat
+   ends read as a plain straight indicator instead, closer to the rest of this box's own
+   square-ish lines. */
+.mysite-field-modal-input-row-slug::-webkit-scrollbar { height: 3px; }
+.mysite-field-modal-input-row-slug::-webkit-scrollbar-track { background: transparent; }
+.mysite-field-modal-input-row-slug::-webkit-scrollbar-thumb { background: var(--border); border-radius: 0; }
 .mysite-field-modal-input-row-slug .mysite-field-modal-control {
     /* A fixed, generous width (comfortably longer than any realistic slug) rather than
        shrinking to fit - lets a typical short slug show in full without even needing its
