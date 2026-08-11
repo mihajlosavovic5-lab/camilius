@@ -5422,6 +5422,38 @@ el("mysite-field-delete-confirm-confirm").addEventListener("click", () => {
             setTimeout(() => { if (chip.isConnected) finish(); }, 260);
         }
 
+        // Spinner shown the moment a photo/video/file is picked (stageFile below), on top
+        // of its thumbnail/icon exactly like persistStagedEntry's own upload overlay
+        // (same .chip-upload-overlay/.chip-spinner) - this is the "still loading" state
+        // for the LOCAL pick itself, separate from and well before the Send-triggered
+        // upload. inserted as chip's first child (not appended last) so it paints under
+        // the remove (×) button rather than over it, keeping that always clickable.
+        // Images: waits for the real <img> load/error event (a freshly-picked photo's
+        // blob URL still has to decode). Video/document have no real load signal to key
+        // off (they only ever show a static icon here), so it's just a short, fixed
+        // spinner burst for the same "this is loading" read the user gets for images.
+        function showPickingOverlay(chip, imgEl) {
+            const overlay = document.createElement("span");
+            overlay.className = "chip-upload-overlay";
+            const spinner = document.createElement("span");
+            spinner.className = "chip-spinner";
+            overlay.appendChild(spinner);
+            chip.insertBefore(overlay, chip.firstChild);
+            const remove = () => overlay.remove();
+            if (imgEl) {
+                if (imgEl.complete) {
+                    // Blob URLs are frequently already "complete" by this point - force
+                    // at least one paint of the spinner instead of it never showing.
+                    requestAnimationFrame(() => requestAnimationFrame(remove));
+                } else {
+                    imgEl.addEventListener("load", remove, { once: true });
+                    imgEl.addEventListener("error", remove, { once: true });
+                }
+            } else {
+                setTimeout(remove, 450);
+            }
+        }
+
         // Camera / Photos / Files popover - see #attach-options-modal in index.html, same
         // fixed-overlay pattern as openRowActions(), but positioned as a small card right
         // above the "+" (same anchoring technique as i18n.js's openPicker()) instead of a
@@ -5643,6 +5675,7 @@ el("mysite-field-delete-confirm-confirm").addEventListener("click", () => {
             list.appendChild(chip);
             staged.push(entry);
             updateAttachmentListState();
+            showPickingOverlay(chip, imgEl);
         }
 
         // Actually uploads one staged entry, in place - keeps its local preview showing
@@ -5662,7 +5695,7 @@ el("mysite-field-delete-confirm-confirm").addEventListener("click", () => {
             const spinner = document.createElement("span");
             spinner.className = "chip-spinner";
             overlay.appendChild(spinner);
-            chip.appendChild(overlay);
+            chip.insertBefore(overlay, chip.firstChild);
 
             const isDocument = kind === "document";
             const formData = new FormData();
