@@ -768,9 +768,12 @@
                nav drawer. */
             flex: 0 0 auto;
             position: fixed; top: 0; left: 0; bottom: 0; z-index: 951;
-            width: min(240px, 78vw); margin-top: 0;
+            /* 70vw (not 78vw) and gap:0 (rows carry their own 3px 0 margin instead) -
+               matches .nav-links' own sizing/spacing in style.css exactly, down to the
+               numbers, rather than a merely-similar approximation. */
+            width: min(240px, 70vw); margin-top: 0;
             flex-direction: column; align-items: stretch; overflow-y: auto; overflow-x: hidden;
-            gap: 10px; padding: 68px 14px 24px;
+            gap: 0; padding: 68px 14px 24px;
             /* Same warm amber-to-background fade the app's own body/menu drawer uses
                everywhere else (body/--menu-sheet-bg in style.css) - color-mix keeps it
                correct for every theme's own --primary/--background pair instead of a
@@ -782,13 +785,26 @@
             transition: transform .4s cubic-bezier(.16, 1, .3, 1);
         }
         .side-nav.open { transform: translateX(0); }
+        /* Brand accent spine down the open edge - the one piece .nav-links::after
+           (style.css) has that this drawer was missing entirely. var(--gold) stands in
+           for style.css's fixed --gold-dark, which this per-business theme system has no
+           equivalent of - every theme here already exposes --gold for this exact
+           primary-to-accent gradient use (see the header-rule/title-rule gradients
+           above). */
+        .side-nav::after {
+            content: ""; position: absolute; top: 0; right: 0; bottom: 0; width: 3px;
+            background: linear-gradient(180deg, var(--primary), var(--gold));
+        }
         /* Plain text rows, no icons - matches the logged-in app's own phone-width menu
            drawer (.nav-links a in style.css), which lists Home/Schedule/Profile/Settings
-           the same way: bold ink-colored text on a plain surface chip, nothing else. */
+           the same way: bold ink-colored text on a plain surface chip, nothing else.
+           padding/margin/border-radius/font-size are that same rule's exact numbers,
+           not just visually close ones - a fixed 10px radius (not the page's own
+           per-business --radius) so every theme's drawer reads identically to the app's. */
         .side-nav-link {
             background: var(--surface); border-color: var(--border);
             color: var(--primary); white-space: normal;
-            padding: 14px 16px; border-radius: var(--radius); font-size: 1.05rem;
+            padding: 13px 14px; margin: 3px 0; border-radius: 10px; font-size: 17px;
         }
         .side-nav-link svg { display: none; }
         .side-nav-link:hover { transform: none; }
