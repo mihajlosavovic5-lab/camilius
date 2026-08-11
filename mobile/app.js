@@ -1501,7 +1501,23 @@ function setupPinchZoom(viewport, content, options) {
     viewport.addEventListener("pointerup", endPointer);
     viewport.addEventListener("pointercancel", endPointer);
 
-    return { reset, getScale: () => scale };
+    // For a target that doesn't exist yet when setupPinchZoom is first called (the
+    // document viewer's per-page draw canvas is only created once that page's pencil is
+    // actually tapped) - immediately synced to the current transform so it starts in
+    // step with whatever's already zoomed/panned, not a beat behind. removeTarget is the
+    // other half, once that canvas goes away again.
+    function addTarget(target) {
+        targets.push(target);
+        target.style.transform = (scale === 1 && panX === 0 && panY === 0)
+            ? ""
+            : `translate(${panX}px, ${panY}px) scale(${scale})`;
+    }
+    function removeTarget(target) {
+        const idx = targets.indexOf(target);
+        if (idx !== -1) targets.splice(idx, 1);
+    }
+
+    return { reset, getScale: () => scale, addTarget, removeTarget };
 }
 
 // --- Image lightbox (Faza 15, annotate added later) - fullscreen zoom for a tapped
@@ -1855,6 +1871,245 @@ function finishLightboxAnnotate() {
     const status = el("document-viewer-status");
     if (!viewer || !body || !titleEl || !status) return;
 
+    // --- Per-page "pencil" annotate mode - draws directly onto a PDF page (DOCX pages
+    // don't get one: there's no fixed bitmap to draw over/flatten onto, only free-flowing
+    // HTML) and, on Save, uploads the marked-up page as a brand new photo - the source
+    // document itself is never touched, unlike the image lightbox's own annotate (which
+    // swaps the marked-up copy in before an unsent photo even uploads - there's no
+    // equivalent "before upload" moment here, this document is already sent). Only one
+    // page can be mid-annotation at a time, so docAnnotate is a single reusable session
+    // rather than one instance per page. Drawing follows the exact same "one finger draws,
+    // a second hands off to pinch-zoom" rule as the lightbox - see docViewerPointerCount
+    // and setupPinchZoom's singlePointerEnabled/lightboxPointerCount's own comment for why
+    // that needs a capture-phase counter rather than the draw canvas tracking it alone.
+    let docAnnotate = null; // { wrapper, pageCanvas, drawCanvas, zoom, pencilBtn, strokes, redoStack, activeStroke, activeDrawPointerId }
+    let docViewerPointerCount = 0;
+    (function () {
+        const active = new Set();
+        viewer.addEventListener("pointerdown", (event) => { active.add(event.pointerId); docViewerPointerCount = active.size; }, true);
+        const release = (event) => { active.delete(event.pointerId); docViewerPointerCount = active.size; };
+        viewer.addEventListener("pointerup", release, true);
+        viewer.addEventListener("pointercancel", release, true);
+    })();
+
+    function docAnnotateRedraw() {
+        if (!docAnnotate) return;
+        const canvas = docAnnotate.drawCanvas;
+        const ctx = canvas.getContext("2d");
+        const dpr = window.devicePixelRatio || 1;
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        ctx.clearRect(0, 0, canvas.width / dpr, canvas.height / dpr);
+        ctx.lineCap = "round";
+        ctx.lineJoin = "round";
+        docAnnotate.strokes.forEach((stroke) => {
+            if (stroke.points.length < 2) {
+                ctx.fillStyle = stroke.color;
+                ctx.beginPath();
+                ctx.arc(stroke.points[0].x, stroke.points[0].y, stroke.width / 2, 0, Math.PI * 2);
+                ctx.fill();
+                return;
+            }
+            ctx.strokeStyle = stroke.color;
+            ctx.lineWidth = stroke.width;
+            ctx.beginPath();
+            ctx.moveTo(stroke.points[0].x, stroke.points[0].y);
+            for (let i = 1; i < stroke.points.length; i++) ctx.lineTo(stroke.points[i].x, stroke.points[i].y);
+            ctx.stroke();
+        });
+    }
+
+    function docAnnotateUpdateButtons() {
+        const undoBtn = el("document-viewer-undo-btn");
+        const redoBtn = el("document-viewer-redo-btn");
+        if (undoBtn) undoBtn.disabled = !docAnnotate || !docAnnotate.strokes.length;
+        if (redoBtn) redoBtn.disabled = !docAnnotate || !docAnnotate.redoStack.length;
+    }
+
+    // Converts a touch point into the draw canvas's own unzoomed CSS-pixel space - same
+    // reasoning/math as lightboxCanvasPoint above.
+    function docAnnotatePoint(event) {
+        const rect = docAnnotate.drawCanvas.getBoundingClientRect();
+        const scale = docAnnotate.zoom.getScale();
+        return { x: (event.clientX - rect.left) / scale, y: (event.clientY - rect.top) / scale };
+    }
+
+    function docAnnotatePointerDown(event) {
+        if (!docAnnotate) return;
+        if (docViewerPointerCount > 1) {
+            // Same stray-dot fix as the lightbox's own draw canvas: discard a stroke that
+            // never got past its opening touch before a second finger (a pinch) arrived.
+            if (docAnnotate.activeStroke && docAnnotate.activeStroke.points.length <= 1
+                && docAnnotate.strokes[docAnnotate.strokes.length - 1] === docAnnotate.activeStroke) {
+                docAnnotate.strokes.pop();
+                docAnnotateRedraw();
+                docAnnotateUpdateButtons();
+            }
+            docAnnotate.activeStroke = null;
+            docAnnotate.activeDrawPointerId = null;
+            return;
+        }
+        event.preventDefault();
+        docAnnotate.drawCanvas.setPointerCapture(event.pointerId);
+        docAnnotate.activeDrawPointerId = event.pointerId;
+        docAnnotate.activeStroke = { points: [docAnnotatePoint(event)], color: "#ff3b30", width: 4 };
+        docAnnotate.strokes.push(docAnnotate.activeStroke);
+        docAnnotate.redoStack = [];
+        docAnnotateUpdateButtons();
+        docAnnotateRedraw();
+    }
+    function docAnnotatePointerMove(event) {
+        if (!docAnnotate || !docAnnotate.activeStroke) return;
+        if (event.pointerId !== docAnnotate.activeDrawPointerId) return;
+        event.preventDefault();
+        docAnnotate.activeStroke.points.push(docAnnotatePoint(event));
+        docAnnotateRedraw();
+    }
+    function docAnnotatePointerEnd(event) {
+        if (!docAnnotate || event.pointerId !== docAnnotate.activeDrawPointerId) return;
+        docAnnotate.activeStroke = null;
+        docAnnotate.activeDrawPointerId = null;
+    }
+
+    // Opens draw mode for one specific page - resets its zoom first (drawImage below and
+    // the draw canvas's own sizing both need the page's real 1x box, not however it's
+    // currently zoomed/panned), hides every page's pencil (only one page at a time), and
+    // locks the body's own scroll so it can't be dragged out from under an in-progress
+    // stroke.
+    function docAnnotateOpen(wrapper, pageCanvas, zoom, pencilBtn) {
+        if (docAnnotate) return;
+        zoom.reset();
+        const rect = pageCanvas.getBoundingClientRect();
+        const dpr = window.devicePixelRatio || 1;
+        const drawCanvas = document.createElement("canvas");
+        drawCanvas.className = "document-viewer-draw-canvas";
+        drawCanvas.width = Math.round(rect.width * dpr);
+        drawCanvas.height = Math.round(rect.height * dpr);
+        wrapper.appendChild(drawCanvas);
+        zoom.addTarget(drawCanvas);
+        docAnnotate = {
+            wrapper, pageCanvas, drawCanvas, zoom, pencilBtn,
+            strokes: [], redoStack: [], activeStroke: null, activeDrawPointerId: null,
+        };
+        drawCanvas.addEventListener("pointerdown", docAnnotatePointerDown);
+        drawCanvas.addEventListener("pointermove", docAnnotatePointerMove);
+        drawCanvas.addEventListener("pointerup", docAnnotatePointerEnd);
+        drawCanvas.addEventListener("pointercancel", docAnnotatePointerEnd);
+        body.querySelectorAll(".document-viewer-page-pencil").forEach((btn) => { btn.hidden = true; });
+        body.style.overflowY = "hidden";
+        const doneBtn = el("document-viewer-draw-done-btn");
+        if (doneBtn) doneBtn.disabled = false;
+        el("document-viewer-draw-bar").hidden = false;
+        docAnnotateUpdateButtons();
+    }
+
+    function docAnnotateClose() {
+        if (!docAnnotate) return;
+        docAnnotate.zoom.removeTarget(docAnnotate.drawCanvas);
+        docAnnotate.drawCanvas.remove();
+        body.querySelectorAll(".document-viewer-page-pencil").forEach((btn) => { btn.hidden = false; });
+        body.style.overflowY = "";
+        el("document-viewer-draw-bar").hidden = true;
+        docAnnotate = null;
+    }
+
+    function docAnnotateUndo() {
+        if (!docAnnotate || !docAnnotate.strokes.length) return;
+        docAnnotate.redoStack.push(docAnnotate.strokes.pop());
+        docAnnotateRedraw();
+        docAnnotateUpdateButtons();
+    }
+    function docAnnotateRedo() {
+        if (!docAnnotate || !docAnnotate.redoStack.length) return;
+        docAnnotate.strokes.push(docAnnotate.redoStack.pop());
+        docAnnotateRedraw();
+        docAnnotateUpdateButtons();
+    }
+
+    // Flattens the recorded strokes onto a full-resolution copy of the page's own canvas
+    // (not the possibly-downscaled draw overlay) so the saved photo is as sharp as the
+    // rendered page, then uploads it as a new gallery photo - same /api/media role:
+    // "gallery" round trip persistStagedEntry uses elsewhere in this file for a picked
+    // photo. Closes the draw UI right away (before the upload even finishes) rather than
+    // making the visitor wait on it - a toast reports success/failure once it lands.
+    function docAnnotateSave() {
+        if (!docAnnotate) return;
+        if (!docAnnotate.strokes.length) { docAnnotateClose(); return; }
+        const { pageCanvas, drawCanvas, strokes } = docAnnotate;
+        const scaleX = pageCanvas.width / drawCanvas.width;
+        const scaleY = pageCanvas.height / drawCanvas.height;
+        const out = document.createElement("canvas");
+        out.width = pageCanvas.width;
+        out.height = pageCanvas.height;
+        const octx = out.getContext("2d");
+        octx.drawImage(pageCanvas, 0, 0);
+        octx.lineCap = "round";
+        octx.lineJoin = "round";
+        strokes.forEach((stroke) => {
+            const points = stroke.points.map((p) => ({ x: p.x * scaleX, y: p.y * scaleY }));
+            const width = stroke.width * ((scaleX + scaleY) / 2);
+            if (points.length < 2) {
+                octx.fillStyle = stroke.color;
+                octx.beginPath();
+                octx.arc(points[0].x, points[0].y, width / 2, 0, Math.PI * 2);
+                octx.fill();
+                return;
+            }
+            octx.strokeStyle = stroke.color;
+            octx.lineWidth = width;
+            octx.beginPath();
+            octx.moveTo(points[0].x, points[0].y);
+            for (let i = 1; i < points.length; i++) octx.lineTo(points[i].x, points[i].y);
+            octx.stroke();
+        });
+        const doneBtn = el("document-viewer-draw-done-btn");
+        if (doneBtn) doneBtn.disabled = true;
+        out.toBlob((blob) => {
+            docAnnotateClose();
+            if (!blob) {
+                showToast(t("websiteChat.documentViewer.saveError") || "Couldn't save that - please try again.");
+                return;
+            }
+            const formData = new FormData();
+            formData.append("file", new File([blob], "annotated-page.png", { type: "image/png" }));
+            formData.append("role", "gallery");
+            fetch(API_BASE + "/api/media", {
+                method: "POST",
+                headers: state.token ? { Authorization: "Bearer " + state.token } : {},
+                body: formData,
+            }).then((response) => {
+                if (!response.ok) throw new Error();
+                showToast(t("websiteChat.documentViewer.saved") || "Saved as a new photo.");
+            }).catch(() => {
+                showToast(t("websiteChat.documentViewer.saveError") || "Couldn't save that - please try again.");
+            });
+        }, "image/png");
+    }
+
+    function setupPagePencil(wrapper, pageCanvas, zoom) {
+        const pencilBtn = document.createElement("button");
+        pencilBtn.type = "button";
+        pencilBtn.className = "document-viewer-page-pencil";
+        pencilBtn.setAttribute("aria-label", "Draw");
+        pencilBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true"><path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+        // Stopped at pointerdown, not just click - the button lives inside `wrapper`,
+        // which is this page's own pinch-zoom viewport, and setupPinchZoom's own
+        // pointerdown handler runs before a click is even synthesized. Without this, a
+        // tap here would also get captured as the start of a potential pan/double-tap by
+        // that handler, which can redirect where the resulting click actually lands and
+        // silently swallow this button's own listener below.
+        pencilBtn.addEventListener("pointerdown", (event) => event.stopPropagation());
+        pencilBtn.addEventListener("click", (event) => {
+            event.stopPropagation();
+            docAnnotateOpen(wrapper, pageCanvas, zoom, pencilBtn);
+        });
+        wrapper.appendChild(pencilBtn);
+    }
+
+    el("document-viewer-draw-cancel-btn").addEventListener("click", docAnnotateClose);
+    el("document-viewer-undo-btn").addEventListener("click", docAnnotateUndo);
+    el("document-viewer-redo-btn").addEventListener("click", docAnnotateRedo);
+    el("document-viewer-draw-done-btn").addEventListener("click", docAnnotateSave);
+
     let pdfjsLibPromise = null;
     function loadPdfjs() {
         if (!pdfjsLibPromise) {
@@ -1910,10 +2165,14 @@ function finishLightboxAnnotate() {
         wrapper.style.touchAction = "pan-y";
         wrapper.appendChild(pageEl);
         body.appendChild(wrapper);
-        setupPinchZoom(wrapper, pageEl, {
+        const zoom = setupPinchZoom(wrapper, pageEl, {
+            // A lone finger means "drawing" on whichever page is currently being
+            // annotated (see docAnnotateOpen above), same reasoning as the lightbox's own
+            // singlePointerEnabled - a 2-finger pinch still zooms in for a closer stroke.
+            singlePointerEnabled: () => !(docAnnotate && docAnnotate.wrapper === wrapper),
             onZoomChange: (scale) => { wrapper.style.touchAction = scale > 1.001 ? "none" : "pan-y"; },
         });
-        return wrapper;
+        return { wrapper, zoom };
     }
 
     // Renders every page of the PDF in order, each onto its own canvas sized to the
@@ -1940,7 +2199,8 @@ function finishLightboxAnnotate() {
             canvas.style.width = cssWidth + "px";
             canvas.style.height = (cssWidth * viewport.height) / viewport.width + "px";
             if (token !== openToken) return;
-            appendZoomablePage(canvas);
+            const { wrapper, zoom } = appendZoomablePage(canvas);
+            setupPagePencil(wrapper, canvas, zoom);
             await page.render({ canvasContext: canvas.getContext("2d"), viewport }).promise;
         }
     }
@@ -1967,6 +2227,12 @@ function finishLightboxAnnotate() {
     function openDocumentViewer(url, docType, title) {
         openToken += 1;
         const token = openToken;
+        // Defensive - shouldn't normally be reachable mid-annotation (nothing currently
+        // opens a second document without closing this one first), but a stuck
+        // body.style.overflowY: "hidden" left over from a never-closed annotate session
+        // would otherwise silently break scrolling in whatever opens next.
+        docAnnotate = null;
+        body.style.overflowY = "";
         titleEl.textContent = title || "";
         body.innerHTML = "";
         setStatus("loading");
@@ -1981,11 +2247,17 @@ function finishLightboxAnnotate() {
 
     function closeDocumentViewer() {
         openToken += 1;
+        docAnnotate = null;
+        body.style.overflowY = "";
         viewer.classList.remove("open");
         setTimeout(() => { if (!viewer.classList.contains("open")) body.innerHTML = ""; }, 250);
     }
     viewer.addEventListener("click", closeDocumentViewer);
-    ["document-viewer-top-bar", "document-viewer-body"].forEach((id) => {
+    // Without this, tapping anywhere in the draw toolbar (its own background, or any of
+    // Cancel/Undo/Redo/Save - none of them stop their own click from bubbling either)
+    // would also trigger the backdrop's close-the-whole-viewer handler right after,
+    // exiting the document entirely on every single Undo/Redo tap.
+    ["document-viewer-top-bar", "document-viewer-body", "document-viewer-draw-bar"].forEach((id) => {
         el(id).addEventListener("click", (event) => event.stopPropagation());
     });
     el("document-viewer-close-btn").addEventListener("click", closeDocumentViewer);

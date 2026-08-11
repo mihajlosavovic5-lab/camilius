@@ -2400,8 +2400,38 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
    existed the bare canvas could get compressed the same way and nothing visibly caught
    it, since there was no overflow: hidden anywhere to actually clip the excess - adding
    that clip here is exactly what turned the existing (silent) shrink into a visible cut. */
-.document-viewer-page { overflow: hidden; max-width: 100%; flex-shrink: 0; }
+.document-viewer-page { position: relative; overflow: hidden; max-width: 100%; flex-shrink: 0; }
 .document-viewer-page-docx { width: 100%; max-width: 640px; }
+/* Pencil trigger for annotating a PDF page (see docAnnotate* in app.js) - pinned to the
+   page's own corner like the compose chip's remove badge, always visible rather than a
+   hover affordance since this is touch-first. DOCX pages never get one (no fixed bitmap
+   to draw over/flatten onto), and it hides on whichever page is currently mid-annotation
+   itself (its own Cancel/Save live in .document-viewer-draw-bar instead), and on every
+   OTHER page while any one of them is (only one page can be annotated at a time). */
+.document-viewer-page-pencil {
+    position: absolute; top: 8px; right: 8px; z-index: 2; width: 32px; height: 32px;
+    border-radius: 50%; border: none; cursor: pointer; padding: 0;
+    background: rgba(0, 0, 0, .55); color: #fff;
+    display: flex; align-items: center; justify-content: center;
+}
+.document-viewer-page-pencil svg { width: 16px; height: 16px; }
+.document-viewer-page-pencil[hidden] { display: none; }
+/* Freehand overlay for the page currently being annotated - sized/positioned to exactly
+   cover that page's own rendered canvas (see docAnnotateOpen in app.js), and handed to
+   setupPinchZoom alongside it (same dual-target trick as the lightbox) so pinching in for
+   a closer stroke keeps them pixel-aligned. touch-action: none here for the same reason
+   as .lightbox-canvas - this only ever exists while that page owns single/multi-touch. */
+.document-viewer-draw-canvas {
+    position: absolute; inset: 0; touch-action: none;
+}
+/* Bottom toolbar for whichever page is being annotated - same shape/spacing as the image
+   lightbox's own .lightbox-draw-bar, just scoped to the document viewer instead. */
+.document-viewer-draw-bar {
+    position: absolute; left: 0; right: 0; bottom: 0; z-index: 2;
+    display: flex; align-items: center; justify-content: center; gap: 16px;
+    padding: 12px 14px max(env(safe-area-inset-bottom, 0px), 16px);
+}
+.document-viewer-draw-bar[hidden] { display: none; }
 /* PDF: one canvas per page (pdf.js), stacked in reading order - scrolling the body IS
    turning the page. */
 .document-viewer-body canvas {

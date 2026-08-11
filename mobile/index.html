@@ -1,5 +1,5 @@
 <!doctype html>
-<html data-bundle-version="bff606a2b610" lang="en">
+<html data-bundle-version="9567e01cdbbc" lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
@@ -16,7 +16,7 @@
 <link rel="preload" href="fonts/lora-latin-ext.woff2?v=e8c32fe92ded" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="fonts/familjen-grotesk-latin.woff2?v=e8c32fe92ded" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="fonts/familjen-grotesk-latin-ext.woff2?v=e8c32fe92ded" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="app.css?v=bff606a2b610">
+<link rel="stylesheet" href="app.css?v=9567e01cdbbc">
 </head>
 <body>
 
@@ -104,6 +104,32 @@
   <div class="document-viewer-body" id="document-viewer-body"></div>
   <div class="document-viewer-status" id="document-viewer-status">
     <span class="spinner"></span>
+  </div>
+  <!-- Shared draw toolbar for whichever page's pencil (see .document-viewer-page-pencil,
+       added per PDF page in app.js) is currently being annotated - only one page can be
+       mid-annotation at a time, so one toolbar instance covers all of them (see docAnnotate
+       in app.js). "Save" flattens the strokes onto that page's own bitmap and uploads the
+       result as a new photo - the source document itself is never modified. -->
+  <div class="document-viewer-draw-bar" id="document-viewer-draw-bar" hidden>
+    <button type="button" id="document-viewer-draw-cancel-btn" class="lightbox-draw-btn" aria-label="Cancel">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
+        <line x1="6" y1="6" x2="18" y2="18" stroke-width="2" stroke-linecap="round"/>
+        <line x1="18" y1="6" x2="6" y2="18" stroke-width="2" stroke-linecap="round"/>
+      </svg>
+    </button>
+    <button type="button" id="document-viewer-undo-btn" class="lightbox-draw-btn" aria-label="Undo" disabled>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
+        <path d="M9 14 4 9l5-5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M4 9h10.5A5.5 5.5 0 0 1 20 14.5a5.5 5.5 0 0 1-5.5 5.5H11" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </button>
+    <button type="button" id="document-viewer-redo-btn" class="lightbox-draw-btn" aria-label="Redo" disabled>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
+        <path d="M15 14l5-5-5-5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M20 9H9.5A5.5 5.5 0 0 0 4 14.5 5.5 5.5 0 0 0 9.5 20H13" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </button>
+    <button type="button" id="document-viewer-draw-done-btn" class="lightbox-send-btn">Save</button>
   </div>
 </div>
 
@@ -1648,8 +1674,8 @@
   </button>
 </nav>
 
-<script src="i18n.js?v=bff606a2b610"></script>
-<script src="hours-picker.js?v=bff606a2b610"></script>
-<script src="app.js?v=bff606a2b610"></script>
+<script src="i18n.js?v=9567e01cdbbc"></script>
+<script src="hours-picker.js?v=9567e01cdbbc"></script>
+<script src="app.js?v=9567e01cdbbc"></script>
 </body>
 </html>
