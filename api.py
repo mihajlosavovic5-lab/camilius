@@ -9,7 +9,8 @@ from werkzeug.security import check_password_hash
 
 from database import (
     conversations_for_business, get_conversation, mark_sent, business_by_login_identifier,
-    business_by_id, business_by_contact_email, replies_today_count, update_business, get_subscription_status,
+    business_by_id, business_by_contact_email, replies_today_count, update_business,
+    update_business_social_links, get_subscription_status,
     effective_subscription_active, has_pro_access, business_stats, log_event, save_push_token, log_client_error,
     add_business, delete_business, set_new_password, is_push_enabled, set_push_enabled,
     contact_email_taken, phone_number_taken,
@@ -347,6 +348,21 @@ def api_register():
         )
     except UniqueViolation:
         return jsonify(error="That contact email or phone number is already taken."), 409
+
+    # Social media links (Faza 17) - all five optional, asked for on the wizard's last
+    # step alongside the notification toggles. A separate call rather than another
+    # add_business() kwarg: nothing about them is needed to CREATE the row (unlike
+    # push_enabled etc., which the row's own DEFAULTs would otherwise get wrong), so
+    # this keeps that already-long INSERT from growing five more columns for a value
+    # every non-mobile caller of add_business (Google sign-in, admin tools) would just
+    # be passing None for anyway. Only bothers with the UPDATE at all if at least one was
+    # actually filled in, since a fresh signup with none of them set is the common case.
+    if any(data.get(k) for k in ("social_instagram_url", "social_facebook_url", "social_x_url", "social_tiktok_url", "social_youtube_url")):
+        update_business_social_links(
+            new_id,
+            data.get("social_instagram_url"), data.get("social_facebook_url"), data.get("social_x_url"),
+            data.get("social_tiktok_url"), data.get("social_youtube_url"),
+        )
 
     log_event("register_completed", business_id=new_id)
 
@@ -918,6 +934,11 @@ def api_get_settings():
         sms_verification_available=sms_configured(),
         phone_login_enabled=PHONE_LOGIN_ENABLED,
         upsell_pairs=get_upsell_pairs(request.business_id) or "",
+        social_instagram_url=business[24] or "",
+        social_facebook_url=business[25] or "",
+        social_x_url=business[26] or "",
+        social_tiktok_url=business[27] or "",
+        social_youtube_url=business[28] or "",
     )
 
 
@@ -937,6 +958,11 @@ def api_update_settings():
     working_hours = data.get("working_hours", business[7])
     price_list = data.get("price_list", business[8])
     faq = data.get("faq", business[9])
+    social_instagram_url = data.get("social_instagram_url", business[24] or "")
+    social_facebook_url = data.get("social_facebook_url", business[25] or "")
+    social_x_url = data.get("social_x_url", business[26] or "")
+    social_tiktok_url = data.get("social_tiktok_url", business[27] or "")
+    social_youtube_url = data.get("social_youtube_url", business[28] or "")
 
     if not contact_email:
         return jsonify(error="Contact email is required."), 400
@@ -952,6 +978,11 @@ def api_update_settings():
         update_business(business_id, name, contact_email, phone_number or None, working_hours, price_list, faq)
     except UniqueViolation:
         return jsonify(error="That contact email or phone number is already taken."), 409
+
+    # Social media links (Faza 17) - own UPDATE (not folded into update_business() above)
+    # since they share none of that call's UNIQUE-violation/phone-reverification concerns;
+    # normalizing/clearing happens in update_business_social_links itself.
+    update_business_social_links(business_id, social_instagram_url, social_facebook_url, social_x_url, social_tiktok_url, social_youtube_url)
 
     # Mirrors update_business()'s own CASE-on-old-value logic (index 10 phone_number, 12
     # phone_verified from the business row fetched above, before this update) instead of
@@ -977,6 +1008,8 @@ def api_update_settings():
         phone_login_enabled=PHONE_LOGIN_ENABLED,
         working_hours=working_hours, price_list=price_list, faq=faq,
         upsell_pairs=upsell_pairs,
+        social_instagram_url=social_instagram_url, social_facebook_url=social_facebook_url,
+        social_x_url=social_x_url, social_tiktok_url=social_tiktok_url, social_youtube_url=social_youtube_url,
     )
 
 

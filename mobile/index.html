@@ -1,5 +1,5 @@
 <!doctype html>
-<html data-bundle-version="98541ef674d3" lang="en">
+<html data-bundle-version="5e3875447522" lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
@@ -16,7 +16,7 @@
 <link rel="preload" href="fonts/lora-latin-ext.woff2?v=e8c32fe92ded" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="fonts/familjen-grotesk-latin.woff2?v=e8c32fe92ded" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="fonts/familjen-grotesk-latin-ext.woff2?v=e8c32fe92ded" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="app.css?v=98541ef674d3">
+<link rel="stylesheet" href="app.css?v=5e3875447522">
 </head>
 <body>
 
@@ -793,6 +793,33 @@
               </div>
               <p class="field-hint" data-i18n="appSettings.newBookingNote">Notifies you when a customer books an appointment.</p>
 
+              <!-- Social media links (Faza 17) - all five optional; skippable entirely and
+                   always editable later from Profile (see MYSITE_FIELD_MODAL_FIELDS in
+                   app.js), so nothing here blocks Continue the way the required fields on
+                   step 1 do. -->
+              <label data-i18n="social.heading">Social media</label>
+              <p class="field-hint" data-i18n="social.subtitle">Optional - shown as clickable links on your public page.</p>
+              <div class="floating-field">
+                <input type="text" id="register-instagram" placeholder=" " autocapitalize="off" autocorrect="off">
+                <label for="register-instagram" data-i18n="social.instagram">Instagram</label>
+              </div>
+              <div class="floating-field">
+                <input type="text" id="register-facebook" placeholder=" " autocapitalize="off" autocorrect="off">
+                <label for="register-facebook" data-i18n="social.facebook">Facebook</label>
+              </div>
+              <div class="floating-field">
+                <input type="text" id="register-x" placeholder=" " autocapitalize="off" autocorrect="off">
+                <label for="register-x" data-i18n="social.x">X (Twitter)</label>
+              </div>
+              <div class="floating-field">
+                <input type="text" id="register-tiktok" placeholder=" " autocapitalize="off" autocorrect="off">
+                <label for="register-tiktok" data-i18n="social.tiktok">TikTok</label>
+              </div>
+              <div class="floating-field">
+                <input type="text" id="register-youtube" placeholder=" " autocapitalize="off" autocorrect="off">
+                <label for="register-youtube" data-i18n="social.youtube">YouTube</label>
+              </div>
+
               <label class="checkbox-row">
                 <input type="checkbox" id="register-terms" required>
                 <span>
@@ -1293,6 +1320,38 @@
         </label>
       </div>
 
+      <!-- Social media links (Faza 17) - all five optional, shown as clickable icon links
+           on the business's own public page (templates/public_page.html) for visitors to
+           tap through to, nothing else. Same tap-to-open-popup-editor fields as the rest
+           of this screen (see openFieldEditModal/MYSITE_FIELD_MODAL_FIELDS in app.js). -->
+      <div class="profile-section">
+        <div class="profile-section-header">
+          <p class="profile-section-title" data-i18n="social.heading">Social media</p>
+          <p class="profile-section-subtitle" data-i18n="social.subtitle">Optional - shown as clickable links on your public page.</p>
+        </div>
+
+        <div class="floating-field">
+          <input type="text" id="settings-instagram" class="tap-to-edit-field" placeholder=" " autocapitalize="off" autocorrect="off" readonly>
+          <label for="settings-instagram" data-i18n="social.instagram">Instagram</label>
+        </div>
+        <div class="floating-field">
+          <input type="text" id="settings-facebook" class="tap-to-edit-field" placeholder=" " autocapitalize="off" autocorrect="off" readonly>
+          <label for="settings-facebook" data-i18n="social.facebook">Facebook</label>
+        </div>
+        <div class="floating-field">
+          <input type="text" id="settings-x" class="tap-to-edit-field" placeholder=" " autocapitalize="off" autocorrect="off" readonly>
+          <label for="settings-x" data-i18n="social.x">X (Twitter)</label>
+        </div>
+        <div class="floating-field">
+          <input type="text" id="settings-tiktok" class="tap-to-edit-field" placeholder=" " autocapitalize="off" autocorrect="off" readonly>
+          <label for="settings-tiktok" data-i18n="social.tiktok">TikTok</label>
+        </div>
+        <div class="floating-field">
+          <input type="text" id="settings-youtube" class="tap-to-edit-field" placeholder=" " autocapitalize="off" autocorrect="off" readonly>
+          <label for="settings-youtube" data-i18n="social.youtube">YouTube</label>
+        </div>
+      </div>
+
       <div class="profile-section">
         <div class="profile-section-header">
           <p class="profile-section-title"><span data-i18n="settings.upsell.heading">AI upsell</span></p>
@@ -1713,8 +1772,8 @@
   </button>
 </nav>
 
-<script src="i18n.js?v=98541ef674d3"></script>
-<script src="hours-picker.js?v=98541ef674d3"></script>
-<script src="app.js?v=98541ef674d3"></script>
+<script src="i18n.js?v=5e3875447522"></script>
+<script src="hours-picker.js?v=5e3875447522"></script>
+<script src="app.js?v=5e3875447522"></script>
 </body>
 </html>

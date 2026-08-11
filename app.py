@@ -2180,6 +2180,7 @@ def onboarding_website_preview():
         logo_url=media["logo_url"],
         gallery_urls=media["gallery_urls"],
         hero_video_url=media["hero_video_url"],
+        social_links=_social_links_for_business(business),
         # Language switcher still renders (same fixed EN/ES/FR/DE row as the live page),
         # but nothing is actually saved yet to translate against - translate_url="" is
         # the same "disabled in this in-progress draft" convention chat_url="" above
@@ -2444,6 +2445,23 @@ def _page_visible_to_request(page):
 # logic can't drift between the two ways of reaching the same page. `page_url` is passed
 # in rather than derived here since it means something different in each caller: the
 # platform's own /p/<slug> URL in one case, the custom domain's own root in the other.
+# Optional Instagram/Facebook/X/TikTok/YouTube profile links (Faza 17, see database.py's
+# social_instagram_url and friends) - filtered down to only the ones this business
+# actually set, in a fixed display order, so public_page.html's own {% if social_links %}
+# can stay a single check instead of five separate ones. Shared by _render_public_page and
+# onboarding_website_preview below - both already have `business` fetched, so this is free.
+def _social_links_for_business(business):
+    return [
+        link for link in (
+            {"name": "Instagram", "icon": "instagram", "url": business[24]},
+            {"name": "Facebook", "icon": "facebook", "url": business[25]},
+            {"name": "X", "icon": "x", "url": business[26]},
+            {"name": "TikTok", "icon": "tiktok", "url": business[27]},
+            {"name": "YouTube", "icon": "youtube", "url": business[28]},
+        ) if link["url"]
+    ]
+
+
 def _render_public_page(page, business, page_url, preview=False):
     business_id = page[1]
     slug = page[2]
@@ -2517,6 +2535,7 @@ def _render_public_page(page, business, page_url, preview=False):
         logo_url=media["logo_url"],
         gallery_urls=media["gallery_urls"],
         hero_video_url=media["hero_video_url"],
+        social_links=_social_links_for_business(business),
     )
 
 

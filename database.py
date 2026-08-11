@@ -692,6 +692,21 @@ def create_database():
     cursor.execute("ALTER TABLE businesses ADD COLUMN IF NOT EXISTS preferred_theme TEXT")
     cursor.execute("ALTER TABLE businesses ADD COLUMN IF NOT EXISTS preferred_custom_theme_json TEXT")
 
+    # Optional social profile links (mobile app's Sign up wizard and Profile > Social
+    # media section - see api.py's api_get_settings/api_update_settings and
+    # update_business_social_links below) - purely presentational, rendered as clickable
+    # icon links on the business's own public page (templates/public_page.html) for
+    # visitors to tap through to. Live here rather than on business_pages alongside
+    # tagline/about for the same reason preferred_theme/preferred_custom_theme_json do:
+    # business_pages.slug is NOT NULL, so no row exists there until the owner has set a
+    # web address, but these need to be settable from Sign up/Profile before that ever
+    # happens. NULL (not '') means "not set" for every one of the five.
+    cursor.execute("ALTER TABLE businesses ADD COLUMN IF NOT EXISTS social_instagram_url TEXT")
+    cursor.execute("ALTER TABLE businesses ADD COLUMN IF NOT EXISTS social_facebook_url TEXT")
+    cursor.execute("ALTER TABLE businesses ADD COLUMN IF NOT EXISTS social_x_url TEXT")
+    cursor.execute("ALTER TABLE businesses ADD COLUMN IF NOT EXISTS social_tiktok_url TEXT")
+    cursor.execute("ALTER TABLE businesses ADD COLUMN IF NOT EXISTS social_youtube_url TEXT")
+
     # Bridges a Google sign-in completed in the mobile app's system browser tab (Capacitor's
     # Browser plugin - see mobile/app.js's startGoogleLogin) back to the app itself, which
     # has no cookie session in that tab and can't receive a redirect directly. The app opens
@@ -945,7 +960,9 @@ _BUSINESS_COLUMNS = """id, name, password, contact_email, instagram_account_id,
                        phone_number, email_verified, phone_verified, pending_contact_email,
                        whatsapp_phone_number_id, whatsapp_display_number, whatsapp_access_token,
                        messenger_page_id, messenger_page_name, messenger_page_access_token,
-                       timezone, google_id, preferred_theme, preferred_custom_theme_json"""
+                       timezone, google_id, preferred_theme, preferred_custom_theme_json,
+                       social_instagram_url, social_facebook_url, social_x_url,
+                       social_tiktok_url, social_youtube_url"""
 
 # How many columns _BUSINESS_COLUMNS actually selects. Derived rather than written as a
 # literal because all_businesses()/all_businesses_unfiltered() below select extra
@@ -1887,6 +1904,41 @@ def update_business(business_id, name, contact_email, phone_number, working_hour
             phone_number or None, phone_number or None, phone_number or None, phone_number or None,
             phone_number or None, phone_number or None, phone_number or None,
             working_hours, price_list, faq, business_id,
+        ),
+    )
+    connection.commit()
+    connection.close()
+
+
+def _normalize_social_url(value):
+    """A bare 'instagram.com/yourbusiness' (no scheme) would otherwise render as a
+    relative link on the public page - Rather than reject it, prepend https:// the same
+    forgiving way a browser's own address bar does. Blank/whitespace-only stays None
+    (see social_instagram_url and friends' own comment: NULL, not '', means "not set")."""
+    value = (value or "").strip()
+    if not value:
+        return None
+    if "://" not in value:
+        value = "https://" + value
+    return value
+
+
+def update_business_social_links(business_id, instagram_url, facebook_url, x_url, tiktok_url, youtube_url):
+    """Sign up wizard + Profile > Social media - see that section's own comment on why
+    these live on businesses rather than business_pages. Every one of the five is
+    independently optional; a blank value clears it back to NULL rather than leaving
+    whatever was previously saved in place, same as every other field on this form."""
+    connection = connect()
+    cursor = connection.cursor()
+    cursor.execute(
+        """UPDATE businesses
+           SET social_instagram_url=%s, social_facebook_url=%s, social_x_url=%s,
+               social_tiktok_url=%s, social_youtube_url=%s
+           WHERE id=%s""",
+        (
+            _normalize_social_url(instagram_url), _normalize_social_url(facebook_url),
+            _normalize_social_url(x_url), _normalize_social_url(tiktok_url),
+            _normalize_social_url(youtube_url), business_id,
         ),
     )
     connection.commit()

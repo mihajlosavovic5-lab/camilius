@@ -3077,7 +3077,10 @@ function openRegisterScreen({ name, contactEmail, googleLinkToken, notice } = {}
     // HTML attribute set, so a native form reset would revert them to the browser's own
     // default (first option / unchecked) instead of our intended defaults. Clear the
     // plain fields by hand and use each picker's own .reset()/.setValue("") instead.
-    ["register-firstname", "register-surname", "register-password", "register-confirm-password", "register-contact-email", "register-phone"].forEach((id) => {
+    [
+        "register-firstname", "register-surname", "register-password", "register-confirm-password", "register-contact-email", "register-phone",
+        "register-instagram", "register-facebook", "register-x", "register-tiktok", "register-youtube",
+    ].forEach((id) => {
         el(id).value = "";
     });
     el("register-terms").checked = false;
@@ -3180,6 +3183,11 @@ el("register-form").addEventListener("submit", async (event) => {
                 accept_terms: el("register-terms").checked,
                 push_enabled: el("register-push-toggle").checked,
                 new_booking_notifications_enabled: el("register-new-booking-toggle").checked,
+                social_instagram_url: el("register-instagram").value,
+                social_facebook_url: el("register-facebook").value,
+                social_x_url: el("register-x").value,
+                social_tiktok_url: el("register-tiktok").value,
+                social_youtube_url: el("register-youtube").value,
                 // Re-verified server-side against whatever contact_email was actually
                 // submitted (see api_register) - only takes effect if this is still the
                 // same email Google prefilled the form with (see openRegisterScreen).
@@ -3958,6 +3966,11 @@ function serializeProfileForm() {
         upsell: profileUpsellPicker.getValue(),
         currentPassword: el("settings-current-password").value,
         newPassword: el("settings-new-password").value,
+        instagram: el("settings-instagram").value,
+        facebook: el("settings-facebook").value,
+        x: el("settings-x").value,
+        tiktok: el("settings-tiktok").value,
+        youtube: el("settings-youtube").value,
     });
 }
 
@@ -4048,6 +4061,11 @@ async function loadSettingsIntoForm() {
         profileHoursPicker.setValue(data.working_hours);
         profilePricesPicker.setValue(data.price_list);
         profileUpsellPicker.setValue(data.upsell_pairs || "");
+        el("settings-instagram").value = data.social_instagram_url || "";
+        el("settings-facebook").value = data.social_facebook_url || "";
+        el("settings-x").value = data.social_x_url || "";
+        el("settings-tiktok").value = data.social_tiktok_url || "";
+        el("settings-youtube").value = data.social_youtube_url || "";
         resetPasswordField("settings-current-password");
         resetPasswordField("settings-new-password");
         applyProAccessLocks();
@@ -4348,6 +4366,11 @@ async function saveProfileForm() {
                 upsell_pairs: state.proAccess ? profileUpsellPicker.getValue() : undefined,
                 current_password: currentPassword || undefined,
                 new_password: newPassword || undefined,
+                social_instagram_url: el("settings-instagram").value,
+                social_facebook_url: el("settings-facebook").value,
+                social_x_url: el("settings-x").value,
+                social_tiktok_url: el("settings-tiktok").value,
+                social_youtube_url: el("settings-youtube").value,
             },
         });
         notifySaved(t("settings.saved"));
@@ -6164,6 +6187,11 @@ const MYSITE_FIELD_MODAL_FIELDS = {
     "settings-phone": { control: "input", titleKey: "settings.phone" },
     "settings-current-password": { control: "input", titleKey: "settings.currentPassword", password: true },
     "settings-new-password": { control: "input", titleKey: "settings.newPassword", password: true },
+    "settings-instagram": { control: "input", titleKey: "social.instagram" },
+    "settings-facebook": { control: "input", titleKey: "social.facebook" },
+    "settings-x": { control: "input", titleKey: "social.x" },
+    "settings-tiktok": { control: "input", titleKey: "social.tiktok" },
+    "settings-youtube": { control: "input", titleKey: "social.youtube" },
 };
 
 // Holds the actual field element currently being edited, not just its id - the Price
