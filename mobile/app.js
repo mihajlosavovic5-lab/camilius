@@ -6098,6 +6098,11 @@ el("mysite-field-delete-confirm-confirm").addEventListener("click", () => {
     // persistStagedEntry below), just targeting this screen's own elements. ---
 
     let flushStagedAttachments = () => Promise.resolve();
+    // Documents (unlike photos/video) upload the instant they're picked - see stageFile's
+    // own comment - so one picked just to preview and never actually sent still
+    // permanently uses up one of the account's limited document slots unless something
+    // cleans it up. Called when leaving this screen without sending (see backBtn below).
+    let discardUnsentDocuments = () => Promise.resolve();
     let cancelRecordingIfActive = () => false;
 
     (function setupAttachments() {
@@ -6428,6 +6433,10 @@ el("mysite-field-delete-confirm-confirm").addEventListener("click", () => {
                         showToast(data.error || t(errorKey) || "Couldn't upload that - please try again.");
                         return;
                     }
+                    // Kept so a document that's never actually sent can still be found
+                    // and deleted again later (see discardUnsentDocuments below) - images/
+                    // video don't need this, they only ever upload once Send is tapped.
+                    entry.uploadedItem = data;
                     chip.innerHTML = "";
                     fillUploadedChip(chip, kind, data);
                 }).catch(() => {
@@ -6448,6 +6457,34 @@ el("mysite-field-delete-confirm-confirm").addEventListener("click", () => {
         flushStagedAttachments = function () {
             const toFlush = staged.splice(0, staged.length);
             return Promise.all(toFlush.map((entry) => entry.uploadPromise || persistStagedEntry(entry)));
+        };
+
+        // Called when leaving this screen without sending (see backBtn's click handler
+        // further down) - a document picked just to look at, then abandoned by navigating
+        // away instead of either sending it or tapping its own remove button, would
+        // otherwise sit uploaded forever with no way back to it from this chat (the
+        // compose bar's attachments aren't remembered across visits), permanently using up
+        // one of the account's limited document slots for something never actually sent.
+        // Waits for a still-in-flight upload to finish before deleting it, rather than
+        // racing it - a document mid-upload when the visitor navigates away has no
+        // server-side id to delete yet.
+        discardUnsentDocuments = function () {
+            const toDiscard = staged.filter((entry) => entry.kind === "document");
+            toDiscard.forEach((entry) => {
+                const idx = staged.indexOf(entry);
+                if (idx !== -1) staged.splice(idx, 1);
+            });
+            return Promise.all(toDiscard.map((entry) => {
+                const wait = entry.uploadPromise || Promise.resolve();
+                return wait.then(() => {
+                    const item = entry.uploadedItem;
+                    if (!item) return;
+                    return fetch(API_BASE + "/api/documents/" + item.id, {
+                        method: "DELETE",
+                        headers: state.token ? { Authorization: "Bearer " + state.token } : {},
+                    }).catch(() => {});
+                });
+            }));
         };
 
         function handlePicked(pickedInput) {
@@ -6804,6 +6841,7 @@ el("mysite-field-delete-confirm-confirm").addEventListener("click", () => {
     }, true);
 
     backBtn.addEventListener("click", () => {
+        discardUnsentDocuments();
         showTabbar(true);
         showScreen("mysite");
     });
