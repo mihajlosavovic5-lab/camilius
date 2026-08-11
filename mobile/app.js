@@ -5129,6 +5129,55 @@ if (window.visualViewport) {
     window.addEventListener("resize", repositionOpenCenteredModals);
 }
 
+// Best-effort learned keyboard height, in visualViewport px - filled in the first time a
+// real resize/scroll event above reports the visible area having shrunk by something
+// keyboard-sized (not just a rotation or browser-chrome change, hence the >100px floor),
+// and refined every time after. Read-only by anticipateKeyboardReposition below; this is
+// the only thing that writes it.
+let learnedKeyboardGap = null;
+if (window.visualViewport) {
+    let lastRestingVvHeight = window.visualViewport.height;
+    window.visualViewport.addEventListener("resize", () => {
+        const height = window.visualViewport.height;
+        const gap = lastRestingVvHeight - height;
+        if (gap > 100) learnedKeyboardGap = gap; else lastRestingVvHeight = height;
+    });
+}
+
+// The "pause, then catch up" repositionOpenCenteredModals' own comment describes - some
+// WebViews only fire visualViewport resize/scroll once the keyboard's ALREADY fully
+// open, so a dialog sitting centered for the pre-keyboard viewport just sits frozen
+// through the keyboard's whole slide-open animation, then snaps into its correct spot in
+// one late burst once that event finally lands. Focus, by contrast, fires immediately -
+// essentially the same instant the keyboard starts to animate, on every WebView - so
+// reacting to that instead means the sheet can start easing into its new spot (via the
+// same CSS transition, now long enough at .32s to actually cover the keyboard's own
+// animation - see .book-modal-sheet's own comment on that) in step with the keyboard
+// rather than waiting on it. This is necessarily a GUESS at the keyboard's eventual
+// height (learnedKeyboardGap, or a reasonable default before one's been learned) made
+// before the real value is known; the resize/scroll listeners above still run as
+// before and correct any difference once the actual value lands, but starting from a
+// close guess instead of "no movement at all" keeps that correction small enough not to
+// read as a second jump.
+function anticipateKeyboardReposition(target) {
+    const sheet = target.closest(".book-modal-sheet, .confirm-modal-sheet");
+    if (!sheet || !sheet.closest(".lang-modal.open")) return;
+    const vv = window.visualViewport;
+    if (!vv) return;
+    const gap = learnedKeyboardGap || Math.round(vv.height * 0.38);
+    const estimatedHeight = vv.height - gap;
+    // Keyboard's already open (switching focus between two fields in the same dialog
+    // without it closing in between) - vv.height already reflects that, nothing to
+    // anticipate, and subtracting the gap a second time would shrink the sheet for no
+    // reason.
+    if (estimatedHeight >= vv.height - 40) return;
+    sheet.style.top = `${vv.offsetTop + estimatedHeight / 2}px`;
+    sheet.style.maxHeight = `${estimatedHeight * 0.8}px`;
+}
+document.addEventListener("focusin", (event) => {
+    if (event.target.matches("input, textarea")) anticipateKeyboardReposition(event.target);
+});
+
 // Android's hardware/gesture back closes the on-screen keyboard through the WebView's
 // own key handling (see MainActivity.dispatchKeyEvent()'s comment on that) WITHOUT
 // blurring whatever input/textarea was showing it - unlike tapping away to somewhere
