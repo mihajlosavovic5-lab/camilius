@@ -231,32 +231,6 @@
         margin: 0;
     }
 
-    /* --- Hours grid - a card per day (today highlighted) instead of a bare two-column
-       table, same visual weight as the app's own Schedule week view
-       (.schedule-week-day/.schedule-week-day.today in style.css). "Today" is worked out
-       client-side (see the script below) since this page is rendered once, server-side,
-       with no request timezone to key off. --- */
-    .hours-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(128px, 1fr));
-        gap: 8px;
-    }
-    .hours-card {
-        position: relative;
-        display: flex;
-        flex-direction: column;
-        gap: 4px;
-        padding: 12px 12px 10px;
-        border-radius: calc(var(--radius) * 0.6);
-        border: 1px solid var(--border);
-        background: var(--background);
-        transition: border-color .2s ease, transform .2s ease, box-shadow .2s ease;
-    }
-    .hours-card:hover { transform: translateY(-2px); box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08); }
-    .hours-card.today { border-color: var(--primary); border-width: 1.5px; }
-    .hours-day { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); font-weight: 700; }
-    .hours-value { font-size: 0.92rem; font-weight: 600; }
-    .hours-value.closed { color: var(--text-muted); font-weight: 500; }
     .today-badge {
         position: absolute; top: -8px; right: 10px;
         background: var(--primary); color: var(--on-primary);
@@ -280,63 +254,46 @@
         font-family: var(--heading-font); font-weight: 700; font-size: 0.68rem;
         margin-right: 6px; vertical-align: middle;
     }
-    .book-cta {
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-        border: none;
-        border-radius: var(--radius);
-        background: var(--primary);
-        color: var(--on-primary);
-        font-size: 0.95rem;
-        font-weight: 600;
-        padding: 11px 18px;
-        margin: 0 0 28px;
-        cursor: pointer;
-        transition: transform .18s cubic-bezier(.2, .9, .3, 1.3), box-shadow .18s ease;
-    }
-    .book-cta:hover { transform: translateY(-2px); box-shadow: 0 8px 18px rgba(0, 0, 0, 0.14); }
-    .book-days {
+    /* --- Booking table - a vertical stack of day cards (today highlighted), each
+       listing its own open times as a wrapped grid of chips underneath - the same
+       "every day visible, just scroll down" table the app's own Schedule week view uses
+       for itself (.schedule-week-day/.schedule-week-list in mobile/app.css), not the
+       owner-only appointment book that view actually shows (a visitor only ever gets
+       which slots are still free - see public_page_availability in app.py). "Today" is
+       worked out client-side (see the script below) since this page is rendered once,
+       server-side, with no request timezone to key off. --- */
+    .book-list {
         display: flex;
-        gap: 8px;
-        overflow-x: auto;
-        padding-bottom: 4px;
-        margin-bottom: 14px;
-        /* Trailing space so the last day/slot can be scrolled clear of the fixed
-           chat-fab, which floats in the same bottom-right corner this section's own
-           horizontal scrollers naturally end up under once scrolled into view. */
-        scroll-padding-right: 76px;
+        flex-direction: column;
+        gap: 10px;
     }
-    .book-days::after {
-        content: "";
-        flex: 0 0 auto;
-        width: 60px;
-    }
-    .book-day {
-        flex: 0 0 auto;
+    .book-day-card {
+        position: relative;
         border: 1px solid var(--border);
-        background: var(--background);
-        color: var(--text);
         border-radius: calc(var(--radius) * 0.6);
-        padding: 8px 12px;
-        font-size: 0.85rem;
-        cursor: pointer;
-        white-space: nowrap;
-        transition: background .18s ease, color .18s ease, border-color .18s ease;
+        background: var(--background);
+        padding: 12px 14px;
     }
-    .book-day.selected {
-        background: var(--primary);
-        border-color: var(--primary);
-        color: var(--on-primary);
+    .book-day-card.today { border-color: var(--primary); border-width: 1.5px; }
+    .book-day-header {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 8px;
+        margin: 0 0 10px;
+        padding-bottom: 8px;
+        border-bottom: 1px solid var(--border);
     }
-    .book-slots {
+    .book-day-name { font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); font-weight: 700; }
+    .book-day-num { font-size: 0.92rem; font-weight: 600; }
+    .book-day-slots {
         display: flex;
         flex-wrap: wrap;
         gap: 8px;
     }
     .book-slot {
         border: 1px solid var(--border);
-        background: var(--background);
+        background: var(--surface);
         color: var(--text);
         border-radius: calc(var(--radius) * 0.6);
         padding: 8px 14px;
@@ -608,12 +565,6 @@
             <span>About</span>
         </a>
         {% endif %}
-        {% if opening_hours_display %}
-        <a href="#hours" class="side-nav-link" data-target="hours">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            <span>Hours</span>
-        </a>
-        {% endif %}
         {% if booking_enabled %}
         <a href="#book-section" class="side-nav-link" data-target="book-section">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4" stroke-linecap="round"/></svg>
@@ -652,15 +603,6 @@
         <video class="hero-video reveal" src="{{ hero_video_url }}" autoplay muted loop playsinline></video>
         {% endif %}
 
-        {% if booking_enabled %}
-        <button type="button" class="book-cta reveal" id="book-cta">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                <rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4" stroke-linecap="round"/>
-            </svg>
-            Book an appointment
-        </button>
-        {% endif %}
-
         {% if about %}
         <section id="about" class="reveal">
             <h2>About</h2>
@@ -668,27 +610,11 @@
         </section>
         {% endif %}
 
-        {% if opening_hours_display %}
-        <section id="hours" class="reveal">
-            <h2>Hours</h2>
-            <div class="hours-grid">
-                {% for day, hours in opening_hours_display %}
-                <div class="hours-card" data-day="{{ day }}">
-                    <span class="today-badge hidden">Today</span>
-                    <span class="hours-day">{{ day }}</span>
-                    <span class="hours-value {{ 'closed' if hours == 'Closed' }}">{{ hours }}</span>
-                </div>
-                {% endfor %}
-            </div>
-        </section>
-        {% endif %}
-
         {% if booking_enabled %}
         <section id="book-section" class="reveal">
             <h2>Book an appointment</h2>
             <p class="book-loading" id="book-loading">Loading open times...</p>
-            <div class="book-days hidden" id="book-days"></div>
-            <div class="book-slots hidden" id="book-slots"></div>
+            <div class="book-list hidden" id="book-list"></div>
             <p class="book-confirm hidden" id="book-confirm"></p>
         </section>
         {% endif %}
@@ -831,17 +757,6 @@
         });
     });
 
-    // "Today" highlight in the Hours grid - worked out from the visitor's own local
-    // clock, since this page is rendered once server-side with no request timezone to
-    // key off (opening_hours_display is just "here is Monday..Sunday", not "here is
-    // today").
-    var todayName = new Date().toLocaleDateString("en-US", { weekday: "long" });
-    var todayCard = document.querySelector('.hours-card[data-day="' + todayName + '"]');
-    if (todayCard) {
-        todayCard.classList.add("today");
-        var badge = todayCard.querySelector(".today-badge");
-        if (badge) badge.classList.remove("hidden");
-    }
 })();
 </script>
 
@@ -979,75 +894,79 @@
     // opens the chat panel and sends the exact same request a typed message would, so
     // the real booking transaction (name, notifications, upsell, double-book
     // protection) only ever happens once, inside the AI chat pipeline.
-    var bookCta = document.getElementById("book-cta");
-    var bookSection = document.getElementById("book-section");
+    // Renders one card per open day, every day visible at once (scroll, don't tab
+    // between them) - the same table the app's own Schedule week view uses for itself
+    // (.schedule-week-day/.schedule-week-list in mobile/app.css), just without any of
+    // the owner-only appointment data that view shows (a visitor only ever sees which
+    // slots are still free). "Today" is worked out from the visitor's own local clock,
+    // since this page is rendered once server-side with no request timezone to key off.
     var bookLoading = document.getElementById("book-loading");
-    var bookDaysEl = document.getElementById("book-days");
-    var bookSlotsEl = document.getElementById("book-slots");
+    var bookListEl = document.getElementById("book-list");
     var bookConfirmEl = document.getElementById("book-confirm");
     var availabilityUrl = {{ availability_url | tojson }};
-    var availableDays = [];
-    var selectedDayIndex = 0;
 
-    function renderDays() {
-        bookDaysEl.innerHTML = "";
-        availableDays.forEach(function (day, index) {
-            var btn = document.createElement("button");
-            btn.type = "button";
-            btn.className = "book-day" + (index === selectedDayIndex ? " selected" : "");
-            btn.textContent = day.label;
-            btn.addEventListener("click", function () {
-                selectedDayIndex = index;
-                renderDays();
-                renderSlots();
-            });
-            bookDaysEl.appendChild(btn);
-        });
-    }
+    function pad2(n) { return n < 10 ? "0" + n : "" + n; }
+    var todayIso = (function () {
+        var d = new Date();
+        return d.getFullYear() + "-" + pad2(d.getMonth() + 1) + "-" + pad2(d.getDate());
+    })();
 
-    function renderSlots() {
-        bookSlotsEl.innerHTML = "";
-        var day = availableDays[selectedDayIndex];
-        if (!day) return;
-        day.slots.forEach(function (time) {
-            var btn = document.createElement("button");
-            btn.type = "button";
-            btn.className = "book-slot";
-            btn.textContent = time;
-            btn.addEventListener("click", function () {
-                setOpen(true);
-                sendMessage("I'd like to book an appointment on " + day.label + " at " + time + ".");
-                bookConfirmEl.textContent = "Requested " + day.label + " at " + time + " - continue in the chat to confirm.";
-                bookConfirmEl.classList.remove("hidden");
+    function renderBookList(days) {
+        bookListEl.innerHTML = "";
+        days.forEach(function (day) {
+            var card = document.createElement("div");
+            card.className = "book-day-card" + (day.date === todayIso ? " today" : "");
+
+            var commaIndex = day.label.indexOf(",");
+            var header = document.createElement("div");
+            header.className = "book-day-header";
+            var name = document.createElement("span");
+            name.className = "book-day-name";
+            name.textContent = commaIndex === -1 ? day.label : day.label.slice(0, commaIndex);
+            var num = document.createElement("span");
+            num.className = "book-day-num";
+            num.textContent = commaIndex === -1 ? "" : day.label.slice(commaIndex + 1).trim();
+            header.appendChild(name);
+            header.appendChild(num);
+            card.appendChild(header);
+
+            var slotsEl = document.createElement("div");
+            slotsEl.className = "book-day-slots";
+            day.slots.forEach(function (time) {
+                var btn = document.createElement("button");
+                btn.type = "button";
+                btn.className = "book-slot";
+                btn.textContent = time;
+                btn.addEventListener("click", function () {
+                    setOpen(true);
+                    sendMessage("I'd like to book an appointment on " + day.label + " at " + time + ".");
+                    bookConfirmEl.textContent = "Requested " + day.label + " at " + time + " - continue in the chat to confirm.";
+                    bookConfirmEl.classList.remove("hidden");
+                });
+                slotsEl.appendChild(btn);
             });
-            bookSlotsEl.appendChild(btn);
+            card.appendChild(slotsEl);
+
+            bookListEl.appendChild(card);
         });
     }
 
     fetch(availabilityUrl)
         .then(function (r) { return r.json(); })
         .then(function (data) {
-            availableDays = data.days || [];
+            var days = data.days || [];
             bookLoading.classList.add("hidden");
-            if (availableDays.length === 0) {
+            if (days.length === 0) {
                 bookLoading.textContent = "No upcoming openings right now - message us in chat to check.";
                 bookLoading.classList.remove("hidden");
                 return;
             }
-            bookDaysEl.classList.remove("hidden");
-            bookSlotsEl.classList.remove("hidden");
-            renderDays();
-            renderSlots();
+            renderBookList(days);
+            bookListEl.classList.remove("hidden");
         })
         .catch(function () {
             bookLoading.textContent = "Couldn't load open times - please try again shortly.";
         });
-
-    if (bookCta) {
-        bookCta.addEventListener("click", function () {
-            bookSection.scrollIntoView({ behavior: "smooth", block: "start" });
-        });
-    }
     {% endif %}
 })();
 </script>

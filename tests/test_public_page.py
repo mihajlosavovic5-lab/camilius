@@ -132,7 +132,6 @@ def test_public_page_renders_when_published(client, unique_email):
     assert "Fresh cuts daily" in html
     assert "We opened in 2019." in html
     assert "Haircut: 20 EUR" in html  # price_list, from register_business_web's default
-    assert "Monday" in html and "09:00 - 18:00" in html  # opening_hours_display
     assert "LocalBusiness" in html  # JSON-LD block present
     assert "https://schema.org/Monday" in html
 
