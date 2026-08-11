@@ -87,7 +87,13 @@
     body {
         margin: 0;
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-        background: var(--background);
+        /* Same warm amber-to-background fade as the rest of the app's own pages (body in
+           style.css) - color-mix keeps it correct for every theme's own --primary/
+           --background pair instead of a fixed --primary-light token this page doesn't
+           define. Fixed (not scroll) so the fade stays pinned to the viewport's top
+           instead of scrolling away after the first ~350px, matching how it reads on
+           every other page in the app. */
+        background: linear-gradient(180deg, color-mix(in srgb, var(--primary) 18%, var(--background)) 0%, var(--background) 42%) fixed;
         color: var(--text);
         line-height: 1.55;
     }
