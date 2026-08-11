@@ -5448,7 +5448,12 @@ el("mysite-field-delete-confirm-confirm").addEventListener("click", () => {
             const spinner = document.createElement("span");
             spinner.className = "chip-spinner";
             overlay.appendChild(spinner);
-            chip.insertBefore(overlay, chip.firstChild);
+            // Must land between the thumbnail/icon and the remove (×) button, not before
+            // everything - the thumbnail is fully opaque, so inserting the overlay before
+            // it (i.e. underneath it in paint order) made the overlay - and therefore the
+            // spinner - completely invisible, sitting behind an opaque picture the whole
+            // time. chip.lastElementChild is always the remove button at this point.
+            chip.insertBefore(overlay, chip.lastElementChild);
             const remove = () => overlay.remove();
             const removeNoEarlierThanFloor = () => {
                 const remaining = PICK_SPINNER_MIN_MS - (Date.now() - startedAt);
@@ -5537,6 +5542,21 @@ el("mysite-field-delete-confirm-confirm").addEventListener("click", () => {
             return kind === "video" ? "▶" : kind === "image" ? "🖼" : "📄";
         }
 
+        // A PDF/DOCX has real pages to scroll through, unlike the image lightbox's single
+        // zoomed picture - rendering that in-app would mean bundling a PDF/DOCX renderer
+        // (e.g. PDF.js) from scratch. Reusing the exact same Chrome Custom Tab already
+        // used for Stripe checkout/Google login (see openChoosePlan above) gets a real,
+        // full-page-scrolling document viewer for free instead: Chrome has its own
+        // built-in PDF viewer, and falls back to its normal download/"open with" handling
+        // for kinds (like DOCX) it can't render inline.
+        function openDocument(url) {
+            if (capacitorPlugins && capacitorPlugins.Browser) {
+                capacitorPlugins.Browser.open({ url }).catch(() => {});
+            } else {
+                window.open(url, "_blank");
+            }
+        }
+
         function fillUploadedChip(chip, kind, item) {
             if (kind === "image") {
                 const img = document.createElement("img");
@@ -5552,6 +5572,15 @@ el("mysite-field-delete-confirm-confirm").addEventListener("click", () => {
                 const icon = document.createElement("span");
                 icon.className = "chip-icon";
                 icon.textContent = iconFor(kind);
+                // Video has no viewer to open it into yet - only wire the tap up for
+                // documents, which do (see openDocument above).
+                if (kind === "document") {
+                    icon.style.cursor = "pointer";
+                    icon.addEventListener("click", (event) => {
+                        event.stopPropagation();
+                        openDocument(item.url);
+                    });
+                }
                 chip.appendChild(icon);
             }
 
@@ -5669,7 +5698,9 @@ el("mysite-field-delete-confirm-confirm").addEventListener("click", () => {
             const spinner = document.createElement("span");
             spinner.className = "chip-spinner";
             overlay.appendChild(spinner);
-            chip.insertBefore(overlay, chip.firstChild);
+            // Same fix as showPickingOverlay above: must sit between the thumbnail/icon
+            // and the remove button, not underneath the (opaque) thumbnail itself.
+            chip.insertBefore(overlay, chip.lastElementChild);
 
             const isDocument = kind === "document";
             const formData = new FormData();
