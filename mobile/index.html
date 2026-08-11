@@ -694,6 +694,10 @@
                (templates/register.html), which stays fixed across all three steps
                instead of being replaced by step-specific copy. -->
           <div class="register-step-intro">
+            <div class="register-step-progress">
+              <span class="register-step-icon-badge" id="register-step-icon-badge" aria-hidden="true"></span>
+              <span class="register-step-progress-text" id="register-step-progress-text"></span>
+            </div>
             <h1 data-i18n="register.headline">Register your business</h1>
             <p class="screen-subtitle" data-i18n="register.headlineSubtitle">You can change all of these fields later in settings.</p>
           </div>
@@ -723,6 +727,14 @@
                 </button>
               </div>
               <p class="field-error hidden" id="register-password-error"></p>
+              <div class="password-strength hidden" id="register-password-strength">
+                <div class="password-strength-bars">
+                  <span class="password-strength-bar"></span>
+                  <span class="password-strength-bar"></span>
+                  <span class="password-strength-bar"></span>
+                </div>
+                <span class="password-strength-label" id="register-password-strength-label"></span>
+              </div>
 
               <div class="floating-field floating-field-password">
                 <input type="password" id="register-confirm-password" placeholder=" " autocomplete="new-password" required>
@@ -742,6 +754,7 @@
                 <label for="register-contact-email" data-i18n="register.contactEmail">Contact email</label>
               </div>
               <p class="field-error hidden" id="register-contact-email-error"></p>
+              <p class="field-success hidden" id="register-contact-email-success" data-i18n="register.emailAvailable">Available</p>
 
               <div class="phone-input-row" id="register-phone-row">
                 <button type="button" class="phone-country-btn" id="register-phone-country-btn">
@@ -754,6 +767,7 @@
                 </div>
               </div>
               <p class="field-error hidden" id="register-phone-error"></p>
+              <p class="field-success hidden" id="register-phone-success" data-i18n="register.phoneAvailable">Available</p>
             </div>
 
             <div class="register-step" id="register-step-2">
@@ -835,6 +849,10 @@
       </div>
 
       <div class="register-bottom-bar">
+        <div class="register-skip-row hidden" id="register-skip-row">
+          <button type="button" class="link-btn" id="register-skip-btn" data-i18n="register.skipForNow">Skip for now</button>
+        </div>
+
         <div class="register-step-nav">
           <div class="register-step-dots">
             <span class="register-step-dot active"></span>
@@ -844,7 +862,10 @@
           <button type="button" class="register-next-btn register-next-btn-dim" id="register-next-btn" aria-label="Next">›</button>
         </div>
 
-        <button class="button button-full button-pill hidden" type="submit" id="register-submit" data-i18n="register.submit">Create account</button>
+        <button class="button button-full button-pill hidden" type="submit" id="register-submit">
+          <span class="btn-spinner hidden" id="register-submit-spinner" aria-hidden="true"></span>
+          <span id="register-submit-label" data-i18n="register.submit">Create account</span>
+        </button>
       </div>
     </form>
   </section>
