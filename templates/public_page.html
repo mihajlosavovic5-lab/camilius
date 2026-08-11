@@ -1431,8 +1431,17 @@
         if (current.open !== bookSlotsExpanded) current.open = bookSlotsExpanded;
         bookListEl.style.height = current.offsetHeight + "px";
     }
+    // Debounced to run once scrolling has actually stopped, not on every scroll frame
+    // during the gesture - syncBookListHeight mutates the scroll container's own
+    // height (and possibly a card's open/closed state) each time it runs, and doing
+    // that mid-fling was fighting the browser's own scroll-snap-stop: always (see
+    // .book-day-card above) - a gesture that should have capped at one day over was
+    // able to carry across several again once the container kept resizing under it
+    // while still moving.
+    var bookListScrollTimer = null;
     bookListEl.addEventListener("scroll", function () {
-        requestAnimationFrame(syncBookListHeight);
+        clearTimeout(bookListScrollTimer);
+        bookListScrollTimer = setTimeout(syncBookListHeight, 120);
     });
 
     // Jumps the day carousel to whichever loaded card is on or after `iso` (the exact
