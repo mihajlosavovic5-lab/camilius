@@ -2848,7 +2848,7 @@ _WIDGET_LOADER_JS = """
     var iframe = document.createElement("iframe");
     iframe.src = origin + "/w/" + encodeURIComponent(slug);
     iframe.title = "Chat";
-    iframe.style.cssText = "position:fixed;bottom:20px;right:20px;width:84px;height:84px;"
+    iframe.style.cssText = "position:fixed;bottom:20px;right:20px;width:72px;height:72px;"
         + "border:none;z-index:2147483000;background:transparent;"
         + "transition:width .2s ease,height .2s ease;colorScheme:light dark;";
     document.body.appendChild(iframe);
@@ -2856,11 +2856,11 @@ _WIDGET_LOADER_JS = """
     window.addEventListener("message", function (event) {
         if (event.origin !== origin || !event.data || event.data.source !== "camilius-widget") return;
         if (event.data.open) {
-            iframe.style.width = Math.min(380, window.innerWidth - 32) + "px";
-            iframe.style.height = Math.min(620, window.innerHeight - 32) + "px";
+            iframe.style.width = Math.min(340, window.innerWidth - 32) + "px";
+            iframe.style.height = Math.min(550, window.innerHeight - 32) + "px";
         } else {
-            iframe.style.width = "84px";
-            iframe.style.height = "84px";
+            iframe.style.width = "72px";
+            iframe.style.height = "72px";
         }
     });
 })();
