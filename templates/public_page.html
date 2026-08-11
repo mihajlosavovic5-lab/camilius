@@ -451,12 +451,14 @@
            would silently reintroduce that fight. */
         scrollbar-width: none;
         gap: 10px;
-        /* Height is pinned in px by the script's own syncBookListHeight() (a flex
-           row's natural auto height would still track its tallest child overall, not
-           whichever one is actually scrolled into view) - transitioned so swiping to a
-           taller/shorter day, or collapsing one back down, resizes smoothly instead of
-           snapping instantly. */
-        transition: height .2s ease;
+        /* Height is pinned in px by the script (a flex row's natural auto height
+           would still track its tallest child overall, not whichever one is actually
+           scrolled into view) - deliberately NOT transitioned. The height is set to
+           match the arriving day the moment a swipe/jump starts (see
+           animateBookScrollTo's caller below), so by the time that day is actually on
+           screen the box is already the right size; animating it here instead would
+           have it visibly grow underneath the day's own slots as they scroll into
+           place, like the last couple rows dropping in late. */
     }
     .book-list::-webkit-scrollbar { display: none; }
     /* Each day is a native <details>, open by default (see renderBookList's own
@@ -1557,7 +1559,10 @@
         else if (scrolled < -SWIPE_THRESHOLD) target = start - 1;
         target = Math.max(0, Math.min(bookListEl.children.length - 1, target));
         var card = bookListEl.children[target];
-        if (card) animateBookScrollTo(bookCardTargetScrollLeft(card), 260);
+        if (card) {
+            bookListEl.style.height = card.offsetHeight + "px";
+            animateBookScrollTo(bookCardTargetScrollLeft(card), 260);
+        }
     }, { passive: false });
 
     // Jumps the day carousel to whichever loaded card is on or after `iso` (the exact
@@ -1574,6 +1579,7 @@
         var target = cards.filter(function (c) { return c.dataset.date >= iso; })[0] || cards[cards.length - 1];
         bookSlotsExpanded = true;
         target.open = true;
+        bookListEl.style.height = target.offsetHeight + "px";
         animateBookScrollTo(bookCardTargetScrollLeft(target), 260);
     }
 
