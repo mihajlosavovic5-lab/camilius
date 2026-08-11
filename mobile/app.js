@@ -374,30 +374,48 @@ if (capacitorPlugins) {
         // straight to each reported percent (the plugin's own "download" events arrive in
         // coarse, uneven jumps like 10/20/40) - counting through every value in between
         // reads as a smooth, continuously advancing fill rather than a stuttering one.
+        //
+        // One persistent timer that just chases a "ceiling" (otaProgressTarget), rather
+        // than being torn down and restarted on every call, matters here: a burst of
+        // "download" events arriving faster than the per-step delay (routine right as a
+        // download finishes) would otherwise keep cancelling the count before it ever
+        // ticks, so the display sits frozen and then snaps straight to the last value -
+        // exactly the "counts fine, then jumps" the loading bar used to do at the end.
+        // setOtaProgress() returns a promise resolving once the display actually reaches
+        // the requested value, so callers that are about to do something disruptive (the
+        // reload set() below) can await the count finishing instead of cutting it off.
         let otaDisplayedPercent = 0;
+        let otaProgressTarget = 0;
         let otaProgressTimer = null;
 
         const setOtaProgress = (percent) => {
             const target = Math.max(0, Math.min(100, Math.round(percent) || 0));
-            if (otaProgressTimer) {
-                clearInterval(otaProgressTimer);
-                otaProgressTimer = null;
-            }
+            otaProgressTarget = target;
             if (target <= otaDisplayedPercent) {
                 otaDisplayedPercent = target;
+                otaProgressTarget = target;
                 otaProgressFill.style.width = otaDisplayedPercent + "%";
                 otaProgressPercent.textContent = otaDisplayedPercent + "%";
-                return;
+                return Promise.resolve();
             }
-            otaProgressTimer = setInterval(() => {
-                otaDisplayedPercent += 1;
-                otaProgressFill.style.width = otaDisplayedPercent + "%";
-                otaProgressPercent.textContent = otaDisplayedPercent + "%";
-                if (otaDisplayedPercent >= target) {
-                    clearInterval(otaProgressTimer);
-                    otaProgressTimer = null;
-                }
-            }, 15);
+            if (!otaProgressTimer) {
+                otaProgressTimer = setInterval(() => {
+                    otaDisplayedPercent += 1;
+                    otaProgressFill.style.width = otaDisplayedPercent + "%";
+                    otaProgressPercent.textContent = otaDisplayedPercent + "%";
+                    if (otaDisplayedPercent >= otaProgressTarget) {
+                        clearInterval(otaProgressTimer);
+                        otaProgressTimer = null;
+                    }
+                }, 10);
+            }
+            return new Promise((resolve) => {
+                const check = () => {
+                    if (otaDisplayedPercent >= target) resolve();
+                    else setTimeout(check, 10);
+                };
+                check();
+            });
         };
 
         capacitorPlugins.CapacitorUpdater.addListener("download", (info) => {
@@ -472,7 +490,11 @@ if (capacitorPlugins) {
                     if (!bundle) throw downloadError;
                 }
 
-                setOtaProgress(100);
+                // Awaited so the count-up actually finishes reaching 100 on screen before
+                // the reload below tears the page down - otherwise the last leg (whatever
+                // percent "download" last reported up to 100) gets cut off mid-count and
+                // reads as an abrupt jump instead of the smooth finish it's meant to be.
+                await setOtaProgress(100);
                 // Re-checked here, not just in the guard at the top of this function - a
                 // Google sign-in can start well after this function began (the fetch/
                 // current()/download sequence above easily takes a few seconds), and
