@@ -199,21 +199,21 @@
     }
     .nav-menu-backdrop.open { opacity: 1; pointer-events: auto; }
 
-    /* --- Top-bar title - the business name, shown small and centered between
-       .nav-menu-btn (fixed top-left, 18px + 34px wide) and .lang-btn (fixed
-       top-right, 16px + 40px wide) once the hamburger takes over below the 880px
-       breakpoint - the .page-header's own big centered heading further down still
-       scrolls away as normal, this is just a compact always-visible reminder of
-       which page you're on. Hidden by default alongside .nav-menu-btn, both
-       switched on together in the same media query below. Padding matches each
-       button's own offset + width (with a little breathing room) so long names
-       truncate before they can slide under either icon. */
+    /* --- Top-bar title - the business name, centered between .nav-menu-btn (fixed
+       top-left, 18px + 34px wide) and .lang-btn (fixed top-right, 16px + 40px wide)
+       once the hamburger takes over below the 880px breakpoint. On mobile this
+       replaces .page-header's own big centered heading further down (hidden there,
+       see the media query below - logo/tagline/rule stay) rather than repeating the
+       name a second time; on desktop it stays hidden and that heading is the only
+       one shown. Padding matches each button's own offset + width (with a little
+       breathing room) so long names truncate before they can slide under either
+       icon. */
     .top-bar-title {
         display: none;
         position: fixed; top: 18px; left: 0; right: 0; z-index: 951;
         height: 34px; align-items: center; justify-content: center;
         padding: 0 60px;
-        font-family: var(--heading-font); font-weight: 700; font-size: 15px;
+        font-family: var(--heading-font); font-weight: 700; font-size: 21px;
         color: var(--text); text-align: center;
         white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
         pointer-events: none;
@@ -575,6 +575,10 @@
         .nav-menu-btn { display: flex; }
         .nav-menu-backdrop { display: block; }
         .top-bar-title { display: flex; }
+        /* The compact top-bar title above takes over the "which page is this" job on
+           mobile, so the big centered heading further down in .page-header would just
+           repeat the same name a second time - hidden here, logo/tagline/rule stay. */
+        .page-header h1 { display: none; }
         .side-nav {
             /* .side-nav's flex: 0 0 200px above is a fixed WIDTH for its desktop column
                layout (.shell is a row there, so flex-basis sizes the main/horizontal
