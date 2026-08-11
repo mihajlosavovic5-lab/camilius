@@ -1,5 +1,5 @@
 <!doctype html>
-<html data-bundle-version="482c8ee50789" lang="en">
+<html data-bundle-version="e915afd35e26" lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
@@ -16,7 +16,7 @@
 <link rel="preload" href="fonts/lora-latin-ext.woff2?v=e8c32fe92ded" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="fonts/familjen-grotesk-latin.woff2?v=e8c32fe92ded" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="fonts/familjen-grotesk-latin-ext.woff2?v=e8c32fe92ded" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="app.css?v=482c8ee50789">
+<link rel="stylesheet" href="app.css?v=e915afd35e26">
 </head>
 <body>
 
@@ -877,17 +877,6 @@
         <div class="floating-field floating-field-domain-check">
           <input type="text" id="mysite-slug" placeholder=" " autocapitalize="off" autocorrect="off" readonly>
           <label for="mysite-slug" data-i18n="mysite.website.slug">Web address</label>
-          <!-- Visually replaces mysite-slug above (which stays the real click target/
-               label-floating anchor/slug value holder - mysite-slug's own .value is read
-               directly all over app.js, e.g. for save, so it can never itself hold
-               anything but the bare slug) with the full "https://.../p/<slug>" address on
-               one line - see mysiteUpdateSlugDisplay in app.js, same fixed-prefix idea as
-               the Web address edit modal above. Hidden until there's a slug to show
-               (mysiteUpdateSlugDisplay), so the empty-state placeholder still reads
-               normally. -->
-          <div class="mysite-slug-display hidden" id="mysite-slug-display" aria-hidden="true">
-            <span id="mysite-slug-display-prefix"></span><span id="mysite-slug-display-value"></span>
-          </div>
           <button type="button" class="field-inline-btn" id="mysite-domain-check-btn" data-i18n="mysite.website.checkDomainsShort">Check</button>
         </div>
         <p class="field-error hidden" id="mysite-domain-check-error"></p>
@@ -1701,8 +1690,8 @@
   </button>
 </nav>
 
-<script src="i18n.js?v=482c8ee50789"></script>
-<script src="hours-picker.js?v=482c8ee50789"></script>
-<script src="app.js?v=482c8ee50789"></script>
+<script src="i18n.js?v=e915afd35e26"></script>
+<script src="hours-picker.js?v=e915afd35e26"></script>
+<script src="app.js?v=e915afd35e26"></script>
 </body>
 </html>

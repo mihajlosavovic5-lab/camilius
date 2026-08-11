@@ -595,7 +595,7 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
        transitions (100% -> a small top strip) stays visually centered regardless of
        exact line-height, on any engine. */
     margin: 0; font-weight: 400;
-    position: absolute; left: 16px; right: 16px; top: 0; height: 100%; z-index: 1;
+    position: absolute; left: 16px; right: 16px; top: 0; height: 100%;
     display: flex; align-items: center;
     font-size: 17px; color: var(--text-muted); pointer-events: none;
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
@@ -688,34 +688,6 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
     -webkit-mask-image: linear-gradient(to right, #000 85%, transparent 100%);
     mask-image: linear-gradient(to right, #000 85%, transparent 100%);
 }
-/* Overlay for #mysite-slug (My Site tab) - see that input's own comment in index.html
-   for why its .value must stay the bare slug. This sits exactly on top of it (same
-   border/background/padding, mysite-slug-input-covered opacity:0's the real input so
-   only this shows) and renders the full https://.../p/<slug> address instead. Always one
-   line (never wraps) - overflow:hidden + ellipsis on each half independently, prefix
-   capped at 55% of the row, rather than relying on font-size alone to make a 50+
-   character address fit a card this narrow. mysiteUpdateSlugDisplay (app.js) keeps this
-   in sync with #mysite-slug's real value on every load/edit. Has to sit AFTER the real
-   <label> in DOM (input+label's adjacent-sibling floating-label selector above requires
-   label stay input's immediate next sibling), which would otherwise paint this opaque
-   box over the floated "Web address" caption - .floating-field label's own z-index:1
-   is what keeps that caption on top despite the DOM order. */
-.mysite-slug-display {
-    position: absolute; inset: 0; pointer-events: none;
-    border: 1px solid var(--border); border-radius: 10px; background: var(--surface);
-    padding: 20px 64px 6px 13px;
-    display: flex; align-items: center; font-size: 13px;
-}
-#mysite-slug.mysite-slug-input-covered { opacity: 0; }
-.mysite-slug-display span:first-child {
-    color: var(--text-muted); flex: 0 1 auto; max-width: 55%;
-    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-}
-.mysite-slug-display span:last-child {
-    color: var(--text); font-weight: 500; flex: 1 1 auto; min-width: 0;
-    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-}
-
 .field-inline-btn {
     position: absolute; top: 50%; right: 6px; transform: translateY(-50%);
     padding: 5px 12px; border-radius: 99px; border: 1px solid var(--border);
