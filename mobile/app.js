@@ -6032,6 +6032,12 @@ const MYSITE_FIELD_MODAL_FIELDS = {
     "mysite-tagline-input": { control: "input", titleKey: "mysite.website.taglineLabel" },
     "mysite-about-input": { control: "textarea", titleKey: "mysite.website.aboutLabel" },
 };
+
+// The fixed part of the real address - shown as a non-typeable prefix glued to the Web
+// address modal's own input (see openMysiteFieldModal below) so the owner always sees
+// the platform's real domain in front of whatever slug they type, not just a bare word
+// that could be mistaken for the whole address. Same domain openLiveSite already opens.
+const MYSITE_SLUG_LINK_PREFIX = API_BASE.replace(/^https?:\/\//, "") + "/p/";
 let mysiteFieldModalTargetId = null;
 
 function mysiteFieldModalActiveControl() {
@@ -6059,9 +6065,19 @@ function openMysiteFieldModal(fieldId) {
     el("mysite-field-modal-title").textContent = t(config.titleKey);
     const input = el("mysite-field-modal-input");
     const textarea = el("mysite-field-modal-textarea");
+    const inputRow = el("mysite-field-modal-input-row");
     const showTextarea = config.control === "textarea";
-    input.classList.toggle("hidden", showTextarea);
+    inputRow.classList.toggle("hidden", showTextarea);
     textarea.classList.toggle("hidden", !showTextarea);
+    // Web address only - fixed domain prefix + copy-link button glued to the editable
+    // slug input (see index.html's own comment on this row and MYSITE_SLUG_LINK_PREFIX
+    // above), so the owner always sees/can share the real full address, not the bare
+    // slug alone. Headline's plain input never gets any of this.
+    const isSlug = fieldId === "mysite-slug";
+    inputRow.classList.toggle("mysite-field-modal-input-row-slug", isSlug);
+    el("mysite-field-modal-slug-prefix").classList.toggle("hidden", !isSlug);
+    el("mysite-field-modal-copy-btn").classList.toggle("hidden", !isSlug);
+    if (isSlug) el("mysite-field-modal-slug-prefix").textContent = MYSITE_SLUG_LINK_PREFIX;
     const active = showTextarea ? textarea : input;
     // Mirrors the real field's own maxlength (200 for the tagline, 2000 for about, none
     // for the slug) so the modal can't be used to type past what the real field - and the
@@ -6107,6 +6123,36 @@ function mysiteUpdateFieldModalDeleteBtnVisibility() {
 el("mysite-field-modal-input").addEventListener("input", mysiteFieldModalSync);
 el("mysite-field-modal-textarea").addEventListener("input", mysiteFieldModalSync);
 el("mysite-field-modal-backdrop").addEventListener("click", closeMysiteFieldModal);
+
+// Copies the full address (MYSITE_SLUG_LINK_PREFIX + whatever slug is currently typed)
+// to the clipboard, so the owner can hand it to someone else without retyping/assembling
+// it themselves. Same try navigator.clipboard/fall back to a temp-input pattern as
+// help-copy-btn above - some WebView configs don't expose the Clipboard API. Briefly
+// swaps its own icon for a checkmark as the only feedback (no separate toast), same
+// spirit as mysiteFinishDomainCheck's own success swap on the Check button.
+el("mysite-field-modal-copy-btn").addEventListener("click", async (event) => {
+    const btn = event.currentTarget;
+    const slug = el("mysite-field-modal-input").value.trim();
+    if (!slug) return;
+    const link = "https://" + MYSITE_SLUG_LINK_PREFIX + slug;
+    try {
+        await navigator.clipboard.writeText(link);
+    } catch (e) {
+        const temp = document.createElement("input");
+        temp.value = link;
+        document.body.appendChild(temp);
+        temp.select();
+        document.execCommand("copy");
+        document.body.removeChild(temp);
+    }
+    const originalHTML = btn.innerHTML;
+    btn.classList.add("copied");
+    btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><path d="M4 12l5 5L15 7" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+    setTimeout(() => {
+        btn.classList.remove("copied");
+        btn.innerHTML = originalHTML;
+    }, 1500);
+});
 
 Object.keys(MYSITE_FIELD_MODAL_FIELDS).forEach((fieldId) => {
     el(fieldId).addEventListener("click", () => openMysiteFieldModal(fieldId));
