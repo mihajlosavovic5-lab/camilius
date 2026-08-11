@@ -633,6 +633,10 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
 .screen-forgot-password .floating-field input[type="text"] {
     padding: 22px 16px 8px; margin-bottom: 12px; border-radius: 16px;
 }
+/* Login's email/password pair specifically reads too cramped at the shared 12px -
+   widen just the gap between those two fields without touching forgot-password's
+   single field or the password field's own margin-bottom above the submit button. */
+#login-email { margin-bottom: 20px; }
 .floating-field input:focus + label,
 .floating-field input:not(:placeholder-shown) + label {
     height: 26px; font-size: 12.5px; color: var(--primary);
