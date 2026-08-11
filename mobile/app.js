@@ -1797,6 +1797,16 @@ function finishLightboxAnnotate() {
 // with two fingers" - once a pinch starts, the next stroke only begins on a fresh,
 // genuinely single-finger touch (both fingers lifted first), which is a far more
 // predictable rule than trying to guess intent mid-gesture.
+// A finger essentially never stays perfectly still between touching down and a second
+// finger landing for a pinch - there's almost always a pixel or two of natural jitter,
+// which used to be enough to trip the plain "has it moved at all" check the previous fix
+// relied on and paint a visible (if tiny) mark right away, before the second finger ever
+// showed up to abort it. DRAW_JITTER_THRESHOLD_PX is how far (in the canvas's own CSS
+// pixels) a stroke has to travel from its opening point before it's treated as genuine
+// drawing rather than jitter - below it, nothing paints yet, same deferred-until-confirmed
+// idea as before, just measured in distance instead of merely "moved: yes/no".
+const DRAW_JITTER_THRESHOLD_PX = 8;
+
 (function setupLightboxDrawing() {
     const canvas = el("image-lightbox-canvas");
     if (!canvas) return;
@@ -1810,10 +1820,11 @@ function finishLightboxAnnotate() {
             // - would otherwise jump straight from wherever it left off to wherever that
             // finger ends up post-zoom, drawing an unwanted stray line between the two.
             // If the very first finger of a pinch touched down on the canvas itself, its
-            // own pointerdown already recorded one point (a dot) before this second
-            // finger's arrival aborted anything further - without removing it, every
-            // pinch-to-zoom would leave a stray dot behind at exactly where it started.
-            if (lightboxActiveStroke && lightboxActiveStroke.points.length <= 1
+            // own pointerdown (and any jitter-sized pointermoves since) already recorded
+            // points for it before this second finger's arrival aborted anything further -
+            // without discarding them, every pinch-to-zoom would leave a stray mark
+            // behind at exactly where it started, confirmed or not.
+            if (lightboxActiveStroke && !lightboxActiveStroke.confirmed
                 && lightboxStrokes[lightboxStrokes.length - 1] === lightboxActiveStroke) {
                 lightboxStrokes.pop();
                 redrawLightboxCanvas();
@@ -1826,34 +1837,37 @@ function finishLightboxAnnotate() {
         event.preventDefault();
         canvas.setPointerCapture(event.pointerId);
         activeDrawPointerId = event.pointerId;
-        lightboxActiveStroke = { points: [lightboxCanvasPoint(event, canvas)], color: "#ff3b30", width: 4 };
+        lightboxActiveStroke = { points: [lightboxCanvasPoint(event, canvas)], color: "#ff3b30", width: 4, confirmed: false };
         lightboxStrokes.push(lightboxActiveStroke);
         lightboxRedoStack = [];
         updateLightboxDrawButtons();
-        // Deliberately NOT painted yet - see endStroke below for why. A one-frame
-        // rAF-deferred paint (the previous attempt at this) still isn't safe: real
-        // two-finger pinches often stagger noticeably more than a single frame between
-        // the fingers, so the dot could already be painted well before the second one
-        // ever landed and triggered the abort-and-pop branch above.
+        // Deliberately NOT painted yet - see pointermove/endStroke below for why.
     });
     canvas.addEventListener("pointermove", (event) => {
         if (!lightboxDrawing || !lightboxActiveStroke) return;
         if (event.pointerId !== activeDrawPointerId) return;
         event.preventDefault();
-        lightboxActiveStroke.points.push(lightboxCanvasPoint(event, canvas));
+        const point = lightboxCanvasPoint(event, canvas);
+        lightboxActiveStroke.points.push(point);
+        if (!lightboxActiveStroke.confirmed) {
+            const first = lightboxActiveStroke.points[0];
+            if (Math.hypot(point.x - first.x, point.y - first.y) < DRAW_JITTER_THRESHOLD_PX) return;
+            lightboxActiveStroke.confirmed = true;
+        }
         redrawLightboxCanvas();
     });
     const endStroke = (event) => {
         if (event.pointerId !== activeDrawPointerId) return;
-        // A stroke still sitting at just its opening point here never moved and was
-        // never aborted by a second finger (that branch above always fires before this
-        // one - a pinch needs both fingers down at once, so it can't arrive after this
-        // finger has already lifted) - a genuine single-finger tap, confirmed only now,
-        // not a guess based on how much time has passed. Paint its dot for the first
-        // time right here instead of at pointerdown, which is exactly what keeps a
-        // pinch's first finger from ever flashing one on screen regardless of how long
-        // the second finger takes to land.
-        if (lightboxActiveStroke && lightboxActiveStroke.points.length === 1) {
+        // A stroke that never got confirmed (never traveled past the jitter threshold)
+        // was never aborted by a second finger either - that branch above always fires
+        // before this one, since a pinch needs both fingers down at once, so it can't
+        // arrive after this finger has already lifted. That makes this a genuine
+        // single-finger tap (or a very small deliberate mark), confirmed only now, not a
+        // guess based on how much time has passed or whether it moved at all. Paint it
+        // for the first time right here instead of at pointerdown/pointermove, which is
+        // exactly what keeps a pinch's first finger from ever flashing a mark on screen
+        // no matter how much it jitters before the second finger lands.
+        if (lightboxActiveStroke && !lightboxActiveStroke.confirmed) {
             redrawLightboxCanvas();
         }
         lightboxActiveStroke = null;
@@ -1951,9 +1965,11 @@ function finishLightboxAnnotate() {
     function docAnnotatePointerDown(event) {
         if (!docAnnotate) return;
         if (docViewerPointerCount > 1) {
-            // Same stray-dot fix as the lightbox's own draw canvas: discard a stroke that
-            // never got past its opening touch before a second finger (a pinch) arrived.
-            if (docAnnotate.activeStroke && docAnnotate.activeStroke.points.length <= 1
+            // Same stray-mark fix as the lightbox's own draw canvas: discard a stroke
+            // that never got confirmed (see docAnnotatePointerMove below - never
+            // traveled past the jitter threshold) before a second finger (a pinch)
+            // arrived.
+            if (docAnnotate.activeStroke && !docAnnotate.activeStroke.confirmed
                 && docAnnotate.strokes[docAnnotate.strokes.length - 1] === docAnnotate.activeStroke) {
                 docAnnotate.strokes.pop();
                 docAnnotateRedraw();
@@ -1966,31 +1982,36 @@ function finishLightboxAnnotate() {
         event.preventDefault();
         docAnnotate.drawCanvas.setPointerCapture(event.pointerId);
         docAnnotate.activeDrawPointerId = event.pointerId;
-        docAnnotate.activeStroke = { points: [docAnnotatePoint(event)], color: "#ff3b30", width: 4 };
+        docAnnotate.activeStroke = { points: [docAnnotatePoint(event)], color: "#ff3b30", width: 4, confirmed: false };
         docAnnotate.strokes.push(docAnnotate.activeStroke);
         docAnnotate.redoStack = [];
         docAnnotateUpdateButtons();
-        // Deliberately NOT painted yet - see docAnnotatePointerEnd below for why. A
-        // one-frame rAF-deferred paint (the previous attempt at this) still isn't safe:
-        // real two-finger pinches often stagger noticeably more than a single frame
-        // between the fingers, so the dot could already be painted well before the
-        // second one ever landed and triggered the abort-and-pop branch above.
+        // Deliberately NOT painted yet - see docAnnotatePointerMove/docAnnotatePointerEnd
+        // below for why (same DRAW_JITTER_THRESHOLD_PX reasoning as the lightbox's own
+        // version of this - a plain "did it move" check still painted on the first
+        // pixel or two of natural finger jitter, well before any second finger showed
+        // up to abort it).
     }
     function docAnnotatePointerMove(event) {
         if (!docAnnotate || !docAnnotate.activeStroke) return;
         if (event.pointerId !== docAnnotate.activeDrawPointerId) return;
         event.preventDefault();
-        docAnnotate.activeStroke.points.push(docAnnotatePoint(event));
+        const point = docAnnotatePoint(event);
+        docAnnotate.activeStroke.points.push(point);
+        if (!docAnnotate.activeStroke.confirmed) {
+            const first = docAnnotate.activeStroke.points[0];
+            if (Math.hypot(point.x - first.x, point.y - first.y) < DRAW_JITTER_THRESHOLD_PX) return;
+            docAnnotate.activeStroke.confirmed = true;
+        }
         docAnnotateRedraw();
     }
     function docAnnotatePointerEnd(event) {
         if (!docAnnotate || event.pointerId !== docAnnotate.activeDrawPointerId) return;
-        // Same reasoning as the lightbox's own endStroke: a stroke still at just its
-        // opening point here never moved and was never aborted by a second finger (that
-        // branch always fires first - a pinch needs both fingers down at once), so this
-        // is confirmed as a genuine single-finger tap only now, not a time-based guess.
-        // Paint its dot for the first time right here.
-        if (docAnnotate.activeStroke && docAnnotate.activeStroke.points.length === 1) {
+        // Same reasoning as the lightbox's own endStroke: a stroke that never got
+        // confirmed was never aborted by a second finger either - that branch always
+        // fires first, since a pinch needs both fingers down at once. Paint it for the
+        // first time right here.
+        if (docAnnotate.activeStroke && !docAnnotate.activeStroke.confirmed) {
             docAnnotateRedraw();
         }
         docAnnotate.activeStroke = null;
