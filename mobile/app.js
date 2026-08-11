@@ -1793,6 +1793,16 @@ function finishLightboxAnnotate() {
             // which - if that first finger never actually lifted through the whole pinch
             // - would otherwise jump straight from wherever it left off to wherever that
             // finger ends up post-zoom, drawing an unwanted stray line between the two.
+            // If the very first finger of a pinch touched down on the canvas itself, its
+            // own pointerdown already recorded one point (a dot) before this second
+            // finger's arrival aborted anything further - without removing it, every
+            // pinch-to-zoom would leave a stray dot behind at exactly where it started.
+            if (lightboxActiveStroke && lightboxActiveStroke.points.length <= 1
+                && lightboxStrokes[lightboxStrokes.length - 1] === lightboxActiveStroke) {
+                lightboxStrokes.pop();
+                redrawLightboxCanvas();
+                updateLightboxDrawButtons();
+            }
             lightboxActiveStroke = null;
             activeDrawPointerId = null;
             return;
