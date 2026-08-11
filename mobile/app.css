@@ -2045,15 +2045,9 @@ input.tap-to-edit-field, textarea.tap-to-edit-field { cursor: pointer; backgroun
        this is a correction chasing a live-moving keyboard, not a deliberate open
        gesture, so it shouldn't call as much attention to itself. will-change hints the
        browser to promote the sheet to its own compositor layer for these two specifically,
-       which keeps the motion from stuttering on slower Android WebViews. 320ms (bumped
-       from 250ms) roughly matches how long Android's own on-screen keyboard takes to
-       slide open - see anticipateKeyboardReposition in app.js, which now starts this
-       transition the instant a field gets focus instead of waiting on visualViewport's
-       own resize/scroll events (which on several WebViews only fire once the keyboard's
-       already fully open); a transition that's over too fast for that head start to
-       matter would defeat the point of adding it. */
+       which keeps the motion from stuttering on slower Android WebViews. */
     transition: transform .2s cubic-bezier(.22, .9, .32, 1.2), opacity .16s ease,
-        top .32s cubic-bezier(.4, 0, .2, 1), max-height .32s cubic-bezier(.4, 0, .2, 1);
+        top .25s cubic-bezier(.4, 0, .2, 1), max-height .25s cubic-bezier(.4, 0, .2, 1);
     will-change: top, max-height;
     display: flex; flex-direction: column;
 }
@@ -2212,7 +2206,7 @@ input.tap-to-edit-field, textarea.tap-to-edit-field { cursor: pointer; backgroun
        as .book-modal-sheet above, kept in sync so a duration-modal-style keyboard-driven
        reposition eases the same way regardless of which of the two sheet types is open. */
     transition: transform .2s cubic-bezier(.22, .9, .32, 1.2), opacity .16s ease,
-        top .32s cubic-bezier(.4, 0, .2, 1), max-height .32s cubic-bezier(.4, 0, .2, 1);
+        top .25s cubic-bezier(.4, 0, .2, 1), max-height .25s cubic-bezier(.4, 0, .2, 1);
     will-change: top, max-height;
 }
 .lang-modal.open .confirm-modal-sheet { transform: translate(-50%, -50%) scale(1); }
