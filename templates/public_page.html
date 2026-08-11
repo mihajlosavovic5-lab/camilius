@@ -377,6 +377,10 @@
         position: relative;
         flex: 0 0 100%;
         scroll-snap-align: start;
+        /* Without this, a fast/hard swipe can carry momentum straight past the next
+           snap point to land two or three days over - scroll-snap-stop forces the
+           scroll to stop at every card in turn, capping one gesture at one day. */
+        scroll-snap-stop: always;
         border: 1px solid var(--border);
         border-radius: calc(var(--radius) * 0.6);
         background: var(--background);
