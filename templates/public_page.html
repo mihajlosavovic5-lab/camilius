@@ -1458,6 +1458,11 @@
         }
 
         function openBookDateCal() {
+            // The popover floats over the section (position: absolute) rather than
+            // pushing it down, so a day card left expanded from before shows its own
+            // slot grid bleeding out from underneath it - close any open card first so
+            // only the calendar itself is visible while it's up.
+            Array.prototype.forEach.call(bookListEl.children, function (c) { c.open = false; });
             bookDateViewYear = todayDateObj.getFullYear();
             bookDateViewMonth = todayDateObj.getMonth();
             renderBookDateCal();
