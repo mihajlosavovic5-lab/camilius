@@ -1485,7 +1485,8 @@
     // A fast/hard swipe's own momentum used to be able to carry it past the next day
     // to land two or three over, so the drag is driven entirely by hand here instead
     // of native touch scrolling - captured which card was in view when the gesture
-    // started, and clamps wherever the drag ends up to at most one day past it.
+    // started, and (see touchend below) always moves at most one day from it, however
+    // far or fast the drag itself went.
     //
     // preventDefault() now fires on every touchmove from the very first pixel, not
     // once an axis has been decided - a first version waited to see whether the drag
@@ -1527,12 +1528,23 @@
         if (bookDragStartIndex === null) return;
         var start = bookDragStartIndex;
         var axis = bookDragAxis;
+        // Net horizontal distance actually dragged, not how far into the next card
+        // that landed - checking "which card is nearest now" required dragging
+        // roughly half a card's width (near enough to make the next one the nearest)
+        // before it counted as a swipe at all, which read as "only a hard pull
+        // works." Any deliberate drag past a small pixel threshold now advances
+        // exactly one day regardless of how far past that it went, so a light flick
+        // moves on just as readily as a big one.
+        var scrolled = bookListEl.scrollLeft - bookDragStartScroll;
         bookDragStartX = null;
         bookDragStartIndex = null;
         bookDragAxis = null;
         if (axis !== "x") return;
-        var raw = currentBookCard();
-        var target = Math.max(start - 1, Math.min(start + 1, raw));
+        var SWIPE_THRESHOLD = 18;
+        var target = start;
+        if (scrolled > SWIPE_THRESHOLD) target = start + 1;
+        else if (scrolled < -SWIPE_THRESHOLD) target = start - 1;
+        target = Math.max(0, Math.min(bookListEl.children.length - 1, target));
         var card = bookListEl.children[target];
         if (card) animateBookScrollTo(bookCardTargetScrollLeft(card), 260);
     });
