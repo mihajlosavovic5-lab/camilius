@@ -413,8 +413,7 @@
     .book-date-nav svg { width: 16px; height: 16px; }
     .book-date-nav:hover:not(:disabled) { background: var(--background); color: var(--primary); }
     .book-date-nav:disabled { opacity: .3; cursor: default; }
-    .book-date-weekdays, .book-date-grid { display: grid; grid-template-columns: repeat(7, 1fr); }
-    .book-date-weekdays { margin-bottom: 2px; }
+    .book-date-weekdays { display: grid; grid-template-columns: repeat(7, 1fr); margin-bottom: 2px; }
     .book-date-weekdays span {
         display: block; text-align: center; padding: 4px 0;
         font-size: 0.62rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em;
@@ -422,14 +421,30 @@
     }
     /* Swiped left/right the same way the day carousel is (see the touch handling
        further down) - the arrows still work as before, but a drag now also follows
-       the finger via this same transform, and either snaps back to center (a short
-       drag, or the boundary a disabled arrow would also block) or slides the rest of
-       the way off before the next/previous month's grid slides in from that side.
-       Position only, no opacity fade - dates staying at low opacity for a beat while
-       easing back up to visible read as "waiting for them to load" rather than a
-       transition. */
-    .book-date-grid {
+       the finger. .book-date-track actually holds THREE month grids side by side
+       (previous/current/next, each exactly one viewport wide) rather than sliding a
+       single grid around on its own - dragging just one grid within a fixed,
+       clipped popover had nothing behind or beside it to reveal, so anything past a
+       small drag distance clipped off real dates into blank space instead of
+       showing the neighboring month the way the day carousel always had another
+       real card to slide in. Centered on the current (middle) panel at rest;
+       -33.3333%/-66.6666%/0% are that same centered position and its two neighbors,
+       in the track's own percentage terms (each panel is 33.3333% of the 300%-wide
+       track = 100% of the viewport). Position only, no opacity fade - dates sitting
+       at low opacity for a beat while easing back up to visible read as "waiting for
+       them to load" rather than a transition. */
+    .book-date-viewport { overflow: hidden; }
+    .book-date-track {
+        display: flex;
+        width: 300%;
+        transform: translateX(-33.3333%);
         transition: transform .18s ease;
+    }
+    .book-date-grid {
+        flex: 0 0 33.3333%;
+        min-width: 0;
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
     }
     .book-date-grid button {
         aspect-ratio: 1; display: flex; align-items: center; justify-content: center;
@@ -875,7 +890,13 @@
                             </button>
                         </div>
                         <div class="book-date-weekdays" id="book-date-weekdays"></div>
-                        <div class="book-date-grid" id="book-date-grid"></div>
+                        <div class="book-date-viewport">
+                            <div class="book-date-track" id="book-date-track">
+                                <div class="book-date-grid" id="book-date-grid-prev"></div>
+                                <div class="book-date-grid" id="book-date-grid"></div>
+                                <div class="book-date-grid" id="book-date-grid-next"></div>
+                            </div>
+                        </div>
                     </div>
                 </div>
                 <h2 data-i18n="heading_book">Book an appointment</h2>
@@ -1626,7 +1647,10 @@
     var bookDateCal = document.getElementById("book-date-cal");
     var bookDateTitle = document.getElementById("book-date-cal-title");
     var bookDateWeekdays = document.getElementById("book-date-weekdays");
+    var bookDateTrack = document.getElementById("book-date-track");
+    var bookDateGridPrev = document.getElementById("book-date-grid-prev");
     var bookDateGrid = document.getElementById("book-date-grid");
+    var bookDateGridNext = document.getElementById("book-date-grid-next");
     var bookDatePrev = document.getElementById("book-date-prev");
     var bookDateNext = document.getElementById("book-date-next");
 
@@ -1655,18 +1679,19 @@
             }
         }
 
-        function renderBookDateCal() {
-            var monthStart = new Date(bookDateViewYear, bookDateViewMonth, 1);
-            bookDateTitle.textContent = monthStart.toLocaleDateString(undefined, { month: "long", year: "numeric" });
-
-            bookDateGrid.innerHTML = "";
+        // Fills one month-grid panel with (year, month)'s own days - shared by all
+        // three .book-date-track panels (previous/current/next), each just a plain
+        // month regardless of which position it's currently sitting in.
+        function buildBookDateMonthGrid(container, year, month) {
+            container.innerHTML = "";
+            var monthStart = new Date(year, month, 1);
             var firstWeekday = (monthStart.getDay() + 6) % 7; // Monday = 0, matching the weekday row above
             for (var lead = 0; lead < firstWeekday; lead++) {
-                bookDateGrid.appendChild(document.createElement("span"));
+                container.appendChild(document.createElement("span"));
             }
-            var daysInMonth = new Date(bookDateViewYear, bookDateViewMonth + 1, 0).getDate();
+            var daysInMonth = new Date(year, month + 1, 0).getDate();
             for (var day = 1; day <= daysInMonth; day++) {
-                var iso = bookDateViewYear + "-" + pad2(bookDateViewMonth + 1) + "-" + pad2(day);
+                var iso = year + "-" + pad2(month + 1) + "-" + pad2(day);
                 var cell = document.createElement("button");
                 cell.type = "button";
                 cell.textContent = String(day);
@@ -1678,13 +1703,36 @@
                     closeBookDateCal();
                     jumpToBookDate(picked);
                 });
-                bookDateGrid.appendChild(cell);
+                container.appendChild(cell);
             }
+        }
+        function adjacentBookDateMonth(year, month, direction) {
+            month += direction;
+            if (month < 0) { month = 11; year -= 1; }
+            if (month > 11) { month = 0; year += 1; }
+            return { year: year, month: month };
+        }
+
+        function renderBookDateCal() {
+            var monthStart = new Date(bookDateViewYear, bookDateViewMonth, 1);
+            bookDateTitle.textContent = monthStart.toLocaleDateString(undefined, { month: "long", year: "numeric" });
+
+            var prev = adjacentBookDateMonth(bookDateViewYear, bookDateViewMonth, -1);
+            var next = adjacentBookDateMonth(bookDateViewYear, bookDateViewMonth, 1);
+            buildBookDateMonthGrid(bookDateGridPrev, prev.year, prev.month);
+            buildBookDateMonthGrid(bookDateGrid, bookDateViewYear, bookDateViewMonth);
+            buildBookDateMonthGrid(bookDateGridNext, next.year, next.month);
 
             var prevMonthLastDay = new Date(bookDateViewYear, bookDateViewMonth, 0);
             bookDatePrev.disabled = prevMonthLastDay < todayDateObj;
             var nextMonthFirstDay = new Date(bookDateViewYear, bookDateViewMonth + 1, 1);
             bookDateNext.disabled = nextMonthFirstDay > bookDateMaxObj;
+
+            // Re-centered on the (freshly rebuilt) current month, instantly - the
+            // neighbors are only ever there to slide into during the NEXT gesture,
+            // never to still be mid-transition from the last one.
+            bookDateTrack.style.transition = "none";
+            bookDateTrack.style.transform = "translateX(-33.3333%)";
         }
 
         function openBookDateCal() {
@@ -1718,61 +1766,53 @@
         document.addEventListener("keydown", function (e) {
             if (e.key === "Escape") closeBookDateCal();
         });
-        // Slides the grid to `direction`'s month (-1 previous, +1 next) - the old
-        // month finishes sliding out that same direction, then the new one is
-        // rendered and slid in from the opposite side. `fromOffset` (how far a swipe
-        // had already dragged the grid, in px - see the touch handling below) keeps
-        // the slide-out continuing in that same direction from wherever the finger
-        // left off rather than snapping back toward center first - Math.min/max here
-        // picks whichever of the fixed 40px target or the drag's own (further) offset
-        // is more extreme, so a drag that had already passed 40px keeps going instead
-        // of visibly reversing partway before it slides out.
-        // No opacity fade here (deliberately) - it made the incoming month's numbers
-        // sit at low opacity for a beat while easing up to fully visible, which read
-        // as "waiting for them to load" the same way the day carousel used to before
-        // its own height/open-state syncing was moved earlier. Position-only slide
-        // instead, so dates are at full visibility the entire time they're moving.
+        // Slides .book-date-track fully onto `direction`'s panel (-1 previous, +1
+        // next) - already a real neighboring month sitting right there (see
+        // .book-date-track above), not empty space, so this just finishes whatever
+        // motion is already under way (a drag, or starting fresh from center for a
+        // plain arrow click) rather than needing to build anything first. Once it
+        // lands, the view month itself updates and renderBookDateCal() rebuilds all
+        // three panels around it, snapping the track back to center instantly so the
+        // next gesture always has fresh neighbors ready.
         var BOOK_DATE_SLIDE_MS = 160;
-        function changeBookDateMonth(direction, fromOffset) {
-            var slideOut = direction > 0 ? Math.min(-40, fromOffset || 0) : Math.max(40, fromOffset || 0);
-            bookDateGrid.style.transition = "transform " + BOOK_DATE_SLIDE_MS + "ms ease";
-            bookDateGrid.style.transform = "translateX(" + slideOut + "px)";
+        function changeBookDateMonth(direction) {
+            bookDateTrack.style.transition = "transform " + BOOK_DATE_SLIDE_MS + "ms ease";
+            bookDateTrack.style.transform = "translateX(" + (direction > 0 ? "-66.6666%" : "0%") + ")";
             setTimeout(function () {
                 bookDateViewMonth += direction;
                 if (bookDateViewMonth < 0) { bookDateViewMonth = 11; bookDateViewYear -= 1; }
                 if (bookDateViewMonth > 11) { bookDateViewMonth = 0; bookDateViewYear += 1; }
                 renderBookDateCal();
-                bookDateGrid.style.transition = "none";
-                bookDateGrid.style.transform = "translateX(" + (direction > 0 ? 40 : -40) + "px)";
-                void bookDateGrid.offsetWidth; // force reflow so the next transform change transitions
-                bookDateGrid.style.transition = "transform " + BOOK_DATE_SLIDE_MS + "ms ease";
-                bookDateGrid.style.transform = "translateX(0)";
             }, BOOK_DATE_SLIDE_MS);
         }
-        function snapBookDateGridBack() {
-            bookDateGrid.style.transition = "transform " + BOOK_DATE_SLIDE_MS + "ms ease";
-            bookDateGrid.style.transform = "translateX(0)";
+        function snapBookDateTrackBack() {
+            bookDateTrack.style.transition = "transform " + BOOK_DATE_SLIDE_MS + "ms ease";
+            bookDateTrack.style.transform = "translateX(-33.3333%)";
         }
         bookDatePrev.addEventListener("click", function () { changeBookDateMonth(-1); });
         bookDateNext.addEventListener("click", function () { changeBookDateMonth(1); });
 
-        // Swipe/drag the month grid left or right, same touch handling as the day
-        // carousel further up (drag-follows-finger via a transform here instead of
-        // scrollLeft, axis-locked so a vertical drag still scrolls the page). A swipe
-        // past a small threshold changes the month; anything shorter springs back to
-        // center. Blocked in whichever direction the arrow buttons are themselves
-        // disabled in (past today, or past the availability window), same as tapping
-        // that arrow would be blocked.
+        // Swipe/drag the month track left or right, same touch handling as the day
+        // carousel further up (drag-follows-finger, axis-locked so a vertical drag
+        // still scrolls the page). A drag past a small threshold commits to the
+        // neighboring month (finishing the same transition changeBookDateMonth uses);
+        // anything shorter springs back to center. Blocked in whichever direction the
+        // arrow buttons are themselves disabled in (past today, or past the
+        // availability window), same as tapping that arrow would be. Clamped to at
+        // most one panel's own width either way so a drag longer than that can't pull
+        // the track past its third (still-real, but otherwise unaccounted-for) panel.
         var bookMonthDragStartX = null;
         var bookMonthDragStartY = null;
         var bookMonthDragAxis = null;
         var bookMonthDragLastDx = 0;
+        var bookMonthPanelWidth = 0;
         bookDateCal.addEventListener("touchstart", function (e) {
             bookMonthDragStartX = e.touches[0].clientX;
             bookMonthDragStartY = e.touches[0].clientY;
             bookMonthDragAxis = null;
             bookMonthDragLastDx = 0;
-            bookDateGrid.style.transition = "none";
+            bookMonthPanelWidth = bookDateGrid.getBoundingClientRect().width;
+            bookDateTrack.style.transition = "none";
         }, { passive: true });
         bookDateCal.addEventListener("touchmove", function (e) {
             if (bookMonthDragStartX === null) return;
@@ -1786,8 +1826,9 @@
             e.preventDefault();
             if (dx < 0 && bookDateNext.disabled) dx = 0;
             if (dx > 0 && bookDatePrev.disabled) dx = 0;
+            dx = Math.max(-bookMonthPanelWidth, Math.min(bookMonthPanelWidth, dx));
             bookMonthDragLastDx = dx;
-            bookDateGrid.style.transform = "translateX(" + dx + "px)";
+            bookDateTrack.style.transform = "translateX(calc(-33.3333% + " + dx + "px))";
         }, { passive: false });
         bookDateCal.addEventListener("touchend", function (e) {
             if (bookMonthDragStartX === null) return;
@@ -1798,9 +1839,9 @@
             if (axis !== null) e.preventDefault();
             if (axis !== "x") return;
             var SWIPE_THRESHOLD = 30;
-            if (dx <= -SWIPE_THRESHOLD && !bookDateNext.disabled) changeBookDateMonth(1, dx);
-            else if (dx >= SWIPE_THRESHOLD && !bookDatePrev.disabled) changeBookDateMonth(-1, dx);
-            else snapBookDateGridBack();
+            if (dx <= -SWIPE_THRESHOLD && !bookDateNext.disabled) changeBookDateMonth(1);
+            else if (dx >= SWIPE_THRESHOLD && !bookDatePrev.disabled) changeBookDateMonth(-1);
+            else snapBookDateTrackBack();
         }, { passive: false });
     }
 
