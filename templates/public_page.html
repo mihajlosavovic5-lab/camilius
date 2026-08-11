@@ -443,13 +443,16 @@
     {% endif %}
 </div>
 
-{% if not preview %}
+{% if chat_url %}
 <!-- Chat + booking - the actual product this page exists to deliver, not a website
      builder add-on (see the AI answering questions/hours/prices/faq above, and booking
-     an appointment directly - see public_page_chat() in app.py). Skipped entirely in
-     preview mode (see app.py's onboarding_website_preview) - a business previewing an
-     unsaved draft during the onboarding wizard has no real slug/chat_url yet for this
-     to talk to. -->
+     an appointment directly - see public_page_chat() in app.py). Gated on chat_url (not
+     `preview`) so app.py's site_preview() - a real saved page, just not published yet -
+     renders this identically to the live page; only onboarding_website_preview()'s
+     in-progress draft (no real slug/chat_url yet for this to talk to) skips it entirely.
+     public_page_chat()/public_page_availability() still 404 for any unpublished slug
+     though, this business's own preview included - so until Publish is on, tapping either
+     here surfaces their own "couldn't load"/"try again" copy below, not a live reply. -->
 <button type="button" class="chat-fab" id="chat-fab" aria-label="Chat with {{ business_name }}">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
         <path d="M4 5.5a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H9l-4 3.5v-3.5H6a2 2 0 0 1-2-2z" stroke-linecap="round" stroke-linejoin="round"/>

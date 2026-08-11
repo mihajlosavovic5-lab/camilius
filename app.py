@@ -2185,11 +2185,17 @@ def onboarding_website_preview():
 # real, complete site Camilius built for them from everything it has on file (tagline,
 # about, hours, prices, FAQ, theme, media) even before they've published it, which
 # public_page() itself can't do since it 404s on an unpublished slug (see its own
-# docstring). Reuses public_page.html the same way onboarding_website_preview() above
-# does - preview=True, noindex, no live chat/booking widget wired up (nothing here is a
-# real slug a visitor could reach) - except this pulls the business's actual saved page
-# row instead of an in-progress onboarding draft, so what the owner sees here is exactly
-# what /p/<slug> will show the moment they publish.
+# docstring). Goes through the exact same _render_public_page() as public_page() itself -
+# same booking_enabled/chat_url computation, same template, one source of truth - so the
+# two can no longer drift out of sync the way they used to (booking/chat silently missing
+# here while live). preview=True only changes the <head>'s noindex/canonical tags, so the
+# layout the owner sees here - including the Book an appointment button/section and the
+# chat bubble - is exactly what /p/<slug> will show the moment they publish. Those two
+# still won't actually respond until publish, though: public_page_chat()/
+# public_page_availability() 404 for any unpublished slug, owner included (see their own
+# "not published yet" tests) - a deliberate line against a still-unpublished draft
+# quietly running real AI replies/bookings, so tapping either here surfaces the widget's
+# own "couldn't load"/"try again" copy rather than something live, until Publish is on.
 @app.route("/site/preview")
 @login_required
 def site_preview():
@@ -2198,26 +2204,8 @@ def site_preview():
     if page_row is None:
         abort(404)
     business = business_by_id(business_id)
-    media = business_media.media_for_page(business_id)
-    return render_template(
-        "public_page.html",
-        business_name=business[1],
-        working_hours=business[7],
-        price_list=business[8],
-        faq=business[9],
-        tagline=page_row[4],
-        about=page_row[5],
-        opening_hours_schema=[],
-        opening_hours_display=pages.opening_hours_display(business[7]),
-        page_url="",
-        chat_url="",
-        slug=page_row[2],
-        theme=themes.resolve_theme(page_row[9], page_row[10]),
-        preview=True,
-        show_badge=False,
-        logo_url=media["logo_url"],
-        gallery_urls=media["gallery_urls"],
-        hero_video_url=media["hero_video_url"],
+    return _render_public_page(
+        page_row, business, url_for("public_page", slug=page_row[2], _external=True), preview=True,
     )
 
 
@@ -2432,7 +2420,7 @@ def robots_txt():
 # logic can't drift between the two ways of reaching the same page. `page_url` is passed
 # in rather than derived here since it means something different in each caller: the
 # platform's own /p/<slug> URL in one case, the custom domain's own root in the other.
-def _render_public_page(page, business, page_url):
+def _render_public_page(page, business, page_url, preview=False):
     business_id = page[1]
     slug = page[2]
     # Booking is only ever offered where the AI chat tool itself is allowed to actually
@@ -2464,7 +2452,7 @@ def _render_public_page(page, business, page_url):
         chat_url=f"https://{PRIMARY_APP_HOST}" + url_for("public_page_chat", slug=slug),
         slug=slug,
         theme=themes.resolve_theme(page[9], page[10]),
-        preview=False,
+        preview=preview,
         booking_enabled=booking_enabled,
         availability_url=(f"https://{PRIMARY_APP_HOST}" + url_for("public_page_availability", slug=slug)) if booking_enabled else None,
         # F4: the "Powered by Camilius" footer disappears once this business has any
