@@ -949,8 +949,13 @@
                 </div>
                 <h2 data-i18n="heading_book">Book an appointment</h2>
             </div>
-            <p class="book-loading" id="book-loading" data-i18n="book_loading">Loading open times...</p>
-            <div class="book-list hidden" id="book-list"></div>
+            <!-- Hidden/shown server-side from initial_availability_days (see app.py's
+                 _render_public_page) whenever it already has real days to show, so
+                 there's no "Loading open times..." flash even in the instant before the
+                 booking script below runs - it only fills this now-visible book-list in,
+                 rather than deciding whether to show it at all. -->
+            <p class="book-loading{% if initial_availability_days %} hidden{% endif %}" id="book-loading" data-i18n="book_loading">Loading open times...</p>
+            <div class="book-list{% if not initial_availability_days %} hidden{% endif %}" id="book-list"></div>
             <p class="book-confirm hidden" id="book-confirm"></p>
         </section>
         {% endif %}
@@ -1379,6 +1384,12 @@
     var bookListEl = document.getElementById("book-list");
     var bookConfirmEl = document.getElementById("book-confirm");
     var availabilityUrl = {{ availability_url | tojson }};
+    // Today's real open times, computed server-side at the same time as the rest of
+    // this page (see app.py's _render_public_page) - lets the widget skip straight to
+    // rendering below instead of starting on "Loading open times..." and only
+    // replacing it once the equivalent client-side fetch to availabilityUrl above
+    // comes back a beat later.
+    var initialAvailabilityDays = {{ initial_availability_days | tojson }};
 
     // Tracks which of book_loading/book_empty/book_error is currently shown so a
     // language switch (see the "Language switcher" script above) can re-translate
@@ -1913,7 +1924,20 @@
         }, { passive: false });
     }
 
-    loadAvailability(false);
+    if (initialAvailabilityDays !== null) {
+        // Renders straight from the embedded data - no fetch, no "Loading..." flash.
+        bookLoadRequested = true;
+        if (initialAvailabilityDays.length === 0) {
+            setBookLoadingText("book_empty");
+        } else {
+            renderBookList(initialAvailabilityDays);
+            bookLoading.classList.add("hidden");
+            bookListEl.classList.remove("hidden");
+            syncBookListHeight();
+        }
+    } else {
+        loadAvailability(false);
+    }
 
     // Keeps this tab's open-times list current with whatever the owner just changed in
     // the app (working hours, slot duration, a manually booked/canceled appointment on
