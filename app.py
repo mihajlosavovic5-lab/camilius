@@ -2493,6 +2493,13 @@ def _render_public_page(page, business, page_url, preview=False):
         preview=preview,
         booking_enabled=booking_enabled,
         availability_url=(f"https://{PRIMARY_APP_HOST}" + url_for("public_page_availability", slug=slug)) if booking_enabled else None,
+        # Computed once here, embedded straight into the page, so the "Book an
+        # appointment" widget can render today's real open times the instant its script
+        # runs instead of starting on "Loading open times..." and only replacing it once
+        # a client-triggered fetch to availability_url above comes back (see
+        # public_page.html's use of this - it still polls that same endpoint afterward to
+        # stay current, this only covers the very first render).
+        initial_availability_days=_public_page_availability_days(business_id, business) if booking_enabled else None,
         # Trailing "/<lang>" deliberately left off - a single placeholder char ("x") is
         # requested from url_for purely to get a correctly-built path, then stripped back
         # off, so the template/script below can append whichever real language code a
@@ -2604,6 +2611,36 @@ def _json_with_cors(origin, **kwargs):
     return resp
 
 
+# Shared by public_page_availability below and _render_public_page above - the same
+# free/busy computation, pulled out so the very first page load can embed today's
+# availability straight into the HTML response (see _render_public_page's
+# initial_availability_days) instead of that page needing a second, client-triggered
+# round trip to this endpoint just to replace its own "Loading open times..." text with
+# real content a beat later.
+def _public_page_availability_days(business_id, business):
+    working_hours = business[7]
+    tz = booking.tz_for(business)
+    slot_minutes = get_slot_duration(business_id)
+    now = booking.now_local(tz)
+
+    range_start = now.date()
+    range_end = range_start + timedelta(days=PAGE_AVAILABILITY_DAYS)
+    free_by_day = booking.free_slots_for_range(business_id, working_hours, slot_minutes, range_start, range_end, tz)
+
+    days = []
+    d = range_start
+    while d < range_end:
+        free = [s for s in free_by_day.get(d, []) if s >= now]
+        if free:
+            days.append({
+                "date": d.isoformat(),
+                "label": d.strftime("%a, %b %d"),
+                "slots": [s.strftime("%H:%M") for s in free],
+            })
+        d += timedelta(days=1)
+    return days
+
+
 # Read-only free/busy for the public page's own "Book an appointment" calendar (see
 # public_page.html) - deliberately NOT a booking endpoint itself. The actual booking
 # transaction (name, notifications, upsell, double-book protection) stays entirely inside
@@ -2626,29 +2663,7 @@ def public_page_availability(slug):
     if business is None or not (BETA_FREE_MODE or has_pro_access(business_id)):
         abort(404)
     origin = _custom_domain_cors_origin(page)
-
-    working_hours = business[7]
-    tz = booking.tz_for(business)
-    slot_minutes = get_slot_duration(business_id)
-    now = booking.now_local(tz)
-
-    range_start = now.date()
-    range_end = range_start + timedelta(days=PAGE_AVAILABILITY_DAYS)
-    free_by_day = booking.free_slots_for_range(business_id, working_hours, slot_minutes, range_start, range_end, tz)
-
-    days = []
-    d = range_start
-    while d < range_end:
-        free = [s for s in free_by_day.get(d, []) if s >= now]
-        if free:
-            days.append({
-                "date": d.isoformat(),
-                "label": d.strftime("%a, %b %d"),
-                "slots": [s.strftime("%H:%M") for s in free],
-            })
-        d += timedelta(days=1)
-
-    return _json_with_cors(origin, days=days)
+    return _json_with_cors(origin, days=_public_page_availability_days(business_id, business))
 
 
 # Translates the public page's own content + fixed chrome (see translate_page.py's
