@@ -393,14 +393,16 @@ button { font-family: inherit; -webkit-appearance: none; appearance: none; }
 .lang-select-btn {
     display: flex; align-items: center; gap: 5px; background: none; border: none; cursor: pointer;
     font-family: inherit; font-size: 15px; font-weight: 600; color: var(--text-muted); padding: 10px 8px;
-    border-radius: 8px; transition: background .15s ease, transform .12s ease;
+    border-radius: 8px; transition: transform .12s ease;
 }
 /* Used to stay highlighted (.active, JS-managed) for as long as the picker modal was
    open - a static box sitting there for the whole duration instead of a tap
-   acknowledgment. Swapped for the native :active press pseudo-class, same as the
-   Settings row's own version of this same trigger: a quick flash-and-scale that fades
-   the instant the finger lifts, whether or not the modal is still up. */
-.lang-select-btn:active { background: var(--background); transform: scale(.96); }
+   acknowledgment. A same-color background flash on :active still read as a stray box
+   around the button (same reasoning as the Settings row's own version of this trigger,
+   see #settings-language-row:active above) - dropped the color change entirely and
+   kept just the scale, which is enough to register as "yes, that tapped" without a
+   halo appearing around it. */
+.lang-select-btn:active { transform: scale(.96); }
 .lang-select-label { white-space: nowrap; }
 /* Flexible spacers above/below the form cluster, close to an even split so the cluster
    reads as centered rather than deliberately offset. */
