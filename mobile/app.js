@@ -5679,6 +5679,16 @@ el("mysite-field-delete-confirm-confirm").addEventListener("click", () => {
             staged.push(entry);
             updateAttachmentListState();
             showPickingOverlay(chip, imgEl);
+
+            // Documents (unlike photos/video) upload right away instead of waiting for
+            // Send - a picked PDF/DOCX has nowhere to preview to yet (openDocument above
+            // needs a real server URL; a local blob: URL can't be opened by the separate
+            // Chrome Custom Tab process it launches), so tapping one to open it only works
+            // once it actually has one. flushStagedAttachments below reuses this same
+            // promise at Send time instead of uploading it a second time.
+            if (kind === "document") {
+                entry.uploadPromise = persistStagedEntry(entry);
+            }
         }
 
         // Actually uploads one staged entry, in place - keeps its local preview showing
@@ -5736,10 +5746,13 @@ el("mysite-field-delete-confirm-confirm").addEventListener("click", () => {
 
         // Called once Send is actually tapped, before the message itself goes out - drains
         // `staged` up front so a second Send while these are still uploading, or one that
-        // runs after they've already landed, never re-uploads the same file.
+        // runs after they've already landed, never re-uploads the same file. Documents
+        // already kicked their own upload off back in stageFile (see entry.uploadPromise
+        // there) - reuses that promise instead of calling persistStagedEntry a second time,
+        // which would upload the same file twice.
         flushStagedAttachments = function () {
             const toFlush = staged.splice(0, staged.length);
-            return Promise.all(toFlush.map(persistStagedEntry));
+            return Promise.all(toFlush.map((entry) => entry.uploadPromise || persistStagedEntry(entry)));
         };
 
         function handlePicked(pickedInput) {
