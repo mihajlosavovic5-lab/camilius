@@ -2034,20 +2034,17 @@ input.tap-to-edit-field, textarea.tap-to-edit-field { cursor: pointer; backgroun
     padding: 20px 18px 16px;
     transform-origin: center;
     transform: translate(-50%, calc(-50% + 14px)) scale(.96);
-    /* top/max-height added to the transform/opacity transition .lang-modal-sheet already
-       declares (this replaces that list rather than adding to it, so both are repeated
-       here) - app.js's pinModalCenter()/repositionOpenCenteredModals() keep top/max-height
-       live-updated in real pixels as the keyboard opens/closes (see their own comments),
-       and without a transition on those two the sheet would just snap to each new
-       position/height instantly instead of easing into it the way the keyboard itself
-       visibly slides. Material's own "standard" easing (decelerate-into-place, no
-       overshoot) reads calmer here than the bouncier open/close curve above would -
-       this is a correction chasing a live-moving keyboard, not a deliberate open
-       gesture, so it shouldn't call as much attention to itself. will-change hints the
-       browser to promote the sheet to its own compositor layer for these two specifically,
-       which keeps the motion from stuttering on slower Android WebViews. */
-    transition: transform .2s cubic-bezier(.22, .9, .32, 1.2), opacity .16s ease,
-        top .25s cubic-bezier(.4, 0, .2, 1), max-height .25s cubic-bezier(.4, 0, .2, 1);
+    /* top/max-height are NOT in this transition (this replaces the list .lang-modal-sheet
+       declares rather than adding to it, so transform/opacity are repeated here) -
+       app.js's pinModalCenter()/trackCenteredModals() keep them live-updated in real
+       pixels every animation frame as the keyboard opens/closes (see trackCenteredModals'
+       own comment), so the sheet already IS the keyboard's live position on every repaint;
+       giving top/max-height their own transition on top of that would make each per-frame
+       write itself ease toward the next one, one frame behind where it should be - the
+       exact stutter this used to have. will-change still hints the browser to promote the
+       sheet to its own compositor layer for these two, which keeps the per-frame writes
+       cheap on slower Android WebViews. */
+    transition: transform .2s cubic-bezier(.22, .9, .32, 1.2), opacity .16s ease;
     will-change: top, max-height;
     display: flex; flex-direction: column;
 }
@@ -2202,11 +2199,10 @@ input.tap-to-edit-field, textarea.tap-to-edit-field { cursor: pointer; backgroun
     padding: 22px 20px;
     transform-origin: center;
     transform: translate(-50%, calc(-50% + 14px)) scale(.96);
-    /* Same top/max-height transition (and the same standard-easing/will-change reasoning)
-       as .book-modal-sheet above, kept in sync so a duration-modal-style keyboard-driven
-       reposition eases the same way regardless of which of the two sheet types is open. */
-    transition: transform .2s cubic-bezier(.22, .9, .32, 1.2), opacity .16s ease,
-        top .25s cubic-bezier(.4, 0, .2, 1), max-height .25s cubic-bezier(.4, 0, .2, 1);
+    /* Same "no transition on top/max-height" reasoning as .book-modal-sheet above, kept
+       in sync so a duration-modal-style keyboard-driven reposition tracks the same way
+       regardless of which of the two sheet types is open. */
+    transition: transform .2s cubic-bezier(.22, .9, .32, 1.2), opacity .16s ease;
     will-change: top, max-height;
 }
 .lang-modal.open .confirm-modal-sheet { transform: translate(-50%, -50%) scale(1); }
