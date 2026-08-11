@@ -5115,16 +5115,23 @@ function pinModalCenter(modal) {
 function repositionOpenCenteredModals() {
     document.querySelectorAll(".lang-modal.open .book-modal-sheet, .lang-modal.open .confirm-modal-sheet").forEach(pinModalCenterSheet);
 }
-// Both "resize" (the visible area's final size changed) and "scroll" (its offset moved,
-// which visualViewport also reports for while the keyboard is still animating in/out on
-// several WebViews) are wired to the same handler - resize alone tends to only fire once
-// the keyboard finishes moving, which is enough to land in the right place but reads as
-// "pause, then catch up" instead of tracking the keyboard the whole way; scroll fills in
-// the frames in between so the CSS transition above has more, closer-together waypoints
-// to ease through rather than one big jump at the very end.
+// "resize" only (NOT also "scroll" - see the reasoning below) - fires once the visible
+// area's final size is known, which is enough to correct anything anticipateKeyboardReposition's
+// guess below got wrong.
+//
+// An earlier version of this also reacted to "scroll" (which visualViewport fires
+// repeatedly while the keyboard is still animating in/out on several WebViews), on the
+// theory that more waypoints would mean a smoother glide. In practice it did the
+// opposite: each of those firings sets a new top/max-height target, and a CSS transition
+// retargeted before it finishes doesn't speed up to compensate - it restarts the full
+// .32s from wherever it currently is. Several of those in quick succession chained into
+// one long, draggy crawl that took the better part of a second to settle, worse than the
+// single quick correction it was meant to replace. anticipateKeyboardReposition (below)
+// now does the "glide in step with the keyboard" job on its own, off a single focus
+// event instead of a stream of scroll events, so resize firing once at the end is all
+// that's needed to true up its guess.
 if (window.visualViewport) {
     window.visualViewport.addEventListener("resize", repositionOpenCenteredModals);
-    window.visualViewport.addEventListener("scroll", repositionOpenCenteredModals);
 } else {
     window.addEventListener("resize", repositionOpenCenteredModals);
 }
@@ -5145,20 +5152,20 @@ if (window.visualViewport) {
 }
 
 // The "pause, then catch up" repositionOpenCenteredModals' own comment describes - some
-// WebViews only fire visualViewport resize/scroll once the keyboard's ALREADY fully
-// open, so a dialog sitting centered for the pre-keyboard viewport just sits frozen
-// through the keyboard's whole slide-open animation, then snaps into its correct spot in
-// one late burst once that event finally lands. Focus, by contrast, fires immediately -
+// WebViews only fire visualViewport resize once the keyboard's ALREADY fully open, so a
+// dialog sitting centered for the pre-keyboard viewport just sits frozen through the
+// keyboard's whole slide-open animation, then snaps into its correct spot in one late
+// burst once that event finally lands. Focus, by contrast, fires immediately -
 // essentially the same instant the keyboard starts to animate, on every WebView - so
 // reacting to that instead means the sheet can start easing into its new spot (via the
 // same CSS transition, now long enough at .32s to actually cover the keyboard's own
 // animation - see .book-modal-sheet's own comment on that) in step with the keyboard
 // rather than waiting on it. This is necessarily a GUESS at the keyboard's eventual
 // height (learnedKeyboardGap, or a reasonable default before one's been learned) made
-// before the real value is known; the resize/scroll listeners above still run as
-// before and correct any difference once the actual value lands, but starting from a
-// close guess instead of "no movement at all" keeps that correction small enough not to
-// read as a second jump.
+// before the real value is known; the single resize listener above still runs as before
+// and corrects any difference once the actual value lands, but starting from a close
+// guess instead of "no movement at all" keeps that correction small enough not to read
+// as a second jump.
 function anticipateKeyboardReposition(target) {
     const sheet = target.closest(".book-modal-sheet, .confirm-modal-sheet");
     if (!sheet || !sheet.closest(".lang-modal.open")) return;
