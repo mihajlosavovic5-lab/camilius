@@ -251,6 +251,15 @@ button { font-family: inherit; -webkit-appearance: none; appearance: none; }
     display: flex; align-items: center; gap: 12px;
     background: transparent;
     flex-shrink: 0;
+    /* On a cold start, --safe-top can still read its 0px fallback the instant a screen
+       is first revealed (see waitForLayoutSettle in app.js) - real WindowInsets
+       occasionally lands a beat after that reveal instead of before it. Without this,
+       the correction snaps padding-top in abruptly, reading as the whole page suddenly
+       lurching down. Transitioning it turns that same correction into a brief, barely-
+       noticeable glide instead - cheap insurance that costs nothing on the far more
+       common case where the inset was already correct at reveal (no value change, so
+       no transition ever runs). */
+    transition: padding-top .2s ease;
 }
 /* Every plain page-title topbar (i.e. not .topbar-detail's own sender/time/badge
    header - that one keeps its left-aligned flex layout below) centers its title in the
@@ -376,6 +385,9 @@ button { font-family: inherit; -webkit-appearance: none; appearance: none; }
     position: relative; z-index: 1;
     flex: 1; display: flex; flex-direction: column;
     padding: calc(22px + var(--safe-top)) 26px calc(28px + var(--safe-bottom));
+    /* Same late-arriving-inset glide as .topbar above, for whichever screen the visitor
+       lands on straight from a cold start when there's no saved session yet. */
+    transition: padding-top .2s ease;
 }
 .login-lang-row { display: flex; justify-content: center; flex-shrink: 0; }
 .lang-select-btn {
