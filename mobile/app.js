@@ -5103,6 +5103,29 @@ if (window.visualViewport) {
     window.addEventListener("resize", repositionOpenCenteredModals);
 }
 
+// Android's hardware/gesture back closes the on-screen keyboard through the WebView's
+// own key handling (see MainActivity.dispatchKeyEvent()'s comment on that) WITHOUT
+// blurring whatever input/textarea was showing it - unlike tapping away to somewhere
+// non-editable, which blurs the field synchronously (on mousedown, before the keyboard
+// even starts closing) as an ordinary side effect of focus moving elsewhere. Back leaves
+// the field focused with no keyboard behind it, so its caret is left blinking in empty
+// space until something else happens to steal focus. restingHeight tracks the tallest
+// visualViewport height seen so far - the resting, keyboard-closed height, since a
+// keyboard opening only ever shrinks that number, never sets a new max - and whenever a
+// resize brings the height back most of the way to it, whatever's currently focused gets
+// blurred. Ordinary typing (switching between two fields while the keyboard stays open)
+// never fires this: the height barely moves, nowhere near restingHeight.
+if (window.visualViewport) {
+    let restingHeight = window.visualViewport.height;
+    window.visualViewport.addEventListener("resize", () => {
+        const height = window.visualViewport.height;
+        if (height > restingHeight) restingHeight = height;
+        const active = document.activeElement;
+        const isTextField = active && (active.tagName === "INPUT" || active.tagName === "TEXTAREA");
+        if (isTextField && height >= restingHeight - 40) active.blur();
+    });
+}
+
 // --- Book-a-slot bottom sheet ---
 
 function openBookModal(time) {
