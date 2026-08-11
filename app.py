@@ -47,6 +47,7 @@ from database import (
     get_business_page, page_by_slug, page_by_custom_domain, upsert_business_page, published_page_slugs,
     set_domain_subscription, set_custom_domain_purchasing, resolve_custom_domain_purchase,
     page_chat_session_messages_today,
+    set_page_content_language, get_page_translation, upsert_page_translation,
     onboarding_completed, mark_onboarding_completed,
     UniqueViolation, release_db_lock,
 )
@@ -62,6 +63,7 @@ from page_generator import (
     generate_page_draft, format_working_hours, format_price_list, format_faq,
     transcribe_voice_description, MAX_VOICE_AUDIO_BYTES,
 )
+import translate_page
 import stripe_billing
 import paddle_billing
 import google_oauth
@@ -2178,6 +2180,14 @@ def onboarding_website_preview():
         logo_url=media["logo_url"],
         gallery_urls=media["gallery_urls"],
         hero_video_url=media["hero_video_url"],
+        # Language switcher still renders (same fixed EN/ES/FR/DE row as the live page),
+        # but nothing is actually saved yet to translate against - translate_url="" is
+        # the same "disabled in this in-progress draft" convention chat_url="" above
+        # already uses; picking a language here just fails silently (caught in the
+        # switcher's own fetch().catch()), same graceful no-op as tapping the chat bubble.
+        translate_url="",
+        content_language="en",
+        page_languages=[{"code": code, **translate_page.LANGUAGES[code]} for code in translate_page.DEFAULT_PAGE_LANGUAGES],
     )
 
 
@@ -2447,6 +2457,20 @@ def _render_public_page(page, business, page_url, preview=False):
         and any(booking.parse_working_hours(business[7]).values())
     )
     media = business_media.media_for_page(business_id)
+
+    # Language switcher (header flag/dropdown) - a fixed EN/ES/FR/DE row plus whichever
+    # language the owner's own tagline/about turn out to be written in, detected once
+    # ever per business (not on every view - page[16] is content_language, see the
+    # column's own comment in create_database()) and cached from then on. A wrong or
+    # missing detection just means the extra flag doesn't show; the fixed four still do.
+    content_language = page[16]
+    if content_language is None:
+        content_language = translate_page.detect_content_language(f"{page[4] or ''}\n{page[5] or ''}")
+        set_page_content_language(business_id, content_language)
+    page_languages = list(translate_page.DEFAULT_PAGE_LANGUAGES)
+    if content_language in translate_page.LANGUAGES and content_language not in page_languages:
+        page_languages.append(content_language)
+
     return render_template(
         "public_page.html",
         business_name=business[1],
@@ -2469,6 +2493,14 @@ def _render_public_page(page, business, page_url, preview=False):
         preview=preview,
         booking_enabled=booking_enabled,
         availability_url=(f"https://{PRIMARY_APP_HOST}" + url_for("public_page_availability", slug=slug)) if booking_enabled else None,
+        # Trailing "/<lang>" deliberately left off - a single placeholder char ("x") is
+        # requested from url_for purely to get a correctly-built path, then stripped back
+        # off, so the template/script below can append whichever real language code a
+        # visitor picks directly onto this base string instead of needing its own copy
+        # of the route's URL structure.
+        translate_url=(f"https://{PRIMARY_APP_HOST}" + url_for("public_page_translate", slug=slug, lang="x"))[:-1],
+        content_language=content_language,
+        page_languages=[{"code": code, **translate_page.LANGUAGES[code]} for code in page_languages],
         # F4: the "Powered by Camilius" footer disappears once this business has any
         # active access - including its own free trial, same as has_pro_access() already
         # treats a self-serve trial as full access, not just a paid plan. One source of
@@ -2609,6 +2641,46 @@ def public_page_availability(slug):
         })
 
     return _json_with_cors(origin, days=days)
+
+
+# Translates the public page's own content + fixed chrome (see translate_page.py's
+# PAGE_UI_STRINGS) into `lang`, for the header flag switcher's benefit - real OpenAI
+# spend, but capped hard by the cache: only ever the FIRST request for a given
+# (business, language) pair pays for the call (database.get_page_translation/
+# upsert_page_translation), every one after is a plain cached DB read, for as long as
+# this business exists. Same bare `page[3]` check as public_page_chat below (not
+# _page_visible_to_request) for the same reason: this is real spend, not a read-only
+# lookup, so even the owner's own preview of a still-unpublished page doesn't get it.
+_TRANSLATE_ALLOWED_LANGS = set(translate_page.LANGUAGES)
+
+
+@app.route("/p/<slug>/translate/<lang>")
+@limiter.limit("30 per minute")  # per IP
+@limiter.limit("200 per hour", key_func=lambda: request.view_args.get("slug", ""))  # per business page, across all visitors
+def public_page_translate(slug, lang):
+    if lang not in _TRANSLATE_ALLOWED_LANGS:
+        abort(404)
+    page = page_by_slug(slug)
+    if page is None or not page[3]:
+        abort(404)
+    business_id = page[1]
+    business = business_by_id(business_id)
+    if business is None:
+        abort(404)
+    origin = _custom_domain_cors_origin(page)
+
+    cached = get_page_translation(business_id, lang)
+    if cached is not None:
+        db_tagline, db_about, db_price_list, db_faq, ui_json = cached
+        return _json_with_cors(origin, tagline=db_tagline, about=db_about, price_list=db_price_list, faq=db_faq, ui=json.loads(ui_json))
+
+    try:
+        result = translate_page.translate_page_content(lang, page[4], page[5], business[8], business[9])
+    except ValueError:
+        abort(502)
+
+    upsert_page_translation(business_id, lang, result["tagline"], result["about"], result["price_list"], result["faq"], json.dumps(result["ui"]))
+    return _json_with_cors(origin, tagline=result["tagline"], about=result["about"], price_list=result["price_list"], faq=result["faq"], ui=result["ui"])
 
 
 # How many page-chat messages one anonymous visitor session (the browser's own

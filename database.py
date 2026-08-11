@@ -831,6 +831,40 @@ def create_database():
     cursor.execute("ALTER TABLE business_pages ADD COLUMN IF NOT EXISTS domain_paddle_subscription_id TEXT")
     cursor.execute("ALTER TABLE business_pages ADD COLUMN IF NOT EXISTS domain_subscription_status TEXT")
 
+    # The ISO 639-1 code of whatever language the owner's own tagline/about (and
+    # businesses.price_list/faq) are actually written in - e.g. 'sr' for a business that
+    # described itself in Serbian. NULL until first detected: app.py's public_page()
+    # lazily fills this in on a visitor's first page view (a one-off OpenAI call, not run
+    # at save time, so saving the page itself never gets slower) via
+    # set_page_content_language below, then every later view reuses the stored value.
+    # Drives which extra flag (beyond the fixed EN/ES/FR/DE set) the public page's
+    # language switcher offers - see translate_page.py.
+    cursor.execute("ALTER TABLE business_pages ADD COLUMN IF NOT EXISTS content_language TEXT")
+
+    # Per-(business, language) cache of the public page translated into a language other
+    # than content_language above - see translate_page.py/app.py's public_page_translate.
+    # One OpenAI call per business per language, ever (not per visitor, not per request):
+    # the first visitor to ever request a given language pays the latency, every visitor
+    # after - including every future request for as long as the underlying content
+    # doesn't change - is served straight from this table. ui_json is a JSON-encoded dict
+    # of the page's own fixed chrome strings (section headings, button/placeholder text)
+    # translated the same call; tagline/about/price_list/faq mirror business_pages/
+    # businesses' own columns, translated.
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS business_page_translations (
+            id SERIAL PRIMARY KEY,
+            business_id INTEGER NOT NULL REFERENCES businesses(id),
+            lang TEXT NOT NULL,
+            tagline TEXT,
+            about TEXT,
+            price_list TEXT,
+            faq TEXT,
+            ui_json TEXT NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+    cursor.execute("CREATE UNIQUE INDEX IF NOT EXISTS business_page_translations_business_lang_idx ON business_page_translations (business_id, lang)")
+
     # Photos/video a business uploads for its own public page (logo in the header, a
     # gallery of shots of the product/space, one hero video) - see storage.py for the
     # actual Cloudinary upload/delete, this table just links the resulting URL back to
@@ -2698,7 +2732,7 @@ def get_business_page(business_id):
     connection = connect()
     cursor = connection.cursor()
     cursor.execute(
-        "SELECT id, business_id, slug, published, tagline, about, created_at, updated_at, widget_domain, theme, custom_theme_json, pending_custom_domain, custom_domain, custom_domain_status, domain_paddle_subscription_id, domain_subscription_status FROM business_pages WHERE business_id = %s",
+        "SELECT id, business_id, slug, published, tagline, about, created_at, updated_at, widget_domain, theme, custom_theme_json, pending_custom_domain, custom_domain, custom_domain_status, domain_paddle_subscription_id, domain_subscription_status, content_language FROM business_pages WHERE business_id = %s",
         (business_id,),
     )
     result = cursor.fetchone()
@@ -2714,7 +2748,7 @@ def page_by_slug(slug):
     connection = connect()
     cursor = connection.cursor()
     cursor.execute(
-        "SELECT id, business_id, slug, published, tagline, about, created_at, updated_at, widget_domain, theme, custom_theme_json, pending_custom_domain, custom_domain, custom_domain_status, domain_paddle_subscription_id, domain_subscription_status FROM business_pages WHERE slug = %s",
+        "SELECT id, business_id, slug, published, tagline, about, created_at, updated_at, widget_domain, theme, custom_theme_json, pending_custom_domain, custom_domain, custom_domain_status, domain_paddle_subscription_id, domain_subscription_status, content_language FROM business_pages WHERE slug = %s",
         (slug,),
     )
     result = cursor.fetchone()
@@ -2734,7 +2768,7 @@ def page_by_custom_domain(domain):
     connection = connect()
     cursor = connection.cursor()
     cursor.execute(
-        "SELECT id, business_id, slug, published, tagline, about, created_at, updated_at, widget_domain, theme, custom_theme_json, pending_custom_domain, custom_domain, custom_domain_status, domain_paddle_subscription_id, domain_subscription_status FROM business_pages WHERE custom_domain = %s AND custom_domain_status = 'active'",
+        "SELECT id, business_id, slug, published, tagline, about, created_at, updated_at, widget_domain, theme, custom_theme_json, pending_custom_domain, custom_domain, custom_domain_status, domain_paddle_subscription_id, domain_subscription_status, content_language FROM business_pages WHERE custom_domain = %s AND custom_domain_status = 'active'",
         (domain,),
     )
     result = cursor.fetchone()
@@ -2787,6 +2821,54 @@ def upsert_business_page(business_id, slug, published, tagline, about, widget_do
                pending_custom_domain = EXCLUDED.pending_custom_domain,
                updated_at = CURRENT_TIMESTAMP""",
         (business_id, slug, published, tagline, about, widget_domain, theme, business_id, custom_theme_json, business_id, pending_custom_domain),
+    )
+    connection.commit()
+    connection.close()
+
+
+def set_page_content_language(business_id, lang):
+    """Persists the ISO 639-1 code translate_page.detect_content_language() came back
+    with for this business's own tagline/about/price_list/faq - see the
+    business_pages.content_language column comment in create_database(). Called from
+    app.py's public_page() the first time a page is viewed with that column still NULL,
+    so every later view skips detection entirely."""
+    connection = connect()
+    cursor = connection.cursor()
+    cursor.execute("UPDATE business_pages SET content_language = %s WHERE business_id = %s", (lang, business_id))
+    connection.commit()
+    connection.close()
+
+
+def get_page_translation(business_id, lang):
+    """A previously cached translation of this business's page into `lang` - see
+    business_page_translations in create_database(). Returns None on a cache miss (the
+    caller, translate_page.translate_business_page(), then calls OpenAI and saves the
+    result via upsert_page_translation below)."""
+    connection = connect()
+    cursor = connection.cursor()
+    cursor.execute(
+        "SELECT tagline, about, price_list, faq, ui_json FROM business_page_translations WHERE business_id = %s AND lang = %s",
+        (business_id, lang),
+    )
+    result = cursor.fetchone()
+    connection.close()
+    return result
+
+
+def upsert_page_translation(business_id, lang, tagline, about, price_list, faq, ui_json):
+    """Caches one business's page translated into one language, keyed on
+    (business_id, lang) - re-saving (e.g. after the source content changes and an owner
+    wants a refreshed translation) overwrites the existing row rather than accumulating
+    duplicates, same one-row-per-key spirit as upsert_business_page above."""
+    connection = connect()
+    cursor = connection.cursor()
+    cursor.execute(
+        """INSERT INTO business_page_translations (business_id, lang, tagline, about, price_list, faq, ui_json)
+           VALUES (%s, %s, %s, %s, %s, %s, %s)
+           ON CONFLICT (business_id, lang) DO UPDATE SET
+               tagline = EXCLUDED.tagline, about = EXCLUDED.about, price_list = EXCLUDED.price_list,
+               faq = EXCLUDED.faq, ui_json = EXCLUDED.ui_json, created_at = CURRENT_TIMESTAMP""",
+        (business_id, lang, tagline, about, price_list, faq, ui_json),
     )
     connection.commit()
     connection.close()

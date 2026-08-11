@@ -199,6 +199,46 @@
     }
     .nav-menu-backdrop.open { opacity: 1; pointer-events: auto; }
 
+    /* --- Language switcher - a flag button fixed top-right (mirroring .nav-menu-btn's
+       own top-left placement) that opens a small dropdown of flags, same visual idea as
+       the logged-in app's own top-bar language picker (#site-lang-select-btn/
+       .site-lang-modal in style.css/base.html), reimplemented here since this page is
+       standalone and doesn't load either. Visible at every width (unlike the hamburger,
+       which only takes over on narrow screens) - the side-nav's own collapse doesn't
+       affect this. --- */
+    .lang-btn {
+        display: flex; align-items: center; justify-content: center;
+        position: fixed; top: 16px; right: 16px; z-index: 952;
+        width: 34px; height: 34px; border-radius: 50%; overflow: hidden;
+        border: 1px solid var(--border); background: var(--surface); padding: 0; cursor: pointer;
+        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.14);
+        transition: transform .15s ease, opacity .15s ease;
+    }
+    .lang-btn:active { transform: scale(.92); }
+    .lang-btn.loading { opacity: .55; pointer-events: none; }
+    .lang-flag { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .lang-dropdown {
+        position: fixed; top: 56px; right: 16px; z-index: 953;
+        min-width: 168px;
+        background: var(--surface); border: 1px solid var(--border); border-radius: calc(var(--radius) * 0.6);
+        box-shadow: 0 16px 44px rgba(0, 0, 0, 0.18);
+        padding: 6px;
+        display: flex; flex-direction: column; gap: 2px;
+        opacity: 0; transform: translateY(-6px) scale(.98); pointer-events: none;
+        transition: opacity .18s ease, transform .18s ease;
+    }
+    .lang-dropdown.open { opacity: 1; transform: none; pointer-events: auto; }
+    .lang-option {
+        display: flex; align-items: center; gap: 10px;
+        padding: 8px 10px; border-radius: calc(var(--radius) * 0.5);
+        border: none; background: none; font-family: inherit; cursor: pointer;
+        font-size: 0.88rem; font-weight: 600; color: var(--text); text-align: left;
+        -webkit-tap-highlight-color: transparent;
+    }
+    .lang-option:hover { background: var(--background); }
+    .lang-option.active { color: var(--primary); }
+    .lang-option-flag { width: 20px; height: 20px; border-radius: 50%; object-fit: cover; flex: 0 0 auto; }
+
     h1 {
         font-family: var(--heading-font);
         font-size: 1.9rem;
@@ -564,42 +604,54 @@
     <span class="nav-menu-btn-bar"></span>
 </button>
 <div class="nav-menu-backdrop" id="nav-menu-backdrop"></div>
+{% set current_lang = (page_languages | selectattr('code', 'equalto', content_language) | first) or page_languages[0] %}
+<button type="button" class="lang-btn" id="lang-btn" aria-label="Change language" aria-haspopup="true" aria-expanded="false">
+    <img class="lang-flag" id="lang-flag" src="{{ url_for('static', filename='flags/' + current_lang.flag) }}" alt="{{ current_lang.name }}">
+</button>
+<div class="lang-dropdown" id="lang-dropdown" role="menu">
+    {% for lang in page_languages %}
+    <button type="button" class="lang-option" role="menuitem" data-lang="{{ lang.code }}" data-name="{{ lang.name }}" data-flag="{{ url_for('static', filename='flags/' + lang.flag) }}">
+        <img class="lang-option-flag" src="{{ url_for('static', filename='flags/' + lang.flag) }}" alt="">
+        <span>{{ lang.name }}</span>
+    </button>
+    {% endfor %}
+</div>
 <div class="shell">
     <!-- Only lists sections this business actually has content for, in the same order
          they appear below - so an empty section never gets a dead link. -->
     <nav class="side-nav" id="side-nav" aria-label="Page sections">
         <a href="#home" class="side-nav-link" data-target="home">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 11.5 12 5l8 6.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M6 10.5V19a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1v-8.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            <span>Home</span>
+            <span data-i18n="nav_home">Home</span>
         </a>
         {% if about %}
         <a href="#about" class="side-nav-link" data-target="about">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01" stroke-linecap="round"/></svg>
-            <span>About</span>
+            <span data-i18n="nav_about">About</span>
         </a>
         {% endif %}
         {% if booking_enabled %}
         <a href="#book-section" class="side-nav-link" data-target="book-section">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4" stroke-linecap="round"/></svg>
-            <span>Book</span>
+            <span data-i18n="nav_book">Book</span>
         </a>
         {% endif %}
         {% if gallery_urls %}
         <a href="#gallery" class="side-nav-link" data-target="gallery">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="8.5" cy="9.5" r="1.5"/><path d="M21 16l-5.5-5.5L9 17" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            <span>Gallery</span>
+            <span data-i18n="nav_gallery">Gallery</span>
         </a>
         {% endif %}
         {% if price_list %}
         <a href="#prices" class="side-nav-link" data-target="prices">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0L2 12V2h10l8.6 8.6a2 2 0 0 1 0 2.8z" stroke-linecap="round" stroke-linejoin="round"/><circle cx="7" cy="7" r="1.5"/></svg>
-            <span>Prices</span>
+            <span data-i18n="nav_prices">Prices</span>
         </a>
         {% endif %}
         {% if faq %}
         <a href="#faq" class="side-nav-link" data-target="faq">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 0 1 4.6-1.4c.6.9.4 1.7-.4 2.4-.8.7-1.2 1.1-1.2 2" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 17h.01" stroke-linecap="round"/></svg>
-            <span>Questions</span>
+            <span data-i18n="nav_questions">Questions</span>
         </a>
         {% endif %}
     </nav>
@@ -608,7 +660,7 @@
         <header class="page-header reveal" id="home">
             {% if logo_url %}<img class="logo" src="{{ logo_url }}" alt="{{ business_name }} logo">{% endif %}
             <h1>{{ business_name }}</h1>
-            {% if tagline %}<p class="tagline">{{ tagline }}</p>{% endif %}
+            {% if tagline %}<p class="tagline" data-i18n-content="tagline">{{ tagline }}</p>{% endif %}
             <div class="title-rule"></div>
         </header>
 
@@ -618,15 +670,15 @@
 
         {% if about %}
         <section id="about" class="reveal">
-            <h2>About</h2>
-            <p class="about">{{ about }}</p>
+            <h2 data-i18n="heading_about">About</h2>
+            <p class="about" data-i18n-content="about">{{ about }}</p>
         </section>
         {% endif %}
 
         {% if booking_enabled %}
         <section id="book-section" class="reveal">
-            <h2>Book an appointment</h2>
-            <p class="book-loading" id="book-loading">Loading open times...</p>
+            <h2 data-i18n="heading_book">Book an appointment</h2>
+            <p class="book-loading" id="book-loading" data-i18n="book_loading">Loading open times...</p>
             <div class="book-list hidden" id="book-list"></div>
             <p class="book-confirm hidden" id="book-confirm"></p>
         </section>
@@ -634,7 +686,7 @@
 
         {% if gallery_urls %}
         <section id="gallery" class="reveal">
-            <h2>Gallery</h2>
+            <h2 data-i18n="heading_gallery">Gallery</h2>
             <div class="gallery">
                 {% for url in gallery_urls %}
                 <a href="{{ url }}" target="_blank" rel="noopener"><img src="{{ url }}" alt="{{ business_name }} photo" loading="lazy"></a>
@@ -645,15 +697,15 @@
 
         {% if price_list %}
         <section id="prices" class="reveal">
-            <h2>Prices</h2>
-            <p class="price-list">{{ price_list }}</p>
+            <h2 data-i18n="heading_prices">Prices</h2>
+            <p class="price-list" data-i18n-content="price_list">{{ price_list }}</p>
         </section>
         {% endif %}
 
         {% if faq %}
         <section id="faq" class="reveal">
-            <h2>Questions</h2>
-            <p class="faq">{{ faq }}</p>
+            <h2 data-i18n="heading_questions">Questions</h2>
+            <p class="faq" data-i18n-content="faq">{{ faq }}</p>
         </section>
         {% endif %}
 
@@ -664,6 +716,116 @@
         {% endif %}
     </div>
 </div>
+
+<!-- Language switcher - fetches this business's page (business content + the fixed
+     chrome strings tagged [data-i18n]/[data-i18n-placeholder]/[data-i18n-content] above)
+     translated into whichever flag a visitor picks (see app.py's public_page_translate/
+     translate_page.py), swaps it in client-side. A page-level module (its own script
+     block, not nested in either IIFE below) so window.pageT is available to both the
+     scroll-spy/menu script and the chat/booking script that follow it - booking's own
+     "Loading open times..."/day-picked-confirmation text needs to read whatever language
+     is currently active too, not just this page's own generic [data-i18n] sweep. -->
+<script>
+(function () {
+    var translateUrlBase = {{ translate_url | tojson }};
+    var cache = {};
+    var currentLang = null;
+    var loading = false;
+
+    var langBtn = document.getElementById("lang-btn");
+    var langFlag = document.getElementById("lang-flag");
+    var langDropdown = document.getElementById("lang-dropdown");
+    var langOptions = Array.prototype.slice.call(document.querySelectorAll(".lang-option"));
+
+    // English fallback for every translatable key, captured once from the as-rendered
+    // DOM before any swap - this page's markup is always authored in English, so this
+    // doubles as both "what to show before any language is picked" and "what to show for
+    // any key a translation response happens to omit."
+    var fallback = {};
+    document.querySelectorAll("[data-i18n]").forEach(function (el) {
+        fallback[el.getAttribute("data-i18n")] = el.textContent;
+    });
+    document.querySelectorAll("[data-i18n-placeholder]").forEach(function (el) {
+        fallback[el.getAttribute("data-i18n-placeholder")] = el.placeholder;
+    });
+
+    // Exposed for the chat/booking script below - reads whichever language is currently
+    // active (falling back to the original English string above), so dynamically
+    // generated text (a just-picked booking slot's confirmation, the chat greeting)
+    // matches whatever the visitor last picked here instead of always being English.
+    window.pageT = function (key) {
+        var active = currentLang && cache[currentLang];
+        return (active && active.ui && active.ui[key] !== undefined) ? active.ui[key] : (fallback[key] || key);
+    };
+
+    function applyTranslation(lang, data) {
+        var contentEls = document.querySelectorAll("[data-i18n-content]");
+        contentEls.forEach(function (el) {
+            var key = el.getAttribute("data-i18n-content");
+            if (data[key] !== undefined) el.textContent = data[key];
+        });
+        document.querySelectorAll("[data-i18n]").forEach(function (el) {
+            var key = el.getAttribute("data-i18n");
+            if (data.ui && data.ui[key] !== undefined) el.textContent = data.ui[key];
+        });
+        document.querySelectorAll("[data-i18n-placeholder]").forEach(function (el) {
+            var key = el.getAttribute("data-i18n-placeholder");
+            if (data.ui && data.ui[key] !== undefined) el.placeholder = data.ui[key];
+        });
+        currentLang = lang;
+        document.documentElement.lang = lang;
+        langOptions.forEach(function (opt) { opt.classList.toggle("active", opt.dataset.lang === lang); });
+        var opt = langOptions.filter(function (o) { return o.dataset.lang === lang; })[0];
+        if (opt) { langFlag.src = opt.dataset.flag; langFlag.alt = opt.dataset.name; }
+        // Lets the booking script (rendered before this fires) refresh any dynamic text
+        // it's already shown (e.g. the "Loading open times..." paragraph) to match.
+        document.dispatchEvent(new CustomEvent("pagelanguagechange"));
+    }
+
+    function openDropdown() { langDropdown.classList.add("open"); langBtn.setAttribute("aria-expanded", "true"); }
+    function closeDropdown() { langDropdown.classList.remove("open"); langBtn.setAttribute("aria-expanded", "false"); }
+
+    if (langBtn) {
+        langBtn.addEventListener("click", function () {
+            if (langDropdown.classList.contains("open")) closeDropdown(); else openDropdown();
+        });
+    }
+    document.addEventListener("click", function (e) {
+        if (!langDropdown || !langDropdown.classList.contains("open")) return;
+        if (e.target.closest("#lang-btn") || e.target.closest("#lang-dropdown")) return;
+        closeDropdown();
+    });
+
+    langOptions.forEach(function (opt) {
+        opt.addEventListener("click", function () {
+            var lang = opt.dataset.lang;
+            if (loading) return;
+            if (cache[lang]) {
+                applyTranslation(lang, cache[lang]);
+                closeDropdown();
+                return;
+            }
+            loading = true;
+            langBtn.classList.add("loading");
+            fetch(translateUrlBase + lang)
+                .then(function (r) { if (!r.ok) throw new Error("bad status"); return r.json(); })
+                .then(function (data) {
+                    cache[lang] = data;
+                    applyTranslation(lang, data);
+                })
+                .catch(function () {
+                    // Leaves whatever's currently on screen untouched - a failed
+                    // translation is a worse outcome than none, never a broken page.
+                })
+                .finally(function () {
+                    loading = false;
+                    langBtn.classList.remove("loading");
+                    closeDropdown();
+                });
+        });
+    });
+})();
+</script>
 
 <script>
 (function () {
@@ -794,12 +956,12 @@
 <div class="chat-panel hidden" id="chat-panel">
     <div class="chat-header">
         <p>{{ business_name }}</p>
-        <span>Usually replies in seconds</span>
+        <span data-i18n="chat_subtitle">Usually replies in seconds</span>
     </div>
     <div class="chat-messages" id="chat-messages"></div>
     <form class="chat-form" id="chat-form">
-        <input type="text" id="chat-input" placeholder="Ask a question or book a time..." autocomplete="off">
-        <button type="submit">Send</button>
+        <input type="text" id="chat-input" data-i18n-placeholder="chat_placeholder" placeholder="Ask a question or book a time..." autocomplete="off">
+        <button type="submit" data-i18n="chat_send">Send</button>
     </form>
 </div>
 <script>
@@ -852,7 +1014,7 @@
         if (open) fab.classList.add("chat-fab-nudge-done");
         if (open && !greeted) {
             greeted = true;
-            addMessage("bot", "Hi! Ask me anything about {{ business_name }}, or book a time that works for you.");
+            addMessage("bot", window.pageT("chat_greeting").replace("{business}", {{ business_name | tojson }}));
         }
     }
 
@@ -879,13 +1041,13 @@
             })
             .then(function (data) {
                 typingEl.remove();
-                addMessage("bot", data.reply || "Sorry, something went wrong - please try again.");
+                addMessage("bot", data.reply || window.pageT("chat_error"));
             })
             .catch(function (err) {
                 typingEl.remove();
                 addMessage("bot", err && err.message === "not-published"
                     ? "Chat will be able to reply once you publish this page."
-                    : "Sorry, something went wrong - please try again.");
+                    : window.pageT("chat_error"));
             })
             .finally(function () {
                 input.disabled = false;
@@ -917,6 +1079,20 @@
     var bookListEl = document.getElementById("book-list");
     var bookConfirmEl = document.getElementById("book-confirm");
     var availabilityUrl = {{ availability_url | tojson }};
+
+    // Tracks which of book_loading/book_empty/book_error is currently shown so a
+    // language switch (see the "Language switcher" script above) can re-translate
+    // whichever one is on screen right now, instead of only affecting text rendered
+    // after the switch.
+    var bookLoadingKey = "book_loading";
+    function setBookLoadingText(key) {
+        bookLoadingKey = key;
+        bookLoading.textContent = window.pageT(key);
+        bookLoading.setAttribute("data-i18n", key);
+    }
+    document.addEventListener("pagelanguagechange", function () {
+        if (!bookLoading.classList.contains("hidden")) setBookLoadingText(bookLoadingKey);
+    });
 
     function pad2(n) { return n < 10 ? "0" + n : "" + n; }
     var todayIso = (function () {
@@ -959,7 +1135,7 @@
                 btn.addEventListener("click", function () {
                     setOpen(true);
                     sendMessage("I'd like to book an appointment on " + day.label + " at " + time + ".");
-                    bookConfirmEl.textContent = "Requested " + day.label + " at " + time + " - continue in the chat to confirm.";
+                    bookConfirmEl.textContent = window.pageT("book_confirm").replace("{day}", day.label).replace("{time}", time);
                     bookConfirmEl.classList.remove("hidden");
                 });
                 slotsEl.appendChild(btn);
@@ -976,7 +1152,7 @@
             var days = data.days || [];
             bookLoading.classList.add("hidden");
             if (days.length === 0) {
-                bookLoading.textContent = "No upcoming openings right now - message us in chat to check.";
+                setBookLoadingText("book_empty");
                 bookLoading.classList.remove("hidden");
                 return;
             }
@@ -984,7 +1160,7 @@
             bookListEl.classList.remove("hidden");
         })
         .catch(function () {
-            bookLoading.textContent = "Couldn't load open times - please try again shortly.";
+            setBookLoadingText("book_error");
         });
     {% endif %}
 })();

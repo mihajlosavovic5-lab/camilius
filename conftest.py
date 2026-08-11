@@ -29,6 +29,7 @@ import pytest
 import app as app_module
 import database
 import reminders as reminders_module
+import translate_page as translate_page_module
 from extensions import limiter
 
 
@@ -47,6 +48,19 @@ def _stub_send_email(monkeypatch):
     # that care about what was "sent" re-monkeypatch these with their own recording stub.
     monkeypatch.setattr(app_module, "send_email", lambda **kwargs: None)
     monkeypatch.setattr(reminders_module, "send_email", lambda **kwargs: None)
+
+
+@pytest.fixture(autouse=True)
+def _stub_detect_content_language(monkeypatch):
+    # public_page()'s language switcher detects a business's content_language with a
+    # real OpenAI call the first time any of its pages is ever rendered (see
+    # translate_page.detect_content_language/database.set_page_content_language) -
+    # detect_content_language() already swallows a failing call and falls back to "en"
+    # itself, so this doesn't change any test's outcome, but without it every such test
+    # pays several real seconds of network latency (and fails outright with no network
+    # at all) against the dummy OPENAI_API_KEY above. Individual tests covering the
+    # switcher's own detection behavior re-monkeypatch this themselves.
+    monkeypatch.setattr(translate_page_module, "detect_content_language", lambda text: "en")
 
 
 @pytest.fixture(autouse=True)
