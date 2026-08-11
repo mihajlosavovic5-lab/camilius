@@ -6098,11 +6098,6 @@ el("mysite-field-delete-confirm-confirm").addEventListener("click", () => {
     // persistStagedEntry below), just targeting this screen's own elements. ---
 
     let flushStagedAttachments = () => Promise.resolve();
-    // Documents (unlike photos/video) upload the instant they're picked - see stageFile's
-    // own comment - so one picked just to preview and never actually sent still
-    // permanently uses up one of the account's limited document slots unless something
-    // cleans it up. Called when leaving this screen without sending (see backBtn below).
-    let discardUnsentDocuments = () => Promise.resolve();
     let cancelRecordingIfActive = () => false;
 
     (function setupAttachments() {
@@ -6255,6 +6250,15 @@ el("mysite-field-delete-confirm-confirm").addEventListener("click", () => {
         function iconFor(kind) {
             return kind === "video" ? "▶" : kind === "image" ? "🖼" : "📄";
         }
+        // "pdf"/"docx" for openDocumentViewer, guessed from the picked File directly (a
+        // staged document has no server response yet to read item.type from - see
+        // stageFile below, which opens straight off the local file for a document that
+        // hasn't been sent/uploaded yet).
+        function docTypeFromFile(file) {
+            const type = (file.type || "").toLowerCase();
+            if (type.indexOf("wordprocessingml") !== -1 || /\.docx?$/i.test(file.name || "")) return "docx";
+            return "pdf";
+        }
 
         function fillUploadedChip(chip, kind, item) {
             if (kind === "image") {
@@ -6334,10 +6338,16 @@ el("mysite-field-delete-confirm-confirm").addEventListener("click", () => {
             const chip = document.createElement("span");
             chip.className = "compose-attachment-chip kind-" + kind;
 
-            let previewUrl = null;
+            // Every kind gets a local blob: URL preview now (not just images) - nothing
+            // uploads/saves to the account's storage until Send actually ships it (see
+            // flushStagedAttachments below), including documents: a picked PDF/DOCX just
+            // being previewed/tried out shouldn't already count toward the account's
+            // limited document slots. The in-app document viewer works fine off a local
+            // blob: URL - unlike the earlier Browser.open()-based approach this replaced,
+            // it's not a separate process that would need a real server URL to reach it.
+            const previewUrl = URL.createObjectURL(file);
             let imgEl = null;
             if (kind === "image") {
-                previewUrl = URL.createObjectURL(file);
                 imgEl = document.createElement("img");
                 imgEl.src = previewUrl;
                 imgEl.alt = "";
@@ -6347,6 +6357,13 @@ el("mysite-field-delete-confirm-confirm").addEventListener("click", () => {
                 const icon = document.createElement("span");
                 icon.className = "chip-icon";
                 icon.textContent = iconFor(kind);
+                if (kind === "document") {
+                    icon.style.cursor = "pointer";
+                    icon.addEventListener("click", (event) => {
+                        event.stopPropagation();
+                        openDocumentViewer(previewUrl, docTypeFromFile(file), file.name);
+                    });
+                }
                 chip.appendChild(icon);
             }
 
@@ -6379,16 +6396,6 @@ el("mysite-field-delete-confirm-confirm").addEventListener("click", () => {
             staged.push(entry);
             updateAttachmentListState();
             showPickingOverlay(chip, imgEl);
-
-            // Documents (unlike photos/video) upload right away instead of waiting for
-            // Send - a picked PDF/DOCX has nowhere to preview to yet (openDocument above
-            // needs a real server URL; a local blob: URL can't be opened by the separate
-            // Chrome Custom Tab process it launches), so tapping one to open it only works
-            // once it actually has one. flushStagedAttachments below reuses this same
-            // promise at Send time instead of uploading it a second time.
-            if (kind === "document") {
-                entry.uploadPromise = persistStagedEntry(entry);
-            }
         }
 
         // Actually uploads one staged entry, in place - keeps its local preview showing
@@ -6433,10 +6440,6 @@ el("mysite-field-delete-confirm-confirm").addEventListener("click", () => {
                         showToast(data.error || t(errorKey) || "Couldn't upload that - please try again.");
                         return;
                     }
-                    // Kept so a document that's never actually sent can still be found
-                    // and deleted again later (see discardUnsentDocuments below) - images/
-                    // video don't need this, they only ever upload once Send is tapped.
-                    entry.uploadedItem = data;
                     chip.innerHTML = "";
                     fillUploadedChip(chip, kind, data);
                 }).catch(() => {
@@ -6450,41 +6453,13 @@ el("mysite-field-delete-confirm-confirm").addEventListener("click", () => {
 
         // Called once Send is actually tapped, before the message itself goes out - drains
         // `staged` up front so a second Send while these are still uploading, or one that
-        // runs after they've already landed, never re-uploads the same file. Documents
-        // already kicked their own upload off back in stageFile (see entry.uploadPromise
-        // there) - reuses that promise instead of calling persistStagedEntry a second time,
-        // which would upload the same file twice.
+        // runs after they've already landed, never re-uploads the same file. Nothing in
+        // `staged` - documents included - has started uploading before this: see
+        // stageFile's own comment on why a picked file only ever gets a local blob: URL
+        // preview until Send actually ships it.
         flushStagedAttachments = function () {
             const toFlush = staged.splice(0, staged.length);
-            return Promise.all(toFlush.map((entry) => entry.uploadPromise || persistStagedEntry(entry)));
-        };
-
-        // Called when leaving this screen without sending (see backBtn's click handler
-        // further down) - a document picked just to look at, then abandoned by navigating
-        // away instead of either sending it or tapping its own remove button, would
-        // otherwise sit uploaded forever with no way back to it from this chat (the
-        // compose bar's attachments aren't remembered across visits), permanently using up
-        // one of the account's limited document slots for something never actually sent.
-        // Waits for a still-in-flight upload to finish before deleting it, rather than
-        // racing it - a document mid-upload when the visitor navigates away has no
-        // server-side id to delete yet.
-        discardUnsentDocuments = function () {
-            const toDiscard = staged.filter((entry) => entry.kind === "document");
-            toDiscard.forEach((entry) => {
-                const idx = staged.indexOf(entry);
-                if (idx !== -1) staged.splice(idx, 1);
-            });
-            return Promise.all(toDiscard.map((entry) => {
-                const wait = entry.uploadPromise || Promise.resolve();
-                return wait.then(() => {
-                    const item = entry.uploadedItem;
-                    if (!item) return;
-                    return fetch(API_BASE + "/api/documents/" + item.id, {
-                        method: "DELETE",
-                        headers: state.token ? { Authorization: "Bearer " + state.token } : {},
-                    }).catch(() => {});
-                });
-            }));
+            return Promise.all(toFlush.map((entry) => persistStagedEntry(entry)));
         };
 
         function handlePicked(pickedInput) {
@@ -6841,7 +6816,6 @@ el("mysite-field-delete-confirm-confirm").addEventListener("click", () => {
     }, true);
 
     backBtn.addEventListener("click", () => {
-        discardUnsentDocuments();
         showTabbar(true);
         showScreen("mysite");
     });
