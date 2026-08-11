@@ -3605,7 +3605,6 @@ function setupLanguagePicker() {
     // before app.js in index.html.
     const openPicker = () => {
         modal.classList.add("open");
-        triggers.forEach((t) => t.classList.add("active"));
         requestAnimationFrame(() => {
             const target = list.querySelector(`[data-code="${currentLang}"]`) || list.firstElementChild;
             markActiveOption(list, target);
@@ -3613,7 +3612,6 @@ function setupLanguagePicker() {
     };
     const closePicker = () => {
         modal.classList.remove("open");
-        triggers.forEach((t) => t.classList.remove("active"));
     };
 
     LANGUAGES.forEach((lang) => {
