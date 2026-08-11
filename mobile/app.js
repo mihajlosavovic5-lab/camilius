@@ -1830,7 +1830,16 @@ function finishLightboxAnnotate() {
         lightboxStrokes.push(lightboxActiveStroke);
         lightboxRedoStack = [];
         updateLightboxDrawButtons();
-        redrawLightboxCanvas();
+        // Deferred a frame, not painted immediately - a pinch's second finger typically
+        // lands within a handful of milliseconds of the first, so this dot's own abort-
+        // and-pop above (the "second finger just landed" branch) usually already runs
+        // and clears lightboxActiveStroke before this callback ever fires, meaning the
+        // dot never actually gets painted at all instead of flashing on screen for one
+        // frame before being erased.
+        const startedStroke = lightboxActiveStroke;
+        requestAnimationFrame(() => {
+            if (lightboxActiveStroke === startedStroke) redrawLightboxCanvas();
+        });
     });
     canvas.addEventListener("pointermove", (event) => {
         if (!lightboxDrawing || !lightboxActiveStroke) return;
@@ -1955,7 +1964,15 @@ function finishLightboxAnnotate() {
         docAnnotate.strokes.push(docAnnotate.activeStroke);
         docAnnotate.redoStack = [];
         docAnnotateUpdateButtons();
-        docAnnotateRedraw();
+        // Deferred a frame, not painted immediately - same reasoning as the lightbox's own
+        // version of this: a pinch's second finger usually lands within the same frame,
+        // so the abort-and-pop branch above typically already clears docAnnotate.
+        // activeStroke before this ever fires, meaning the opening dot never actually
+        // gets painted at all instead of flashing for one frame before being erased.
+        const startedStroke = docAnnotate.activeStroke;
+        requestAnimationFrame(() => {
+            if (docAnnotate && docAnnotate.activeStroke === startedStroke) docAnnotateRedraw();
+        });
     }
     function docAnnotatePointerMove(event) {
         if (!docAnnotate || !docAnnotate.activeStroke) return;

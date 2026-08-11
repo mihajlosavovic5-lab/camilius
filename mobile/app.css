@@ -2438,6 +2438,13 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
     max-width: 100%; height: auto; display: block; border-radius: 4px;
     box-shadow: 0 6px 20px rgba(0, 0, 0, .35); background: #fff;
 }
+/* The draw overlay is also a <canvas> inside .document-viewer-body, so it was inheriting
+   the opaque white background meant for the page canvas underneath it - which, since the
+   overlay paints on top, hid that page's entire rendered content behind solid white the
+   instant its pencil was tapped. Needs strictly higher specificity than the rule above
+   (two classes + a type beats one class + a type) to actually win regardless of source
+   order, not just a later same-specificity declaration. */
+.document-viewer-body canvas.document-viewer-draw-canvas { background: transparent; }
 /* DOCX has no fixed page geometry of its own (mammoth.js converts it to plain HTML) -
    rendered as one continuous "page" card instead of per-page canvases. Sizing (width/
    max-width) lives on .document-viewer-page-docx (the wrapper) instead of here - see its
