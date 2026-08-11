@@ -7268,48 +7268,61 @@ el("mysite-field-delete-confirm-confirm").addEventListener("click", () => {
 // Used to just wait a fixed 3 frames and call it settled - but a fixed count can't tell
 // "the inset is genuinely 0" apart from "the inset just hasn't been dispatched yet", and
 // on a slower cold start (background app installs, a cold WebView process, some OEM
-// oddity) 3 frames (~50ms) sometimes isn't enough: the reveal still went out with
-// --safe-top at 0, and the correction landing a beat later still read as a visible shove
-// - the CSS transition on .topbar/.login-wrap's padding-top (see app.css) turns that
-// snap into a glide, but a glide the user can watch happen is still a visible jump, not a
-// fix. Switched once to just requiring --safe-top to read non-zero, on the assumption
-// that "still 0px" was the only wrong state to guard against - measured on-device after
-// that shipped, and the inset can still land as a smaller *non-zero* provisional value
-// first (Android appears to dispatch WindowInsets more than once during a cold-start
-// Activity transition, not deliver it atomically) before correcting to its final value a
-// couple of frames later. A single non-zero reading isn't proof it's the FINAL reading.
+// oddity) 3 frames sometimes isn't enough: the reveal still went out with --safe-top at
+// 0, and the correction landing a beat later still read as a visible shove - the CSS
+// transition on .topbar/.login-wrap's padding-top (see app.css) turns that snap into a
+// glide, but a glide the user can watch happen is still a visible jump, not a fix.
 //
-// Waits for --safe-top to stop changing instead of merely becoming non-zero: keeps
-// polling every frame, tracking whether the value matches the previous frame's, and only
-// settles once it's read the same non-zero value on MIN_STABLE_FRAMES straight frames -
-// so a provisional-then-corrected value resets the count and is waited out too, not just
-// the initial 0px fallback. MIN_FRAMES is a floor under that (mirrors the original
-// fixed-frame wait) so an already-correct inset still costs a consistent, small amount of
-// time rather than resolving the instant the first rAF happens to fire. Still capped by
+// Went through two more revisions after that, each one measured on-device and still not
+// enough:
+//   - Requiring --safe-top to merely read non-zero assumed 0px was the only wrong state -
+//     but Android can dispatch WindowInsets more than once during a cold-start Activity
+//     transition, landing a smaller non-zero provisional value before correcting to the
+//     final one a couple of frames later, so a single non-zero reading isn't proof it's
+//     the last one.
+//   - Requiring the value to be read as identical on 3 straight animation frames (on a
+//     5-frame floor) still wasn't enough, and counting requestAnimationFrame calls for
+//     that floor was itself part of the problem: rAF fires at the display's own refresh
+//     rate, so "5 frames" is ~80ms on a 60Hz screen but as little as ~40ms on a 120Hz
+//     one - nowhere near long enough to cover a correction that, measured on-device,
+//     still landed noticeably later than that.
+//
+// Two changes here address both: the floor below is now real elapsed time
+// (performance.now()), not a frame count, so it means the same thing on every screen
+// regardless of refresh rate; and the read comes from a dedicated probe element's
+// computed padding-top (a plain, standard CSS property) instead of the --safe-top custom
+// property directly - custom properties whose value is an env() reference have a history
+// of being resolved less consistently through getComputedStyle across WebView versions
+// than an ordinary property computing from that same env() expression. Still capped by
 // the timeout so a stalled rAF (backgrounded tab, some OEM WebView oddity) or an
 // environment where the inset really is 0 can never hang the boot.
 function waitForLayoutSettle() {
-    const MIN_FRAMES = 5;
+    const MIN_WAIT_MS = 200;
     const MIN_STABLE_FRAMES = 3;
-    const TIMEOUT_MS = 400;
+    const TIMEOUT_MS = 500;
     return new Promise((resolve) => {
         let settled = false;
+        const probe = document.createElement("div");
+        probe.style.cssText =
+            "position:absolute; top:0; left:0; width:0; height:0; margin:0; border:0; " +
+            "visibility:hidden; pointer-events:none; padding-top:env(safe-area-inset-top, 0px);";
+        document.documentElement.appendChild(probe);
         const done = () => {
             if (settled) return;
             settled = true;
+            probe.remove();
             resolve();
         };
-        const readSafeTop = () =>
-            getComputedStyle(document.documentElement).getPropertyValue("--safe-top").trim();
-        let frames = 0;
+        const readInsetTop = () => getComputedStyle(probe).paddingTop;
+        const now = () => (typeof performance !== "undefined" && performance.now ? performance.now() : Date.now());
+        const startTime = now();
         let lastValue = null;
         let stableFrames = 0;
         const tick = () => {
-            frames += 1;
-            const value = readSafeTop();
+            const value = readInsetTop();
             stableFrames = (value !== "0px" && value === lastValue) ? stableFrames + 1 : 0;
             lastValue = value;
-            if (frames >= MIN_FRAMES && stableFrames >= MIN_STABLE_FRAMES) { done(); return; }
+            if (now() - startTime >= MIN_WAIT_MS && stableFrames >= MIN_STABLE_FRAMES) { done(); return; }
             requestAnimationFrame(tick);
         };
         requestAnimationFrame(tick);
