@@ -275,6 +275,27 @@ def free_slots_for_day(business_id, working_hours_text, slot_minutes, local_date
     return free
 
 
+def free_slots_for_range(business_id, working_hours_text, slot_minutes, start_date, end_date, tz=DEFAULT_TZ):
+    """free_slots_for_day's own version of appointments_by_local_day's "one query for
+    the whole range" fix - {local_date: [free slot datetimes]} across every day in
+    [start_date, end_date), instead of one appointments_in_range round trip per day.
+    Lets the public page's own availability window (see app.py's
+    PAGE_AVAILABILITY_DAYS) span months without that many DB round trips per request -
+    it's rendered fresh on every page load and polled every 60s by any open tab."""
+    appts_by_day = appointments_by_local_day(business_id, start_date, end_date, tz)
+    result = {}
+    d = start_date
+    while d < end_date:
+        slots = day_slots(working_hours_text, slot_minutes, d, tz)
+        booked_ranges = [(a["start_local"], a["end_local"]) for a in appts_by_day.get(d, [])]
+        result[d] = [
+            s for s in slots
+            if not any(s < b_end and (s + timedelta(minutes=slot_minutes)) > b_start for (b_start, b_end) in booked_ranges)
+        ]
+        d += timedelta(days=1)
+    return result
+
+
 def find_next_free_slots(business_id, working_hours_text, slot_minutes, after_dt, count=2, search_days=21, tz=DEFAULT_TZ):
     """The next `count` free slot start times at/after after_dt, searching forward day by
     day - used both by the AI's booking tool (offer the next 2 openings when the

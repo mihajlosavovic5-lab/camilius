@@ -2557,8 +2557,14 @@ def dispatch_custom_domain_page():
 # How many upcoming days public_page_availability looks across for a free slot - a
 # visitor scanning for "any time this week/next" needs more runway than the AI chat's own
 # find_next_free_slots (which stops as soon as it has 2 alternatives to offer), but this
-# is still a bounded read, same spirit as that function's own search_days cap.
-PAGE_AVAILABILITY_DAYS = 14
+# is still a bounded read, same spirit as that function's own search_days cap. Was 14 (two
+# weeks) - raised to a wide-but-still-bounded 180 (about six months) so a visitor booking
+# further out doesn't run into what read as an arbitrary wall. Only viable now that the
+# route below fetches appointments for the whole range in one query
+# (booking.free_slots_for_range) rather than one round trip per day in the loop - 180
+# separate queries per request, on a route with no auth that's also polled every 60s by
+# every open tab, would have been a real cost.
+PAGE_AVAILABILITY_DAYS = 180
 
 
 # _render_public_page's chat_url/availability_url always point at PRIMARY_APP_HOST
@@ -2626,19 +2632,21 @@ def public_page_availability(slug):
     slot_minutes = get_slot_duration(business_id)
     now = booking.now_local(tz)
 
+    range_start = now.date()
+    range_end = range_start + timedelta(days=PAGE_AVAILABILITY_DAYS)
+    free_by_day = booking.free_slots_for_range(business_id, working_hours, slot_minutes, range_start, range_end, tz)
+
     days = []
-    for offset in range(PAGE_AVAILABILITY_DAYS):
-        d = now.date() + timedelta(days=offset)
-        if not booking.is_open_on(working_hours, d):
-            continue
-        free = [s for s in booking.free_slots_for_day(business_id, working_hours, slot_minutes, d, tz) if s >= now]
-        if not free:
-            continue
-        days.append({
-            "date": d.isoformat(),
-            "label": d.strftime("%a, %b %d"),
-            "slots": [s.strftime("%H:%M") for s in free],
-        })
+    d = range_start
+    while d < range_end:
+        free = [s for s in free_by_day.get(d, []) if s >= now]
+        if free:
+            days.append({
+                "date": d.isoformat(),
+                "label": d.strftime("%a, %b %d"),
+                "slots": [s.strftime("%H:%M") for s in free],
+            })
+        d += timedelta(days=1)
 
     return _json_with_cors(origin, days=days)
 

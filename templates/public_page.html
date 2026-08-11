@@ -355,10 +355,10 @@
        which slots are still free - see public_page_availability in app.py). "Today" is
        worked out client-side (see the script below) since this page is rendered once,
        server-side, with no request timezone to key off. --- */
-    /* Section head - the calendar icon sits at the section's own left edge, the
-       "Book an appointment" heading pushed to the right of it via space-between
-       (rather than the plain left-aligned heading every other section uses), so the
-       icon reads as this section's own control rather than a floating page-level one. */
+    /* Section head - the calendar icon sits at the section's own left edge, its
+       heading pushed to the right of it via space-between (rather than the plain
+       left-aligned heading every other section uses), so the icon reads as this
+       section's own control rather than a floating page-level one. */
     .book-section-head {
         display: flex;
         align-items: center;
@@ -1612,11 +1612,12 @@
     if (bookDateBtn && bookDateCal) {
         var todayDateObj = new Date(todayIso + "T00:00:00");
         // Mirrors app.py's PAGE_AVAILABILITY_DAYS (the window public_page_availability
-        // actually looks across) - not fetched from anywhere, just kept in step by
-        // hand, since a day picked past it would just fall back to the last loaded
-        // card in jumpToBookDate anyway rather than silently doing nothing.
+        // actually looks across, currently 180 days / about six months) - not fetched
+        // from anywhere, just kept in step by hand, since a day picked past it would
+        // just fall back to the last loaded card in jumpToBookDate anyway rather than
+        // silently doing nothing.
         var bookDateMaxObj = new Date(todayDateObj);
-        bookDateMaxObj.setDate(bookDateMaxObj.getDate() + 13);
+        bookDateMaxObj.setDate(bookDateMaxObj.getDate() + 179);
         var bookDateMaxIso = bookDateMaxObj.getFullYear() + "-" + pad2(bookDateMaxObj.getMonth() + 1) + "-" + pad2(bookDateMaxObj.getDate());
         var bookDateViewYear = todayDateObj.getFullYear();
         var bookDateViewMonth = todayDateObj.getMonth();
