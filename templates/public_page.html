@@ -1347,16 +1347,23 @@
     // Static markup, no interpolated data - safe to drop in as-is via insertAdjacentHTML.
     var BOOK_DAY_CHEVRON = '<svg class="book-day-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 9l6 6 6-6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
+    // Whether a day's slots should show or stay collapsed - one shared preference
+    // carried across the whole carousel, not a per-card default. Starts true (a day
+    // shows its slots without a tap), but the moment a visitor collapses whichever day
+    // they're looking at, that becomes the new preference: swiping to another day
+    // shows it in that same collapsed state instead of popping back open on its own,
+    // and stays that way until they expand one again. Updated by each card's own
+    // "toggle" listener below and applied to whichever card is newly in view by
+    // syncBookListHeight further down.
+    var bookSlotsExpanded = true;
+
     function renderBookList(days) {
         bookListEl.innerHTML = "";
         days.forEach(function (day) {
             var card = document.createElement("details");
             card.className = "book-day-card" + (day.date === todayIso ? " today" : "");
             card.dataset.date = day.date;
-            // Open by default - swiping to a new day shows its slots immediately
-            // instead of needing a separate tap - but it's still a real <details>, so
-            // tapping the header can collapse (and reopen) a day same as before.
-            card.open = true;
+            card.open = bookSlotsExpanded;
 
             var commaIndex = day.label.indexOf(",");
             var header = document.createElement("summary");
@@ -1388,7 +1395,10 @@
                 slotsEl.appendChild(btn);
             });
             card.appendChild(slotsEl);
-            card.addEventListener("toggle", syncBookListHeight);
+            card.addEventListener("toggle", function () {
+                bookSlotsExpanded = card.open;
+                syncBookListHeight();
+            });
 
             bookListEl.appendChild(card);
         });
@@ -1402,6 +1412,12 @@
     // container's own left edge (i.e. whichever one scroll-snap has settled on)
     // instead, re-run on every scroll and on each card's own open/close (native
     // "toggle" event, wired up per card above).
+    //
+    // Also carries bookSlotsExpanded onto that same card - every card is only ever
+    // given the right open/closed state at the moment it's first rendered (see
+    // renderBookList), so one further out that hasn't been individually touched since
+    // could still be showing whatever the shared preference was back then, not
+    // whatever a visitor most recently set it to on a different day.
     function syncBookListHeight() {
         var children = bookListEl.children;
         if (!children.length) return;
@@ -1412,6 +1428,7 @@
             var dist = Math.abs(children[i].getBoundingClientRect().left - containerLeft);
             if (dist < bestDist) { bestDist = dist; current = children[i]; }
         }
+        if (current.open !== bookSlotsExpanded) current.open = bookSlotsExpanded;
         bookListEl.style.height = current.offsetHeight + "px";
     }
     bookListEl.addEventListener("scroll", function () {
@@ -1419,14 +1436,18 @@
     });
 
     // Jumps the day carousel to whichever loaded card is on or after `iso` (the exact
-    // date if it has open slots, otherwise the next one that does) and reopens it in
-    // case a visitor had collapsed it earlier. bookListEl.children is what's actually
-    // on screen right now, not a second copy of `days`, so it always matches what's
-    // rendered. Shared by the calendar popover below.
+    // date if it has open slots, otherwise the next one that does) and opens it -
+    // picking a date from the calendar is a deliberate "show me this day" action, so
+    // it also resets the shared open/closed preference (see bookSlotsExpanded above)
+    // to open, same as it started out, rather than leaving a day collapsed if that
+    // happened to be the last state a visitor left some other day in.
+    // bookListEl.children is what's actually on screen right now, not a second copy of
+    // `days`, so it always matches what's rendered. Shared by the calendar popover below.
     function jumpToBookDate(iso) {
         var cards = Array.prototype.slice.call(bookListEl.children);
         if (!cards.length) return;
         var target = cards.filter(function (c) { return c.dataset.date >= iso; })[0] || cards[cards.length - 1];
+        bookSlotsExpanded = true;
         target.open = true;
         target.scrollIntoView({ behavior: "smooth", inline: "start", block: "nearest" });
     }
