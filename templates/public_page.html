@@ -1466,12 +1466,24 @@
     // renderBookList), so one further out that hasn't been individually touched since
     // could still be showing whatever the shared preference was back then, not
     // whatever a visitor most recently set it to on a different day.
+    // Corrects `card`'s open/closed state to match the shared bookSlotsExpanded
+    // preference if it's out of step (a card only ever gets the right state at the
+    // moment it's first rendered - see renderBookList - so one further out that
+    // hasn't been individually touched since could still be showing whatever the
+    // preference was back then), then returns its now-correct height. Order matters -
+    // reading offsetHeight before this correction is what let a swipe briefly show a
+    // day open even though every other day had just been closed: the card's real DOM
+    // state (still open from whenever it was first rendered) was measured as-is, and
+    // only forced closed a moment later once syncBookListHeight's own debounced sync
+    // caught up.
+    function syncBookCardState(card) {
+        if (card.open !== bookSlotsExpanded) card.open = bookSlotsExpanded;
+        return card.offsetHeight;
+    }
     function syncBookListHeight() {
         var children = bookListEl.children;
         if (!children.length) return;
-        var current = children[currentBookCard()];
-        if (current.open !== bookSlotsExpanded) current.open = bookSlotsExpanded;
-        bookListEl.style.height = current.offsetHeight + "px";
+        bookListEl.style.height = syncBookCardState(children[currentBookCard()]) + "px";
     }
     // Debounced to run once scrolling has actually stopped, not on every scroll frame
     // during the gesture - syncBookListHeight mutates the scroll container's own
@@ -1560,7 +1572,7 @@
         target = Math.max(0, Math.min(bookListEl.children.length - 1, target));
         var card = bookListEl.children[target];
         if (card) {
-            bookListEl.style.height = card.offsetHeight + "px";
+            bookListEl.style.height = syncBookCardState(card) + "px";
             animateBookScrollTo(bookCardTargetScrollLeft(card), 260);
         }
     }, { passive: false });
