@@ -1910,17 +1910,36 @@ def update_business(business_id, name, contact_email, phone_number, working_hour
     connection.close()
 
 
-def _normalize_social_url(value):
+SOCIAL_PLATFORM_DOMAINS = {
+    "instagram": ("instagram.com", False),
+    "facebook": ("facebook.com", False),
+    "x": ("x.com", False),
+    "tiktok": ("tiktok.com", True),
+    "youtube": ("youtube.com", True),
+}
+
+
+def _normalize_social_url(value, platform):
     """A bare 'instagram.com/yourbusiness' (no scheme) would otherwise render as a
     relative link on the public page - Rather than reject it, prepend https:// the same
-    forgiving way a browser's own address bar does. Blank/whitespace-only stays None
-    (see social_instagram_url and friends' own comment: NULL, not '', means "not set")."""
+    forgiving way a browser's own address bar does. And since most users will just type
+    their handle (e.g. 'mojradnja' instead of 'instagram.com/mojradnja'), anything with
+    no '/' or scheme is treated as a bare username/handle and expanded into the right
+    profile URL for that platform (tiktok/youtube use the '@handle' convention, the rest
+    don't). Blank/whitespace-only stays None (see social_instagram_url and friends' own
+    comment: NULL, not '', means "not set")."""
     value = (value or "").strip()
     if not value:
         return None
-    if "://" not in value:
-        value = "https://" + value
-    return value
+    domain, at_prefix = SOCIAL_PLATFORM_DOMAINS[platform]
+    if "://" in value or "/" in value:
+        if "://" not in value:
+            value = "https://" + value
+        return value
+    handle = value.lstrip("@").strip()
+    if not handle:
+        return None
+    return f"https://{domain}/{'@' if at_prefix else ''}{handle}"
 
 
 def update_business_social_links(business_id, instagram_url, facebook_url, x_url, tiktok_url, youtube_url):
@@ -1936,9 +1955,9 @@ def update_business_social_links(business_id, instagram_url, facebook_url, x_url
                social_tiktok_url=%s, social_youtube_url=%s
            WHERE id=%s""",
         (
-            _normalize_social_url(instagram_url), _normalize_social_url(facebook_url),
-            _normalize_social_url(x_url), _normalize_social_url(tiktok_url),
-            _normalize_social_url(youtube_url), business_id,
+            _normalize_social_url(instagram_url, "instagram"), _normalize_social_url(facebook_url, "facebook"),
+            _normalize_social_url(x_url, "x"), _normalize_social_url(tiktok_url, "tiktok"),
+            _normalize_social_url(youtube_url, "youtube"), business_id,
         ),
     )
     connection.commit()
