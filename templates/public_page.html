@@ -569,8 +569,8 @@
         position: fixed;
         right: 20px;
         bottom: 20px;
-        width: 56px;
-        height: 56px;
+        width: 58px;
+        height: 58px;
         border-radius: 50%;
         border: none;
         background: var(--primary);
@@ -586,9 +586,14 @@
     .chat-fab:hover { transform: translateY(-3px) scale(1.06); }
     .chat-fab:active { transform: translateY(-1px) scale(.96); }
     .chat-fab svg {
-        width: 26px;
-        height: 26px;
+        width: 25px;
+        height: 25px;
+        position: absolute;
+        transition: opacity .15s ease, transform .15s ease;
     }
+    .chat-fab-icon-close { opacity: 0; transform: scale(.5) rotate(-45deg); }
+    .chat-fab.open .chat-fab-icon-agent { opacity: 0; transform: scale(.5) rotate(45deg); }
+    .chat-fab.open .chat-fab-icon-close { opacity: 1; transform: scale(1) rotate(0); }
     /* Idle "I'm here" nudge, same double-bounce every 10s as the logged-in app's own
        support widget launcher (.support-widget-fab-nudge in style.css) - stops for good
        once the visitor actually opens the panel (see the script below). */
@@ -606,13 +611,13 @@
     .chat-panel {
         position: fixed;
         right: 20px;
-        bottom: 88px;
+        bottom: 90px;
         width: min(360px, calc(100vw - 40px));
         height: min(520px, calc(100vh - 140px));
         background: var(--surface);
         border: 1px solid var(--border);
-        border-radius: calc(var(--radius) + 2px);
-        box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3);
+        border-radius: calc(var(--radius) + 6px);
+        box-shadow: 0 22px 60px rgba(0, 0, 0, .22), 0 6px 16px rgba(0, 0, 0, .12);
         display: flex;
         flex-direction: column;
         overflow: hidden;
@@ -627,16 +632,63 @@
         transform: translateY(10px) scale(.95);
     }
     .chat-header {
+        display: flex;
+        align-items: center;
+        gap: 11px;
         padding: 14px 16px;
         border-bottom: 1px solid var(--border);
+        flex-shrink: 0;
+        background: linear-gradient(160deg, color-mix(in srgb, var(--primary) 14%, var(--surface)) 0%, var(--surface) 130%);
     }
-    .chat-header p {
+    .chat-header-avatar {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        flex-shrink: 0;
+        background: var(--primary);
+        color: var(--on-primary);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, .15);
+    }
+    .chat-header-avatar svg {
+        width: 20px;
+        height: 20px;
+    }
+    .chat-header-text {
+        min-width: 0;
+    }
+    .chat-header-text p {
         margin: 0;
-        font-weight: 600;
+        font-family: var(--heading-font);
+        font-weight: 700;
+        font-size: 1rem;
+        color: var(--text);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
     }
-    .chat-header span {
-        font-size: 0.8rem;
+    .chat-header-text span {
+        font-size: 0.78rem;
         color: var(--text-muted);
+    }
+    .chat-close {
+        margin-left: auto;
+        background: none;
+        border: none;
+        color: var(--text-muted);
+        font-size: 1.3rem;
+        line-height: 1;
+        cursor: pointer;
+        padding: 4px 6px;
+        flex-shrink: 0;
+        border-radius: 8px;
+        transition: background .12s ease, color .12s ease;
+    }
+    .chat-close:hover {
+        background: color-mix(in srgb, var(--text) 8%, transparent);
+        color: var(--text);
     }
     .chat-messages {
         flex: 1;
@@ -645,11 +697,12 @@
         display: flex;
         flex-direction: column;
         gap: 10px;
+        background: var(--background);
     }
     .chat-msg {
         max-width: 85%;
         padding: 9px 12px;
-        border-radius: calc(var(--radius) * 0.7);
+        border-radius: 16px;
         font-size: 0.92rem;
         line-height: 1.4;
         white-space: pre-line;
@@ -660,12 +713,14 @@
         background: var(--primary);
         color: var(--on-primary);
         border-bottom-right-radius: 4px;
+        box-shadow: 0 2px 6px color-mix(in srgb, var(--primary) 35%, transparent);
     }
     .chat-msg-bot {
         align-self: flex-start;
-        background: var(--background);
+        background: var(--surface);
         border: 1px solid var(--border);
         border-bottom-left-radius: 4px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, .05);
     }
     .chat-msg-typing {
         opacity: 0.6;
@@ -675,24 +730,41 @@
         gap: 8px;
         padding: 12px;
         border-top: 1px solid var(--border);
+        flex-shrink: 0;
+        background: var(--surface);
     }
     .chat-form input {
         flex: 1;
         border: 1px solid var(--border);
-        border-radius: calc(var(--radius) * 0.6);
-        padding: 10px 12px;
+        border-radius: 22px;
+        padding: 10px 15px;
         font-size: 0.92rem;
         background: var(--background);
         color: var(--text);
+        transition: border-color .12s ease, box-shadow .12s ease;
     }
-    .chat-form button {
-        border: none;
-        border-radius: calc(var(--radius) * 0.6);
-        background: var(--primary);
-        color: var(--on-primary);
-        padding: 0 16px;
-        font-weight: 600;
+    .chat-form input:focus {
+        outline: none;
+        border-color: var(--primary);
+        box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 22%, transparent);
+    }
+    .chat-send {
+        width: 38px;
+        height: 38px;
+        flex-shrink: 0;
+        border: 1.5px solid var(--primary);
+        border-radius: 50%;
+        background: var(--surface);
+        color: var(--primary);
         cursor: pointer;
+        font-size: 15px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: background .12s ease, border-color .12s ease, transform .12s ease;
+    }
+    .chat-send:hover {
+        transform: scale(1.05);
     }
     /* Centered title block - logo, name, tagline all stacked and centered, with the same
        gold rule under the heading as the logged-in app's own page headers
@@ -1246,25 +1318,39 @@
      booking - sendMessage() below shows its own "publish first" copy for that 404
      specifically, not the generic error. -->
 <button type="button" class="chat-fab" id="chat-fab" aria-label="Chat with {{ business_name }}">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
-        <path d="M4 5.5a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H9l-4 3.5v-3.5H6a2 2 0 0 1-2-2z" stroke-linecap="round" stroke-linejoin="round"/>
+    <svg class="chat-fab-icon-agent" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
+        <circle cx="12" cy="8" r="4"/>
+        <path d="M4 20.5c0-4.14 3.58-7.5 8-7.5s8 3.36 8 7.5" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    <svg class="chat-fab-icon-close" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+        <path d="M6 6l12 12M18 6L6 18" stroke-linecap="round"/>
     </svg>
 </button>
 <div class="chat-panel hidden" id="chat-panel">
     <div class="chat-header">
-        <p>{{ business_name }}</p>
-        <span data-i18n="chat_subtitle">Usually replies in seconds</span>
+        <span class="chat-header-avatar" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
+                <circle cx="12" cy="8" r="4"/>
+                <path d="M4 20.5c0-4.14 3.58-7.5 8-7.5s8 3.36 8 7.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+        </span>
+        <div class="chat-header-text">
+            <p>{{ business_name }}</p>
+            <span data-i18n="chat_subtitle">Usually replies in seconds</span>
+        </div>
+        <button type="button" class="chat-close" id="chat-close" aria-label="Close">&times;</button>
     </div>
     <div class="chat-messages" id="chat-messages"></div>
     <form class="chat-form" id="chat-form">
         <input type="text" id="chat-input" data-i18n-placeholder="chat_placeholder" placeholder="Ask a question or book a time..." autocomplete="off">
-        <button type="submit" data-i18n="chat_send">Send</button>
+        <button type="submit" class="chat-send" aria-label="Send">&#10148;</button>
     </form>
 </div>
 <script>
 (function () {
     var fab = document.getElementById("chat-fab");
     var panel = document.getElementById("chat-panel");
+    var closeBtn = document.getElementById("chat-close");
     var messagesEl = document.getElementById("chat-messages");
     var form = document.getElementById("chat-form");
     var input = document.getElementById("chat-input");
@@ -1306,6 +1392,8 @@
     function setOpen(value) {
         open = value;
         panel.classList.toggle("hidden", !open);
+        fab.classList.toggle("open", open);
+        fab.setAttribute("aria-expanded", open ? "true" : "false");
         // Stops the idle bounce (see @keyframes chat-fab-nudge above) for good once the
         // visitor has actually found and opened the widget once.
         if (open) fab.classList.add("chat-fab-nudge-done");
@@ -1316,6 +1404,7 @@
     }
 
     fab.addEventListener("click", function () { setOpen(!open); });
+    closeBtn.addEventListener("click", function () { setOpen(false); });
 
     function sendMessage(text) {
         addMessage("user", text);
