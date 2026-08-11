@@ -427,27 +427,36 @@
        clipped popover had nothing behind or beside it to reveal, so anything past a
        small drag distance clipped off real dates into blank space instead of
        showing the neighboring month the way the day carousel always had another
-       real card to slide in. Centered on the current (middle) panel at rest;
-       -33.3333%/-66.6666%/0% are that same centered position and its two neighbors,
-       in the track's own percentage terms (each panel is 33.3333% of the 300%-wide
-       track = 100% of the viewport). Position only, no opacity fade - dates sitting
-       at low opacity for a beat while easing back up to visible read as "waiting for
-       them to load" rather than a transition. */
+       real card to slide in.
+       Deliberately no percentage-based width/flex-basis/translateX here - the
+       in-app browser this page is actually opened in (same one that's already
+       ignored touch-action and scroll-behavior: smooth) turned out to botch a
+       300%-wide flex track with 33.3333%-basis children too, overlapping two
+       months' dates in the same cells instead of laying them out side by side.
+       The script sets each panel's width and the track's translateX in plain
+       px instead, computed from the popover's own measured width - the same
+       "trust real pixel math over the browser's own CSS resolution of a
+       relative unit" approach the day carousel's scrollLeft already uses. */
     .book-date-viewport { overflow: hidden; }
     .book-date-track {
         display: flex;
-        width: 300%;
-        transform: translateX(-33.3333%);
         transition: transform .18s ease;
     }
     .book-date-grid {
-        flex: 0 0 33.3333%;
-        min-width: 0;
+        flex: 0 0 auto;
         display: grid;
         grid-template-columns: repeat(7, 1fr);
     }
     .book-date-grid button {
-        aspect-ratio: 1; display: flex; align-items: center; justify-content: center;
+        /* height, not aspect-ratio: 1 - the popover this page is actually rendered in
+           turned out to visibly corrupt these buttons' own row layout specifically
+           when aspect-ratio drove their height inside this three-grids-in-a-clipped-
+           flex-row structure, showing a ghost of the adjacent month's numbers bleeding
+           into the wrong cells. A fixed height sidesteps that sizing algorithm
+           entirely - each button is already 1fr of a 7-column row within a ~240-280px
+           popover, so ~36px reads as effectively square without needing to be exact. */
+        height: 36px;
+        display: flex; align-items: center; justify-content: center;
         border: none; background: none; border-radius: 50%; padding: 0; cursor: pointer;
         font-size: 0.8rem; font-family: inherit; color: var(--text);
         transition: background .15s ease, color .15s ease;
@@ -890,7 +899,7 @@
                             </button>
                         </div>
                         <div class="book-date-weekdays" id="book-date-weekdays"></div>
-                        <div class="book-date-viewport">
+                        <div class="book-date-viewport" id="book-date-viewport">
                             <div class="book-date-track" id="book-date-track">
                                 <div class="book-date-grid" id="book-date-grid-prev"></div>
                                 <div class="book-date-grid" id="book-date-grid"></div>
@@ -1647,6 +1656,7 @@
     var bookDateCal = document.getElementById("book-date-cal");
     var bookDateTitle = document.getElementById("book-date-cal-title");
     var bookDateWeekdays = document.getElementById("book-date-weekdays");
+    var bookDateViewportEl = document.getElementById("book-date-viewport");
     var bookDateTrack = document.getElementById("book-date-track");
     var bookDateGridPrev = document.getElementById("book-date-grid-prev");
     var bookDateGrid = document.getElementById("book-date-grid");
@@ -1713,6 +1723,26 @@
             return { year: year, month: month };
         }
 
+        // Real measured pixel width, re-synced on every render - see the CSS comment
+        // above .book-date-viewport for why this isn't done with percentages/flex-
+        // basis instead. Every translateX below is in terms of this single value, so
+        // there's exactly one source of truth for "how wide is one month panel."
+        // clientWidth, not getBoundingClientRect().width - this first render happens
+        // from openBookDateCal() before the "open" class is added, so .book-date-cal
+        // is still under its own closed-state transform: scale(.98) at this exact
+        // moment. getBoundingClientRect() reports the post-transform (2% smaller)
+        // rendered box, which was throwing this measurement off by exactly that 2%
+        // every time; clientWidth reads the untransformed layout box regardless of
+        // any transform on this element or an ancestor, so it's correct however this
+        // ever ends up getting called.
+        var bookDatePanelWidth = 0;
+        function syncBookDatePanelWidths() {
+            bookDatePanelWidth = bookDateViewportEl.clientWidth;
+            bookDateGridPrev.style.width = bookDatePanelWidth + "px";
+            bookDateGrid.style.width = bookDatePanelWidth + "px";
+            bookDateGridNext.style.width = bookDatePanelWidth + "px";
+        }
+
         function renderBookDateCal() {
             var monthStart = new Date(bookDateViewYear, bookDateViewMonth, 1);
             bookDateTitle.textContent = monthStart.toLocaleDateString(undefined, { month: "long", year: "numeric" });
@@ -1731,8 +1761,9 @@
             // Re-centered on the (freshly rebuilt) current month, instantly - the
             // neighbors are only ever there to slide into during the NEXT gesture,
             // never to still be mid-transition from the last one.
+            syncBookDatePanelWidths();
             bookDateTrack.style.transition = "none";
-            bookDateTrack.style.transform = "translateX(-33.3333%)";
+            bookDateTrack.style.transform = "translateX(-" + bookDatePanelWidth + "px)";
         }
 
         function openBookDateCal() {
@@ -1777,7 +1808,7 @@
         var BOOK_DATE_SLIDE_MS = 160;
         function changeBookDateMonth(direction) {
             bookDateTrack.style.transition = "transform " + BOOK_DATE_SLIDE_MS + "ms ease";
-            bookDateTrack.style.transform = "translateX(" + (direction > 0 ? "-66.6666%" : "0%") + ")";
+            bookDateTrack.style.transform = "translateX(" + (direction > 0 ? -2 * bookDatePanelWidth : 0) + "px)";
             setTimeout(function () {
                 bookDateViewMonth += direction;
                 if (bookDateViewMonth < 0) { bookDateViewMonth = 11; bookDateViewYear -= 1; }
@@ -1787,7 +1818,7 @@
         }
         function snapBookDateTrackBack() {
             bookDateTrack.style.transition = "transform " + BOOK_DATE_SLIDE_MS + "ms ease";
-            bookDateTrack.style.transform = "translateX(-33.3333%)";
+            bookDateTrack.style.transform = "translateX(-" + bookDatePanelWidth + "px)";
         }
         bookDatePrev.addEventListener("click", function () { changeBookDateMonth(-1); });
         bookDateNext.addEventListener("click", function () { changeBookDateMonth(1); });
@@ -1805,13 +1836,11 @@
         var bookMonthDragStartY = null;
         var bookMonthDragAxis = null;
         var bookMonthDragLastDx = 0;
-        var bookMonthPanelWidth = 0;
         bookDateCal.addEventListener("touchstart", function (e) {
             bookMonthDragStartX = e.touches[0].clientX;
             bookMonthDragStartY = e.touches[0].clientY;
             bookMonthDragAxis = null;
             bookMonthDragLastDx = 0;
-            bookMonthPanelWidth = bookDateGrid.getBoundingClientRect().width;
             bookDateTrack.style.transition = "none";
         }, { passive: true });
         bookDateCal.addEventListener("touchmove", function (e) {
@@ -1826,9 +1855,9 @@
             e.preventDefault();
             if (dx < 0 && bookDateNext.disabled) dx = 0;
             if (dx > 0 && bookDatePrev.disabled) dx = 0;
-            dx = Math.max(-bookMonthPanelWidth, Math.min(bookMonthPanelWidth, dx));
+            dx = Math.max(-bookDatePanelWidth, Math.min(bookDatePanelWidth, dx));
             bookMonthDragLastDx = dx;
-            bookDateTrack.style.transform = "translateX(calc(-33.3333% + " + dx + "px))";
+            bookDateTrack.style.transform = "translateX(" + (-bookDatePanelWidth + dx) + "px)";
         }, { passive: false });
         bookDateCal.addEventListener("touchend", function (e) {
             if (bookMonthDragStartX === null) return;
