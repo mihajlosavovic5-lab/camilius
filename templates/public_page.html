@@ -443,6 +443,14 @@
         -webkit-overflow-scrolling: touch;
         scrollbar-width: none;
         gap: 10px;
+        /* Hands horizontal touch gestures entirely to the script's own touchstart/
+           touchmove/touchend handling below instead of the browser's native touch
+           scrolling - with both driving the same scrollLeft, the browser's own
+           momentum/snap and the script's corrective scrollIntoView (for the one-day
+           cap) fought each other, visibly snapping back to the start card first before
+           yanking forward to the real target. pan-y still lets vertical page scroll
+           pass through a touch that starts here. */
+        touch-action: pan-y;
         /* Height is pinned in px by the script's own syncBookListHeight() (a flex
            row's natural auto height would still track its tallest child overall, not
            whichever one is actually scrolled into view) - transitioned so swiping to a
@@ -1456,20 +1464,30 @@
     // own momentum to one day - it does nothing to limit a single manual drag, which
     // tracks the finger 1:1 same as any scrollable element and can end up several days
     // over if that drag itself covers more than one card's width (a fast/long swipe
-    // easily does). Capping that requires knowing the gesture's own start and end
-    // points, which native CSS scroll-snap has no way to express - so this measures
-    // both directly: which card was in view when the touch started, and whichever one
-    // the raw drag (not yet any added momentum) had reached by touchend, then
-    // overrides wherever the browser was about to settle with a clamp of at most one
-    // day past the start in that gesture's own direction.
-    var bookSwipeStartIndex = null;
-    bookListEl.addEventListener("touchstart", function () {
-        bookSwipeStartIndex = currentBookCard();
+    // easily does). Capping that needs the gesture's own start and end points, which
+    // native CSS scroll-snap has no way to express, so the drag is driven by hand here
+    // instead (touch-action: pan-y on .book-list hands the browser's own touch
+    // scrolling off entirely - without that, its native momentum/snap and this
+    // handler's own corrective scroll were both fighting to control the same
+    // scrollLeft, which visibly snapped back to the start card first before yanking
+    // forward to the real target).
+    var bookDragStartX = null;
+    var bookDragStartScroll = null;
+    var bookDragStartIndex = null;
+    bookListEl.addEventListener("touchstart", function (e) {
+        bookDragStartX = e.touches[0].clientX;
+        bookDragStartScroll = bookListEl.scrollLeft;
+        bookDragStartIndex = currentBookCard();
+    }, { passive: true });
+    bookListEl.addEventListener("touchmove", function (e) {
+        if (bookDragStartX === null) return;
+        bookListEl.scrollLeft = bookDragStartScroll - (e.touches[0].clientX - bookDragStartX);
     }, { passive: true });
     bookListEl.addEventListener("touchend", function () {
-        if (bookSwipeStartIndex === null) return;
-        var start = bookSwipeStartIndex;
-        bookSwipeStartIndex = null;
+        if (bookDragStartIndex === null) return;
+        var start = bookDragStartIndex;
+        bookDragStartX = null;
+        bookDragStartIndex = null;
         var raw = currentBookCard();
         var target = Math.max(start - 1, Math.min(start + 1, raw));
         var card = bookListEl.children[target];
