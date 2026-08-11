@@ -7262,10 +7262,24 @@ el("mysite-field-delete-confirm-confirm").addEventListener("click", () => {
 // --safe-top (see .topbar above), so revealing a screen before the real inset lands and
 // then having it arrive a frame later shoves the whole screen down by the status bar's
 // height right in front of the user. Every .screen starts visibility:hidden until
-// showScreen()/enterApp() below adds .active, so waiting a few frames here - before that
-// first reveal - costs nothing visible; it just gives Android's insets dispatch, which
-// normally lands within a frame or two, room to land first. Capped by the timeout so a
-// stalled rAF (backgrounded tab, some OEM WebView oddity) can never hang the boot.
+// showScreen()/enterApp() below adds .active, so waiting here - before that first reveal -
+// costs nothing visible; it just gives Android's insets dispatch room to land first.
+//
+// Used to just wait a fixed 3 frames and call it settled - but a fixed count can't tell
+// "the inset is genuinely 0" apart from "the inset just hasn't been dispatched yet", and
+// on a slower cold start (background app installs, a cold WebView process, some OEM
+// oddity) 3 frames (~50ms) sometimes isn't enough: the reveal still went out with
+// --safe-top at 0, and the correction landing a beat later still read as a visible shove
+// - the CSS transition on .topbar/.login-wrap's padding-top (see app.css) turns that
+// snap into a glide, but a glide the user can watch happen is still a visible jump, not a
+// fix. Polling --safe-top itself instead - keeping the 3-frame floor for the ordinary
+// case, but continuing to wait past it for as long as it still reads its 0px fallback -
+// actually waits for the real inset rather than guessing how long that takes. Every
+// phone Android dispatches a real (non-zero) status-bar inset to; the 0px fallback is
+// only ever the "hasn't arrived yet" state on this app's real targets, so this doesn't
+// risk waiting out the full timeout on an ordinary launch. Still capped by the timeout
+// so a stalled rAF (backgrounded tab, some OEM WebView oddity) or an environment where
+// the inset really is 0 can never hang the boot.
 function waitForLayoutSettle() {
     return new Promise((resolve) => {
         let settled = false;
@@ -7274,14 +7288,16 @@ function waitForLayoutSettle() {
             settled = true;
             resolve();
         };
+        const safeTopLanded = () =>
+            getComputedStyle(document.documentElement).getPropertyValue("--safe-top").trim() !== "0px";
         let frames = 0;
         const tick = () => {
             frames += 1;
-            if (frames >= 3) { done(); return; }
+            if (frames >= 3 && safeTopLanded()) { done(); return; }
             requestAnimationFrame(tick);
         };
         requestAnimationFrame(tick);
-        setTimeout(done, 250);
+        setTimeout(done, 350);
     });
 }
 
