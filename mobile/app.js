@@ -6202,6 +6202,13 @@ const MYSITE_FIELD_MODAL_FIELDS = {
 // same function.
 let mysiteFieldModalTargetEl = null;
 
+// Web address only - the slug's value the moment the modal opened, so closeMysiteFieldModal
+// (below) can tell "actually edited" apart from "just opened and closed again": re-running
+// the availability check (and popping the green checkmark back up) on every close regardless
+// read as broken feedback - open the editor, back out without touching anything, and the
+// badge still flips through checking -> available as if something had changed.
+let mysiteSlugValueAtModalOpen = null;
+
 function mysiteFieldModalActiveControl() {
     return el("mysite-field-modal-textarea").classList.contains("hidden")
         ? el("mysite-field-modal-input")
@@ -6245,6 +6252,7 @@ function openFieldEditModal(sourceEl, titleText, { textarea: showTextarea = fals
         // own) can land on a mid-scrolled view with nothing but a bare cursor and a
         // fragment of the domain, no context for what's actually there.
         inputRow.scrollLeft = 0;
+        mysiteSlugValueAtModalOpen = sourceEl.value.trim();
     }
     // Current/New password (Profile > Security) only - masks the modal's value the same
     // way the in-place field does, with its own show/hide eye toggle (see that button's
@@ -6284,9 +6292,12 @@ function closeMysiteFieldModal() {
     // (tapping the backdrop, below), instead of a separate "Check" button the owner had
     // to remember to tap themselves. Checked before mysiteFieldModalTargetEl is cleared
     // just below, same reason mysiteCheckSlug needs the value: it's already gone by then.
+    // Only when the slug actually changed since the editor opened (mysiteSlugValueAtModalOpen) -
+    // otherwise a plain open-then-close would re-check and pop the green checkmark back up
+    // even though nothing was edited.
     if (mysiteFieldModalTargetEl && mysiteFieldModalTargetEl.id === "mysite-slug") {
         const slug = el("mysite-slug").value.trim();
-        if (slug) mysiteCheckSlug(slug);
+        if (slug && slug !== mysiteSlugValueAtModalOpen) mysiteCheckSlug(slug);
     }
     mysiteFieldModalTargetEl = null;
 }
