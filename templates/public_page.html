@@ -773,11 +773,22 @@
                numbers, rather than a merely-similar approximation. */
             width: min(240px, 70vw); margin-top: 0;
             flex-direction: column; align-items: stretch; overflow-y: auto; overflow-x: hidden;
-            gap: 0; padding: 68px 14px 24px;
+            /* 88px (not 68px) top padding - .nav-menu-btn above sits at top:18px/34px tall
+               (bottom edge at 52px), so this reproduces the app's own drawer gap between
+               its toggle button and its first row (nav-menu-btn top:14px + .nav-links'
+               own 84px padding-top in style.css, ~39px of clear space) rather than the
+               ~19px this used to leave. */
+            gap: 0; padding: 88px 14px 24px;
             /* Same warm amber-to-background fade the app's own body/menu drawer uses
                everywhere else (body/--menu-sheet-bg in style.css) - color-mix keeps it
                correct for every theme's own --primary/--background pair instead of a
-               fixed --primary-light token this page doesn't define. */
+               fixed --primary-light token this page doesn't define. Also defines
+               --nav-ink here (not globally) since only this drawer's own text needs it:
+               style.css's --primary-ink (#9a6a08 vs --primary's #d69410 in its own light
+               theme) is a fixed, non-themed darkening of --primary - this reproduces that
+               same ~72%-toward-black ratio for whichever --primary this business's own
+               theme actually has, rather than hardcoding one theme's literal hex. */
+            --nav-ink: color-mix(in srgb, var(--primary) 72%, black);
             background: linear-gradient(180deg, color-mix(in srgb, var(--primary) 18%, var(--background)) 0%, var(--background) 45%);
             border-right: 1px solid var(--border);
             box-shadow: 0 16px 44px rgba(0, 0, 0, 0.18);
@@ -790,9 +801,11 @@
            for style.css's fixed --gold-dark, which this per-business theme system has no
            equivalent of - every theme here already exposes --gold for this exact
            primary-to-accent gradient use (see the header-rule/title-rule gradients
-           above). */
+           above). right:-1px (not 0) because the containing block's own border-right (1px,
+           just below) inset absolute positioning's right:0 by that same 1px, landing the
+           stripe just inside the drawer's true outer edge instead of flush with it. */
         .side-nav::after {
-            content: ""; position: absolute; top: 0; right: 0; bottom: 0; width: 3px;
+            content: ""; position: absolute; top: 0; right: -1px; bottom: 0; width: 3px;
             background: linear-gradient(180deg, var(--primary), var(--gold));
         }
         /* Plain text rows, no icons - matches the logged-in app's own phone-width menu
@@ -803,7 +816,7 @@
            per-business --radius) so every theme's drawer reads identically to the app's. */
         .side-nav-link {
             background: var(--surface); border-color: var(--border);
-            color: var(--primary); white-space: normal;
+            color: var(--nav-ink); white-space: normal;
             padding: 13px 14px; margin: 3px 0; border-radius: 10px; font-size: 17px;
         }
         .side-nav-link svg { display: none; }
@@ -814,7 +827,7 @@
            bold-text chip every other row already is (matches the logged-in app's own
            phone-width drawer, where the active row is bolder text only, never a fill). */
         .side-nav-link.active {
-            background: var(--surface); border-color: var(--border); color: var(--primary);
+            background: var(--surface); border-color: var(--border); color: var(--nav-ink);
         }
         .wrap { max-width: 640px; width: 100%; margin: 0 auto; padding: 64px 20px 80px; }
     }
