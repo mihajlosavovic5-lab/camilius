@@ -356,8 +356,9 @@
        worked out client-side (see the script below) since this page is rendered once,
        server-side, with no request timezone to key off. --- */
     .book-list {
-        display: flex;
-        flex-direction: column;
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+        align-items: start;
         gap: 10px;
     }
     /* Each day is a native <details> - collapsed (just the weekday/date row) until
