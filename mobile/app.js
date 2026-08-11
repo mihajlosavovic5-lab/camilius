@@ -1391,11 +1391,18 @@ function setupPinchZoom(viewport, content, options) {
     let lastTapTime = 0;
     let lastTapPoint = { x: 0, y: 0 };
 
-    function apply() {
+    // `animate` is only ever true for discrete, non-finger-tracking transform changes
+    // (double-tap zoom in/out, the post-pinch snap-back below) - live pinch/drag updates
+    // always pass it false (or omit it) so the transform stays glued 1:1 to the fingers
+    // instead of lagging behind them through a transition.
+    function apply(animate) {
         const transform = (scale === 1 && panX === 0 && panY === 0)
             ? ""
             : `translate(${panX}px, ${panY}px) scale(${scale})`;
-        targets.forEach((target) => { target.style.transform = transform; });
+        targets.forEach((target) => {
+            target.style.transition = animate ? "transform .3s cubic-bezier(.22, 1, .36, 1)" : "";
+            target.style.transform = transform;
+        });
         onZoomChange(scale);
     }
 
@@ -1418,17 +1425,17 @@ function setupPinchZoom(viewport, content, options) {
         return { x: point.x - cx - anchor.x * newScale, y: point.y - cy - anchor.y * newScale };
     }
 
-    function reset() {
+    function reset(animate) {
         scale = 1; panX = 0; panY = 0;
-        apply();
+        apply(animate);
     }
 
-    function zoomToward(rect, point, newScale) {
+    function zoomToward(rect, point, newScale, animate) {
         const anchor = anchorFor(rect, point);
         const pan = panFor(rect, point, anchor, newScale);
         scale = newScale; panX = pan.x; panY = pan.y;
         clampPan();
-        apply();
+        apply(animate);
     }
 
     viewport.addEventListener("pointerdown", (event) => {
@@ -1461,8 +1468,8 @@ function setupPinchZoom(viewport, content, options) {
                 lastTapTime = 0;
                 event.preventDefault();
                 const rect = viewport.getBoundingClientRect();
-                if (scale > 1.001) reset();
-                else zoomToward(rect, point, DOUBLE_TAP_SCALE);
+                if (scale > 1.001) reset(true);
+                else zoomToward(rect, point, DOUBLE_TAP_SCALE, true);
             } else {
                 lastTapTime = now;
                 lastTapPoint = point;
@@ -1495,7 +1502,7 @@ function setupPinchZoom(viewport, content, options) {
         if (pointers.size < 2) pinchAnchor = null;
         if (pointers.size === 0) {
             dragStart = null;
-            if (scale <= 1.001) reset();
+            if (scale <= 1.001) reset(true);
         }
     }
     viewport.addEventListener("pointerup", endPointer);
