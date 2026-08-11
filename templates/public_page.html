@@ -443,6 +443,12 @@
         -webkit-overflow-scrolling: touch;
         scrollbar-width: none;
         gap: 10px;
+        /* Height is pinned in px by the script's own syncBookListHeight() (a flex
+           row's natural auto height would still track its tallest child overall, not
+           whichever one is actually scrolled into view) - transitioned so swiping to a
+           taller/shorter day, or collapsing one back down, resizes smoothly instead of
+           snapping instantly. */
+        transition: height .2s ease;
     }
     .book-list::-webkit-scrollbar { display: none; }
     /* Each day is a native <details>, open by default (see renderBookList's own
@@ -1325,6 +1331,10 @@
                 }
                 renderBookList(days);
                 bookListEl.classList.remove("hidden");
+                // Only meaningful once un-hidden - a display:none ancestor reports 0
+                // for every child's height/position, which is what renderBookList's
+                // own syncBookListHeight() call would otherwise measure.
+                syncBookListHeight();
             })
             .catch(function () {
                 if (silent) return; // keep whatever was last shown rather than blowing it away
@@ -1378,10 +1388,35 @@
                 slotsEl.appendChild(btn);
             });
             card.appendChild(slotsEl);
+            card.addEventListener("toggle", syncBookListHeight);
 
             bookListEl.appendChild(card);
         });
     }
+
+    // .book-list holds every day card in one flex row (only one scrolled into view at
+    // a time), so its own auto height would otherwise track whichever sibling card is
+    // currently tallest - not the one actually on screen, leaving a block of empty
+    // space under a short/collapsed card whenever some other day still has more slots
+    // open. Explicitly pins the container's height to just the card nearest the
+    // container's own left edge (i.e. whichever one scroll-snap has settled on)
+    // instead, re-run on every scroll and on each card's own open/close (native
+    // "toggle" event, wired up per card above).
+    function syncBookListHeight() {
+        var children = bookListEl.children;
+        if (!children.length) return;
+        var containerLeft = bookListEl.getBoundingClientRect().left;
+        var current = children[0];
+        var bestDist = Infinity;
+        for (var i = 0; i < children.length; i++) {
+            var dist = Math.abs(children[i].getBoundingClientRect().left - containerLeft);
+            if (dist < bestDist) { bestDist = dist; current = children[i]; }
+        }
+        bookListEl.style.height = current.offsetHeight + "px";
+    }
+    bookListEl.addEventListener("scroll", function () {
+        requestAnimationFrame(syncBookListHeight);
+    });
 
     // Jumps the day carousel to whichever loaded card is on or after `iso` (the exact
     // date if it has open slots, otherwise the next one that does) and reopens it in
