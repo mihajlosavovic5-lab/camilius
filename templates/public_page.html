@@ -450,9 +450,12 @@
      `preview`) so app.py's site_preview() - a real saved page, just not published yet -
      renders this identically to the live page; only onboarding_website_preview()'s
      in-progress draft (no real slug/chat_url yet for this to talk to) skips it entirely.
-     public_page_chat()/public_page_availability() still 404 for any unpublished slug
-     though, this business's own preview included - so until Publish is on, tapping either
-     here surfaces their own "couldn't load"/"try again" copy below, not a live reply. -->
+     The booking calendar below loads real open times even in that preview (see
+     app.py's _page_visible_to_request - read-only, safe to show early). Chat is
+     different: public_page_chat() still 404s for any unpublished slug, owner's own
+     preview included, since a real reply costs a real AI call and can complete a real
+     booking - sendMessage() below shows its own "publish first" copy for that 404
+     specifically, not the generic error. -->
 <button type="button" class="chat-fab" id="chat-fab" aria-label="Chat with {{ business_name }}">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
         <path d="M4 5.5a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H9l-4 3.5v-3.5H6a2 2 0 0 1-2-2z" stroke-linecap="round" stroke-linejoin="round"/>
@@ -533,14 +536,23 @@
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ message: text, session_id: sessionId }),
         })
-            .then(function (r) { return r.json(); })
+            // A 404 here only ever means one thing - this page isn't published yet (see
+            // public_page_chat()'s own docstring on why even the owner's own preview
+            // still gets blocked) - worth a specific message instead of the generic
+            // network-error one below, since it's not actually a failure.
+            .then(function (r) {
+                if (r.status === 404) throw new Error("not-published");
+                return r.json();
+            })
             .then(function (data) {
                 typingEl.remove();
                 addMessage("bot", data.reply || "Sorry, something went wrong - please try again.");
             })
-            .catch(function () {
+            .catch(function (err) {
                 typingEl.remove();
-                addMessage("bot", "Sorry, something went wrong - please try again.");
+                addMessage("bot", err && err.message === "not-published"
+                    ? "Chat will be able to reply once you publish this page."
+                    : "Sorry, something went wrong - please try again.");
             })
             .finally(function () {
                 input.disabled = false;

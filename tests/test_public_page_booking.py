@@ -88,11 +88,30 @@ def test_availability_endpoint_404s_for_unknown_slug(client):
     assert response.status_code == 404
 
 
-def test_availability_endpoint_404s_when_not_published(client, unique_email):
+def test_availability_endpoint_404s_when_not_published_for_a_stranger(client, unique_email):
+    register_business_web(client, unique_email)
+    business_id = database.business_by_contact_email(unique_email)[0]
+    slug = f"draft-{uuid.uuid4().hex[:8]}"
+    database.upsert_business_page(business_id, slug, False, None, None)
+
+    # A visitor with no session on this business at all - _page_visible_to_request's
+    # owner carve-out (see the next test) must not widen access beyond that.
+    with client.session_transaction() as session:
+        session.pop("business_id", None)
+
+    response = client.get(f"/p/{slug}/availability")
+    assert response.status_code == 404
+
+
+def test_availability_endpoint_shows_real_times_for_owners_own_unpublished_preview(client, unique_email):
+    """_page_visible_to_request's carve-out (see app.py) - read-only and side-effect-free,
+    so the business's own site_preview() ("View page") can show real open times instead
+    of a permanent error while the page is still a draft, matching the live layout."""
     register_business_web(client, unique_email)
     business_id = database.business_by_contact_email(unique_email)[0]
     slug = f"draft-{uuid.uuid4().hex[:8]}"
     database.upsert_business_page(business_id, slug, False, None, None)
 
     response = client.get(f"/p/{slug}/availability")
-    assert response.status_code == 404
+    assert response.status_code == 200
+    assert "days" in response.get_json()

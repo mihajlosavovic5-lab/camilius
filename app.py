@@ -2190,12 +2190,14 @@ def onboarding_website_preview():
 # two can no longer drift out of sync the way they used to (booking/chat silently missing
 # here while live). preview=True only changes the <head>'s noindex/canonical tags, so the
 # layout the owner sees here - including the Book an appointment button/section and the
-# chat bubble - is exactly what /p/<slug> will show the moment they publish. Those two
-# still won't actually respond until publish, though: public_page_chat()/
-# public_page_availability() 404 for any unpublished slug, owner included (see their own
-# "not published yet" tests) - a deliberate line against a still-unpublished draft
-# quietly running real AI replies/bookings, so tapping either here surfaces the widget's
-# own "couldn't load"/"try again" copy rather than something live, until Publish is on.
+# chat bubble - is exactly what /p/<slug> will show the moment they publish. The booking
+# calendar actually loads real open times too, even before Publish (see
+# _page_visible_to_request's owner carve-out on public_page_availability - read-only, no
+# cost, no side effects). Chat still won't reply until Publish is on, though:
+# public_page_chat() 404s for any unpublished slug, owner included (see its own docstring
+# and "not published yet" test) - a deliberate line against a still-unpublished draft
+# quietly running real, billable AI replies/bookings; the chat panel shows its own
+# "publish first" copy for that case rather than a generic error.
 @app.route("/site/preview")
 @login_required
 def site_preview():
@@ -2412,6 +2414,18 @@ def robots_txt():
     return Response(body, mimetype="text/plain")
 
 
+# A page is reachable once published - but its own booking calendar (read-only, no side
+# effects, costs nothing) is also visible to its own owner, still logged into the
+# dashboard in the same browser, while previewing their own unpublished page (see
+# site_preview()) - so the Book an appointment section there shows real open times
+# instead of a permanent "couldn't load" error. Deliberately NOT reused for
+# public_page_chat() below: unlike this read-only lookup, chat runs the real AI reply
+# pipeline and can complete a real booking - see that route's own docstring for why an
+# unpublished draft still blocks it, owner included.
+def _page_visible_to_request(page):
+    return bool(page[3]) or session.get("business_id") == page[1]
+
+
 # Renders a business's own hosted public page - the delivery vehicle/SEO surface a
 # business gets automatically alongside the AI that answers their customers (see
 # save_business_page() above and pages.py). Shared by the platform's own /p/<slug> route
@@ -2559,12 +2573,15 @@ def _json_with_cors(origin, **kwargs):
 # just lets a visitor see open times before they ever open the chat panel, and tapping one
 # hands the exact same request to that same chat pipeline as a plain typed message. Same
 # has_pro_access/BETA_FREE_MODE gate as the chat tool itself, so this never advertises
-# slots the business can't actually have the AI book.
+# slots the business can't actually have the AI book. _page_visible_to_request (not a bare
+# `page[3]` check) is what lets the business's own site_preview() of its own still-
+# unpublished page show real times here instead of a permanent loading error - safe
+# specifically because this is read-only and has no side effects, unlike chat below.
 @app.route("/p/<slug>/availability")
 @limiter.limit("30 per minute")
 def public_page_availability(slug):
     page = page_by_slug(slug)
-    if page is None or not page[3]:
+    if page is None or not _page_visible_to_request(page):
         abort(404)
     business_id = page[1]
     business = business_by_id(business_id)
@@ -2620,6 +2637,13 @@ def _valid_page_chat_session_id(value):
 @limiter.limit("20 per hour")  # per IP (Flask-Limiter's default key)
 @limiter.limit("300 per hour", key_func=lambda: request.view_args.get("slug", ""))  # per business page, across all visitors
 def public_page_chat(slug):
+    # Deliberately a bare `page[3]` check, not _page_visible_to_request() - unlike
+    # public_page_availability's read-only lookup above, this runs the real AI reply
+    # pipeline and can complete a real booking (notifications, upsell, double-book
+    # protection and all), so even the business's own session previewing its own
+    # still-unpublished page gets the same 404 here as anyone else would, until Publish
+    # is actually on. public_page.html's chat panel shows its own "publish first" copy
+    # for this case rather than a generic error - see its sendMessage().
     page = page_by_slug(slug)
     if page is None or not page[3]:
         abort(404)
