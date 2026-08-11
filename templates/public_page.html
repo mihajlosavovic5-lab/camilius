@@ -267,29 +267,42 @@
         flex-direction: column;
         gap: 10px;
     }
+    /* Each day is a native <details> - collapsed (just the weekday/date row) until
+       tapped, instead of every open day's full slot grid dumped on screen at once. Same
+       marker-hiding pattern as the app's own past-slots toggle
+       (.schedule-past-summary/::-webkit-details-marker in style.css), plus a chevron
+       that flips via the [open] attribute selector to show expanded state. */
     .book-day-card {
         position: relative;
         border: 1px solid var(--border);
         border-radius: calc(var(--radius) * 0.6);
         background: var(--background);
-        padding: 12px 14px;
+        overflow: hidden;
     }
     .book-day-card.today { border-color: var(--primary); border-width: 1.5px; }
     .book-day-header {
         display: flex;
-        align-items: baseline;
-        justify-content: space-between;
-        gap: 8px;
-        margin: 0 0 10px;
-        padding-bottom: 8px;
-        border-bottom: 1px solid var(--border);
+        align-items: center;
+        gap: 10px;
+        padding: 13px 14px;
+        cursor: pointer;
+        list-style: none;
+        -webkit-tap-highlight-color: transparent;
+        transition: background .15s ease;
     }
-    .book-day-name { font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); font-weight: 700; }
+    .book-day-header::-webkit-details-marker { display: none; }
+    .book-day-header::marker { display: none; }
+    .book-day-header:hover { background: var(--surface); }
+    .book-day-name { flex: 1; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); font-weight: 700; }
     .book-day-num { font-size: 0.92rem; font-weight: 600; }
+    .book-day-chevron { flex: 0 0 auto; width: 16px; height: 16px; color: var(--text-muted); transition: transform .2s ease; }
+    .book-day-card[open] .book-day-header { border-bottom: 1px solid var(--border); }
+    .book-day-card[open] .book-day-chevron { transform: rotate(180deg); }
     .book-day-slots {
         display: flex;
         flex-wrap: wrap;
         gap: 8px;
+        padding: 12px 14px 14px;
     }
     .book-slot {
         border: 1px solid var(--border);
@@ -910,15 +923,20 @@
         var d = new Date();
         return d.getFullYear() + "-" + pad2(d.getMonth() + 1) + "-" + pad2(d.getDate());
     })();
+    // Static markup, no interpolated data - safe to drop in as-is via insertAdjacentHTML.
+    var BOOK_DAY_CHEVRON = '<svg class="book-day-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 9l6 6 6-6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
     function renderBookList(days) {
         bookListEl.innerHTML = "";
         days.forEach(function (day) {
-            var card = document.createElement("div");
+            // <details>/<summary> - collapsed by default (see .book-day-header in the
+            // stylesheet above), expands to reveal that day's own slots only once tapped,
+            // instead of every open day's full grid on screen at once.
+            var card = document.createElement("details");
             card.className = "book-day-card" + (day.date === todayIso ? " today" : "");
 
             var commaIndex = day.label.indexOf(",");
-            var header = document.createElement("div");
+            var header = document.createElement("summary");
             header.className = "book-day-header";
             var name = document.createElement("span");
             name.className = "book-day-name";
@@ -928,6 +946,7 @@
             num.textContent = commaIndex === -1 ? "" : day.label.slice(commaIndex + 1).trim();
             header.appendChild(name);
             header.appendChild(num);
+            header.insertAdjacentHTML("beforeend", BOOK_DAY_CHEVRON);
             card.appendChild(header);
 
             var slotsEl = document.createElement("div");
