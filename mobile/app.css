@@ -2065,7 +2065,11 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
    it's the same variable, not a hardcoded color. The input/textarea inside keeps its
    own plain --surface white, so the value still reads as a distinct field floating on
    the cream card instead of blending into it. */
-.mysite-field-modal-sheet { background: var(--primary-light); }
+/* Own padding-top (down from .book-modal-sheet's shared 20px) so the top-edge-to-title
+   gap matches .mysite-field-modal-body's margin-top below instead of reading noticeably
+   bigger than it - the two blank gaps around the title now step evenly instead of one
+   dwarfing the other, still with room to breathe rather than crowding the title. */
+.mysite-field-modal-sheet { background: var(--primary-light); padding-top: 16px; }
 /* Same white-with-outline idea as the five screen-root page titles above
    (.screen-mysite .topbar-title h1 etc.) - this modal's title (Web address/Headline/
    About) sits on the same warm cream .mysite-field-modal-sheet background, so plain
@@ -2106,7 +2110,7 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
     box-shadow: 0 2px 6px rgba(0,0,0,.2); z-index: 1;
 }
 .mysite-field-modal-delete-btn:active { opacity: .85; }
-.mysite-field-modal-body { position: relative; margin-top: 14px; }
+.mysite-field-modal-body { position: relative; margin-top: 16px; }
 .mysite-field-modal-control { width: 100%; text-align: center; }
 /* Web address only (openMysiteFieldModal in app.js adds -slug and un-hides the copy
    button/prefix span inside; Headline's plain input never gets this class, so it keeps
