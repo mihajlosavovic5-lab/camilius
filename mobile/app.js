@@ -4593,13 +4593,22 @@ function openLiveSite(slug) {
 // Once the page is published, "View page" should go straight to the real live site
 // instead of the preview render - the preview stays the fallback for a page that
 // isn't published yet (site_preview() is the only way to see it before then).
-el("mysite-view-page-btn").addEventListener("click", (event) => {
+el("mysite-view-page-btn").addEventListener("click", async (event) => {
     const btn = event.currentTarget;
     btn.classList.remove("button-confirm-pulse");
     void btn.offsetWidth; // restart the animation even on back-to-back taps
     btn.classList.add("button-confirm-pulse");
     const slug = el("mysite-slug").value.trim();
     if (el("mysite-published").checked && slug) {
+        // Flipping "Publish my page" only autosaves after triggerMysiteAutosave's own
+        // debounce (1400ms) - tapping View page right after would otherwise race that
+        // save and 404 against the still-unpublished server state. Force it through
+        // first whenever the form has unsaved changes, so the link is always live by
+        // the time it opens.
+        if (mysiteFormSnapshot !== null && serializeMysiteForm() !== mysiteFormSnapshot) {
+            const saved = await saveMysiteForm();
+            if (!saved) return; // save failed - mysite-error already shows why, nothing live to open
+        }
         openLiveSite(slug);
     } else {
         openSitePreview();
@@ -5743,7 +5752,7 @@ el("mysite-theme-select-row").addEventListener("click", openDesignPicker);
 el("design-modal-backdrop").addEventListener("click", closeDesignPicker);
 el("design-modal-cancel").addEventListener("click", closeDesignPicker);
 
-el("mysite-save-btn").addEventListener("click", async () => {
+async function saveMysiteForm() {
     const button = el("mysite-save-btn");
     const errorBox = el("mysite-error");
     errorBox.classList.add("hidden");
@@ -5781,15 +5790,18 @@ el("mysite-save-btn").addEventListener("click", async () => {
         // checkout is still needed, same "hand off to a web page" pattern as
         // openChoosePlan() below.
         if (DOMAIN_PURCHASE_ENABLED && result && result.domain_checkout_required) await openDomainCheckout(result.domain);
+        return true;
     } catch (err) {
         errorBox.textContent = err.message || t("network.error");
         errorBox.classList.remove("hidden");
+        return false;
     } finally {
         button.disabled = false;
         button.textContent = t("settings.save");
         updateMysiteSaveValidity();
     }
-});
+}
+el("mysite-save-btn").addEventListener("click", saveMysiteForm);
 
 // The real, independently-registrable domain (mihajlo-prodaja.com) the owner picked via
 // a "Choose" button below - null until they choose one. Kept separate from mysite-slug
