@@ -790,7 +790,12 @@
                theme actually has, rather than hardcoding one theme's literal hex. */
             --nav-ink: color-mix(in srgb, var(--primary) 72%, black);
             background: linear-gradient(180deg, color-mix(in srgb, var(--primary) 18%, var(--background)) 0%, var(--background) 45%);
-            border-right: 1px solid var(--border);
+            /* No border-right here (style.css's own .nav-links has none either, just its
+               ::after stripe + this box-shadow for the edge) - overflow-x:hidden above
+               clips ::after at the padding edge, one pixel short of this box's own
+               border-box edge, but a real border always paints past that clip regardless.
+               With one here, that left a thin sliver of --border showing past the ::after
+               stripe no matter where ::after's own right offset was set to. */
             box-shadow: 0 16px 44px rgba(0, 0, 0, 0.18);
             transform: translateX(-100%);
             transition: transform .4s cubic-bezier(.16, 1, .3, 1);
@@ -801,11 +806,9 @@
            for style.css's fixed --gold-dark, which this per-business theme system has no
            equivalent of - every theme here already exposes --gold for this exact
            primary-to-accent gradient use (see the header-rule/title-rule gradients
-           above). right:-1px (not 0) because the containing block's own border-right (1px,
-           just below) inset absolute positioning's right:0 by that same 1px, landing the
-           stripe just inside the drawer's true outer edge instead of flush with it. */
+           above). */
         .side-nav::after {
-            content: ""; position: absolute; top: 0; right: -1px; bottom: 0; width: 3px;
+            content: ""; position: absolute; top: 0; right: 0; bottom: 0; width: 3px;
             background: linear-gradient(180deg, var(--primary), var(--gold));
         }
         /* Plain text rows, no icons - matches the logged-in app's own phone-width menu
