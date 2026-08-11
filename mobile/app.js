@@ -3,6 +3,13 @@
 // screens instead of loading the server-rendered website.
 
 const API_BASE = "https://app.ai-auto-reply-mail.com";
+// The real, shareable prefix every My Site "Web address" (mysite-slug) turns into once
+// published (API_BASE + "/p/") - shown as a fixed, non-typeable prefix in both the
+// compact field on the My Site tab (mysiteUpdateSlugDisplay) and its edit modal
+// (openMysiteFieldModal), so the owner always sees/can share the real full address
+// rather than the bare slug alone. Declared up here (not near either call site) so it's
+// available regardless of which one runs first during boot.
+const MYSITE_SLUG_LINK_PREFIX = API_BASE + "/p/";
 // Bumped alongside the native versionName, sent with crash reports - deliberately NOT
 // bumped for the 1.9.11 native-only release (status-bar overlay fix, see build.gradle/
 // api.py's APK_VERSION). This constant ships to every device via the very same OTA
@@ -5608,6 +5615,7 @@ async function loadMySite() {
         if (page) {
             el("mysite-slug").value = page.slug || "";
             mysiteSyncDomainCheckBtnVisibility();
+            mysiteUpdateSlugDisplay();
             mysiteChosenDomain = page.pending_custom_domain || null;
             el("mysite-tagline-input").value = page.tagline || "";
             el("mysite-about-input").value = page.about || "";
@@ -5975,6 +5983,7 @@ async function mysiteCheckSlug(slug) {
                 resultsList.innerHTML = "";
                 el("mysite-slug").value = candidate;
                 mysiteUpdateFieldFade(el("mysite-slug"));
+                mysiteUpdateSlugDisplay();
                 mysiteFinishDomainCheck(btn);
             });
             row.appendChild(chooseBtn);
@@ -6002,6 +6011,24 @@ function mysiteSyncDomainCheckBtnVisibility() {
 }
 el("mysite-slug").addEventListener("input", mysiteSyncDomainCheckBtnVisibility);
 mysiteSyncDomainCheckBtnVisibility();
+
+// Same "not just an input listener, also called explicitly wherever mysite-slug.value is
+// set programmatically" reasoning as mysiteSyncDomainCheckBtnVisibility right above -
+// keeps mysite-slug-display (the visual overlay showing the full https://.../p/<slug>
+// address - see its own comment in index.html/app.css) in sync with the real, bare-slug
+// input underneath. Hides the overlay entirely on an empty slug so the plain empty field/
+// floated-down "Web address" placeholder shows through instead of a bare "https://.../p/".
+function mysiteUpdateSlugDisplay() {
+    const slug = el("mysite-slug").value.trim();
+    const display = el("mysite-slug-display");
+    el("mysite-slug").classList.toggle("mysite-slug-input-covered", !!slug);
+    display.classList.toggle("hidden", !slug);
+    if (!slug) return;
+    el("mysite-slug-display-prefix").textContent = MYSITE_SLUG_LINK_PREFIX;
+    el("mysite-slug-display-value").textContent = slug;
+}
+el("mysite-slug").addEventListener("input", mysiteUpdateSlugDisplay);
+mysiteUpdateSlugDisplay();
 
 // Fade-to-transparent for a clipped Web address/Headline/About value - same
 // "scrollWidth > clientWidth after layout" measurement the Inbox list uses for its own
@@ -6033,11 +6060,6 @@ const MYSITE_FIELD_MODAL_FIELDS = {
     "mysite-about-input": { control: "textarea", titleKey: "mysite.website.aboutLabel" },
 };
 
-// The fixed part of the real address - shown as a non-typeable prefix glued to the Web
-// address modal's own input (see openMysiteFieldModal below) so the owner always sees
-// the platform's real domain in front of whatever slug they type, not just a bare word
-// that could be mistaken for the whole address. Same domain openLiveSite already opens.
-const MYSITE_SLUG_LINK_PREFIX = API_BASE.replace(/^https?:\/\//, "") + "/p/";
 let mysiteFieldModalTargetId = null;
 
 function mysiteFieldModalActiveControl() {
@@ -6134,7 +6156,7 @@ el("mysite-field-modal-copy-btn").addEventListener("click", async (event) => {
     const btn = event.currentTarget;
     const slug = el("mysite-field-modal-input").value.trim();
     if (!slug) return;
-    const link = "https://" + MYSITE_SLUG_LINK_PREFIX + slug;
+    const link = MYSITE_SLUG_LINK_PREFIX + slug;
     try {
         await navigator.clipboard.writeText(link);
     } catch (e) {
@@ -7099,6 +7121,7 @@ updateOfflineBanner();
         el("mysite-tagline-input").value = mysiteTagline || "";
         el("mysite-about-input").value = mysiteAbout || "";
         mysiteSyncDomainCheckBtnVisibility();
+        mysiteUpdateSlugDisplay();
         mysiteUpdateAllFieldFades();
         mysiteChosenDomain = mysiteChosenDomainCached || null;
     }
