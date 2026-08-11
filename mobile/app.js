@@ -5108,9 +5108,9 @@ function pinModalCenter(modal) {
 // for why. MIN_MS keeps a sub-pixel-scale correction from reading as nothing happening;
 // MAX_MS caps how long an unusually large jump (e.g. a tablet split-screen resize) is
 // allowed to take, so this never crawls no matter how big the gap is.
-const CENTERED_MODAL_SPEED_PX_MS = 1.1;
-const CENTERED_MODAL_MIN_MS = 120;
-const CENTERED_MODAL_MAX_MS = 320;
+const CENTERED_MODAL_SPEED_PX_MS = 1.6;
+const CENTERED_MODAL_MIN_MS = 90;
+const CENTERED_MODAL_MAX_MS = 240;
 
 // Glides an already-open sheet from wherever it currently sits to a freshly computed
 // target at one constant speed the whole way, instead of pinModalCenterSheet's instant
