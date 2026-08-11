@@ -136,6 +136,11 @@
     --danger-bg: #f9e8e2;
     --danger-border: #eec6ba;
     --shadow: 0 2px 6px rgba(38, 32, 20, .05), 0 1px 2px rgba(38, 32, 20, .04);
+    /* Outline ring behind the white tab-root titles below (Home/Schedule/Profile/
+       Settings) - black keeps white text readable against light mode's pale wash;
+       dark mode overrides this to the theme's own gold (--primary) instead, since a
+       black ring against an already-dark background does nothing useful there. */
+    --title-outline: rgba(0, 0, 0, .7);
     --radius: 14px;
     --tabbar-h: 58px;
     --safe-top: env(safe-area-inset-top, 0px);
@@ -300,7 +305,10 @@ button { font-family: inherit; -webkit-appearance: none; appearance: none; }
    each copy is just the whole filled glyph nudged a little in one of 8 directions, so
    overlapping copies build up a uniformly rounded halo with no per-corner geometry to
    go wrong. Same fix shape as .mysite-field-modal-sheet .book-modal-title below, scaled
-   up for this rule's larger 28px font. */
+   up for this rule's larger 28px font. Ring color is --title-outline (var, not a literal
+   rgba here) - black in light mode for that same readability, but the theme's own gold
+   in dark mode (see --title-outline's own definition above), matching the gold outline
+   .button-primary-outline elements like "View page" already use there. */
 .screen-mysite .topbar-title h1,
 .screen-schedule .topbar-title h1,
 .screen-profile .topbar-title h1,
@@ -308,14 +316,14 @@ button { font-family: inherit; -webkit-appearance: none; appearance: none; }
 .screen-website-chat .topbar-title h1 {
     color: #fff;
     text-shadow:
-        1.3px 0 0.6px rgba(0, 0, 0, .7),
-        -1.3px 0 0.6px rgba(0, 0, 0, .7),
-        0 1.3px 0.6px rgba(0, 0, 0, .7),
-        0 -1.3px 0.6px rgba(0, 0, 0, .7),
-        0.9px 0.9px 0.6px rgba(0, 0, 0, .7),
-        -0.9px 0.9px 0.6px rgba(0, 0, 0, .7),
-        0.9px -0.9px 0.6px rgba(0, 0, 0, .7),
-        -0.9px -0.9px 0.6px rgba(0, 0, 0, .7);
+        1.3px 0 0.6px var(--title-outline),
+        -1.3px 0 0.6px var(--title-outline),
+        0 1.3px 0.6px var(--title-outline),
+        0 -1.3px 0.6px var(--title-outline),
+        0.9px 0.9px 0.6px var(--title-outline),
+        -0.9px 0.9px 0.6px var(--title-outline),
+        0.9px -0.9px 0.6px var(--title-outline),
+        -0.9px -0.9px 0.6px var(--title-outline);
     font-size: 28px;
 }
 
@@ -2226,6 +2234,7 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
         --danger-bg: #2e1a16;
         --danger-border: #4a2b24;
         --shadow: 0 2px 6px rgba(0, 0, 0, .3), 0 1px 2px rgba(0, 0, 0, .25);
+        --title-outline: rgba(232, 164, 22, .7);
     }
     .avatar, .inbox-avatar { background: rgba(232, 164, 22, .18); }
     input[type="text"], input[type="password"], input[type="email"], input[type="tel"], input[type="number"], textarea { color-scheme: dark; }
@@ -2253,6 +2262,7 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
     --danger-bg: #2e1a16;
     --danger-border: #4a2b24;
     --shadow: 0 2px 6px rgba(0, 0, 0, .3), 0 1px 2px rgba(0, 0, 0, .25);
+    --title-outline: rgba(232, 164, 22, .7);
     color-scheme: dark;
 }
 :root[data-theme="dark"] .avatar, :root[data-theme="dark"] .inbox-avatar { background: rgba(232, 164, 22, .18); }
@@ -2277,6 +2287,7 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
     --danger-bg: #f9e8e2;
     --danger-border: #eec6ba;
     --shadow: 0 2px 6px rgba(38, 32, 20, .05), 0 1px 2px rgba(38, 32, 20, .04);
+    --title-outline: rgba(0, 0, 0, .7);
     color-scheme: light;
 }
 
