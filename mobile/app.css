@@ -308,11 +308,10 @@ button { font-family: inherit; -webkit-appearance: none; appearance: none; }
    overlapping copies build up a uniformly rounded halo with no per-corner geometry to
    go wrong. Same fix shape as .mysite-field-modal-sheet .book-modal-title below, scaled
    up for this rule's larger 28px font. Fill/ring are --title-text/--title-outline (vars,
-   not literal colors here) - white-on-black in light mode for that readability, but
-   dark mode swaps both to gold instead (see their own definitions above), since
-   white-on-black reads as flat/low-contrast against an already-dark background -
-   gold text there matches the same outline .button-primary-outline elements like
-   "View page" already use. */
+   not literal colors here), used as-is in light mode. Dark mode drops this shadow-ring
+   approach entirely in favor of a solid white pill behind gold text instead - see the
+   dark-mode override further down - gold text directly against the dark background (even
+   outlined) still read as low-contrast there. */
 .screen-mysite .topbar-title h1,
 .screen-schedule .topbar-title h1,
 .screen-profile .topbar-title h1,
@@ -2227,11 +2226,29 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
         --danger-bg: #2e1a16;
         --danger-border: #4a2b24;
         --shadow: 0 2px 6px rgba(0, 0, 0, .3), 0 1px 2px rgba(0, 0, 0, .25);
-        --title-text: #f2b93f;
-        --title-outline: rgba(199, 139, 15, .85);
     }
     .avatar, .inbox-avatar { background: rgba(232, 164, 22, .18); }
     input[type="text"], input[type="password"], input[type="email"], input[type="tel"], input[type="number"], textarea { color-scheme: dark; }
+    /* Solid white pill behind the tab-root titles (Home/Schedule/Profile/Settings) -
+       replaces the light-mode shadow-ring approach above entirely rather than just
+       recoloring it; gold text on the dark screen background (even outlined) still
+       read as low-contrast, where a plain white badge gives it real contrast instead.
+       :not([data-theme="light"]) guard (unlike the plain-selector dark rules above,
+       which only ever alter a tint) - this one swaps the whole treatment, so it needs
+       to actually stand down for an explicit Light choice made while the OS itself
+       prefers dark, not just this media query's own condition. */
+    :root:not([data-theme="light"]) .screen-mysite .topbar-title h1,
+    :root:not([data-theme="light"]) .screen-schedule .topbar-title h1,
+    :root:not([data-theme="light"]) .screen-profile .topbar-title h1,
+    :root:not([data-theme="light"]) .screen-settings .topbar-title h1,
+    :root:not([data-theme="light"]) .screen-website-chat .topbar-title h1 {
+        background: #fff;
+        color: var(--primary-dark);
+        text-shadow: none;
+        padding: 5px 18px;
+        border-radius: 999px;
+        box-shadow: var(--shadow);
+    }
     /* Subtle warm glow instead of the light-mode near-white pill - see the comment on
        the base .filter-pill.active rule above. */
     .filter-pill.active { background: var(--primary-light); color: var(--primary-ink); border-color: var(--primary); }
@@ -2256,12 +2273,24 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
     --danger-bg: #2e1a16;
     --danger-border: #4a2b24;
     --shadow: 0 2px 6px rgba(0, 0, 0, .3), 0 1px 2px rgba(0, 0, 0, .25);
-    --title-text: #f2b93f;
-    --title-outline: rgba(199, 139, 15, .85);
     color-scheme: dark;
 }
 :root[data-theme="dark"] .avatar, :root[data-theme="dark"] .inbox-avatar { background: rgba(232, 164, 22, .18); }
 :root[data-theme="dark"] .filter-pill.active { background: var(--primary-light); color: var(--primary-ink); border-color: var(--primary); }
+/* Same solid white pill as the @media dark block above - explicit "Dark" choice needs
+   its own copy since attribute selectors don't match inside that media query. */
+:root[data-theme="dark"] .screen-mysite .topbar-title h1,
+:root[data-theme="dark"] .screen-schedule .topbar-title h1,
+:root[data-theme="dark"] .screen-profile .topbar-title h1,
+:root[data-theme="dark"] .screen-settings .topbar-title h1,
+:root[data-theme="dark"] .screen-website-chat .topbar-title h1 {
+    background: #fff;
+    color: var(--primary-dark);
+    text-shadow: none;
+    padding: 5px 18px;
+    border-radius: 999px;
+    box-shadow: var(--shadow);
+}
 :root[data-theme="light"] {
     --primary: #d69410;
     --primary-dark: #b57d0c;
