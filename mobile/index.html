@@ -845,6 +845,16 @@
       <div class="profile-section">
         <div class="profile-section-header">
           <p class="profile-section-title" data-i18n="mysite.website.title">Your website</p>
+          <!-- Mirrors site_overview.html's own "Live · <url>"/"Not published yet" subtitle
+               on the web dashboard - the mobile My Site tab never showed the real, shareable
+               /p/<slug> address anywhere, only the bare slug in the Web address field above,
+               so there was nowhere to actually find or tap the real link. Toggled in
+               loadMySite() below. -->
+          <p class="profile-section-subtitle hidden" id="mysite-live-link-row">
+            <span data-i18n="mysite.website.live">Live</span> &middot;
+            <a href="#" id="mysite-live-link" target="_blank" rel="noopener"></a>
+          </p>
+          <p class="profile-section-subtitle hidden" id="mysite-draft-note" data-i18n="mysite.website.draftNote">Not published yet</p>
         </div>
         <!-- The Check button here checks slug availability against THIS platform's own
              database only (mysiteCheckSlug in app.js -> /api/check-slug ->

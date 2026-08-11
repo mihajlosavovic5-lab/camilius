@@ -376,6 +376,8 @@ const TRANSLATIONS = {
         "mysite.fieldModal.delete": "Delete",
         "mysite.website.title": "Your website",
         "mysite.website.viewPage": "View page",
+        "mysite.website.live": "Live",
+        "mysite.website.draftNote": "Not published yet",
         "settings.page.design": "Design",
         "onboarding.describe.micError": "Couldn't access the microphone - check your permissions and try again.",
         "onboarding.describe.micPermission": "Please allow microphone access to record your description.",
@@ -762,6 +764,8 @@ const TRANSLATIONS = {
         "mysite.fieldModal.delete": "Obriši",
         "mysite.website.title": "Tvoj sajt",
         "mysite.website.viewPage": "Pogledaj stranicu",
+        "mysite.website.live": "Aktivan",
+        "mysite.website.draftNote": "Još nije objavljen",
         "settings.page.design": "Dizajn",
         "onboarding.describe.micError": "Nije moguć pristup mikrofonu - proveri dozvole i pokušaj ponovo.",
         "onboarding.describe.micPermission": "Dozvolite pristup mikrofonu da biste snimili opis.",
@@ -1136,6 +1140,8 @@ const TRANSLATIONS = {
         "mysite.fieldModal.delete": "Eliminar",
         "mysite.website.title": "Tu sitio web",
         "mysite.website.viewPage": "Ver página",
+        "mysite.website.live": "En línea",
+        "mysite.website.draftNote": "Aún no publicado",
     },
     pt: {
         "onboarding.skip": "Pular",
@@ -1470,6 +1476,8 @@ const TRANSLATIONS = {
         "mysite.fieldModal.delete": "Excluir",
         "mysite.website.title": "Seu site",
         "mysite.website.viewPage": "Ver página",
+        "mysite.website.live": "No ar",
+        "mysite.website.draftNote": "Ainda não publicado",
     },
     fr: {
         "onboarding.skip": "Passer",
@@ -1804,6 +1812,8 @@ const TRANSLATIONS = {
         "mysite.fieldModal.delete": "Supprimer",
         "mysite.website.title": "Votre site",
         "mysite.website.viewPage": "Voir la page",
+        "mysite.website.live": "En ligne",
+        "mysite.website.draftNote": "Pas encore publié",
     },
     de: {
         "onboarding.skip": "Überspringen",
@@ -2138,6 +2148,8 @@ const TRANSLATIONS = {
         "mysite.fieldModal.delete": "Löschen",
         "mysite.website.title": "Deine Website",
         "mysite.website.viewPage": "Seite ansehen",
+        "mysite.website.live": "Live",
+        "mysite.website.draftNote": "Noch nicht veröffentlicht",
     },
     it: {
         "onboarding.skip": "Salta",
@@ -2472,6 +2484,8 @@ const TRANSLATIONS = {
         "mysite.fieldModal.delete": "Elimina",
         "mysite.website.title": "Il tuo sito",
         "mysite.website.viewPage": "Visualizza pagina",
+        "mysite.website.live": "Online",
+        "mysite.website.draftNote": "Non ancora pubblicato",
     },
     ru: {
         "onboarding.skip": "Пропустить",
@@ -2806,6 +2820,8 @@ const TRANSLATIONS = {
         "mysite.fieldModal.delete": "Удалить",
         "mysite.website.title": "Ваш сайт",
         "mysite.website.viewPage": "Просмотреть страницу",
+        "mysite.website.live": "Опубликован",
+        "mysite.website.draftNote": "Ещё не опубликован",
     },
     zh: {
         "onboarding.skip": "跳过",
@@ -3140,6 +3156,8 @@ const TRANSLATIONS = {
         "mysite.fieldModal.delete": "删除",
         "mysite.website.title": "您的网站",
         "mysite.website.viewPage": "查看页面",
+        "mysite.website.live": "已上线",
+        "mysite.website.draftNote": "尚未发布",
     },
     tr: {
         "onboarding.skip": "Geç",
@@ -3474,6 +3492,8 @@ const TRANSLATIONS = {
         "mysite.fieldModal.delete": "Sil",
         "mysite.website.title": "Web siteniz",
         "mysite.website.viewPage": "Sayfayı görüntüle",
+        "mysite.website.live": "Yayında",
+        "mysite.website.draftNote": "Henüz yayınlanmadı",
     },
 };
 
