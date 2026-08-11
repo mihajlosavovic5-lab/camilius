@@ -2332,11 +2332,15 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
 }
 .lightbox-top-btn[hidden], .lightbox-send-btn[hidden] { display: none; }
 /* Undo/redo bar for draw mode, pinned to the bottom of the screen (same reasoning as the
-   top bar) - only shown once annotate is switched on. */
+   top bar) - only shown once annotate is switched on. The scrim behind it isn't optional:
+   its buttons are translucent/white-on-white by design (see .lightbox-draw-btn and
+   .lightbox-send-btn below), so without a guaranteed-dark backdrop they wash out to
+   near-invisible whenever the photo/page underneath is itself light or white. */
 .lightbox-draw-bar {
     position: absolute; left: 0; right: 0; bottom: 0; z-index: 1;
     display: flex; align-items: center; justify-content: center; gap: 16px;
     padding: 12px 14px max(env(safe-area-inset-bottom, 0px), 16px);
+    background: linear-gradient(to top, rgba(0,0,0,.6), rgba(0,0,0,0) 100%);
 }
 .lightbox-draw-btn {
     width: 44px; height: 44px; border-radius: 50%; border: none; cursor: pointer;
@@ -2424,12 +2428,16 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
 .document-viewer-draw-canvas {
     position: absolute; inset: 0; touch-action: none;
 }
-/* Bottom toolbar for whichever page is being annotated - same shape/spacing as the image
-   lightbox's own .lightbox-draw-bar, just scoped to the document viewer instead. */
+/* Bottom toolbar for whichever page is being annotated - same shape/spacing (and same
+   dark scrim, for the same reason) as the image lightbox's own .lightbox-draw-bar, just
+   scoped to the document viewer instead. The scrim matters more here than in the image
+   lightbox: document pages are routinely white/near-white all the way to their bottom
+   edge, which is exactly where this bar sits. */
 .document-viewer-draw-bar {
     position: absolute; left: 0; right: 0; bottom: 0; z-index: 2;
     display: flex; align-items: center; justify-content: center; gap: 16px;
     padding: 12px 14px max(env(safe-area-inset-bottom, 0px), 16px);
+    background: linear-gradient(to top, rgba(0,0,0,.6), rgba(0,0,0,0) 100%);
 }
 .document-viewer-draw-bar[hidden] { display: none; }
 /* PDF: one canvas per page (pdf.js), stacked in reading order - scrolling the body IS
