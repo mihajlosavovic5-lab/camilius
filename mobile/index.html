@@ -1,5 +1,5 @@
 <!doctype html>
-<html data-bundle-version="171f59b90283" lang="en">
+<html data-bundle-version="1f38210229e6" lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
@@ -16,7 +16,7 @@
 <link rel="preload" href="fonts/lora-latin-ext.woff2?v=e8c32fe92ded" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="fonts/familjen-grotesk-latin.woff2?v=e8c32fe92ded" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="fonts/familjen-grotesk-latin-ext.woff2?v=e8c32fe92ded" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="app.css?v=171f59b90283">
+<link rel="stylesheet" href="app.css?v=1f38210229e6">
 </head>
 <body>
 
@@ -845,16 +845,6 @@
       <div class="profile-section">
         <div class="profile-section-header">
           <p class="profile-section-title" data-i18n="mysite.website.title">Your website</p>
-          <!-- Mirrors site_overview.html's own "Live · <url>"/"Not published yet" subtitle
-               on the web dashboard - the mobile My Site tab never showed the real, shareable
-               /p/<slug> address anywhere, only the bare slug in the Web address field above,
-               so there was nowhere to actually find or tap the real link. Toggled in
-               loadMySite() below. -->
-          <p class="profile-section-subtitle hidden" id="mysite-live-link-row">
-            <span data-i18n="mysite.website.live">Live</span> &middot;
-            <a href="#" id="mysite-live-link" target="_blank" rel="noopener"></a>
-          </p>
-          <p class="profile-section-subtitle hidden" id="mysite-draft-note" data-i18n="mysite.website.draftNote">Not published yet</p>
         </div>
         <!-- The Check button here checks slug availability against THIS platform's own
              database only (mysiteCheckSlug in app.js -> /api/check-slug ->
@@ -913,7 +903,7 @@
 
       <div class="profile-section" style="margin-top: 20px;">
         <div class="settings-row settings-row-toggle" style="border-bottom: none; padding: 6px 2px;">
-          <span data-i18n="mysite.website.publish">Publish this page</span>
+          <span data-i18n="mysite.website.publish">Publish my page</span>
           <label class="hours-day-toggle">
             <input type="checkbox" id="mysite-published">
             <span class="hours-day-toggle-track"><span class="hours-day-toggle-thumb"></span></span>
@@ -1684,8 +1674,8 @@
   </button>
 </nav>
 
-<script src="i18n.js?v=171f59b90283"></script>
-<script src="hours-picker.js?v=171f59b90283"></script>
-<script src="app.js?v=171f59b90283"></script>
+<script src="i18n.js?v=1f38210229e6"></script>
+<script src="hours-picker.js?v=1f38210229e6"></script>
+<script src="app.js?v=1f38210229e6"></script>
 </body>
 </html>

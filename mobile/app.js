@@ -4580,12 +4580,30 @@ async function openSitePreview() {
         reportClientError(err.message, err.stack, "site-preview-link");
     }
 }
+// The real, public /p/<slug> address - no auth needed (unlike openSitePreview's
+// token-bridge above), so this just opens it directly.
+function openLiveSite(slug) {
+    const url = API_BASE + "/p/" + slug;
+    if (capacitorPlugins && capacitorPlugins.Browser) {
+        capacitorPlugins.Browser.open({ url });
+    } else {
+        window.open(url, "_blank");
+    }
+}
+// Once the page is published, "View page" should go straight to the real live site
+// instead of the preview render - the preview stays the fallback for a page that
+// isn't published yet (site_preview() is the only way to see it before then).
 el("mysite-view-page-btn").addEventListener("click", (event) => {
     const btn = event.currentTarget;
     btn.classList.remove("button-confirm-pulse");
     void btn.offsetWidth; // restart the animation even on back-to-back taps
     btn.classList.add("button-confirm-pulse");
-    openSitePreview();
+    const slug = el("mysite-slug").value.trim();
+    if (el("mysite-published").checked && slug) {
+        openLiveSite(slug);
+    } else {
+        openSitePreview();
+    }
 });
 
 const SUPPORT_EMAIL = "support@ai-auto-reply-mail.com";
@@ -5564,38 +5582,6 @@ function mysitePopulateThemeSelect(currentThemeId) {
     el("mysite-theme-select-value").textContent = select.options[select.selectedIndex].textContent;
 }
 
-// The real, shareable /p/<slug> address - shown as a subtitle under "Your website"
-// (same "Live · <url>" / "Not published yet" copy as site_overview.html on the web
-// dashboard) since "View page" only ever opens the preview render (site_preview(),
-// page_url="") and never surfaces the actual link anywhere in the app.
-function mysiteUpdateLiveLink(page) {
-    const liveRow = el("mysite-live-link-row");
-    const draftNote = el("mysite-draft-note");
-    if (!page) {
-        liveRow.classList.add("hidden");
-        draftNote.classList.add("hidden");
-        return;
-    }
-    const published = !!page.published && !!page.slug;
-    draftNote.classList.toggle("hidden", published);
-    liveRow.classList.toggle("hidden", !published);
-    if (published) {
-        const url = API_BASE + "/p/" + page.slug;
-        const link = el("mysite-live-link");
-        link.href = url;
-        link.textContent = url.replace(/^https?:\/\//, "");
-    }
-}
-el("mysite-live-link").addEventListener("click", (event) => {
-    event.preventDefault();
-    const url = event.currentTarget.href;
-    if (capacitorPlugins && capacitorPlugins.Browser) {
-        capacitorPlugins.Browser.open({ url });
-    } else {
-        window.open(url, "_blank");
-    }
-});
-
 async function loadMySite() {
     el("mysite-error").classList.add("hidden");
     try {
@@ -5613,7 +5599,6 @@ async function loadMySite() {
         if (page) {
             el("mysite-slug").value = page.slug || "";
             mysiteSyncDomainCheckBtnVisibility();
-            mysiteUpdateLiveLink(page);
             mysiteChosenDomain = page.pending_custom_domain || null;
             el("mysite-tagline-input").value = page.tagline || "";
             el("mysite-about-input").value = page.about || "";
@@ -5629,7 +5614,6 @@ async function loadMySite() {
             storageSet("pageTheme", page.theme || "warm").catch(() => {});
             mysiteSelectedCustomTheme = page.theme === "custom" && page.custom_theme_json ? JSON.parse(page.custom_theme_json) : null;
         } else {
-            mysiteUpdateLiveLink(null);
             // No page yet - clear any stale cache from a page that existed on a previous
             // launch (e.g. deleted since), so a future boot doesn't flash old Web
             // address/Headline/About text before this same fetch corrects it again.
