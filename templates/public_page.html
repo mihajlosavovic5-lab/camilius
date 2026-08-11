@@ -766,9 +766,7 @@
     .chat-send:hover {
         transform: scale(1.05);
     }
-    /* Centered title block - logo, name, tagline all stacked and centered, with the same
-       gold rule under the heading as the logged-in app's own page headers
-       (.page-header/.business-title-rule in style.css). */
+    /* Centered title block - logo, name, tagline all stacked and centered. */
     .page-header {
         display: flex;
         flex-direction: column;
@@ -784,10 +782,6 @@
         object-fit: cover;
         border: 1px solid var(--border);
         margin-bottom: 8px;
-    }
-    .title-rule {
-        width: 56px; height: 3px; margin: 10px auto 0; border-radius: 999px;
-        background: linear-gradient(90deg, var(--primary), var(--gold));
     }
     .hero-video {
         width: 100%;
@@ -975,7 +969,6 @@
             {% if logo_url %}<img class="logo" src="{{ logo_url }}" alt="{{ business_name }} logo">{% endif %}
             <h1>{{ business_name }}</h1>
             {% if tagline %}<p class="tagline" data-i18n-content="tagline">{{ tagline }}</p>{% endif %}
-            <div class="title-rule"></div>
         </header>
 
         {% if hero_video_url %}
