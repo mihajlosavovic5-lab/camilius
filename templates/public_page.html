@@ -1106,6 +1106,14 @@
             .then(function (data) {
                 typingEl.remove();
                 addMessage("bot", data.reply || window.pageT("chat_error"));
+                // A reply can have just booked, canceled, or rescheduled an appointment
+                // (see booking.attempt_ai_booking/attempt_ai_cancel_or_reschedule) - the
+                // open-times list above has no other way to find out, so re-sync it now
+                // rather than leaving a slot that's actually just been taken (or just
+                // freed up again) showing stale until the poll/visibility refresh in the
+                // booking script below gets to it. Guarded with typeof since this
+                // function only exists at all when booking_enabled rendered that script.
+                if (typeof loadAvailability === "function") loadAvailability(true);
             })
             .catch(function (err) {
                 typingEl.remove();
@@ -1166,6 +1174,42 @@
     // Static markup, no interpolated data - safe to drop in as-is via insertAdjacentHTML.
     var BOOK_DAY_CHEVRON = '<svg class="book-day-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 9l6 6 6-6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
+    // Re-fetches and re-renders the open-times list in place - called on first load,
+    // on a timer, and right after every chat reply (a booking/cancel/reschedule made
+    // through the chat panel above changes availability but has no other signal back
+    // to this widget). `silent` skips the loading-spinner flash for those later calls
+    // so an already-populated list doesn't blink back to "Loading..." on every refresh -
+    // it just swaps to the new slots (or the empty/error copy) once the fetch settles.
+    var bookLoadRequested = false;
+    function loadAvailability(silent) {
+        if (!silent) {
+            bookListEl.classList.add("hidden");
+            setBookLoadingText("book_loading");
+            bookLoading.classList.remove("hidden");
+        }
+        bookLoadRequested = true;
+        fetch(availabilityUrl)
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+                var days = data.days || [];
+                bookLoading.classList.add("hidden");
+                if (days.length === 0) {
+                    setBookLoadingText("book_empty");
+                    bookLoading.classList.remove("hidden");
+                    bookListEl.classList.add("hidden");
+                    return;
+                }
+                renderBookList(days);
+                bookListEl.classList.remove("hidden");
+            })
+            .catch(function () {
+                if (silent) return; // keep whatever was last shown rather than blowing it away
+                setBookLoadingText("book_error");
+                bookListEl.classList.add("hidden");
+                bookLoading.classList.remove("hidden");
+            });
+    }
+
     function renderBookList(days) {
         bookListEl.innerHTML = "";
         days.forEach(function (day) {
@@ -1210,22 +1254,22 @@
         });
     }
 
-    fetch(availabilityUrl)
-        .then(function (r) { return r.json(); })
-        .then(function (data) {
-            var days = data.days || [];
-            bookLoading.classList.add("hidden");
-            if (days.length === 0) {
-                setBookLoadingText("book_empty");
-                bookLoading.classList.remove("hidden");
-                return;
-            }
-            renderBookList(days);
-            bookListEl.classList.remove("hidden");
-        })
-        .catch(function () {
-            setBookLoadingText("book_error");
-        });
+    loadAvailability(false);
+
+    // Keeps this tab's open-times list current with whatever the owner just changed in
+    // the app (working hours, slot duration, a manually booked/canceled appointment on
+    // the Schedule page) or another visitor just booked through their own chat - all of
+    // those happen server-side with nothing to push back to an already-open tab, so
+    // this just polls instead. Paused while the tab isn't visible so a backgrounded tab
+    // doesn't keep burning requests, and resumed (with an immediate refresh, since it
+    // could easily be stale by then) the moment it's foregrounded again.
+    var BOOK_AVAILABILITY_POLL_MS = 60000;
+    var bookPollTimer = setInterval(function () {
+        if (document.visibilityState === "visible") loadAvailability(true);
+    }, BOOK_AVAILABILITY_POLL_MS);
+    document.addEventListener("visibilitychange", function () {
+        if (document.visibilityState === "visible" && bookLoadRequested) loadAvailability(true);
+    });
     {% endif %}
 })();
 </script>
