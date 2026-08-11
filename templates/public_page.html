@@ -792,7 +792,14 @@
         }
         .side-nav-link svg { display: none; }
         .side-nav-link:hover { transform: none; }
-        .side-nav-link.active { color: var(--on-primary); }
+        /* Overrides the desktop .side-nav-link.active fill (line ~171) rather than just
+           adding to it - without this, the active row keeps that rule's solid --primary
+           background/border here too, so it reads as a filled pill instead of the plain
+           bold-text chip every other row already is (matches the logged-in app's own
+           phone-width drawer, where the active row is bolder text only, never a fill). */
+        .side-nav-link.active {
+            background: var(--surface); border-color: var(--border); color: var(--primary);
+        }
         .wrap { max-width: 640px; width: 100%; margin: 0 auto; padding: 64px 20px 80px; }
     }
 </style>
