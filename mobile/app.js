@@ -1830,16 +1830,11 @@ function finishLightboxAnnotate() {
         lightboxStrokes.push(lightboxActiveStroke);
         lightboxRedoStack = [];
         updateLightboxDrawButtons();
-        // Deferred a frame, not painted immediately - a pinch's second finger typically
-        // lands within a handful of milliseconds of the first, so this dot's own abort-
-        // and-pop above (the "second finger just landed" branch) usually already runs
-        // and clears lightboxActiveStroke before this callback ever fires, meaning the
-        // dot never actually gets painted at all instead of flashing on screen for one
-        // frame before being erased.
-        const startedStroke = lightboxActiveStroke;
-        requestAnimationFrame(() => {
-            if (lightboxActiveStroke === startedStroke) redrawLightboxCanvas();
-        });
+        // Deliberately NOT painted yet - see endStroke below for why. A one-frame
+        // rAF-deferred paint (the previous attempt at this) still isn't safe: real
+        // two-finger pinches often stagger noticeably more than a single frame between
+        // the fingers, so the dot could already be painted well before the second one
+        // ever landed and triggered the abort-and-pop branch above.
     });
     canvas.addEventListener("pointermove", (event) => {
         if (!lightboxDrawing || !lightboxActiveStroke) return;
@@ -1850,6 +1845,17 @@ function finishLightboxAnnotate() {
     });
     const endStroke = (event) => {
         if (event.pointerId !== activeDrawPointerId) return;
+        // A stroke still sitting at just its opening point here never moved and was
+        // never aborted by a second finger (that branch above always fires before this
+        // one - a pinch needs both fingers down at once, so it can't arrive after this
+        // finger has already lifted) - a genuine single-finger tap, confirmed only now,
+        // not a guess based on how much time has passed. Paint its dot for the first
+        // time right here instead of at pointerdown, which is exactly what keeps a
+        // pinch's first finger from ever flashing one on screen regardless of how long
+        // the second finger takes to land.
+        if (lightboxActiveStroke && lightboxActiveStroke.points.length === 1) {
+            redrawLightboxCanvas();
+        }
         lightboxActiveStroke = null;
         activeDrawPointerId = null;
     };
@@ -1964,15 +1970,11 @@ function finishLightboxAnnotate() {
         docAnnotate.strokes.push(docAnnotate.activeStroke);
         docAnnotate.redoStack = [];
         docAnnotateUpdateButtons();
-        // Deferred a frame, not painted immediately - same reasoning as the lightbox's own
-        // version of this: a pinch's second finger usually lands within the same frame,
-        // so the abort-and-pop branch above typically already clears docAnnotate.
-        // activeStroke before this ever fires, meaning the opening dot never actually
-        // gets painted at all instead of flashing for one frame before being erased.
-        const startedStroke = docAnnotate.activeStroke;
-        requestAnimationFrame(() => {
-            if (docAnnotate && docAnnotate.activeStroke === startedStroke) docAnnotateRedraw();
-        });
+        // Deliberately NOT painted yet - see docAnnotatePointerEnd below for why. A
+        // one-frame rAF-deferred paint (the previous attempt at this) still isn't safe:
+        // real two-finger pinches often stagger noticeably more than a single frame
+        // between the fingers, so the dot could already be painted well before the
+        // second one ever landed and triggered the abort-and-pop branch above.
     }
     function docAnnotatePointerMove(event) {
         if (!docAnnotate || !docAnnotate.activeStroke) return;
@@ -1983,6 +1985,14 @@ function finishLightboxAnnotate() {
     }
     function docAnnotatePointerEnd(event) {
         if (!docAnnotate || event.pointerId !== docAnnotate.activeDrawPointerId) return;
+        // Same reasoning as the lightbox's own endStroke: a stroke still at just its
+        // opening point here never moved and was never aborted by a second finger (that
+        // branch always fires first - a pinch needs both fingers down at once), so this
+        // is confirmed as a genuine single-finger tap only now, not a time-based guess.
+        // Paint its dot for the first time right here.
+        if (docAnnotate.activeStroke && docAnnotate.activeStroke.points.length === 1) {
+            docAnnotateRedraw();
+        }
         docAnnotate.activeStroke = null;
         docAnnotate.activeDrawPointerId = null;
     }
