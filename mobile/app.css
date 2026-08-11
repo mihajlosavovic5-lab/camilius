@@ -2191,23 +2191,12 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
 }
 .tab-btn {
     flex: 1; border: none; background: none; cursor: pointer;
-    display: flex; align-items: center; justify-content: center;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
     color: var(--text-muted); font-size: 12.5px; font-weight: 500;
-}
-/* Tight "pill" hugging just the icon+label (not the whole flex:1 tap target) - the
-   same gold-outline treatment as .button-primary-outline (e.g. "View page"), so the
-   active tab reads as clearly selected instead of only the icon losing its grayscale
-   filter. border-color is transparent (not just absent) on the resting state so the
-   pill doesn't shift size on the color transition in. */
-.tab-btn-pill {
-    display: flex; flex-direction: column; align-items: center; gap: 2px;
-    padding: 6px 14px 5px; border-radius: 12px; border: 1px solid transparent;
-    transition: border-color .18s ease;
 }
 .tab-btn .tab-icon { font-size: 21px; line-height: 1; filter: grayscale(1); opacity: .55; }
 .tab-btn.active { color: var(--primary-ink); }
 .tab-btn.active .tab-icon { filter: none; opacity: 1; }
-.tab-btn.active .tab-btn-pill { border-color: var(--primary); }
 
 /* --- Dark mode: follows the OS setting by default (System), but a manual choice made
    in Settings (Light/Dark) is stored as data-theme on <html> and always wins - the
