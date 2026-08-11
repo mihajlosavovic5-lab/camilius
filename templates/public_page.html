@@ -443,14 +443,6 @@
         -webkit-overflow-scrolling: touch;
         scrollbar-width: none;
         gap: 10px;
-        /* Hands horizontal touch gestures entirely to the script's own touchstart/
-           touchmove/touchend handling below instead of the browser's native touch
-           scrolling - with both driving the same scrollLeft, the browser's own
-           momentum/snap and the script's corrective scrollIntoView (for the one-day
-           cap) fought each other, visibly snapping back to the start card first before
-           yanking forward to the real target. pan-y still lets vertical page scroll
-           pass through a touch that starts here. */
-        touch-action: pan-y;
         /* Height is pinned in px by the script's own syncBookListHeight() (a flex
            row's natural auto height would still track its tallest child overall, not
            whichever one is actually scrolled into view) - transitioned so swiping to a
@@ -1466,28 +1458,48 @@
     // over if that drag itself covers more than one card's width (a fast/long swipe
     // easily does). Capping that needs the gesture's own start and end points, which
     // native CSS scroll-snap has no way to express, so the drag is driven by hand here
-    // instead (touch-action: pan-y on .book-list hands the browser's own touch
-    // scrolling off entirely - without that, its native momentum/snap and this
-    // handler's own corrective scroll were both fighting to control the same
-    // scrollLeft, which visibly snapped back to the start card first before yanking
-    // forward to the real target).
+    // instead. A first attempt used touch-action: pan-y to hand the browser's own
+    // touch scrolling off entirely (needed so its native momentum/snap couldn't fight
+    // this handler's own corrective scroll) - but the in-app browser this page
+    // actually gets opened in doesn't honor touch-action, and silently dropped
+    // horizontal scrolling altogether instead of falling through to this handler.
+    // preventDefault() inside a non-passive touchmove is the older, far more broadly
+    // supported way to get the same effective control, so that's what actually blocks
+    // the native scroll now. Locked to whichever axis (x/y) the drag's first few
+    // pixels commit to, so a vertical drag that happens to start on a card still
+    // scrolls the page normally instead of getting hijacked.
     var bookDragStartX = null;
+    var bookDragStartY = null;
     var bookDragStartScroll = null;
     var bookDragStartIndex = null;
+    var bookDragAxis = null;
     bookListEl.addEventListener("touchstart", function (e) {
         bookDragStartX = e.touches[0].clientX;
+        bookDragStartY = e.touches[0].clientY;
         bookDragStartScroll = bookListEl.scrollLeft;
         bookDragStartIndex = currentBookCard();
+        bookDragAxis = null;
     }, { passive: true });
     bookListEl.addEventListener("touchmove", function (e) {
         if (bookDragStartX === null) return;
-        bookListEl.scrollLeft = bookDragStartScroll - (e.touches[0].clientX - bookDragStartX);
-    }, { passive: true });
+        var dx = e.touches[0].clientX - bookDragStartX;
+        var dy = e.touches[0].clientY - bookDragStartY;
+        if (bookDragAxis === null) {
+            if (Math.abs(dx) < 6 && Math.abs(dy) < 6) return;
+            bookDragAxis = Math.abs(dx) > Math.abs(dy) ? "x" : "y";
+        }
+        if (bookDragAxis === "y") return;
+        e.preventDefault();
+        bookListEl.scrollLeft = bookDragStartScroll - dx;
+    }, { passive: false });
     bookListEl.addEventListener("touchend", function () {
         if (bookDragStartIndex === null) return;
         var start = bookDragStartIndex;
+        var axis = bookDragAxis;
         bookDragStartX = null;
         bookDragStartIndex = null;
+        bookDragAxis = null;
+        if (axis !== "x") return;
         var raw = currentBookCard();
         var target = Math.max(start - 1, Math.min(start + 1, raw));
         var card = bookListEl.children[target];
