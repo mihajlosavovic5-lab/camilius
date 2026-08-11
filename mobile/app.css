@@ -2346,6 +2346,68 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
 .lightbox-draw-btn svg { width: 20px; height: 20px; }
 .lightbox-draw-btn:disabled { opacity: .35; }
 
+/* --- Document viewer - in-app PDF/DOCX viewer for a tapped document attachment (see
+   openDocumentViewer in app.js). Same fixed/opacity-transition overlay shape as
+   .image-lightbox above, but its own set of classes rather than sharing that one:
+   the body here is a full-size scrollable column (every page, or the whole converted
+   document, stacked top to bottom) instead of a single centered/scaled picture, so
+   reusing .lightbox-media's centering would have fought it rather than helped. --- */
+.document-viewer {
+    position: fixed; inset: 0; z-index: 95;
+    background: rgba(0, 0, 0, .92);
+    opacity: 0; pointer-events: none;
+    transition: opacity .22s ease;
+}
+.document-viewer.open { opacity: 1; pointer-events: auto; }
+.document-viewer-top-bar {
+    position: absolute; top: 0; left: 0; right: 0; z-index: 1;
+    display: flex; align-items: center; gap: 10px;
+    padding: max(env(safe-area-inset-top, 0px), 14px) 14px 26px;
+    background: linear-gradient(rgba(0, 0, 0, .6), transparent);
+}
+.document-viewer-close-btn {
+    width: 36px; height: 36px; border-radius: 50%; border: none; cursor: pointer;
+    background: rgba(0, 0, 0, .5); color: #fff;
+    display: flex; align-items: center; justify-content: center; padding: 0; flex-shrink: 0;
+}
+.document-viewer-close-btn svg { width: 18px; height: 18px; }
+.document-viewer-title {
+    flex: 1; min-width: 0; color: #fff; font-size: 14.5px; font-weight: 600;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.document-viewer-body {
+    position: absolute; inset: 0; overflow-y: auto; -webkit-overflow-scrolling: touch;
+    display: flex; flex-direction: column; align-items: center; gap: 14px;
+    padding: calc(max(env(safe-area-inset-top, 0px), 14px) + 52px) 16px max(env(safe-area-inset-bottom, 0px), 20px);
+    box-sizing: border-box;
+}
+/* PDF: one canvas per page (pdf.js), stacked in reading order - scrolling the body IS
+   turning the page. */
+.document-viewer-body canvas {
+    max-width: 100%; height: auto; display: block; border-radius: 4px;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, .35); background: #fff;
+}
+/* DOCX has no fixed page geometry of its own (mammoth.js converts it to plain HTML) -
+   rendered as one continuous "page" card instead of per-page canvases. */
+.document-viewer-docx {
+    width: 100%; max-width: 640px; background: #fff; color: #262019; border-radius: 10px;
+    padding: 28px 22px; box-shadow: 0 6px 20px rgba(0, 0, 0, .35); box-sizing: border-box;
+    font-size: 15px; line-height: 1.6; overflow-wrap: break-word;
+}
+.document-viewer-docx img { max-width: 100%; height: auto; }
+.document-viewer-docx table { max-width: 100%; border-collapse: collapse; }
+.document-viewer-status {
+    position: absolute; inset: 0; z-index: 1;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px;
+    pointer-events: none;
+}
+.document-viewer-status[hidden] { display: none; }
+.document-viewer-status .spinner { border-color: rgba(255, 255, 255, .3); border-top-color: #fff; }
+.document-viewer-error {
+    color: rgba(255, 255, 255, .85); font-size: 14.5px; line-height: 1.5; text-align: center;
+    max-width: 300px; padding: 0 20px;
+}
+
 /* --- Offline banner --- */
 .offline-banner {
     position: fixed; top: 0; left: 0; right: 0; z-index: 50;

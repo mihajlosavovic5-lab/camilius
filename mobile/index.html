@@ -1,5 +1,5 @@
 <!doctype html>
-<html data-bundle-version="3c8d72aa6492" lang="en">
+<html data-bundle-version="3b64c52a4975" lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
@@ -16,7 +16,7 @@
 <link rel="preload" href="fonts/lora-latin-ext.woff2?v=e8c32fe92ded" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="fonts/familjen-grotesk-latin.woff2?v=e8c32fe92ded" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="fonts/familjen-grotesk-latin-ext.woff2?v=e8c32fe92ded" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="app.css?v=3c8d72aa6492">
+<link rel="stylesheet" href="app.css?v=3b64c52a4975">
 </head>
 <body>
 
@@ -81,6 +81,29 @@
         <path d="M20 9H9.5A5.5 5.5 0 0 0 4 14.5 5.5 5.5 0 0 0 9.5 20H13" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
       </svg>
     </button>
+  </div>
+</div>
+
+<!-- Fullscreen in-app viewer for a tapped document attachment (openDocumentViewer in
+     app.js) - same fixed-overlay/open-transition idea as #image-lightbox above, but the
+     body is a normal scrollable column instead of a single centered/zoomed picture: a
+     PDF renders one canvas per page (pdf.js, loaded lazily) and a DOCX renders as plain
+     HTML (mammoth.js, also lazy), each just appended in order so scrolling the body
+     moves through every page/the whole document - opening the file itself on-device
+     rather than punting to an external browser/download. -->
+<div id="document-viewer" class="document-viewer">
+  <div class="document-viewer-top-bar" id="document-viewer-top-bar">
+    <button type="button" id="document-viewer-close-btn" class="document-viewer-close-btn" aria-label="Close">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
+        <line x1="6" y1="6" x2="18" y2="18" stroke-width="2" stroke-linecap="round"/>
+        <line x1="18" y1="6" x2="6" y2="18" stroke-width="2" stroke-linecap="round"/>
+      </svg>
+    </button>
+    <div class="document-viewer-title" id="document-viewer-title"></div>
+  </div>
+  <div class="document-viewer-body" id="document-viewer-body"></div>
+  <div class="document-viewer-status" id="document-viewer-status">
+    <span class="spinner"></span>
   </div>
 </div>
 
@@ -1625,8 +1648,8 @@
   </button>
 </nav>
 
-<script src="i18n.js?v=3c8d72aa6492"></script>
-<script src="hours-picker.js?v=3c8d72aa6492"></script>
-<script src="app.js?v=3c8d72aa6492"></script>
+<script src="i18n.js?v=3b64c52a4975"></script>
+<script src="hours-picker.js?v=3b64c52a4975"></script>
+<script src="app.js?v=3b64c52a4975"></script>
 </body>
 </html>

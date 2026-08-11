@@ -256,10 +256,11 @@ if (capacitorPlugins) {
     // navigation or (worse) exiting the app for a press that was clearly meant to just
     // back out of the popup on screen.
     //
-    // #image-lightbox isn't a .lang-modal (it predates that shared class and closes via
-    // a click on itself, not a nested backdrop) so it's checked first, both because its
-    // own z-index (95) already puts it above every .lang-modal (60/61) and because it
-    // has no .lang-modal-backdrop child for the generic branch below to find.
+    // #image-lightbox and #document-viewer aren't .lang-modal (they predate that shared
+    // class and close via a click on themselves, not a nested backdrop) so they're
+    // checked first, both because their own z-index (95) already puts them above every
+    // .lang-modal (60/61) and because neither has a .lang-modal-backdrop child for the
+    // generic branch below to find.
     //
     // Multiple .lang-modal instances CAN be open at once (e.g. the Book sheet's own
     // Duration picker opening #option-modal or #duration-modal on top of it) - picking
@@ -269,6 +270,11 @@ if (capacitorPlugins) {
         const lightbox = el("image-lightbox");
         if (lightbox && lightbox.classList.contains("open")) {
             lightbox.click();
+            return true;
+        }
+        const docViewer = el("document-viewer");
+        if (docViewer && docViewer.classList.contains("open")) {
+            docViewer.click();
             return true;
         }
         const topModal = Array.from(document.querySelectorAll(".lang-modal.open")).reduce((top, modal) => {
@@ -300,7 +306,8 @@ if (capacitorPlugins) {
         let lastOverlayOpen = false;
         const syncOverlayOpenState = () => {
             const open = !!document.querySelector(".lang-modal.open") ||
-                (el("image-lightbox") && el("image-lightbox").classList.contains("open"));
+                (el("image-lightbox") && el("image-lightbox").classList.contains("open")) ||
+                (el("document-viewer") && el("document-viewer").classList.contains("open"));
             if (open === lastOverlayOpen) return;
             lastOverlayOpen = open;
             capacitorPlugins.OverlayState.setOverlayOpen({ open }).catch(() => {});
@@ -1552,6 +1559,139 @@ function finishLightboxAnnotate() {
     el("image-lightbox-done-btn").addEventListener("click", finishLightboxAnnotate);
     el("image-lightbox-undo-btn").addEventListener("click", undoLightboxStroke);
     el("image-lightbox-redo-btn").addEventListener("click", redoLightboxStroke);
+})();
+
+// --- Document viewer - in-app PDF/DOCX viewer for a tapped document attachment (see
+// #document-viewer in mobile/index.html and the website-chat compose bar's document
+// chips in the "Draft with AI" chat IIFE further down, which is the only current caller).
+// Opens the file itself on-device (scroll through every PDF page, or the whole DOCX
+// rendered as plain HTML) instead of punting to an external browser/download, which is
+// what plain Browser.open() did before this - Chrome's Custom Tab has no access to a
+// document already sitting on the phone, so it always re-downloaded it first, which read
+// as pointless busywork for a file the visitor already had.
+//
+// pdf.js (for PDF) and mammoth.js (for DOCX) are both fairly large (~350KB + a ~1.3MB
+// worker, and ~620KB respectively) - loaded lazily via loadPdfjs()/loadMammoth() below,
+// the first time either kind is actually opened, rather than up front on every app boot.
+(function () {
+    const viewer = el("document-viewer");
+    const body = el("document-viewer-body");
+    const titleEl = el("document-viewer-title");
+    const status = el("document-viewer-status");
+    if (!viewer || !body || !titleEl || !status) return;
+
+    let pdfjsLibPromise = null;
+    function loadPdfjs() {
+        if (!pdfjsLibPromise) {
+            pdfjsLibPromise = import("./vendor/pdf.min.mjs").then((mod) => {
+                mod.GlobalWorkerOptions.workerSrc = "vendor/pdf.worker.min.mjs";
+                return mod;
+            });
+        }
+        return pdfjsLibPromise;
+    }
+
+    let mammothPromise = null;
+    function loadMammoth() {
+        if (!mammothPromise) {
+            mammothPromise = new Promise((resolve, reject) => {
+                if (window.mammoth) { resolve(window.mammoth); return; }
+                const script = document.createElement("script");
+                script.src = "vendor/mammoth.browser.min.js";
+                script.addEventListener("load", () => resolve(window.mammoth));
+                script.addEventListener("error", () => reject(new Error("mammoth failed to load")));
+                document.head.appendChild(script);
+            });
+        }
+        return mammothPromise;
+    }
+
+    function setStatus(mode, message) {
+        status.hidden = mode === "hidden";
+        if (mode === "error") {
+            status.innerHTML = "";
+            const p = document.createElement("p");
+            p.className = "document-viewer-error";
+            p.textContent = message;
+            status.appendChild(p);
+        } else if (mode === "loading") {
+            status.innerHTML = '<span class="spinner"></span>';
+        }
+    }
+
+    // Renders every page of the PDF in order, each onto its own canvas sized to the
+    // viewer's own width (scaled for devicePixelRatio so it's crisp, not blurry) -
+    // appended as each one finishes rather than all at once at the end, so a long
+    // document starts becoming scrollable/readable immediately instead of staring at
+    // the spinner for the whole thing.
+    async function renderPdf(url, token) {
+        const pdfjsLib = await loadPdfjs();
+        const pdf = await pdfjsLib.getDocument(url).promise;
+        if (token !== openToken) return;
+        setStatus("hidden");
+        const dpr = window.devicePixelRatio || 1;
+        const cssWidth = Math.min(body.clientWidth - 32, 640);
+        for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+            if (token !== openToken) return;
+            const page = await pdf.getPage(pageNum);
+            const unscaled = page.getViewport({ scale: 1 });
+            const scale = (cssWidth / unscaled.width) * dpr;
+            const viewport = page.getViewport({ scale });
+            const canvas = document.createElement("canvas");
+            canvas.width = viewport.width;
+            canvas.height = viewport.height;
+            canvas.style.width = cssWidth + "px";
+            canvas.style.height = (cssWidth * viewport.height) / viewport.width + "px";
+            if (token !== openToken) return;
+            body.appendChild(canvas);
+            await page.render({ canvasContext: canvas.getContext("2d"), viewport }).promise;
+        }
+    }
+
+    async function renderDocx(url, token) {
+        const mammoth = await loadMammoth();
+        const response = await fetch(url);
+        if (!response.ok) throw new Error("download failed");
+        const arrayBuffer = await response.arrayBuffer();
+        const result = await mammoth.convertToHtml({ arrayBuffer });
+        if (token !== openToken) return;
+        setStatus("hidden");
+        const page = document.createElement("div");
+        page.className = "document-viewer-docx";
+        page.innerHTML = result.value;
+        body.appendChild(page);
+    }
+
+    // Bumped on every open()/close() so a still-in-flight render from a previous
+    // document (or one closed before it finished) never appends its pages into whatever
+    // is open now - checked before every await continuation above.
+    let openToken = 0;
+
+    function openDocumentViewer(url, docType, title) {
+        openToken += 1;
+        const token = openToken;
+        titleEl.textContent = title || "";
+        body.innerHTML = "";
+        setStatus("loading");
+        viewer.classList.add("open");
+        const render = docType === "docx" ? renderDocx(url, token) : renderPdf(url, token);
+        render.catch(() => {
+            if (token !== openToken) return;
+            setStatus("error", t("websiteChat.documentViewer.error") || "Couldn't open this document - please try again.");
+        });
+    }
+    window.openDocumentViewer = openDocumentViewer;
+
+    function closeDocumentViewer() {
+        openToken += 1;
+        viewer.classList.remove("open");
+        setTimeout(() => { if (!viewer.classList.contains("open")) body.innerHTML = ""; }, 250);
+    }
+    viewer.addEventListener("click", closeDocumentViewer);
+    ["document-viewer-top-bar", "document-viewer-body"].forEach((id) => {
+        el(id).addEventListener("click", (event) => event.stopPropagation());
+    });
+    el("document-viewer-close-btn").addEventListener("click", closeDocumentViewer);
 })();
 
 // --- Save success overlay (Faza 14) - the same animated "circle draws in, then the
@@ -5542,21 +5682,6 @@ el("mysite-field-delete-confirm-confirm").addEventListener("click", () => {
             return kind === "video" ? "▶" : kind === "image" ? "🖼" : "📄";
         }
 
-        // A PDF/DOCX has real pages to scroll through, unlike the image lightbox's single
-        // zoomed picture - rendering that in-app would mean bundling a PDF/DOCX renderer
-        // (e.g. PDF.js) from scratch. Reusing the exact same Chrome Custom Tab already
-        // used for Stripe checkout/Google login (see openChoosePlan above) gets a real,
-        // full-page-scrolling document viewer for free instead: Chrome has its own
-        // built-in PDF viewer, and falls back to its normal download/"open with" handling
-        // for kinds (like DOCX) it can't render inline.
-        function openDocument(url) {
-            if (capacitorPlugins && capacitorPlugins.Browser) {
-                capacitorPlugins.Browser.open({ url }).catch(() => {});
-            } else {
-                window.open(url, "_blank");
-            }
-        }
-
         function fillUploadedChip(chip, kind, item) {
             if (kind === "image") {
                 const img = document.createElement("img");
@@ -5573,12 +5698,13 @@ el("mysite-field-delete-confirm-confirm").addEventListener("click", () => {
                 icon.className = "chip-icon";
                 icon.textContent = iconFor(kind);
                 // Video has no viewer to open it into yet - only wire the tap up for
-                // documents, which do (see openDocument above).
+                // documents, which do (see #document-viewer / openDocumentViewer, defined
+                // globally right after the image lightbox above).
                 if (kind === "document") {
                     icon.style.cursor = "pointer";
                     icon.addEventListener("click", (event) => {
                         event.stopPropagation();
-                        openDocument(item.url);
+                        openDocumentViewer(item.url, item.type, item.filename);
                     });
                 }
                 chip.appendChild(icon);
