@@ -2381,6 +2381,19 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
     padding: calc(max(env(safe-area-inset-top, 0px), 14px) + 52px) 16px max(env(safe-area-inset-bottom, 0px), 20px);
     box-sizing: border-box;
 }
+/* Wraps each rendered page (a PDF canvas or the DOCX card below) as its own independent
+   pinch-zoom target (see appendZoomablePage/setupPinchZoom in app.js) - shrink-wraps to
+   the page's own natural size by default (align-items: center on the body above already
+   keeps flex items from stretching), and clips it so pinch-zooming/panning near an edge
+   stays bounded to that one page instead of spilling into whatever's stacked next to it.
+   A bare canvas sizes this shrink-wrap correctly on its own, but the DOCX card underneath
+   is a plain <div> that would otherwise need to size itself as a percentage of THIS
+   wrapper's own (shrink-wrapped, so not yet resolved) width - a circular sizing case
+   browsers don't handle predictably. document-viewer-page-docx sidesteps it by putting
+   the actual width/max-width constraint on the wrapper instead, leaving the card itself
+   to just fill it (see .document-viewer-docx below). */
+.document-viewer-page { overflow: hidden; max-width: 100%; }
+.document-viewer-page-docx { width: 100%; max-width: 640px; }
 /* PDF: one canvas per page (pdf.js), stacked in reading order - scrolling the body IS
    turning the page. */
 .document-viewer-body canvas {
@@ -2388,9 +2401,11 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
     box-shadow: 0 6px 20px rgba(0, 0, 0, .35); background: #fff;
 }
 /* DOCX has no fixed page geometry of its own (mammoth.js converts it to plain HTML) -
-   rendered as one continuous "page" card instead of per-page canvases. */
+   rendered as one continuous "page" card instead of per-page canvases. Sizing (width/
+   max-width) lives on .document-viewer-page-docx (the wrapper) instead of here - see its
+   own comment above. */
 .document-viewer-docx {
-    width: 100%; max-width: 640px; background: #fff; color: #262019; border-radius: 10px;
+    width: 100%; background: #fff; color: #262019; border-radius: 10px;
     padding: 28px 22px; box-shadow: 0 6px 20px rgba(0, 0, 0, .35); box-sizing: border-box;
     font-size: 15px; line-height: 1.6; overflow-wrap: break-word;
 }

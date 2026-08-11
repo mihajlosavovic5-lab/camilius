@@ -1344,6 +1344,145 @@ function showToast(message) {
     toastTimer = setTimeout(() => toast.classList.remove("show"), 2400);
 }
 
+// --- Pinch-to-zoom + drag-to-pan-once-zoomed + double-tap-to-toggle-zoom, gallery-style -
+// shared by the image lightbox below and each page of the in-app document viewer further
+// down. `viewport` is where pointer events are captured and also the size/position
+// reference the zoom is bounded to; `content` is the element the CSS transform itself is
+// applied to. Both call sites hand this a viewport/content pair that are roughly the same
+// size, with content centered inside viewport at scale 1 (a photo in the lightbox, or a
+// single rendered PDF page/DOCX card in the document viewer) - that shared shape is what
+// lets one anchor-math implementation cover both instead of needing a document-viewer-
+// specific variant for its taller, scrollable stack of pages (see appendZoomablePage
+// further down: it zooms each page independently rather than the whole stack at once,
+// specifically so it can reuse this exact same "content ~= viewport" logic).
+//
+// Anchoring math: scale/pan are chosen so that whatever content point was under the
+// pinch midpoint (or double-tap point) before the gesture is still under it after -
+// computed fresh from the viewport's center every time rather than accumulated
+// incrementally, so there's no drift across a long gesture.
+function pinchDistance(a, b) { return Math.hypot(a.x - b.x, a.y - b.y); }
+function pinchMidpoint(a, b) { return { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }; }
+
+function setupPinchZoom(viewport, content, options) {
+    const opts = options || {};
+    const MAX_SCALE = opts.maxScale || 4;
+    const DOUBLE_TAP_SCALE = opts.doubleTapScale || 2.5;
+    const isEnabled = opts.isEnabled || (() => true);
+    const onZoomChange = opts.onZoomChange || (() => {});
+
+    let scale = 1;
+    let panX = 0;
+    let panY = 0;
+    const pointers = new Map();
+    let pinchRect = null;
+    let pinchAnchor = null; // { x, y, startDist, startScale } in content-space units
+    let dragStart = null; // { x, y, panX, panY } in screen px
+    let lastTapTime = 0;
+    let lastTapPoint = { x: 0, y: 0 };
+
+    function apply() {
+        content.style.transform = (scale === 1 && panX === 0 && panY === 0)
+            ? ""
+            : `translate(${panX}px, ${panY}px) scale(${scale})`;
+        onZoomChange(scale);
+    }
+
+    function clampPan() {
+        const rect = viewport.getBoundingClientRect();
+        const maxX = Math.max(0, (rect.width * (scale - 1)) / 2);
+        const maxY = Math.max(0, (rect.height * (scale - 1)) / 2);
+        panX = Math.min(maxX, Math.max(-maxX, panX));
+        panY = Math.min(maxY, Math.max(-maxY, panY));
+    }
+
+    function anchorFor(rect, point) {
+        const cx = rect.left + rect.width / 2;
+        const cy = rect.top + rect.height / 2;
+        return { x: (point.x - cx - panX) / scale, y: (point.y - cy - panY) / scale };
+    }
+    function panFor(rect, point, anchor, newScale) {
+        const cx = rect.left + rect.width / 2;
+        const cy = rect.top + rect.height / 2;
+        return { x: point.x - cx - anchor.x * newScale, y: point.y - cy - anchor.y * newScale };
+    }
+
+    function reset() {
+        scale = 1; panX = 0; panY = 0;
+        apply();
+    }
+
+    function zoomToward(rect, point, newScale) {
+        const anchor = anchorFor(rect, point);
+        const pan = panFor(rect, point, anchor, newScale);
+        scale = newScale; panX = pan.x; panY = pan.y;
+        clampPan();
+        apply();
+    }
+
+    viewport.addEventListener("pointerdown", (event) => {
+        if (!isEnabled()) return;
+        pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+        viewport.setPointerCapture(event.pointerId);
+        if (pointers.size === 2) {
+            dragStart = null;
+            const [a, b] = Array.from(pointers.values());
+            pinchRect = viewport.getBoundingClientRect();
+            const mid = pinchMidpoint(a, b);
+            pinchAnchor = anchorFor(pinchRect, mid);
+            pinchAnchor.startDist = pinchDistance(a, b);
+            pinchAnchor.startScale = scale;
+        } else if (pointers.size === 1) {
+            pinchAnchor = null;
+            dragStart = scale > 1.001 ? { x: event.clientX, y: event.clientY, panX, panY } : null;
+            const now = Date.now();
+            const point = { x: event.clientX, y: event.clientY };
+            if (now - lastTapTime < 320 && pinchDistance(point, lastTapPoint) < 30) {
+                lastTapTime = 0;
+                event.preventDefault();
+                const rect = viewport.getBoundingClientRect();
+                if (scale > 1.001) reset();
+                else zoomToward(rect, point, DOUBLE_TAP_SCALE);
+            } else {
+                lastTapTime = now;
+                lastTapPoint = point;
+            }
+        }
+    });
+
+    viewport.addEventListener("pointermove", (event) => {
+        if (!pointers.has(event.pointerId)) return;
+        pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+        if (pointers.size === 2 && pinchAnchor) {
+            event.preventDefault();
+            const [a, b] = Array.from(pointers.values());
+            const newScale = Math.min(MAX_SCALE, Math.max(1, pinchAnchor.startScale * (pinchDistance(a, b) / pinchAnchor.startDist)));
+            const pan = panFor(pinchRect, pinchMidpoint(a, b), pinchAnchor, newScale);
+            scale = newScale; panX = pan.x; panY = pan.y;
+            clampPan();
+            apply();
+        } else if (pointers.size === 1 && dragStart) {
+            event.preventDefault();
+            panX = dragStart.panX + (event.clientX - dragStart.x);
+            panY = dragStart.panY + (event.clientY - dragStart.y);
+            clampPan();
+            apply();
+        }
+    });
+
+    function endPointer(event) {
+        pointers.delete(event.pointerId);
+        if (pointers.size < 2) pinchAnchor = null;
+        if (pointers.size === 0) {
+            dragStart = null;
+            if (scale <= 1.001) reset();
+        }
+    }
+    viewport.addEventListener("pointerup", endPointer);
+    viewport.addEventListener("pointercancel", endPointer);
+
+    return { reset };
+}
+
 // --- Image lightbox (Faza 15, annotate added later) - fullscreen zoom for a tapped
 // attachment thumbnail (see the compose-attachment-list chips in the voice/attach IIFEs
 // below). Backdrop tap closes it; the media/toolbar content doesn't (each stops its own
@@ -1363,12 +1502,18 @@ let lightboxDrawing = false;
 let lightboxStrokes = [];
 let lightboxRedoStack = [];
 let lightboxActiveStroke = null;
+// Pinch-zoom controller for the viewed photo (see setupLightboxZoom below) - null until
+// that runs (right after this whole section), always non-null after. Reset every time a
+// new photo is shown/before drawing starts so neither carries over a stale zoom (see
+// openImageLightbox/enterLightboxDrawMode below).
+let lightboxZoomController = null;
 
 function openImageLightbox(url, onAnnotate) {
     const lightbox = el("image-lightbox");
     const img = el("image-lightbox-img");
     if (!lightbox || !img) return;
     exitLightboxDrawMode();
+    if (lightboxZoomController) lightboxZoomController.reset();
     img.src = url;
     lightboxOnAnnotate = onAnnotate || null;
     const annotateBtn = el("image-lightbox-annotate-btn");
@@ -1402,6 +1547,20 @@ el("image-lightbox-close-btn").addEventListener("click", () => {
     if (lightboxDrawing) exitLightboxDrawMode();
     else closeImageLightbox();
 });
+
+// Gallery-style pinch/pan/double-tap zoom on the viewed photo (see setupPinchZoom above) -
+// disabled while lightboxDrawing is true, since draw mode already owns single/multi-touch
+// on the same image for strokes. touch-action: none hands the whole gesture to JS instead
+// of the browser trying to interpret it as a native scroll/zoom first (.lightbox-media
+// itself never needs to scroll, so this is safe unconditionally, unlike the document
+// viewer's per-page version further down, which toggles it on/off).
+(function setupLightboxZoom() {
+    const mediaViewport = el("image-lightbox-media");
+    const img = el("image-lightbox-img");
+    if (!mediaViewport || !img) return;
+    mediaViewport.style.touchAction = "none";
+    lightboxZoomController = setupPinchZoom(mediaViewport, img, { isEnabled: () => !lightboxDrawing });
+})();
 
 function lightboxCanvasPoint(event, canvas) {
     const rect = canvas.getBoundingClientRect();
@@ -1445,6 +1604,11 @@ function enterLightboxDrawMode() {
     const img = el("image-lightbox-img");
     const canvas = el("image-lightbox-canvas");
     if (!img || !canvas || !img.naturalWidth) return;
+    // Draw mode measures/maps everything off the image's own on-screen box - reset any
+    // pinch-zoom first so that's always the true 1x box, not whatever it was left
+    // zoomed/panned to (isEnabled below stops a NEW zoom gesture from starting once
+    // drawing is on, but doesn't by itself undo one already in progress).
+    if (lightboxZoomController) lightboxZoomController.reset();
     const rect = img.getBoundingClientRect();
     const dpr = window.devicePixelRatio || 1;
     canvas.width = Math.round(rect.width * dpr);
@@ -1619,6 +1783,28 @@ function finishLightboxAnnotate() {
         }
     }
 
+    // Wraps a rendered page (a PDF canvas or the DOCX card) in its own pinch-zoom target
+    // (see setupPinchZoom above) before adding it to the body - each page zooms
+    // independently, bounded to its own box, rather than the whole scrollable stack
+    // zooming as one unit. That's what lets it reuse setupPinchZoom's "content ~= viewport"
+    // anchor math unchanged (a single page is exactly that shape) instead of needing a
+    // second implementation that understands a multi-page-tall scrollable area. touch-
+    // action starts at "pan-y" (page-to-page scrolling passes straight through to the
+    // scrollable body) and flips to "none" only while that specific page is actually
+    // zoomed in, so panning around inside it doesn't also scroll the body underneath -
+    // and flips back once it's zoomed back out, so scrolling to the next page works again.
+    function appendZoomablePage(pageEl, extraClass) {
+        const wrapper = document.createElement("div");
+        wrapper.className = extraClass ? "document-viewer-page " + extraClass : "document-viewer-page";
+        wrapper.style.touchAction = "pan-y";
+        wrapper.appendChild(pageEl);
+        body.appendChild(wrapper);
+        setupPinchZoom(wrapper, pageEl, {
+            onZoomChange: (scale) => { wrapper.style.touchAction = scale > 1.001 ? "none" : "pan-y"; },
+        });
+        return wrapper;
+    }
+
     // Renders every page of the PDF in order, each onto its own canvas sized to the
     // viewer's own width (scaled for devicePixelRatio so it's crisp, not blurry) -
     // appended as each one finishes rather than all at once at the end, so a long
@@ -1643,7 +1829,7 @@ function finishLightboxAnnotate() {
             canvas.style.width = cssWidth + "px";
             canvas.style.height = (cssWidth * viewport.height) / viewport.width + "px";
             if (token !== openToken) return;
-            body.appendChild(canvas);
+            appendZoomablePage(canvas);
             await page.render({ canvasContext: canvas.getContext("2d"), viewport }).promise;
         }
     }
@@ -1659,7 +1845,7 @@ function finishLightboxAnnotate() {
         const page = document.createElement("div");
         page.className = "document-viewer-docx";
         page.innerHTML = result.value;
-        body.appendChild(page);
+        appendZoomablePage(page, "document-viewer-page-docx");
     }
 
     // Bumped on every open()/close() so a still-in-flight render from a previous
