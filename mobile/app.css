@@ -1595,13 +1595,51 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
    like a chat app's own picked-photo preview (ChatGPT's compose bar is the reference) rather
    than a small inline pill - there's room for it above the field, so the picture itself is
    what a tapped attachment should show, not a filename next to a tiny icon. */
-.compose-attachment-list { display: flex; flex-wrap: wrap; gap: 10px; margin: 14px 0 0; }
+/* Outer wrap is the thing that actually grows/shrinks the chat - a CSS grid-rows trick
+   (0fr <-> 1fr) rather than animating height/max-height directly, since the list's own
+   height is intrinsic (flex-wrap, variable chip count) and grid-rows tracks that exactly
+   with no JS measuring. The inner .compose-attachment-list is the grid item and needs
+   min-height: 0/overflow: hidden so it can actually be clipped down to 0 during the
+   collapse instead of forcing the row open. */
+.compose-attachment-list-wrap {
+    display: grid; grid-template-rows: 0fr;
+    transition: grid-template-rows .32s cubic-bezier(.25, .8, .35, 1);
+}
+.compose-attachment-list-wrap.has-items { grid-template-rows: 1fr; }
+/* min-height: 0 lets the flex box actually shrink below its content size (grid items
+   default to min-height: auto, which would otherwise fight the 0fr collapse); overflow:
+   hidden is what makes that collapse visually clip the chips rather than just squashing
+   them. The 10px/8px padding is headroom for each chip's own -8px remove badge (see
+   .chip-remove below) so collapsing/expanding never clips it. */
+.compose-attachment-list {
+    display: flex; flex-wrap: wrap; gap: 10px; margin: 0; min-height: 0; overflow: hidden;
+    padding: 10px 8px 0 0;
+}
+.compose-attachment-list-wrap.has-items .compose-attachment-list { margin: 4px 0 0; }
 .compose-attachment-chip {
     position: relative; display: flex; align-items: center; gap: 8px;
     background: var(--surface); border: 1px solid var(--border); border-radius: 16px;
     font-size: 12.5px; color: var(--text-muted);
+    transition: opacity .2s ease, transform .2s ease;
+    animation: compose-chip-in .22s ease;
 }
-.compose-attachment-chip.uploading { opacity: .7; }
+.compose-attachment-chip.uploading { opacity: .85; }
+.compose-attachment-chip.uploading .chip-remove { display: none; }
+/* Exit state - toggled by animateRemoveChip() in app.js, which waits for this transition
+   to finish before actually taking the chip out of the DOM, so removing an attachment
+   reads as the same smooth shrink as adding one instead of an instant pop. */
+.compose-attachment-chip.removing { opacity: 0; transform: scale(.85); pointer-events: none; }
+@keyframes compose-chip-in { from { opacity: 0; transform: scale(.85); } to { opacity: 1; transform: scale(1); } }
+/* Loading overlay while a picked photo/video/file is uploading (persistStagedEntry() in
+   app.js) - sits on top of the thumbnail/icon that's already showing rather than
+   replacing it, so the picture itself stays visible (dimmed) with just the spinner
+   reading as "still loading" in its center, same as tapping into an image/video/file
+   anywhere else in the app. */
+.chip-upload-overlay {
+    position: absolute; inset: 0; border-radius: inherit;
+    background: rgba(0, 0, 0, .35);
+    display: flex; align-items: center; justify-content: center;
+}
 /* Image/video: a big square thumbnail, same footprint as a picked-photo preview in a chat
    app's compose bar - no filename alongside it, the picture (or, for video, its icon) is
    the whole card. */

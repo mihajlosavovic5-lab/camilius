@@ -5396,7 +5396,31 @@ el("mysite-field-delete-confirm-confirm").addEventListener("click", () => {
         const photosInput = el("website-chat-attach-input-photos");
         const filesInput = el("website-chat-attach-input-files");
         const list = el("website-chat-attachment-list");
-        if (!attachBtn || !cameraInput || !photosInput || !filesInput || !list) return;
+        const listWrap = el("website-chat-attachment-list-wrap");
+        if (!attachBtn || !cameraInput || !photosInput || !filesInput || !list || !listWrap) return;
+
+        // Toggles the "chat grows/shrinks" state on the wrap around `list` (see the
+        // grid-rows trick on .compose-attachment-list-wrap in app.css) - called after
+        // every chip add/remove so it always reflects the list's real current contents.
+        function updateAttachmentListState() {
+            listWrap.classList.toggle("has-items", list.children.length > 0);
+        }
+
+        // Smoothly fades/scales a chip out (see .compose-attachment-chip.removing in
+        // app.css) before actually taking it out of the DOM, instead of chip.remove()
+        // popping it out instantly - used for every attachment removal (staged, upload
+        // failure, and already-uploaded delete) so the shrink always matches the grow.
+        function animateRemoveChip(chip) {
+            if (!chip.isConnected) return;
+            chip.classList.add("removing");
+            const finish = () => {
+                chip.remove();
+                updateAttachmentListState();
+            };
+            chip.addEventListener("transitionend", finish, { once: true });
+            // Fallback in case transitionend never fires (e.g. reduced-motion overrides).
+            setTimeout(() => { if (chip.isConnected) finish(); }, 260);
+        }
 
         // Camera / Photos / Files popover - see #attach-options-modal in index.html, same
         // fixed-overlay pattern as openRowActions(), but positioned as a small card right
@@ -5528,7 +5552,7 @@ el("mysite-field-delete-confirm-confirm").addEventListener("click", () => {
                 headers: state.token ? { Authorization: "Bearer " + state.token } : {},
             }).then((response) => {
                 if (!response.ok) throw new Error();
-                chip.remove();
+                animateRemoveChip(chip);
             }).catch(() => {
                 chip.classList.remove("uploading");
                 showToast(t("settings.media.removeError") || "Couldn't remove that - please try again.");
@@ -5612,41 +5636,33 @@ el("mysite-field-delete-confirm-confirm").addEventListener("click", () => {
                 const idx = staged.indexOf(entry);
                 if (idx !== -1) staged.splice(idx, 1);
                 if (entry.previewUrl) URL.revokeObjectURL(entry.previewUrl);
-                chip.remove();
+                animateRemoveChip(chip);
             });
             chip.appendChild(removeBtn);
 
             list.appendChild(chip);
             staged.push(entry);
+            updateAttachmentListState();
         }
 
-        // Actually uploads one staged entry, in place - swaps its local preview for the
-        // same in-flight spinner look uploadFile uses, then fills in the real thumbnail/
-        // remove button (now wired to a real DELETE via removeAttachment) once it lands.
-        // Never rejects - a failed upload reports its own toast and drops the chip, same
-        // as uploadFile's failure path, so callers can Promise.all a whole batch of these
-        // without one failure losing the rest.
+        // Actually uploads one staged entry, in place - keeps its local preview showing
+        // (the picked photo/video icon/file card already staged in `chip`) and lays a
+        // spinner overlay on top of it (see .chip-upload-overlay in app.css) rather than
+        // wiping the chip down to a bare icon, so the thing that's loading stays visible
+        // in the background the whole time it's loading, same as everywhere else in the
+        // app. Once it lands, fills in the real thumbnail/remove button (now wired to a
+        // real DELETE via removeAttachment). Never rejects - a failed upload reports its
+        // own toast and drops the chip, same as uploadFile's failure path, so callers can
+        // Promise.all a whole batch of these without one failure losing the rest.
         function persistStagedEntry(entry) {
             const { kind, file, chip, previewUrl } = entry;
             chip.classList.add("uploading");
-            chip.innerHTML = "";
-
-            const icon = document.createElement("span");
-            icon.className = "chip-icon";
+            const overlay = document.createElement("span");
+            overlay.className = "chip-upload-overlay";
             const spinner = document.createElement("span");
             spinner.className = "chip-spinner";
-            icon.appendChild(spinner);
-            chip.appendChild(icon);
-
-            if (kind === "document") {
-                const text = document.createElement("span");
-                text.className = "chip-text";
-                const name = document.createElement("span");
-                name.className = "chip-name";
-                name.textContent = file.name || labelFor(kind);
-                text.appendChild(name);
-                chip.appendChild(text);
-            }
+            overlay.appendChild(spinner);
+            chip.appendChild(overlay);
 
             const isDocument = kind === "document";
             const formData = new FormData();
@@ -5662,17 +5678,20 @@ el("mysite-field-delete-confirm-confirm").addEventListener("click", () => {
             }).then((response) => response.json().catch(() => ({})).then((data) => ({ ok: response.ok, data })))
                 .then(({ ok, data }) => {
                     if (previewUrl) URL.revokeObjectURL(previewUrl);
+                    overlay.remove();
+                    chip.classList.remove("uploading");
                     if (!ok) {
-                        chip.remove();
+                        animateRemoveChip(chip);
                         showToast(data.error || t(errorKey) || "Couldn't upload that - please try again.");
                         return;
                     }
-                    chip.classList.remove("uploading");
                     chip.innerHTML = "";
                     fillUploadedChip(chip, kind, data);
                 }).catch(() => {
                     if (previewUrl) URL.revokeObjectURL(previewUrl);
-                    chip.remove();
+                    overlay.remove();
+                    chip.classList.remove("uploading");
+                    animateRemoveChip(chip);
                     showToast(t(errorKey) || "Couldn't upload that - please try again.");
                 });
         }
