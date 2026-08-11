@@ -199,6 +199,26 @@
     }
     .nav-menu-backdrop.open { opacity: 1; pointer-events: auto; }
 
+    /* --- Top-bar title - the business name, shown small and centered between
+       .nav-menu-btn (fixed top-left, 18px + 34px wide) and .lang-btn (fixed
+       top-right, 16px + 40px wide) once the hamburger takes over below the 880px
+       breakpoint - the .page-header's own big centered heading further down still
+       scrolls away as normal, this is just a compact always-visible reminder of
+       which page you're on. Hidden by default alongside .nav-menu-btn, both
+       switched on together in the same media query below. Padding matches each
+       button's own offset + width (with a little breathing room) so long names
+       truncate before they can slide under either icon. */
+    .top-bar-title {
+        display: none;
+        position: fixed; top: 18px; left: 0; right: 0; z-index: 951;
+        height: 34px; align-items: center; justify-content: center;
+        padding: 0 60px;
+        font-family: var(--heading-font); font-weight: 700; font-size: 15px;
+        color: var(--text); text-align: center;
+        white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        pointer-events: none;
+    }
+
     /* --- Language switcher - a flag button fixed top-right (mirroring .nav-menu-btn's
        own top-left placement) that opens a small dropdown of flags, same visual idea as
        the logged-in app's own top-bar language picker (#site-lang-select-btn/
@@ -554,6 +574,7 @@
         .shell { flex-direction: column; padding: 0; gap: 0; }
         .nav-menu-btn { display: flex; }
         .nav-menu-backdrop { display: block; }
+        .top-bar-title { display: flex; }
         .side-nav {
             /* .side-nav's flex: 0 0 200px above is a fixed WIDTH for its desktop column
                layout (.shell is a row there, so flex-basis sizes the main/horizontal
@@ -604,6 +625,7 @@
     <span class="nav-menu-btn-bar"></span>
 </button>
 <div class="nav-menu-backdrop" id="nav-menu-backdrop"></div>
+<div class="top-bar-title">{{ business_name }}</div>
 {% set current_lang = (page_languages | selectattr('code', 'equalto', content_language) | first) or page_languages[0] %}
 <button type="button" class="lang-btn" id="lang-btn" aria-label="Change language" aria-haspopup="true" aria-expanded="false">
     <img class="lang-flag" id="lang-flag" src="{{ url_for('static', filename='flags/' + current_lang.flag) }}" alt="{{ current_lang.name }}">
