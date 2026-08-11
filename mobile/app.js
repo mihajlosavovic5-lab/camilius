@@ -6078,7 +6078,15 @@ function openMysiteFieldModal(fieldId) {
     inputRow.classList.toggle("mysite-field-modal-input-row-slug", isSlug);
     el("mysite-field-modal-slug-prefix").classList.toggle("hidden", !isSlug);
     el("mysite-field-modal-copy-btn").classList.toggle("hidden", !isSlug);
-    if (isSlug) el("mysite-field-modal-slug-prefix").textContent = MYSITE_SLUG_LINK_PREFIX;
+    if (isSlug) {
+        el("mysite-field-modal-slug-prefix").textContent = MYSITE_SLUG_LINK_PREFIX;
+        // Always reopen scrolled to the start (copy button + prefix visible) rather than
+        // wherever a previous edit left it scrolled to - otherwise re-opening (or clearing
+        // the field via the delete badge below, which doesn't touch scroll position on its
+        // own) can land on a mid-scrolled view with nothing but a bare cursor and a
+        // fragment of the domain, no context for what's actually there.
+        inputRow.scrollLeft = 0;
+    }
     const active = showTextarea ? textarea : input;
     // Mirrors the real field's own maxlength (200 for the tagline, 2000 for about, none
     // for the slug) so the modal can't be used to type past what the real field - and the
@@ -6113,6 +6121,11 @@ function mysiteFieldModalSync() {
     mysiteUpdateFieldFade(source);
     if (active === el("mysite-field-modal-textarea")) mysiteFieldModalAutoGrowTextarea();
     mysiteUpdateFieldModalDeleteBtnVisibility();
+    // Web address only - typing/backspacing (or the delete badge below) doesn't touch the
+    // row's own scroll position on its own, so clearing a slug that had been scrolled
+    // right to read stays scrolled there: just a bare cursor next to a domain fragment,
+    // no copy button or full prefix in view. Reset it the moment the field goes empty.
+    if (mysiteFieldModalTargetId === "mysite-slug" && !active.value) el("mysite-field-modal-input-row").scrollLeft = 0;
 }
 
 // Delete badge only makes sense once there's something to delete - hidden on an empty
