@@ -1524,7 +1524,7 @@
         if (bookDragAxis === "y") return;
         bookListEl.scrollLeft = bookDragStartScroll - dx;
     }, { passive: false });
-    bookListEl.addEventListener("touchend", function () {
+    bookListEl.addEventListener("touchend", function (e) {
         if (bookDragStartIndex === null) return;
         var start = bookDragStartIndex;
         var axis = bookDragAxis;
@@ -1539,6 +1539,17 @@
         bookDragStartX = null;
         bookDragStartIndex = null;
         bookDragAxis = null;
+        // A real drag still ends with the finger resting on top of whatever
+        // <summary> the swipe just landed on, which - like any element - fires its
+        // own synthetic "click" once the touch lifts, a moment after the swipe
+        // itself. That silently toggled the day the swipe had just arrived at back
+        // closed, which is what actually caused the reported "sometimes takes a
+        // couple seconds for the times to show up" - the day wasn't slow to load,
+        // its card had already been re-collapsed by this stray click and was about
+        // to expand again on the very next fully-settled sync. Suppressed for any
+        // recognized drag (axis !== null); a plain tap (axis stays null below the
+        // 10px move threshold in touchmove above) still toggles a header normally.
+        if (axis !== null) e.preventDefault();
         if (axis !== "x") return;
         var SWIPE_THRESHOLD = 18;
         var target = start;
@@ -1547,7 +1558,7 @@
         target = Math.max(0, Math.min(bookListEl.children.length - 1, target));
         var card = bookListEl.children[target];
         if (card) animateBookScrollTo(bookCardTargetScrollLeft(card), 260);
-    });
+    }, { passive: false });
 
     // Jumps the day carousel to whichever loaded card is on or after `iso` (the exact
     // date if it has open slots, otherwise the next one that does) and opens it -
