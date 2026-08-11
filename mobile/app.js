@@ -7272,15 +7272,26 @@ el("mysite-field-delete-confirm-confirm").addEventListener("click", () => {
 // --safe-top at 0, and the correction landing a beat later still read as a visible shove
 // - the CSS transition on .topbar/.login-wrap's padding-top (see app.css) turns that
 // snap into a glide, but a glide the user can watch happen is still a visible jump, not a
-// fix. Polling --safe-top itself instead - keeping the 3-frame floor for the ordinary
-// case, but continuing to wait past it for as long as it still reads its 0px fallback -
-// actually waits for the real inset rather than guessing how long that takes. Every
-// phone Android dispatches a real (non-zero) status-bar inset to; the 0px fallback is
-// only ever the "hasn't arrived yet" state on this app's real targets, so this doesn't
-// risk waiting out the full timeout on an ordinary launch. Still capped by the timeout
-// so a stalled rAF (backgrounded tab, some OEM WebView oddity) or an environment where
-// the inset really is 0 can never hang the boot.
+// fix. Switched once to just requiring --safe-top to read non-zero, on the assumption
+// that "still 0px" was the only wrong state to guard against - measured on-device after
+// that shipped, and the inset can still land as a smaller *non-zero* provisional value
+// first (Android appears to dispatch WindowInsets more than once during a cold-start
+// Activity transition, not deliver it atomically) before correcting to its final value a
+// couple of frames later. A single non-zero reading isn't proof it's the FINAL reading.
+//
+// Waits for --safe-top to stop changing instead of merely becoming non-zero: keeps
+// polling every frame, tracking whether the value matches the previous frame's, and only
+// settles once it's read the same non-zero value on MIN_STABLE_FRAMES straight frames -
+// so a provisional-then-corrected value resets the count and is waited out too, not just
+// the initial 0px fallback. MIN_FRAMES is a floor under that (mirrors the original
+// fixed-frame wait) so an already-correct inset still costs a consistent, small amount of
+// time rather than resolving the instant the first rAF happens to fire. Still capped by
+// the timeout so a stalled rAF (backgrounded tab, some OEM WebView oddity) or an
+// environment where the inset really is 0 can never hang the boot.
 function waitForLayoutSettle() {
+    const MIN_FRAMES = 5;
+    const MIN_STABLE_FRAMES = 3;
+    const TIMEOUT_MS = 400;
     return new Promise((resolve) => {
         let settled = false;
         const done = () => {
@@ -7288,16 +7299,21 @@ function waitForLayoutSettle() {
             settled = true;
             resolve();
         };
-        const safeTopLanded = () =>
-            getComputedStyle(document.documentElement).getPropertyValue("--safe-top").trim() !== "0px";
+        const readSafeTop = () =>
+            getComputedStyle(document.documentElement).getPropertyValue("--safe-top").trim();
         let frames = 0;
+        let lastValue = null;
+        let stableFrames = 0;
         const tick = () => {
             frames += 1;
-            if (frames >= 3 && safeTopLanded()) { done(); return; }
+            const value = readSafeTop();
+            stableFrames = (value !== "0px" && value === lastValue) ? stableFrames + 1 : 0;
+            lastValue = value;
+            if (frames >= MIN_FRAMES && stableFrames >= MIN_STABLE_FRAMES) { done(); return; }
             requestAnimationFrame(tick);
         };
         requestAnimationFrame(tick);
-        setTimeout(done, 350);
+        setTimeout(done, TIMEOUT_MS);
     });
 }
 
