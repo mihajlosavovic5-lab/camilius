@@ -432,6 +432,12 @@
     .book-list {
         display: flex;
         flex-direction: row;
+        /* Flex's default align-items: stretch would force every card in the row to
+           match the tallest one's height (they're all laid out in that one row, just
+           scrolled out of view sideways) - so collapsing a card back down left its now-
+           empty box just as tall as it was open, sized off whichever sibling has the
+           most slots rather than its own current content. */
+        align-items: flex-start;
         overflow-x: auto;
         scroll-snap-type: x mandatory;
         -webkit-overflow-scrolling: touch;
