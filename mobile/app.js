@@ -4558,7 +4558,13 @@ async function openSitePreview() {
         reportClientError(err.message, err.stack, "site-preview-link");
     }
 }
-el("mysite-view-page-btn").addEventListener("click", openSitePreview);
+el("mysite-view-page-btn").addEventListener("click", (event) => {
+    const btn = event.currentTarget;
+    btn.classList.remove("button-confirm-pulse");
+    void btn.offsetWidth; // restart the animation even on back-to-back taps
+    btn.classList.add("button-confirm-pulse");
+    openSitePreview();
+});
 
 const SUPPORT_EMAIL = "support@ai-auto-reply-mail.com";
 

@@ -779,6 +779,13 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
    applies, and back to 1 the instant it doesn't. */
 .button-tap-scale { transition: transform .12s ease; }
 .button-tap-scale:active { transform: scale(0.96); }
+/* Confirmation pulse for taps that kick off an async action (e.g. "View page" fetching
+   the preview link) - :active alone barely shows since touchend fires almost immediately,
+   long before the request resolves. JS re-triggers this class on every click (see
+   mobile/app.js) so the zoom in/out plays in full regardless of how briefly the button
+   was actually pressed, giving a clear "yes, that registered" cue. */
+.button-confirm-pulse { animation: button-confirm-pulse .32s ease; }
+@keyframes button-confirm-pulse { 0% { transform: scale(1); } 45% { transform: scale(1.06); } 100% { transform: scale(1); } }
 /* .button:active's gold press flash is meant for solid primary-colored buttons - on any
    plain .button-secondary (Log out, Create account, Continue with email, Cancel, ...
    already just cream/outlined) it looked like the button was momentarily turning into a
