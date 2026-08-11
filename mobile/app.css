@@ -1595,27 +1595,24 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
    like a chat app's own picked-photo preview (ChatGPT's compose bar is the reference) rather
    than a small inline pill - there's room for it above the field, so the picture itself is
    what a tapped attachment should show, not a filename next to a tiny icon. */
-/* Outer wrap is the thing that actually grows/shrinks the chat - a CSS grid-rows trick
-   (0fr <-> 1fr) rather than animating height/max-height directly, since the list's own
-   height is intrinsic (flex-wrap, variable chip count) and grid-rows tracks that exactly
-   with no JS measuring. The inner .compose-attachment-list is the grid item and needs
-   min-height: 0/overflow: hidden so it can actually be clipped down to 0 during the
-   collapse instead of forcing the row open. */
+/* Outer wrap is the thing that actually grows/shrinks the chat. This used to be a CSS
+   grid-rows trick (0fr <-> 1fr, animating the track size itself) - it needed no JS
+   measuring, but grid-template-rows/columns interpolation is a fairly recent Chromium
+   feature and silently no-ops (snaps instantly, no animation at all) on WebViews that
+   predate it, which is exactly what on-device testing showed. Plain `height` in px,
+   set explicitly by updateAttachmentListState() in app.js from the list's own
+   scrollHeight, animates on every browser/WebView there is - less elegant, but it
+   actually plays everywhere instead of only on the newest engines. */
 .compose-attachment-list-wrap {
-    display: grid; grid-template-rows: 0fr;
-    transition: grid-template-rows .32s cubic-bezier(.25, .8, .35, 1);
+    height: 0; overflow: hidden;
+    transition: height .32s cubic-bezier(.25, .8, .35, 1);
 }
-.compose-attachment-list-wrap.has-items { grid-template-rows: 1fr; }
-/* min-height: 0 lets the flex box actually shrink below its content size (grid items
-   default to min-height: auto, which would otherwise fight the 0fr collapse); overflow:
-   hidden is what makes that collapse visually clip the chips rather than just squashing
-   them. The 10px/8px padding is headroom for each chip's own -8px remove badge (see
+/* The 10px/8px padding is headroom for each chip's own -8px remove badge (see
    .chip-remove below) so collapsing/expanding never clips it. */
 .compose-attachment-list {
-    display: flex; flex-wrap: wrap; gap: 10px; margin: 0; min-height: 0; overflow: hidden;
+    display: flex; flex-wrap: wrap; gap: 10px; margin: 4px 0 0;
     padding: 10px 8px 0 0;
 }
-.compose-attachment-list-wrap.has-items .compose-attachment-list { margin: 4px 0 0; }
 .compose-attachment-chip {
     position: relative; display: flex; align-items: center; gap: 8px;
     background: var(--surface); border: 1px solid var(--border); border-radius: 16px;

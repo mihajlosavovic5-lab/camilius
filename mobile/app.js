@@ -5399,11 +5399,15 @@ el("mysite-field-delete-confirm-confirm").addEventListener("click", () => {
         const listWrap = el("website-chat-attachment-list-wrap");
         if (!attachBtn || !cameraInput || !photosInput || !filesInput || !list || !listWrap) return;
 
-        // Toggles the "chat grows/shrinks" state on the wrap around `list` (see the
-        // grid-rows trick on .compose-attachment-list-wrap in app.css) - called after
-        // every chip add/remove so it always reflects the list's real current contents.
+        // Grows/shrinks the chat by animating the wrap's own height (see
+        // .compose-attachment-list-wrap in app.css) to match the list's real current
+        // content - called after every chip add/remove. Reads `list.scrollHeight` (forces
+        // a synchronous layout, but that's exactly what's needed: the freshly
+        // appended/removed chip must already be reflected in it) rather than a class-based
+        // 0fr/1fr grid-rows trick - that animated nothing at all on WebViews that predate
+        // grid-track interpolation, which on-device testing showed is a real problem here.
         function updateAttachmentListState() {
-            listWrap.classList.toggle("has-items", list.children.length > 0);
+            listWrap.style.height = list.children.length > 0 ? list.scrollHeight + "px" : "0px";
         }
 
         // Smoothly fades/scales a chip out (see .compose-attachment-chip.removing in
@@ -5426,13 +5430,19 @@ el("mysite-field-delete-confirm-confirm").addEventListener("click", () => {
         // of its thumbnail/icon exactly like persistStagedEntry's own upload overlay
         // (same .chip-upload-overlay/.chip-spinner) - this is the "still loading" state
         // for the LOCAL pick itself, separate from and well before the Send-triggered
-        // upload. inserted as chip's first child (not appended last) so it paints under
+        // upload. Inserted as chip's first child (not appended last) so it paints under
         // the remove (×) button rather than over it, keeping that always clickable.
-        // Images: waits for the real <img> load/error event (a freshly-picked photo's
-        // blob URL still has to decode). Video/document have no real load signal to key
-        // off (they only ever show a static icon here), so it's just a short, fixed
-        // spinner burst for the same "this is loading" read the user gets for images.
+        // A picked photo's blob URL decodes near-instantly on most phones - tying the
+        // spinner purely to the real <img> load event made it flash for a handful of
+        // milliseconds, too fast to actually see (on-device testing confirmed this: it
+        // never registered as visible at all). PICK_SPINNER_MIN_MS below is an artificial
+        // floor so it always reads as a real loading state - images still also wait for
+        // the genuine load/error event on top of that floor (whichever is later), so a
+        // slow decode still doesn't get cut off early; video/document have no real load
+        // signal to key off, so they just get the flat minimum.
+        const PICK_SPINNER_MIN_MS = 550;
         function showPickingOverlay(chip, imgEl) {
+            const startedAt = Date.now();
             const overlay = document.createElement("span");
             overlay.className = "chip-upload-overlay";
             const spinner = document.createElement("span");
@@ -5440,17 +5450,20 @@ el("mysite-field-delete-confirm-confirm").addEventListener("click", () => {
             overlay.appendChild(spinner);
             chip.insertBefore(overlay, chip.firstChild);
             const remove = () => overlay.remove();
+            const removeNoEarlierThanFloor = () => {
+                const remaining = PICK_SPINNER_MIN_MS - (Date.now() - startedAt);
+                if (remaining > 0) setTimeout(remove, remaining);
+                else remove();
+            };
             if (imgEl) {
                 if (imgEl.complete) {
-                    // Blob URLs are frequently already "complete" by this point - force
-                    // at least one paint of the spinner instead of it never showing.
-                    requestAnimationFrame(() => requestAnimationFrame(remove));
+                    removeNoEarlierThanFloor();
                 } else {
-                    imgEl.addEventListener("load", remove, { once: true });
-                    imgEl.addEventListener("error", remove, { once: true });
+                    imgEl.addEventListener("load", removeNoEarlierThanFloor, { once: true });
+                    imgEl.addEventListener("error", removeNoEarlierThanFloor, { once: true });
                 }
             } else {
-                setTimeout(remove, 450);
+                setTimeout(remove, PICK_SPINNER_MIN_MS);
             }
         }
 
