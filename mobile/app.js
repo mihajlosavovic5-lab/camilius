@@ -5082,91 +5082,102 @@ el("schedule-duration-btn").addEventListener("click", () => {
     });
 });
 
-// Centers one book/confirm-style dialog sheet on the visible area right now, in real
-// pixels rather than the CSS top:50%/max-height:80(l)vh it falls back to -
-// visualViewport (where supported) reports the actual keyboard-excluding visible area
-// directly, which plain window.innerHeight doesn't consistently do across WebViews.
-//
-// Two previous attempts at smoothing this (see git history right before this comment)
-// both drove it with a CSS transition on top/max-height, retargeted from "resize"/
-// "scroll" events: one version left the "scroll" listener in place, which fires
-// repeatedly while the keyboard animates and retargets the transition before the
-// previous firing finishes, chaining several partial transitions into one long crawl;
-// a second version dropped "scroll" and reacted to "focus" instead with an estimated
-// keyboard height, which was smooth in principle but still glitched on-device - some
-// WebViews only report the real visualViewport height in one or two discrete jumps
-// rather than continuously, so a single fixed-duration CSS transition per jump either
-// undershoots (too short) or drags (too long) with no way to tell which jump is next.
-//
-// This version doesn't hand the motion to CSS at all. `smooth: true` (the reposition
-// loop below) eases the sheet's CURRENT on-screen top/max-height a fraction of the way
-// toward wherever visualViewport reports RIGHT NOW, every animation frame - so however
-// choppy or continuous the browser's own reporting is, the sheet always has a fresh,
-// independent, self-correcting step toward the latest real target instead of a queued
-// transition that can only chase a target it already knows is stale. `smooth: false`
-// (used once, at open time) snaps straight there instead, since there's no prior
-// position to ease from yet.
-function pinModalCenterSheet(sheet, smooth) {
+// Where a book/confirm-style dialog sheet belongs on the visible area right now, in real
+// pixels rather than the CSS top:50%/max-height:80(l)vh it falls back to - visualViewport
+// (where supported) reports the actual keyboard-excluding visible area directly, which
+// plain window.innerHeight doesn't consistently do across WebViews.
+function centeredModalTarget() {
     const vv = window.visualViewport;
     const height = vv ? vv.height : window.innerHeight;
     const offsetTop = vv ? vv.offsetTop : 0;
-    const targetTop = offsetTop + height / 2;
-    const targetMaxHeight = height * 0.8;
-    if (smooth && sheet.style.top) {
-        const EASE = 0.35;
-        const currentTop = parseFloat(sheet.style.top);
-        const currentMaxHeight = parseFloat(sheet.style.maxHeight);
-        sheet.style.top = `${currentTop + (targetTop - currentTop) * EASE}px`;
-        sheet.style.maxHeight = `${currentMaxHeight + (targetMaxHeight - currentMaxHeight) * EASE}px`;
-    } else {
-        sheet.style.top = `${targetTop}px`;
-        sheet.style.maxHeight = `${targetMaxHeight}px`;
-    }
+    return { top: offsetTop + height / 2, maxHeight: height * 0.8 };
+}
+
+function pinModalCenterSheet(sheet) {
+    const { top, maxHeight } = centeredModalTarget();
+    sheet.style.top = `${top}px`;
+    sheet.style.maxHeight = `${maxHeight}px`;
 }
 
 function pinModalCenter(modal) {
     const sheet = modal.querySelector(".book-modal-sheet, .confirm-modal-sheet");
-    if (sheet) pinModalCenterSheet(sheet, false);
-    startCenteredModalTracking();
+    if (sheet) pinModalCenterSheet(sheet);
 }
 
-// Re-centers every CURRENTLY OPEN book/confirm-style dialog the same way pinModalCenter
-// centers one at open time - the keyboard sliding open/closed while a dialog is already
-// open (e.g. tapping into the About textarea, or the Duration/Book dialogs' own
-// setTimeout(() => input.focus()) a moment after they open) changes the visible area
-// again after that initial call, and without this the sheet would just keep sitting at
-// wherever it was centered for the viewport size that existed when it opened.
-function repositionOpenCenteredModals() {
-    document.querySelectorAll(".lang-modal.open .book-modal-sheet, .lang-modal.open .confirm-modal-sheet")
-        .forEach((sheet) => pinModalCenterSheet(sheet, true));
-}
+// Constant speed, not a fixed duration - see repositionOpenCenteredModals' comment below
+// for why. MIN_MS keeps a sub-pixel-scale correction from reading as nothing happening;
+// MAX_MS caps how long an unusually large jump (e.g. a tablet split-screen resize) is
+// allowed to take, so this never crawls no matter how big the gap is.
+const CENTERED_MODAL_SPEED_PX_MS = 1.1;
+const CENTERED_MODAL_MIN_MS = 120;
+const CENTERED_MODAL_MAX_MS = 320;
 
-// Drives repositionOpenCenteredModals's easing once per animation frame for as long as
-// any centered dialog is open, instead of only when a "resize"/"scroll" event happens to
-// fire - see pinModalCenterSheet's comment for why event-driven CSS transitions kept
-// glitching on-device. Self-stops the moment no centered dialog is open anymore, so this
-// never spins in the background the rest of the time.
-let centeredModalTrackingActive = false;
-function trackCenteredModals() {
-    if (!document.querySelector(".lang-modal.open .book-modal-sheet, .lang-modal.open .confirm-modal-sheet")) {
-        centeredModalTrackingActive = false;
-        return;
+// Glides an already-open sheet from wherever it currently sits to a freshly computed
+// target at one constant speed the whole way, instead of pinModalCenterSheet's instant
+// snap - called when the keyboard opens/closes while the dialog is already open (e.g.
+// tapping into the About textarea, or the Duration/Book dialogs' own
+// setTimeout(() => input.focus()) a moment after they open).
+//
+// Three earlier attempts at this (see git history right before this comment) all still
+// glitched on-device. Two drove it with a CSS transition on top/max-height, retargeted
+// from resize/scroll/focus events: one left the "scroll" listener in place, which fires
+// repeatedly while the keyboard animates and retargets the transition before the
+// previous firing finishes, chaining several partial transitions into one long crawl;
+// dropping that listener and reacting to "focus" instead with an estimated keyboard
+// height still glitched, since some WebViews only report the real visualViewport height
+// in one or two discrete jumps rather than continuously, so a single fixed-duration CSS
+// transition per jump either undershoots or drags with no way to tell which jump is
+// next. A third attempt replaced the CSS transition with a requestAnimationFrame loop
+// that eased toward the target a fraction of the remaining distance every frame - no
+// longer glitchy, but it moved fast at first and slowed to a crawl at the end instead of
+// covering the distance at one even rate, which is its own kind of wrong motion, just a
+// smoother-looking one.
+//
+// This version is linear (constant px/ms), and duration is DERIVED from that fixed
+// speed rather than fixed up front, so a big keyboard-open jump and a small follow-up
+// correction both move at the same rate instead of the small one taking just as long as
+// the big one - that mismatch is what turned into a crawl in the first attempt above.
+function glideModalCenterSheet(sheet) {
+    const { top: targetTop, maxHeight: targetMaxHeight } = centeredModalTarget();
+    const startTop = parseFloat(sheet.style.top);
+    const startMaxHeight = parseFloat(sheet.style.maxHeight);
+    const distance = Math.max(Math.abs(targetTop - startTop), Math.abs(targetMaxHeight - startMaxHeight));
+    if (!(distance >= 0.5)) return;
+    const duration = Math.min(CENTERED_MODAL_MAX_MS, Math.max(CENTERED_MODAL_MIN_MS, distance / CENTERED_MODAL_SPEED_PX_MS));
+    const startedAt = performance.now();
+    // Bumping this generation stamp is what lets a later retarget (the keyboard isn't
+    // done moving yet, or the "scroll" listener below fires again) take over cleanly -
+    // step() checks it and quietly stops the now-superseded run instead of the two
+    // fighting over the same style properties, and the new run reads startTop/
+    // startMaxHeight from wherever this one actually left off, not from scratch - so a
+    // burst of retargets glides smoothly through all of them instead of restarting.
+    const generation = (sheet._centerGlideGeneration || 0) + 1;
+    sheet._centerGlideGeneration = generation;
+    function step(now) {
+        if (sheet._centerGlideGeneration !== generation) return;
+        const t = Math.min(1, (now - startedAt) / duration);
+        sheet.style.top = `${startTop + (targetTop - startTop) * t}px`;
+        sheet.style.maxHeight = `${startMaxHeight + (targetMaxHeight - startMaxHeight) * t}px`;
+        if (t < 1) requestAnimationFrame(step);
     }
-    repositionOpenCenteredModals();
-    requestAnimationFrame(trackCenteredModals);
+    requestAnimationFrame(step);
 }
-function startCenteredModalTracking() {
-    if (centeredModalTrackingActive) return;
-    centeredModalTrackingActive = true;
-    trackCenteredModals();
+
+// Re-glides every CURRENTLY OPEN book/confirm-style dialog the way glideModalCenterSheet
+// glides one - without this, a dialog that's already open would just keep sitting at
+// wherever it was centered for the viewport size that existed when it opened. Both
+// "resize" (the visible area's final size changed) and "scroll" (its offset moved, which
+// visualViewport also reports for while the keyboard is still animating in/out on
+// several WebViews) are wired to the same handler - see glideModalCenterSheet's own
+// generation-stamp handling for why firing this repeatedly no longer causes a crawl.
+function repositionOpenCenteredModals() {
+    document.querySelectorAll(".lang-modal.open .book-modal-sheet, .lang-modal.open .confirm-modal-sheet").forEach(glideModalCenterSheet);
 }
-// Safety net for a centered dialog that's open but wasn't the one that last started the
-// loop above (e.g. logout-confirm-modal, which never calls pinModalCenter itself) - an
-// orientation change or similar one-off resize still nudges it back into place.
 if (window.visualViewport) {
-    window.visualViewport.addEventListener("resize", startCenteredModalTracking);
+    window.visualViewport.addEventListener("resize", repositionOpenCenteredModals);
+    window.visualViewport.addEventListener("scroll", repositionOpenCenteredModals);
 } else {
-    window.addEventListener("resize", startCenteredModalTracking);
+    window.addEventListener("resize", repositionOpenCenteredModals);
 }
 
 // Android's hardware/gesture back closes the on-screen keyboard through the WebView's
