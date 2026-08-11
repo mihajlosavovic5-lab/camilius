@@ -3294,6 +3294,33 @@ el("verify-pending-back").addEventListener("click", () => {
     showScreen("login");
 });
 
+// One-time cascading fade+rise for the Home tab's topbar and cards, played the moment
+// the app shell first appears each session (right after boot/login/registration - see
+// enterApp() below, the only caller) - reads as a deliberate, polished first impression
+// instead of the whole tab just snapping into place flat. Ordinary tab switches back to
+// Home never replay this, since setActiveTab() alone doesn't call it - only enterApp()
+// does, and that only ever runs once per session.
+function animateMysiteReveal() {
+    const targets = document.querySelectorAll("#screen-mysite .topbar, #screen-mysite .profile-section");
+    let maxDelay = 0;
+    targets.forEach((target, i) => {
+        const delay = i * 70;
+        maxDelay = Math.max(maxDelay, delay);
+        target.style.animationDelay = `${delay}ms`;
+        target.classList.add("mysite-reveal-item");
+    });
+    // Cleans the class/inline delay back off once the last item's animation has finished,
+    // so some later, unrelated re-render of this screen (e.g. loadMySite() re-showing the
+    // appointments card once its fetch resolves) never accidentally replays a stale
+    // leftover animation.
+    setTimeout(() => {
+        targets.forEach((target) => {
+            target.classList.remove("mysite-reveal-item");
+            target.style.animationDelay = "";
+        });
+    }, maxDelay + 550);
+}
+
 function enterApp() {
     showTabbar(true);
     // Faza 15: My Site (an overview of the AI-built website) is the true landing tab now,
@@ -3302,6 +3329,7 @@ function enterApp() {
     // Conversations is already populated (same "was loaded before you tapped it" feel as
     // Schedule below) the moment it's tapped.
     setActiveTab("mysite");
+    animateMysiteReveal();
     loadMySite();
     loadDashboard();
     loadSettingsIntoForm();

@@ -1554,6 +1554,24 @@ input.tap-to-edit-field, textarea.tap-to-edit-field { cursor: pointer; backgroun
    of .inbox-list-wrap's own (zero) top padding - a bigger gap under the page title than
    Profile's Account card gets. */
 .profile-section.hidden + .profile-section { margin-top: 0; }
+/* First-ever reveal of the Home tab each session (right after boot/login/registration -
+   see animateMysiteReveal() in app.js, the only place that adds this class) - the topbar
+   and each card below it softly rise and fade in, staggered a beat apart, instead of the
+   whole tab just snapping into view flat. Never replays on an ordinary tab switch back to
+   Home, since setActiveTab() alone doesn't call that function. Per-element animation-delay
+   is set inline by JS (its position in the stagger isn't expressible via a CSS structural
+   selector - the reveal targets are a mix of a <header> and several <div>s, not all the
+   same tag or reliably contiguous once #mysite-appointments-card's .hidden is involved).
+   Same "small overshoot" easing as the onboarding chat bubble's own drop-in
+   (.onboarding-bubble-drop above) for a consistent, slightly springy landing feel rather
+   than a flat linear/ease-out settle. */
+.mysite-reveal-item {
+    animation: mysite-reveal-item .5s cubic-bezier(.22, .9, .32, 1.15) both;
+}
+@keyframes mysite-reveal-item {
+    0% { transform: translateY(14px); opacity: 0; }
+    100% { transform: translateY(0); opacity: 1; }
+}
 .profile-section-header { margin-bottom: 14px; }
 .profile-section-title { font-size: 16px; font-weight: 700; margin: 0; display: flex; align-items: center; gap: 8px; }
 .profile-section-subtitle { color: var(--text-muted); font-size: 13.5px; margin: 3px 0 0; }
@@ -2916,7 +2934,8 @@ input.tap-to-edit-field, textarea.tap-to-edit-field { cursor: pointer; backgroun
     .onboarding-badge-pulse,
     .onboarding-orbit-dot,
     .onboarding-continue::after,
-    .ota-update-spinner {
+    .ota-update-spinner,
+    .mysite-reveal-item {
         animation: none !important;
         transform: none !important;
         opacity: 1 !important;
