@@ -4711,6 +4711,14 @@ async function loadSchedule(date, { force = false } = {}) {
     try {
         const data = await api(`/api/schedule?${params.toString()}`);
         state.scheduleCache[cacheKey] = data;
+        // Same "instant on next launch" trick as the donation strip / My Site fields
+        // (see the boot IIFE below): persists just the default day:today view so it's
+        // already sitting in state.scheduleCache before this function's own eager
+        // warm-up call even runs, closing the window where a fast tab tap still hit
+        // an empty cache and fell through to the spinner below.
+        if (cacheKey === "day:today") {
+            storageSet("scheduleTodayCache", JSON.stringify(data)).catch(() => {});
+        }
         el("schedule-loading").classList.add("hidden");
         if (data.locked) {
             el("schedule-locked").classList.remove("hidden");
@@ -7110,7 +7118,7 @@ function waitForLayoutSettle() {
 updateOfflineBanner();
 
 (async () => {
-    const [token, businessName, onboardingSeen, theme, donationLink, pageTheme, mysiteHasPage, mysiteHasAppointments, mysiteSlug, mysiteTagline, mysiteAbout, mysiteChosenDomainCached, googleLoginPendingState] = await Promise.all([
+    const [token, businessName, onboardingSeen, theme, donationLink, pageTheme, mysiteHasPage, mysiteHasAppointments, mysiteSlug, mysiteTagline, mysiteAbout, mysiteChosenDomainCached, googleLoginPendingState, scheduleTodayCache] = await Promise.all([
         storageGet("token"),
         storageGet("businessName"),
         storageGet("onboardingSeen"),
@@ -7124,6 +7132,7 @@ updateOfflineBanner();
         storageGet("mysiteAbout"),
         storageGet("mysiteChosenDomain"),
         storageGet("googleLoginPendingState"),
+        storageGet("scheduleTodayCache"),
     ]);
     applyTheme(theme || "system");
     await initLanguage();
@@ -7162,6 +7171,17 @@ updateOfflineBanner();
         mysiteResetSlugStatus();
         mysiteUpdateAllFieldFades();
         mysiteChosenDomain = mysiteChosenDomainCached || null;
+    }
+    // Same reasoning again - primes state.scheduleCache with last launch's default day
+    // view before enterApp()'s own warm-up fetch even fires, so a Schedule tab tap that
+    // beats that fetch back still renders instantly (silently corrected moments later)
+    // instead of hitting the spinner.
+    if (scheduleTodayCache) {
+        try {
+            state.scheduleCache["day:today"] = JSON.parse(scheduleTodayCache);
+        } catch (e) {
+            // Corrupted cache entry - ignore, the eager fetch below still covers it.
+        }
     }
 
     await waitForLayoutSettle();
