@@ -136,10 +136,12 @@
     --danger-bg: #f9e8e2;
     --danger-border: #eec6ba;
     --shadow: 0 2px 6px rgba(38, 32, 20, .05), 0 1px 2px rgba(38, 32, 20, .04);
-    /* Outline ring behind the white tab-root titles below (Home/Schedule/Profile/
-       Settings) - black keeps white text readable against light mode's pale wash;
-       dark mode overrides this to the theme's own gold (--primary) instead, since a
-       black ring against an already-dark background does nothing useful there. */
+    /* Fill/outline ring for the tab-root titles below (Home/Schedule/Profile/
+       Settings) - white text on a black outline keeps it readable against light
+       mode's pale wash; dark mode overrides both to gold instead (see their own
+       definitions further down), since white-on-black does nothing useful against
+       an already-dark background. */
+    --title-text: #fff;
     --title-outline: rgba(0, 0, 0, .7);
     --radius: 14px;
     --tabbar-h: 58px;
@@ -305,16 +307,18 @@ button { font-family: inherit; -webkit-appearance: none; appearance: none; }
    each copy is just the whole filled glyph nudged a little in one of 8 directions, so
    overlapping copies build up a uniformly rounded halo with no per-corner geometry to
    go wrong. Same fix shape as .mysite-field-modal-sheet .book-modal-title below, scaled
-   up for this rule's larger 28px font. Ring color is --title-outline (var, not a literal
-   rgba here) - black in light mode for that same readability, but the theme's own gold
-   in dark mode (see --title-outline's own definition above), matching the gold outline
-   .button-primary-outline elements like "View page" already use there. */
+   up for this rule's larger 28px font. Fill/ring are --title-text/--title-outline (vars,
+   not literal colors here) - white-on-black in light mode for that readability, but
+   dark mode swaps both to gold instead (see their own definitions above), since
+   white-on-black reads as flat/low-contrast against an already-dark background -
+   gold text there matches the same outline .button-primary-outline elements like
+   "View page" already use. */
 .screen-mysite .topbar-title h1,
 .screen-schedule .topbar-title h1,
 .screen-profile .topbar-title h1,
 .screen-settings .topbar-title h1,
 .screen-website-chat .topbar-title h1 {
-    color: #fff;
+    color: var(--title-text);
     text-shadow:
         1.3px 0 0.6px var(--title-outline),
         -1.3px 0 0.6px var(--title-outline),
@@ -2223,7 +2227,8 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
         --danger-bg: #2e1a16;
         --danger-border: #4a2b24;
         --shadow: 0 2px 6px rgba(0, 0, 0, .3), 0 1px 2px rgba(0, 0, 0, .25);
-        --title-outline: rgba(232, 164, 22, .7);
+        --title-text: #f2b93f;
+        --title-outline: rgba(199, 139, 15, .85);
     }
     .avatar, .inbox-avatar { background: rgba(232, 164, 22, .18); }
     input[type="text"], input[type="password"], input[type="email"], input[type="tel"], input[type="number"], textarea { color-scheme: dark; }
@@ -2251,7 +2256,8 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
     --danger-bg: #2e1a16;
     --danger-border: #4a2b24;
     --shadow: 0 2px 6px rgba(0, 0, 0, .3), 0 1px 2px rgba(0, 0, 0, .25);
-    --title-outline: rgba(232, 164, 22, .7);
+    --title-text: #f2b93f;
+    --title-outline: rgba(199, 139, 15, .85);
     color-scheme: dark;
 }
 :root[data-theme="dark"] .avatar, :root[data-theme="dark"] .inbox-avatar { background: rgba(232, 164, 22, .18); }
@@ -2276,6 +2282,7 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
     --danger-bg: #f9e8e2;
     --danger-border: #eec6ba;
     --shadow: 0 2px 6px rgba(38, 32, 20, .05), 0 1px 2px rgba(38, 32, 20, .04);
+    --title-text: #fff;
     --title-outline: rgba(0, 0, 0, .7);
     color-scheme: light;
 }
