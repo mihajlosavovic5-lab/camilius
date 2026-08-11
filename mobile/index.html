@@ -1,5 +1,5 @@
 <!doctype html>
-<html data-bundle-version="efa3f48e8b32" lang="en">
+<html data-bundle-version="249888dd227d" lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
@@ -16,7 +16,7 @@
 <link rel="preload" href="fonts/lora-latin-ext.woff2?v=e8c32fe92ded" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="fonts/familjen-grotesk-latin.woff2?v=e8c32fe92ded" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="fonts/familjen-grotesk-latin-ext.woff2?v=e8c32fe92ded" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="app.css?v=efa3f48e8b32">
+<link rel="stylesheet" href="app.css?v=249888dd227d">
 </head>
 <body>
 
@@ -363,20 +363,19 @@
            be deleted/overwritten the way plain placeholder text could be mistaken for. The
            copy button copies that full address (prefix + current slug) - see its click
            listener in app.js, right after mysite-field-modal-backdrop's - so it's easy to
-           hand to someone else. It's a sibling of (not inside) mysite-field-modal-slug-
-           scroll deliberately - position:sticky on a flex/overflow child proved unreliable
-           in-WebView (scrolled out of place instead of staying put), so it's plain
-           position:absolute pinned to the row instead, truly independent of the scroll. -->
+           hand to someone else. It's a plain scrolling flex item here, not pinned in place -
+           both position:sticky and position:absolute were tried and looked worse (the
+           button sitting still while text visibly ran underneath/behind it read as
+           broken, not "fixed"); scrolling the button away along with the rest and back
+           reads as one continuous row instead. -->
       <div class="mysite-field-modal-input-row" id="mysite-field-modal-input-row">
         <button type="button" class="mysite-field-modal-copy-btn hidden" id="mysite-field-modal-copy-btn" aria-label="Copy link">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
             <rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10" stroke-linecap="round"/>
           </svg>
         </button>
-        <div class="mysite-field-modal-slug-scroll" id="mysite-field-modal-slug-scroll">
-          <span class="mysite-field-modal-slug-prefix hidden" id="mysite-field-modal-slug-prefix"></span>
-          <input type="text" id="mysite-field-modal-input" class="mysite-field-modal-control" autocapitalize="off" autocorrect="off">
-        </div>
+        <span class="mysite-field-modal-slug-prefix hidden" id="mysite-field-modal-slug-prefix"></span>
+        <input type="text" id="mysite-field-modal-input" class="mysite-field-modal-control" autocapitalize="off" autocorrect="off">
       </div>
       <textarea id="mysite-field-modal-textarea" class="mysite-field-modal-control hidden" rows="1"></textarea>
     </div>
@@ -1695,8 +1694,8 @@
   </button>
 </nav>
 
-<script src="i18n.js?v=efa3f48e8b32"></script>
-<script src="hours-picker.js?v=efa3f48e8b32"></script>
-<script src="app.js?v=efa3f48e8b32"></script>
+<script src="i18n.js?v=249888dd227d"></script>
+<script src="hours-picker.js?v=249888dd227d"></script>
+<script src="app.js?v=249888dd227d"></script>
 </body>
 </html>
