@@ -1369,6 +1369,17 @@ function setupPinchZoom(viewport, content, options) {
     const DOUBLE_TAP_SCALE = opts.doubleTapScale || 2.5;
     const isEnabled = opts.isEnabled || (() => true);
     const onZoomChange = opts.onZoomChange || (() => {});
+    // False while something else (the lightbox's own draw/annotate mode) needs
+    // single-finger touches for itself - a 2-finger pinch still zooms either way. See
+    // the pointerdown handler below for why this also has to skip setPointerCapture,
+    // not just skip acting: capturing a finger that's already drawing would silently
+    // steal it away from the canvas's own listeners for the rest of that touch.
+    const singlePointerEnabled = opts.singlePointerEnabled || (() => true);
+    // Content the transform is applied to - normally just the one thing being viewed,
+    // but the lightbox hands this both the photo AND its draw-mode canvas overlay so
+    // the two stay pixel-aligned when zoomed (see lightboxCanvasPoint, which divides a
+    // touch point by getScale() to convert it back to the canvas's own unzoomed space).
+    const targets = Array.isArray(content) ? content : [content];
 
     let scale = 1;
     let panX = 0;
@@ -1381,9 +1392,10 @@ function setupPinchZoom(viewport, content, options) {
     let lastTapPoint = { x: 0, y: 0 };
 
     function apply() {
-        content.style.transform = (scale === 1 && panX === 0 && panY === 0)
+        const transform = (scale === 1 && panX === 0 && panY === 0)
             ? ""
             : `translate(${panX}px, ${panY}px) scale(${scale})`;
+        targets.forEach((target) => { target.style.transform = transform; });
         onZoomChange(scale);
     }
 
@@ -1422,6 +1434,15 @@ function setupPinchZoom(viewport, content, options) {
     viewport.addEventListener("pointerdown", (event) => {
         if (!isEnabled()) return;
         pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+        if (pointers.size === 1 && !singlePointerEnabled()) {
+            // Leave this one alone entirely (including capture) - whatever owns single-
+            // finger touches right now (the draw canvas) needs it uninterrupted. It's
+            // still tracked in `pointers` above so that if a second finger lands, the
+            // pinch below starts from its correct current position, not a stale one.
+            pinchAnchor = null;
+            dragStart = null;
+            return;
+        }
         viewport.setPointerCapture(event.pointerId);
         if (pointers.size === 2) {
             dragStart = null;
@@ -1480,7 +1501,7 @@ function setupPinchZoom(viewport, content, options) {
     viewport.addEventListener("pointerup", endPointer);
     viewport.addEventListener("pointercancel", endPointer);
 
-    return { reset };
+    return { reset, getScale: () => scale };
 }
 
 // --- Image lightbox (Faza 15, annotate added later) - fullscreen zoom for a tapped
@@ -1507,6 +1528,35 @@ let lightboxActiveStroke = null;
 // new photo is shown/before drawing starts so neither carries over a stale zoom (see
 // openImageLightbox/enterLightboxDrawMode below).
 let lightboxZoomController = null;
+// How many fingers are down anywhere in the lightbox right now - kept in sync by a
+// capture-phase listener set up right below (see its own comment). setupLightboxDrawing
+// reads this to tell a genuine single-finger stroke apart from the second finger of a
+// pinch, without which drawing and zooming would fight over the same touches (a pinch
+// mid-stroke would otherwise interleave both fingers' points into one garbled line).
+let lightboxPointerCount = 0;
+// Capture phase (the last argument below), not the usual bubble phase, and specifically
+// on #image-lightbox rather than the draw canvas or .lightbox-media - capture-phase
+// listeners on an ancestor run before ANY bubble-phase listener on a descendant, target
+// or not, so this is always up to date by the time setupLightboxDrawing's own pointerdown
+// handler (attached to the canvas, bubble phase) checks it for the very same event. A
+// same-phase counter on .lightbox-media (where setupPinchZoom's own tracking lives)
+// would still be one event late for that first check, since target-phase listeners
+// (the canvas's) fire before bubble-phase ancestor ones.
+(function () {
+    const lightbox = el("image-lightbox");
+    if (!lightbox) return;
+    const active = new Set();
+    lightbox.addEventListener("pointerdown", (event) => {
+        active.add(event.pointerId);
+        lightboxPointerCount = active.size;
+    }, true);
+    const release = (event) => {
+        active.delete(event.pointerId);
+        lightboxPointerCount = active.size;
+    };
+    lightbox.addEventListener("pointerup", release, true);
+    lightbox.addEventListener("pointercancel", release, true);
+})();
 
 function openImageLightbox(url, onAnnotate) {
     const lightbox = el("image-lightbox");
@@ -1549,22 +1599,38 @@ el("image-lightbox-close-btn").addEventListener("click", () => {
 });
 
 // Gallery-style pinch/pan/double-tap zoom on the viewed photo (see setupPinchZoom above) -
-// disabled while lightboxDrawing is true, since draw mode already owns single/multi-touch
-// on the same image for strokes. touch-action: none hands the whole gesture to JS instead
-// of the browser trying to interpret it as a native scroll/zoom first (.lightbox-media
-// itself never needs to scroll, so this is safe unconditionally, unlike the document
-// viewer's per-page version further down, which toggles it on/off).
+// stays enabled through draw mode now (a 2-finger pinch zooms in for a closer, more
+// precise stroke - see the touch-handoff comment in setupLightboxDrawing below), but
+// single-finger pan/double-tap are switched off whenever lightboxDrawing is true, since a
+// lone finger means "drawing" then, never "reposition the zoomed view" - that's still
+// possible with a 2-finger pinch-drag instead. touch-action: none hands the whole gesture
+// to JS instead of the browser trying to interpret it as a native scroll/zoom first
+// (.lightbox-media itself never needs to scroll, so this is safe unconditionally, unlike
+// the document viewer's per-page version further down, which toggles it on/off).
+// Both the photo and its draw-canvas overlay are handed in as transform targets, so
+// zooming keeps them pixel-aligned - see lightboxCanvasPoint below for the other half of
+// that (converting a touch point back through the current zoom to the canvas's own
+// unzoomed coordinate space that strokes are recorded in).
 (function setupLightboxZoom() {
     const mediaViewport = el("image-lightbox-media");
     const img = el("image-lightbox-img");
+    const canvas = el("image-lightbox-canvas");
     if (!mediaViewport || !img) return;
     mediaViewport.style.touchAction = "none";
-    lightboxZoomController = setupPinchZoom(mediaViewport, img, { isEnabled: () => !lightboxDrawing });
+    lightboxZoomController = setupPinchZoom(mediaViewport, canvas ? [img, canvas] : img, {
+        singlePointerEnabled: () => !lightboxDrawing,
+    });
 })();
 
+// Converts a touch/pointer position into the canvas's own unzoomed CSS-pixel space -
+// getBoundingClientRect() already reflects the canvas's current on-screen box, pan and
+// scale both included, so the only extra step versus the pre-zoom version of this
+// function is dividing back out by the current scale (a box rendered at 2x means every
+// screen pixel offset within it corresponds to half a canvas-space unit).
 function lightboxCanvasPoint(event, canvas) {
     const rect = canvas.getBoundingClientRect();
-    return { x: event.clientX - rect.left, y: event.clientY - rect.top };
+    const scale = lightboxZoomController ? lightboxZoomController.getScale() : 1;
+    return { x: (event.clientX - rect.left) / scale, y: (event.clientY - rect.top) / scale };
 }
 
 function redrawLightboxCanvas() {
@@ -1627,6 +1693,11 @@ function enterLightboxDrawMode() {
 
 function exitLightboxDrawMode() {
     lightboxDrawing = false;
+    // Leaving draw mode always lands back at 1x, whether by cancelling or (see
+    // finishLightboxAnnotate's own separate reset, needed there before it - not after -
+    // measures the image) by finishing - so plain viewing afterward never opens on an
+    // unexpectedly zoomed-in view left over from precision-drawing up close.
+    if (lightboxZoomController) lightboxZoomController.reset();
     lightboxStrokes = [];
     lightboxRedoStack = [];
     lightboxActiveStroke = null;
@@ -1664,6 +1735,11 @@ function finishLightboxAnnotate() {
         exitLightboxDrawMode();
         return;
     }
+    // Strokes were recorded in the canvas's unzoomed space (lightboxCanvasPoint divides
+    // out the zoom as they're drawn), so this measurement needs the image back at its own
+    // true 1x size too, not however it's currently zoomed/panned - otherwise rect.width
+    // below is the zoomed box, and every stroke ends up scaled by the wrong ratio.
+    if (lightboxZoomController) lightboxZoomController.reset();
     const rect = img.getBoundingClientRect();
     const scaleX = img.naturalWidth / rect.width;
     const scaleY = img.naturalHeight / rect.height;
@@ -1697,13 +1773,33 @@ function finishLightboxAnnotate() {
     }, "image/png");
 }
 
+// Drawing only ever follows ONE finger - a stroke started by the first finger down stops
+// recording (but keeps whatever was drawn so far) the instant lightboxPointerCount says a
+// second one has landed, so a pinch-to-zoom-in-for-precision gesture (see
+// setupLightboxZoom above) never also drags a wild line across the photo. Touching that
+// second finger down is deliberately NOT treated as "maybe they meant to keep drawing
+// with two fingers" - once a pinch starts, the next stroke only begins on a fresh,
+// genuinely single-finger touch (both fingers lifted first), which is a far more
+// predictable rule than trying to guess intent mid-gesture.
 (function setupLightboxDrawing() {
     const canvas = el("image-lightbox-canvas");
     if (!canvas) return;
+    let activeDrawPointerId = null;
     canvas.addEventListener("pointerdown", (event) => {
         if (!lightboxDrawing) return;
+        if (lightboxPointerCount > 1) {
+            // A second finger just landed mid-stroke - end it for good (not just pause
+            // it) rather than letting it silently resume once back down to one finger,
+            // which - if that first finger never actually lifted through the whole pinch
+            // - would otherwise jump straight from wherever it left off to wherever that
+            // finger ends up post-zoom, drawing an unwanted stray line between the two.
+            lightboxActiveStroke = null;
+            activeDrawPointerId = null;
+            return;
+        }
         event.preventDefault();
         canvas.setPointerCapture(event.pointerId);
+        activeDrawPointerId = event.pointerId;
         lightboxActiveStroke = { points: [lightboxCanvasPoint(event, canvas)], color: "#ff3b30", width: 4 };
         lightboxStrokes.push(lightboxActiveStroke);
         lightboxRedoStack = [];
@@ -1712,11 +1808,16 @@ function finishLightboxAnnotate() {
     });
     canvas.addEventListener("pointermove", (event) => {
         if (!lightboxDrawing || !lightboxActiveStroke) return;
+        if (event.pointerId !== activeDrawPointerId) return;
         event.preventDefault();
         lightboxActiveStroke.points.push(lightboxCanvasPoint(event, canvas));
         redrawLightboxCanvas();
     });
-    const endStroke = () => { lightboxActiveStroke = null; };
+    const endStroke = (event) => {
+        if (event.pointerId !== activeDrawPointerId) return;
+        lightboxActiveStroke = null;
+        activeDrawPointerId = null;
+    };
     canvas.addEventListener("pointerup", endStroke);
     canvas.addEventListener("pointercancel", endStroke);
     el("image-lightbox-annotate-btn").addEventListener("click", enterLightboxDrawMode);
