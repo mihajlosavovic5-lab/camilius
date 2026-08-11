@@ -370,10 +370,34 @@ if (capacitorPlugins) {
         const otaProgressFill = el("ota-progress-fill");
         const otaProgressPercent = el("ota-progress-percent");
 
+        // Animates the displayed number/bar up one integer at a time instead of jumping
+        // straight to each reported percent (the plugin's own "download" events arrive in
+        // coarse, uneven jumps like 10/20/40) - counting through every value in between
+        // reads as a smooth, continuously advancing fill rather than a stuttering one.
+        let otaDisplayedPercent = 0;
+        let otaProgressTimer = null;
+
         const setOtaProgress = (percent) => {
-            const clamped = Math.max(0, Math.min(100, Math.round(percent) || 0));
-            otaProgressFill.style.width = clamped + "%";
-            otaProgressPercent.textContent = clamped + "%";
+            const target = Math.max(0, Math.min(100, Math.round(percent) || 0));
+            if (otaProgressTimer) {
+                clearInterval(otaProgressTimer);
+                otaProgressTimer = null;
+            }
+            if (target <= otaDisplayedPercent) {
+                otaDisplayedPercent = target;
+                otaProgressFill.style.width = otaDisplayedPercent + "%";
+                otaProgressPercent.textContent = otaDisplayedPercent + "%";
+                return;
+            }
+            otaProgressTimer = setInterval(() => {
+                otaDisplayedPercent += 1;
+                otaProgressFill.style.width = otaDisplayedPercent + "%";
+                otaProgressPercent.textContent = otaDisplayedPercent + "%";
+                if (otaDisplayedPercent >= target) {
+                    clearInterval(otaProgressTimer);
+                    otaProgressTimer = null;
+                }
+            }, 15);
         };
 
         capacitorPlugins.CapacitorUpdater.addListener("download", (info) => {
