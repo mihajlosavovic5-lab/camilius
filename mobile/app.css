@@ -699,7 +699,16 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
    informational fields elsewhere) - these three still read as normal, fully-colored
    editable-looking fields, since only the interaction (tap opens a modal instead of
    focusing in place) changed, not their look. */
-#mysite-slug, #mysite-tagline-input, #mysite-about-input { cursor: pointer; background: var(--surface); color: var(--text); }
+/* Same treatment, generalized: every other field that opens the shared editor modal
+   (openFieldEditModal in app.js - Schedule's Customer name/Service, Profile's Your
+   name/Contact email/Phone number/Current password/New password, and the dynamically
+   created Price list/Related services row inputs) gets this one shared class instead of
+   repeating the field-by-id list above for each new field. Written as input.tap-to-edit-
+   field (not just the bare class) so its specificity ties input[readonly] above instead
+   of losing to it - a bare class selector is less specific than a type+attribute one, and
+   would otherwise still render grayed out despite this rule. */
+#mysite-slug, #mysite-tagline-input, #mysite-about-input,
+input.tap-to-edit-field, textarea.tap-to-edit-field { cursor: pointer; background: var(--surface); color: var(--text); }
 #mysite-slug.truncated, #mysite-tagline-input.truncated, #mysite-about-input.truncated {
     -webkit-mask-image: linear-gradient(to right, #000 85%, transparent 100%);
     mask-image: linear-gradient(to right, #000 85%, transparent 100%);
@@ -2156,6 +2165,27 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
 .mysite-field-modal-copy-btn:active { color: var(--primary-ink); }
 /* Briefly flashed on a successful copy - see this button's click listener in app.js. */
 .mysite-field-modal-copy-btn.copied { color: var(--success); }
+/* Current/New password (Profile > Security) editing through the shared field-edit modal -
+   same .password-toggle LOOK/behavior as the in-place password fields elsewhere, just
+   styled standalone (not sharing the .password-toggle class itself - see this button's
+   own comment in index.html for why) and anchored to this row (position:relative, added
+   below) instead of a .floating-field ancestor. Left-aligned + padded clear of the icon
+   instead of the row's usual centered text, matching how every other password field in
+   the app reads. */
+.mysite-field-modal-input-row { position: relative; }
+/* Applied by openFieldEditModal (app.js) instead of a :has() selector - broader Android
+   WebView support than relying on :has(). */
+.mysite-field-modal-input-row-password .mysite-field-modal-control { text-align: left; padding-right: 42px; }
+.mysite-field-modal-password-toggle {
+    position: absolute; top: 0; right: 4px; height: 100%; width: 34px;
+    display: none; align-items: center; justify-content: center;
+    background: none; border: none; padding: 0; margin: 0; cursor: pointer;
+    color: var(--text-muted);
+}
+.mysite-field-modal-password-toggle.has-value { display: flex; }
+.mysite-field-modal-password-toggle:active { color: var(--primary-ink); }
+.mysite-field-modal-password-toggle.is-visible { color: var(--primary-ink); }
+.mysite-field-modal-password-toggle.is-visible .password-toggle-slash { opacity: 0; }
 /* Height is set by mysiteFieldModalAutoGrowTextarea (app.js) to match the actual value -
    resize:none since manual dragging would fight that automatic sizing; overflow-y:auto +
    max-height cap the runaway case (near the 2000-char limit) with a scrollbar instead of

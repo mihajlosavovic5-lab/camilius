@@ -1,5 +1,5 @@
 <!doctype html>
-<html data-bundle-version="153f5e19ff59" lang="en">
+<html data-bundle-version="166bf7a045b1" lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
@@ -16,7 +16,7 @@
 <link rel="preload" href="fonts/lora-latin-ext.woff2?v=e8c32fe92ded" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="fonts/familjen-grotesk-latin.woff2?v=e8c32fe92ded" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="fonts/familjen-grotesk-latin-ext.woff2?v=e8c32fe92ded" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="app.css?v=153f5e19ff59">
+<link rel="stylesheet" href="app.css?v=166bf7a045b1">
 </head>
 <body>
 
@@ -289,11 +289,11 @@
     <div class="book-modal-title" id="book-modal-title" data-i18n="schedule.bookTitle">Book appointment</div>
     <div class="book-modal-time" id="book-modal-time"></div>
     <div class="floating-field">
-      <input type="text" id="book-customer-name" placeholder=" ">
+      <input type="text" id="book-customer-name" class="tap-to-edit-field" placeholder=" " readonly>
       <label for="book-customer-name" data-i18n="schedule.customerNamePlaceholder">Customer name</label>
     </div>
     <div class="floating-field">
-      <input type="text" id="book-service" placeholder=" ">
+      <input type="text" id="book-service" class="tap-to-edit-field" placeholder=" " readonly>
       <label for="book-service" data-i18n="schedule.servicePlaceholder">Service (optional)</label>
     </div>
     <div class="book-duration-row">
@@ -376,6 +376,22 @@
         </button>
         <span class="mysite-field-modal-slug-prefix hidden" id="mysite-field-modal-slug-prefix"></span>
         <input type="text" id="mysite-field-modal-input" class="mysite-field-modal-control" autocapitalize="off" autocorrect="off">
+        <!-- Password fields only (openFieldEditModal in app.js un-hides this) - same
+             show/hide eye icon look as .floating-field-password elsewhere, but
+             deliberately NOT given the plain .password-toggle class itself: the generic
+             document.querySelectorAll(".password-toggle") wiring further down app.js
+             assumes every such button has a .floating-field ancestor and calls
+             .closest(".floating-field").querySelector(...) with no null check - this
+             button doesn't have one, so picking up that class would throw and break
+             app.js's whole top-level script on load. Wired with its own dedicated
+             listener instead (see app.js, right after mysite-field-modal-backdrop's). -->
+        <button type="button" class="mysite-field-modal-password-toggle hidden" id="mysite-field-modal-password-toggle" aria-label="Show password">
+          <svg class="password-toggle-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
+            <path d="M1.5 12S5 5 12 5s10.5 7 10.5 7-3.5 7-10.5 7S1.5 12 1.5 12z" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+            <circle cx="12" cy="12" r="3" stroke-width="1.6"/>
+            <line class="password-toggle-slash" x1="2.5" y1="21.5" x2="21.5" y2="2.5" stroke-width="1.6" stroke-linecap="round"/>
+          </svg>
+        </button>
       </div>
       <textarea id="mysite-field-modal-textarea" class="mysite-field-modal-control hidden" rows="1"></textarea>
     </div>
@@ -1194,12 +1210,12 @@
         </div>
 
         <div class="floating-field">
-          <input type="text" id="settings-name" placeholder=" ">
+          <input type="text" id="settings-name" class="tap-to-edit-field" placeholder=" " readonly>
           <label for="settings-name" data-i18n="settings.name">Your name</label>
         </div>
 
         <div class="floating-field">
-          <input type="email" id="settings-contact-email" placeholder=" " autocapitalize="off" autocorrect="off">
+          <input type="email" id="settings-contact-email" class="tap-to-edit-field" placeholder=" " autocapitalize="off" autocorrect="off" readonly>
           <label for="settings-contact-email" data-i18n="settings.contactEmail">Contact email</label>
         </div>
         <p class="field-error hidden" id="settings-contact-email-error"></p>
@@ -1210,7 +1226,7 @@
             <span id="settings-phone-country-dial">+381</span>
           </button>
           <div class="floating-field">
-            <input type="tel" id="settings-phone" placeholder=" " autocomplete="tel">
+            <input type="tel" id="settings-phone" class="tap-to-edit-field" placeholder=" " autocomplete="tel" readonly>
             <label for="settings-phone" data-i18n="settings.phone">Phone number</label>
           </div>
         </div>
@@ -1295,7 +1311,7 @@
         </div>
         <label style="margin-top: 0;" data-i18n="settings.changePassword">Change password</label>
         <div class="floating-field floating-field-password">
-          <input type="password" id="settings-current-password" placeholder=" " autocomplete="current-password">
+          <input type="password" id="settings-current-password" class="tap-to-edit-field" placeholder=" " autocomplete="current-password" readonly>
           <label for="settings-current-password" data-i18n="settings.currentPassword">Current password</label>
           <button type="button" class="password-toggle" aria-label="Show password">
             <svg class="password-toggle-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
@@ -1306,7 +1322,7 @@
           </button>
         </div>
         <div class="floating-field floating-field-password">
-          <input type="password" id="settings-new-password" placeholder=" " autocomplete="new-password">
+          <input type="password" id="settings-new-password" class="tap-to-edit-field" placeholder=" " autocomplete="new-password" readonly>
           <label for="settings-new-password" data-i18n="settings.newPassword">New password</label>
           <button type="button" class="password-toggle" aria-label="Show password">
             <svg class="password-toggle-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
@@ -1697,8 +1713,8 @@
   </button>
 </nav>
 
-<script src="i18n.js?v=153f5e19ff59"></script>
-<script src="hours-picker.js?v=153f5e19ff59"></script>
-<script src="app.js?v=153f5e19ff59"></script>
+<script src="i18n.js?v=166bf7a045b1"></script>
+<script src="hours-picker.js?v=166bf7a045b1"></script>
+<script src="app.js?v=166bf7a045b1"></script>
 </body>
 </html>

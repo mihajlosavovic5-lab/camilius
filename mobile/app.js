@@ -836,9 +836,15 @@ function createPricePicker(rowsContainerId, addButtonId, currencyContainerId) {
         serviceField.className = "floating-field floating-field-service";
         const serviceInput = document.createElement("input");
         serviceInput.type = "text";
-        serviceInput.className = "price-service-input";
+        serviceInput.className = "price-service-input tap-to-edit-field";
         serviceInput.placeholder = " ";
         serviceInput.value = service;
+        serviceInput.readOnly = true;
+        // Same shared field-edit modal as Web address/Headline/About (My Site tab) -
+        // see openFieldEditModal further down this file. Rows are created/removed at
+        // runtime so there's no fixed id to key a MYSITE_FIELD_MODAL_FIELDS entry off of;
+        // this input element itself is the reference the modal syncs back to on close.
+        serviceInput.addEventListener("click", () => openFieldEditModal(serviceInput, t("pricePicker.servicePlaceholder")));
         const serviceLabel = document.createElement("label");
         serviceLabel.dataset.i18n = "pricePicker.servicePlaceholder";
         serviceLabel.textContent = t("pricePicker.servicePlaceholder");
@@ -849,9 +855,11 @@ function createPricePicker(rowsContainerId, addButtonId, currencyContainerId) {
         priceField.className = "floating-field floating-field-price";
         const priceInput = document.createElement("input");
         priceInput.type = "text";
-        priceInput.className = "price-amount-input";
+        priceInput.className = "price-amount-input tap-to-edit-field";
         priceInput.placeholder = " ";
         priceInput.value = price;
+        priceInput.readOnly = true;
+        priceInput.addEventListener("click", () => openFieldEditModal(priceInput, t("pricePicker.pricePlaceholder")));
         const priceLabel = document.createElement("label");
         priceLabel.dataset.i18n = "pricePicker.pricePlaceholder";
         priceLabel.textContent = t("pricePicker.pricePlaceholder");
@@ -941,9 +949,17 @@ function createUpsellPicker(rowsContainerId, addButtonId) {
         fieldA.className = "floating-field";
         const inputA = document.createElement("input");
         inputA.type = "text";
-        inputA.className = "upsell-service-a";
+        inputA.className = "upsell-service-a tap-to-edit-field";
         inputA.placeholder = " ";
         inputA.value = serviceA;
+        inputA.readOnly = true;
+        // Same shared field-edit modal as the Price list rows above - see
+        // openFieldEditModal further down this file. The "example" placeholder text
+        // (Haircut/Treatment) makes sense as a floating label but not as a modal title, so
+        // this reuses the section's own "Related services" heading for both fields
+        // instead - the arrow between the two open fields already makes clear which one's
+        // which.
+        inputA.addEventListener("click", () => openFieldEditModal(inputA, t("settings.upsell.relatedServices")));
         const labelA = document.createElement("label");
         labelA.dataset.i18n = "settings.upsell.examplePlaceholder1";
         labelA.textContent = t("settings.upsell.examplePlaceholder1");
@@ -958,9 +974,11 @@ function createUpsellPicker(rowsContainerId, addButtonId) {
         fieldB.className = "floating-field";
         const inputB = document.createElement("input");
         inputB.type = "text";
-        inputB.className = "upsell-service-b";
+        inputB.className = "upsell-service-b tap-to-edit-field";
         inputB.placeholder = " ";
         inputB.value = serviceB;
+        inputB.readOnly = true;
+        inputB.addEventListener("click", () => openFieldEditModal(inputB, t("settings.upsell.relatedServices")));
         const labelB = document.createElement("label");
         labelB.dataset.i18n = "settings.upsell.examplePlaceholder2";
         labelB.textContent = t("settings.upsell.examplePlaceholder2");
@@ -6073,24 +6091,42 @@ function mysiteUpdateAllFieldFades() {
 // fits, so a value that was clipped before might not be anymore, and vice versa.
 window.addEventListener("resize", mysiteUpdateAllFieldFades);
 
-// Web address/Headline/About editor (My Site tab) - the three fields above are readonly
-// (index.html) purely so a tap can open this centered modal instead of focusing them in
-// place; #mysite-field-modal (index.html) holds one shared input + textarea pair, shown
-// one at a time depending on which field was tapped. Opened without ever calling
-// .focus() on either control, so the modal appears with no keyboard - it only shows up
-// once the user taps inside the modal's own input/textarea, same as tapping into any
-// ordinary field would.
+// Web address/Headline/About editor (My Site tab), generalized to every other "tap to
+// open a popup editor" field across the app (Schedule's Customer name/Service, Profile's
+// Your name/Contact email/Phone number/Current password/New password, and the
+// dynamically created Price list/Related services rows further up) - all readonly in
+// place (index.html, or set readonly at creation time for the dynamic rows) purely so a
+// tap can open this one shared centered modal instead of focusing them in place;
+// #mysite-field-modal (index.html) holds one shared input + textarea pair, shown one at a
+// time depending on which field was tapped. Opened without ever calling .focus() on
+// either control, so the modal appears with no keyboard - it only shows up once the user
+// taps inside the modal's own input/textarea, same as tapping into any ordinary field
+// would.
 const MYSITE_FIELD_MODAL_FIELDS = {
     "mysite-slug": { control: "input", titleKey: "mysite.website.slug" },
     "mysite-tagline-input": { control: "input", titleKey: "mysite.website.taglineLabel" },
     "mysite-about-input": { control: "textarea", titleKey: "mysite.website.aboutLabel" },
+    "book-customer-name": { control: "input", titleKey: "schedule.customerNamePlaceholder" },
+    "book-service": { control: "input", titleKey: "schedule.servicePlaceholder" },
+    "settings-name": { control: "input", titleKey: "settings.name" },
+    "settings-contact-email": { control: "input", titleKey: "settings.contactEmail" },
+    "settings-phone": { control: "input", titleKey: "settings.phone" },
+    "settings-current-password": { control: "input", titleKey: "settings.currentPassword", password: true },
+    "settings-new-password": { control: "input", titleKey: "settings.newPassword", password: true },
 };
 
-let mysiteFieldModalTargetId = null;
+// Holds the actual field element currently being edited, not just its id - the Price
+// list/Related services rows (createPricePicker/createUpsellPicker further up) are
+// created and destroyed at runtime and have no fixed id to key off, so they call
+// openFieldEditModal directly with their own element reference. Every id-based field
+// above still goes through openMysiteFieldModal, which is just a thin wrapper around the
+// same function.
+let mysiteFieldModalTargetEl = null;
 
 function mysiteFieldModalActiveControl() {
-    const config = MYSITE_FIELD_MODAL_FIELDS[mysiteFieldModalTargetId];
-    return config && config.control === "textarea" ? el("mysite-field-modal-textarea") : el("mysite-field-modal-input");
+    return el("mysite-field-modal-textarea").classList.contains("hidden")
+        ? el("mysite-field-modal-input")
+        : el("mysite-field-modal-textarea");
 }
 
 // Grows the textarea to exactly fit its current value (capped by app.css's own
@@ -6105,23 +6141,20 @@ function mysiteFieldModalAutoGrowTextarea() {
     textarea.style.height = `${textarea.scrollHeight}px`;
 }
 
-function openMysiteFieldModal(fieldId) {
-    const config = MYSITE_FIELD_MODAL_FIELDS[fieldId];
-    const source = el(fieldId);
-    if (!config || !source) return;
-    mysiteFieldModalTargetId = fieldId;
-    el("mysite-field-modal-title").textContent = t(config.titleKey);
+function openFieldEditModal(sourceEl, titleText, { textarea: showTextarea = false, password = false } = {}) {
+    if (!sourceEl) return;
+    mysiteFieldModalTargetEl = sourceEl;
+    el("mysite-field-modal-title").textContent = titleText;
     const input = el("mysite-field-modal-input");
     const textarea = el("mysite-field-modal-textarea");
     const inputRow = el("mysite-field-modal-input-row");
-    const showTextarea = config.control === "textarea";
     inputRow.classList.toggle("hidden", showTextarea);
     textarea.classList.toggle("hidden", !showTextarea);
     // Web address only - fixed domain prefix + copy-link button glued to the editable
     // slug input (see index.html's own comment on this row and MYSITE_SLUG_LINK_PREFIX
     // above), so the owner always sees/can share the real full address, not the bare
-    // slug alone. Headline's plain input never gets any of this.
-    const isSlug = fieldId === "mysite-slug";
+    // slug alone. No other field gets any of this.
+    const isSlug = sourceEl.id === "mysite-slug";
     inputRow.classList.toggle("mysite-field-modal-input-row-slug", isSlug);
     el("mysite-field-modal-slug-prefix").classList.toggle("hidden", !isSlug);
     el("mysite-field-modal-copy-btn").classList.toggle("hidden", !isSlug);
@@ -6134,17 +6167,34 @@ function openMysiteFieldModal(fieldId) {
         // fragment of the domain, no context for what's actually there.
         inputRow.scrollLeft = 0;
     }
+    // Current/New password (Profile > Security) only - masks the modal's value the same
+    // way the in-place field does, with its own show/hide eye toggle (see that button's
+    // own click listener below) since this row isn't inside a .floating-field-password
+    // wrapper for the generic one (further up this file) to pick up.
+    const passwordToggle = el("mysite-field-modal-password-toggle");
+    inputRow.classList.toggle("mysite-field-modal-input-row-password", password);
+    passwordToggle.classList.toggle("hidden", !password);
+    input.type = password ? "password" : "text";
+    if (password) passwordToggle.classList.remove("is-visible");
     const active = showTextarea ? textarea : input;
-    // Mirrors the real field's own maxlength (200 for the tagline, 2000 for about, none
-    // for the slug) so the modal can't be used to type past what the real field - and the
-    // server behind it - would actually accept.
-    if (source.maxLength >= 0) active.maxLength = source.maxLength; else active.removeAttribute("maxlength");
-    active.value = source.value;
+    // Mirrors the real field's own maxlength (e.g. 200 for the tagline, 2000 for about,
+    // none for most others) so the modal can't be used to type past what the real field -
+    // and the server behind it - would actually accept.
+    if (sourceEl.maxLength >= 0) active.maxLength = sourceEl.maxLength; else active.removeAttribute("maxlength");
+    active.value = sourceEl.value;
     if (showTextarea) mysiteFieldModalAutoGrowTextarea();
     mysiteUpdateFieldModalDeleteBtnVisibility();
-    source.blur();
+    if (password) passwordToggle.classList.toggle("has-value", active.value.length > 0);
+    sourceEl.blur();
     pinModalCenter(el("mysite-field-modal"));
     el("mysite-field-modal").classList.add("open");
+}
+
+function openMysiteFieldModal(fieldId) {
+    const config = MYSITE_FIELD_MODAL_FIELDS[fieldId];
+    const source = el(fieldId);
+    if (!config || !source) return;
+    openFieldEditModal(source, t(config.titleKey), { textarea: config.control === "textarea", password: !!config.password });
 }
 
 function closeMysiteFieldModal() {
@@ -6153,23 +6203,24 @@ function closeMysiteFieldModal() {
     el("mysite-field-modal-textarea").blur();
     // Web address only - runs the availability check the moment the editor closes
     // (tapping the backdrop, below), instead of a separate "Check" button the owner had
-    // to remember to tap themselves. Checked before mysiteFieldModalTargetId is cleared
+    // to remember to tap themselves. Checked before mysiteFieldModalTargetEl is cleared
     // just below, same reason mysiteCheckSlug needs the value: it's already gone by then.
-    if (mysiteFieldModalTargetId === "mysite-slug") {
+    if (mysiteFieldModalTargetEl && mysiteFieldModalTargetEl.id === "mysite-slug") {
         const slug = el("mysite-slug").value.trim();
         if (slug) mysiteCheckSlug(slug);
     }
-    mysiteFieldModalTargetId = null;
+    mysiteFieldModalTargetEl = null;
 }
 
 // Mirrors every keystroke straight back onto the real (hidden) field, dispatching the
 // same "input" event it would fire itself if it were focused directly - the existing
 // autosave/validation (updateMysiteSaveValidity's delegated listener on #screen-mysite,
-// mysiteResetSlugStatus on #mysite-slug) already listen for exactly that, so this modal
-// needed no changes of its own to either.
+// mysiteResetSlugStatus on #mysite-slug, the Price list/Related services pickers' own
+// getValue()/validate()) already listen for/read exactly that, so this modal needed no
+// changes of its own for any of them.
 function mysiteFieldModalSync() {
-    if (!mysiteFieldModalTargetId) return;
-    const source = el(mysiteFieldModalTargetId);
+    if (!mysiteFieldModalTargetEl) return;
+    const source = mysiteFieldModalTargetEl;
     const active = mysiteFieldModalActiveControl();
     source.value = active.value;
     source.dispatchEvent(new Event("input", { bubbles: true }));
@@ -6180,7 +6231,12 @@ function mysiteFieldModalSync() {
     // row's own scroll position on its own, so clearing a slug that had been scrolled
     // right to read stays scrolled there: just a bare cursor next to a domain fragment,
     // no copy button or full prefix in view. Reset it the moment the field goes empty.
-    if (mysiteFieldModalTargetId === "mysite-slug" && !active.value) el("mysite-field-modal-input-row").scrollLeft = 0;
+    if (source.id === "mysite-slug" && !active.value) el("mysite-field-modal-input-row").scrollLeft = 0;
+    // Current/New password only - keeps the modal's own eye icon in sync with whether
+    // there's anything to reveal, same as the has-value toggle every other password field
+    // gets (see the generic .password-toggle "input" listener further up this file).
+    const passwordToggle = el("mysite-field-modal-password-toggle");
+    if (!passwordToggle.classList.contains("hidden")) passwordToggle.classList.toggle("has-value", active.value.length > 0);
 }
 
 // Delete badge only makes sense once there's something to delete - hidden on an empty
@@ -6223,13 +6279,24 @@ el("mysite-field-modal-copy-btn").addEventListener("click", async (event) => {
     }, 1500);
 });
 
+// Current/New password only - same show/hide behavior as the generic .password-toggle
+// listener further up this file, just standalone since this button isn't inside a
+// .floating-field for that one to find.
+el("mysite-field-modal-password-toggle").addEventListener("click", () => {
+    const btn = el("mysite-field-modal-password-toggle");
+    const input = el("mysite-field-modal-input");
+    const showing = input.type === "text";
+    input.type = showing ? "password" : "text";
+    btn.classList.toggle("is-visible", !showing);
+});
+
 Object.keys(MYSITE_FIELD_MODAL_FIELDS).forEach((fieldId) => {
     el(fieldId).addEventListener("click", () => openMysiteFieldModal(fieldId));
 });
 
 // Delete badge (top-right of the sheet) - same Cancel/Delete confirm pattern as
 // closeLogoutConfirmModal/settings-logout above, just clearing whichever field this
-// modal currently has open (mysiteFieldModalTargetId) instead of logging out.
+// modal currently has open (mysiteFieldModalTargetEl) instead of logging out.
 function closeMysiteFieldDeleteConfirmModal() {
     el("mysite-field-delete-confirm-modal").classList.remove("open");
 }
