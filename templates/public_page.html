@@ -439,10 +439,13 @@
         gap: 10px;
     }
     .book-list::-webkit-scrollbar { display: none; }
-    /* Each day's slots are always visible now - no more per-card collapse/expand.
-       The carousel above only ever shows one card at a time anyway, so a tap-to-open
-       step was just an extra tap for every single day rather than saving space the
-       way it did back when every day sat in one long visible list. */
+    /* Each day is a native <details>, open by default (see renderBookList's own
+       card.open = true) so scrolling to a new day shows its slots immediately without
+       an extra tap - but still a real toggle, so tapping the header can collapse a day
+       back down (and reopen it) same as any other <details>. Same marker-hiding
+       pattern as the app's own past-slots toggle (.schedule-past-summary/
+       ::-webkit-details-marker in style.css), plus a chevron that flips via the [open]
+       attribute selector. */
     .book-day-card {
         position: relative;
         flex: 0 0 100%;
@@ -462,10 +465,19 @@
         align-items: center;
         gap: 10px;
         padding: 13px 14px;
-        border-bottom: 1px solid var(--border);
+        cursor: pointer;
+        list-style: none;
+        -webkit-tap-highlight-color: transparent;
+        transition: background .15s ease;
     }
+    .book-day-header::-webkit-details-marker { display: none; }
+    .book-day-header::marker { display: none; }
+    .book-day-header:hover { background: var(--surface); }
     .book-day-name { flex: 1; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); font-weight: 700; }
     .book-day-num { font-size: 0.92rem; font-weight: 600; }
+    .book-day-chevron { flex: 0 0 auto; width: 16px; height: 16px; color: var(--text-muted); transition: transform .2s ease; }
+    .book-day-card[open] .book-day-header { border-bottom: 1px solid var(--border); }
+    .book-day-card[open] .book-day-chevron { transform: rotate(180deg); }
     .book-day-slots {
         display: flex;
         flex-wrap: wrap;
@@ -1316,15 +1328,22 @@
             });
     }
 
+    // Static markup, no interpolated data - safe to drop in as-is via insertAdjacentHTML.
+    var BOOK_DAY_CHEVRON = '<svg class="book-day-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 9l6 6 6-6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+
     function renderBookList(days) {
         bookListEl.innerHTML = "";
         days.forEach(function (day) {
-            var card = document.createElement("div");
+            var card = document.createElement("details");
             card.className = "book-day-card" + (day.date === todayIso ? " today" : "");
             card.dataset.date = day.date;
+            // Open by default - swiping to a new day shows its slots immediately
+            // instead of needing a separate tap - but it's still a real <details>, so
+            // tapping the header can collapse (and reopen) a day same as before.
+            card.open = true;
 
             var commaIndex = day.label.indexOf(",");
-            var header = document.createElement("div");
+            var header = document.createElement("summary");
             header.className = "book-day-header";
             var name = document.createElement("span");
             name.className = "book-day-name";
@@ -1334,6 +1353,7 @@
             num.textContent = commaIndex === -1 ? "" : day.label.slice(commaIndex + 1).trim();
             header.appendChild(name);
             header.appendChild(num);
+            header.insertAdjacentHTML("beforeend", BOOK_DAY_CHEVRON);
             card.appendChild(header);
 
             var slotsEl = document.createElement("div");
@@ -1358,13 +1378,15 @@
     }
 
     // Jumps the day carousel to whichever loaded card is on or after `iso` (the exact
-    // date if it has open slots, otherwise the next one that does). bookListEl.children
-    // is what's actually on screen right now, not a second copy of `days`, so it
-    // always matches what's rendered. Shared by the calendar popover below.
+    // date if it has open slots, otherwise the next one that does) and reopens it in
+    // case a visitor had collapsed it earlier. bookListEl.children is what's actually
+    // on screen right now, not a second copy of `days`, so it always matches what's
+    // rendered. Shared by the calendar popover below.
     function jumpToBookDate(iso) {
         var cards = Array.prototype.slice.call(bookListEl.children);
         if (!cards.length) return;
         var target = cards.filter(function (c) { return c.dataset.date >= iso; })[0] || cards[cards.length - 1];
+        target.open = true;
         target.scrollIntoView({ behavior: "smooth", inline: "start", block: "nearest" });
     }
 
