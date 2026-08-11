@@ -1404,6 +1404,20 @@
         });
     }
 
+    // Index of whichever card's left edge is nearest the container's own left edge -
+    // i.e. whichever one is actually on screen right now, index and element both.
+    // Shared by syncBookListHeight and the swipe-capping handler below.
+    function currentBookCard() {
+        var children = bookListEl.children;
+        var containerLeft = bookListEl.getBoundingClientRect().left;
+        var bestIndex = 0, bestDist = Infinity;
+        for (var i = 0; i < children.length; i++) {
+            var dist = Math.abs(children[i].getBoundingClientRect().left - containerLeft);
+            if (dist < bestDist) { bestDist = dist; bestIndex = i; }
+        }
+        return bestIndex;
+    }
+
     // .book-list holds every day card in one flex row (only one scrolled into view at
     // a time), so its own auto height would otherwise track whichever sibling card is
     // currently tallest - not the one actually on screen, leaving a block of empty
@@ -1421,13 +1435,7 @@
     function syncBookListHeight() {
         var children = bookListEl.children;
         if (!children.length) return;
-        var containerLeft = bookListEl.getBoundingClientRect().left;
-        var current = children[0];
-        var bestDist = Infinity;
-        for (var i = 0; i < children.length; i++) {
-            var dist = Math.abs(children[i].getBoundingClientRect().left - containerLeft);
-            if (dist < bestDist) { bestDist = dist; current = children[i]; }
-        }
+        var current = children[currentBookCard()];
         if (current.open !== bookSlotsExpanded) current.open = bookSlotsExpanded;
         bookListEl.style.height = current.offsetHeight + "px";
     }
@@ -1442,6 +1450,30 @@
     bookListEl.addEventListener("scroll", function () {
         clearTimeout(bookListScrollTimer);
         bookListScrollTimer = setTimeout(syncBookListHeight, 120);
+    });
+
+    // scroll-snap-stop: always (see .book-day-card above) only caps a released FLING's
+    // own momentum to one day - it does nothing to limit a single manual drag, which
+    // tracks the finger 1:1 same as any scrollable element and can end up several days
+    // over if that drag itself covers more than one card's width (a fast/long swipe
+    // easily does). Capping that requires knowing the gesture's own start and end
+    // points, which native CSS scroll-snap has no way to express - so this measures
+    // both directly: which card was in view when the touch started, and whichever one
+    // the raw drag (not yet any added momentum) had reached by touchend, then
+    // overrides wherever the browser was about to settle with a clamp of at most one
+    // day past the start in that gesture's own direction.
+    var bookSwipeStartIndex = null;
+    bookListEl.addEventListener("touchstart", function () {
+        bookSwipeStartIndex = currentBookCard();
+    }, { passive: true });
+    bookListEl.addEventListener("touchend", function () {
+        if (bookSwipeStartIndex === null) return;
+        var start = bookSwipeStartIndex;
+        bookSwipeStartIndex = null;
+        var raw = currentBookCard();
+        var target = Math.max(start - 1, Math.min(start + 1, raw));
+        var card = bookListEl.children[target];
+        if (card) card.scrollIntoView({ behavior: "smooth", inline: "start", block: "nearest" });
     });
 
     // Jumps the day carousel to whichever loaded card is on or after `iso` (the exact
