@@ -2181,6 +2181,8 @@ def onboarding_website_preview():
         gallery_urls=media["gallery_urls"],
         hero_video_url=media["hero_video_url"],
         social_links=_social_links_for_business(business),
+        contact_email=business[3],
+        phone_number=business[10],
         # Language switcher still renders (same fixed EN/ES/FR/DE row as the live page),
         # but nothing is actually saved yet to translate against - translate_url="" is
         # the same "disabled in this in-progress draft" convention chat_url="" above
@@ -2536,6 +2538,8 @@ def _render_public_page(page, business, page_url, preview=False):
         gallery_urls=media["gallery_urls"],
         hero_video_url=media["hero_video_url"],
         social_links=_social_links_for_business(business),
+        contact_email=business[3],
+        phone_number=business[10],
     )
 
 
