@@ -439,8 +439,16 @@
            most slots rather than its own current content. */
         align-items: flex-start;
         overflow-x: auto;
-        scroll-snap-type: x mandatory;
-        -webkit-overflow-scrolling: touch;
+        /* No scroll-snap-type/-webkit-overflow-scrolling here (deliberately) - touch
+           dragging is fully hand-rolled below (touchstart/touchmove/touchend) since
+           the in-app browser this page is actually opened in doesn't honor
+           touch-action or scroll-behavior: smooth, so anything left to native touch-
+           scroll handling behaved inconsistently there. CSS scroll-snap reacting to
+           the script's own scrollLeft writes mid-drag or mid-animation was fighting
+           them the same way its native momentum/snap fought the corrective scroll
+           before touch was taken over entirely - removed rather than left in as an
+           inert leftover, since a future re-enable of native touch handling here
+           would silently reintroduce that fight. */
         scrollbar-width: none;
         gap: 10px;
         /* Height is pinned in px by the script's own syncBookListHeight() (a flex
@@ -461,11 +469,6 @@
     .book-day-card {
         position: relative;
         flex: 0 0 100%;
-        scroll-snap-align: start;
-        /* Without this, a fast/hard swipe can carry momentum straight past the next
-           snap point to land two or three days over - scroll-snap-stop forces the
-           scroll to stop at every card in turn, capping one gesture at one day. */
-        scroll-snap-stop: always;
         border: 1px solid var(--border);
         border-radius: calc(var(--radius) * 0.6);
         background: var(--background);
@@ -1452,9 +1455,9 @@
     // currently tallest - not the one actually on screen, leaving a block of empty
     // space under a short/collapsed card whenever some other day still has more slots
     // open. Explicitly pins the container's height to just the card nearest the
-    // container's own left edge (i.e. whichever one scroll-snap has settled on)
-    // instead, re-run on every scroll and on each card's own open/close (native
-    // "toggle" event, wired up per card above).
+    // container's own left edge (i.e. whichever one is actually in view) instead,
+    // re-run on every scroll and on each card's own open/close (native "toggle"
+    // event, wired up per card above).
     //
     // Also carries bookSlotsExpanded onto that same card - every card is only ever
     // given the right open/closed state at the moment it's first rendered (see
@@ -1470,38 +1473,32 @@
     }
     // Debounced to run once scrolling has actually stopped, not on every scroll frame
     // during the gesture - syncBookListHeight mutates the scroll container's own
-    // height (and possibly a card's open/closed state) each time it runs, and doing
-    // that mid-fling was fighting the browser's own scroll-snap-stop: always (see
-    // .book-day-card above) - a gesture that should have capped at one day over was
-    // able to carry across several again once the container kept resizing under it
-    // while still moving.
+    // height (and possibly a card's open/closed state) each time it runs, which has
+    // no business happening while the touch handler further down is still actively
+    // driving scrollLeft itself.
     var bookListScrollTimer = null;
     bookListEl.addEventListener("scroll", function () {
         clearTimeout(bookListScrollTimer);
         bookListScrollTimer = setTimeout(syncBookListHeight, 120);
     });
 
-    // scroll-snap-stop: always (see .book-day-card above) only caps a released FLING's
-    // own momentum to one day - it does nothing to limit a single manual drag, which
-    // tracks the finger 1:1 same as any scrollable element and can end up several days
-    // over if that drag itself covers more than one card's width (a fast/long swipe
-    // easily does). Capping that needs the gesture's own start and end points, which
-    // native CSS scroll-snap has no way to express, so the drag is driven by hand here
-    // instead. A first attempt used touch-action: pan-y to hand the browser's own
-    // touch scrolling off entirely (needed so its native momentum/snap couldn't fight
-    // this handler's own corrective scroll) - but the in-app browser this page
-    // actually gets opened in doesn't honor touch-action, and silently dropped
-    // horizontal scrolling altogether instead of falling through to this handler.
-    // preventDefault() inside a non-passive touchmove is the older, far more broadly
-    // supported way to get the same effective control, so that's what actually blocks
-    // the native scroll now. Locked to whichever axis (x/y) the drag's first dozen-ish
-    // pixels commit to, so a vertical drag that happens to start on a card still
-    // scrolls the page normally instead of getting hijacked - but biased toward "x"
-    // unless "y" is clearly dominant (rather than a plain greater-than), since this
-    // element only ever does anything for a horizontal swipe: a diagonal-ish drag
-    // starting mid-card, arguably the more natural angle for a thumb than one starting
-    // right at the card's own edge, was reliably losing that comparison to "y" on its
-    // first few noisy pixels and never engaging the carousel at all.
+    // A fast/hard swipe's own momentum used to be able to carry it past the next day
+    // to land two or three over, so the drag is driven entirely by hand here instead
+    // of native touch scrolling - captured which card was in view when the gesture
+    // started, and clamps wherever the drag ends up to at most one day past it.
+    //
+    // preventDefault() now fires on every touchmove from the very first pixel, not
+    // once an axis has been decided - a first version waited to see whether the drag
+    // looked horizontal or vertical before calling it, so it could let a vertical drag
+    // scroll the page normally instead of hijacking it. But the in-app browser this
+    // page is actually opened in (the same one that ignores touch-action and
+    // scroll-behavior: smooth) sometimes already commits to handling a touchmove
+    // natively the moment one goes by uncancelled, and won't hand it back afterward -
+    // that race is what made the swipe inconsistent, working some times and not
+    // others depending on exactly when the axis got decided. Claiming every touchmove
+    // immediately removes that race entirely; the trade-off is a drag starting
+    // directly on a day card no longer scrolls the page vertically, same as any other
+    // native single-purpose carousel.
     var bookDragStartX = null;
     var bookDragStartY = null;
     var bookDragStartScroll = null;
@@ -1516,6 +1513,7 @@
     }, { passive: true });
     bookListEl.addEventListener("touchmove", function (e) {
         if (bookDragStartX === null) return;
+        e.preventDefault();
         var dx = e.touches[0].clientX - bookDragStartX;
         var dy = e.touches[0].clientY - bookDragStartY;
         if (bookDragAxis === null) {
@@ -1523,7 +1521,6 @@
             bookDragAxis = Math.abs(dy) > Math.abs(dx) * 1.3 ? "y" : "x";
         }
         if (bookDragAxis === "y") return;
-        e.preventDefault();
         bookListEl.scrollLeft = bookDragStartScroll - dx;
     }, { passive: false });
     bookListEl.addEventListener("touchend", function () {
