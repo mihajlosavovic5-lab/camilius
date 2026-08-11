@@ -355,57 +355,51 @@
        which slots are still free - see public_page_availability in app.py). "Today" is
        worked out client-side (see the script below) since this page is rendered once,
        server-side, with no request timezone to key off. --- */
+    /* One day fully visible at a time - a horizontal snap-scroll carousel (swipe/scroll
+       left reveals the next day from the right) rather than a wrapping multi-column
+       grid, so there's never more than a single day card on screen at once. */
     .book-list {
-        display: grid;
-        /* 92px (not the old 150px) is sized to the header's own new compact chip
-           layout below, not the old single-line "TUE ... Aug 11" row - that row's
-           min-content alone was already ~150px wide, which left room for only one
-           column on common ~360-390px-wide phones once .wrap/section padding (84px
-           combined) was subtracted, defeating auto-fill before it could ever place a
-           second column. */
-        grid-template-columns: repeat(auto-fill, minmax(92px, 1fr));
-        align-items: start;
-        gap: 8px;
+        display: flex;
+        flex-direction: row;
+        overflow-x: auto;
+        scroll-snap-type: x mandatory;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+        gap: 10px;
     }
-    /* Each day is a native <details> - collapsed (just the weekday/date chip) until
+    .book-list::-webkit-scrollbar { display: none; }
+    /* Each day is a native <details> - collapsed (just the weekday/date row) until
        tapped, instead of every open day's full slot grid dumped on screen at once. Same
        marker-hiding pattern as the app's own past-slots toggle
        (.schedule-past-summary/::-webkit-details-marker in style.css), plus a chevron
        that flips via the [open] attribute selector to show expanded state. */
     .book-day-card {
         position: relative;
+        flex: 0 0 100%;
+        scroll-snap-align: start;
         border: 1px solid var(--border);
         border-radius: calc(var(--radius) * 0.6);
         background: var(--background);
         overflow: hidden;
     }
     .book-day-card.today { border-color: var(--primary); border-width: 1.5px; }
-    /* Expanding a day no longer just grows its own (now narrow) grid cell - a slot
-       grid squeezed into ~92px would wrap to one chip per line - so an open card
-       spans the full row width instead, same as a normal wide block again. */
-    .book-day-card[open] { grid-column: 1 / -1; }
     .book-day-header {
         display: flex;
-        flex-direction: column;
         align-items: center;
-        gap: 3px;
-        padding: 12px 8px;
+        gap: 10px;
+        padding: 13px 14px;
         cursor: pointer;
         list-style: none;
-        text-align: center;
         -webkit-tap-highlight-color: transparent;
         transition: background .15s ease;
     }
-    /* Once a card spans the full row (open, see above) its header goes back to a
-       normal left-aligned weekday/date row instead of staying a centered chip. */
-    .book-day-card[open] .book-day-header { flex-direction: row; text-align: left; padding: 13px 14px; border-bottom: 1px solid var(--border); }
     .book-day-header::-webkit-details-marker { display: none; }
     .book-day-header::marker { display: none; }
     .book-day-header:hover { background: var(--surface); }
-    .book-day-name { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); font-weight: 700; }
-    .book-day-card[open] .book-day-name { flex: 1; }
-    .book-day-num { font-size: 0.88rem; font-weight: 600; }
-    .book-day-chevron { flex: 0 0 auto; width: 14px; height: 14px; color: var(--text-muted); transition: transform .2s ease; }
+    .book-day-name { flex: 1; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); font-weight: 700; }
+    .book-day-num { font-size: 0.92rem; font-weight: 600; }
+    .book-day-chevron { flex: 0 0 auto; width: 16px; height: 16px; color: var(--text-muted); transition: transform .2s ease; }
+    .book-day-card[open] .book-day-header { border-bottom: 1px solid var(--border); }
     .book-day-card[open] .book-day-chevron { transform: rotate(180deg); }
     .book-day-slots {
         display: flex;
