@@ -16,6 +16,10 @@
         <div class="register-wizard-top">
             <button type="button" class="register-back-btn" id="register-back-btn" aria-label="Back">&lsaquo;</button>
             <div class="register-wizard-heading">
+                <div class="register-step-progress">
+                    <span class="register-step-icon-badge" id="register-step-icon-badge" aria-hidden="true"></span>
+                    <span class="register-step-progress-text" id="register-step-progress-text"></span>
+                </div>
                 <h1 data-i18n="register.title">Register your business</h1>
                 <p class="auth-subtitle" data-i18n="register.subtitle">You can change all of these fields later in settings.</p>
             </div>
@@ -43,14 +47,16 @@
                     <input type="hidden" id="register-name-input" name="name" value="{{ data.get('name', '') }}">
 
                     {% set _name_parts = data.get('name', '').split(' ', 1) %}
-                    <div class="floating-field">
-                        <input type="text" id="register-firstname-input" value="{{ _name_parts[0] }}" placeholder=" " required>
-                        <label for="register-firstname-input" data-i18n="register.yourName">Your name</label>
-                    </div>
+                    <div class="register-field-row">
+                        <div class="floating-field">
+                            <input type="text" id="register-firstname-input" value="{{ _name_parts[0] }}" placeholder=" " required>
+                            <label for="register-firstname-input" data-i18n="register.yourName">Your name</label>
+                        </div>
 
-                    <div class="floating-field">
-                        <input type="text" id="register-surname-input" value="{{ _name_parts[1] if _name_parts|length > 1 else '' }}" placeholder=" " required>
-                        <label for="register-surname-input" data-i18n="register.yourSurname">Your surname</label>
+                        <div class="floating-field">
+                            <input type="text" id="register-surname-input" value="{{ _name_parts[1] if _name_parts|length > 1 else '' }}" placeholder=" " required>
+                            <label for="register-surname-input" data-i18n="register.yourSurname">Your surname</label>
+                        </div>
                     </div>
 
                     <div class="floating-field floating-field-password">
@@ -59,6 +65,14 @@
                         {% include "_password_toggle.html" %}
                     </div>
                     <p class="field-error hidden" id="register-password-error"></p>
+                    <div class="password-strength hidden" id="register-password-strength">
+                        <div class="password-strength-bars">
+                            <span class="password-strength-bar"></span>
+                            <span class="password-strength-bar"></span>
+                            <span class="password-strength-bar"></span>
+                        </div>
+                        <span class="password-strength-label" id="register-password-strength-label"></span>
+                    </div>
 
                     <div class="floating-field floating-field-password">
                         <input type="password" id="register-confirm-password-input" name="confirm_password" placeholder=" " autocomplete="new-password" required>
@@ -67,18 +81,26 @@
                     </div>
                     <p class="field-error hidden" id="register-confirm-password-error"></p>
 
-                    <div class="floating-field">
-                        <input type="email" id="register-contact-email-input" name="contact_email" value="{{ data.get('contact_email', '') }}" placeholder=" " required>
-                        <label for="register-contact-email-input" data-i18n="register.contactEmail">Contact email</label>
-                    </div>
-                    <p class="field-error hidden" id="register-contact-email-error"></p>
+                    <div class="register-field-row">
+                        <div class="register-field-col">
+                            <div class="floating-field">
+                                <input type="email" id="register-contact-email-input" name="contact_email" value="{{ data.get('contact_email', '') }}" placeholder=" " required>
+                                <label for="register-contact-email-input" data-i18n="register.contactEmail">Contact email</label>
+                            </div>
+                            <p class="field-error hidden" id="register-contact-email-error"></p>
+                            <p class="field-success hidden" id="register-contact-email-success" data-i18n="register.emailAvailable">Available</p>
+                        </div>
 
-                    <div class="floating-field">
-                        <input type="tel" id="register-phone-input" name="phone_number" value="{{ data.get('phone_number', '') }}" placeholder=" ">
-                        <label for="register-phone-input" data-i18n="register.phone">Phone number (optional)</label>
+                        <div class="register-field-col">
+                            <div class="floating-field">
+                                <input type="tel" id="register-phone-input" name="phone_number" value="{{ data.get('phone_number', '') }}" placeholder=" ">
+                                <label for="register-phone-input" data-i18n="register.phone">Phone number (optional)</label>
+                            </div>
+                            <p class="phone-country-hint hidden" id="register-phone-country-hint"><span class="flag" id="register-phone-country-flag"></span><span id="register-phone-country-name"></span></p>
+                            <p class="field-error hidden" id="register-phone-error"></p>
+                            <p class="field-success hidden" id="register-phone-success" data-i18n="register.phoneAvailable">Available</p>
+                        </div>
                     </div>
-                    <p class="phone-country-hint hidden" id="register-phone-country-hint"><span class="flag" id="register-phone-country-flag"></span><span id="register-phone-country-name"></span></p>
-                    <p class="field-error hidden" id="register-phone-error"></p>
                 </div>
 
                 <div class="register-step" id="register-step-2">
@@ -113,6 +135,10 @@
                 </div>
             </div>
 
+            <div class="register-skip-row hidden" id="register-skip-row">
+                <button type="button" class="link-btn" id="register-skip-btn" data-i18n="register.skipForNow">Skip for now</button>
+            </div>
+
             <div class="register-wizard-bottom">
                 <div class="register-step-dots">
                     <span class="register-step-dot active" id="register-step-dot-1"></span>
@@ -123,7 +149,10 @@
             </div>
 
             <div class="form-actions hidden" id="register-submit-wrap">
-                <button class="button button-full" type="submit" id="register-submit-btn" data-i18n="register.submit">Register</button>
+                <button class="button button-full" type="submit" id="register-submit-btn">
+                    <span class="btn-spinner hidden" id="register-submit-spinner" aria-hidden="true"></span>
+                    <span id="register-submit-label" data-i18n="register.submit">Register</span>
+                </button>
             </div>
         </form>
 
@@ -244,6 +273,35 @@ document.addEventListener("DOMContentLoaded", function () {
     }
     passwordInput.addEventListener("input", updatePasswordLengthError);
 
+    // --- Password strength meter: a purely cosmetic client-side heuristic (length +
+    // character variety) layered on top of the minlength="8" constraint above - it never
+    // relaxes or replaces that requirement, just gives a sense of "how strong" once it's
+    // long enough to submit. Hidden entirely while the field is empty. ---
+
+    var passwordStrengthBox = document.getElementById("register-password-strength");
+    var passwordStrengthLabel = document.getElementById("register-password-strength-label");
+
+    function passwordStrengthLevel(value) {
+        if (!value) return 0;
+        var hasLower = /[a-z]/.test(value);
+        var hasUpper = /[A-Z]/.test(value);
+        var hasDigit = /[0-9]/.test(value);
+        var hasSymbol = /[^a-zA-Z0-9]/.test(value);
+        var variety = [hasLower, hasUpper, hasDigit, hasSymbol].filter(Boolean).length;
+        if (value.length >= 10 && variety >= 3) return 3;
+        if (value.length >= 8 && variety >= 2) return 2;
+        return 1;
+    }
+
+    function updatePasswordStrength() {
+        var level = passwordStrengthLevel(passwordInput.value);
+        passwordStrengthBox.classList.toggle("hidden", level === 0);
+        passwordStrengthBox.dataset.level = level;
+        var labelKey = level === 3 ? "register.passwordStrengthStrong" : level === 2 ? "register.passwordStrengthFair" : "register.passwordStrengthWeak";
+        passwordStrengthLabel.textContent = level === 0 ? "" : t(labelKey);
+    }
+    passwordInput.addEventListener("input", updatePasswordStrength);
+
     // --- Confirm password: live red warning the moment the two fields disagree, plus
     // blocking submit via setCustomValidity() so it folds into form.checkValidity() below
     // the same as every other native constraint (required, minlength, etc). ---
@@ -282,8 +340,8 @@ document.addEventListener("DOMContentLoaded", function () {
     var form = document.getElementById("register-form");
 
     var fields = {
-        contact_email: { input: document.getElementById("register-contact-email-input"), error: document.getElementById("register-contact-email-error"), required: true, status: "unknown" },
-        phone_number: { input: document.getElementById("register-phone-input"), error: document.getElementById("register-phone-error"), required: false, status: "unknown" },
+        contact_email: { input: document.getElementById("register-contact-email-input"), error: document.getElementById("register-contact-email-error"), success: document.getElementById("register-contact-email-success"), required: true, status: "unknown" },
+        phone_number: { input: document.getElementById("register-phone-input"), error: document.getElementById("register-phone-error"), success: document.getElementById("register-phone-success"), required: false, status: "unknown" },
     };
 
     // True once every step-1 field is filled in (where required), not "taken"/mid-check,
@@ -318,10 +376,12 @@ document.addEventListener("DOMContentLoaded", function () {
         if (!value) {
             f.status = "unknown";
             f.error.classList.add("hidden");
+            f.success.classList.add("hidden");
             updateNextButtonState();
             return;
         }
         f.status = "checking";
+        f.success.classList.add("hidden");
         updateNextButtonState();
         fetch("{{ url_for('check_availability') }}", {
             method: "POST",
@@ -337,8 +397,10 @@ document.addEventListener("DOMContentLoaded", function () {
                 if (data.taken) {
                     f.error.textContent = f.errorText;
                     f.error.classList.remove("hidden");
+                    f.success.classList.add("hidden");
                 } else {
                     f.error.classList.add("hidden");
+                    f.success.classList.remove("hidden");
                 }
                 updateNextButtonState();
             })
@@ -346,6 +408,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 // Network hiccup - don't block the user forever on a check we couldn't
                 // complete; server-side still re-validates on actual submit.
                 f.status = "unknown";
+                f.success.classList.add("hidden");
                 updateNextButtonState();
             });
     }
@@ -372,10 +435,28 @@ document.addEventListener("DOMContentLoaded", function () {
     var nextBtn = document.getElementById("register-next-btn");
     var submitWrap = document.getElementById("register-submit-wrap");
     var errorBox = document.getElementById("register-error");
+    var skipRow = document.getElementById("register-skip-row");
 
     function showRegisterError(message) {
         errorBox.textContent = message;
         errorBox.classList.remove("hidden");
+    }
+
+    // Icon + "Step N of 3 · <name>" caption above the h1 (see .register-step-progress in
+    // style.css) - swapped by showRegisterStep() below as the active step changes, same
+    // spot for all 3 icons rather than three separate badges so there's only ever one to
+    // toggle in/out.
+    var stepIconBadge = document.getElementById("register-step-icon-badge");
+    var stepProgressText = document.getElementById("register-step-progress-text");
+    var STEP_ICONS = {
+        1: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true"><circle cx="12" cy="8" r="3.6" stroke-width="1.6"/><path d="M5 20c1.2-4 4-6 7-6s5.8 2 7 6" stroke-width="1.6" stroke-linecap="round"/></svg>',
+        2: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true"><circle cx="12" cy="12" r="8.5" stroke-width="1.6"/><path d="M12 7.5V12l3.2 2" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+        3: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true"><path d="M4 12.5l4.5 4.5L20 6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+    };
+    var STEP_LABEL_KEYS = { 1: "register.stepAccount", 2: "register.stepDetails", 3: "register.stepFinish" };
+    function updateStepProgress(n) {
+        stepIconBadge.innerHTML = STEP_ICONS[n];
+        stepProgressText.textContent = t("register.stepCounter").replace("{n}", n) + " · " + t(STEP_LABEL_KEYS[n]);
     }
 
     // Step 1 has its named condition (all required fields filled, none of
@@ -404,7 +485,12 @@ document.addEventListener("DOMContentLoaded", function () {
         }
         nextBtn.classList.toggle("hidden", n === REGISTER_STEP_COUNT);
         submitWrap.classList.toggle("hidden", n !== REGISTER_STEP_COUNT);
+        // Skip only makes sense on step 2 (working hours + price list are both optional,
+        // fillable later in Settings) - step 3's terms checkbox is mandatory, so there's
+        // nothing to skip to from there.
+        skipRow.classList.toggle("hidden", n !== 2);
         errorBox.classList.add("hidden");
+        updateStepProgress(n);
         updateNextButtonState();
     }
 
@@ -422,6 +508,10 @@ document.addEventListener("DOMContentLoaded", function () {
             }
             showRegisterStep(3);
         }
+    });
+
+    document.getElementById("register-skip-btn").addEventListener("click", function () {
+        showRegisterStep(3);
     });
 
     document.getElementById("register-back-btn").addEventListener("click", function () {
@@ -449,9 +539,21 @@ document.addEventListener("DOMContentLoaded", function () {
         } else if (!registerPricesPicker.validate()) {
             event.preventDefault();
             showRegisterError(t("pricePicker.errorIncomplete"));
+        } else {
+            // Every check passed - the browser is actually about to submit (full page
+            // POST/reload), so swap the button to a disabled spinner state for the
+            // remainder of this page's life. Disabling here doesn't cancel the
+            // submission already in flight; it only stops a second click while the
+            // server's response is pending.
+            var submitBtn = document.getElementById("register-submit-btn");
+            document.getElementById("register-submit-spinner").classList.remove("hidden");
+            document.getElementById("register-submit-label").textContent = t("register.submitting");
+            submitBtn.disabled = true;
+            submitBtn.classList.add("btn-loading");
         }
     });
 
+    updateStepProgress(registerStep);
     updateNextButtonState();
 });
 </script>

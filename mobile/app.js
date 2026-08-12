@@ -331,6 +331,13 @@ if (capacitorPlugins) {
         } else if (screens.register.classList.contains("active")) {
             if (registerStep > 1) showRegisterStep(registerStep - 1);
             else showScreen("login");
+        } else if (screens.login.classList.contains("active") && el("login-wrap").classList.contains("login-wrap-form-phase")) {
+            // Mirrors #login-email-back-btn's own click handler (see resetLoginPhase()) -
+            // without this, a back press/gesture here fell all the way through to the
+            // canGoBack/exitApp branch below (Login never pushes history), kicking the
+            // visitor out of the app instead of just stepping back to the Google/email
+            // choice the on-screen back arrow already does.
+            resetLoginPhase();
         } else if (screens.forgotPassword.classList.contains("active")) {
             showScreen("login");
         } else if (screens.verifyPending.classList.contains("active")) {
@@ -1315,7 +1322,7 @@ attachLivePhoneCountryDetection(el("forgot-phone"), el("forgot-phone-country-fla
 // api.py's api_check_availability. getValue is a function rather than reading
 // inputEl.value directly so the phone fields can check the FULL composed international
 // number (country dial code + typed digits) instead of just the local part.
-function setupAvailabilityField(inputEl, errorEl, field, errorKey, getValue, onStatusChange) {
+function setupAvailabilityField(inputEl, errorEl, field, errorKey, getValue, onStatusChange, successEl) {
     let status = "unknown"; // unknown | checking | available | taken
     let timer = null;
 
@@ -1323,6 +1330,10 @@ function setupAvailabilityField(inputEl, errorEl, field, errorKey, getValue, onS
         status = next;
         errorEl.classList.toggle("hidden", status !== "taken");
         if (status === "taken") errorEl.textContent = t(errorKey);
+        // successEl is optional (only the register wizard's fields pass one) - a green
+        // "available" confirmation once a clear check comes back, instead of the
+        // previous silence that read as "nothing happened" rather than "you're good".
+        if (successEl) successEl.classList.toggle("hidden", status !== "available");
         if (onStatusChange) onStatusChange();
     }
 
@@ -2894,8 +2905,28 @@ let registerStep = 1;
 // grows past it.
 let registerStepResizeObserver = null;
 
+// Icon + "Step N of 3 · <name>" caption above the heading (see .register-step-progress in
+// app.css) - same single-badge-that-gets-swapped approach as the website's own copy in
+// templates/register.html, updated from showRegisterStep() below as the active step
+// changes.
+const REGISTER_STEP_ICONS = {
+    1: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true"><circle cx="12" cy="8" r="3.6" stroke-width="1.6"/><path d="M5 20c1.2-4 4-6 7-6s5.8 2 7 6" stroke-width="1.6" stroke-linecap="round"/></svg>',
+    2: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true"><circle cx="12" cy="12" r="8.5" stroke-width="1.6"/><path d="M12 7.5V12l3.2 2" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+    3: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true"><path d="M4 12.5l4.5 4.5L20 6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+};
+const REGISTER_STEP_LABEL_KEYS = { 1: "register.stepAccount", 2: "register.stepDetails", 3: "register.stepFinish" };
+function updateRegisterStepProgress(n) {
+    el("register-step-icon-badge").innerHTML = REGISTER_STEP_ICONS[n];
+    el("register-step-progress-text").textContent = t("register.stepCounter").replace("{n}", n) + " · " + t(REGISTER_STEP_LABEL_KEYS[n]);
+}
+
 function showRegisterStep(n) {
     registerStep = n;
+    updateRegisterStepProgress(n);
+    // Skip only makes sense on step 2 (working hours + price list are both optional,
+    // fillable later in Profile) - step 3's terms checkbox is mandatory, so there's
+    // nothing to skip to from there.
+    el("register-skip-row").classList.toggle("hidden", n !== 2);
     // Slide the steps track by exact viewport-widths (pixels, not %, so this doesn't
     // depend on how the browser reports the track's own overflowing box width) - the
     // same transform+transition technique .screen itself uses for screen-to-screen nav.
@@ -2928,11 +2959,11 @@ function showRegisterStep(n) {
 // updateRegisterNextButtonValidity() below.
 const registerEmailAvailability = setupAvailabilityField(
     el("register-contact-email"), el("register-contact-email-error"), "contact_email", "register.emailTaken",
-    () => el("register-contact-email").value.trim(), updateRegisterNextButtonValidity,
+    () => el("register-contact-email").value.trim(), updateRegisterNextButtonValidity, el("register-contact-email-success"),
 );
 const registerPhoneAvailability = setupAvailabilityField(
     el("register-phone"), el("register-phone-error"), "phone_number", "register.phoneTaken",
-    () => composePhoneNumber(el("register-phone"), selectedPhoneCountry), updateRegisterNextButtonValidity,
+    () => composePhoneNumber(el("register-phone"), selectedPhoneCountry), updateRegisterNextButtonValidity, el("register-phone-success"),
 );
 
 // "Your name"/"Your surname" are two separate inputs purely for a nicer sign-up
@@ -2969,6 +3000,30 @@ function updatePasswordLengthError() {
     } else {
         errorEl.classList.add("hidden");
     }
+}
+
+// Live password-strength meter under the password field - a purely cosmetic client-side
+// heuristic (length + character variety) layered on top of the minlength/8-char check
+// above, same three-bar component/levels as the website's own passwordStrengthLevel()
+// (templates/register.html).
+function passwordStrengthLevel(value) {
+    if (!value) return 0;
+    const hasLower = /[a-z]/.test(value);
+    const hasUpper = /[A-Z]/.test(value);
+    const hasDigit = /[0-9]/.test(value);
+    const hasSymbol = /[^a-zA-Z0-9]/.test(value);
+    const variety = [hasLower, hasUpper, hasDigit, hasSymbol].filter(Boolean).length;
+    if (value.length >= 10 && variety >= 3) return 3;
+    if (value.length >= 8 && variety >= 2) return 2;
+    return 1;
+}
+function updatePasswordStrength() {
+    const level = passwordStrengthLevel(el("register-password").value);
+    const box = el("register-password-strength");
+    box.classList.toggle("hidden", level === 0);
+    box.dataset.level = level;
+    const labelKey = level === 3 ? "register.passwordStrengthStrong" : level === 2 ? "register.passwordStrengthFair" : "register.passwordStrengthWeak";
+    el("register-password-strength-label").textContent = level === 0 ? "" : t(labelKey);
 }
 
 // Live red inline warning under "Confirm password" the moment the two fields disagree -
@@ -3035,6 +3090,7 @@ function updateRegisterNextButtonValidity() {
     el(id).addEventListener("input", updateRegisterNextButtonValidity);
 });
 el("register-password").addEventListener("input", updatePasswordLengthError);
+el("register-password").addEventListener("input", updatePasswordStrength);
 el("register-password").addEventListener("input", updateConfirmPasswordError);
 el("register-confirm-password").addEventListener("input", updateConfirmPasswordError);
 el("register-hours-picker").addEventListener("change", updateRegisterNextButtonValidity);
@@ -3067,6 +3123,13 @@ el("register-next-btn").addEventListener("click", () => {
     if (registerStep < REGISTER_STEP_COUNT) showRegisterStep(registerStep + 1);
 });
 
+// Jumps straight from step 2 (working hours + price list, both optional) to step 3
+// (the mandatory terms checkbox) - only ever visible on step 2, see showRegisterStep().
+el("register-skip-btn").addEventListener("click", () => {
+    el("register-error").classList.add("hidden");
+    showRegisterStep(3);
+});
+
 // Shared by the plain "Create account" link and the "Continue with Google" needs_signup
 // path below (see pollGoogleLogin) - the latter just adds a name/email starting point
 // (and a pending google_link_token to resubmit with the form) on top of the same reset,
@@ -3092,6 +3155,7 @@ function openRegisterScreen({ name, contactEmail, googleLinkToken, notice } = {}
     registerPhoneAvailability.reset();
     el("register-password-error").classList.add("hidden");
     el("register-confirm-password-error").classList.add("hidden");
+    el("register-password-strength").classList.add("hidden");
     if (notice) {
         setRegisterErrorBoxStyle(true);
         el("register-error").textContent = notice;
@@ -3168,7 +3232,9 @@ el("register-form").addEventListener("submit", async (event) => {
 
     errorBox.classList.add("hidden");
     submitBtn.disabled = true;
-    submitBtn.textContent = t("register.submitLoading");
+    submitBtn.classList.add("btn-loading");
+    el("register-submit-spinner").classList.remove("hidden");
+    el("register-submit-label").textContent = t("register.submitLoading");
 
     try {
         const data = await api("/api/register", {
@@ -3213,7 +3279,9 @@ el("register-form").addEventListener("submit", async (event) => {
         errorBox.classList.remove("hidden");
     } finally {
         submitBtn.disabled = false;
-        submitBtn.textContent = t("register.submit");
+        submitBtn.classList.remove("btn-loading");
+        el("register-submit-spinner").classList.add("hidden");
+        el("register-submit-label").textContent = t("register.submit");
     }
 });
 

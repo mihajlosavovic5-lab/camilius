@@ -135,6 +135,12 @@
     --danger: #b3341f;
     --danger-bg: #f9e8e2;
     --danger-border: #eec6ba;
+    /* Deeper-than-plain --border tier, used only where a control needs to read as
+       genuinely bordered on its own (the register wizard's terms checkbox) rather than
+       the barely-there hairline --border is tuned for elsewhere. Same value as the
+       website's own --border-strong (static/style.css) so the checkbox looks identical
+       on both surfaces. */
+    --border-strong: #d9c49b;
     --shadow: 0 2px 6px rgba(38, 32, 20, .05), 0 1px 2px rgba(38, 32, 20, .04);
     /* Fill/outline ring for the tab-root titles below (Home/Schedule/Profile/
        Settings) - white text on a black outline keeps it readable against light
@@ -393,9 +399,16 @@ button { font-family: inherit; -webkit-appearance: none; appearance: none; }
 .lang-select-btn {
     display: flex; align-items: center; gap: 5px; background: none; border: none; cursor: pointer;
     font-family: inherit; font-size: 15px; font-weight: 600; color: var(--text-muted); padding: 10px 8px;
-    border-radius: 8px; transition: background .15s ease;
+    border-radius: 8px; transition: transform .12s ease;
 }
-.lang-select-btn.active { background: var(--background); }
+/* Used to stay highlighted (.active, JS-managed) for as long as the picker modal was
+   open - a static box sitting there for the whole duration instead of a tap
+   acknowledgment. A same-color background flash on :active still read as a stray box
+   around the button (same reasoning as the Settings row's own version of this trigger,
+   see #settings-language-row:active above) - dropped the color change entirely and
+   kept just the scale, which is enough to register as "yes, that tapped" without a
+   halo appearing around it. */
+.lang-select-btn:active { transform: scale(.96); }
 .lang-select-label { white-space: nowrap; }
 /* Flexible spacers above/below the form cluster, close to an even split so the cluster
    reads as centered rather than deliberately offset. */
@@ -571,6 +584,11 @@ label { display: block; font-weight: 600; font-size: 14.5px; margin: 14px 0 5px;
 /* Inline "already taken" errors shown live under a field as the user types (Create
    Account step 1 + Profile) - see setupAvailabilityField() in app.js. */
 .field-error { color: var(--danger); font-size: 13px; margin: 5px 2px 0; }
+/* Positive counterpart to .field-error, shown once a live "already taken" check (see
+   setupAvailabilityField() in app.js) comes back clear - same reasoning/markup as the
+   website's own .field-success (static/style.css). */
+.field-success { color: var(--success); font-size: 13px; margin: 5px 2px 0; display: flex; align-items: center; gap: 5px; }
+.field-success::before { content: "\2713"; font-weight: 700; }
 input[type="text"], input[type="password"], input[type="email"], input[type="tel"], input[type="number"], textarea {
     width: 100%; padding: 12px 13px; border: 1px solid var(--border); border-radius: 10px;
     font-family: inherit; font-size: 17px; color: var(--text); background: var(--surface);
@@ -633,6 +651,12 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
 .screen-forgot-password .floating-field input[type="text"] {
     padding: 22px 16px 8px; margin-bottom: 12px; border-radius: 16px;
 }
+/* Login's email/password pair specifically reads too cramped at the shared 12px -
+   match the 14px gap the sign-up form's own fields use (its default
+   .floating-field margin-top, uncancelled there), without touching
+   forgot-password's single field or the password field's own margin-bottom
+   above the submit button. */
+#login-email { margin-bottom: 14px; }
 .floating-field input:focus + label,
 .floating-field input:not(:placeholder-shown) + label {
     height: 26px; font-size: 12.5px; color: var(--primary);
@@ -886,9 +910,23 @@ input.tap-to-edit-field, textarea.tap-to-edit-field { cursor: pointer; backgroun
 }
 
 .checkbox-row { display: flex; align-items: flex-start; gap: 9px; font-weight: 400; font-size: 15px; margin: 16px 0 4px; cursor: pointer; }
-/* accent-color intentionally uses --text (not --primary/gold) - a plain, clean
-   checkmark instead of a bright yellow-filled box when checked. */
-.checkbox-row input[type="checkbox"], .checkbox-row input[type="radio"] { width: 18px; height: 18px; margin-top: 1px; accent-color: var(--text); flex-shrink: 0; }
+.checkbox-row input[type="radio"] { width: 18px; height: 18px; margin-top: 1px; accent-color: var(--text); flex-shrink: 0; }
+/* Custom checkbox: rounded amber-bordered box with a white checkmark drawn via an
+   inline SVG data-URI background once :checked - same look/markup as the website's own
+   .checkbox-row input[type="checkbox"] (static/style.css) so the terms checkbox reads
+   identically on both surfaces instead of the bare native box this replaces. */
+.checkbox-row input[type="checkbox"] {
+    appearance: none; -webkit-appearance: none;
+    width: 20px; height: 20px; margin-top: 1px; flex-shrink: 0; cursor: pointer;
+    border: 2px solid var(--border-strong); border-radius: 6px; background: var(--surface);
+    transition: background .15s ease, border-color .15s ease, box-shadow .15s ease;
+}
+.checkbox-row input[type="checkbox"]:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(214, 148, 16, .25); }
+.checkbox-row input[type="checkbox"]:checked {
+    background-color: var(--primary); border-color: var(--primary);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='4 12.5 9 17.5 20 6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: center; background-size: 13px 13px;
+}
 
 /* --- Create Account: multi-step wizard (Account -> Working hours -> Prices/FAQ/Terms),
    a step-dots + bottom-right arrow pattern instead of one long scrolling form --- */
@@ -909,8 +947,12 @@ input.tap-to-edit-field, textarea.tap-to-edit-field { cursor: pointer; backgroun
    background, same as every other screen in the app. */
 .register-card { padding: 0; }
 /* Nudges the back button down slightly from the very top edge - a small deliberate gap
-   from the status bar, not flush against it. */
-.screen-register.screen .topbar { padding-top: calc(44px + var(--safe-top)); }
+   from the status bar, not flush against it. Kept close to .register-back-btn's own
+   top offset (22px + --safe-top, see below) rather than far past it - this used to be
+   44px, leaving a large dead gap between the status bar and the step heading below with
+   nothing in it (the button itself is pinned separately via position:absolute, so this
+   padding's only job is reserving flow space for the heading to sit under). */
+.screen-register.screen .topbar { padding-top: calc(24px + var(--safe-top)); }
 /* Persistent wizard heading, shown above every step (not just step 1) - same wording
    and role as the web register page's .register-wizard-heading (templates/
    register.html), which stays fixed across all three steps instead of being swapped
@@ -920,6 +962,50 @@ input.tap-to-edit-field, textarea.tap-to-edit-field { cursor: pointer; backgroun
 .register-step-intro { text-align: center; margin-bottom: 22px; }
 .register-step-intro h1 { font-family: var(--font-serif); font-weight: 700; font-size: 22px; margin: 0 0 6px; color: var(--text); }
 .register-step-intro .screen-subtitle { margin: 0; }
+
+/* Small icon-badge + "Step 1 of 3 · Account" caption above the heading, swapped by
+   updateStepProgress() in app.js as the active step changes - same component as the
+   website's own .register-step-progress (static/style.css), centered here to match
+   .register-step-intro's own centered text instead of the website's left-aligned one. */
+.register-step-progress { display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 8px; }
+.register-step-icon-badge {
+    width: 30px; height: 30px; border-radius: 50%; flex-shrink: 0;
+    background: var(--primary-light); color: var(--primary-ink);
+    display: flex; align-items: center; justify-content: center;
+}
+.register-step-icon-badge svg { width: 16px; height: 16px; }
+.register-step-progress-text { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--text-muted); }
+
+/* "Skip for now" - shown only on step 2 (hours + price list, both optional), jumps
+   straight to step 3 where the mandatory terms checkbox lives. Sits inside the pinned
+   .register-bottom-bar (not the scrolling body) so it's reachable without scrolling,
+   same as the arrow/dots it sits above. */
+.register-skip-row { text-align: center; margin-bottom: 10px; }
+
+/* Live password-strength meter under the password field - same three-bar component as
+   the website's own .password-strength (static/style.css), reusing --success (mobile
+   has no separate --checkmark token) for the top "strong" tier. */
+.password-strength { margin: 8px 2px 0; }
+.password-strength-bars { display: flex; gap: 4px; }
+.password-strength-bar { height: 4px; flex: 1; border-radius: 99px; background: var(--border); transition: background .15s ease; }
+.password-strength-label { display: block; margin-top: 4px; font-size: 12.5px; color: var(--text-muted); }
+.password-strength[data-level="1"] .password-strength-bar:nth-child(1) { background: var(--danger); }
+.password-strength[data-level="1"] .password-strength-label { color: var(--danger); }
+.password-strength[data-level="2"] .password-strength-bar:nth-child(1),
+.password-strength[data-level="2"] .password-strength-bar:nth-child(2) { background: var(--warning); }
+.password-strength[data-level="2"] .password-strength-label { color: var(--warning); }
+.password-strength[data-level="3"] .password-strength-bar { background: var(--success); }
+.password-strength[data-level="3"] .password-strength-label { color: var(--success); }
+
+/* Small inline spinner inside a submit button while its request is in flight - same
+   component as the website's own .btn-spinner (static/style.css). */
+.btn-spinner {
+    width: 15px; height: 15px; border-radius: 50%; flex-shrink: 0;
+    border: 2px solid currentColor; border-right-color: transparent; opacity: .85;
+    animation: btn-spinner-spin .6s linear infinite;
+}
+@keyframes btn-spinner-spin { to { transform: rotate(360deg); } }
+.btn-loading { pointer-events: none; opacity: .85; }
 
 .register-steps-viewport {
     overflow: hidden; transition: height .22s ease;
@@ -956,7 +1042,7 @@ input.tap-to-edit-field, textarea.tap-to-edit-field { cursor: pointer; backgroun
    its own height doesn't affect the heading's position, and a step tall enough to
    fill/overflow the screen just shrinks it to 0 and scrolls normally instead of
    clipping. */
-.screen-register .detail-body::before { content: ''; flex: 0 0 46px; }
+.screen-register .detail-body::before { content: ''; flex: 0 0 14px; }
 .screen-register .detail-body::after { content: ''; flex: 1 0 0; }
 .register-step-nav { display: flex; align-items: center; justify-content: space-between; }
 .register-step-dots { display: flex; gap: 6px; }
@@ -2292,6 +2378,7 @@ input.tap-to-edit-field, textarea.tap-to-edit-field { cursor: pointer; backgroun
         --danger: #e0796a;
         --danger-bg: #2e1a16;
         --danger-border: #4a2b24;
+        --border-strong: #52483c;
         --shadow: 0 2px 6px rgba(0, 0, 0, .3), 0 1px 2px rgba(0, 0, 0, .25);
         --title-text: #f2b93f;
         --title-outline: rgba(0, 0, 0, .65);
@@ -2321,6 +2408,7 @@ input.tap-to-edit-field, textarea.tap-to-edit-field { cursor: pointer; backgroun
     --danger: #e0796a;
     --danger-bg: #2e1a16;
     --danger-border: #4a2b24;
+    --border-strong: #52483c;
     --shadow: 0 2px 6px rgba(0, 0, 0, .3), 0 1px 2px rgba(0, 0, 0, .25);
     --title-text: #f2b93f;
     --title-outline: rgba(0, 0, 0, .65);
@@ -2347,6 +2435,7 @@ input.tap-to-edit-field, textarea.tap-to-edit-field { cursor: pointer; backgroun
     --danger: #b3341f;
     --danger-bg: #f9e8e2;
     --danger-border: #eec6ba;
+    --border-strong: #d9c49b;
     --shadow: 0 2px 6px rgba(38, 32, 20, .05), 0 1px 2px rgba(38, 32, 20, .04);
     --title-text: #fff;
     --title-outline: rgba(0, 0, 0, .7);

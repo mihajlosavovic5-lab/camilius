@@ -910,7 +910,13 @@ input[readonly]:hover { border-color: var(--border); }
    types (see register.html's script block) - deliberately not reusing .alert, which is
    too heavy (border/background/icon) for a single small per-field message. */
 .field-error { color: var(--danger); font-size: 13.5px; margin: 5px 0 0; }
-.field-success { color: #2e7d32; font-size: 13.5px; margin: 5px 0 0; }
+/* Positive counterpart to .field-error, shown once a live "already taken" check (see
+   checkField() in register.html) comes back clear - previously that case was silent
+   (error just hid again), which read as "nothing happened" rather than confirming the
+   value is actually free to use. A checkmark prefix (::before, not text so it isn't
+   duplicated per language string) makes it read as a small success cue at a glance. */
+.field-success { color: var(--checkmark); font-size: 13.5px; margin: 5px 0 0; display: flex; align-items: center; gap: 5px; }
+.field-success::before { content: "\2713"; font-weight: 700; }
 
 /* Live country-code hint shown next to the phone field once enough digits have been
    typed to recognize a calling code (e.g. "+381" -> Serbia) - see register.html. */
@@ -940,10 +946,29 @@ input[readonly]:hover { border-color: var(--border); }
 .settings-link-row:active { background: var(--background); }
 .settings-link-chevron { color: var(--text-muted); font-size: 20px; line-height: 1; flex-shrink: 0; }
 
-.checkbox-row { display: flex; align-items: flex-start; gap: 9px; margin-top: 20px; font-size: 15px; font-weight: 400; }
-/* accent-color uses --text (not --primary/gold) - clean checkmark, no yellow-filled
-   box when checked (Faza 5 - matches the same fix already made in the mobile app). */
-.checkbox-row input { width: 17px; height: 17px; margin-top: 2px; flex-shrink: 0; accent-color: var(--text); }
+.checkbox-row { display: flex; align-items: flex-start; gap: 9px; margin-top: 20px; font-size: 15px; font-weight: 400; cursor: pointer; }
+/* Radio variant (delete-account wizard's reason list) keeps the plain native look via
+   accent-color - only the checkbox gets the fuller custom treatment below. */
+.checkbox-row input[type="radio"] { width: 17px; height: 17px; margin-top: 2px; flex-shrink: 0; accent-color: var(--text); }
+/* Custom checkbox: a rounded amber-bordered box with a white checkmark drawn via an
+   inline SVG data-URI background once :checked, rather than the browser's own native
+   checkbox rendering (which read as a bare, unstyled square against the rest of the
+   page's rounded/amber-accented form controls). appearance:none strips the native box
+   so the background-image is the only thing drawn; the real <input> stays fully
+   functional (focusable, checked state, form submission) for accessibility. */
+.checkbox-row input[type="checkbox"] {
+    appearance: none; -webkit-appearance: none;
+    width: 20px; height: 20px; margin-top: 1px; flex-shrink: 0; cursor: pointer;
+    border: 2px solid var(--border-strong); border-radius: 6px; background: var(--surface);
+    transition: background .15s ease, border-color .15s ease, box-shadow .15s ease;
+}
+.checkbox-row input[type="checkbox"]:hover { border-color: var(--primary); }
+.checkbox-row input[type="checkbox"]:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(214, 148, 16, .25); }
+.checkbox-row input[type="checkbox"]:checked {
+    background-color: var(--primary); border-color: var(--primary);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='4 12.5 9 17.5 20 6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: center; background-size: 13px 13px;
+}
 
 /* --- Alerts --- */
 .alert {
@@ -1507,6 +1532,76 @@ body.auth {
    dimmed, so tapping it while something's wrong can still explain what (a truly disabled
    button fires no click event at all). Step 1 applies both this class AND :disabled. */
 .register-next-btn-dim, .register-next-btn:disabled { background: var(--border); color: var(--text-muted); box-shadow: none; cursor: default; }
+
+/* Small icon-badge + "Step 1 of 3 · Account" caption above the wizard's h1, swapped by
+   JS (updateStepProgress() in register.html) as the active step changes - gives a sense
+   of place beyond the dots alone, which only communicate position, not what each step is
+   for or how many remain in words. */
+.register-step-progress { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+.register-step-icon-badge {
+    width: 30px; height: 30px; border-radius: 50%; flex-shrink: 0;
+    background: var(--primary-light); color: var(--primary-ink);
+    display: flex; align-items: center; justify-content: center;
+}
+.register-step-icon-badge svg { width: 16px; height: 16px; }
+.register-step-progress-text { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--text-muted); }
+
+/* Step change reads as movement rather than an instant cut, without touching the
+   display:none/block toggle in showRegisterStep() - that toggle is load-bearing (a
+   display:none step's fields are excluded from form.checkValidity(), which step1Ready()
+   below relies on), so this only animates the moment a step becomes display:block rather
+   than restructuring to an always-visible transform track. */
+.register-step.active { animation: register-step-in .3s cubic-bezier(.22,.9,.32,1.05); }
+@keyframes register-step-in {
+    from { opacity: 0; transform: translateX(14px); }
+    to { opacity: 1; transform: translateX(0); }
+}
+
+/* "Skip for now" - shown only on step 2 (working hours), the fully-optional step; jumps
+   straight to step 3 where the (mandatory) terms checkbox lives. Reuses .link-btn's
+   centered plain-text-button look. */
+.register-skip-row { margin-top: 14px; }
+
+/* Two-column pairing (first/last name, contact email/phone) inside the wider
+   .auth-card-wide - each cell is either a bare .floating-field (no per-field message) or
+   a .register-field-col wrapping a .floating-field plus its error/success/hint lines, so
+   those lines stay under their own column instead of spanning below both. Single column
+   again below 480px, same breakpoint the rest of the site treats as "phone-narrow". */
+.register-field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 0 12px; }
+.register-field-row > .floating-field { margin-top: 16px; }
+.register-field-col .floating-field { margin-top: 16px; }
+@media (max-width: 480px) {
+    .register-field-row { grid-template-columns: 1fr; }
+}
+
+/* Live password-strength meter under the password field - three bars that fill in
+   left-to-right and tint from --danger to --warning to --checkmark as
+   passwordStrengthLevel() (register.html) climbs, plus a matching word underneath. Purely
+   a client-side heuristic (length + character variety) layered on top of the existing
+   minlength="8" constraint - it doesn't relax or replace that requirement. */
+.password-strength { margin: 8px 0 0; }
+.password-strength-bars { display: flex; gap: 4px; }
+.password-strength-bar { height: 4px; flex: 1; border-radius: 99px; background: var(--border); transition: background .15s ease; }
+.password-strength-label { display: block; margin-top: 4px; font-size: 12.5px; color: var(--text-muted); }
+.password-strength[data-level="1"] .password-strength-bar:nth-child(1) { background: var(--danger); }
+.password-strength[data-level="1"] .password-strength-label { color: var(--danger); }
+.password-strength[data-level="2"] .password-strength-bar:nth-child(1),
+.password-strength[data-level="2"] .password-strength-bar:nth-child(2) { background: var(--warning); }
+.password-strength[data-level="2"] .password-strength-label { color: var(--warning); }
+.password-strength[data-level="3"] .password-strength-bar { background: var(--checkmark); }
+.password-strength[data-level="3"] .password-strength-label { color: var(--checkmark); }
+
+/* Small inline spinner shown inside a submit button while its request is in flight (see
+   .btn-loading below) - a border ring with one transparent segment, spun via animation.
+   currentColor so it automatically matches whatever text color the button already uses
+   (white on .button, --text on .button-secondary, etc). */
+.btn-spinner {
+    width: 15px; height: 15px; border-radius: 50%; flex-shrink: 0;
+    border: 2px solid currentColor; border-right-color: transparent; opacity: .85;
+    animation: btn-spinner-spin .6s linear infinite;
+}
+@keyframes btn-spinner-spin { to { transform: rotate(360deg); } }
+.btn-loading { pointer-events: none; opacity: .85; }
 
 /* --- Working hours + price list pickers (Faza 5) - functional parity with the mobile
    app's own pickers (see static/pickers.js); a real "pick from options" UI instead of a
