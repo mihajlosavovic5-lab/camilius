@@ -2149,7 +2149,6 @@ input.tap-to-edit-field, textarea.tap-to-edit-field { cursor: pointer; backgroun
     flex-shrink: 0; padding: 6px 12px; border-radius: 99px; border: 1px solid var(--border);
     background: var(--surface); color: var(--text-muted); font-family: inherit; font-size: 13px; font-weight: 600; cursor: pointer;
 }
-.schedule-today-btn:active { background: var(--border); }
 
 /* Day view */
 /* flex:1 so this stretches to fill the leftover space below the date nav (needed for
