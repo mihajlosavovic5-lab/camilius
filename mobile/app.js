@@ -3367,20 +3367,31 @@ el("verify-pending-back").addEventListener("click", () => {
     showScreen("login");
 });
 
-// One-time cascading fade+rise for the Home tab's topbar and cards, played the moment
-// the app shell first appears each session (right after boot/login/registration - see
-// enterApp() below, the only caller) - reads as a deliberate, polished first impression
-// instead of the whole tab just snapping into place flat. Ordinary tab switches back to
-// Home never replay this, since setActiveTab() alone doesn't call it - only enterApp()
-// does, and that only ever runs once per session.
-function animateMysiteReveal() {
-    const targets = document.querySelectorAll("#screen-mysite .topbar, #screen-mysite .profile-section");
+// One-time cascading fade+rise for a tab's topbar and the sections below it, played the
+// first time each of these tabs is ever shown in a session - reads as a deliberate,
+// polished first impression instead of the whole tab just snapping into place flat.
+// Ordinary tab switches back to one already revealed never replay this, since
+// playTabRevealOnce() below tracks that per tab.
+const TAB_REVEAL_TARGETS = {
+    mysite: "#screen-mysite .topbar, #screen-mysite .profile-section",
+    schedule: "#screen-schedule .topbar, #screen-schedule .schedule-toolbar, #screen-schedule .schedule-date-nav, #screen-schedule .schedule-day-view, #screen-schedule .schedule-week-view",
+    profile: "#screen-profile .topbar, #screen-profile .profile-section",
+    // No card-level wrapper on this tab (it's flat rows grouped under .block-label
+    // headers, not .profile-section cards like Profile/Home), so every direct child of
+    // .detail-body stands in for a "card" here - excluding the two alert banners, which
+    // stay hidden until there's actually something to say and shouldn't animate in blank.
+    settings: "#screen-settings .detail-body > *:not(.alert)",
+};
+const revealedTabs = new Set();
+
+function animateTabReveal(selector) {
+    const targets = document.querySelectorAll(selector);
     let maxDelay = 0;
     targets.forEach((target, i) => {
         const delay = i * 70;
         maxDelay = Math.max(maxDelay, delay);
         target.style.animationDelay = `${delay}ms`;
-        target.classList.add("mysite-reveal-item");
+        target.classList.add("tab-reveal-item");
     });
     // Cleans the class/inline delay back off once the last item's animation has finished,
     // so some later, unrelated re-render of this screen (e.g. loadMySite() re-showing the
@@ -3388,10 +3399,16 @@ function animateMysiteReveal() {
     // leftover animation.
     setTimeout(() => {
         targets.forEach((target) => {
-            target.classList.remove("mysite-reveal-item");
+            target.classList.remove("tab-reveal-item");
             target.style.animationDelay = "";
         });
     }, maxDelay + 550);
+}
+
+function playTabRevealOnce(tab) {
+    if (revealedTabs.has(tab) || !TAB_REVEAL_TARGETS[tab]) return;
+    revealedTabs.add(tab);
+    animateTabReveal(TAB_REVEAL_TARGETS[tab]);
 }
 
 function enterApp() {
@@ -3402,7 +3419,6 @@ function enterApp() {
     // Conversations is already populated (same "was loaded before you tapped it" feel as
     // Schedule below) the moment it's tapped.
     setActiveTab("mysite");
-    animateMysiteReveal();
     loadMySite();
     loadDashboard();
     loadSettingsIntoForm();
@@ -4805,6 +4821,7 @@ function setActiveTab(tab) {
     if (tab === "settings") loadNotificationPreferences();
     if (tab === "schedule") loadSchedule();
     if (tab === "mysite") loadMySite();
+    playTabRevealOnce(tab);
 }
 
 document.querySelectorAll(".tab-btn").forEach((btn) => {
