@@ -1772,18 +1772,26 @@ input.tap-to-edit-field, textarea.tap-to-edit-field { cursor: pointer; backgroun
    row reads as one bar. Opens the native photo/video/file picker (see the compose bar's
    hidden file inputs, app.js). While the mic is recording it swaps to a cancel (X) in the
    exact same spot instead of disappearing, so there's always an obvious way to back out
-   of a recording without sending anything. */
+   of a recording without sending anything. The two icons sit stacked on top of each other
+   (position: absolute + margin: auto centers each within the button) and cross-fade with a
+   quarter-turn rotation between them, rather than one flipping to display:none the instant
+   the other appears - a plus visibly twisting into an X instead of an instant swap. No
+   background on .recording (deliberately - just the icon itself changes, no circle behind
+   it) so the button reads the same "just an icon" way whether it's showing + or X. */
 .compose-attach-btn {
     position: absolute; left: 8px; bottom: 7px; width: 36px; height: 36px;
-    display: flex; align-items: center; justify-content: center;
     background: none; border: none; padding: 0; margin: 0; cursor: pointer;
     color: var(--text-muted); border-radius: 50%; z-index: 1;
 }
-.compose-attach-btn svg { width: 19px; height: 19px; }
-.compose-attach-btn .attach-cancel-icon { display: none; }
-.compose-attach-btn.recording { color: var(--text); background: var(--border); }
-.compose-attach-btn.recording .attach-plus-icon { display: none; }
-.compose-attach-btn.recording .attach-cancel-icon { display: block; }
+.compose-attach-btn svg {
+    position: absolute; inset: 0; margin: auto; width: 19px; height: 19px;
+    transition: transform .25s ease, opacity .2s ease;
+}
+.compose-attach-btn .attach-plus-icon { transform: rotate(0deg); opacity: 1; }
+.compose-attach-btn .attach-cancel-icon { transform: rotate(-90deg); opacity: 0; }
+.compose-attach-btn.recording { color: var(--text); }
+.compose-attach-btn.recording .attach-plus-icon { transform: rotate(90deg); opacity: 0; }
+.compose-attach-btn.recording .attach-cancel-icon { transform: rotate(0deg); opacity: 1; }
 .compose-attach-btn:active { color: var(--primary-ink); }
 
 /* Sits above the compose bar now (see mobile/index.html) rather than below it - margin-top
