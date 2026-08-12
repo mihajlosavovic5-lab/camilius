@@ -1332,6 +1332,11 @@
     // picking a language showed the raw key "book_confirm" instead of a real message.
     // Kept in sync by hand with translate_page.py's own PAGE_UI_STRINGS entry.
     fallback.book_confirm = "Requested {day} at {time} - continue in the chat to confirm.";
+    // Same story as book_confirm above - the chat's opening greeting is built
+    // dynamically (see addMessage("bot", window.pageT("chat_greeting")...) further down)
+    // rather than living in a static [data-i18n] element, so without this it showed the
+    // raw key "chat_greeting" instead of a real message before any language was picked.
+    fallback.chat_greeting = "Hi! Ask me anything about {business}, or book a time that works for you.";
 
     // Exposed for the chat/booking script below - reads whichever language is currently
     // active (falling back to the original English string above), so dynamically
@@ -1579,7 +1584,7 @@
             </svg>
         </span>
         <div class="chat-header-text">
-            <p>{{ business_name }}</p>
+            <p{% if tagline %} data-i18n-content="tagline"{% endif %}>{{ tagline or business_name }}</p>
             <span data-i18n="chat_subtitle">Usually replies in seconds</span>
         </div>
         <button type="button" class="chat-close" id="chat-close" aria-label="Close">&times;</button>
