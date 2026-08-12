@@ -725,6 +725,17 @@
         opacity: 0;
         transform: translateY(10px) scale(.95);
     }
+    /* Briefly fades the panel out and back in around the moment #chat-input gains/loses
+       focus (see the chat script below), instead of trying to smooth the keyboard-open
+       reposition itself. That reposition can't be eased with a CSS transition no matter
+       what property it's written on - the browser resizes/reflows the viewport that
+       `bottom: 90px` is measured against, which isn't a value change transitions ever
+       see, so the panel was snapping to its new spot instantly and then the keyboard's
+       own native slide-in animation played afterward, separately - two distinct, out of
+       sync motions rather than one. Hiding the panel for the brief window that reflow
+       and the keyboard's own animation happen in turns that into one clean fade instead,
+       regardless of how (or how consistently) the browser animates the reflow itself. */
+    .chat-panel.chat-panel-settling { opacity: 0; }
     .chat-header {
         display: flex;
         align-items: center;
@@ -1701,6 +1712,22 @@
             window.scrollTo({ top: chatLockedScrollY, left: 0, behavior: "instant" });
         }
     }
+
+    // Masks the on-screen keyboard's opening/closing reflow behind a brief fade instead
+    // of trying to track or ease it directly - see .chat-panel-settling's own comment
+    // for why that reflow itself can't be smoothed with a CSS transition. 320ms covers
+    // the window observed between #chat-input receiving/losing focus and the keyboard's
+    // own native slide animation actually finishing.
+    var chatSettleTimer = null;
+    function settleChatPanel() {
+        panel.classList.add("chat-panel-settling");
+        clearTimeout(chatSettleTimer);
+        chatSettleTimer = setTimeout(function () {
+            panel.classList.remove("chat-panel-settling");
+        }, 320);
+    }
+    input.addEventListener("focus", settleChatPanel);
+    input.addEventListener("blur", settleChatPanel);
 
     fab.addEventListener("click", function () { setOpen(!open); });
     // Click-outside-to-close - same pattern as the language dropdown's own outside-click
