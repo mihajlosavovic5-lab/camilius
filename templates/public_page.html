@@ -294,13 +294,37 @@
 
     h1 {
         font-family: var(--heading-font);
-        font-size: 1.9rem;
+        font-weight: 700;
+        font-size: 2.05rem;
+        letter-spacing: -0.01em;
+        line-height: 1.15;
         margin: 0;
+        color: var(--text);
     }
-    .tagline {
-        font-size: 1.05rem;
-        color: var(--text-muted);
-        margin: 6px 0 0;
+    /* Same primary-to-gold gradient text treatment as the marketing site's own hero
+       headline (landing.html's .lp-accent) - kept behind a feature query so a browser
+       without background-clip: text support just keeps the solid --text color set
+       above instead of silently rendering invisible (transparent-on-transparent). */
+    @supports (background-clip: text) or (-webkit-background-clip: text) {
+        h1 {
+            background: linear-gradient(100deg, var(--primary) 0%, var(--gold) 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            color: transparent;
+        }
+    }
+    /* Small centered accent rule under the headline - the same primary-to-gold "signature"
+       mark used under page titles everywhere else in the product (style.css's own
+       .business-title-rule/.section-title::after), so this generated page reads as the
+       same product rather than a plainer one-off. */
+    .title-rule {
+        display: block;
+        width: 56px;
+        height: 3px;
+        margin: 12px auto 0;
+        border-radius: 999px;
+        background: linear-gradient(90deg, var(--primary), var(--gold));
     }
     section {
         background: var(--surface);
@@ -897,9 +921,12 @@
         .nav-menu-backdrop { display: block; }
         .top-bar-title { display: flex; }
         /* The compact top-bar title above takes over the "which page is this" job on
-           mobile, so the big centered heading further down in .page-header would just
-           repeat the same name a second time - hidden here, logo/tagline/rule stay. */
-        .page-header h1 { display: none; }
+           mobile using business_name - only hides the big centered heading below when
+           that heading is the same business_name fallback (no tagline set), which would
+           otherwise just repeat it a second time. A real tagline is content the top bar
+           never shows at all, so it (and its accent rule) stays visible here too. Logo
+           stays either way. */
+        .page-header-fallback { display: none; }
         .side-nav {
             /* .side-nav's flex: 0 0 200px above is a fixed WIDTH for its desktop column
                layout (.shell is a row there, so flex-basis sizes the main/horizontal
@@ -1054,8 +1081,14 @@
             {% if logo_url %}<img class="logo" src="{{ logo_url }}" alt="{{ business_name }} logo">{% endif %}
             {# The tagline reads as the headline (bold, large), falling back to
                business_name when no tagline is set - the business name never shows as
-               its own separate line underneath. #}
-            <h1{% if tagline %} data-i18n-content="tagline"{% endif %}>{{ tagline or business_name }}</h1>
+               its own separate line underneath. Only the fallback case gets
+               page-header-fallback: when this is really just business_name repeating
+               what the mobile top-bar-title already shows (see that class's own comment
+               above), the mobile media query below hides it same as before; a real
+               tagline is unique content the top bar doesn't carry, so it stays visible
+               there too. #}
+            <h1{% if tagline %} data-i18n-content="tagline"{% else %} class="page-header-fallback"{% endif %}>{{ tagline or business_name }}</h1>
+            <span class="title-rule{% if not tagline %} page-header-fallback{% endif %}" aria-hidden="true"></span>
         </header>
 
         {% if hero_video_url %}
