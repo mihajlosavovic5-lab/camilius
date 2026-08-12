@@ -4314,46 +4314,52 @@ mediaGrids.forEach(mediaInitGrid);
 // the typed description ("Tell us more about your business" field above), see api.py's
 // /api/documents and business_documents.py. Same "uploads immediately, no separate Save
 // step, bypasses the JSON-only api() helper for the multipart body" reasoning as the
-// media section above - just a flat list of filenames instead of a thumbnail grid,
-// since a PDF/Word file has no useful inline preview. ---
+// media section above - and, since Faza 18, the exact same square-tile-plus-"+"-button
+// grid Photos/Video use (see .document-list in app.css), just an icon standing in for a
+// thumbnail (a PDF/Word file has no useful inline preview) - tapping it opens the same
+// document viewer the "Draft this with AI" chat's own attachment chips use. ---
 
 const documentList = el("document-list");
 const documentErrorBox = el("document-error");
 const documentFileInput = el("document-file-input");
+const documentAddBtn = el("document-add-btn");
 
 function documentShowError(message) {
     documentErrorBox.textContent = message;
     documentErrorBox.classList.remove("hidden");
 }
 
-function documentMakeRow(item) {
-    const row = document.createElement("div");
-    row.className = "document-row";
-    row.dataset.id = item.id;
+function documentMakeTile(item) {
+    const tile = document.createElement("div");
+    tile.className = "media-thumb";
+    tile.dataset.id = item.id;
 
-    const name = document.createElement("span");
-    name.className = "document-row-name";
-    name.textContent = item.filename;
-    row.appendChild(name);
+    const icon = document.createElement("span");
+    icon.className = "media-thumb-icon";
+    icon.textContent = "📄";
+    icon.addEventListener("click", () => openDocumentViewer(item.url, item.type, item.filename));
+    tile.appendChild(icon);
 
     const removeBtn = document.createElement("button");
     removeBtn.type = "button";
-    removeBtn.className = "document-row-remove";
+    removeBtn.className = "media-remove";
     removeBtn.setAttribute("aria-label", "Remove");
     removeBtn.textContent = "×";
-    removeBtn.addEventListener("click", () => documentRemoveItem(item.id, row));
-    row.appendChild(removeBtn);
+    removeBtn.addEventListener("click", (event) => {
+        event.stopPropagation();
+        documentRemoveItem(item.id, tile);
+    });
+    tile.appendChild(removeBtn);
 
-    documentList.appendChild(row);
+    documentList.insertBefore(tile, documentAddBtn);
 }
 
 function documentUploadFile(file) {
     documentErrorBox.classList.add("hidden");
 
     const placeholder = document.createElement("div");
-    placeholder.className = "document-row uploading";
-    placeholder.textContent = file.name;
-    documentList.appendChild(placeholder);
+    placeholder.className = "media-thumb uploading";
+    documentList.insertBefore(placeholder, documentAddBtn);
 
     const formData = new FormData();
     formData.append("file", file);
@@ -4369,23 +4375,23 @@ function documentUploadFile(file) {
                 documentShowError(data.error || t("settings.documents.error"));
                 return;
             }
-            documentMakeRow(data);
+            documentMakeTile(data);
         }).catch(() => {
             placeholder.remove();
             documentShowError(t("settings.documents.error"));
         });
 }
 
-function documentRemoveItem(id, row) {
-    row.classList.add("uploading");
+function documentRemoveItem(id, tile) {
+    tile.classList.add("uploading");
     fetch(API_BASE + "/api/documents/" + id, {
         method: "DELETE",
         headers: state.token ? { Authorization: "Bearer " + state.token } : {},
     }).then((response) => {
         if (!response.ok) throw new Error();
-        row.remove();
+        tile.remove();
     }).catch(() => {
-        row.classList.remove("uploading");
+        tile.classList.remove("uploading");
         documentShowError(t("settings.documents.removeError"));
     });
 }
@@ -4397,10 +4403,10 @@ documentFileInput.addEventListener("change", () => {
 });
 
 async function loadBusinessDocuments() {
-    documentList.innerHTML = "";
+    documentList.querySelectorAll(".media-thumb").forEach((node) => node.remove());
     try {
         const data = await api("/api/documents");
-        (data.documents || []).forEach(documentMakeRow);
+        (data.documents || []).forEach(documentMakeTile);
     } catch (err) {
         if (err.status === 401) logout();
     }

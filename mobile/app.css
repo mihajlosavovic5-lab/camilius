@@ -1690,15 +1690,25 @@ input.tap-to-edit-field, textarea.tap-to-edit-field { cursor: pointer; backgroun
 .profile-section-title { font-size: 16px; font-weight: 700; margin: 0; display: flex; align-items: center; gap: 8px; }
 .profile-section-subtitle { color: var(--text-muted); font-size: 13.5px; margin: 3px 0 0; }
 .profile-section-header + .floating-field, .profile-section-header + label { margin-top: 0; }
-/* Website photos & video (inside the Profile screen's own .profile-section) - each
-   .media-grid holds thumbs for one role (logo/gallery/hero_video) plus a trailing "+"
-   add button, mirroring the web onboarding wizard's .onboarding-media-grid. */
+/* Website photos, video & documents (inside the Profile screen's own .profile-section) -
+   each .media-grid (Photos/Video's own grids, plus Documents' .document-list, same layout)
+   holds thumbs for one role plus a trailing "+" add button, mirroring the web onboarding
+   wizard's .onboarding-media-grid. All three kinds share this one square-tile footprint -
+   same as the "Draft this with AI" chat's own compose-attachment-chip - so a document (no
+   useful inline preview, just an icon) still lines up exactly with a photo/video thumb
+   next to it instead of reading as a different kind of row. */
 .media-label { font-weight: 700; font-size: 14px; margin: 14px 0 2px; }
 .media-label:first-of-type { margin-top: 0; }
-.media-grid { display: flex; flex-wrap: wrap; gap: 10px; margin: 8px 0 4px; }
+.media-grid, .document-list { display: flex; flex-wrap: wrap; gap: 10px; margin: 8px 0 4px; }
 .media-thumb { position: relative; width: 76px; height: 76px; border-radius: var(--radius); overflow: hidden; border: 1px solid var(--border); background: var(--background); }
 .media-thumb img, .media-thumb video { width: 100%; height: 100%; object-fit: cover; display: block; }
 .media-thumb.uploading { opacity: .5; }
+/* Document tile's icon face - same centered-glyph-on-a-flat-tint treatment as the chat
+   compose bar's own .chip-icon, so a document reads the same way in both places. */
+.media-thumb-icon {
+    width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;
+    font-size: 26px; background: var(--border); color: var(--text-muted); cursor: pointer;
+}
 .media-remove {
     position: absolute; top: 3px; right: 3px; width: 20px; height: 20px; border-radius: 50%;
     border: none; background: rgba(0, 0, 0, .6); color: #fff; font-size: 13px; line-height: 1;
@@ -1710,24 +1720,6 @@ input.tap-to-edit-field, textarea.tap-to-edit-field { cursor: pointer; backgroun
 }
 .media-add input { display: none; }
 .media-add.hidden { display: none; }
-
-/* Business documents - folded into the same card as Photos/Video above (see
-   mobile/index.html), sharing its .media-label headings and .media-add "+" tile. Still
-   a flat list of filenames rather than a .media-grid of thumbnails (PDFs/Word docs have
-   no useful inline preview), so it keeps its own row styling. */
-.document-list { display: flex; flex-direction: column; gap: 8px; margin: 8px 0 12px; }
-.document-row {
-    display: flex; align-items: center; justify-content: space-between; gap: 10px;
-    padding: 10px 12px; border-radius: var(--radius); border: 1px solid var(--border);
-    background: var(--background);
-}
-.document-row.uploading { opacity: .5; }
-.document-row-name { font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.document-row-remove {
-    flex-shrink: 0; width: 22px; height: 22px; border-radius: 50%; border: none;
-    background: rgba(0, 0, 0, .1); color: var(--text-muted); font-size: 14px; line-height: 1;
-    display: flex; align-items: center; justify-content: center; padding: 0;
-}
 
 /* Chat-input compose bar (currently just the "Draft this with AI" screen,
    screen-website-chat) - a real chat-input bar instead of the app's usual floating-label
