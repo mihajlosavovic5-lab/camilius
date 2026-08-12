@@ -425,11 +425,45 @@
        .about-gallery below) - a centered title over an asymmetric photo mosaic reads
        fine, same as a centered title over a plain paragraph did before. */
     #about h2, #contact h2, #prices h2, #location h2 { text-align: center; }
-    /* Location - clips the embedded map's square corners/border down to the same
-       rounded-card look every other section already has, without needing the iframe
-       itself to know about var(--radius). */
-    .location-map-wrap { border-radius: 10px; overflow: hidden; border: 1px solid var(--border); }
+    /* Location - a slightly heavier treatment than the plain .contact-row/.price-row
+       borders elsewhere on the page (inset gold ring + soft shadow) since the map's own
+       colors/UI chrome are Google's, not this business's theme - the frame around it is
+       what actually ties it back into the page's look. .location-map-wrap::after draws
+       the ring on top of the iframe rather than as a second border, so it isn't pushed
+       out by the iframe's own box model. */
+    .location-map-wrap {
+        position: relative;
+        border-radius: var(--radius);
+        overflow: hidden;
+        box-shadow: 0 10px 28px -14px rgba(0, 0, 0, .28);
+    }
+    .location-map-wrap::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        border-radius: inherit;
+        box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--gold) 55%, transparent);
+        pointer-events: none;
+    }
     .location-map-wrap iframe { display: block; width: 100%; height: 260px; border: 0; }
+    /* Address caption below the map - same pill-row language as .contact-row (icon +
+       text, muted border) so the placeholder still reads as one of this page's own rows
+       rather than a bare label bolted under someone else's embed. */
+    .location-caption {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        margin: 12px 0 0;
+        padding: 10px 14px;
+        background: var(--background);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        color: var(--text-muted);
+        font-size: 0.9rem;
+        font-weight: 600;
+    }
+    .location-caption svg { width: 16px; height: 16px; flex: 0 0 auto; color: var(--primary); }
     .about, .faq {
         white-space: pre-line;
         margin: 0;
@@ -1454,14 +1488,20 @@
         </section>
         {% endif %}
 
-        <!-- Same placeholder as the #location nav link above: a fixed Los Angeles map for
-             now, standing in until the business's real address is captured and wired
+        <!-- Same placeholder as the #location nav link above: a fixed Torrance, CA map for
+             now (a specific city geocodes to a tight marker view, unlike a bare "Los
+             Angeles, CA" query which centered on the whole metro's messy district outline
+             instead), standing in until the business's real address is captured and wired
              through here. -->
         <section id="location" class="reveal">
             <h2 data-i18n="heading_location">Location</h2>
             <div class="location-map-wrap">
-                <iframe src="https://www.google.com/maps?q=Los+Angeles,+CA&output=embed" loading="lazy" referrerpolicy="no-referrer-when-downgrade" title="Map"></iframe>
+                <iframe src="https://www.google.com/maps?q=Torrance,+CA&output=embed" loading="lazy" referrerpolicy="no-referrer-when-downgrade" title="Map"></iframe>
             </div>
+            <p class="location-caption">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M12 21s7-6.4 7-11.5A7 7 0 0 0 5 9.5C5 14.6 12 21 12 21z" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="9.5" r="2.3"/></svg>
+                <span>Torrance, CA</span>
+            </p>
         </section>
 
         {% if show_badge %}
