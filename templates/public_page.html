@@ -306,9 +306,12 @@
     /* Same primary-to-gold gradient text treatment as the marketing site's own hero
        headline (landing.html's .lp-accent) - kept behind a feature query so a browser
        without background-clip: text support just keeps the solid --text color set
-       above instead of silently rendering invisible (transparent-on-transparent). */
+       above (and .top-bar-title's own color: var(--text)) instead of silently rendering
+       invisible (transparent-on-transparent). Applied to .top-bar-title too so the
+       compact mobile title matches rather than showing the same text in plain ink while
+       the headline below it goes gold. */
     @supports (background-clip: text) or (-webkit-background-clip: text) {
-        h1 {
+        h1, .top-bar-title {
             background: linear-gradient(100deg, var(--primary) 0%, var(--gold) 100%);
             -webkit-background-clip: text;
             background-clip: text;
