@@ -159,6 +159,29 @@ def opening_hours_display(working_hours_text):
     ]
 
 
+def price_list_rows(price_list_text):
+    """businesses.price_list's raw "Name: Price" (one per line, price optional) text
+    turned into a list of {"name": ..., "price": ...} dicts for the public page's
+    menu-style row display - one dict per non-blank line, split on the FIRST ":" only
+    (a price string could itself contain a colon-adjacent character; splitting on the
+    first occurrence rather than a naive str.split(":") avoids mis-splitting on the
+    wrong one) so this matches static/pickers.js's own createPriceListPicker parse()
+    exactly, the same convention the owner-facing editor already relies on. A line with
+    no colon at all becomes {"name": line, "price": ""} - a named item worth listing
+    with no price given (e.g. "Consultation - price on request"), not silently dropped."""
+    rows = []
+    for raw_line in (price_list_text or "").split("\n"):
+        line = raw_line.strip()
+        if not line:
+            continue
+        idx = line.find(":")
+        if idx == -1:
+            rows.append({"name": line, "price": ""})
+        else:
+            rows.append({"name": line[:idx].strip(), "price": line[idx + 1:].strip()})
+    return rows
+
+
 # A conservative hostname allowlist (ASCII letters/digits/hyphens, dot-separated
 # labels, at least one dot) for normalize_widget_domain below - deliberately stricter
 # than what urlparse itself accepts. This value gets dropped straight into a
