@@ -1265,9 +1265,11 @@ def api_website_chat():
     business_context = build_business_context(
         business_by_id(business_id), get_business_page(business_id),
         media=media_list, documents=business_documents.list_documents(business_id),
+        upsell_pairs=get_upsell_pairs(business_id),
     )
     # Faza 19: the assistant can also apply what it's asked for directly (tagline/about,
-    # working hours, price list, FAQ, social links) - see website_content_tools.py.
+    # working hours, price list, related services, FAQ, social links, business name,
+    # contact email, phone number) - see website_content_tools.py.
     tool_impls = website_content_tools.build_tool_impls(business_id)
 
     # Streamed as newline-delimited JSON (one {"type": "status"|"done", ...} object per

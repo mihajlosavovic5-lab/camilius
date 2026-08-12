@@ -47,10 +47,20 @@ business's public website/page. You are talking directly to the business owner.
 Your default move is to ACT, not to interview them first. The moment the owner tells you
 any real information about their business - what they do, a price, an hour, a description,
 a handle/link, anything that belongs on their page - immediately figure out which field(s)
-it belongs in (tagline, about text, working hours, price list, FAQ, social links) and save
-it with your tools right away, in the SAME reply, without asking permission or holding it
-back to gather more first. Never just paraphrase back what they told you and stop there -
-if what they said is fit to save, save it.
+it belongs in (tagline, about text, working hours, price list, related services, FAQ,
+social links, business name, contact email, phone number) and save it with your tools
+right away, in the SAME reply, without asking permission or holding it back to gather more
+first. Never just paraphrase back what they told you and stop there - if what they said is
+fit to save, save it. This covers every field on the Profile tab, not just page copy - the
+same "recognize it, save it to the right place" rule applies whether the owner is
+describing their services or just mentioning their business name/email/phone number in
+passing.
+
+Contact email and phone number double as this account's own login, so only save those two
+specifically when the owner is unmistakably giving their business's own current info (e.g.
+"our number is now...", "change our email to..."), never from an address/number that comes
+up in some other context (an example, a customer's own contact info, etc.) - when it's
+genuinely ambiguous which one they mean, ask rather than guess.
 
 Before saving, always do these on the text you're about to write into a field:
 - Fix spelling/grammar/typos and awkward phrasing - never save a mistake the owner typed.
@@ -202,6 +212,48 @@ WEBSITE_TOOLS = [
     {
         "type": "function",
         "function": {
+            "name": "update_business_profile",
+            "description": (
+                "Saves the business's own name, contact email, and/or phone number "
+                "directly - these are account/profile fields (shown on the Profile tab), "
+                "not page copy. Pass only the field(s) the owner is clearly giving as "
+                "their business's actual current info; omit the others to leave them as "
+                "they are. Contact email and phone number double as this account's own "
+                "login, so only change those two when the owner is unmistakably stating "
+                "their own updated info, never from an address/number mentioned in some "
+                "other context (an example, a customer's own contact info, etc.)."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "name": {"type": "string", "description": "New business name, if changing it."},
+                    "contact_email": {"type": "string", "description": "New contact email, if changing it."},
+                    "phone_number": {"type": "string", "description": "New phone number, if changing it."},
+                },
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "update_related_services",
+            "description": (
+                "Replaces the business's whole \"related services\" list directly - pairs "
+                "the booking flow suggests together (e.g. suggesting a beard trim right "
+                "after a haircut booking). One pair per line, formatted exactly as "
+                "\"Service A -> Service B\" (the literal arrow \"->\"), reusing the same "
+                "service names as the price list where possible."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {"pairs": {"type": "string", "description": "The complete new related-services text."}},
+                "required": ["pairs"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
             "name": "update_social_links",
             "description": (
                 "Saves one or more social media links/handles directly. Pass only the "
@@ -237,6 +289,8 @@ TOOL_STATUS_KEYS = {
     "update_working_hours": "websiteChat.status.updateWorkingHours",
     "update_price_list": "websiteChat.status.updatePriceList",
     "update_faq": "websiteChat.status.updateFaq",
+    "update_business_profile": "websiteChat.status.updateBusinessProfile",
+    "update_related_services": "websiteChat.status.updateRelatedServices",
     "update_social_links": "websiteChat.status.updateSocialLinks",
 }
 
@@ -331,19 +385,24 @@ def answer_website_chat(message, history=None, business_context=None, image_urls
             return event["reply"]
 
 
-def build_business_context(business, business_page, media=None, documents=None):
+def build_business_context(business, business_page, media=None, documents=None, upsell_pairs=None):
     """business: a database.business_by_id() row (or None). business_page: a
     database.get_business_page() row (or None). media/documents: optional
     business_media.list_media()/business_documents.list_documents() results - everything
     the owner has already put into the app (Faza 19), not just the page's own text
     fields, so the assistant answers "do you have access to X" honestly instead of
-    claiming it can't see things that are actually already saved. Turns all of it into
+    claiming it can't see things that are actually already saved. upsell_pairs: optional
+    database.get_upsell_pairs() result - not one of business's own row columns (it lives
+    in the same businesses table, but behind its own getter), so callers fetch it
+    themselves the same way they already fetch media/documents. Turns all of it into
     the short plain-text summary answer_website_chat() above folds into its system
     prompt - kept here (not duplicated in both app.py and api.py) so the web and mobile
     routes stay in sync on exactly what context the assistant sees."""
     if not business:
         return ""
     lines = [f"Business name: {business[1]}"]
+    lines.append(f"Contact email: {business[3] or 'none saved yet'}")
+    lines.append(f"Phone number: {business[10] or 'none saved yet'}")
     if business_page:
         slug, tagline, about = business_page[2], business_page[4], business_page[5]
         if slug:
@@ -359,6 +418,9 @@ def build_business_context(business, business_page, media=None, documents=None):
     faq = (business[9] or "").strip()
     if faq:
         lines.append("Current FAQ:\n" + faq[:1000])
+    upsell_pairs = (upsell_pairs or "").strip()
+    if upsell_pairs:
+        lines.append("Current related services:\n" + upsell_pairs[:1000])
 
     social_labels = [
         ("Instagram", business[24]), ("Facebook", business[25]), ("X", business[26]),

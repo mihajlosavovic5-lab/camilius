@@ -3583,9 +3583,11 @@ def website_chat():
     business_context = build_business_context(
         business_by_id(business_id), get_business_page(business_id),
         media=business_media.list_media(business_id), documents=business_documents.list_documents(business_id),
+        upsell_pairs=get_upsell_pairs(business_id),
     )
     # Faza 19: the assistant can also apply what it's asked for directly (tagline/about,
-    # working hours, price list, FAQ, social links) - see website_content_tools.py.
+    # working hours, price list, related services, FAQ, social links, business name,
+    # contact email, phone number) - see website_content_tools.py.
     tool_impls = website_content_tools.build_tool_impls(business_id)
     reply = answer_website_chat(
         message, history=safe_history, business_context=business_context, tool_impls=tool_impls,

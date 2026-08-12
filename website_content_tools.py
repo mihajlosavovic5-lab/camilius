@@ -17,7 +17,8 @@ import json
 
 from database import (
     business_by_id, update_business, update_business_social_links,
-    get_business_page, upsert_business_page,
+    get_business_page, upsert_business_page, set_upsell_pairs, has_pro_access,
+    UniqueViolation,
 )
 import booking
 
@@ -102,6 +103,41 @@ def update_faq(business_id, faq):
     return _ok()
 
 
+def update_business_profile(business_id, name=None, contact_email=None, phone_number=None):
+    if name is None and contact_email is None and phone_number is None:
+        return _error("Nothing to update.")
+    business = business_by_id(business_id)
+    if business is None:
+        return _error("Business not found.")
+    new_contact_email = contact_email.strip() if contact_email is not None else business[3]
+    new_phone_number = (phone_number.strip() or None) if phone_number is not None else business[10]
+    try:
+        update_business(
+            business_id, name.strip() if name is not None else business[1],
+            new_contact_email, new_phone_number, business[7], business[8], business[9],
+        )
+    except UniqueViolation:
+        return _error(
+            "That contact email or phone number is already used by another account on "
+            "this app - ask the owner for a different one."
+        )
+    return _ok()
+
+
+def update_related_services(business_id, pairs):
+    # Pro-only feature, same gate as the website's own /settings route (api.py's
+    # api_update_settings) - deferred import since app.py itself imports this whole
+    # module at load time, so a top-level import here would be circular.
+    from app import BETA_FREE_MODE
+    if not (BETA_FREE_MODE or has_pro_access(business_id)):
+        return _error(
+            "Related services (AI upsell suggestions) is a Pro feature - tell the owner "
+            "they'd need to upgrade their plan to use it."
+        )
+    set_upsell_pairs(business_id, pairs)
+    return _ok()
+
+
 def update_social_links(business_id, instagram=None, facebook=None, x=None, tiktok=None, youtube=None):
     business = business_by_id(business_id)
     if business is None:
@@ -126,5 +162,7 @@ def build_tool_impls(business_id):
         "update_working_hours": lambda **kwargs: update_working_hours(business_id, **kwargs),
         "update_price_list": lambda **kwargs: update_price_list(business_id, **kwargs),
         "update_faq": lambda **kwargs: update_faq(business_id, **kwargs),
+        "update_business_profile": lambda **kwargs: update_business_profile(business_id, **kwargs),
+        "update_related_services": lambda **kwargs: update_related_services(business_id, **kwargs),
         "update_social_links": lambda **kwargs: update_social_links(business_id, **kwargs),
     }

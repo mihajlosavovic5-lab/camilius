@@ -4,6 +4,7 @@ tools (Faza 19). These call the tool implementations directly (no OpenAI involve
 tools use - see test_booking_logic.py) against the real test database, so a read-modify-
 write bug (e.g. one field's update accidentally blanking a sibling field) shows up here
 rather than only in a live chat."""
+import uuid
 from datetime import time
 
 import booking
@@ -95,6 +96,37 @@ def test_update_social_links_partial_update_preserves_others(client, unique_emai
     assert business[25] == "https://facebook.com/myBakeryPage"
 
 
+def test_update_business_profile_partial_update_preserves_others(client, unique_email):
+    business_id = _register(client, unique_email)
+
+    result = tools.update_business_profile(business_id, name="New Name")
+
+    assert result["status"] == "ok"
+    business = database.business_by_id(business_id)
+    assert business[1] == "New Name"
+    assert business[3] == unique_email  # contact_email untouched
+
+
+def test_update_business_profile_rejects_duplicate_contact_email(client, unique_email):
+    business_id = _register(client, unique_email)
+    other_email = f"test-{uuid.uuid4().hex[:10]}@example.com"
+    _register(client, other_email)
+
+    result = tools.update_business_profile(business_id, contact_email=other_email)
+
+    assert result["status"] == "error"
+    assert database.business_by_id(business_id)[3] == unique_email  # untouched
+
+
+def test_update_related_services_saves_pairs(client, unique_email):
+    business_id = _register(client, unique_email)
+
+    result = tools.update_related_services(business_id, "Haircut -> Beard trim")
+
+    assert result["status"] == "ok"
+    assert database.get_upsell_pairs(business_id) == "Haircut -> Beard trim"
+
+
 def test_update_website_content_requires_a_web_address_first(client, unique_email):
     business_id = _register(client, unique_email)
 
@@ -124,7 +156,8 @@ def test_build_tool_impls_wires_every_website_tool(client, unique_email):
     impls = tools.build_tool_impls(business_id)
     assert set(impls.keys()) == {
         "update_website_content", "update_working_hours", "update_price_list",
-        "update_faq", "update_social_links",
+        "update_faq", "update_business_profile", "update_related_services",
+        "update_social_links",
     }
     result = impls["update_price_list"](price_list="Wash: 20")
     assert result["status"] == "ok"
