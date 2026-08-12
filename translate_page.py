@@ -72,7 +72,7 @@ PAGE_UI_STRINGS = {
     "chat_subtitle": "Usually replies in seconds",
     "chat_placeholder": "Ask anything...",
     "chat_send": "Send",
-    "chat_greeting": "Hi! Ask me anything about {business}.\nOr book a time that works for you.",
+    "chat_greeting": "Hi! How can I help you?",
     "chat_error": "Sorry, something went wrong - please try again.",
 }
 

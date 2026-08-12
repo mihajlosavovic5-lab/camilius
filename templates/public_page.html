@@ -1323,7 +1323,7 @@
     // dynamically (see addMessage("bot", window.pageT("chat_greeting")...) further down)
     // rather than living in a static [data-i18n] element, so without this it showed the
     // raw key "chat_greeting" instead of a real message before any language was picked.
-    fallback.chat_greeting = "Hi! Ask me anything about {business}.\nOr book a time that works for you.";
+    fallback.chat_greeting = "Hi! How can I help you?";
 
     // Exposed for the chat/booking script below - reads whichever language is currently
     // active (falling back to the original English string above), so dynamically
@@ -1633,7 +1633,7 @@
         if (open) fab.classList.add("chat-fab-nudge-done");
         if (open && !greeted) {
             greeted = true;
-            addMessage("bot", window.pageT("chat_greeting").replace("{business}", {{ business_name | tojson }}));
+            addMessage("bot", window.pageT("chat_greeting"));
         }
     }
 
