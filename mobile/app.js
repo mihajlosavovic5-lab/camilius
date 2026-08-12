@@ -7726,7 +7726,9 @@ el("mysite-field-delete-confirm-confirm").addEventListener("click", () => {
             input.disabled = false;
             sendBtn.classList.remove("send-loading");
             sendBtn.setAttribute("aria-label", "Send");
-            input.focus();
+            // Deliberately NOT re-focusing the input here - it used to, which popped the
+            // on-screen keyboard back open the instant a reply (or a failure) landed,
+            // even if the owner had since put the keyboard away to read it.
         }
     }
 
