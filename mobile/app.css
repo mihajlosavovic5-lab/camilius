@@ -1725,7 +1725,7 @@ input.tap-to-edit-field, textarea.tap-to-edit-field { cursor: pointer; backgroun
     100% { transform: translateY(0); opacity: 1; }
 }
 .profile-section-header { margin-bottom: 14px; }
-.profile-section-title { font-size: 16px; font-weight: 700; margin: 0; display: flex; align-items: center; gap: 8px; }
+.profile-section-title { font-size: 16px; font-weight: 400; margin: 0; display: flex; align-items: center; gap: 8px; }
 .profile-section-subtitle { color: var(--text-muted); font-size: 13.5px; margin: 3px 0 0; }
 .profile-section-header + .floating-field, .profile-section-header + label { margin-top: 0; }
 /* Website photos, video & documents (inside the Profile screen's own .profile-section) -
