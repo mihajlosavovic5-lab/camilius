@@ -947,8 +947,12 @@ input.tap-to-edit-field, textarea.tap-to-edit-field { cursor: pointer; backgroun
    background, same as every other screen in the app. */
 .register-card { padding: 0; }
 /* Nudges the back button down slightly from the very top edge - a small deliberate gap
-   from the status bar, not flush against it. */
-.screen-register.screen .topbar { padding-top: calc(44px + var(--safe-top)); }
+   from the status bar, not flush against it. Kept close to .register-back-btn's own
+   top offset (22px + --safe-top, see below) rather than far past it - this used to be
+   44px, leaving a large dead gap between the status bar and the step heading below with
+   nothing in it (the button itself is pinned separately via position:absolute, so this
+   padding's only job is reserving flow space for the heading to sit under). */
+.screen-register.screen .topbar { padding-top: calc(24px + var(--safe-top)); }
 /* Persistent wizard heading, shown above every step (not just step 1) - same wording
    and role as the web register page's .register-wizard-heading (templates/
    register.html), which stays fixed across all three steps instead of being swapped
@@ -1038,7 +1042,7 @@ input.tap-to-edit-field, textarea.tap-to-edit-field { cursor: pointer; backgroun
    its own height doesn't affect the heading's position, and a step tall enough to
    fill/overflow the screen just shrinks it to 0 and scrolls normally instead of
    clipping. */
-.screen-register .detail-body::before { content: ''; flex: 0 0 46px; }
+.screen-register .detail-body::before { content: ''; flex: 0 0 14px; }
 .screen-register .detail-body::after { content: ''; flex: 1 0 0; }
 .register-step-nav { display: flex; align-items: center; justify-content: space-between; }
 .register-step-dots { display: flex; gap: 6px; }
