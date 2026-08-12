@@ -232,15 +232,17 @@
         box-shadow: 0 4px 20px rgba(38, 32, 20, .05);
     }
 
-    /* --- Top-bar title - the business name, centered between .nav-menu-btn (fixed
-       top-left, 18px + 34px wide) and .lang-btn (fixed top-right, 16px + 40px wide)
-       once the hamburger takes over below the 880px breakpoint. On mobile this
-       replaces .page-header's own big centered heading further down (hidden there,
-       see the media query below - logo/tagline/rule stay) rather than repeating the
-       name a second time; on desktop it stays hidden and that heading is the only
-       one shown. Padding matches each button's own offset + width (with a little
-       breathing room) so long names truncate before they can slide under either
-       icon. */
+    /* --- Top-bar title - same tagline-or-business_name text as .page-header's own big
+       headline further down, centered between .nav-menu-btn (fixed top-left, 18px + 34px
+       wide) and .lang-btn (fixed top-right, 16px + 40px wide) once the hamburger takes
+       over below the 880px breakpoint. On mobile this is the only thing keeping "which
+       page is this" visible once that headline scrolls out of view, so it stays even
+       when the headline below shows the same tagline text too; the media query below
+       only hides that headline on mobile for the plain business_name fallback case,
+       where showing it twice would be pure repetition. On desktop this stays hidden and
+       the headline is the only one shown. Padding matches each button's own offset +
+       width (with a little breathing room) so long names truncate before they can slide
+       under either icon. */
     .top-bar-title {
         display: none;
         position: fixed; top: 18px; left: 0; right: 0; z-index: 951;
@@ -1017,7 +1019,7 @@
     <span class="nav-menu-btn-bar"></span>
 </button>
 <div class="nav-menu-backdrop" id="nav-menu-backdrop"></div>
-<div class="top-bar-title">{{ business_name }}</div>
+<div class="top-bar-title"{% if tagline %} data-i18n-content="tagline"{% endif %}>{{ tagline or business_name }}</div>
 {% set current_lang = (page_languages | selectattr('code', 'equalto', content_language) | first) or page_languages[0] %}
 <button type="button" class="lang-btn" id="lang-btn" aria-label="Change language" aria-haspopup="true" aria-expanded="false">
     <img class="lang-flag" id="lang-flag" src="{{ url_for('static', filename='flags/' + current_lang.flag) }}" alt="{{ current_lang.name }}">
