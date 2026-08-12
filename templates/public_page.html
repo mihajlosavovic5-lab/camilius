@@ -1052,8 +1052,12 @@
     <div class="wrap">
         <header class="page-header reveal" id="home">
             {% if logo_url %}<img class="logo" src="{{ logo_url }}" alt="{{ business_name }} logo">{% endif %}
-            <h1>{{ business_name }}</h1>
-            {% if tagline %}<p class="tagline" data-i18n-content="tagline">{{ tagline }}</p>{% endif %}
+            {# The tagline reads as the headline (bold, large) with the business name as
+               its quieter subtitle underneath - swapped from the two elements' original
+               roles, kept for a business with no tagline set by just falling the H1 back
+               to business_name and never rendering the second line at all. #}
+            <h1{% if tagline %} data-i18n-content="tagline"{% endif %}>{{ tagline or business_name }}</h1>
+            {% if tagline %}<p class="tagline">{{ business_name }}</p>{% endif %}
         </header>
 
         {% if hero_video_url %}
