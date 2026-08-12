@@ -820,7 +820,7 @@
     /* Tap/click feedback - a quick dip below full size while held, then the bouncy
        cubic-bezier above overshoots slightly past 1 on release before settling, which
        reads as a light zoom-out/zoom-in rather than a flat snap back. */
-    .contact-row:active { transform: scale(0.95); transition-duration: .05s; }
+    .contact-row:active, .contact-row.pressed { transform: scale(0.95); transition-duration: .05s; }
     .social-links {
         display: flex;
         gap: 10px;
@@ -861,7 +861,7 @@
        transition-duration override below), then the bouncy cubic-bezier on .social-link's
        own transform transition overshoots slightly past full size on release, reading as
        a light zoom-out/zoom-in rather than a flat snap back. */
-    .social-link:active { transform: scale(0.86); transition-duration: .05s; }
+    .social-link:active, .social-link.pressed { transform: scale(0.86); transition-duration: .05s; }
     .hero-video {
         width: 100%;
         max-height: 360px;
@@ -1334,6 +1334,20 @@
         if (!topBarTicking) { window.requestAnimationFrame(updateTopBarFill); topBarTicking = true; }
     }, { passive: true });
     updateTopBarFill();
+
+    // Press feedback for the Contact section's email/phone rows and social icons - driven
+    // by Pointer Events + a .pressed class rather than relying on :active alone, since
+    // iOS Safari (including in-app webviews like the one this page is often opened in)
+    // simply never applies :active styles on a plain <a> unless something is listening
+    // for a touch/pointer event on it - with no listener at all, the CSS zoom-press
+    // animation below never renders there even though it's otherwise correct.
+    var pressEls = document.querySelectorAll(".contact-row, .social-link");
+    pressEls.forEach(function (el) {
+        el.addEventListener("pointerdown", function () { el.classList.add("pressed"); });
+        ["pointerup", "pointercancel", "pointerleave"].forEach(function (evt) {
+            el.addEventListener(evt, function () { el.classList.remove("pressed"); });
+        });
+    });
 
     // Reveal-on-scroll for the header/CTA/each section - see landing.html's identical
     // .lp-reveal/.lp-visible pattern.
