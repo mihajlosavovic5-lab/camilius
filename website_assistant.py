@@ -23,9 +23,10 @@ from openai import OpenAI
 
 # Only the model id and the output cap are shared with generate_reply.py - the persona
 # and prompt stay separate, same reasoning as support_assistant.py's own import of these.
-# strip_stray_asterisks is the code-level backstop for the Formatting rule in
-# SYSTEM_PROMPT below - the model doesn't always follow it on its own.
-from generate_reply import MODEL, MAX_REPLY_TOKENS, strip_stray_asterisks
+# strip_stray_asterisks/fix_stray_cyrillic are code-level backstops for things the model
+# doesn't always get right on its own (markdown asterisks, and stray Cyrillic letters
+# leaking into an otherwise-Latin Serbian/Bosnian/Croatian reply).
+from generate_reply import MODEL, MAX_REPLY_TOKENS, strip_stray_asterisks, fix_stray_cyrillic
 # Just for working_hours_display_text - a pure formatter, no DB call of its own (unlike
 # most of booking.py) - turns the business's raw stored working_hours (JSON or legacy
 # free text, see that function's own comment) into the same human-readable lines
@@ -378,7 +379,7 @@ def answer_website_chat_stream(message, history=None, business_context=None, ima
 
     if not content:
         content = "Sorry, I couldn't come up with a reply to that - try rephrasing?"
-    yield {"type": "done", "reply": strip_stray_asterisks(content)}
+    yield {"type": "done", "reply": fix_stray_cyrillic(strip_stray_asterisks(content))}
 
 
 def answer_website_chat(message, history=None, business_context=None, image_urls=None, tool_impls=None):

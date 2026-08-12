@@ -13,9 +13,10 @@ from openai import OpenAI
 # Only the model id and the output cap are shared with generate_reply.py - the personas
 # and prompts stay deliberately separate (see this module's docstring). Importing them
 # rather than repeating the literals is what keeps a model change to a one-line edit.
-# strip_stray_asterisks is the code-level backstop for the "no markdown" rule in
-# SYSTEM_PROMPT below - the model doesn't always follow it on its own.
-from generate_reply import MODEL, MAX_REPLY_TOKENS, strip_stray_asterisks
+# strip_stray_asterisks/fix_stray_cyrillic are code-level backstops for things the model
+# doesn't always get right on its own (markdown asterisks, and stray Cyrillic letters
+# leaking into an otherwise-Latin Serbian/Bosnian/Croatian reply).
+from generate_reply import MODEL, MAX_REPLY_TOKENS, strip_stray_asterisks, fix_stray_cyrillic
 
 load_dotenv()
 client = OpenAI()
@@ -130,4 +131,4 @@ def answer_support_question(message, history=None):
     content = response.choices[0].message.content
     if not content:
         return "Sorry, I couldn't come up with an answer to that - try rephrasing, or email support@ai-auto-reply-mail.com."
-    return strip_stray_asterisks(content)
+    return fix_stray_cyrillic(strip_stray_asterisks(content))

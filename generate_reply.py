@@ -22,6 +22,35 @@ def strip_stray_asterisks(text):
     return protected.replace("*", "").replace("\0", "*")
 
 
+# gpt-4o-mini occasionally slips a handful of Cyrillic letters into an otherwise-Latin
+# Serbian/Bosnian/Croatian word (e.g. "izvршиš" instead of "izvršiš") - a rendering glitch
+# in the model's own output, not something the prompt can reliably prevent. Maps each
+# Cyrillic letter to its standard Latin transliteration, keyed by sound (e.g. "р" -> "r"),
+# not by visual lookalike (so e.g. "н" -> "n", even though it looks like Latin "H").
+_CYRILLIC_LOWER = "абвгдђежзијклљмнњопрстћуфхцчџш"
+_LATIN_LOWER = ["a", "b", "v", "g", "d", "đ", "e", "ž", "z", "i", "j", "k", "l", "lj",
+                "m", "n", "nj", "o", "p", "r", "s", "t", "ć", "u", "f", "h", "c", "č", "dž", "š"]
+_CYRILLIC_UPPER = "АБВГДЂЕЖЗИЈКЛЉМНЊОПРСТЋУФХЦЧЏШ"
+
+_CYRILLIC_TO_LATIN = {}
+for _cyr_lower, _cyr_upper, _latin in zip(_CYRILLIC_LOWER, _CYRILLIC_UPPER, _LATIN_LOWER):
+    _CYRILLIC_TO_LATIN[_cyr_lower] = _latin
+    _CYRILLIC_TO_LATIN[_cyr_upper] = _latin[0].upper() + _latin[1:]
+
+
+def fix_stray_cyrillic(text):
+    cyrillic_count = sum(1 for ch in text if ch in _CYRILLIC_TO_LATIN)
+    if not cyrillic_count:
+        return text
+    latin_count = sum(1 for ch in text if ch.isalpha() and ch not in _CYRILLIC_TO_LATIN)
+    # A reply that's genuinely written in Cyrillic (Russian, Bulgarian, Serbian-Cyrillic,
+    # ...) has Cyrillic as the dominant script - leave those alone. Only a small minority
+    # of stray Cyrillic letters in an otherwise-Latin reply is the glitch this fixes.
+    if cyrillic_count >= latin_count * 0.4:
+        return text
+    return "".join(_CYRILLIC_TO_LATIN.get(ch, ch) for ch in text)
+
+
 # Used only for manually testing this file from the terminal (below, in __main__)
 DEMO_BUSINESS = {
     "business_name": "Frizerski salon Stil",
@@ -101,7 +130,7 @@ def generate_reply(customer_question, business, history=None, channel=DEFAULT_CH
         )
         return "Sorry, I couldn't draft an automatic reply for this one - please reply to this customer manually."
 
-    return strip_stray_asterisks(content)
+    return fix_stray_cyrillic(strip_stray_asterisks(content))
 
 
 # --- Smart Booking (Faza 8/9, Pro plan only - see database.has_pro_access) ---
@@ -247,7 +276,7 @@ def generate_reply_with_booking(customer_question, business, history, now_local_
         print(f"generate_reply_with_booking got empty content - question={customer_question!r}", flush=True)
         return "Sorry, I couldn't draft an automatic reply for this one - please reply to this customer manually."
 
-    return strip_stray_asterisks(content)
+    return fix_stray_cyrillic(strip_stray_asterisks(content))
 
 
 if __name__ == "__main__":
