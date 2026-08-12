@@ -372,6 +372,22 @@
             0.9px -0.9px 0.6px rgba(0, 0, 0, .7),
             -0.9px -0.9px 0.6px rgba(0, 0, 0, .7);
     }
+    /* Title split into a main line + a smaller sub-line - renderSplitTitle() (bottom of
+       the page) picks the tagline/business_name text apart at a natural separator (an
+       em/en-dash or a comma - e.g. "Kafeterija Aroma - Novi Sad") and wraps each half in
+       one of these spans, so a business name reads as the prominent line with its
+       location/descriptor sitting smaller underneath instead of both halves competing at
+       the same size. Sized in em so it scales with whatever font-size its parent
+       (.top-bar-title or h1) currently has - including .top-bar-title's own JS-driven
+       shrink-to-fit on narrow screens. Text with no such separator never gets a .title-sub
+       at all (renderSplitTitle leaves it as a single .title-main), so a plain business
+       name with no tagline looks exactly as before. */
+    .title-main { display: block; }
+    .title-sub {
+        display: block;
+        font-size: 0.48em; font-weight: 600; letter-spacing: 0;
+        opacity: 0.8; margin-top: 0.16em;
+    }
     /* Small centered accent rule under the headline - the same primary-to-gold "signature"
        mark used under page titles everywhere else in the product (style.css's own
        .business-title-rule/.section-title::after), so this generated page reads as the
@@ -1379,11 +1395,47 @@
         return (active && active.ui && active.ui[key] !== undefined) ? active.ui[key] : (fallback[key] || key);
     };
 
+    // Splits a tagline/business_name string into a prominent main line and a smaller
+    // sub-line at whatever natural separator it finds - an em/en-dash or plain hyphen
+    // surrounded by spaces (so it never cuts a hyphenated word like "Well-Known" in two),
+    // then a comma as a fallback. No separator found (a plain business name with no
+    // tagline, or a tagline that just doesn't have one) means no sub-line - the whole
+    // string stays a single main line, same as before this existed.
+    function splitDisplayTitle(text) {
+        var m = /^(.+?)\s[–—-]\s(.+)$/.exec(text) || /^(.+?),\s*(.+)$/.exec(text);
+        if (m && m[1].trim() && m[2].trim()) return { main: m[1].trim(), sub: m[2].trim() };
+        return { main: text, sub: "" };
+    }
+    // Renders that split into .title-main/.title-sub spans (styled above) inside el,
+    // replacing whatever plain text it held - used for both .top-bar-title and the
+    // desktop h1, which show the same tagline-or-business_name text.
+    function renderSplitTitle(el, text) {
+        var parts = splitDisplayTitle(text || "");
+        el.textContent = "";
+        var mainSpan = document.createElement("span");
+        mainSpan.className = "title-main";
+        mainSpan.textContent = parts.main;
+        el.appendChild(mainSpan);
+        if (parts.sub) {
+            var subSpan = document.createElement("span");
+            subSpan.className = "title-sub";
+            subSpan.textContent = parts.sub;
+            el.appendChild(subSpan);
+        }
+    }
+    var splitTitleEls = document.querySelectorAll(".top-bar-title, .page-header h1");
+    splitTitleEls.forEach(function (el) { renderSplitTitle(el, el.textContent); });
+
     function applyTranslation(lang, data) {
         var contentEls = document.querySelectorAll("[data-i18n-content]");
         contentEls.forEach(function (el) {
             var key = el.getAttribute("data-i18n-content");
-            if (data[key] !== undefined) el.textContent = data[key];
+            if (data[key] === undefined) return;
+            if (el.matches(".top-bar-title, .page-header h1")) {
+                renderSplitTitle(el, data[key]);
+            } else {
+                el.textContent = data[key];
+            }
         });
         document.querySelectorAll("[data-i18n]").forEach(function (el) {
             var key = el.getAttribute("data-i18n");
