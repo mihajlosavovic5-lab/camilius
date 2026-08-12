@@ -4843,6 +4843,14 @@ function setActiveTab(tab) {
     if (tab === "settings") loadNotificationPreferences();
     if (tab === "schedule") loadSchedule();
     if (tab === "mysite") loadMySite();
+    // Unlike Settings/My Site above, Profile used to only ever load once, at app
+    // startup (enterApp's own loadSettingsIntoForm() call) - so business details
+    // saved elsewhere in the same session (e.g. the "Draft this with AI" chat writing
+    // a price list via website_content_tools.update_price_list) never showed up here
+    // until the app was fully restarted, even though the change had already taken on
+    // the public site. Reloading on every switch to this tab keeps it in step, same
+    // as the other two.
+    if (tab === "profile") loadSettingsIntoForm();
     playTabRevealOnce(tab);
 }
 
