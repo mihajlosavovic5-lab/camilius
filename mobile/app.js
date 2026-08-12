@@ -7560,16 +7560,23 @@ el("mysite-field-delete-confirm-confirm").addEventListener("click", () => {
     // and running several tool calls in one turn is real extra work an ordinary API call
     // never does.
     const WEBSITE_CHAT_TIMEOUT_MS = 60000;
-    async function postWebsiteChatStream(body, onEvent) {
+    // Set for the duration of one in-flight /api/website-chat request (send or resend),
+    // null otherwise - both a "is something sending right now" flag and the handle that
+    // the send button's own click listener aborts when tapped as a stop button (see the
+    // Wiring section below). Only ever one at a time: the compose field/send button are
+    // effectively single-flight already (nothing else can trigger another send while
+    // this is set).
+    let activeSendController = null;
+
+    async function postWebsiteChatStream(body, onEvent, controller) {
         const headers = { "Content-Type": "application/json" };
         if (state.token) headers["Authorization"] = "Bearer " + state.token;
-        const timeoutController = new AbortController();
-        const timeoutId = setTimeout(() => timeoutController.abort(), WEBSITE_CHAT_TIMEOUT_MS);
+        const timeoutId = setTimeout(() => controller.abort(), WEBSITE_CHAT_TIMEOUT_MS);
         try {
             let response;
             try {
                 response = await fetch(API_BASE + "/api/website-chat", {
-                    method: "POST", headers, body: JSON.stringify(body), signal: timeoutController.signal,
+                    method: "POST", headers, body: JSON.stringify(body), signal: controller.signal,
                 });
             } catch (networkError) {
                 const err = new Error(t("network.error"));
@@ -7603,40 +7610,60 @@ el("mysite-field-delete-confirm-confirm").addEventListener("click", () => {
         }
     }
 
-    async function send() {
-        const text = input.value.trim();
-        if (!text) return;
-        input.value = "";
-        autoGrowInput();
-        updateComposeButtons();
+    // Appended inside the user's own message bubble (not a separate bot reply) when a
+    // send/resend request errors out or is stopped mid-flight via the send button's own
+    // stop affordance - "Failed to send" plus a Resend button that re-runs the exact same
+    // request. text/imageItems are whatever was actually sent, so Resend can retry them
+    // verbatim without the owner retyping anything.
+    function markMessageFailed(userMsgEl, text, imageItems) {
+        if (!userMsgEl) return;
+        const existing = userMsgEl.querySelector(".website-chat-msg-failed");
+        if (existing) existing.remove();
+        const wrap = document.createElement("div");
+        wrap.className = "website-chat-msg-failed";
+        const label = document.createElement("span");
+        label.className = "website-chat-msg-failed-label";
+        label.textContent = t("websiteChat.failedToSend") || "Failed to send";
+        wrap.appendChild(label);
+        const resendBtn = document.createElement("button");
+        resendBtn.type = "button";
+        resendBtn.className = "website-chat-msg-resend";
+        resendBtn.textContent = t("websiteChat.resend") || "Resend";
+        resendBtn.addEventListener("click", () => {
+            wrap.remove();
+            sendMessageRequest(userMsgEl, text, imageItems);
+        });
+        wrap.appendChild(resendBtn);
+        userMsgEl.appendChild(wrap);
+        messagesEl.scrollTop = messagesEl.scrollHeight;
+    }
+
+    // The actual /api/website-chat round trip for a message that's already in the
+    // transcript (its user bubble + history entry already exist) - shared by both a
+    // fresh send() and a Resend tap, so retrying doesn't duplicate either. A request that
+    // never got a response at all (network drop, the WEBSITE_CHAT_TIMEOUT_MS timeout, or
+    // the owner tapping stop mid-flight) marks the message failed with a Resend button -
+    // from the owner's point of view it just didn't go through. A request that DID get a
+    // response, just a rejection with a reason (rate limit, subscription required,
+    // validation error - err.status is set, see postWebsiteChatStream), shows that reason
+    // as a normal reply instead - resending verbatim would only hit the same rejection
+    // again, so a "failed to send" retry affordance would be misleading there.
+    async function sendMessageRequest(userMsgEl, text, imageItems) {
         input.disabled = true;
         sendBtn.classList.add("send-loading");
-        let typingEl = null;
+        sendBtn.setAttribute("aria-label", "Stop");
+        let typingEl = addMessage("bot", "...");
+        typingEl.classList.add("website-chat-msg-typing");
         try {
-            // Photos/video/documents attached to the compose bar were only staged
-            // locally - this is the point they actually upload, same as a normal chat
-            // only sending attachments once you hit send. Previously the uploaded result
-            // was thrown away here, so images landed in the account's gallery but the AI
-            // (and the chat transcript itself) never found out they existed - text-only
-            // messages sent fine, but anything attached alongside them silently
-            // disappeared from the conversation.
-            const uploaded = await flushStagedAttachments();
-            const imageItems = (uploaded || []).filter((entry) => entry && entry.kind === "image").map((entry) => entry.item);
-            clearAttachmentList();
-            const imageUrls = imageItems.map((item) => item.url);
-            addMessage("user", text, imageUrls);
-            history.push({ role: "user", content: text });
-            recordMessage("user", text, imageUrls, "user");
-            typingEl = addMessage("bot", "...");
-            typingEl.classList.add("website-chat-msg-typing");
-
             let reply = null;
+            activeSendController = new AbortController();
             await postWebsiteChatStream(
                 { message: text, history: history.slice(0, -1), image_ids: imageItems.map((item) => item.id) },
                 (event) => {
                     if (event.type === "status") showStatus(event.key);
                     else if (event.type === "done") reply = event.reply;
                 },
+                activeSendController,
             );
             hideStatus();
             typingEl.remove();
@@ -7646,13 +7673,47 @@ el("mysite-field-delete-confirm-confirm").addEventListener("click", () => {
             recordMessage("bot", reply, null, "assistant");
         } catch (err) {
             hideStatus();
-            if (typingEl) typingEl.remove();
-            addMessage("bot", (err && err.message) || t("websiteChat.error"));
+            typingEl.remove();
+            if (err && err.status) addMessage("bot", err.message || t("websiteChat.error"));
+            else markMessageFailed(userMsgEl, text, imageItems);
         } finally {
+            activeSendController = null;
             input.disabled = false;
             sendBtn.classList.remove("send-loading");
+            sendBtn.setAttribute("aria-label", "Send");
             input.focus();
         }
+    }
+
+    async function send() {
+        const text = input.value.trim();
+        if (!text) return;
+        input.value = "";
+        autoGrowInput();
+        updateComposeButtons();
+        // Photos/video/documents attached to the compose bar were only staged locally -
+        // this is the point they actually upload, same as a normal chat only sending
+        // attachments once you hit send. Previously the uploaded result was thrown away
+        // here, so images landed in the account's gallery but the AI (and the chat
+        // transcript itself) never found out they existed - text-only messages sent fine,
+        // but anything attached alongside them silently disappeared from the
+        // conversation. A failure here happens before any user bubble exists yet, so
+        // there's nothing to mark failed/offer a resend on - same generic error reply as
+        // before.
+        let imageItems;
+        try {
+            const uploaded = await flushStagedAttachments();
+            imageItems = (uploaded || []).filter((entry) => entry && entry.kind === "image").map((entry) => entry.item);
+            clearAttachmentList();
+        } catch (err) {
+            addMessage("bot", (err && err.message) || t("websiteChat.error"));
+            return;
+        }
+        const imageUrls = imageItems.map((item) => item.url);
+        const userMsgEl = addMessage("user", text, imageUrls);
+        history.push({ role: "user", content: text });
+        recordMessage("user", text, imageUrls, "user");
+        await sendMessageRequest(userMsgEl, text, imageItems);
     }
 
     // --- Wiring ---
@@ -7677,6 +7738,10 @@ el("mysite-field-delete-confirm-confirm").addEventListener("click", () => {
         showScreen("mysite");
     });
     sendBtn.addEventListener("click", () => {
+        // While a request is in flight the button IS the stop affordance (see its
+        // .send-loading styling in app.css) - tapping it aborts that request instead of
+        // starting a new send, same spot postWebsiteChatStream's own timeout aborts from.
+        if (activeSendController) { activeSendController.abort(); return; }
         if (stopRecordingIfActive()) return;
         send();
     });

@@ -1953,27 +1953,36 @@ input.tap-to-edit-field, textarea.tap-to-edit-field { cursor: pointer; backgroun
 .textarea-send-btn.has-text:active { background: var(--primary-dark); }
 .textarea-send-btn:disabled { border-color: #cabfa4; color: #cabfa4; background: transparent; box-shadow: none; }
 .textarea-send-btn.has-text:disabled { background: #cabfa4; color: #fff; box-shadow: none; }
-/* Swaps the arrow icon for a spinning ring while a compose bar's send request is in
-   flight - deliberately NOT the :disabled rules above (those dull the circle to a
-   grayed-out color/lose its shadow), since the point here is the opposite: same gold
-   circle, same size, just a spinner in place of the arrow. pointer-events blocks a
-   second tap the way :disabled normally would.
-   "send-loading", not the generic "loading" class used elsewhere for list/empty-state
-   placeholders (see .loading above, padding: 30px; flex: 1; ...) - class names are global
-   in CSS, and reusing "loading" here let that unrelated rule's flex/padding leak onto
-   this button and balloon the circle to roughly 2x its size. */
-.textarea-send-btn.send-loading { pointer-events: none; }
-.textarea-send-btn.send-loading svg { display: none; }
-.send-btn-spinner {
-    display: none;
-    width: 16px; height: 16px; border-radius: 50%;
-    border: 2px solid rgba(255,255,255,.35); border-top-color: #fff;
-    animation: ota-spin .7s linear infinite;
+/* Swaps the arrow icon for a solid white stop-square while a compose bar's send request
+   is in flight - and, unlike the spinner this replaced, stays a real clickable button:
+   tapping it while sending aborts that request instead of doing nothing (see sendBtn's
+   click listener in app.js, which checks activeSendController before anything else). Same
+   gold circle, same size, forced solid here rather than relying on .has-text (the field is
+   already empty by this point) so it reads as "still here, tap to stop" rather than fading
+   to the plain outline. "send-loading", not the generic "loading" class used elsewhere for
+   list/empty-state placeholders (see .loading above, padding: 30px; flex: 1; ...) - class
+   names are global in CSS, and reusing "loading" here let that unrelated rule's flex/
+   padding leak onto this button and balloon the circle to roughly 2x its size. */
+.textarea-send-btn.send-loading {
+    background: var(--primary); border-color: transparent; color: #fff;
+    box-shadow: 0 2px 8px -2px rgba(214,148,16,.6);
 }
-.textarea-send-btn.send-loading .send-btn-spinner { display: block; }
+.textarea-send-btn.send-loading svg { display: none; }
+.send-btn-stop-icon { display: none; width: 12px; height: 12px; border-radius: 3px; background: #fff; }
+.textarea-send-btn.send-loading .send-btn-stop-icon { display: block; }
 .voice-status { font-size: 13px; color: var(--text-muted); margin: 6px 2px 0; }
 .voice-status.voice-status-error { color: var(--danger); }
 .voice-status:empty { display: none; }
+/* "Failed to send" + Resend, appended inside the user's own message bubble (see
+   markMessageFailed in app.js) when a send request errors out or is stopped mid-flight -
+   sits below the message text as its own line rather than a whole separate bot reply, the
+   same "retry this exact message" affordance most chat apps use for a failed send. */
+.website-chat-msg-failed { display: flex; align-items: center; gap: 8px; font-size: 12.5px; }
+.website-chat-msg-failed-label { color: var(--danger); }
+.website-chat-msg-resend {
+    background: none; border: none; padding: 0; margin: 0; cursor: pointer;
+    color: var(--primary-ink); font-size: 12.5px; font-weight: 600; text-decoration: underline;
+}
 
 /* --- "Draft this with AI" launcher pill (Faza 16) - a static tap target into
    screen-website-chat (see the draftCard wiring in app.js), styled to still read as the
