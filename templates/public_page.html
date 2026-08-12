@@ -725,17 +725,6 @@
         opacity: 0;
         transform: translateY(10px) scale(.95);
     }
-    /* Briefly fades the panel out and back in around the moment #chat-input gains/loses
-       focus (see the chat script below), instead of trying to smooth the keyboard-open
-       reposition itself. That reposition can't be eased with a CSS transition no matter
-       what property it's written on - the browser resizes/reflows the viewport that
-       `bottom: 90px` is measured against, which isn't a value change transitions ever
-       see, so the panel was snapping to its new spot instantly and then the keyboard's
-       own native slide-in animation played afterward, separately - two distinct, out of
-       sync motions rather than one. Hiding the panel for the brief window that reflow
-       and the keyboard's own animation happen in turns that into one clean fade instead,
-       regardless of how (or how consistently) the browser animates the reflow itself. */
-    .chat-panel.chat-panel-settling { opacity: 0; }
     .chat-header {
         display: flex;
         align-items: center;
@@ -1642,8 +1631,13 @@
     // bar happens to be doing at that moment - the exact same recalculation the first
     // open settles into cleanly but a later open (address bar now in a different
     // collapsed/expanded state than at page load) turned into a visible two-stage jump.
-    // A value fixed once at load can't do either, since it never changes at all.
-    document.documentElement.style.setProperty("--chat-vh", window.innerHeight + "px");
+    // A value fixed once at load can't do either, since it never changes at all. Kept as
+    // a plain JS variable too (chatVhBaseline below) - the keyboard-glide math further
+    // down needs the same "full height with no keyboard" reference, and live
+    // window.innerHeight isn't it (same reason: this WebView ties it to the
+    // keyboard-shrunk area once the keyboard's involved at all).
+    var chatVhBaseline = window.innerHeight;
+    document.documentElement.style.setProperty("--chat-vh", chatVhBaseline + "px");
 
     // A per-page (per-slug) key in localStorage, not a cookie: third-party cookies are
     // already blocked in Safari/Chrome, which the F5 embeddable widget will hit
@@ -1676,6 +1670,56 @@
         return el;
     }
 
+    // Bottom-anchored port of mobile/app.js's centered-modal keyboard glide
+    // (pinModalCenter/glideModalCenterSheet/repositionOpenCenteredModals, see app.js
+    // around its own CENTERED_MODAL_SPEED_PX_MS constant) - that code took several
+    // rejected iterations on the app side to land on this exact shape, specifically
+    // because fixed-duration approaches (like this file's own now-removed opacity
+    // fade-mask) don't hold up: some WebViews report the real keyboard height in one or
+    // two discrete jumps rather than continuously, so a guessed duration either
+    // undershoots or drags with no way to tell which jump is next. This is event-driven
+    // instead (visualViewport resize/scroll, window.resize fallback), with a
+    // distance-based - not guessed - animation duration, and a generation counter so a
+    // mid-flight retarget cancels the stale requestAnimationFrame loop cleanly instead
+    // of two loops fighting over the same style property.
+    var chatPanelBaseBottom = 90;
+    function chatPanelBottomTarget() {
+        var vv = window.visualViewport;
+        var visibleBottom = vv ? (vv.offsetTop + vv.height) : window.innerHeight;
+        var keyboardInset = Math.max(0, chatVhBaseline - visibleBottom);
+        return chatPanelBaseBottom + keyboardInset;
+    }
+    var CHAT_PANEL_GLIDE_SPEED_PX_MS = 1.6;
+    var CHAT_PANEL_GLIDE_MIN_MS = 90;
+    var CHAT_PANEL_GLIDE_MAX_MS = 240;
+    var chatPanelGlideGeneration = 0;
+    function glideChatPanelBottom() {
+        var targetBottom = chatPanelBottomTarget();
+        var startBottom = parseFloat(panel.style.bottom);
+        if (isNaN(startBottom)) startBottom = chatPanelBaseBottom;
+        var distance = Math.abs(targetBottom - startBottom);
+        if (distance < 0.5) return;
+        var duration = Math.min(CHAT_PANEL_GLIDE_MAX_MS, Math.max(CHAT_PANEL_GLIDE_MIN_MS, distance / CHAT_PANEL_GLIDE_SPEED_PX_MS));
+        var startedAt = performance.now();
+        var generation = ++chatPanelGlideGeneration;
+        function step(now) {
+            if (chatPanelGlideGeneration !== generation) return;
+            var t = Math.min(1, (now - startedAt) / duration);
+            panel.style.bottom = (startBottom + (targetBottom - startBottom) * t) + "px";
+            if (t < 1) requestAnimationFrame(step);
+        }
+        requestAnimationFrame(step);
+    }
+    function repositionChatPanelIfOpen() {
+        if (open) glideChatPanelBottom();
+    }
+    if (window.visualViewport) {
+        window.visualViewport.addEventListener("resize", repositionChatPanelIfOpen);
+        window.visualViewport.addEventListener("scroll", repositionChatPanelIfOpen);
+    } else {
+        window.addEventListener("resize", repositionChatPanelIfOpen);
+    }
+
     var chatLockedScrollY = 0;
     function setOpen(value) {
         var wasOpen = open;
@@ -1705,29 +1749,30 @@
             document.body.style.position = "fixed";
             document.body.style.top = (-chatLockedScrollY) + "px";
             document.body.style.width = "100%";
+            // Seeds a real inline `bottom` value fresh from whichever CSS rule is
+            // currently authored (90px, or 84px under the narrow-screen media query) -
+            // the pinModalCenterSheet()-equivalent step glideChatPanelBottom() above
+            // needs before it can read a sane start point, and clearing the inline style
+            // first (rather than reading straight off it) makes sure this reads the true
+            // authored value instead of a stale leftover from a previous open/close
+            // cycle's glide. The immediate glide call after catches up right away in
+            // case the keyboard is already up somehow when the panel opens.
+            panel.style.bottom = "";
+            chatPanelBaseBottom = parseFloat(getComputedStyle(panel).bottom) || 90;
+            panel.style.bottom = chatPanelBaseBottom + "px";
+            glideChatPanelBottom();
         } else if (!open && wasOpen) {
             document.body.style.position = "";
             document.body.style.top = "";
             document.body.style.width = "";
             window.scrollTo({ top: chatLockedScrollY, left: 0, behavior: "instant" });
+            // Cancels any in-flight glide and resets back to the CSS-authored default so
+            // the next open reseeds cleanly above, instead of reading back whatever this
+            // session's glide last wrote.
+            chatPanelGlideGeneration++;
+            panel.style.bottom = "";
         }
     }
-
-    // Masks the on-screen keyboard's opening/closing reflow behind a brief fade instead
-    // of trying to track or ease it directly - see .chat-panel-settling's own comment
-    // for why that reflow itself can't be smoothed with a CSS transition. 320ms covers
-    // the window observed between #chat-input receiving/losing focus and the keyboard's
-    // own native slide animation actually finishing.
-    var chatSettleTimer = null;
-    function settleChatPanel() {
-        panel.classList.add("chat-panel-settling");
-        clearTimeout(chatSettleTimer);
-        chatSettleTimer = setTimeout(function () {
-            panel.classList.remove("chat-panel-settling");
-        }, 320);
-    }
-    input.addEventListener("focus", settleChatPanel);
-    input.addEventListener("blur", settleChatPanel);
 
     fab.addEventListener("click", function () { setOpen(!open); });
     // Click-outside-to-close - same pattern as the language dropdown's own outside-click
