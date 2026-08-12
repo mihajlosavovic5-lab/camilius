@@ -70,9 +70,9 @@ PAGE_UI_STRINGS = {
     "book_error": "Couldn't load open times - please try again shortly.",
     "book_confirm": "Requested {day} at {time} - continue in the chat to confirm.",
     "chat_subtitle": "Usually replies in seconds",
-    "chat_placeholder": "Ask a question or book a time...",
+    "chat_placeholder": "Ask anything...",
     "chat_send": "Send",
-    "chat_greeting": "Hi! Ask me anything about {business}, or book a time that works for you.",
+    "chat_greeting": "Hi! Ask me anything about {business}.\nOr book a time that works for you.",
     "chat_error": "Sorry, something went wrong - please try again.",
 }
 
