@@ -290,7 +290,12 @@ _CSP_TEMPLATE = (
     # needs it listed explicitly or the browser blocks the fetch before CORS even enters
     # the picture (see public_page_chat/_availability's own CORS handling for that half).
     f"connect-src 'self' https://*.paddle.com https://ipapi.co https://{PRIMARY_APP_HOST}; "
-    "frame-src 'self' https://*.paddle.com; "
+    # https://www.google.com: the public page's #location section (see public_page.html)
+    # embeds a Google Maps iframe - without this it silently renders as a broken-image
+    # icon in a real browser (frame-src blocks the frame navigation itself, same class of
+    # bug the onboarding-preview note above already describes), never a visible CSP error
+    # a business owner would think to check for.
+    "frame-src 'self' https://*.paddle.com https://www.google.com; "
     "frame-ancestors {frame_ancestors}; "
     "base-uri 'self'; "
     "object-src 'none'"
