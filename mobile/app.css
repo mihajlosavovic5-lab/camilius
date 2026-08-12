@@ -2046,16 +2046,16 @@ input.tap-to-edit-field, textarea.tap-to-edit-field { cursor: pointer; backgroun
    also carries slideshow-specific positioning (absolute, paused until its slide is
    active) that doesn't apply here. Replaces what used to be the literal text "..." with
    real animated dot elements (see addTypingIndicator in app.js). */
-.website-chat-typing-dots { display: inline-flex; gap: 4px; padding: 2px 0; }
+.website-chat-typing-dots { display: inline-flex; gap: 3px; padding: 3px 0; }
 .website-chat-typing-dots span {
-    width: 6px; height: 6px; border-radius: 50%; background: var(--text-muted);
+    width: 4px; height: 4px; border-radius: 50%; background: var(--text-muted);
     animation: website-chat-typing-bounce 1s ease-in-out infinite;
 }
 .website-chat-typing-dots span:nth-child(2) { animation-delay: .15s; }
 .website-chat-typing-dots span:nth-child(3) { animation-delay: .3s; }
 @keyframes website-chat-typing-bounce {
-    0%, 60%, 100% { transform: translateY(0); opacity: .5; }
-    30% { transform: translateY(-3px); opacity: 1; }
+    0%, 60%, 100% { transform: translateY(0); opacity: .35; }
+    30% { transform: translateY(-2px); opacity: .75; }
 }
 /* This screen hides the tabbar entirely (see the draftCard/backBtn wiring in app.js -
    showTabbar(false)) so it reads as its own independent window rather than another tab
