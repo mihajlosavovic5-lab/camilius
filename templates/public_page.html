@@ -239,19 +239,20 @@
        over below the 880px breakpoint. On mobile this replaces .page-header's own big
        heading (hidden there, see the media query below - logo stays) rather than
        showing the same title twice; on desktop it stays hidden and that heading is the
-       only one shown. The 0 60px padding below is only a fallback for the instant before
-       JS runs - layoutTopBarTitle() (bottom of the page) measures .nav-menu-btn's and
-       .lang-btn's own real edges on load/resize and overwrites padding-left/right with
-       their exact widths, so the title always clears both regardless of viewport size or
-       button size changes, and shrinks its own font-size step by step (down to a floor)
-       until a long name wraps onto at most two lines instead of sliding under an icon. */
+       only one shown. The 0 60px padding and 4.5vw font-size below are only a fallback
+       for the instant before JS runs - layoutTopBarTitle()/fitMainTitle() (bottom of the
+       page) measure .nav-menu-btn's and .lang-btn's own real edges plus the title's own
+       text every time this page loads, and overwrite both padding and font-size with
+       whatever actually fits that business name on that screen, so the title always
+       clears both buttons and reads at the biggest size that still does, for any name and
+       any viewport - not just the one this fallback happens to look right at. */
     .top-bar-title {
         display: none;
         position: fixed; top: 15px; left: 0; right: 0; z-index: 951;
         min-height: 40px; flex-direction: column; align-items: stretch; justify-content: center;
         padding: 6px 60px;
         font-family: var(--heading-font); font-weight: 700;
-        font-size: clamp(15px, 4.5vw, 24px); line-height: 1.14;
+        font-size: clamp(15px, 4.5vw, 28px); line-height: 1.14;
         color: var(--text); text-align: center;
         white-space: normal; overflow-wrap: break-word;
         pointer-events: none;
@@ -1541,23 +1542,62 @@
     // Top-bar title self-fit - recognizes whatever actually sits to its left (the
     // hamburger, #nav-menu-btn) and right (the language flag, #lang-btn) by measuring
     // their real on-screen edges rather than assuming a fixed icon size, reserves exactly
-    // that much gutter on each side, then shrinks its own font-size step by step until it
-    // fits instead of running under either icon. The shrink target is .title-main alone
-    // (the business name span - see renderSplitTitle() above), allowed to wrap onto up to
-    // two lines of its own before shrinking kicks in, rather than measuring the whole
-    // element: .title-sub sits at a fraction of the font-size already, so folding it into
-    // the same height budget made the loop think the title was overflowing long before
-    // the name itself actually needed to shrink, capping every business name at roughly
-    // the same small size regardless of how high the max font-size above was raised.
-    // .title-sub is left free to wrap on its own beneath - it's usually short (a
-    // location), and even when it isn't, a wrapped sub-line still can't slide under
-    // either icon since it shares the same side gutters as everything else in the box.
-    // Also grows .top-bar-fill and the content below (.wrap's padding-top) to match
-    // however tall the title ends up, so a wrapped line never gets covered by or overlaps
-    // the page content underneath it.
+    // that much gutter on each side, then works out the biggest font-size that still fits
+    // in what's left, purely from measuring that specific business name against that
+    // specific screen - not a fixed number tuned for one example name/viewport and left
+    // to be wrong for every other one. SEARCH_MIN/SEARCH_MAX below only bound the search
+    // (a sanity range so a one-letter name doesn't blow up to something absurd and a
+    // 40-character one doesn't shrink to unreadable dust) - the actual size that gets used
+    // is whatever fitMainTitle() finds fits, every time this runs.
     var topBarTitleEl = document.querySelector(".top-bar-title");
     var wrapEl = document.querySelector(".wrap");
-    var TOP_BAR_MAX_FONT = 24, TOP_BAR_MIN_FONT = 15, TOP_BAR_MAIN_MAX_LINES = 2, TOP_BAR_GUTTER_MARGIN = 14;
+    var TOP_BAR_GUTTER_MARGIN = 14;
+    var TOP_BAR_SEARCH_MIN_FONT = 14, TOP_BAR_SEARCH_MAX_FONT = 56;
+    var TOP_BAR_MAIN_MAX_LINES = 2;
+
+    // Judges whether .title-main (the business name alone - see renderSplitTitle() above;
+    // .title-sub, usually a short location, sits at its own fraction of this size and
+    // wraps freely underneath without counting against this budget) reads well at fs:
+    // wrapped onto at most two lines of its own, with every individual word actually
+    // fitting the available width rather than getting cut mid-word. Checked with
+    // overflow-wrap forced to "normal" (word breaks only) so a font that only "fits" by
+    // slicing the name itself in half ("Kafeterij" / "a Aroma") is correctly judged as
+    // not fitting, rather than accepted as if it did.
+    function mainFitsAt(mainSpan, fs) {
+        topBarTitleEl.style.fontSize = fs + "px";
+        var maxHeight = fs * 1.14 * TOP_BAR_MAIN_MAX_LINES + fs * 0.3;
+        return mainSpan.scrollHeight <= maxHeight && mainSpan.scrollWidth <= mainSpan.clientWidth + 1;
+    }
+
+    // Binary search for the largest font-size in [SEARCH_MIN, SEARCH_MAX] that
+    // mainFitsAt() accepts - a short name on a wide screen lands near the top of that
+    // range, a long one on a narrow phone lands near the bottom, entirely decided by the
+    // measurements above rather than a size picked in advance. Falls back to truncating
+    // .title-main onto a single ellipsized line at the floor size for the rare name that
+    // still doesn't fit even there (e.g. one long unbroken word), so it visibly shortens
+    // rather than spilling under an icon or past two lines.
+    function fitMainTitle(mainSpan) {
+        mainSpan.style.whiteSpace = "";
+        mainSpan.style.overflow = "";
+        mainSpan.style.textOverflow = "";
+        topBarTitleEl.style.overflowWrap = "normal";
+        var lo = TOP_BAR_SEARCH_MIN_FONT, hi = TOP_BAR_SEARCH_MAX_FONT, best = null;
+        while (lo <= hi) {
+            var mid = Math.floor((lo + hi) / 2);
+            if (mainFitsAt(mainSpan, mid)) { best = mid; lo = mid + 1; } else { hi = mid - 1; }
+        }
+        if (best === null) {
+            best = TOP_BAR_SEARCH_MIN_FONT;
+            topBarTitleEl.style.fontSize = best + "px";
+            mainSpan.style.whiteSpace = "nowrap";
+            mainSpan.style.overflow = "hidden";
+            mainSpan.style.textOverflow = "ellipsis";
+        } else {
+            topBarTitleEl.style.fontSize = best + "px";
+        }
+        topBarTitleEl.style.overflowWrap = "";
+    }
+
     function layoutTopBarTitle() {
         if (!topBarTitleEl) return;
         var menuBtnEl = document.getElementById("nav-menu-btn");
@@ -1576,30 +1616,7 @@
         topBarTitleEl.style.paddingRight = rightGutter + "px";
 
         var mainSpan = topBarTitleEl.querySelector(".title-main");
-        var fontSize = TOP_BAR_MAX_FONT;
-        topBarTitleEl.style.fontSize = fontSize + "px";
-        // A little over 2x a single line's own height (2.3x, not 2x) so normal line-height
-        // rounding/leading doesn't register an honestly-2-line title as a 3rd line and
-        // shrink it one step further than it needs to.
-        var maxMainHeight = function (fs) { return fs * 1.14 * TOP_BAR_MAIN_MAX_LINES + fs * 0.3; };
-        if (mainSpan) {
-            // Measured with overflow-wrap forced to "normal" (word breaks only, no
-            // mid-word splitting) so the scrollWidth check below reflects an honest "does
-            // every word actually fit" rather than one already fudged by the CSS
-            // fallback's mid-word breaking - otherwise a too-big font settled at a size
-            // that only "fit" by splitting the business name itself in two ("Kafeterij" /
-            // "a Aroma") instead of shrinking further to wrap at the space between words.
-            topBarTitleEl.style.overflowWrap = "normal";
-            while (fontSize > TOP_BAR_MIN_FONT &&
-                   (mainSpan.scrollHeight > maxMainHeight(fontSize) || mainSpan.scrollWidth > mainSpan.clientWidth + 1)) {
-                fontSize -= 1;
-                topBarTitleEl.style.fontSize = fontSize + "px";
-            }
-            // Falls back to the stylesheet's own overflow-wrap: break-word (only reached
-            // if even TOP_BAR_MIN_FONT can't fit a single word - a safety net, not the
-            // normal path) now that sizing is settled.
-            topBarTitleEl.style.overflowWrap = "";
-        }
+        if (mainSpan) fitMainTitle(mainSpan);
 
         var barSpace = Math.max(60, Math.ceil(topBarTitleEl.getBoundingClientRect().bottom) + 12);
         if (topBarFill) topBarFill.style.height = barSpace + "px";
