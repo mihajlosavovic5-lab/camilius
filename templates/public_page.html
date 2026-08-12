@@ -239,16 +239,21 @@
        over below the 880px breakpoint. On mobile this replaces .page-header's own big
        heading (hidden there, see the media query below - logo stays) rather than
        showing the same title twice; on desktop it stays hidden and that heading is the
-       only one shown. Padding matches each button's own offset + width (with a little
-       breathing room) so long names truncate before they can slide under either icon. */
+       only one shown. The 0 60px padding below is only a fallback for the instant before
+       JS runs - layoutTopBarTitle() (bottom of the page) measures .nav-menu-btn's and
+       .lang-btn's own real edges on load/resize and overwrites padding-left/right with
+       their exact widths, so the title always clears both regardless of viewport size or
+       button size changes, and shrinks its own font-size step by step (down to a floor)
+       until a long name wraps onto at most two lines instead of sliding under an icon. */
     .top-bar-title {
         display: none;
         position: fixed; top: 15px; left: 0; right: 0; z-index: 951;
-        height: 40px; align-items: center; justify-content: center;
-        padding: 0 60px;
-        font-family: var(--heading-font); font-weight: 700; font-size: 27px;
+        min-height: 40px; align-items: center; justify-content: center;
+        padding: 6px 60px;
+        font-family: var(--heading-font); font-weight: 700;
+        font-size: clamp(15px, 5vw, 27px); line-height: 1.18;
         color: var(--text); text-align: center;
-        white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        white-space: normal; overflow-wrap: break-word; word-break: break-word;
         pointer-events: none;
     }
 
@@ -1390,6 +1395,10 @@
         });
         currentLang = lang;
         document.documentElement.lang = lang;
+        // Title text just changed length (new language, possibly a longer/shorter
+        // tagline) - re-run the top-bar title's own left/right-aware fit so its font-size
+        // and gutters stay correct for the new text.
+        if (window.layoutTopBarTitle) window.layoutTopBarTitle();
         langOptions.forEach(function (opt) { opt.classList.toggle("active", opt.dataset.lang === lang); });
         var opt = langOptions.filter(function (o) { return o.dataset.lang === lang; })[0];
         if (opt) { langFlag.src = opt.dataset.flag; langFlag.alt = opt.dataset.name; }
@@ -1476,6 +1485,54 @@
         if (!topBarTicking) { window.requestAnimationFrame(updateTopBarFill); topBarTicking = true; }
     }, { passive: true });
     updateTopBarFill();
+
+    // Top-bar title self-fit - recognizes whatever actually sits to its left (the
+    // hamburger, #nav-menu-btn) and right (the language flag, #lang-btn) by measuring
+    // their real on-screen edges rather than assuming a fixed icon size, reserves exactly
+    // that much gutter on each side, then shrinks its own font-size step by step until
+    // a long business name/tagline settles onto at most two lines within the remaining
+    // width instead of running under either icon. Doesn't need to fit on one line - it's
+    // allowed to wrap (see white-space: normal on .top-bar-title above) as long as it
+    // clears both buttons horizontally. Also grows .top-bar-fill and the content below
+    // (.wrap's padding-top) to match however tall the title ends up, so a wrapped second
+    // line never gets covered by or overlaps the page content underneath it.
+    var topBarTitleEl = document.querySelector(".top-bar-title");
+    var wrapEl = document.querySelector(".wrap");
+    var TOP_BAR_MAX_FONT = 27, TOP_BAR_MIN_FONT = 14, TOP_BAR_MAX_LINES = 2, TOP_BAR_GUTTER_MARGIN = 14;
+    function layoutTopBarTitle() {
+        if (!topBarTitleEl) return;
+        var menuBtnEl = document.getElementById("nav-menu-btn");
+        var langBtnEl = document.getElementById("lang-btn");
+        if (getComputedStyle(topBarTitleEl).display === "none") return;
+
+        var leftGutter = TOP_BAR_GUTTER_MARGIN;
+        if (menuBtnEl && getComputedStyle(menuBtnEl).display !== "none") {
+            leftGutter = Math.ceil(menuBtnEl.getBoundingClientRect().right) + TOP_BAR_GUTTER_MARGIN;
+        }
+        var rightGutter = TOP_BAR_GUTTER_MARGIN;
+        if (langBtnEl && getComputedStyle(langBtnEl).display !== "none") {
+            rightGutter = Math.ceil(window.innerWidth - langBtnEl.getBoundingClientRect().left) + TOP_BAR_GUTTER_MARGIN;
+        }
+        topBarTitleEl.style.paddingLeft = leftGutter + "px";
+        topBarTitleEl.style.paddingRight = rightGutter + "px";
+
+        var fontSize = TOP_BAR_MAX_FONT;
+        topBarTitleEl.style.fontSize = fontSize + "px";
+        while (fontSize > TOP_BAR_MIN_FONT && topBarTitleEl.scrollHeight > fontSize * 1.18 * TOP_BAR_MAX_LINES + 2) {
+            fontSize -= 1;
+            topBarTitleEl.style.fontSize = fontSize + "px";
+        }
+
+        var barSpace = Math.max(60, Math.ceil(topBarTitleEl.getBoundingClientRect().bottom) + 12);
+        if (topBarFill) topBarFill.style.height = barSpace + "px";
+        if (wrapEl) wrapEl.style.paddingTop = barSpace + "px";
+    }
+    window.addEventListener("resize", layoutTopBarTitle);
+    layoutTopBarTitle();
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(layoutTopBarTitle);
+    // Exposed so applyTranslation() in the language-switcher script above can re-run this
+    // once a language swap changes the title's own text (and therefore its width).
+    window.layoutTopBarTitle = layoutTopBarTitle;
 
     // Press feedback for the Contact section's email/phone rows and social icons - driven
     // by Pointer Events + a .pressed class rather than relying on :active alone, since
