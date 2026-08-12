@@ -1973,18 +1973,19 @@ input.tap-to-edit-field, textarea.tap-to-edit-field { cursor: pointer; backgroun
 .voice-status { font-size: 13px; color: var(--text-muted); margin: 6px 2px 0; }
 .voice-status.voice-status-error { color: var(--danger); }
 .voice-status:empty { display: none; }
-/* "Failed to send" + Resend, inserted as its own line right under the user's own message
-   bubble (a sibling of it in .website-chat-messages, see markMessageFailed in app.js) when
-   a send request errors out or is stopped mid-flight - not inside the bubble itself, so it
-   never picks up the bubble's own background/padding. align-self/max-width match the
-   bubble above it so it sits directly under it on the same (right) side; negative
-   margin-top pulls it in closer than messagesEl's own 10px inter-message gap, reading as
-   "attached to that message" rather than its own separate line. */
+/* "Try to resend", inserted as its own line right under the user's own message bubble (a
+   sibling of it in .website-chat-messages, see markMessageFailed in app.js) when a send
+   request errors out or is stopped mid-flight, or on app restart for a message that was
+   still unsent when the app was last closed (see restoreChatHistory/setMessagePersistedFailed)
+   - not inside the bubble itself, so it never picks up the bubble's own
+   background/padding. align-self/max-width match the bubble above it so it sits directly
+   under it on the same (right) side; negative margin-top pulls it in closer than
+   messagesEl's own 10px inter-message gap, reading as "attached to that message" rather
+   than its own separate line. */
 .website-chat-msg-failed {
-    display: flex; align-items: center; gap: 8px; font-size: 12.5px;
+    display: flex; align-items: center; font-size: 12.5px;
     align-self: flex-end; max-width: 84%; margin-top: -4px; padding: 0 4px;
 }
-.website-chat-msg-failed-label { color: var(--danger); }
 .website-chat-msg-resend {
     background: none; border: none; padding: 0; margin: 0; cursor: pointer;
     color: var(--primary-ink); font-size: 12.5px; font-weight: 600;

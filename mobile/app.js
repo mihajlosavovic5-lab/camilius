@@ -6662,9 +6662,36 @@ el("mysite-field-delete-confirm-confirm").addEventListener("click", () => {
     const CHAT_STORAGE_KEY = "websiteChatMessages";
     let persistedMessages = [];
 
-    function recordMessage(renderRole, text, images, historyRole) {
-        persistedMessages.push({ renderRole, text, images: images && images.length ? images : undefined, historyRole: historyRole || null });
+    function persistMessages() {
         storageSet(CHAT_STORAGE_KEY, JSON.stringify(persistedMessages)).catch(() => {});
+    }
+
+    // Returns the pushed record (not just void) so a message that later fails to send can
+    // be flagged on this same object - see setMessagePersistedFailed/markMessageFailed
+    // below - and have that flag survive a real app restart same as the message itself
+    // does, instead of the "Try to resend" affordance only living in memory and quietly
+    // vanishing the moment the app is killed with an unsent message still on screen.
+    function recordMessage(renderRole, text, images, historyRole) {
+        const record = { renderRole, text, images: images && images.length ? images : undefined, historyRole: historyRole || null };
+        persistedMessages.push(record);
+        persistMessages();
+        return record;
+    }
+
+    // Toggles a persisted user-message record's "still hasn't actually gone out" flag and
+    // re-saves the whole list - called both when a send fails/is stopped (failed=true,
+    // imageItems=whatever was attached) and when a resend of it finally succeeds or gets a
+    // real (non-"never got a response") rejection back (failed=false).
+    function setMessagePersistedFailed(record, failed, imageItems) {
+        if (!record) return;
+        if (failed) {
+            record.failed = true;
+            record.imageItems = imageItems || [];
+        } else {
+            delete record.failed;
+            delete record.imageItems;
+        }
+        persistMessages();
     }
 
     // Replays a previously saved conversation back into the DOM/history exactly as it
@@ -6690,6 +6717,10 @@ el("mysite-field-delete-confirm-confirm").addEventListener("click", () => {
             const rendered = addMessage(msg.renderRole, msg.text, msg.images);
             if (msg.historyRole) history.push({ role: msg.historyRole, content: msg.text });
             else if (!greetingEl) greetingEl = rendered;
+            // A message that never actually made it out before the app was last closed -
+            // re-show "Try to resend" under it exactly as if it had just failed, rather
+            // than silently dropping that back to "looks sent" on reopen.
+            if (msg.failed) markMessageFailed(rendered, msg.text, msg.imageItems || [], msg);
         });
         persistedMessages = saved;
         greeted = true;
@@ -7613,30 +7644,31 @@ el("mysite-field-delete-confirm-confirm").addEventListener("click", () => {
     // Inserted as its own line right under the user's own message bubble (a sibling in
     // messagesEl, not appended inside the bubble itself - it shouldn't share the bubble's
     // background/padding) when a send/resend request errors out or is stopped mid-flight
-    // via the send button's own stop affordance - "Failed to send" plus a button that
-    // re-runs the exact same request. text/imageItems are whatever was actually sent, so
-    // retrying can send them verbatim without the owner retyping anything.
-    function markMessageFailed(userMsgEl, text, imageItems) {
+    // via the send button's own stop affordance, or on app restart for a message that was
+    // still unsent when it was last closed (see restoreChatHistory) - just a "Try to
+    // resend" button, no separate "Failed to send" line. text/imageItems are whatever was
+    // actually sent, so retrying can send them verbatim without the owner retyping
+    // anything. persistedRecord (its recordMessage() entry) is optional only because a
+    // handful of call sites can't produce one - when given, this flags it failed=true so
+    // the affordance survives an app restart instead of only living in the DOM.
+    function markMessageFailed(userMsgEl, text, imageItems, persistedRecord) {
         if (!userMsgEl) return;
         const existing = userMsgEl.nextElementSibling;
         if (existing && existing.classList.contains("website-chat-msg-failed")) existing.remove();
         const wrap = document.createElement("div");
         wrap.className = "website-chat-msg-failed";
-        const label = document.createElement("span");
-        label.className = "website-chat-msg-failed-label";
-        label.textContent = t("websiteChat.failedToSend") || "Failed to send";
-        wrap.appendChild(label);
         const resendBtn = document.createElement("button");
         resendBtn.type = "button";
         resendBtn.className = "website-chat-msg-resend";
-        resendBtn.textContent = t("websiteChat.resend") || "Resend";
+        resendBtn.textContent = t("websiteChat.resend") || "Try to resend";
         resendBtn.addEventListener("click", () => {
             wrap.remove();
-            sendMessageRequest(userMsgEl, text, imageItems);
+            sendMessageRequest(userMsgEl, text, imageItems, persistedRecord);
         });
         wrap.appendChild(resendBtn);
         userMsgEl.insertAdjacentElement("afterend", wrap);
         messagesEl.scrollTop = messagesEl.scrollHeight;
+        setMessagePersistedFailed(persistedRecord, true, imageItems);
     }
 
     // The actual /api/website-chat round trip for a message that's already in the
@@ -7649,7 +7681,7 @@ el("mysite-field-delete-confirm-confirm").addEventListener("click", () => {
     // validation error - err.status is set, see postWebsiteChatStream), shows that reason
     // as a normal reply instead - resending verbatim would only hit the same rejection
     // again, so a "failed to send" retry affordance would be misleading there.
-    async function sendMessageRequest(userMsgEl, text, imageItems) {
+    async function sendMessageRequest(userMsgEl, text, imageItems, persistedRecord) {
         input.disabled = true;
         sendBtn.classList.add("send-loading");
         sendBtn.setAttribute("aria-label", "Stop");
@@ -7672,11 +7704,16 @@ el("mysite-field-delete-confirm-confirm").addEventListener("click", () => {
             addMessage("bot", reply);
             history.push({ role: "assistant", content: reply });
             recordMessage("bot", reply, null, "assistant");
+            setMessagePersistedFailed(persistedRecord, false);
         } catch (err) {
             hideStatus();
             typingEl.remove();
-            if (err && err.status) addMessage("bot", err.message || t("websiteChat.error"));
-            else markMessageFailed(userMsgEl, text, imageItems);
+            if (err && err.status) {
+                addMessage("bot", err.message || t("websiteChat.error"));
+                setMessagePersistedFailed(persistedRecord, false);
+            } else {
+                markMessageFailed(userMsgEl, text, imageItems, persistedRecord);
+            }
         } finally {
             activeSendController = null;
             input.disabled = false;
@@ -7713,8 +7750,8 @@ el("mysite-field-delete-confirm-confirm").addEventListener("click", () => {
         const imageUrls = imageItems.map((item) => item.url);
         const userMsgEl = addMessage("user", text, imageUrls);
         history.push({ role: "user", content: text });
-        recordMessage("user", text, imageUrls, "user");
-        await sendMessageRequest(userMsgEl, text, imageItems);
+        const persistedRecord = recordMessage("user", text, imageUrls, "user");
+        await sendMessageRequest(userMsgEl, text, imageItems, persistedRecord);
     }
 
     // --- Wiring ---
