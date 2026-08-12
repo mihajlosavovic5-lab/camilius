@@ -702,16 +702,7 @@
         right: 20px;
         bottom: 90px;
         width: min(320px, calc(100vw - 40px));
-        /* lvh (large viewport height) after the plain vh - same fallback order as
-           mobile/app.css's .book-modal-sheet, which hit this exact bug first: many
-           mobile WebViews tie plain vh to the keyboard-shrunk visible area, so the panel
-           visibly shrank/jumped (its own input briefly sliding out of view) the instant
-           the on-screen keyboard opened. lvh stays pinned to the keyboard-less viewport
-           size, so opening the keyboard no longer changes the panel's own height at all -
-           only overrides in browsers that support it, the plain vh line above still
-           covers the rest. */
         height: min(440px, calc(100vh - 108px));
-        height: min(440px, calc(100lvh - 108px));
         background: var(--surface);
         border: 1px solid var(--border);
         border-radius: 22px;
@@ -879,11 +870,7 @@
        actually has room for. */
     @media (max-width: 480px) {
         .chat-fab { right: 14px; bottom: 14px; }
-        .chat-panel {
-            right: 14px; bottom: 84px; width: min(300px, calc(100vw - 24px));
-            height: min(60vh, calc(100vh - 96px));
-            height: min(60lvh, calc(100lvh - 96px));
-        }
+        .chat-panel { right: 14px; bottom: 84px; width: min(300px, calc(100vw - 24px)); height: min(60vh, calc(100vh - 96px)); }
     }
     /* Centered title block - logo, name, tagline all stacked and centered. */
     .page-header {
