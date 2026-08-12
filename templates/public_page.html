@@ -826,14 +826,19 @@
         flex: 1;
         min-width: 0;
     }
+    /* font-size is set inline by fitChatHeaderTitle() (bottom of the page), shrinking
+       from this 1rem ceiling only as far as needed for the business name to actually
+       fit the panel's own width - see that function's own comment for why (no "..."
+       truncation, same rule as the top-bar title). 1rem here is only the pre-JS
+       fallback for the instant before it runs. */
     .chat-header-text p {
         margin: 0;
         font-family: var(--heading-font);
         font-weight: 700;
         font-size: 1rem;
+        line-height: 1.25;
         white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
+        overflow-wrap: break-word;
     }
     .chat-header-text span {
         font-size: 0.78rem;
@@ -1583,6 +1588,9 @@
                 el.textContent = data[key];
                 var priceRowsEl = document.querySelector(".price-rows");
                 if (priceRowsEl) renderPriceRows(priceRowsEl, data[key]);
+            } else if (el.matches(".chat-header-text p")) {
+                el.textContent = data[key];
+                if (window.fitChatHeaderTitle) window.fitChatHeaderTitle();
             } else {
                 el.textContent = data[key];
             }
@@ -1990,6 +1998,39 @@
     var chatUrl = {{ chat_url | tojson }};
     var open = false;
     var greeted = false;
+
+    // Chat header title self-fit - shrinks the business name's font-size only as far as
+    // needed for it to actually fit the panel's own width (min(320px, viewport - 40px),
+    // so genuinely narrow on a phone) instead of the CSS text-overflow: ellipsis this
+    // used to fall back to, which cut long names down to "...". .chat-panel.hidden stays
+    // display: flex (only opacity/transform hide it - see its own CSS comment), so this
+    // can measure real widths even before the panel's ever been opened; still re-run on
+    // resize (narrower phone/rotation) and after a language switch changes the tagline
+    // text (see applyTranslation's [data-i18n-content] sweep further up the page, which
+    // calls window.fitChatHeaderTitle after swapping this element's text in).
+    var CHAT_HEADER_MAX_FONT = 16, CHAT_HEADER_MIN_FONT = 11.5;
+    function fitChatHeaderTitle() {
+        var titleEl = document.querySelector(".chat-header-text p");
+        if (!titleEl) return;
+        titleEl.style.whiteSpace = "nowrap";
+        var fontSize = CHAT_HEADER_MAX_FONT;
+        var fits = false;
+        while (fontSize >= CHAT_HEADER_MIN_FONT) {
+            titleEl.style.fontSize = fontSize + "px";
+            if (titleEl.scrollWidth <= titleEl.clientWidth + 1) { fits = true; break; }
+            fontSize -= 0.5;
+        }
+        if (!fits) {
+            // Even the floor size doesn't fit on one line (an unusually long name) -
+            // wraps onto a second line at that floor size instead of truncating, same
+            // rule as the top-bar title (renderSplitTitle/layoutTopBarTitle above).
+            titleEl.style.fontSize = CHAT_HEADER_MIN_FONT + "px";
+            titleEl.style.whiteSpace = "normal";
+        }
+    }
+    fitChatHeaderTitle();
+    window.addEventListener("resize", fitChatHeaderTitle);
+    window.fitChatHeaderTitle = fitChatHeaderTitle;
 
     // A per-page (per-slug) key in localStorage, not a cookie: third-party cookies are
     // already blocked in Safari/Chrome, which the F5 embeddable widget will hit
