@@ -165,7 +165,21 @@ WEBSITE_TOOLS = [
         "type": "function",
         "function": {
             "name": "update_price_list",
-            "description": "Replaces the business's whole services/price list directly with the given text (one service per line, e.g. \"Haircut: 1500 din\").",
+            "description": (
+                "Replaces the business's whole services/price list directly with the given "
+                "text - one service per line, formatted exactly as \"Service: <number> "
+                "<CODE>\" (e.g. \"Haircut: 1500 RSD\"). CODE must be one of these real "
+                "3-letter currency codes: RSD, EUR, USD, GBP, CHF, CAD, AUD, JPY, CNY, TRY, "
+                "RUB, SEK, NOK, DKK, PLN, AED, INR, BRL - never a word like \"din\" and "
+                "never a symbol like \"€\"/\"$\". Use the SAME code on every line, "
+                "since the app strips that code off each line to preselect the currency "
+                "shown above the whole list and displays only the plain number in each "
+                "row - a mixed or missing code leaves that selector wrong. Use whichever "
+                "currency the owner actually names (in whatever language/word they used - "
+                "e.g. \"evri\"/\"eura\" means EUR); if they don't name one, keep whatever "
+                "currency the current price list (see business context below) is already "
+                "in, and only default to RSD when there's no existing price list either."
+            ),
             "parameters": {
                 "type": "object",
                 "properties": {"price_list": {"type": "string", "description": "The complete new price list text."}},
