@@ -298,23 +298,28 @@
         letter-spacing: -0.01em;
         line-height: 1.15;
         margin: 0;
-        color: var(--text);
     }
-    /* Same primary-to-gold gradient text treatment as the marketing site's own hero
-       headline (landing.html's .lp-accent) - kept behind a feature query so a browser
-       without background-clip: text support just keeps the solid --text color set
-       above (and .top-bar-title's own color: var(--text)) instead of silently rendering
-       invisible (transparent-on-transparent). Applied to .top-bar-title too so the
-       compact mobile title matches rather than showing the same text in plain ink while
-       the headline below it goes gold. */
-    @supports (background-clip: text) or (-webkit-background-clip: text) {
-        h1, .top-bar-title {
-            background: linear-gradient(100deg, var(--primary) 0%, var(--gold) 100%);
-            -webkit-background-clip: text;
-            background-clip: text;
-            -webkit-text-fill-color: transparent;
-            color: transparent;
-        }
+    /* White fill with a black text-shadow ring outline - the exact same treatment (and
+       shadow numbers) as the in-app screen titles' own white-on-black style
+       (mobile/app.css's .screen-mysite/schedule/profile/settings .topbar-title h1), so
+       this generated page's headline reads as the same product. Applied to
+       .top-bar-title too so the compact mobile title matches instead of one going
+       plain ink next to the other. A ring of small blurred shadow copies rather than
+       -webkit-text-stroke - a true stroke's corner miter overshoots past sharp glyph
+       joins (the crossbar meeting the diagonals in "A", the crossbar meeting the stem
+       in "t"), while nudged whole-glyph copies build a uniformly rounded halo with no
+       such per-corner geometry to go wrong. */
+    h1, .top-bar-title {
+        color: #fff;
+        text-shadow:
+            1.3px 0 0.6px rgba(0, 0, 0, .7),
+            -1.3px 0 0.6px rgba(0, 0, 0, .7),
+            0 1.3px 0.6px rgba(0, 0, 0, .7),
+            0 -1.3px 0.6px rgba(0, 0, 0, .7),
+            0.9px 0.9px 0.6px rgba(0, 0, 0, .7),
+            -0.9px 0.9px 0.6px rgba(0, 0, 0, .7),
+            0.9px -0.9px 0.6px rgba(0, 0, 0, .7),
+            -0.9px -0.9px 0.6px rgba(0, 0, 0, .7);
     }
     /* Small centered accent rule under the headline - the same primary-to-gold "signature"
        mark used under page titles everywhere else in the product (style.css's own
