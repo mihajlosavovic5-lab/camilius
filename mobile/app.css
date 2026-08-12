@@ -2504,6 +2504,18 @@ input.tap-to-edit-field, textarea.tap-to-edit-field { cursor: pointer; backgroun
     transition: opacity .2s ease, transform .2s ease;
 }
 .toast.show { opacity: 1; transform: translate(-50%, 0); pointer-events: auto; }
+/* Quiet variant (see showToast()'s `quiet` param) - a lower-key hint like the back-button
+   exit warning, not a confirmation that deserves the same weight as "Changes saved". Sits
+   right above the tab bar (rather than the plain toast's spot higher up the screen) since
+   it's reacting to a hardware back press, not something tapped up in the content - and
+   smaller/lighter gray rather than the plain toast's near-black so it doesn't read as
+   urgent as an actual confirmation or error would. */
+.toast-quiet {
+    bottom: calc(10px + var(--tabbar-h) + var(--safe-bottom));
+    background: rgba(90, 90, 90, .92); color: #fff;
+    padding: 8px 16px; font-size: 13px; font-weight: 500;
+    box-shadow: 0 4px 14px rgba(0,0,0,.18);
+}
 
 /* --- Save success overlay - same animated "circle draws in, then the checkmark traces
    after" celebration as the website's settings.html save-success-overlay (see that

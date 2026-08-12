@@ -375,7 +375,7 @@ if (capacitorPlugins) {
             // "show" class + clearTimeout/setTimeout), so a stray back press just before
             // the timeout doesn't leave the message anywhere it could look stuck.
             lastExitBackPressAt = Date.now();
-            showToast(t("nav.exitConfirm") || "Tap back again to exit");
+            showToast(t("nav.exitConfirm") || "Tap back again to exit", true);
         }
     });
 
@@ -1434,9 +1434,14 @@ window.addEventListener("offline", updateOfflineBanner);
 // --- Toast (brief bottom confirmation, e.g. after tapping "Save changes") ---
 
 let toastTimer = null;
-function showToast(message) {
+// `quiet` swaps in a smaller, gray, lower-anchored look (.toast-quiet in app.css) for
+// hints that shouldn't compete for attention the way a save confirmation does - e.g.
+// the back-button exit hint below. Always cleared up front so a normal showToast()
+// right after a quiet one (or vice versa) never inherits the wrong look.
+function showToast(message, quiet) {
     const toast = el("toast");
     toast.textContent = message;
+    toast.classList.toggle("toast-quiet", !!quiet);
     toast.classList.add("show");
     clearTimeout(toastTimer);
     toastTimer = setTimeout(() => toast.classList.remove("show"), 2400);
