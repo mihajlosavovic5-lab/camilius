@@ -6699,15 +6699,22 @@ el("mysite-field-delete-confirm-confirm").addEventListener("click", () => {
 
     // --- Messages ---
 
-    // Same textContent-only <p>/<ul> rendering the web dashboard's own website_chat.html
-    // uses (and, before that, the support-chat widget) - one fact/line, "- " lists become
-    // real bullets, kept as its own copy since mobile and the web dashboard don't share a
-    // script file.
+    // Same textContent-only <p>/<ul>/<ol>/<hr> rendering the web dashboard's own
+    // website_chat.html uses - one fact per line, "- "/"•" lines become real bullets,
+    // "1. " lines become a numbered list, and a lone "---" line becomes a divider (see
+    // SYSTEM_PROMPT's Formatting section in website_assistant.py, which is what actually
+    // gets the model to write text in this shape). Kept as its own copy since mobile and
+    // the web dashboard don't share a script file.
     function renderBotContent(container, text) {
         const lines = String(text).split(/\n+/).map((line) => line.trim()).filter(Boolean);
         let i = 0;
         while (i < lines.length) {
-            if (/^[-•]\s+/.test(lines[i])) {
+            if (/^-{3,}$/.test(lines[i])) {
+                const hr = document.createElement("hr");
+                hr.className = "website-chat-msg-hr";
+                container.appendChild(hr);
+                i++;
+            } else if (/^[-•]\s+/.test(lines[i])) {
                 const ul = document.createElement("ul");
                 ul.className = "website-chat-msg-list";
                 while (i < lines.length && /^[-•]\s+/.test(lines[i])) {
@@ -6717,6 +6724,16 @@ el("mysite-field-delete-confirm-confirm").addEventListener("click", () => {
                     i++;
                 }
                 container.appendChild(ul);
+            } else if (/^\d+[.)]\s+/.test(lines[i])) {
+                const ol = document.createElement("ol");
+                ol.className = "website-chat-msg-list";
+                while (i < lines.length && /^\d+[.)]\s+/.test(lines[i])) {
+                    const li = document.createElement("li");
+                    li.textContent = lines[i].replace(/^\d+[.)]\s+/, "");
+                    ol.appendChild(li);
+                    i++;
+                }
+                container.appendChild(ol);
             } else {
                 const p = document.createElement("p");
                 p.textContent = lines[i];

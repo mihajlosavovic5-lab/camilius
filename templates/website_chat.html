@@ -33,15 +33,22 @@
         var input = document.getElementById("website-chat-input");
         var history = [];
 
-        // Same textContent-only <p>/<ul> rendering as the support widget's own
+        // Same textContent-only <p>/<ul>/<ol>/<hr> rendering as the support widget's own
         // renderBotContent (see base.html) - kept as its own copy (not a shared helper)
         // since the two pages don't otherwise share a script, same call support_chat's
         // widget JS already made rather than introduce a new shared file for one function.
+        // "1. " lines become a numbered list and a lone "---" line becomes a divider, per
+        // SYSTEM_PROMPT's Formatting section in website_assistant.py.
         function renderBotContent(container, text) {
             var lines = String(text).split(/\n+/).map(function (l) { return l.trim(); }).filter(Boolean);
             var i = 0;
             while (i < lines.length) {
-                if (/^[-•]\s+/.test(lines[i])) {
+                if (/^-{3,}$/.test(lines[i])) {
+                    var hr = document.createElement("hr");
+                    hr.className = "support-widget-msg-hr";
+                    container.appendChild(hr);
+                    i++;
+                } else if (/^[-•]\s+/.test(lines[i])) {
                     var ul = document.createElement("ul");
                     ul.className = "support-widget-msg-list";
                     while (i < lines.length && /^[-•]\s+/.test(lines[i])) {
@@ -51,6 +58,16 @@
                         i++;
                     }
                     container.appendChild(ul);
+                } else if (/^\d+[.)]\s+/.test(lines[i])) {
+                    var ol = document.createElement("ol");
+                    ol.className = "support-widget-msg-list";
+                    while (i < lines.length && /^\d+[.)]\s+/.test(lines[i])) {
+                        var oli = document.createElement("li");
+                        oli.textContent = lines[i].replace(/^\d+[.)]\s+/, "");
+                        ol.appendChild(oli);
+                        i++;
+                    }
+                    container.appendChild(ol);
                 } else {
                     var p = document.createElement("p");
                     p.textContent = lines[i];
