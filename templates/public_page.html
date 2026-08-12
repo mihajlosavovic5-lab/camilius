@@ -803,7 +803,8 @@
         color: var(--text);
         font-size: 0.95rem;
         text-decoration: none;
-        transition: color .12s ease;
+        transform: scale(1);
+        transition: color .12s ease, transform .25s cubic-bezier(.34, 1.56, .64, 1);
     }
     .contact-row svg { width: 18px; height: 18px; flex: 0 0 auto; color: var(--text-muted); transition: color .12s ease; }
     .contact-row:focus-visible { color: var(--primary); }
@@ -816,6 +817,10 @@
         .contact-row:hover { color: var(--primary); }
         .contact-row:hover svg { color: var(--primary); }
     }
+    /* Tap/click feedback - a quick dip below full size while held, then the bouncy
+       cubic-bezier above overshoots slightly past 1 on release before settling, which
+       reads as a light zoom-out/zoom-in rather than a flat snap back. */
+    .contact-row:active { transform: scale(0.95); transition-duration: .05s; }
     .social-links {
         display: flex;
         gap: 10px;
@@ -831,7 +836,7 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        transition: background .12s ease, border-color .12s ease, color .12s ease, transform .12s ease;
+        transition: background .12s ease, border-color .12s ease, color .12s ease, transform .22s cubic-bezier(.34, 1.56, .64, 1);
     }
     .social-link svg { width: 17px; height: 17px; }
     .social-link:focus-visible {
@@ -852,6 +857,11 @@
             transform: translateY(-2px);
         }
     }
+    /* Tap/click feedback - snaps down to this scale immediately while held (fast
+       transition-duration override below), then the bouncy cubic-bezier on .social-link's
+       own transform transition overshoots slightly past full size on release, reading as
+       a light zoom-out/zoom-in rather than a flat snap back. */
+    .social-link:active { transform: scale(0.86); transition-duration: .05s; }
     .hero-video {
         width: 100%;
         max-height: 360px;
