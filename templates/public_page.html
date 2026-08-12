@@ -1656,6 +1656,57 @@
         return el;
     }
 
+    // The panel's `bottom: 90px` (or 84px) rides above the on-screen keyboard for free -
+    // position:fixed is relative to the viewport, and the browser shrinks that viewport
+    // (and re-renders every fixed element accordingly) as the keyboard opens, no JS
+    // involved. That native follow is what makes the very first keyboard-open of a
+    // session look like one clean motion. On the 2nd+ open in the same session, though,
+    // some WebViews report the keyboard's real inset in two separate steps: a fast
+    // approximate value the instant the keyboard starts showing, then a small correction
+    // - a few more px - roughly half a second later once the IME's own show animation
+    // actually finishes. Native position:fixed has no way to tell those two updates
+    // apart, so it plays both: the panel slides into place, looks done, then gets nudged
+    // a little further a beat later. The very first open in a session is the one case
+    // that only ever gets a single, final report, which is why it alone looks perfect
+    // without any of this.
+    //
+    // This watches window.visualViewport for that second, small, delayed update and -
+    // only then - cancels it out with an equal and opposite transform, snapped on
+    // instantly (transitions turned off just for that one write) so the correction is
+    // never actually seen; a real, large change (the keyboard actually opening or
+    // closing) always passes straight through untouched, still riding the native motion
+    // exactly as before. chatPanelRestingHeight tracks the tallest visualViewport height
+    // seen since the panel opened - the keyboard-closed baseline - the same technique
+    // already used above (the Android-back-closes-keyboard blur handler), since plain
+    // 100vh/innerHeight isn't reliable once the keyboard's involved at all.
+    var CHAT_PANEL_SMALL_CORRECTION_PX = 28;
+    var chatPanelRestingHeight = 0;
+    var chatPanelCommittedInset = 0;
+    function repositionChatPanelIfOpen() {
+        if (!open) return;
+        var vv = window.visualViewport;
+        var height = vv ? vv.height : window.innerHeight;
+        if (height > chatPanelRestingHeight) chatPanelRestingHeight = height;
+        var visibleBottom = vv ? (vv.offsetTop + vv.height) : window.innerHeight;
+        var inset = Math.max(0, chatPanelRestingHeight - visibleBottom);
+        var delta = inset - chatPanelCommittedInset;
+        if (chatPanelCommittedInset > 0 && delta !== 0 && Math.abs(delta) < CHAT_PANEL_SMALL_CORRECTION_PX) {
+            panel.style.transition = "none";
+            panel.style.transform = "translateY(" + delta + "px)";
+            void panel.offsetHeight;
+            panel.style.transition = "";
+            return;
+        }
+        chatPanelCommittedInset = inset;
+        panel.style.transform = "";
+    }
+    if (window.visualViewport) {
+        window.visualViewport.addEventListener("resize", repositionChatPanelIfOpen);
+        window.visualViewport.addEventListener("scroll", repositionChatPanelIfOpen);
+    } else {
+        window.addEventListener("resize", repositionChatPanelIfOpen);
+    }
+
     // Same locked-scroll pattern as the mobile menu drawer above (openNavMenu/
     // closeNavMenu) - remembers the scroll position the panel opened at and pins the
     // page there via position:fixed for as long as the panel stays open, then restores
@@ -1688,11 +1739,17 @@
             document.body.style.position = "fixed";
             document.body.style.top = (-chatLockedScrollY) + "px";
             document.body.style.width = "100%";
+            // Fresh baseline for this open - see repositionChatPanelIfOpen above.
+            chatPanelRestingHeight = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+            chatPanelCommittedInset = 0;
+            panel.style.transform = "";
         } else if (!open && wasOpen) {
             document.body.style.position = "";
             document.body.style.top = "";
             document.body.style.width = "";
             window.scrollTo({ top: chatLockedScrollY, left: 0, behavior: "instant" });
+            chatPanelCommittedInset = 0;
+            panel.style.transform = "";
         }
     }
 
