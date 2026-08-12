@@ -7450,7 +7450,10 @@ el("mysite-field-delete-confirm-confirm").addEventListener("click", () => {
                 busy = false;
                 recordBtn.disabled = false;
                 setRecordingUI(true);
-                setStatus(t("onboarding.describe.recording") || "Listening... tap to stop");
+                // No "Listening... tap to stop" status line here - the live waveform
+                // (startWaveform above) already reads as "listening" on its own, and the
+                // record button's own label swaps to "Stop recording" (setRecordingUI),
+                // so this line was redundant text taking up space under the input.
                 maxLengthTimer = setTimeout(() => {
                     if (mediaRecorder && mediaRecorder.state === "recording") mediaRecorder.stop();
                 }, MAX_RECORD_MS);
