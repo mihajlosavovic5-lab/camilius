@@ -58,7 +58,7 @@ const TRANSLATIONS = {
         "common.termsOfService": "Terms of Service",
         "common.privacyPolicy": "Privacy Policy",
 
-        "login.tagline": "The AI that builds your website — and replies to your customers, day or night.",
+        "login.tagline": "The AI that builds your website.",
         "login.title": "Log in",
         "login.passwordLabel": "Password",
         "login.emailLabel": "Email",
@@ -693,7 +693,7 @@ const TRANSLATIONS = {
         "common.termsOfService": "Términos de Servicio",
         "common.privacyPolicy": "Política de Privacidad",
 
-        "login.tagline": "La IA que crea tu sitio web — y responde a tus clientes, día y noche.",
+        "login.tagline": "La IA que crea tu sitio web.",
         "login.title": "Iniciar sesión",
         "login.passwordLabel": "Contraseña",
         "login.emailLabel": "Correo electrónico",
@@ -1208,7 +1208,7 @@ const TRANSLATIONS = {
         "common.termsOfService": "Termos de Serviço",
         "common.privacyPolicy": "Política de Privacidade",
 
-        "login.tagline": "A IA que cria o seu site — e responde aos seus clientes, dia e noite.",
+        "login.tagline": "A IA que cria o seu site.",
         "login.title": "Entrar",
         "login.passwordLabel": "Senha",
         "login.emailLabel": "Email",
@@ -1723,7 +1723,7 @@ const TRANSLATIONS = {
         "common.termsOfService": "Conditions d'utilisation",
         "common.privacyPolicy": "Politique de confidentialité",
 
-        "login.tagline": "L'IA qui crée votre site web — et répond à vos clients, jour et nuit.",
+        "login.tagline": "L'IA qui crée votre site web.",
         "login.title": "Se connecter",
         "login.passwordLabel": "Mot de passe",
         "login.emailLabel": "Email",
@@ -2238,7 +2238,7 @@ const TRANSLATIONS = {
         "common.termsOfService": "Nutzungsbedingungen",
         "common.privacyPolicy": "Datenschutzerklärung",
 
-        "login.tagline": "Die KI, die deine Website erstellt — und deine Kunden Tag und Nacht beantwortet.",
+        "login.tagline": "Die KI, die deine Website erstellt.",
         "login.title": "Anmelden",
         "login.passwordLabel": "Passwort",
         "login.emailLabel": "E-Mail",
@@ -2753,7 +2753,7 @@ const TRANSLATIONS = {
         "common.termsOfService": "Termini di Servizio",
         "common.privacyPolicy": "Informativa sulla Privacy",
 
-        "login.tagline": "L'IA che crea il tuo sito web — e risponde ai tuoi clienti, giorno e notte.",
+        "login.tagline": "L'IA che crea il tuo sito web.",
         "login.title": "Accedi",
         "login.passwordLabel": "Password",
         "login.emailLabel": "Email",
@@ -3268,7 +3268,7 @@ const TRANSLATIONS = {
         "common.termsOfService": "Условия использования",
         "common.privacyPolicy": "Политика конфиденциальности",
 
-        "login.tagline": "ИИ, который создаёт ваш сайт — и отвечает вашим клиентам днём и ночью.",
+        "login.tagline": "ИИ, который создаёт ваш сайт.",
         "login.title": "Войти",
         "login.passwordLabel": "Пароль",
         "login.emailLabel": "Email",
@@ -3783,7 +3783,7 @@ const TRANSLATIONS = {
         "common.termsOfService": "Uslovi korišćenja",
         "common.privacyPolicy": "Politika privatnosti",
 
-        "login.tagline": "AI koji pravi vaš sajt — i odgovara vašim mušterijama danju i noću.",
+        "login.tagline": "AI koji pravi vaš sajt.",
         "login.title": "Prijava",
         "login.passwordLabel": "Lozinka",
         "login.emailLabel": "Email",
@@ -4398,7 +4398,7 @@ const TRANSLATIONS = {
         "common.termsOfService": "服务条款",
         "common.privacyPolicy": "隐私政策",
 
-        "login.tagline": "为您打造网站的AI——并全天候回复您的顾客。",
+        "login.tagline": "为您打造网站的AI。",
         "login.title": "登录",
         "login.passwordLabel": "密码",
         "login.emailLabel": "邮箱",
@@ -4913,7 +4913,7 @@ const TRANSLATIONS = {
         "common.termsOfService": "Hizmet Şartları",
         "common.privacyPolicy": "Gizlilik Politikası",
 
-        "login.tagline": "Web sitenizi oluşturan yapay zekâ — ve müşterilerinizi gece gündüz yanıtlar.",
+        "login.tagline": "Web sitenizi oluşturan yapay zekâ.",
         "login.title": "Giriş yap",
         "login.passwordLabel": "Şifre",
         "login.emailLabel": "E-posta",

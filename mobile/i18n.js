@@ -40,7 +40,7 @@ const TRANSLATIONS = {
         "onboarding.slide5.body": "Checks your calendar, books the slot, and notifies you instantly.",
         "onboarding.getStarted": "Get started",
 
-        "login.tagline": "The AI that builds your website — and replies to your customers, day or night.",
+        "login.tagline": "The AI that builds your website.",
         "login.password": "Password",
         "login.email": "Email",
         "login.submit": "Log in",
@@ -447,7 +447,7 @@ const TRANSLATIONS = {
         "onboarding.slide5.body": "Proverava kalendar, rezerviše termin i odmah vas obaveštava.",
         "onboarding.getStarted": "Počnimo",
 
-        "login.tagline": "AI koji pravi vaš sajt — i odgovara vašim mušterijama danju i noću.",
+        "login.tagline": "AI koji pravi vaš sajt.",
         "login.password": "Lozinka",
         "login.email": "Email",
         "login.submit": "Prijavi se",
@@ -849,7 +849,7 @@ const TRANSLATIONS = {
         "onboarding.slide5.body": "Revisa tu agenda, reserva el horario y te avisa al instante.",
         "onboarding.getStarted": "Empezar",
 
-        "login.tagline": "La IA que crea tu sitio web — y responde a tus clientes, día y noche.",
+        "login.tagline": "La IA que crea tu sitio web.",
         "login.password": "Contraseña",
         "login.email": "Correo electrónico",
         "login.submit": "Iniciar sesión",
@@ -1199,7 +1199,7 @@ const TRANSLATIONS = {
         "onboarding.slide5.body": "Verifica sua agenda, reserva o horário e avisa você na hora.",
         "onboarding.getStarted": "Começar",
 
-        "login.tagline": "A IA que cria o seu site — e responde aos seus clientes, dia e noite.",
+        "login.tagline": "A IA que cria o seu site.",
         "login.password": "Senha",
         "login.email": "Email",
         "login.submit": "Entrar",
@@ -1549,7 +1549,7 @@ const TRANSLATIONS = {
         "onboarding.slide5.body": "Consulte votre agenda, réserve le créneau et vous prévient aussitôt.",
         "onboarding.getStarted": "Commencer",
 
-        "login.tagline": "L'IA qui crée votre site web — et répond à vos clients, jour et nuit.",
+        "login.tagline": "L'IA qui crée votre site web.",
         "login.password": "Mot de passe",
         "login.email": "Email",
         "login.submit": "Se connecter",
@@ -1899,7 +1899,7 @@ const TRANSLATIONS = {
         "onboarding.slide5.body": "Prüft deinen Kalender, bucht den Termin und benachrichtigt dich sofort.",
         "onboarding.getStarted": "Los geht's",
 
-        "login.tagline": "Die KI, die deine Website erstellt — und deine Kunden Tag und Nacht beantwortet.",
+        "login.tagline": "Die KI, die deine Website erstellt.",
         "login.password": "Passwort",
         "login.email": "E-Mail",
         "login.submit": "Anmelden",
@@ -2249,7 +2249,7 @@ const TRANSLATIONS = {
         "onboarding.slide5.body": "Controlla la tua agenda, prenota lo slot e ti avvisa subito.",
         "onboarding.getStarted": "Inizia",
 
-        "login.tagline": "L'IA che crea il tuo sito web — e risponde ai tuoi clienti, giorno e notte.",
+        "login.tagline": "L'IA che crea il tuo sito web.",
         "login.password": "Password",
         "login.email": "Email",
         "login.submit": "Accedi",
@@ -2599,7 +2599,7 @@ const TRANSLATIONS = {
         "onboarding.slide5.body": "Проверяет календарь, бронирует время и сразу уведомляет вас.",
         "onboarding.getStarted": "Начать",
 
-        "login.tagline": "ИИ, который создаёт ваш сайт — и отвечает вашим клиентам днём и ночью.",
+        "login.tagline": "ИИ, который создаёт ваш сайт.",
         "login.password": "Пароль",
         "login.email": "Email",
         "login.submit": "Войти",
@@ -2949,7 +2949,7 @@ const TRANSLATIONS = {
         "onboarding.slide5.body": "查看您的日程，预订时段，并立即通知您。",
         "onboarding.getStarted": "开始使用",
 
-        "login.tagline": "为您打造网站的AI——并全天候回复您的顾客。",
+        "login.tagline": "为您打造网站的AI。",
         "login.password": "密码",
         "login.email": "邮箱",
         "login.submit": "登录",
@@ -3299,7 +3299,7 @@ const TRANSLATIONS = {
         "onboarding.slide5.body": "Takviminizi kontrol eder, saati ayırır ve hemen bilgilendirir.",
         "onboarding.getStarted": "Başla",
 
-        "login.tagline": "Web sitenizi oluşturan yapay zekâ — ve müşterilerinizi gece gündüz yanıtlar.",
+        "login.tagline": "Web sitenizi oluşturan yapay zekâ.",
         "login.password": "Şifre",
         "login.email": "E-posta",
         "login.submit": "Giriş yap",
