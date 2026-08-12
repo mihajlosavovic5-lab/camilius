@@ -2426,6 +2426,11 @@ el("save-success-overlay").addEventListener("click", () => {
 async function logout() {
     await storageRemove("token");
     await storageRemove("businessName");
+    // Same reasoning as clearing the token above - a different account signing in on
+    // this device afterward shouldn't inherit whatever "Draft this with AI" conversation
+    // the previous owner was having (see the screen-website-chat IIFE's own
+    // CHAT_STORAGE_KEY comment).
+    await storageRemove("websiteChatMessages");
     state.token = null;
     state.conversations = [];
     showTabbar(false);
@@ -6540,6 +6545,52 @@ el("mysite-field-delete-confirm-confirm").addEventListener("click", () => {
     let greeted = false;
     let greetingEl = null;
 
+    // --- Persistence - this conversation used to live only in the in-memory `history`/
+    // DOM above, which the WebView (and everything in it) throws away the moment the app
+    // process is killed, so reopening the app after leaving it always came back to an
+    // empty chat even though nothing was ever "cleared". Saved via the same Preferences-
+    // backed storageGet/storageSet the rest of the app uses for anything that must
+    // survive a real app restart (see their own comment above), not plain localStorage.
+    // Cleared on logout (see logout() above) so a different account signing in on the
+    // same device never inherits someone else's conversation. ---
+    const CHAT_STORAGE_KEY = "websiteChatMessages";
+    let persistedMessages = [];
+
+    function recordMessage(renderRole, text, images, historyRole) {
+        persistedMessages.push({ renderRole, text, images: images && images.length ? images : undefined, historyRole: historyRole || null });
+        storageSet(CHAT_STORAGE_KEY, JSON.stringify(persistedMessages)).catch(() => {});
+    }
+
+    // Replays a previously saved conversation back into the DOM/history exactly as it
+    // looked before the app was last closed - resolves once done (or immediately if
+    // there was nothing to restore) so the draftCard tap handler below can wait for it
+    // before deciding whether ensureGreeting() still needs to show a fresh greeting.
+    async function restoreChatHistory() {
+        let raw;
+        try {
+            raw = await storageGet(CHAT_STORAGE_KEY);
+        } catch (e) {
+            return;
+        }
+        if (!raw) return;
+        let saved;
+        try {
+            saved = JSON.parse(raw);
+        } catch (e) {
+            return;
+        }
+        if (!Array.isArray(saved) || !saved.length) return;
+        saved.forEach((msg) => {
+            const rendered = addMessage(msg.renderRole, msg.text, msg.images);
+            if (msg.historyRole) history.push({ role: msg.historyRole, content: msg.text });
+            else if (!greetingEl) greetingEl = rendered;
+        });
+        persistedMessages = saved;
+        greeted = true;
+        messagesEl.scrollTop = messagesEl.scrollHeight;
+    }
+    const chatHistoryRestored = restoreChatHistory();
+
     // --- Messages ---
 
     // Same textContent-only <p>/<ul> rendering the web dashboard's own website_chat.html
@@ -6607,7 +6658,9 @@ el("mysite-field-delete-confirm-confirm").addEventListener("click", () => {
     function ensureGreeting() {
         if (greeted) return;
         greeted = true;
-        greetingEl = addMessage("bot", t("websiteChat.greeting") || "Hi! Tell me about your business and let's figure out your website together.");
+        const text = t("websiteChat.greeting") || "Hi! Tell me about your business and let's figure out your website together.";
+        greetingEl = addMessage("bot", text);
+        recordMessage("bot", text, null, null);
     }
 
     // Re-renders the greeting bubble when Settings changes the language, same rule
@@ -7354,8 +7407,10 @@ el("mysite-field-delete-confirm-confirm").addEventListener("click", () => {
             const uploaded = await flushStagedAttachments();
             const imageItems = (uploaded || []).filter((entry) => entry && entry.kind === "image").map((entry) => entry.item);
             clearAttachmentList();
-            addMessage("user", text, imageItems.map((item) => item.url));
+            const imageUrls = imageItems.map((item) => item.url);
+            addMessage("user", text, imageUrls);
             history.push({ role: "user", content: text });
+            recordMessage("user", text, imageUrls, "user");
             typingEl = addMessage("bot", "...");
             typingEl.classList.add("website-chat-msg-typing");
             const data = await api("/api/website-chat", {
@@ -7366,6 +7421,7 @@ el("mysite-field-delete-confirm-confirm").addEventListener("click", () => {
             const reply = data.reply || t("websiteChat.error");
             addMessage("bot", reply);
             history.push({ role: "assistant", content: reply });
+            recordMessage("bot", reply, null, "assistant");
         } catch (err) {
             if (typingEl) typingEl.remove();
             addMessage("bot", (err && err.message) || t("websiteChat.error"));
@@ -7386,7 +7442,11 @@ el("mysite-field-delete-confirm-confirm").addEventListener("click", () => {
         // another tab of the Home page, restored the moment the owner leaves it below.
         showTabbar(false);
         showScreen("websiteChat");
-        ensureGreeting();
+        // Waits for any saved conversation to finish replaying first (near-instant in
+        // practice, already settled by the time anyone taps in) so ensureGreeting() sees
+        // the real greeted state instead of racing it and showing a redundant fresh
+        // greeting on top of the restored one.
+        chatHistoryRestored.then(ensureGreeting);
     }, true);
 
     backBtn.addEventListener("click", () => {
