@@ -2161,6 +2161,7 @@ body.auth {
 .support-widget-msg-list { padding-left: 16px; }
 .support-widget-msg-list li { margin-bottom: 2px; }
 .support-widget-msg-list li:last-child { margin-bottom: 0; }
+.support-widget-msg-hr { border: none; border-top: 1px solid var(--border); }
 .support-widget-typing { opacity: .55; }
 .support-widget-form { display: flex; gap: 8px; padding: 12px; border-top: 1px solid var(--border); flex-shrink: 0; background: var(--surface); }
 .support-widget-form input {
