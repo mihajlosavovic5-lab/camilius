@@ -396,6 +396,11 @@
         color: var(--primary);
         margin: 0 0 14px;
     }
+    /* About/Contact read better centered over their own section width, unlike
+       Gallery/Prices/Questions below (left-aligned like a normal section heading) - h2
+       is a block element so it already spans the section's full width, text-align is
+       all that's needed. */
+    #about h2, #contact h2 { text-align: center; }
     .about, .price-list, .faq {
         white-space: pre-line;
         margin: 0;
@@ -432,18 +437,20 @@
        which slots are still free - see public_page_availability in app.py). "Today" is
        worked out client-side (see the script below) since this page is rendered once,
        server-side, with no request timezone to key off. --- */
-    /* Section head - the calendar icon sits at the section's own left edge, its
-       heading pushed to the right of it via space-between (rather than the plain
-       left-aligned heading every other section uses), so the icon reads as this
-       section's own control rather than a floating page-level one. */
+    /* Section head - the calendar icon sits at the section's own left edge, and the
+       heading is centered over the section's own full width rather than just the
+       leftover space beside the icon: h2 gets flex: 1 with its text centered inside
+       that box, and the ::after spacer matches .book-date-btn's own 34px width so the
+       icon and spacer bracket the heading symmetrically - centering it on the section,
+       not off to whichever side has more room. */
     .book-section-head {
         display: flex;
         align-items: center;
-        justify-content: space-between;
         gap: 10px;
         margin-bottom: 14px;
     }
-    .book-section-head h2 { margin: 0; }
+    .book-section-head h2 { flex: 1; text-align: center; margin: 0; }
+    .book-section-head::after { content: ""; flex: 0 0 auto; width: 34px; }
     /* Calendar icon + popover - a themed month grid built from scratch (var(--surface)/
        var(--primary)/etc.) instead of a plain <input type="date">, whose native picker
        dialog (OS/browser chrome) can't be restyled to match the rest of the page.
