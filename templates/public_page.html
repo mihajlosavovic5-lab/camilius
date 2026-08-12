@@ -259,16 +259,30 @@
        which only takes over on narrow screens) - the side-nav's own collapse doesn't
        affect this. --- */
     .lang-btn {
-        display: flex; align-items: center; justify-content: center;
+        display: flex; align-items: center; gap: 4px;
         position: fixed; top: 16px; right: 16px; z-index: 952;
-        width: 40px; height: 28px; border-radius: 6px; overflow: hidden;
-        border: 1px solid var(--border); background: var(--surface); padding: 0; cursor: pointer;
-        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.14);
+        background: none; border: none; padding: 0; cursor: pointer;
         transition: transform .15s ease, opacity .15s ease;
     }
+    .lang-btn:hover { transform: scale(1.08); }
     .lang-btn:active { transform: scale(.92); }
     .lang-btn.loading { opacity: .55; pointer-events: none; }
-    .lang-flag { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .lang-flag {
+        width: 40px; height: 28px; object-fit: cover; border-radius: 6px; flex-shrink: 0;
+        border: 1px solid var(--border);
+        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.14);
+        display: block;
+    }
+    /* Chevron next to the flag - same idea as the logged-in app's own language button
+       (style.css's .site-lang-chevron/.site-lang-select-btn.active), flipping upside
+       down while the dropdown is open. Driven off the button's own aria-expanded
+       (already toggled by openDropdown/closeDropdown below) rather than a separate
+       class, so there's one source of truth for "is this open" instead of two. */
+    .lang-chevron {
+        font-size: 13px; color: var(--text-muted); display: inline-block;
+        transition: transform .18s ease;
+    }
+    #lang-btn[aria-expanded="true"] .lang-chevron { transform: rotate(180deg); }
     .lang-dropdown {
         position: fixed; top: 56px; right: 16px; z-index: 953;
         min-width: 190px;
@@ -1057,6 +1071,7 @@
 {% set current_lang = (page_languages | selectattr('code', 'equalto', content_language) | first) or page_languages[0] %}
 <button type="button" class="lang-btn" id="lang-btn" aria-label="Change language" aria-haspopup="true" aria-expanded="false">
     <img class="lang-flag" id="lang-flag" src="{{ url_for('static', filename='flags/' + current_lang.flag) }}" alt="{{ current_lang.name }}">
+    <span class="lang-chevron" aria-hidden="true">&#8964;</span>
 </button>
 <div class="lang-dropdown" id="lang-dropdown" role="menu">
     {% for lang in page_languages %}
