@@ -1239,16 +1239,28 @@ def api_website_chat():
     data = request.get_json(silent=True) or {}
     message = (data.get("message") or "").strip()
     history = data.get("history") or []
+    image_ids = data.get("image_ids") or []
     if not message:
         return jsonify(error="Type a message first."), 400
     if not isinstance(history, list):
         return jsonify(error="invalid history"), 400
+    if not isinstance(image_ids, list):
+        return jsonify(error="invalid image_ids"), 400
     safe_history = [
         {"role": turn.get("role"), "content": turn.get("content")}
         for turn in history[-12:] if isinstance(turn, dict)
     ]
+    # image_ids come from the compose bar's own just-completed /api/media uploads (see
+    # website-chat-attach-* in mobile/app.js) - re-fetched by id here rather than trusting
+    # client-supplied URLs directly, so a caller can't point the model at an arbitrary
+    # (and possibly not-theirs) image by URL.
+    media_by_id = {item["id"]: item for item in business_media.list_media(business_id)}
+    image_urls = [
+        media_by_id[media_id]["url"] for media_id in image_ids
+        if isinstance(media_id, int) and media_id in media_by_id and media_by_id[media_id]["type"] == "image"
+    ]
     business_context = build_business_context(business_by_id(business_id), get_business_page(business_id))
-    reply = answer_website_chat(message, history=safe_history, business_context=business_context)
+    reply = answer_website_chat(message, history=safe_history, business_context=business_context, image_urls=image_urls)
     return jsonify(reply=reply)
 
 

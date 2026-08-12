@@ -6563,11 +6563,32 @@ el("mysite-field-delete-confirm-confirm").addEventListener("click", () => {
         }
     }
 
-    function addMessage(role, text) {
+    // images: URLs of any photos sent along with this user message (see send() below) -
+    // shown as small thumbnails above the text so the conversation itself confirms they
+    // went out, instead of them vanishing from view the moment Send is tapped.
+    function addMessage(role, text, images) {
         const wrap = document.createElement("div");
         wrap.className = "website-chat-msg " + (role === "user" ? "website-chat-msg-user" : "website-chat-msg-bot");
-        if (role === "user") wrap.textContent = text;
-        else renderBotContent(wrap, text);
+        if (role === "user") {
+            if (images && images.length) {
+                const imgWrap = document.createElement("div");
+                imgWrap.className = "website-chat-msg-images";
+                images.forEach((url) => {
+                    const img = document.createElement("img");
+                    img.src = url;
+                    img.alt = "";
+                    imgWrap.appendChild(img);
+                });
+                wrap.appendChild(imgWrap);
+            }
+            if (text) {
+                const p = document.createElement("p");
+                p.textContent = text;
+                wrap.appendChild(p);
+            }
+        } else {
+            renderBotContent(wrap, text);
+        }
         messagesEl.appendChild(wrap);
         messagesEl.scrollTop = messagesEl.scrollHeight;
         return wrap;
@@ -6615,7 +6636,8 @@ el("mysite-field-delete-confirm-confirm").addEventListener("click", () => {
     // Same /api/media//api/documents round trip as before Faza 16 (see removeAttachment/
     // persistStagedEntry below), just targeting this screen's own elements. ---
 
-    let flushStagedAttachments = () => Promise.resolve();
+    let flushStagedAttachments = () => Promise.resolve([]);
+    let clearAttachmentList = () => {};
     let cancelRecordingIfActive = () => false;
 
     (function setupAttachments() {
@@ -6956,16 +6978,22 @@ el("mysite-field-delete-confirm-confirm").addEventListener("click", () => {
                     if (!ok) {
                         animateRemoveChip(chip);
                         showToast(data.error || t(errorKey) || "Couldn't upload that - please try again.");
-                        return;
+                        return null;
                     }
                     chip.innerHTML = "";
                     fillUploadedChip(chip, kind, data);
+                    // Handed back to send() below so it can tell the AI which uploaded
+                    // photos rode along with this message (see api_website_chat's
+                    // image_ids) - previously silently dropped here, which is why sending
+                    // text + photos together looked like only the text went through.
+                    return { kind, item: data };
                 }).catch(() => {
                     if (previewUrl) URL.revokeObjectURL(previewUrl);
                     overlay.remove();
                     chip.classList.remove("uploading");
                     animateRemoveChip(chip);
                     showToast(t(errorKey) || "Couldn't upload that - please try again.");
+                    return null;
                 });
         }
 
@@ -6974,10 +7002,22 @@ el("mysite-field-delete-confirm-confirm").addEventListener("click", () => {
         // runs after they've already landed, never re-uploads the same file. Nothing in
         // `staged` - documents included - has started uploading before this: see
         // stageFile's own comment on why a picked file only ever gets a local blob: URL
-        // preview until Send actually ships it.
+        // preview until Send actually ships it. Resolves to one { kind, item } entry per
+        // successful upload (null for any that failed), so send() can tell which photos
+        // actually made it up before it references them in the chat message.
         flushStagedAttachments = function () {
             const toFlush = staged.splice(0, staged.length);
             return Promise.all(toFlush.map((entry) => persistStagedEntry(entry)));
+        };
+
+        // Called by send() once flushStagedAttachments has settled - the just-sent chips
+        // (each now either a real uploaded thumbnail or already removed on failure) have
+        // done their job of showing upload progress and should clear out of the compose
+        // bar like any normal chat's attachment tray does after Send, instead of sitting
+        // there indefinitely as if they were still waiting to go out.
+        clearAttachmentList = function () {
+            list.innerHTML = "";
+            updateAttachmentListState();
         };
 
         function handlePicked(pickedInput) {
@@ -7296,22 +7336,32 @@ el("mysite-field-delete-confirm-confirm").addEventListener("click", () => {
         updateComposeButtons();
         input.disabled = true;
         sendBtn.classList.add("send-loading");
-        addMessage("user", text);
-        history.push({ role: "user", content: text });
-        const typingEl = addMessage("bot", "...");
-        typingEl.classList.add("website-chat-msg-typing");
+        let typingEl = null;
         try {
             // Photos/video/documents attached to the compose bar were only staged
             // locally - this is the point they actually upload, same as a normal chat
-            // only sending attachments once you hit send.
-            await flushStagedAttachments();
-            const data = await api("/api/website-chat", { method: "POST", body: { message: text, history: history.slice(0, -1) } });
+            // only sending attachments once you hit send. Previously the uploaded result
+            // was thrown away here, so images landed in the account's gallery but the AI
+            // (and the chat transcript itself) never found out they existed - text-only
+            // messages sent fine, but anything attached alongside them silently
+            // disappeared from the conversation.
+            const uploaded = await flushStagedAttachments();
+            const imageItems = (uploaded || []).filter((entry) => entry && entry.kind === "image").map((entry) => entry.item);
+            clearAttachmentList();
+            addMessage("user", text, imageItems.map((item) => item.url));
+            history.push({ role: "user", content: text });
+            typingEl = addMessage("bot", "...");
+            typingEl.classList.add("website-chat-msg-typing");
+            const data = await api("/api/website-chat", {
+                method: "POST",
+                body: { message: text, history: history.slice(0, -1), image_ids: imageItems.map((item) => item.id) },
+            });
             typingEl.remove();
             const reply = data.reply || t("websiteChat.error");
             addMessage("bot", reply);
             history.push({ role: "assistant", content: reply });
         } catch (err) {
-            typingEl.remove();
+            if (typingEl) typingEl.remove();
             addMessage("bot", (err && err.message) || t("websiteChat.error"));
         } finally {
             input.disabled = false;

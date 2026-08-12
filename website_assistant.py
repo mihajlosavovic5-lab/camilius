@@ -29,6 +29,8 @@ MAX_MESSAGE_LENGTH = 2000
 MAX_HISTORY_MESSAGES = 16  # a bit more headroom than support_assistant's 12 - this
 # conversation is meant to run longer (working through several questions), not just a
 # couple of quick lookups.
+MAX_CHAT_IMAGES = 4  # gpt-4o-mini reads images fine, but each one adds real tokens/cost -
+# capped per message the same way MAX_MESSAGE_LENGTH caps text.
 
 SYSTEM_PROMPT = """You are the "Draft this with AI" assistant inside Camilius, an app that builds a
 business's public website/page. You are talking directly to the business owner.
@@ -64,13 +66,17 @@ language, every time, even if earlier turns were in a different language.
 """
 
 
-def answer_website_chat(message, history=None, business_context=None):
+def answer_website_chat(message, history=None, business_context=None, image_urls=None):
     """message: the owner's newest chat message. history: prior turns as
     [{"role": "user"|"assistant", "content": str}, ...], oldest first - same
     client-supplied, not persisted, contract as support_assistant.answer_support_question.
     business_context: optional short plain-text summary of what's already known about the
     business/page (name, any saved tagline/about, services...) so the assistant can react
-    to what's already there instead of starting blind. Returns the reply text."""
+    to what's already there instead of starting blind. image_urls: optional list of
+    already-uploaded business photo URLs attached to this newest message (e.g. the owner
+    sharing a shot of their shop) - MODEL is vision-capable, so these ride along as extra
+    parts on the same user turn instead of being silently dropped. Returns the reply
+    text."""
     message = (message or "")[:MAX_MESSAGE_LENGTH]
     system_content = SYSTEM_PROMPT
     business_context = (business_context or "").strip()
@@ -87,7 +93,13 @@ def answer_website_chat(message, history=None, business_context=None):
         content = (turn.get("content") or "")[:MAX_MESSAGE_LENGTH]
         if content:
             messages.append({"role": role, "content": content})
-    messages.append({"role": "user", "content": message})
+    image_urls = [url for url in (image_urls or []) if url][:MAX_CHAT_IMAGES]
+    if image_urls:
+        content = [{"type": "text", "text": message}]
+        content += [{"type": "image_url", "image_url": {"url": url}} for url in image_urls]
+        messages.append({"role": "user", "content": content})
+    else:
+        messages.append({"role": "user", "content": message})
 
     response = client.chat.completions.create(
         model=MODEL, messages=messages, max_tokens=MAX_REPLY_TOKENS,
