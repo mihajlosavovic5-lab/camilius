@@ -705,6 +705,11 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
     display: none; align-items: center; justify-content: center;
     background: none; border: none; padding: 0; margin: 0; cursor: pointer;
     color: var(--text-muted);
+    /* Stays above the .floating-field.truncated::after fade overlay (also absolutely
+       positioned in this same wrapper) on the rare password long enough to both overflow
+       and show this button - without it, the overlay's own opaque end near the edge
+       would paint over the eye icon instead of just the clipped dots behind it. */
+    z-index: 1;
 }
 /* Hidden until the field has content - see the "input" listener in app.js that
    toggles this class as the user types, so the eye icon isn't sitting there empty. */
@@ -745,18 +750,25 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
    would otherwise still render grayed out despite this rule. */
 #mysite-slug, #mysite-tagline-input, #mysite-about-input,
 input.tap-to-edit-field, textarea.tap-to-edit-field { cursor: pointer; background: var(--surface); color: var(--text); }
-/* The fade-mask itself used to only be wired up for these three named fields, even
-   though the cursor/background rule right above it was already generalized to every
-   .tap-to-edit-field - so a clipped Price list/Related services/Profile field (Service,
-   Price, Your name, Contact email, Phone number, ...) just cut its overflowing value off
-   abruptly instead of fading it like Web address/Headline/About already did. Generalized
-   the same way: mysiteUpdateAllFieldFades (app.js) now toggles .truncated on every
-   .tap-to-edit-field it finds, not just these three by id, so this selector needs to
-   match all of them too. */
-#mysite-slug.truncated, #mysite-tagline-input.truncated, #mysite-about-input.truncated,
-input.tap-to-edit-field.truncated, textarea.tap-to-edit-field.truncated {
-    -webkit-mask-image: linear-gradient(to right, #000 85%, transparent 100%);
-    mask-image: linear-gradient(to right, #000 85%, transparent 100%);
+/* Fades the clipped VALUE near a field's right edge when it doesn't fit - the field's
+   own box (border, background) stays fully solid all the way to the edge; only the text
+   itself appears to dissolve into the background just before it would get cut off.
+   Deliberately NOT a mask-image on the input/textarea itself (that was the previous
+   approach): masking the input fades everything about to be clipped, box included, which
+   reads as the field's own edge fading rather than just its text. Instead this is a
+   plain transparent-to-var(--surface) gradient rectangle painted on TOP of the input via
+   the wrapping .floating-field's own ::after (generated content isn't reliably supported
+   on <input>/<textarea> themselves in most engines, which is also why mysiteUpdateFieldFade
+   (app.js) toggles .truncated on this wrapper rather than the field it measures) - the
+   gradient's own opaque end matches the field's real background color, so the value
+   visually blends into it rather than vanishing into empty transparency. Generalized to
+   every .tap-to-edit-field (Price list/Related services rows, Profile's Your name/
+   Contact email/Phone number/social links, Schedule's Customer name/Service), not just
+   the three My Site fields this started out covering. */
+.floating-field.truncated::after {
+    content: ""; position: absolute; top: 0; right: 0; bottom: 0; width: 34px;
+    background: linear-gradient(to right, transparent, var(--surface) 60%);
+    border-radius: 0 10px 10px 0; pointer-events: none;
 }
 /* mysite-slug-status (index.html) - the checkmark/x badge mysiteCheckSlug (app.js) shows
    once its automatic check resolves, in place of the "Check" button/pill this used to be
@@ -767,6 +779,9 @@ input.tap-to-edit-field.truncated, textarea.tap-to-edit-field.truncated {
 .mysite-slug-status {
     position: absolute; top: 50%; right: 12px; transform: translateY(-50%);
     display: flex; align-items: center; justify-content: center; width: 22px; height: 22px;
+    /* Same reasoning as .password-toggle's own z-index above - stays visible over the
+       fade overlay on the rare slug long enough to both overflow and show this badge. */
+    z-index: 1;
 }
 .mysite-slug-status svg { width: 18px; height: 18px; }
 .mysite-slug-status.checking { color: var(--text-muted); }

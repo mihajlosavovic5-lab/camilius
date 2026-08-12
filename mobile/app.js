@@ -6331,13 +6331,19 @@ function mysiteResetSlugStatus() {
 el("mysite-slug").addEventListener("input", mysiteResetSlugStatus);
 mysiteResetSlugStatus();
 
-// Fade-to-transparent for a clipped Web address/Headline/About value - same
-// "scrollWidth > clientWidth after layout" measurement the Inbox list uses for its own
-// sender/preview truncation (see the .truncated class in app.css and its handling in
-// renderInboxList above), just applied to these three fields instead of inbox rows.
+// Fade-to-background for a clipped field value - same "scrollWidth > clientWidth after
+// layout" measurement the Inbox list uses for its own sender/preview truncation (see the
+// .truncated class in app.css and its handling in renderInboxList above). Toggled on the
+// wrapping .floating-field, not the input/textarea itself: the fade is painted by that
+// wrapper's own ::after (app.css), sitting on top of the input as a plain gradient
+// rectangle, precisely so only the VALUE appears to fade into the field's background
+// near the edge - the field's own box (border, background) stays fully solid all the way
+// to the edge instead of fading along with it, which is what masking the input element
+// itself used to do. Falls back to the field itself if it's ever used unwrapped.
 function mysiteUpdateFieldFade(field) {
     if (!field) return;
-    field.classList.toggle("truncated", field.scrollWidth > field.clientWidth);
+    const wrapper = field.closest(".floating-field") || field;
+    wrapper.classList.toggle("truncated", field.scrollWidth > field.clientWidth);
 }
 function mysiteUpdateAllFieldFades() {
     mysiteUpdateFieldFade(el("mysite-slug"));
