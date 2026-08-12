@@ -1218,17 +1218,21 @@ input.tap-to-edit-field, textarea.tap-to-edit-field { cursor: pointer; backgroun
    different icon. */
 .hours-toggle-arrow {
     position: relative; display: flex; align-items: center; justify-content: center;
-    width: 100%; height: 40px; padding: 0; margin: 2px 0; border: none; background: none;
+    width: 100%; height: 34px; padding: 0; margin: 2px 0; border: none; background: none;
     color: transparent; font-size: 0; line-height: 0; cursor: pointer;
 }
+/* Circle+chevron scaled down to match this page's other small circular controls (e.g.
+   .price-remove-btn's 32px ×) instead of standing out as an oversized one-off - the tap
+   target (the button's own full-row hit box above) stays generous even though the drawn
+   circle itself shrank. */
 .hours-toggle-arrow::before {
-    content: ""; position: absolute; top: 50%; left: 50%; width: 34px; height: 34px;
-    margin: -17px 0 0 -17px; border-radius: 50%; background: var(--primary-light);
+    content: ""; position: absolute; top: 50%; left: 50%; width: 28px; height: 28px;
+    margin: -14px 0 0 -14px; border-radius: 50%; background: var(--primary-light);
     transition: background .15s ease, transform .15s cubic-bezier(.2, .9, .3, 1.3);
 }
 .hours-toggle-arrow::after {
-    content: ""; width: 8px; height: 8px; margin-top: -3px;
-    border-right: 2px solid var(--primary-ink); border-bottom: 2px solid var(--primary-ink);
+    content: ""; width: 6px; height: 6px; margin-top: -2px;
+    border-right: 1.5px solid var(--primary-ink); border-bottom: 1.5px solid var(--primary-ink);
     transform: rotate(45deg); transition: border-color .15s ease, transform .18s cubic-bezier(.22, 1, .36, 1);
 }
 .hours-toggle-arrow:active::before { background: var(--primary); transform: scale(.9); }
