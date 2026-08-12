@@ -6639,20 +6639,6 @@ el("mysite-field-delete-confirm-confirm").addEventListener("click", () => {
 
     const attachBtn = el("website-chat-attach-btn");
     const recordBtn = el("website-chat-voice-btn");
-    const statusPill = el("website-chat-status-pill");
-    const statusText = el("website-chat-status-text");
-
-    // --- Faza 20: live "what it's doing right now" status pill (see its own comment in
-    // index.html) - shows the i18n-keyed label send()'s streaming response reports as
-    // each tool actually runs, instead of one opaque spinner for the whole round trip. ---
-    function showStatus(key) {
-        if (!statusPill || !statusText) return;
-        statusText.textContent = t(key) || key;
-        statusPill.classList.remove("hidden");
-    }
-    function hideStatus() {
-        if (statusPill) statusPill.classList.add("hidden");
-    }
 
     let history = [];
     let greeted = false;
@@ -6807,6 +6793,24 @@ el("mysite-field-delete-confirm-confirm").addEventListener("click", () => {
         } else {
             renderBotContent(wrap, text);
         }
+        messagesEl.appendChild(wrap);
+        messagesEl.scrollTop = messagesEl.scrollHeight;
+        return wrap;
+    }
+
+    // The bot-side "..." shown while a reply is streaming in - three real dot elements
+    // animated with a bounce (see .website-chat-typing-dots in app.css), not the literal
+    // text "..." this used to be (which just sat there doing nothing while the owner
+    // waited). Callers remove() the returned element once the reply actually arrives.
+    function addTypingIndicator() {
+        const wrap = document.createElement("div");
+        wrap.className = "website-chat-msg website-chat-msg-bot";
+        const dots = document.createElement("div");
+        dots.className = "website-chat-typing-dots";
+        dots.appendChild(document.createElement("span"));
+        dots.appendChild(document.createElement("span"));
+        dots.appendChild(document.createElement("span"));
+        wrap.appendChild(dots);
         messagesEl.appendChild(wrap);
         messagesEl.scrollTop = messagesEl.scrollHeight;
         return wrap;
@@ -7692,20 +7696,17 @@ el("mysite-field-delete-confirm-confirm").addEventListener("click", () => {
         input.disabled = true;
         sendBtn.classList.add("send-loading");
         sendBtn.setAttribute("aria-label", "Stop");
-        let typingEl = addMessage("bot", "...");
-        typingEl.classList.add("website-chat-msg-typing");
+        let typingEl = addTypingIndicator();
         try {
             let reply = null;
             activeSendController = new AbortController();
             await postWebsiteChatStream(
                 { message: text, history: history.slice(0, -1), image_ids: imageItems.map((item) => item.id) },
                 (event) => {
-                    if (event.type === "status") showStatus(event.key);
-                    else if (event.type === "done") reply = event.reply;
+                    if (event.type === "done") reply = event.reply;
                 },
                 activeSendController,
             );
-            hideStatus();
             typingEl.remove();
             reply = reply || t("websiteChat.error");
             addMessage("bot", reply);
@@ -7713,7 +7714,6 @@ el("mysite-field-delete-confirm-confirm").addEventListener("click", () => {
             recordMessage("bot", reply, null, "assistant");
             setMessagePersistedFailed(persistedRecord, false);
         } catch (err) {
-            hideStatus();
             typingEl.remove();
             if (err && err.status) {
                 addMessage("bot", err.message || t("websiteChat.error"));
