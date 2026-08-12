@@ -2,11 +2,25 @@ import sys
 sys.stdout.reconfigure(encoding="utf-8")
 
 import json
+import re
 from dotenv import load_dotenv
 from openai import OpenAI
 
 load_dotenv()
 client = OpenAI()
+
+# Every persona's SYSTEM_PROMPT (here, website_assistant.py, support_assistant.py) tells
+# the model never to use markdown asterisks, but a chat model doesn't reliably follow
+# that - this is the actual guarantee, applied to every reply right before it's returned.
+# Multiplication (e.g. "2 * 1500 din") is the one legitimate use of "*", so an asterisk
+# between two digits is protected before every other "*" gets stripped.
+_MULTIPLICATION_ASTERISK = re.compile(r"(?<=\d)( ?\* ?)(?=\d)")
+
+
+def strip_stray_asterisks(text):
+    protected = _MULTIPLICATION_ASTERISK.sub(lambda m: m.group(1).replace("*", "\0"), text)
+    return protected.replace("*", "").replace("\0", "*")
+
 
 # Used only for manually testing this file from the terminal (below, in __main__)
 DEMO_BUSINESS = {
@@ -87,7 +101,7 @@ def generate_reply(customer_question, business, history=None, channel=DEFAULT_CH
         )
         return "Sorry, I couldn't draft an automatic reply for this one - please reply to this customer manually."
 
-    return content
+    return strip_stray_asterisks(content)
 
 
 # --- Smart Booking (Faza 8/9, Pro plan only - see database.has_pro_access) ---
@@ -233,7 +247,7 @@ def generate_reply_with_booking(customer_question, business, history, now_local_
         print(f"generate_reply_with_booking got empty content - question={customer_question!r}", flush=True)
         return "Sorry, I couldn't draft an automatic reply for this one - please reply to this customer manually."
 
-    return content
+    return strip_stray_asterisks(content)
 
 
 if __name__ == "__main__":
