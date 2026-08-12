@@ -1973,11 +1973,17 @@ input.tap-to-edit-field, textarea.tap-to-edit-field { cursor: pointer; backgroun
 .voice-status { font-size: 13px; color: var(--text-muted); margin: 6px 2px 0; }
 .voice-status.voice-status-error { color: var(--danger); }
 .voice-status:empty { display: none; }
-/* "Failed to send" + Resend, appended inside the user's own message bubble (see
-   markMessageFailed in app.js) when a send request errors out or is stopped mid-flight -
-   sits below the message text as its own line rather than a whole separate bot reply, the
-   same "retry this exact message" affordance most chat apps use for a failed send. */
-.website-chat-msg-failed { display: flex; align-items: center; gap: 8px; font-size: 12.5px; }
+/* "Failed to send" + Resend, inserted as its own line right under the user's own message
+   bubble (a sibling of it in .website-chat-messages, see markMessageFailed in app.js) when
+   a send request errors out or is stopped mid-flight - not inside the bubble itself, so it
+   never picks up the bubble's own background/padding. align-self/max-width match the
+   bubble above it so it sits directly under it on the same (right) side; negative
+   margin-top pulls it in closer than messagesEl's own 10px inter-message gap, reading as
+   "attached to that message" rather than its own separate line. */
+.website-chat-msg-failed {
+    display: flex; align-items: center; gap: 8px; font-size: 12.5px;
+    align-self: flex-end; max-width: 84%; margin-top: -4px; padding: 0 4px;
+}
 .website-chat-msg-failed-label { color: var(--danger); }
 .website-chat-msg-resend {
     background: none; border: none; padding: 0; margin: 0; cursor: pointer;

@@ -7610,15 +7610,16 @@ el("mysite-field-delete-confirm-confirm").addEventListener("click", () => {
         }
     }
 
-    // Appended inside the user's own message bubble (not a separate bot reply) when a
-    // send/resend request errors out or is stopped mid-flight via the send button's own
-    // stop affordance - "Failed to send" plus a Resend button that re-runs the exact same
-    // request. text/imageItems are whatever was actually sent, so Resend can retry them
-    // verbatim without the owner retyping anything.
+    // Inserted as its own line right under the user's own message bubble (a sibling in
+    // messagesEl, not appended inside the bubble itself - it shouldn't share the bubble's
+    // background/padding) when a send/resend request errors out or is stopped mid-flight
+    // via the send button's own stop affordance - "Failed to send" plus a button that
+    // re-runs the exact same request. text/imageItems are whatever was actually sent, so
+    // retrying can send them verbatim without the owner retyping anything.
     function markMessageFailed(userMsgEl, text, imageItems) {
         if (!userMsgEl) return;
-        const existing = userMsgEl.querySelector(".website-chat-msg-failed");
-        if (existing) existing.remove();
+        const existing = userMsgEl.nextElementSibling;
+        if (existing && existing.classList.contains("website-chat-msg-failed")) existing.remove();
         const wrap = document.createElement("div");
         wrap.className = "website-chat-msg-failed";
         const label = document.createElement("span");
@@ -7634,7 +7635,7 @@ el("mysite-field-delete-confirm-confirm").addEventListener("click", () => {
             sendMessageRequest(userMsgEl, text, imageItems);
         });
         wrap.appendChild(resendBtn);
-        userMsgEl.appendChild(wrap);
+        userMsgEl.insertAdjacentElement("afterend", wrap);
         messagesEl.scrollTop = messagesEl.scrollHeight;
     }
 
