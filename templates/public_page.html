@@ -1837,11 +1837,18 @@
                 if (window.chatDebugHeartbeat) clearInterval(window.chatDebugHeartbeat);
                 window.chatDebugHeartbeat = setInterval(function () {
                     var r = panel.getBoundingClientRect();
+                    var vv = window.visualViewport;
                     chatDebugLog("HEARTBEAT frames=" + chatPanelPollFrames +
                         " rect(top=" + r.top.toFixed(1) + " bottom=" + r.bottom.toFixed(1) + " h=" + r.height.toFixed(1) + ")" +
-                        " inlineHeight=" + panel.style.height +
-                        " computedHeight=" + getComputedStyle(panel).height +
-                        " innerHeight=" + window.innerHeight);
+                        " innerHeight=" + window.innerHeight +
+                        // Polled directly here (not via a "resize"/"scroll" LISTENER like
+                        // every previous attempt used) specifically because a prior
+                        // session already found those events don't fire reliably for the
+                        // keyboard in this exact environment (see git history on this
+                        // file). If visualViewport itself doesn't move either, there is
+                        // no API left that can see this at all from JS.
+                        " vv.height=" + (vv ? vv.height.toFixed(1) : "NONE") +
+                        " vv.offsetTop=" + (vv ? vv.offsetTop.toFixed(1) : "NONE"));
                 }, 1000);
             }
         } else if (!open && wasOpen) {
