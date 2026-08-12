@@ -1540,6 +1540,38 @@
     var splitTitleEls = document.querySelectorAll(".top-bar-title, .page-header h1");
     splitTitleEls.forEach(function (el) { renderSplitTitle(el, el.textContent); });
 
+    // Same currency list/alias table as static/pickers.js's createPricePicker and
+    // pages._clean_price_display() (app.py) - kept in sync by hand since there's no
+    // shared module across the two JS frontends and the server. Needed here too so a
+    // freshly-translated price_list rebuild (see parsePriceListText below) strips an old
+    // currency word ("dinara", "evra", ...) exactly like the server's first render does,
+    // instead of it flashing back onto the page on every language switch.
+    var PRICE_CURRENCIES = ["EUR", "USD", "RSD", "GBP", "CHF", "CAD", "AUD", "JPY", "CNY", "TRY", "RUB", "SEK", "NOK", "DKK", "PLN", "AED", "INR", "BRL"];
+    var PRICE_CURRENCY_ALIASES = {
+        din: "RSD", dinar: "RSD", dinara: "RSD", dinari: "RSD", dinaru: "RSD", rsd: "RSD",
+        eur: "EUR", evro: "EUR", evra: "EUR", evri: "EUR", eura: "EUR", "€": "EUR",
+        usd: "USD", dolar: "USD", dolara: "USD", dolari: "USD", "$": "USD",
+        gbp: "GBP", funti: "GBP", funta: "GBP", "£": "GBP",
+    };
+    function resolvePriceCurrencyWord(word) {
+        var upper = word.toUpperCase();
+        if (PRICE_CURRENCIES.indexOf(upper) !== -1) return upper;
+        return PRICE_CURRENCY_ALIASES[word.toLowerCase()] || null;
+    }
+    function cleanPriceDisplay(rawPrice) {
+        if (!rawPrice) return rawPrice;
+        var numberMatch = rawPrice.match(/-?\d+(?:[.,]\d+)?/);
+        if (!numberMatch) return rawPrice;
+        var amount = numberMatch[0].replace(",", ".");
+        var words = rawPrice.match(/[A-Za-z€$£]+/g) || [];
+        var detected = null;
+        for (var i = words.length - 1; i >= 0; i--) {
+            detected = resolvePriceCurrencyWord(words[i]);
+            if (detected) break;
+        }
+        return detected ? amount + " " + detected : amount;
+    }
+
     // Mirrors pages.price_list_rows()'s exact split-on-first-colon convention (same one
     // static/pickers.js's own owner-facing editor already uses) so a freshly-translated
     // price_list string rebuilds into the identical row shape the server rendered on
@@ -1551,7 +1583,7 @@
             var idx = line.indexOf(":");
             return idx === -1
                 ? { name: line, price: "" }
-                : { name: line.slice(0, idx).trim(), price: line.slice(idx + 1).trim() };
+                : { name: line.slice(0, idx).trim(), price: cleanPriceDisplay(line.slice(idx + 1).trim()) };
         });
     }
     function renderPriceRows(listEl, text) {

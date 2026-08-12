@@ -242,6 +242,29 @@ def test_delete_business_removes_its_page(client, unique_email):
     assert database.page_by_slug(slug) is None
 
 
+@pytest.mark.parametrize(
+    "raw_price, expected",
+    [
+        ("200 dinara", "200 RSD"),
+        ("200 dinara RSD", "200 RSD"),
+        ("180 din", "180 RSD"),
+        ("15 evra", "15 EUR"),
+        ("15 EUR", "15 EUR"),
+        ("200", "200"),
+        ("price on request", "price on request"),
+        ("", ""),
+    ],
+)
+def test_price_list_rows_strips_currency_words_from_display(raw_price, expected):
+    rows = pages.price_list_rows(f"Haircut: {raw_price}")
+    assert rows == [{"name": "Haircut", "price": expected}]
+
+
+def test_price_list_rows_leaves_no_colon_lines_untouched():
+    rows = pages.price_list_rows("Consultation - price on request")
+    assert rows == [{"name": "Consultation - price on request", "price": ""}]
+
+
 # --- pages.py: opening_hours_schema ---
 
 def test_opening_hours_schema_lists_open_days_only():

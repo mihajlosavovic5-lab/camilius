@@ -159,6 +159,58 @@ def opening_hours_display(working_hours_text):
     ]
 
 
+# Same currency list/alias table as static/pickers.js's createPricePicker and
+# mobile/app.js - kept in sync by hand since there's no shared module between Python and
+# the two JS frontends. Needed here too because price_list_rows() below has to clean up
+# old saved prices (free-typed text like "180 dinara", or pre-picker data) the same way
+# the picker already does, instead of leaking the raw currency word onto the public page.
+_CURRENCIES = frozenset({
+    "EUR", "USD", "RSD", "GBP", "CHF", "CAD", "AUD", "JPY", "CNY", "TRY", "RUB", "SEK",
+    "NOK", "DKK", "PLN", "AED", "INR", "BRL",
+})
+_CURRENCY_ALIASES = {
+    "din": "RSD", "dinar": "RSD", "dinara": "RSD", "dinari": "RSD", "dinaru": "RSD", "rsd": "RSD",
+    "eur": "EUR", "evro": "EUR", "evra": "EUR", "evri": "EUR", "eura": "EUR", "€": "EUR",
+    "usd": "USD", "dolar": "USD", "dolara": "USD", "dolari": "USD", "$": "USD",
+    "gbp": "GBP", "funti": "GBP", "funta": "GBP", "£": "GBP",
+}
+_CURRENCY_WORD_RE = re.compile(r"[A-Za-z€$£]+")
+_PRICE_NUMBER_RE = re.compile(r"-?\d+(?:[.,]\d+)?")
+
+
+def _resolve_currency_word(word):
+    """A price word/symbol resolved to one of _CURRENCIES (real code, any case, or one of
+    _CURRENCY_ALIASES), or None if it isn't recognized as a currency at all - mirrors
+    resolveCurrencyWord() in static/pickers.js exactly."""
+    upper = word.upper()
+    if upper in _CURRENCIES:
+        return upper
+    return _CURRENCY_ALIASES.get(word.lower())
+
+
+def _clean_price_display(raw_price):
+    """A saved price string reduced to "<amount> <CODE>" (or just "<amount>" if no
+    currency word/symbol is found anywhere in it) for the public page - the bare number
+    plus the resolved 3-letter code, with any currency word ("dinara", "evra", ...) or
+    symbol dropped rather than shown to a visitor verbatim. Mirrors createPricePicker's
+    own parse() in static/pickers.js so newly-picker-saved data (already just "200 RSD")
+    and old free-typed data ("200 dinara", "200 dinara RSD") end up looking identical on
+    the page. A price with no digits at all (e.g. "price on request") is left untouched -
+    it isn't a currency-tagged amount to begin with."""
+    if not raw_price:
+        return raw_price
+    number_match = _PRICE_NUMBER_RE.search(raw_price)
+    if not number_match:
+        return raw_price
+    amount = number_match.group(0).replace(",", ".")
+    detected = None
+    for word in reversed(_CURRENCY_WORD_RE.findall(raw_price)):
+        detected = _resolve_currency_word(word)
+        if detected:
+            break
+    return f"{amount} {detected}" if detected else amount
+
+
 def price_list_rows(price_list_text):
     """businesses.price_list's raw "Name: Price" (one per line, price optional) text
     turned into a list of {"name": ..., "price": ...} dicts for the public page's
@@ -168,7 +220,9 @@ def price_list_rows(price_list_text):
     wrong one) so this matches static/pickers.js's own createPriceListPicker parse()
     exactly, the same convention the owner-facing editor already relies on. A line with
     no colon at all becomes {"name": line, "price": ""} - a named item worth listing
-    with no price given (e.g. "Consultation - price on request"), not silently dropped."""
+    with no price given (e.g. "Consultation - price on request"), not silently dropped.
+    The price half is passed through _clean_price_display() so an old currency word like
+    "dinara" never reaches the page - see that function for why."""
     rows = []
     for raw_line in (price_list_text or "").split("\n"):
         line = raw_line.strip()
@@ -178,7 +232,8 @@ def price_list_rows(price_list_text):
         if idx == -1:
             rows.append({"name": line, "price": ""})
         else:
-            rows.append({"name": line[:idx].strip(), "price": line[idx + 1:].strip()})
+            price = _clean_price_display(line[idx + 1:].strip())
+            rows.append({"name": line[:idx].strip(), "price": price})
     return rows
 
 
