@@ -4234,6 +4234,11 @@ async function loadSettingsIntoForm() {
         applyProAccessLocks();
         profileFormSnapshot = serializeProfileForm();
         updateSettingsSaveValidity();
+        // Values just came from the server, not from the owner typing - a long saved
+        // name/email/price/etc. needs its overflow fade evaluated now, not only the
+        // next time the field happens to get edited through its modal (mysiteFieldModalSync)
+        // or the window resizes.
+        mysiteUpdateAllFieldFades();
     } catch (err) {
         if (err.status === 401) logout();
     }
@@ -6338,6 +6343,15 @@ function mysiteUpdateAllFieldFades() {
     mysiteUpdateFieldFade(el("mysite-slug"));
     mysiteUpdateFieldFade(el("mysite-tagline-input"));
     mysiteUpdateFieldFade(el("mysite-about-input"));
+    // Every other tap-to-open-modal field (Profile's Your name/Contact email/Phone
+    // number/social links, Schedule's Customer name/Service, and the dynamically
+    // created Price list/Related services rows - see openFieldEditModal's own comment)
+    // shares the same .tap-to-edit-field class and the same clipped-value problem, so
+    // one fresh query here covers all of them instead of needing an id list kept in
+    // sync with every field that class gets added to. Safe to call even when a given
+    // screen's fields aren't in the DOM yet/have no value - toggle() on a zero-overflow
+    // field is a no-op.
+    document.querySelectorAll("input.tap-to-edit-field, textarea.tap-to-edit-field").forEach(mysiteUpdateFieldFade);
 }
 // Rotating the device (or the card otherwise resizing) changes how much of a long value
 // fits, so a value that was clipped before might not be anymore, and vice versa.

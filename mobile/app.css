@@ -745,7 +745,16 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
    would otherwise still render grayed out despite this rule. */
 #mysite-slug, #mysite-tagline-input, #mysite-about-input,
 input.tap-to-edit-field, textarea.tap-to-edit-field { cursor: pointer; background: var(--surface); color: var(--text); }
-#mysite-slug.truncated, #mysite-tagline-input.truncated, #mysite-about-input.truncated {
+/* The fade-mask itself used to only be wired up for these three named fields, even
+   though the cursor/background rule right above it was already generalized to every
+   .tap-to-edit-field - so a clipped Price list/Related services/Profile field (Service,
+   Price, Your name, Contact email, Phone number, ...) just cut its overflowing value off
+   abruptly instead of fading it like Web address/Headline/About already did. Generalized
+   the same way: mysiteUpdateAllFieldFades (app.js) now toggles .truncated on every
+   .tap-to-edit-field it finds, not just these three by id, so this selector needs to
+   match all of them too. */
+#mysite-slug.truncated, #mysite-tagline-input.truncated, #mysite-about-input.truncated,
+input.tap-to-edit-field.truncated, textarea.tap-to-edit-field.truncated {
     -webkit-mask-image: linear-gradient(to right, #000 85%, transparent 100%);
     mask-image: linear-gradient(to right, #000 85%, transparent 100%);
 }
