@@ -1241,12 +1241,16 @@ input.tap-to-edit-field, textarea.tap-to-edit-field { cursor: pointer; backgroun
 }
 .hours-day-row:last-child { border-bottom: none; }
 .hours-day-row-weekend { border-top: 2px solid var(--border); }
-/* width fits the longest translated day name ("Wednesday") without truncating; the
-   ellipsis below is just a safety net for locales whose day names run even longer
-   (e.g. Portuguese "Segunda-feira") so a long name is clipped instead of spilling into
-   the time fields next to it. */
+/* 84px fits the longest translated day name ("Wednesday") without truncating on
+   comfortable screens - flex-basis keeps that as the default, flex-grow: 0 means it
+   never gets wider. On a narrow screen this is the one thing in the row allowed to
+   shrink (down to the 40px floor) before the toggle switch runs out of room - the
+   ellipsis below, already needed as a safety net for locales whose day names run even
+   longer (e.g. Portuguese "Segunda-feira"), is what makes that degrade gracefully
+   instead of spilling into the time fields next to it. Same shrink-the-label-first
+   pattern as .schedule-duration-btn/.schedule-date-label below. */
 .hours-day-name {
-    font-weight: 600; font-size: 14.5px; width: 84px; flex-shrink: 0;
+    font-weight: 600; font-size: 14.5px; flex: 0 1 84px; min-width: 40px;
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 .hours-day-times { display: flex; align-items: center; gap: 6px; flex: 1; min-width: 0; }
@@ -1254,13 +1258,19 @@ input.tap-to-edit-field, textarea.tap-to-edit-field { cursor: pointer; backgroun
 /* In the Monday-Friday day-list rows, the time fields no longer flex-grow to fill the
    row (unlike .hours-simple-row's collapsed summary and .hours-quickfill's "Same hours
    every day" box above, which still do - neither of those has a toggle competing for
-   space) - a fixed-width pair, same idea as the website's own time dropdown
-   (.hours-time-dd, static/style.css), so the toggle's own margin-left: auto always
-   claims whatever room is left instead of the buttons eating into it first. That
-   guarantees a real, size-independent gap before the switch rather than relying on a
-   fixed margin that a wider row or larger system font size could still eat into. */
+   space), so the toggle's own margin-left: auto claims whatever room is left instead of
+   the buttons eating into it first - and .hours-day-row's own gap: 10px is a real flex
+   gap, not a margin, so it can't collapse to zero regardless of how anything here
+   shrinks or grows: the times block and the toggle switch are never touching.
+   min-width: 64px (not a hard width) is a floor just above every HH:MM value's own
+   measured content width (~59.6px in this font) - flex-shrink: 0 already stops the
+   button from going below its content size on its own, so this is a documented safety
+   net against cross-browser font-metric differences, not something meant to bind.
+   Dropping the previous hard 74px (wider than the content needs) is what reclaims the
+   room the row needs to fit without the toggle overflowing off the edge of the screen -
+   see .hours-day-name above for the other half of that budget. */
 .hours-day-list .hours-day-times { flex: 0 0 auto; }
-.hours-day-list .time-picker-btn { flex: 0 0 auto; width: 74px; }
+.hours-day-list .time-picker-btn { flex: 0 0 auto; width: auto; min-width: 64px; }
 .hours-day-closed-label { flex: 1; min-width: 0; font-size: 14px; color: var(--text-muted); }
 /* No min-width: 0 here (unlike most flex:1 items in this file) - that override lets a
    flex item shrink below what its own content needs, and since a button's overflow is
