@@ -20,15 +20,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<!-- interactive-widget=overlays-content (Chrome 108+/Safari 16.4+, ignored elsewhere with
-     no ill effect) stops the on-screen keyboard from resizing the layout viewport at all
-     - it now purely overlays on top, so nothing on the page reflows natively when it
-     opens/closes. #chat-input is the page's only text field, and the chat script's own
-     window.visualViewport listener (see its own comment) is now the sole thing moving
-     #chat-panel to sit above the keyboard - previously that JS was competing with the
-     browser's own native reflow of the same fixed-position element, which is what
-     produced a visible multi-step jump on the second keyboard open onward. -->
-<meta name="viewport" content="width=device-width, initial-scale=1, interactive-widget=overlays-content">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{{ business_name }}{% if tagline %} - {{ tagline }}{% endif %}</title>
 <meta name="description" content="{{ tagline or (business_name ~ ' - hours, prices, and answers, any time.') }}">
 {% if preview %}
@@ -725,15 +717,7 @@
         overflow: hidden;
         z-index: 40;
         transform-origin: bottom right;
-        /* bottom is included here (not just transform/opacity) because the chat script
-           below now drives it directly from window.visualViewport instead of leaving the
-           keyboard-open repositioning to the browser's own implicit position:fixed
-           tracking - see that script's own comment for why. This transition is what
-           turns however choppy the underlying visualViewport events happen to be (in
-           practice: a different number of resize ticks keyboard-open vs. keyboard-close,
-           and inconsistently between the first open and every one after it) into one
-           smooth, consistent glide every time instead of visible steps. */
-        transition: bottom .2s ease, transform .22s cubic-bezier(.2, .9, .3, 1.3), opacity .16s ease;
+        transition: transform .22s cubic-bezier(.2, .9, .3, 1.3), opacity .16s ease;
     }
     .chat-panel.hidden {
         display: flex;
@@ -1649,27 +1633,6 @@
     // collapsed/expanded state than at page load) turned into a visible two-stage jump.
     // A value fixed once at load can't do either, since it never changes at all.
     document.documentElement.style.setProperty("--chat-vh", window.innerHeight + "px");
-
-    // Keeps the panel pinned just above the on-screen keyboard by explicitly reading
-    // window.visualViewport on every resize/scroll tick and writing the result straight
-    // to .chat-panel's own `bottom`, instead of leaving that repositioning to the
-    // browser's own implicit position:fixed viewport-tracking - relying on that behaved
-    // inconsistently in the WebView this page is normally viewed in (clean on the very
-    // first keyboard open, then jumping in visible steps on every open after that). The
-    // transition: bottom rule on .chat-panel turns whatever raw event pattern
-    // visualViewport fires into one smooth glide every time, regardless of how choppy
-    // the underlying events are or how many of them there turn out to be.
-    if (window.visualViewport) {
-        var vv = window.visualViewport;
-        var chatPanelBaseBottom = parseFloat(getComputedStyle(panel).bottom) || 90;
-        var updateChatPanelInset = function () {
-            var inset = Math.max(0, window.innerHeight - (vv.height + vv.offsetTop));
-            panel.style.bottom = (chatPanelBaseBottom + inset) + "px";
-        };
-        vv.addEventListener("resize", updateChatPanelInset);
-        vv.addEventListener("scroll", updateChatPanelInset);
-        updateChatPanelInset();
-    }
 
     // A per-page (per-slug) key in localStorage, not a cookie: third-party cookies are
     // already blocked in Safari/Chrome, which the F5 embeddable widget will hit
