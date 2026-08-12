@@ -766,9 +766,15 @@ input.tap-to-edit-field, textarea.tap-to-edit-field { cursor: pointer; backgroun
    Contact email/Phone number/social links, Schedule's Customer name/Service), not just
    the three My Site fields this started out covering. */
 .floating-field.truncated::after {
-    content: ""; position: absolute; top: 0; right: 0; bottom: 0; width: 34px;
+    /* Inset by the input's own border-width (1px, see the base input rule above) on
+       every edge it touches - flush with the wrapper (top/right/bottom: 0) put this
+       exactly on top of the input's border line and corner too, which is what actually
+       made the box itself look like it was fading in the first place. Sitting just
+       inside it instead leaves the border stroke completely untouched; only the fill
+       area (where the value's own clipped tail is) gets covered. */
+    content: ""; position: absolute; top: 1px; right: 1px; bottom: 1px; width: 34px;
     background: linear-gradient(to right, transparent, var(--surface) 60%);
-    border-radius: 0 10px 10px 0; pointer-events: none;
+    border-radius: 0 9px 9px 0; pointer-events: none;
 }
 /* mysite-slug-status (index.html) - the checkmark/x badge mysiteCheckSlug (app.js) shows
    once its automatic check resolves, in place of the "Check" button/pill this used to be
