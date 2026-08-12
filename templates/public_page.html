@@ -235,14 +235,11 @@
     /* --- Top-bar title - same tagline-or-business_name text as .page-header's own big
        headline further down, centered between .nav-menu-btn (fixed top-left, 18px + 34px
        wide) and .lang-btn (fixed top-right, 16px + 40px wide) once the hamburger takes
-       over below the 880px breakpoint. On mobile this is the only thing keeping "which
-       page is this" visible once that headline scrolls out of view, so it stays even
-       when the headline below shows the same tagline text too; the media query below
-       only hides that headline on mobile for the plain business_name fallback case,
-       where showing it twice would be pure repetition. On desktop this stays hidden and
-       the headline is the only one shown. Padding matches each button's own offset +
-       width (with a little breathing room) so long names truncate before they can slide
-       under either icon. */
+       over below the 880px breakpoint. On mobile this replaces .page-header's own big
+       heading (hidden there, see the media query below - logo stays) rather than
+       showing the same title twice; on desktop it stays hidden and that heading is the
+       only one shown. Padding matches each button's own offset + width (with a little
+       breathing room) so long names truncate before they can slide under either icon. */
     .top-bar-title {
         display: none;
         position: fixed; top: 18px; left: 0; right: 0; z-index: 951;
@@ -925,13 +922,11 @@
         .nav-menu-btn { display: flex; }
         .nav-menu-backdrop { display: block; }
         .top-bar-title { display: flex; }
-        /* The compact top-bar title above takes over the "which page is this" job on
-           mobile using business_name - only hides the big centered heading below when
-           that heading is the same business_name fallback (no tagline set), which would
-           otherwise just repeat it a second time. A real tagline is content the top bar
-           never shows at all, so it (and its accent rule) stays visible here too. Logo
-           stays either way. */
-        .page-header-fallback { display: none; }
+        /* The compact top-bar title above already shows the exact same tagline-or-
+           business_name text, so the big centered heading (and its accent rule) further
+           down in .page-header would just be the same headline shown twice - hidden
+           here, logo stays. */
+        .page-header h1, .page-header .title-rule { display: none; }
         .side-nav {
             /* .side-nav's flex: 0 0 200px above is a fixed WIDTH for its desktop column
                layout (.shell is a row there, so flex-basis sizes the main/horizontal
@@ -1086,14 +1081,11 @@
             {% if logo_url %}<img class="logo" src="{{ logo_url }}" alt="{{ business_name }} logo">{% endif %}
             {# The tagline reads as the headline (bold, large), falling back to
                business_name when no tagline is set - the business name never shows as
-               its own separate line underneath. Only the fallback case gets
-               page-header-fallback: when this is really just business_name repeating
-               what the mobile top-bar-title already shows (see that class's own comment
-               above), the mobile media query below hides it same as before; a real
-               tagline is unique content the top bar doesn't carry, so it stays visible
-               there too. #}
-            <h1{% if tagline %} data-i18n-content="tagline"{% else %} class="page-header-fallback"{% endif %}>{{ tagline or business_name }}</h1>
-            <span class="title-rule{% if not tagline %} page-header-fallback{% endif %}" aria-hidden="true"></span>
+               its own separate line underneath. Hidden entirely on mobile (see the media
+               query below) since .top-bar-title above already shows this exact same
+               text there - one headline visible at a time, not two. #}
+            <h1{% if tagline %} data-i18n-content="tagline"{% endif %}>{{ tagline or business_name }}</h1>
+            <span class="title-rule" aria-hidden="true"></span>
         </header>
 
         {% if hero_video_url %}
