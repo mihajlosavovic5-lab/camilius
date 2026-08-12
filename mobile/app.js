@@ -7238,6 +7238,18 @@ el("mysite-field-delete-confirm-confirm").addEventListener("click", () => {
         }
 
         const MAX_RECORD_MS = 90 * 1000;
+        // Whisper-family models (gpt-4o-transcribe included) are known to hallucinate
+        // plausible-looking text out of pure silence/background noise instead of
+        // returning nothing - so silence has to be caught here, before the recording
+        // ever reaches the transcription API, rather than trusting its output. peakLevel
+        // tracks the loudest sample seen across the whole recording (same maxDev the
+        // waveform below already computes per frame); if it never rises above the noise
+        // floor, there was nothing to transcribe. hadWaveform guards against false
+        // positives when the AnalyserNode couldn't be set up at all (see startWaveform) -
+        // in that case we have no level to judge and just fall back to the old behavior.
+        const SILENCE_PEAK_THRESHOLD = 8;
+        let peakLevel = 0;
+        let hadWaveform = false;
         let mediaRecorder = null;
         let mediaStream = null;
         let chunks = [];
@@ -7265,6 +7277,7 @@ el("mysite-field-delete-confirm-confirm").addEventListener("click", () => {
 
         function startWaveform(stream) {
             if (!waveformCanvas || !(window.AudioContext || window.webkitAudioContext)) return;
+            hadWaveform = true;
             const Ctx = window.AudioContext || window.webkitAudioContext;
             audioCtx = new Ctx();
             analyser = audioCtx.createAnalyser();
@@ -7320,6 +7333,7 @@ el("mysite-field-delete-confirm-confirm").addEventListener("click", () => {
                         const dev = Math.abs(data[i] - 128);
                         if (dev > maxDev) maxDev = dev;
                     }
+                    if (maxDev > peakLevel) peakLevel = maxDev;
                     history.push(Math.min(1, maxDev / 110));
                     history.shift();
                 }
@@ -7380,6 +7394,8 @@ el("mysite-field-delete-confirm-confirm").addEventListener("click", () => {
             busy = true;
             recordBtn.disabled = true;
             setStatus(null);
+            peakLevel = 0;
+            hadWaveform = false;
             navigator.mediaDevices.getUserMedia({ audio: true }).then((stream) => {
                 mediaStream = stream;
                 chunks = [];
@@ -7398,6 +7414,16 @@ el("mysite-field-delete-confirm-confirm").addEventListener("click", () => {
                         recordBtn.disabled = false;
                         pendingAutoSend = false;
                         cancelled = false;
+                        return;
+                    }
+                    // Nothing loud enough to be speech was ever picked up - skip the
+                    // transcription round trip entirely rather than risk the model
+                    // inventing text for silence (see SILENCE_PEAK_THRESHOLD above).
+                    if (hadWaveform && peakLevel < SILENCE_PEAK_THRESHOLD) {
+                        busy = false;
+                        recordBtn.disabled = false;
+                        pendingAutoSend = false;
+                        setStatus(t("onboarding.describe.noSpeechDetected") || "I didn't hear anything - please try again.", true);
                         return;
                     }
                     uploadRecording(new Blob(chunks, { type: mediaRecorder.mimeType || "audio/webm" }));
