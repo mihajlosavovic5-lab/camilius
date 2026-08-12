@@ -906,7 +906,7 @@ function createPricePicker(rowsContainerId, addButtonId, currencyContainerId) {
         priceInput.placeholder = " ";
         priceInput.value = price;
         priceInput.readOnly = true;
-        priceInput.addEventListener("click", () => openFieldEditModal(priceInput, t("pricePicker.pricePlaceholder")));
+        priceInput.addEventListener("click", () => openFieldEditModal(priceInput, t("pricePicker.pricePlaceholder"), { numeric: true }));
         const priceLabel = document.createElement("label");
         priceLabel.dataset.i18n = "pricePicker.pricePlaceholder";
         priceLabel.textContent = t("pricePicker.pricePlaceholder");
@@ -940,12 +940,14 @@ function createPricePicker(rowsContainerId, addButtonId, currencyContainerId) {
                 .filter(Boolean)
                 .join("\n");
         },
-        // Best-effort: if a saved price already ends with a recognizable currency (a
-        // real code, or one of CURRENCY_ALIASES' common words/symbols - e.g. "din"/
-        // "dinara" for RSD), strip it back out of the price field being edited and use
-        // it to preselect the currency dropdown - a single currency applies to the
-        // whole list. Price text that doesn't end in anything recognizable is left
-        // exactly as typed, so nothing that already worked silently changes.
+        // Best-effort: pulls the currency out of the saved price text - a real code, or
+        // one of CURRENCY_ALIASES' common words/symbols (e.g. "din"/"dinara" for RSD),
+        // found ANYWHERE in it rather than only the very last word, since older/
+        // free-typed data can carry both a word and the real code together (e.g.
+        // "200 dinara RSD" - stripping only the trailing "RSD" used to leave "dinara"
+        // stuck in the price field forever) - and leaves only the bare numeric amount
+        // for the field itself, which only ever accepts digits now (see the price
+        // field's own numeric-only modal further down this file).
         setValue(text) {
             rowsContainer.innerHTML = "";
             const lines = (text || "").split("\n").map((l) => l.trim()).filter(Boolean);
@@ -958,13 +960,14 @@ function createPricePicker(rowsContainerId, addButtonId, currencyContainerId) {
             lines.forEach((line) => {
                 const idx = line.indexOf(":");
                 const service = idx === -1 ? line : line.slice(0, idx).trim();
-                let price = idx === -1 ? "" : line.slice(idx + 1).trim();
-                const currencyMatch = price.match(/\s*([A-Za-z€$£]{1,10})$/);
-                const resolved = currencyMatch ? resolveCurrencyWord(currencyMatch[1]) : null;
-                if (resolved) {
-                    if (!detectedCurrency) detectedCurrency = resolved;
-                    price = price.slice(0, currencyMatch.index).trim();
+                const rawPrice = idx === -1 ? "" : line.slice(idx + 1).trim();
+                const words = rawPrice.match(/[A-Za-z€$£]+/g) || [];
+                for (let i = words.length - 1; i >= 0; i--) {
+                    const resolved = resolveCurrencyWord(words[i]);
+                    if (resolved) { if (!detectedCurrency) detectedCurrency = resolved; break; }
                 }
+                const numberMatch = rawPrice.match(/-?\d+(?:[.,]\d+)?/);
+                const price = numberMatch ? numberMatch[0].replace(",", ".") : "";
                 addRow(service, price);
             });
             currencyBtn.value = detectedCurrency || "RSD";
@@ -6449,7 +6452,7 @@ function mysiteFieldModalAutoGrowTextarea() {
     textarea.style.height = `${textarea.scrollHeight}px`;
 }
 
-function openFieldEditModal(sourceEl, titleText, { textarea: showTextarea = false, password = false } = {}) {
+function openFieldEditModal(sourceEl, titleText, { textarea: showTextarea = false, password = false, numeric = false } = {}) {
     if (!sourceEl) return;
     mysiteFieldModalTargetEl = sourceEl;
     el("mysite-field-modal-title").textContent = titleText;
@@ -6483,7 +6486,14 @@ function openFieldEditModal(sourceEl, titleText, { textarea: showTextarea = fals
     const passwordToggle = el("mysite-field-modal-password-toggle");
     inputRow.classList.toggle("mysite-field-modal-input-row-password", password);
     passwordToggle.classList.toggle("hidden", !password);
-    input.type = password ? "password" : "text";
+    // Price list's amount field only (numeric=true, passed from its own click handler
+    // below) - rejects a letter keystroke at the browser level, same reason/mechanism as
+    // the web Profile page's equivalent field (static/pickers.js's priceInput). Reset to
+    // "text"/no inputmode whenever a different field reuses this same shared modal, so
+    // the restriction doesn't leak onto Headline/About/every other field it also serves.
+    input.type = password ? "password" : (numeric ? "number" : "text");
+    input.inputMode = numeric ? "decimal" : "";
+    if (numeric) { input.min = "0"; input.step = "0.01"; } else { input.removeAttribute("min"); input.removeAttribute("step"); }
     if (password) passwordToggle.classList.remove("is-visible");
     const active = showTextarea ? textarea : input;
     // Mirrors the real field's own maxlength (e.g. 200 for the tagline, 2000 for about,

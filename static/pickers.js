@@ -279,10 +279,13 @@ function createPricePicker(mountId, addButtonId, currencySelectId, hiddenFieldId
         mount.appendChild(row);
     }
 
-    // Best-effort: if a saved price already ends with a recognizable currency (a real
-    // code or one of CURRENCY_ALIASES' common words/symbols), strip it back out of the
-    // price field being edited and preselect the currency dropdown - same logic as the
-    // mobile app's price picker.
+    // Best-effort: pulls the currency out of the saved price text - a real code, or one
+    // of CURRENCY_ALIASES' common words/symbols, found ANYWHERE in it rather than only
+    // the very last word, since older/free-typed data can carry both a word and the
+    // real code together (e.g. "200 dinara RSD" - stripping only the trailing "RSD"
+    // used to leave "dinara" stuck in the price field forever) - and leaves only the
+    // bare numeric amount for the field itself, which is numeric-only now (see
+    // priceInput.type = "number" below) and so can't display anything else anyway.
     function parse(text) {
         mount.innerHTML = "";
         const lines = (text || "").split("\n").map((l) => l.trim()).filter(Boolean);
@@ -294,13 +297,14 @@ function createPricePicker(mountId, addButtonId, currencySelectId, hiddenFieldId
         lines.forEach((line) => {
             const idx = line.indexOf(":");
             const service = idx === -1 ? line : line.slice(0, idx).trim();
-            let price = idx === -1 ? "" : line.slice(idx + 1).trim();
-            const currencyMatch = price.match(/\s*([A-Za-z€$£]{1,10})$/);
-            const resolved = currencyMatch ? resolveCurrencyWord(currencyMatch[1]) : null;
-            if (resolved) {
-                if (!detectedCurrency) detectedCurrency = resolved;
-                price = price.slice(0, currencyMatch.index).trim();
+            const rawPrice = idx === -1 ? "" : line.slice(idx + 1).trim();
+            const words = rawPrice.match(/[A-Za-z€$£]+/g) || [];
+            for (let i = words.length - 1; i >= 0; i--) {
+                const resolved = resolveCurrencyWord(words[i]);
+                if (resolved) { if (!detectedCurrency) detectedCurrency = resolved; break; }
             }
+            const numberMatch = rawPrice.match(/-?\d+(?:[.,]\d+)?/);
+            const price = numberMatch ? numberMatch[0].replace(",", ".") : "";
             addRow(service, price);
         });
         currencySelect.value = detectedCurrency || "RSD";
