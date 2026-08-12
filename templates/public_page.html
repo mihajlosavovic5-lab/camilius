@@ -1665,7 +1665,9 @@
         return el;
     }
 
+    var chatLockedScrollY = 0;
     function setOpen(value) {
+        var wasOpen = open;
         open = value;
         panel.classList.toggle("hidden", !open);
         fab.classList.toggle("open", open);
@@ -1676,6 +1678,27 @@
         if (open && !greeted) {
             greeted = true;
             addMessage("bot", window.pageT("chat_greeting"));
+        }
+        // Locks the underlying page's own scroll position while the panel is open - same
+        // lock/restore pattern as the side-nav drawer's own openNavMenu/closeNavMenu
+        // above. .chat-panel itself is already position:fixed regardless, so this isn't
+        // about the panel's own layout - it's that without this, the page still had a
+        // scroll position for the browser's native "scroll the focused input into view"
+        // behavior to actually move it to every time #chat-input was focused, and that
+        // scroll was never fully undone by the time the keyboard closed again. The
+        // second (and every later) keyboard open therefore started from a slightly
+        // different page scroll position than the first, compounding with the
+        // keyboard's own resize reflow into the two-stage jump this fixes.
+        if (open && !wasOpen) {
+            chatLockedScrollY = window.scrollY || document.documentElement.scrollTop;
+            document.body.style.position = "fixed";
+            document.body.style.top = (-chatLockedScrollY) + "px";
+            document.body.style.width = "100%";
+        } else if (!open && wasOpen) {
+            document.body.style.position = "";
+            document.body.style.top = "";
+            document.body.style.width = "";
+            window.scrollTo({ top: chatLockedScrollY, left: 0, behavior: "instant" });
         }
     }
 
