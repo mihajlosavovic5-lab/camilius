@@ -1715,7 +1715,7 @@ body.auth {
    right edge (kept in sync with the currency dropdown above - see sync() in pickers.js),
    so the selected currency previews inline instead of only showing in the row above. */
 .price-amount-wrap { position: relative; flex: 1; min-width: 0; }
-.price-amount-wrap .price-amount-input { width: 100%; box-sizing: border-box; padding-right: 44px; }
+.price-amount-wrap .price-amount-input { width: 100%; box-sizing: border-box; padding-right: 44px; text-align: center; }
 /* type="number" (pickers.js) draws its own up/down spinner arrows on the right in
    Chrome/Firefox desktop by default, which would sit right on top of the currency badge
    pinned to that same edge just above - hidden here rather than losing the numeric-only
