@@ -702,7 +702,12 @@
         right: 20px;
         bottom: 90px;
         width: min(320px, calc(100vw - 40px));
-        height: min(440px, calc(100vh - 108px));
+        /* var(--chat-vh) - set once at load by the chat script below, deliberately never
+           updated again - stands in for 100vh so the keyboard opening/closing (and
+           whatever the browser's own address bar does alongside it) can't change this
+           panel's own height at all; falls back to plain 100vh if that variable somehow
+           isn't set yet. */
+        height: min(440px, calc(var(--chat-vh, 100vh) - 108px));
         background: var(--surface);
         border: 1px solid var(--border);
         border-radius: 22px;
@@ -870,7 +875,10 @@
        actually has room for. */
     @media (max-width: 480px) {
         .chat-fab { right: 14px; bottom: 14px; }
-        .chat-panel { right: 14px; bottom: 84px; width: min(300px, calc(100vw - 24px)); height: min(60vh, calc(100vh - 96px)); }
+        .chat-panel {
+            right: 14px; bottom: 84px; width: min(300px, calc(100vw - 24px));
+            height: min(calc(var(--chat-vh, 100vh) * 0.6), calc(var(--chat-vh, 100vh) - 96px));
+        }
     }
     /* Centered title block - logo, name, tagline all stacked and centered. */
     .page-header {
@@ -1614,6 +1622,17 @@
     var chatUrl = {{ chat_url | tojson }};
     var open = false;
     var greeted = false;
+
+    // Captures the real viewport height once, before the visitor has ever opened the
+    // on-screen keyboard, into a CSS custom property .chat-panel's own max-height
+    // (below) reads instead of a live 100vh - deliberately never updated again
+    // (no resize listener). Plain 100vh changes live as the keyboard opens/closes,
+    // which on many mobile WebViews also drags along whatever the browser's own address
+    // bar happens to be doing at that moment - the exact same recalculation the first
+    // open settles into cleanly but a later open (address bar now in a different
+    // collapsed/expanded state than at page load) turned into a visible two-stage jump.
+    // A value fixed once at load can't do either, since it never changes at all.
+    document.documentElement.style.setProperty("--chat-vh", window.innerHeight + "px");
 
     // A per-page (per-slug) key in localStorage, not a cookie: third-party cookies are
     // already blocked in Safari/Chrome, which the F5 embeddable widget will hit
