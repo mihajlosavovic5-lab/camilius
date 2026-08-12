@@ -1690,9 +1690,16 @@
     var topBarFill = document.getElementById("top-bar-fill");
     var topBarTicking = false;
     function updateTopBarFill() {
+        topBarTicking = false;
+        // Same body-scroll-lock issue as updateProgress() above (see its own comment) -
+        // window.scrollY reads 0 while the menu drawer or chat panel has body pinned via
+        // position:fixed, which isn't a real "back at the top of the page" and shouldn't
+        // strip the frosted-white .scrolled fill out from behind the title/menu/flag
+        // while one of those overlays is open on top of it. Left exactly as it was until
+        // the lock clears and a real scroll event re-evaluates it.
+        if (document.body.style.position === "fixed") return;
         var scrollTop = window.scrollY || document.documentElement.scrollTop;
         topBarFill.classList.toggle("scrolled", scrollTop > 12);
-        topBarTicking = false;
     }
     window.addEventListener("scroll", function () {
         if (!topBarTicking) { window.requestAnimationFrame(updateTopBarFill); topBarTicking = true; }
