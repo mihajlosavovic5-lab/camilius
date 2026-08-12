@@ -1171,26 +1171,22 @@ input.tap-to-edit-field, textarea.tap-to-edit-field { cursor: pointer; backgroun
    - toned down like the other notes here, not an alarming red, just enough to notice. */
 .hours-custom-note { font-size: 12px; color: var(--primary-ink); margin: 0; text-align: center; }
 /* Expand/collapse control between the "Working days" summary and the full per-day list
-   - just the chevron itself, no circle/background around it, so it reads as a quiet
-   gold glyph rather than a button chip. Full-width (not just the glyph's own few px)
-   so the whole row at the arrow's height is tappable, not only a tiny hit target
-   right on the character - no label needed either way (see hours-picker.js's
-   aria-label for the accessible name). .hours-toggle-arrow-up just rotates the same
-   glyph 180deg rather than swapping to a different character, so the two states read
-   as one control. */
+   - one small gold circle with the chevron centered inside, matching the same chip
+   treatment the website version of this picker already uses (static/style.css) rather
+   than a bare floating glyph - reads as a proper button, not a stray character. Centered
+   under the row via align-self (parent is a flex column) instead of the old full-width
+   tap strip. No label needed either way (see hours-picker.js's aria-label for the
+   accessible name). .hours-toggle-arrow-up just rotates the same glyph 180deg rather
+   than swapping to a different character, so the two states read as one control. */
 .hours-toggle-arrow {
-    display: flex; align-items: center; justify-content: center;
-    /* Sized to the glyph itself (line-height: 1 at this font-size), not a generous
-       34px tap target - the button read as sitting inside its own oversized empty
-       box, doubling up on the row gap already above/below it. Still tappable across
-       its full width, just no longer visually taller than the "^"/"v" it shows. */
-    width: 100%; height: 18px; padding: 0; margin: 0; border: none; background: none;
-    color: var(--primary-dark); font-size: 18px; line-height: 1;
-    cursor: pointer; transition: transform .18s cubic-bezier(.22, 1, .36, 1), color .15s ease, opacity .15s ease;
+    align-self: center; display: flex; align-items: center; justify-content: center;
+    width: 34px; height: 34px; padding: 0; margin: 2px 0; border: none; border-radius: 50%;
+    background: var(--primary-light); color: var(--primary-ink); font-size: 17px; line-height: 1;
+    cursor: pointer; transition: transform .15s cubic-bezier(.2, .9, .3, 1.3), background .15s ease, opacity .15s ease;
 }
-.hours-toggle-arrow:active { color: var(--primary); transform: scale(.8); opacity: .65; }
+.hours-toggle-arrow:active { background: var(--primary); color: #fff; transform: scale(.9); opacity: 1; }
 .hours-toggle-arrow-up { transform: rotate(180deg); }
-.hours-toggle-arrow-up:active { transform: rotate(180deg) scale(.8); }
+.hours-toggle-arrow-up:active { transform: rotate(180deg) scale(.9); }
 
 /* The per-day list unfolds/folds rather than snapping in and out - .hours-advanced-view
    is the row that animates (0fr collapsed, 1fr once "-open" is added), and
@@ -1248,8 +1244,9 @@ input.tap-to-edit-field, textarea.tap-to-edit-field { cursor: pointer; backgroun
    day-list rows (.hours-day-times is also reused by .hours-simple-row's collapsed
    summary and .hours-quickfill's "Same hours every day" box above, neither of which has
    a toggle next to it, so this is scoped to .hours-day-list specifically rather than
-   changing the shared class itself). */
-.hours-day-list .hours-day-times { margin-right: 16px; }
+   changing the shared class itself). 28px (not the old 16px) so the time buttons clear
+   the toggle with real breathing room instead of crowding right up against it. */
+.hours-day-list .hours-day-times { margin-right: 28px; }
 .hours-day-closed-label { flex: 1; min-width: 0; font-size: 14px; color: var(--text-muted); }
 /* No min-width: 0 here (unlike most flex:1 items in this file) - that override lets a
    flex item shrink below what its own content needs, and since a button's overflow is
