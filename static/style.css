@@ -1716,6 +1716,13 @@ body.auth {
    so the selected currency previews inline instead of only showing in the row above. */
 .price-amount-wrap { position: relative; flex: 1; min-width: 0; }
 .price-amount-wrap .price-amount-input { width: 100%; box-sizing: border-box; padding-right: 44px; }
+/* type="number" (pickers.js) draws its own up/down spinner arrows on the right in
+   Chrome/Firefox desktop by default, which would sit right on top of the currency badge
+   pinned to that same edge just above - hidden here rather than losing the numeric-only
+   keyboard/input restriction that type="number" itself provides. */
+.price-amount-input::-webkit-outer-spin-button,
+.price-amount-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.price-amount-input { -moz-appearance: textfield; }
 .price-amount-currency {
     position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
     font-size: 12.5px; font-weight: 700; color: var(--text-muted); pointer-events: none;

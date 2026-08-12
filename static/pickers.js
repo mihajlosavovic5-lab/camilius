@@ -236,7 +236,17 @@ function createPricePicker(mountId, addButtonId, currencySelectId, hiddenFieldId
         priceWrap.className = "price-amount-wrap";
 
         const priceInput = document.createElement("input");
-        priceInput.type = "text";
+        // Numeric only - the currency is its own dropdown (see priceCurrency below), so
+        // this field is only ever meant to hold the bare amount (see sync()'s own
+        // `${price} ${currency}` join above), never letters. type="number" rejects a
+        // letter keystroke at the browser level rather than just formatting one back out
+        // after the fact; inputmode="decimal" picks the right on-screen keyboard on
+        // mobile. step="0.01" allows cents/decimal amounts, min="0" rules out a negative
+        // price.
+        priceInput.type = "number";
+        priceInput.inputMode = "decimal";
+        priceInput.min = "0";
+        priceInput.step = "0.01";
         priceInput.placeholder = t("pickers.pricePlaceholder");
         priceInput.setAttribute("data-i18n-placeholder", "pickers.pricePlaceholder");
         priceInput.value = price || "";
