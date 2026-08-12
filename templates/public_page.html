@@ -1763,6 +1763,19 @@
             document.body.style.position = "fixed";
             document.body.style.top = (-chatLockedScrollY) + "px";
             document.body.style.width = "100%";
+            // Freezes `height` to whatever it resolves to right now (keyboard-closed,
+            // so this is always its normal CSS-authored value) as a plain inline px
+            // value, instead of leaving it as the live `calc(100vh - ...)` from the CSS
+            // rule above. The panel doesn't actually need to keep shrinking as the
+            // keyboard opens - it already rides above the keyboard via `bottom` - that
+            // calc() only exists to cap the panel's height on a short screen while the
+            // keyboard is closed. Left live, it independently reacts to 100vh a second
+            // time whenever the browser recalculates it - which chatPanelPollStep below
+            // never sees, since that only ever watches the panel's bottom edge. Reset to
+            // "" first so this always reads the true CSS-authored value, not a stale
+            // frozen one from a previous open.
+            panel.style.height = "";
+            panel.style.height = getComputedStyle(panel).height;
             // Fresh baseline for this open - see chatPanelPollStep above.
             chatPanelCommittedBottom = null;
             chatPanelCorrection = 0;
@@ -1776,6 +1789,7 @@
             window.scrollTo({ top: chatLockedScrollY, left: 0, behavior: "instant" });
             chatPanelCorrection = 0;
             panel.style.transform = "";
+            panel.style.height = "";
         }
     }
 
@@ -1789,6 +1803,35 @@
         if (e.target.closest("#chat-fab") || e.target.closest("#chat-panel")) return;
         setOpen(false);
     });
+
+    // TEMPORARY - diagnostic overlay for tracking down the keyboard-open "second wave"
+    // bug (delete this whole block once that's confirmed fixed). Only ever renders with
+    // ?chatdebug=1 on the URL, so it's completely inert for every real visitor. Every
+    // fix attempted for that bug so far has been a guess verified only by a phone screen
+    // recording after the fact - this instead prints the actual live bottom/height/
+    // transform/viewport numbers on screen every frame, so a recording made with this on
+    // gives real values to read off instead of having to infer a position from pixels.
+    if (/[?&]chatdebug=1(&|$)/.test(location.search)) {
+        var chatDebugEl = document.createElement("div");
+        chatDebugEl.style.cssText = "position:fixed;top:0;left:0;right:0;z-index:9999;" +
+            "background:rgba(0,0,0,.82);color:#0f0;font:11px/1.4 monospace;" +
+            "padding:6px 8px;white-space:pre;pointer-events:none;";
+        document.body.appendChild(chatDebugEl);
+        (function chatDebugTick() {
+            var vv = window.visualViewport;
+            var cs = getComputedStyle(panel);
+            chatDebugEl.textContent =
+                "t=" + performance.now().toFixed(0) + " open=" + open +
+                "\nbottom=" + cs.bottom + " height=" + cs.height +
+                "\ntransform=" + cs.transform +
+                "\ncorrection=" + chatPanelCorrection +
+                " lastChangeAt=" + chatPanelLastChangeAt.toFixed(0) +
+                "\ninnerHeight=" + window.innerHeight +
+                "\nvv.height=" + (vv ? vv.height.toFixed(1) : "n/a") +
+                " vv.offsetTop=" + (vv ? vv.offsetTop.toFixed(1) : "n/a");
+            requestAnimationFrame(chatDebugTick);
+        })();
+    }
 
     function sendMessage(text) {
         addMessage("user", text);
