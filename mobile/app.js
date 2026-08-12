@@ -234,6 +234,13 @@ let legalReturnTo = "settings";
 // locked (Starter-plan) upsell state.
 let subscriptionReturnTo = "settings";
 
+// "Press back again to exit" - see the backButton listener's final else branch below.
+// 0 (rather than null/undefined) so the very first back press of a session, with
+// nothing to subtract from, is correctly treated as long ago rather than throwing off
+// the Date.now() - lastExitBackPressAt comparison.
+let lastExitBackPressAt = 0;
+const EXIT_BACK_PRESS_WINDOW_MS = 2000;
+
 // The Google sign-in attempt currently in flight (state/errorBox/settled), or null when
 // none is - see the "Continue with Google" section below for where this is actually set/
 // read/cleared. Declared up here (rather than down there, next to its own logic) because
@@ -357,8 +364,18 @@ if (capacitorPlugins) {
             showScreen("deleteReason");
         } else if (canGoBack) {
             history.back();
-        } else {
+        } else if (Date.now() - lastExitBackPressAt < EXIT_BACK_PRESS_WINDOW_MS) {
             capacitorPlugins.App.exitApp();
+        } else {
+            // Nothing left to back out of (no overlay/history/nested screen) - rather
+            // than exiting on this first press, which is the easiest possible way to
+            // accidentally leave the app from one of the main tabs, require a second
+            // press within EXIT_BACK_PRESS_WINDOW_MS. showToast() re-triggers its own
+            // CSS transition even on a message that's already showing (see its own
+            // "show" class + clearTimeout/setTimeout), so a stray back press just before
+            // the timeout doesn't leave the message anywhere it could look stuck.
+            lastExitBackPressAt = Date.now();
+            showToast(t("nav.exitConfirm") || "Tap back again to exit");
         }
     });
 

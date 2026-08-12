@@ -409,6 +409,7 @@ const TRANSLATIONS = {
         "onboarding.describe.transcribing": "Transcribing...",
         "tab.profile": "Profile",
         "tab.settings": "Settings",
+        "nav.exitConfirm": "Tap back again to exit",
 
         "days.monday": "Monday",
         "days.tuesday": "Tuesday",
@@ -818,6 +819,7 @@ const TRANSLATIONS = {
         "onboarding.describe.transcribing": "Prepisujem...",
         "tab.profile": "Profil",
         "tab.settings": "Podešavanja",
+        "nav.exitConfirm": "Pritisnite nazad još jednom da izađete",
 
         "days.monday": "Ponedeljak",
         "days.tuesday": "Utorak",
@@ -1137,6 +1139,7 @@ const TRANSLATIONS = {
         "tab.schedule": "Agenda",
         "tab.profile": "Perfil",
         "tab.settings": "Ajustes",
+        "nav.exitConfirm": "Toca atrás de nuevo para salir",
 
         "days.monday": "Lunes",
         "days.tuesday": "Martes",
@@ -1487,6 +1490,7 @@ const TRANSLATIONS = {
         "tab.schedule": "Agenda",
         "tab.profile": "Perfil",
         "tab.settings": "Configurações",
+        "nav.exitConfirm": "Toque em voltar novamente para sair",
 
         "days.monday": "Segunda-feira",
         "days.tuesday": "Terça-feira",
@@ -1837,6 +1841,7 @@ const TRANSLATIONS = {
         "tab.schedule": "Agenda",
         "tab.profile": "Profil",
         "tab.settings": "Paramètres",
+        "nav.exitConfirm": "Appuyez de nouveau sur retour pour quitter",
 
         "days.monday": "Lundi",
         "days.tuesday": "Mardi",
@@ -2187,6 +2192,7 @@ const TRANSLATIONS = {
         "tab.schedule": "Terminkalender",
         "tab.profile": "Profil",
         "tab.settings": "Einstellungen",
+        "nav.exitConfirm": "Nochmal zurück tippen, um die App zu verlassen",
 
         "days.monday": "Montag",
         "days.tuesday": "Dienstag",
@@ -2537,6 +2543,7 @@ const TRANSLATIONS = {
         "tab.schedule": "Agenda",
         "tab.profile": "Profilo",
         "tab.settings": "Impostazioni",
+        "nav.exitConfirm": "Tocca di nuovo indietro per uscire",
 
         "days.monday": "Lunedì",
         "days.tuesday": "Martedì",
@@ -2887,6 +2894,7 @@ const TRANSLATIONS = {
         "tab.schedule": "Расписание",
         "tab.profile": "Профиль",
         "tab.settings": "Настройки",
+        "nav.exitConfirm": "Нажмите назад еще раз, чтобы выйти",
 
         "days.monday": "Понедельник",
         "days.tuesday": "Вторник",
@@ -3237,6 +3245,7 @@ const TRANSLATIONS = {
         "tab.schedule": "日程安排",
         "tab.profile": "资料",
         "tab.settings": "设置",
+        "nav.exitConfirm": "再次点击返回可退出",
 
         "days.monday": "周一",
         "days.tuesday": "周二",
@@ -3587,6 +3596,7 @@ const TRANSLATIONS = {
         "tab.schedule": "Program",
         "tab.profile": "Profil",
         "tab.settings": "Ayarlar",
+        "nav.exitConfirm": "Çıkmak için tekrar geri tuşuna dokunun",
 
         "days.monday": "Pazartesi",
         "days.tuesday": "Salı",
