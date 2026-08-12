@@ -418,13 +418,13 @@
         color: var(--primary);
         margin: 0 0 14px;
     }
-    /* About/Contact read better centered over their own section width, unlike
-       Prices/Questions below (left-aligned like a normal section heading) - h2 is a
+    /* About/Contact/Prices read better centered over their own section width, unlike
+       Questions below (left-aligned like a normal section heading) - h2 is a
        block element so it already spans the section's full width, text-align is all
        that's needed. Still correct for #about now that Gallery is merged into it (see
        .about-gallery below) - a centered title over an asymmetric photo mosaic reads
        fine, same as a centered title over a plain paragraph did before. */
-    #about h2, #contact h2 { text-align: center; }
+    #about h2, #contact h2, #prices h2 { text-align: center; }
     .about, .faq {
         white-space: pre-line;
         margin: 0;
