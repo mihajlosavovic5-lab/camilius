@@ -4918,9 +4918,18 @@ async function loadSchedule(date, { force = false } = {}) {
     const targetDate = date || state.scheduleDate;
     const cacheKey = `${view}:${targetDate || "today"}`;
     const cached = !force && state.scheduleCache[cacheKey];
+    // Once the chrome (topbar/toolbar/date-nav) is already on screen, it never needs to
+    // disappear again - the date-nav already reflects whatever's being flipped to, and
+    // the toolbar doesn't change per day/week at all. Blanking #schedule-body wholesale
+    // behind the full #schedule-loading spinner on every day/week flip read as the whole
+    // tab reloading; only the very first load - before there's any chrome yet - does
+    // that now, and every load after it spinners just the day/week content area below
+    // the date-nav (#schedule-content-loading) instead.
+    const bodyAlreadyShown = !el("schedule-body").classList.contains("hidden");
 
     if (cached) {
         el("schedule-loading").classList.add("hidden");
+        el("schedule-content-loading").classList.add("hidden");
         el("schedule-error").classList.add("hidden");
         el("schedule-locked").classList.toggle("hidden", !cached.locked);
         el("schedule-body").classList.toggle("hidden", !!cached.locked);
@@ -4929,6 +4938,11 @@ async function loadSchedule(date, { force = false } = {}) {
             state.scheduleSlotMinutes = cached.slot_minutes;
             renderSchedule(cached);
         }
+    } else if (bodyAlreadyShown) {
+        el("schedule-error").classList.add("hidden");
+        el("schedule-day-view").classList.add("hidden");
+        el("schedule-week-view").classList.add("hidden");
+        el("schedule-content-loading").classList.remove("hidden");
     } else {
         el("schedule-locked").classList.add("hidden");
         el("schedule-body").classList.add("hidden");
@@ -4951,6 +4965,7 @@ async function loadSchedule(date, { force = false } = {}) {
             storageSet("scheduleTodayCache", JSON.stringify(data)).catch(() => {});
         }
         el("schedule-loading").classList.add("hidden");
+        el("schedule-content-loading").classList.add("hidden");
         if (data.locked) {
             el("schedule-locked").classList.remove("hidden");
             el("schedule-body").classList.add("hidden");
@@ -4964,7 +4979,9 @@ async function loadSchedule(date, { force = false } = {}) {
     } catch (err) {
         if (err.status === 401) { logout(false); return; }
         el("schedule-loading").classList.add("hidden");
+        el("schedule-content-loading").classList.add("hidden");
         if (!cached) {
+            el("schedule-body").classList.add("hidden");
             el("schedule-error").classList.remove("hidden");
             el("schedule-error-message").textContent = err.message || t("schedule.errorTitle");
         }

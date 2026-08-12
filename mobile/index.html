@@ -1,5 +1,5 @@
 <!doctype html>
-<html data-bundle-version="750b997bfe31" lang="en">
+<html data-bundle-version="f1be05bae1e9" lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
@@ -16,7 +16,7 @@
 <link rel="preload" href="fonts/lora-latin-ext.woff2?v=e8c32fe92ded" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="fonts/familjen-grotesk-latin.woff2?v=e8c32fe92ded" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="fonts/familjen-grotesk-latin-ext.woff2?v=e8c32fe92ded" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="app.css?v=750b997bfe31">
+<link rel="stylesheet" href="app.css?v=f1be05bae1e9">
 </head>
 <body>
 
@@ -1209,6 +1209,13 @@
         <button type="button" class="schedule-today-btn button-tap-scale" id="schedule-today-btn" data-i18n="schedule.today">Today</button>
       </div>
 
+      <!-- Shown in place of the day/week content (below) while a day/week flip is
+           in flight and nothing's cached for it yet - the toolbar/date-nav above stay
+           on screen since they don't change, only this region blanks and spinners. -->
+      <div id="schedule-content-loading" class="loading hidden">
+        <div class="spinner"></div>
+      </div>
+
       <div id="schedule-day-view" class="schedule-day-view">
         <div id="schedule-timeline" class="schedule-timeline"></div>
         <div id="schedule-closed-day" class="empty hidden">
@@ -1794,8 +1801,8 @@
   </button>
 </nav>
 
-<script src="i18n.js?v=750b997bfe31"></script>
-<script src="hours-picker.js?v=750b997bfe31"></script>
-<script src="app.js?v=750b997bfe31"></script>
+<script src="i18n.js?v=f1be05bae1e9"></script>
+<script src="hours-picker.js?v=f1be05bae1e9"></script>
+<script src="app.js?v=f1be05bae1e9"></script>
 </body>
 </html>
