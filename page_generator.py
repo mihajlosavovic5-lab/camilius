@@ -74,7 +74,22 @@ PAGE_SCHEMA = {
                 "type": "object",
                 "properties": {
                     "name": {"type": "string"},
-                    "price": {"type": "string", "description": "Price as given, e.g. '20 EUR' - empty string if not mentioned."},
+                    "price": {
+                        "type": "string",
+                        "description": (
+                            "Normalized as '<number> <CODE>', e.g. '20 EUR' or '1500 RSD' - "
+                            "CODE is a real 3-letter currency code (RSD, EUR, USD, GBP, CHF, "
+                            "CAD, AUD, JPY, CNY, TRY, RUB, SEK, NOK, DKK, PLN, AED, INR, BRL), "
+                            "the SAME code for every service, never a word like 'din'/'dinara' "
+                            "or a symbol like '€'/'$' even if that's how the owner wrote it - "
+                            "the app strips this exact code off each line to preselect the "
+                            "currency shown above the whole price list, so a non-code suffix "
+                            "leaves that selector wrong and the raw word stuck in the price "
+                            "field instead. Infer the code from the description's own wording "
+                            "or language (e.g. Serbian dinars/'din' -> RSD) when no code is "
+                            "explicit. Empty string if no price was mentioned for this service."
+                        ),
+                    },
                 },
                 "required": ["name", "price"],
                 "additionalProperties": False,
@@ -113,6 +128,9 @@ Rules:
 - slug is not customer-facing copy - always fill it in, in plain ASCII (lowercase
   letters/digits/hyphens only), even when the description itself is in another language
   or script.
+- Every service price must be normalized to "<number> <3-letter currency code>" (see the
+  services.price field's own schema description for the exact rule) - never leave a
+  currency word or symbol the owner typed (e.g. "din", "dinara", "€") in place of the code.
 """
 
 
@@ -217,9 +235,12 @@ def format_working_hours(hours):
 
 
 def format_price_list(services):
-    """services: the generate_page_draft() "services" list. One "Name: Price" per line -
-    price_list has no parser to match (it's free text the AI itself reads, same as faq),
-    so this is a readable convention, not a hard contract."""
+    """services: the generate_page_draft() "services" list. One "Name: Price" per line,
+    Price already normalized to "<number> <CODE>" by the model per PAGE_SCHEMA's own
+    description - static/pickers.js's and mobile/app.js's price-list picker both parse
+    that exact "<number> <CODE>" shape back out (stripping CODE into the currency
+    selector shown above the list), so this is a hard contract now, not just a readable
+    convention."""
     lines = []
     for service in services:
         name = (service.get("name") or "").strip()

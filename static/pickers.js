@@ -173,6 +173,28 @@ function createHoursPicker(mountId, hiddenFieldId) {
 // (mobile/app.js). Codes are used as-is, not translated.
 const CURRENCIES = ["EUR", "USD", "RSD", "GBP", "CHF", "CAD", "AUD", "JPY", "CNY", "TRY", "RUB", "SEK", "NOK", "DKK", "PLN", "AED", "INR", "BRL"];
 
+// Common ways a price's currency ends up written as something other than its real
+// 3-letter code - an owner typing free text ("180 dinara"), an AI-generated draft that
+// didn't normalize it, or older saved data from before prices were expected to carry a
+// code at all. Mapped so a saved price list still gets its currency recognized and
+// stripped into the picker above instead of the word/symbol being left stuck in the
+// price field forever. Checked case-insensitively - see resolveCurrencyWord below.
+const CURRENCY_ALIASES = {
+    din: "RSD", dinar: "RSD", dinara: "RSD", dinari: "RSD", dinaru: "RSD", rsd: "RSD",
+    eur: "EUR", evro: "EUR", evra: "EUR", evri: "EUR", eura: "EUR", "€": "EUR",
+    usd: "USD", dolar: "USD", dolara: "USD", dolari: "USD", "$": "USD",
+    gbp: "GBP", funti: "GBP", funta: "GBP", "£": "GBP",
+};
+
+// Resolves a trailing price word/symbol (as matched by the regex below) to one of
+// CURRENCIES, or null if it isn't recognized as any currency at all - a real code
+// (any case) resolves directly, everything else goes through CURRENCY_ALIASES.
+function resolveCurrencyWord(word) {
+    const upper = word.toUpperCase();
+    if (CURRENCIES.includes(upper)) return upper;
+    return CURRENCY_ALIASES[word.toLowerCase()] || null;
+}
+
 function createPricePicker(mountId, addButtonId, currencySelectId, hiddenFieldId) {
     const mount = document.getElementById(mountId);
     const currencySelectPlaceholder = document.getElementById(currencySelectId);
@@ -247,9 +269,10 @@ function createPricePicker(mountId, addButtonId, currencySelectId, hiddenFieldId
         mount.appendChild(row);
     }
 
-    // Best-effort: if a saved price already ends with a known currency code, strip it
-    // back out of the price field being edited and preselect the currency dropdown -
-    // same logic as the mobile app's price picker.
+    // Best-effort: if a saved price already ends with a recognizable currency (a real
+    // code or one of CURRENCY_ALIASES' common words/symbols), strip it back out of the
+    // price field being edited and preselect the currency dropdown - same logic as the
+    // mobile app's price picker.
     function parse(text) {
         mount.innerHTML = "";
         const lines = (text || "").split("\n").map((l) => l.trim()).filter(Boolean);
@@ -262,9 +285,10 @@ function createPricePicker(mountId, addButtonId, currencySelectId, hiddenFieldId
             const idx = line.indexOf(":");
             const service = idx === -1 ? line : line.slice(0, idx).trim();
             let price = idx === -1 ? "" : line.slice(idx + 1).trim();
-            const currencyMatch = price.match(/\s([A-Za-z]{3})$/);
-            if (currencyMatch && CURRENCIES.includes(currencyMatch[1].toUpperCase())) {
-                if (!detectedCurrency) detectedCurrency = currencyMatch[1].toUpperCase();
+            const currencyMatch = price.match(/\s*([A-Za-z€$£]{1,10})$/);
+            const resolved = currencyMatch ? resolveCurrencyWord(currencyMatch[1]) : null;
+            if (resolved) {
+                if (!detectedCurrency) detectedCurrency = resolved;
                 price = price.slice(0, currencyMatch.index).trim();
             }
             addRow(service, price);

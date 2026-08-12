@@ -829,6 +829,29 @@ function createHoursPicker(containerId) {
 // Codes are used as-is in every language (ISO 4217, not translated).
 const CURRENCIES = ["EUR", "USD", "RSD", "GBP", "CHF", "CAD", "AUD", "JPY", "CNY", "TRY", "RUB", "SEK", "NOK", "DKK", "PLN", "AED", "INR", "BRL"];
 
+// Common ways a price's currency ends up written as something other than its real
+// 3-letter code - an owner typing free text ("180 dinara"), an AI-generated draft that
+// didn't normalize it, or older saved data from before prices were expected to carry a
+// code at all. Mapped so a saved price list still gets its currency recognized and
+// stripped into the picker above instead of the word/symbol being left stuck in the
+// price field forever. Checked case-insensitively - see resolveCurrencyWord below.
+// Mirrors static/pickers.js's own copy of this same table.
+const CURRENCY_ALIASES = {
+    din: "RSD", dinar: "RSD", dinara: "RSD", dinari: "RSD", dinaru: "RSD", rsd: "RSD",
+    eur: "EUR", evro: "EUR", evra: "EUR", evri: "EUR", eura: "EUR", "€": "EUR",
+    usd: "USD", dolar: "USD", dolara: "USD", dolari: "USD", "$": "USD",
+    gbp: "GBP", funti: "GBP", funta: "GBP", "£": "GBP",
+};
+
+// Resolves a trailing price word/symbol (as matched by setValue's regex below) to one
+// of CURRENCIES, or null if it isn't recognized as any currency at all - a real code
+// (any case) resolves directly, everything else goes through CURRENCY_ALIASES.
+function resolveCurrencyWord(word) {
+    const upper = word.toUpperCase();
+    if (CURRENCIES.includes(upper)) return upper;
+    return CURRENCY_ALIASES[word.toLowerCase()] || null;
+}
+
 function createPricePicker(rowsContainerId, addButtonId, currencyContainerId) {
     const rowsContainer = el(rowsContainerId);
     const currencyBtn = createOptionButton("RSD", CURRENCIES, "currency-picker-btn");
@@ -917,12 +940,12 @@ function createPricePicker(rowsContainerId, addButtonId, currencyContainerId) {
                 .filter(Boolean)
                 .join("\n");
         },
-        // Best-effort: if a saved price already ends with one of our known currency
-        // codes (i.e. it was saved by this same picker before), strip it back out of
-        // the price field being edited and use it to preselect the currency dropdown -
-        // a single currency applies to the whole list. Older data with no currency code
-        // (or free text that doesn't match one) is left exactly as typed, so nothing
-        // that already worked silently changes.
+        // Best-effort: if a saved price already ends with a recognizable currency (a
+        // real code, or one of CURRENCY_ALIASES' common words/symbols - e.g. "din"/
+        // "dinara" for RSD), strip it back out of the price field being edited and use
+        // it to preselect the currency dropdown - a single currency applies to the
+        // whole list. Price text that doesn't end in anything recognizable is left
+        // exactly as typed, so nothing that already worked silently changes.
         setValue(text) {
             rowsContainer.innerHTML = "";
             const lines = (text || "").split("\n").map((l) => l.trim()).filter(Boolean);
@@ -936,9 +959,10 @@ function createPricePicker(rowsContainerId, addButtonId, currencyContainerId) {
                 const idx = line.indexOf(":");
                 const service = idx === -1 ? line : line.slice(0, idx).trim();
                 let price = idx === -1 ? "" : line.slice(idx + 1).trim();
-                const currencyMatch = price.match(/\s([A-Za-z]{3})$/);
-                if (currencyMatch && CURRENCIES.includes(currencyMatch[1].toUpperCase())) {
-                    if (!detectedCurrency) detectedCurrency = currencyMatch[1].toUpperCase();
+                const currencyMatch = price.match(/\s*([A-Za-z€$£]{1,10})$/);
+                const resolved = currencyMatch ? resolveCurrencyWord(currencyMatch[1]) : null;
+                if (resolved) {
+                    if (!detectedCurrency) detectedCurrency = resolved;
                     price = price.slice(0, currencyMatch.index).trim();
                 }
                 addRow(service, price);
