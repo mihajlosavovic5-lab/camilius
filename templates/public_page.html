@@ -1625,6 +1625,38 @@
     var open = false;
     var greeted = false;
 
+    // TEMPORARY - diagnostic log for tracking down the keyboard-open "second wave" bug
+    // (delete this whole block, plus chatDebugLog() calls below, once that's confirmed
+    // fixed). Only active with ?chatdebug=1 on the URL, so it's completely inert for
+    // every real visitor. This was originally a live per-frame snapshot, but the
+    // keyboard itself (or the browser's own UI) covers the exact moment that mattered in
+    // a screen recording, so there was never a frame where both the glitch and the
+    // numbers were visible at once. This instead APPENDS a line - with a timestamp -
+    // every time something actually changes, and keeps every line on screen in a
+    // scrolling log, so it can just be read (or screenshotted) any time after the fact,
+    // once whatever was covering it has gone away - no need to catch the right instant.
+    var chatDebugEl = null;
+    var chatDebugLines = [];
+    if (/[?&]chatdebug=1(&|$)/.test(location.search)) {
+        chatDebugEl = document.createElement("div");
+        // Bounded to a strip across the TOP quarter of the screen (not the whole page) -
+        // pointer-events:auto only so this one box is scrollable by touch, everything
+        // below it (the chat FAB/panel/input, which all live lower on screen) stays
+        // completely normal and tappable.
+        chatDebugEl.style.cssText = "position:fixed;top:0;left:0;right:0;max-height:25vh;" +
+            "z-index:9999;background:rgba(0,0,0,.88);color:#0f0;" +
+            "font:11px/1.35 monospace;padding:6px 8px;white-space:pre-wrap;" +
+            "overflow-y:auto;pointer-events:auto;";
+        document.body.appendChild(chatDebugEl);
+    }
+    function chatDebugLog(line) {
+        if (!chatDebugEl) return;
+        chatDebugLines.push(performance.now().toFixed(0) + "  " + line);
+        if (chatDebugLines.length > 300) chatDebugLines.shift();
+        chatDebugEl.textContent = chatDebugLines.join("\n");
+        chatDebugEl.scrollTop = chatDebugEl.scrollHeight;
+    }
+
     // A per-page (per-slug) key in localStorage, not a cookie: third-party cookies are
     // already blocked in Safari/Chrome, which the F5 embeddable widget will hit
     // immediately from inside another site's iframe - building the session this way
@@ -1714,6 +1746,7 @@
         var nativeBottom = (window.innerHeight - rect.bottom) + chatPanelCorrection;
         if (chatPanelCommittedBottom === null) {
             chatPanelCommittedBottom = nativeBottom;
+            if (chatDebugEl) chatDebugLog("poll: baseline bottom=" + nativeBottom.toFixed(1) + " top=" + rect.top.toFixed(1) + " h=" + rect.height.toFixed(1));
         } else {
             var delta = nativeBottom - chatPanelCommittedBottom;
             if (Math.abs(delta) > 0.5) {
@@ -1721,8 +1754,10 @@
                 var quiet = now - chatPanelLastChangeAt > CHAT_PANEL_QUIET_GAP_MS;
                 chatPanelLastChangeAt = now;
                 if (quiet && Math.abs(delta) < CHAT_PANEL_SMALL_CORRECTION_PX) {
+                    if (chatDebugEl) chatDebugLog("poll: CANCEL delta=" + delta.toFixed(1) + " (quiet, small) top=" + rect.top.toFixed(1) + " h=" + rect.height.toFixed(1));
                     chatPanelSetCorrection(chatPanelCorrection + delta);
                 } else {
+                    if (chatDebugEl) chatDebugLog("poll: accept delta=" + delta.toFixed(1) + " quiet=" + quiet + " newBottom=" + nativeBottom.toFixed(1) + " top=" + rect.top.toFixed(1) + " h=" + rect.height.toFixed(1));
                     chatPanelCommittedBottom = nativeBottom;
                     if (chatPanelCorrection) chatPanelSetCorrection(0);
                 }
@@ -1776,6 +1811,7 @@
             // frozen one from a previous open.
             panel.style.height = "";
             panel.style.height = getComputedStyle(panel).height;
+            if (chatDebugEl) chatDebugLog("PANEL OPEN, frozen height=" + panel.style.height + " innerHeight=" + window.innerHeight);
             // Fresh baseline for this open - see chatPanelPollStep above.
             chatPanelCommittedBottom = null;
             chatPanelCorrection = 0;
@@ -1783,6 +1819,7 @@
             panel.style.transform = "";
             requestAnimationFrame(chatPanelPollStep);
         } else if (!open && wasOpen) {
+            if (chatDebugEl) chatDebugLog("PANEL CLOSE");
             document.body.style.position = "";
             document.body.style.top = "";
             document.body.style.width = "";
@@ -1804,33 +1841,12 @@
         setOpen(false);
     });
 
-    // TEMPORARY - diagnostic overlay for tracking down the keyboard-open "second wave"
-    // bug (delete this whole block once that's confirmed fixed). Only ever renders with
-    // ?chatdebug=1 on the URL, so it's completely inert for every real visitor. Every
-    // fix attempted for that bug so far has been a guess verified only by a phone screen
-    // recording after the fact - this instead prints the actual live bottom/height/
-    // transform/viewport numbers on screen every frame, so a recording made with this on
-    // gives real values to read off instead of having to infer a position from pixels.
-    if (/[?&]chatdebug=1(&|$)/.test(location.search)) {
-        var chatDebugEl = document.createElement("div");
-        chatDebugEl.style.cssText = "position:fixed;top:0;left:0;right:0;z-index:9999;" +
-            "background:rgba(0,0,0,.82);color:#0f0;font:11px/1.4 monospace;" +
-            "padding:6px 8px;white-space:pre;pointer-events:none;";
-        document.body.appendChild(chatDebugEl);
-        (function chatDebugTick() {
-            var vv = window.visualViewport;
-            var cs = getComputedStyle(panel);
-            chatDebugEl.textContent =
-                "t=" + performance.now().toFixed(0) + " open=" + open +
-                "\nbottom=" + cs.bottom + " height=" + cs.height +
-                "\ntransform=" + cs.transform +
-                "\ncorrection=" + chatPanelCorrection +
-                " lastChangeAt=" + chatPanelLastChangeAt.toFixed(0) +
-                "\ninnerHeight=" + window.innerHeight +
-                "\nvv.height=" + (vv ? vv.height.toFixed(1) : "n/a") +
-                " vv.offsetTop=" + (vv ? vv.offsetTop.toFixed(1) : "n/a");
-            requestAnimationFrame(chatDebugTick);
-        })();
+    // TEMPORARY - see chatDebugLog() near the top of this script for what/why. Marks the
+    // two moments (focus/blur) that should each be triggering a keyboard open or close,
+    // so the log lines below can be read against them.
+    if (chatDebugEl) {
+        input.addEventListener("focus", function () { chatDebugLog("input FOCUS"); });
+        input.addEventListener("blur", function () { chatDebugLog("input blur"); });
     }
 
     function sendMessage(text) {
