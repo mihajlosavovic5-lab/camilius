@@ -2146,7 +2146,7 @@ body.auth {
 .support-widget-close { margin-left: auto; background: none; border: none; color: var(--text-muted); font-size: 20px; cursor: pointer; padding: 4px 6px; flex-shrink: 0; border-radius: 8px; transition: background .12s ease, color .12s ease; }
 .support-widget-close:hover { background: rgba(20,15,8,.08); color: var(--text); }
 .support-widget-messages { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 10px; background: var(--background); }
-.support-widget-msg { max-width: 86%; padding: 9px 13px; border-radius: 16px; font-size: 14.5px; line-height: 1.5; }
+.support-widget-msg { max-width: 86%; padding: 9px 13px; border-radius: 16px; font-size: 14.5px; line-height: 1.5; overflow-wrap: break-word; }
 .support-widget-msg-bot {
     align-self: flex-start; background: var(--surface); color: var(--text);
     border: 1px solid var(--border); border-bottom-left-radius: 4px;
