@@ -1,5 +1,5 @@
 <!doctype html>
-<html data-bundle-version="be7decddd390" lang="en">
+<html data-bundle-version="e80f7470b94c" lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
@@ -16,7 +16,7 @@
 <link rel="preload" href="fonts/lora-latin-ext.woff2?v=e8c32fe92ded" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="fonts/familjen-grotesk-latin.woff2?v=e8c32fe92ded" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="fonts/familjen-grotesk-latin-ext.woff2?v=e8c32fe92ded" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="app.css?v=be7decddd390">
+<link rel="stylesheet" href="app.css?v=e80f7470b94c">
 </head>
 <body>
 
@@ -970,16 +970,18 @@
         <p id="mysite-slug-required-hint" class="field-error hidden" data-i18n="mysite.website.slugRequired">Add a web address above so this change can be saved.</p>
       </div>
 
-      <!-- Static launcher into screen-website-chat (Faza 16) - the whole card is one tap
-           target (see the draftCard click listener in app.js), not a real compose bar
-           anymore; the attach+mic+send functionality this used to have inline now lives
-           on that screen instead (see its own compose bar), the only place it's actually
-           reachable/wired anymore. -->
-      <div class="profile-section" id="mysite-draft-card">
+      <!-- Static launcher into screen-website-chat (Faza 16) - only the pill itself
+           (id="mysite-draft-launcher") is the tap target (see the draftCard click
+           listener in app.js), not the whole surrounding card/title, so hovering/tapping
+           near the "Draft this with AI" heading above it does nothing; not a real
+           compose bar anymore either - the attach+mic+send functionality this used to
+           have inline now lives on that screen instead (see its own compose bar), the
+           only place it's actually reachable/wired anymore. -->
+      <div class="profile-section">
         <div class="profile-section-header">
           <p class="profile-section-title" data-i18n="mysite.draft.title">Draft this with AI</p>
         </div>
-        <div class="draft-chat-launcher">
+        <div class="draft-chat-launcher button-tap-scale" id="mysite-draft-launcher">
           <span class="draft-chat-launcher-text" data-i18n="mysite.draft.label">I'm listening…</span>
           <span class="draft-chat-launcher-arrow" aria-hidden="true">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12" stroke-width="2" stroke-linecap="round"/><polyline points="12 5 19 12 12 19" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -1014,7 +1016,7 @@
 
     <div id="website-chat-messages" class="website-chat-messages"></div>
 
-    <!-- Same compose bar mysite-draft-card used to have inline before Faza 16 (attach +
+    <!-- Same compose bar mysite-draft-launcher used to have inline before Faza 16 (attach +
          mic + send) - moved here wholesale, see the screen-website-chat IIFE in app.js.
          The safe-area/border/background chrome lives on this outer wrap, not on
          .chat-compose itself - that div's own bottom edge is what the mic/send icons'
@@ -1801,8 +1803,8 @@
   </button>
 </nav>
 
-<script src="i18n.js?v=be7decddd390"></script>
-<script src="hours-picker.js?v=be7decddd390"></script>
-<script src="app.js?v=be7decddd390"></script>
+<script src="i18n.js?v=e80f7470b94c"></script>
+<script src="hours-picker.js?v=e80f7470b94c"></script>
+<script src="app.js?v=e80f7470b94c"></script>
 </body>
 </html>

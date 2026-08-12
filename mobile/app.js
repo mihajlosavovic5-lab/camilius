@@ -6614,15 +6614,16 @@ el("mysite-field-delete-confirm-confirm").addEventListener("click", () => {
 
 // "Draft this with AI" chat (Faza 16) - see screen-website-chat in index.html and
 // website_assistant.py's module docstring for the persona/scope this is restricted to.
-// Tapping anywhere on the My Site tab's compose card (id="mysite-draft-card", above)
-// opens this screen instead of that card doing anything inline now - the capture-phase
-// listener below runs before that (now purely visual/static) card can do anything else
-// with the tap. The compose bar here (attach + mic + send) is the exact functionality
-// that card used to have inline before Faza 16 - moved here wholesale, not duplicated,
-// since mysite-draft-card no longer has any of those controls left to be reachable
-// through (see index.html) - this is the only place it lives/works now.
+// Tapping the My Site tab's launcher pill (id="mysite-draft-launcher", above - not the
+// whole surrounding card/title, just this pill) opens this screen instead of that pill
+// doing anything inline now - the capture-phase listener below runs before that (now
+// purely visual/static) pill can do anything else with the tap. The compose bar here
+// (attach + mic + send) is the exact functionality that pill used to have inline before
+// Faza 16 - moved here wholesale, not duplicated, since mysite-draft-launcher no longer
+// has any of those controls left to be reachable through (see index.html) - this is the
+// only place it lives/works now.
 (function () {
-    const draftCard = el("mysite-draft-card");
+    const draftCard = el("mysite-draft-launcher");
     const backBtn = el("website-chat-back");
     const messagesEl = el("website-chat-messages");
     const input = el("website-chat-input");

@@ -1967,14 +1967,18 @@ input.tap-to-edit-field, textarea.tap-to-edit-field { cursor: pointer; backgroun
 .voice-status.voice-status-error { color: var(--danger); }
 .voice-status:empty { display: none; }
 
-/* --- "Draft this with AI" launcher card (Faza 16) - a static tap target into
+/* --- "Draft this with AI" launcher pill (Faza 16) - a static tap target into
    screen-website-chat (see the draftCard wiring in app.js), styled to still read as the
    compose box it used to literally be, so tapping it feels continuous rather than a
-   bait-and-switch. Same shape as the web dashboard's own .draft-chat-launcher. --- */
-#mysite-draft-card { cursor: pointer; }
+   bait-and-switch. Same shape as the web dashboard's own .draft-chat-launcher. Only the
+   pill itself is clickable/cursor:pointer (not the surrounding card/title above it, the
+   way this used to work when the whole card was one tap target) - button-tap-scale
+   (added alongside this class in index.html) gives it the same press feedback as View
+   page/Add service/Add pair, matching every other tappable control on this page instead
+   of this one pill being the odd one out with no press feedback of its own at all. --- */
 .draft-chat-launcher {
     display: flex; align-items: center; gap: 10px;
-    padding: 13px 16px;
+    padding: 13px 16px; cursor: pointer;
     border: 1px solid var(--border); border-radius: 20px;
     background: var(--surface); color: var(--text-muted);
 }
