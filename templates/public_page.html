@@ -1656,7 +1656,22 @@
         return el;
     }
 
+    // Same locked-scroll pattern as the mobile menu drawer above (openNavMenu/
+    // closeNavMenu) - remembers the scroll position the panel opened at and pins the
+    // page there via position:fixed for as long as the panel stays open, then restores
+    // that exact position on close. Without this, the very first keyboard open of a
+    // page view looks smooth (clean scroll position to start from), but the mobile
+    // browser's native "scroll the focused input into view" still nudges the page a
+    // little on every focus even though #chat-input sits inside an already
+    // position:fixed panel that never needed that scroll - and that stray scroll is
+    // never undone. Each later keyboard open on the same panel-open session then starts
+    // from wherever that drift left the page, which shows up as the keyboard's resize
+    // reflow landing in two visible steps instead of one. Pinning the page via
+    // position:fixed removes the scroll position entirely, so there's nothing left for
+    // the browser to drift.
+    var chatLockedScrollY = 0;
     function setOpen(value) {
+        var wasOpen = open;
         open = value;
         panel.classList.toggle("hidden", !open);
         fab.classList.toggle("open", open);
@@ -1667,6 +1682,17 @@
         if (open && !greeted) {
             greeted = true;
             addMessage("bot", window.pageT("chat_greeting"));
+        }
+        if (open && !wasOpen) {
+            chatLockedScrollY = window.scrollY || document.documentElement.scrollTop;
+            document.body.style.position = "fixed";
+            document.body.style.top = (-chatLockedScrollY) + "px";
+            document.body.style.width = "100%";
+        } else if (!open && wasOpen) {
+            document.body.style.position = "";
+            document.body.style.top = "";
+            document.body.style.width = "";
+            window.scrollTo({ top: chatLockedScrollY, left: 0, behavior: "instant" });
         }
     }
 
