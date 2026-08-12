@@ -2469,14 +2469,21 @@ el("save-success-overlay").addEventListener("click", () => {
 
 // --- Auth ---
 
-async function logout() {
+// clearChatHistory defaults to true for a real, deliberate logout (the Settings "Log
+// out" button below, or account deletion) - a different person signing in on this
+// device afterward shouldn't inherit whatever "Draft this with AI" conversation the
+// previous owner was having (see the screen-website-chat IIFE's own CHAT_STORAGE_KEY
+// comment). It's explicitly false at every "if (err.status === 401) logout()" call site
+// below (an API call finding the session expired/invalid, not the owner choosing to log
+// out) - those used to wipe the conversation too, which is how it was possible to lose
+// an entire "Draft this with AI" history just from the token expiring or a stray 401
+// while using some other, unrelated screen: reopening the app after that always bounced
+// to the login screen AND silently deleted the conversation, even though it's still the
+// same owner about to log back in on the same device seconds later.
+async function logout(clearChatHistory = true) {
     await storageRemove("token");
     await storageRemove("businessName");
-    // Same reasoning as clearing the token above - a different account signing in on
-    // this device afterward shouldn't inherit whatever "Draft this with AI" conversation
-    // the previous owner was having (see the screen-website-chat IIFE's own
-    // CHAT_STORAGE_KEY comment).
-    await storageRemove("websiteChatMessages");
+    if (clearChatHistory) await storageRemove("websiteChatMessages");
     state.token = null;
     state.conversations = [];
     showTabbar(false);
@@ -3655,7 +3662,7 @@ async function loadDashboard({ silent = false } = {}) {
 
         el("inbox-error").classList.add("hidden");
     } catch (err) {
-        if (err.status === 401) return logout();
+        if (err.status === 401) return logout(false);
         if (!silent) {
             el("inbox-list").innerHTML = "";
             el("inbox-error-message").textContent = err.isNetworkError ? err.message : t("inbox.errorGeneric");
@@ -4240,7 +4247,7 @@ async function loadSettingsIntoForm() {
         // or the window resizes.
         mysiteUpdateAllFieldFades();
     } catch (err) {
-        if (err.status === 401) logout();
+        if (err.status === 401) logout(false);
     }
 }
 
@@ -4376,7 +4383,7 @@ async function loadBusinessMedia() {
             if (grid) mediaMakeThumb(grid, item);
         });
     } catch (err) {
-        if (err.status === 401) logout();
+        if (err.status === 401) logout(false);
     }
 }
 
@@ -4480,7 +4487,7 @@ async function loadBusinessDocuments() {
         const data = await api("/api/documents");
         (data.documents || []).forEach(documentMakeTile);
     } catch (err) {
-        if (err.status === 401) logout();
+        if (err.status === 401) logout(false);
     }
 }
 
@@ -4955,7 +4962,7 @@ async function loadSchedule(date, { force = false } = {}) {
         el("schedule-body").classList.remove("hidden");
         renderSchedule(data);
     } catch (err) {
-        if (err.status === 401) { logout(); return; }
+        if (err.status === 401) { logout(false); return; }
         el("schedule-loading").classList.add("hidden");
         if (!cached) {
             el("schedule-error").classList.remove("hidden");
@@ -5520,7 +5527,7 @@ async function loadNotificationPreferences() {
         appSettingsSnapshot = serializeAppSettingsForm();
         updateAppSettingsSaveState();
     } catch (err) {
-        if (err.status === 401) logout();
+        if (err.status === 401) logout(false);
     }
 }
 
@@ -5977,7 +5984,7 @@ async function loadMySite() {
             list.appendChild(row);
         });
     } catch (err) {
-        if (err.status === 401) { logout(); return; }
+        if (err.status === 401) { logout(false); return; }
         // A network error is already surfaced by the offline banner - don't duplicate it here.
         if (err.isNetworkError) return;
         el("mysite-error").textContent = err.message || t("network.error");
@@ -7726,6 +7733,13 @@ el("mysite-field-delete-confirm-confirm").addEventListener("click", () => {
     async function send() {
         const text = input.value.trim();
         if (!text) return;
+        // Guards against a real, if rare, corruption path: recordMessage() below persists
+        // by overwriting CHAT_STORAGE_KEY with the current in-memory `persistedMessages`
+        // (see its own comment) - if this ran before restoreChatHistory() (awaited by
+        // chatHistoryRestored) finished populating that array from storage, the write
+        // would clobber the previously saved conversation with just this one new message.
+        // restoreChatHistory never throws, so this never rejects.
+        await chatHistoryRestored;
         input.value = "";
         autoGrowInput();
         updateComposeButtons();
