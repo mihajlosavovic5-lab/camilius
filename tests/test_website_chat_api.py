@@ -1,9 +1,12 @@
 """Tests for the mobile app's Bearer-authed /api/website-chat route (api.py) - in
 particular that an uploaded gallery photo's id, sent alongside a chat message, actually
-reaches answer_website_chat() as a real image URL instead of being silently dropped (the
-bug this route's image_ids handling was added to fix - see api.py's api_website_chat and
-website_assistant.answer_website_chat)."""
+reaches answer_website_chat_stream() as a real image URL instead of being silently
+dropped (the bug this route's image_ids handling was added to fix), and that the route's
+newline-delimited-JSON streaming (Faza 20 - see website_assistant.answer_website_chat_stream
+and mobile/app.js's website-chat-status-pill) carries every status event plus the final
+reply, in order."""
 import io
+import json
 
 import api
 import storage
@@ -27,6 +30,11 @@ def _upload_gallery_photo(client, headers):
     return response.get_json()["id"]
 
 
+def _ndjson_events(response):
+    text = response.get_data(as_text=True)
+    return [json.loads(line) for line in text.splitlines() if line.strip()]
+
+
 def test_website_chat_forwards_uploaded_image_url(client, unique_email, monkeypatch):
     token, _ = register_and_login(client, unique_email)
     headers = {"Authorization": f"Bearer {token}"}
@@ -35,11 +43,11 @@ def test_website_chat_forwards_uploaded_image_url(client, unique_email, monkeypa
 
     captured = {}
 
-    def fake_answer(message, history=None, business_context=None, image_urls=None, tool_impls=None):
+    def fake_stream(message, history=None, business_context=None, image_urls=None, tool_impls=None):
         captured["image_urls"] = image_urls
-        return "Nice photo!"
+        yield {"type": "done", "reply": "Nice photo!"}
 
-    monkeypatch.setattr(api, "answer_website_chat", fake_answer)
+    monkeypatch.setattr(api, "answer_website_chat_stream", fake_stream)
 
     response = client.post(
         "/api/website-chat",
@@ -48,7 +56,8 @@ def test_website_chat_forwards_uploaded_image_url(client, unique_email, monkeypa
     )
 
     assert response.status_code == 200
-    assert response.get_json()["reply"] == "Nice photo!"
+    events = _ndjson_events(response)
+    assert events == [{"type": "done", "reply": "Nice photo!"}]
     assert captured["image_urls"] == ["https://res.cloudinary.com/demo/photo-1.jpg"]
 
 
@@ -63,11 +72,11 @@ def test_website_chat_ignores_image_ids_from_another_business(client, unique_ema
 
     captured = {}
 
-    def fake_answer(message, history=None, business_context=None, image_urls=None, tool_impls=None):
+    def fake_stream(message, history=None, business_context=None, image_urls=None, tool_impls=None):
         captured["image_urls"] = image_urls
-        return "ok"
+        yield {"type": "done", "reply": "ok"}
 
-    monkeypatch.setattr(api, "answer_website_chat", fake_answer)
+    monkeypatch.setattr(api, "answer_website_chat_stream", fake_stream)
 
     response = client.post(
         "/api/website-chat",
@@ -77,3 +86,30 @@ def test_website_chat_ignores_image_ids_from_another_business(client, unique_ema
 
     assert response.status_code == 200
     assert captured["image_urls"] == []
+
+
+def test_website_chat_streams_status_events_before_the_final_reply(client, unique_email, monkeypatch):
+    token, _ = register_and_login(client, unique_email)
+    headers = {"Authorization": f"Bearer {token}"}
+
+    def fake_stream(message, history=None, business_context=None, image_urls=None, tool_impls=None):
+        yield {"type": "status", "key": "websiteChat.status.thinking"}
+        yield {"type": "status", "key": "websiteChat.status.updatePriceList"}
+        yield {"type": "done", "reply": "Updated your price list."}
+
+    monkeypatch.setattr(api, "answer_website_chat_stream", fake_stream)
+
+    response = client.post(
+        "/api/website-chat",
+        json={"message": "Cut is 1500 din", "history": []},
+        headers=headers,
+    )
+
+    assert response.status_code == 200
+    assert response.mimetype == "application/x-ndjson"
+    events = _ndjson_events(response)
+    assert events == [
+        {"type": "status", "key": "websiteChat.status.thinking"},
+        {"type": "status", "key": "websiteChat.status.updatePriceList"},
+        {"type": "done", "reply": "Updated your price list."},
+    ]

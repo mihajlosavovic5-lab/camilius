@@ -1,9 +1,10 @@
+import json
 import os
 import secrets
 from datetime import date as date_type, datetime, timedelta
 from functools import wraps
 
-from flask import Blueprint, request, jsonify, url_for
+from flask import Blueprint, request, jsonify, url_for, Response, stream_with_context
 from itsdangerous import URLSafeTimedSerializer, BadSignature, SignatureExpired
 from werkzeug.security import check_password_hash
 
@@ -43,7 +44,7 @@ import themes
 import ai_theme
 import domain_lookup
 from page_generator import generate_page_draft, format_working_hours, format_price_list, format_faq, transcribe_voice_description, MAX_VOICE_AUDIO_BYTES
-from website_assistant import answer_website_chat, build_business_context
+from website_assistant import answer_website_chat_stream, build_business_context
 import website_content_tools
 
 api = Blueprint("api", __name__, url_prefix="/api")
@@ -1268,11 +1269,23 @@ def api_website_chat():
     # Faza 19: the assistant can also apply what it's asked for directly (tagline/about,
     # working hours, price list, FAQ, social links) - see website_content_tools.py.
     tool_impls = website_content_tools.build_tool_impls(business_id)
-    reply = answer_website_chat(
-        message, history=safe_history, business_context=business_context,
-        image_urls=image_urls, tool_impls=tool_impls,
-    )
-    return jsonify(reply=reply)
+
+    # Streamed as newline-delimited JSON (one {"type": "status"|"done", ...} object per
+    # line) rather than a single jsonify() response - answer_website_chat_stream yields a
+    # status event as each tool actually runs, and the mobile compose bar's own status
+    # pill (website-chat-status-pill in app.js) reads them live so the owner sees what's
+    # happening instead of staring at one opaque spinner for the whole round trip. Plain
+    # newline-delimited JSON rather than real SSE framing (no "data: "/blank-line
+    # protocol to parse) since this is a one-shot POST response, not something that needs
+    # EventSource's auto-reconnect - the client just reads the body as it arrives.
+    def generate():
+        for event in answer_website_chat_stream(
+            message, history=safe_history, business_context=business_context,
+            image_urls=image_urls, tool_impls=tool_impls,
+        ):
+            yield json.dumps(event, ensure_ascii=False) + "\n"
+
+    return Response(stream_with_context(generate()), mimetype="application/x-ndjson")
 
 
 # Mobile's Bearer-authed equivalent of app.py's session-authed /profile/check-domains -

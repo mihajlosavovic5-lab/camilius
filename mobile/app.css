@@ -1976,6 +1976,32 @@ input.tap-to-edit-field, textarea.tap-to-edit-field { cursor: pointer; backgroun
 .website-chat-compose-wrap .chat-compose { margin-top: 0; }
 .website-chat-compose-wrap .voice-status { margin-left: 2px; margin-right: 2px; }
 
+/* Faza 20 - "what it's doing right now" pill, bottom-right just above the compose bar
+   (see its own comment in index.html) - same rounded-pill/spinner language as an
+   attachment chip mid-upload (.compose-attachment-chip/.chip-spinner) so it reads as
+   part of the same visual system rather than a one-off toast. A real block box in
+   normal flow (width: fit-content + margin-left: auto to hug the right edge), not
+   absolutely positioned - the messages list right above it can be scrolled all the way
+   to its own last bubble, so overlaying the pill on top of that area (tried first) hid
+   whatever bubble happened to be sitting there instead of floating in genuinely empty
+   space. Being real flow content nudges the compose bar down by one pill's height only
+   while it's actually shown (.hidden takes it out of flow entirely), the same "make
+   room, don't overlap" treatment the attachment list above it already gets. */
+.website-chat-status-pill {
+    display: flex; align-items: center; gap: 8px; width: fit-content; max-width: 100%;
+    margin: 0 0 10px auto;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 999px;
+    padding: 7px 14px 7px 10px; font-size: 12.5px; color: var(--text-muted);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, .14);
+    animation: compose-chip-in .18s ease;
+}
+#website-chat-status-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.website-chat-status-spinner {
+    width: 13px; height: 13px; flex-shrink: 0;
+    border-radius: 50%; border: 2px solid var(--border); border-top-color: var(--primary);
+    animation: ota-spin .7s linear infinite;
+}
+
 .mysite-appointment-row {
     display: flex; justify-content: space-between; gap: 10px; padding: 9px 0;
     border-bottom: 1px solid var(--border); font-size: 14px;

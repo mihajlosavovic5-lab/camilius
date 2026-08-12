@@ -6540,6 +6540,20 @@ el("mysite-field-delete-confirm-confirm").addEventListener("click", () => {
 
     const attachBtn = el("website-chat-attach-btn");
     const recordBtn = el("website-chat-voice-btn");
+    const statusPill = el("website-chat-status-pill");
+    const statusText = el("website-chat-status-text");
+
+    // --- Faza 20: live "what it's doing right now" status pill (see its own comment in
+    // index.html) - shows the i18n-keyed label send()'s streaming response reports as
+    // each tool actually runs, instead of one opaque spinner for the whole round trip. ---
+    function showStatus(key) {
+        if (!statusPill || !statusText) return;
+        statusText.textContent = t(key) || key;
+        statusPill.classList.remove("hidden");
+    }
+    function hideStatus() {
+        if (statusPill) statusPill.classList.add("hidden");
+    }
 
     let history = [];
     let greeted = false;
@@ -7387,6 +7401,61 @@ el("mysite-field-delete-confirm-confirm").addEventListener("click", () => {
 
     // --- Send ---
 
+    // Faza 20: /api/website-chat now streams newline-delimited JSON (one {"type":
+    // "status"|"done", ...} object per line, see website_assistant.answer_website_chat_stream)
+    // instead of one plain JSON body, so send() below can show live "what it's doing"
+    // status as tool calls actually happen instead of only a single opaque spinner for
+    // the whole round trip - the generic JSON-only api() helper can't read that (it
+    // always awaits response.json() on the full body), so this is its own fetch, same
+    // auth/timeout/error handling, reading the body incrementally instead. onEvent is
+    // called once per parsed line, in arrival order; the "done" event always arrives
+    // last. A longer timeout than the shared API_TIMEOUT_MS - drafting/polishing text
+    // and running several tool calls in one turn is real extra work an ordinary API call
+    // never does.
+    const WEBSITE_CHAT_TIMEOUT_MS = 60000;
+    async function postWebsiteChatStream(body, onEvent) {
+        const headers = { "Content-Type": "application/json" };
+        if (state.token) headers["Authorization"] = "Bearer " + state.token;
+        const timeoutController = new AbortController();
+        const timeoutId = setTimeout(() => timeoutController.abort(), WEBSITE_CHAT_TIMEOUT_MS);
+        try {
+            let response;
+            try {
+                response = await fetch(API_BASE + "/api/website-chat", {
+                    method: "POST", headers, body: JSON.stringify(body), signal: timeoutController.signal,
+                });
+            } catch (networkError) {
+                const err = new Error(t("network.error"));
+                err.isNetworkError = true;
+                throw err;
+            }
+            if (!response.ok) {
+                const data = await response.json().catch(() => ({}));
+                const err = new Error(data.error || "Request failed");
+                err.status = response.status;
+                throw err;
+            }
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder();
+            let buffer = "";
+            while (true) {
+                const { value, done } = await reader.read();
+                if (done) break;
+                buffer += decoder.decode(value, { stream: true });
+                let newlineIndex;
+                while ((newlineIndex = buffer.indexOf("\n")) !== -1) {
+                    const line = buffer.slice(0, newlineIndex).trim();
+                    buffer = buffer.slice(newlineIndex + 1);
+                    if (line) onEvent(JSON.parse(line));
+                }
+            }
+            buffer = buffer.trim();
+            if (buffer) onEvent(JSON.parse(buffer));
+        } finally {
+            clearTimeout(timeoutId);
+        }
+    }
+
     async function send() {
         const text = input.value.trim();
         if (!text) return;
@@ -7413,16 +7482,23 @@ el("mysite-field-delete-confirm-confirm").addEventListener("click", () => {
             recordMessage("user", text, imageUrls, "user");
             typingEl = addMessage("bot", "...");
             typingEl.classList.add("website-chat-msg-typing");
-            const data = await api("/api/website-chat", {
-                method: "POST",
-                body: { message: text, history: history.slice(0, -1), image_ids: imageItems.map((item) => item.id) },
-            });
+
+            let reply = null;
+            await postWebsiteChatStream(
+                { message: text, history: history.slice(0, -1), image_ids: imageItems.map((item) => item.id) },
+                (event) => {
+                    if (event.type === "status") showStatus(event.key);
+                    else if (event.type === "done") reply = event.reply;
+                },
+            );
+            hideStatus();
             typingEl.remove();
-            const reply = data.reply || t("websiteChat.error");
+            reply = reply || t("websiteChat.error");
             addMessage("bot", reply);
             history.push({ role: "assistant", content: reply });
             recordMessage("bot", reply, null, "assistant");
         } catch (err) {
+            hideStatus();
             if (typingEl) typingEl.remove();
             addMessage("bot", (err && err.message) || t("websiteChat.error"));
         } finally {
