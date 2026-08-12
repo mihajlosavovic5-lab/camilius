@@ -2448,20 +2448,26 @@ def _page_visible_to_request(page):
 # in rather than derived here since it means something different in each caller: the
 # platform's own /p/<slug> URL in one case, the custom domain's own root in the other.
 # Optional Instagram/Facebook/X/TikTok/YouTube profile links (Faza 17, see database.py's
-# social_instagram_url and friends) - filtered down to only the ones this business
-# actually set, in a fixed display order, so public_page.html's own {% if social_links %}
-# can stay a single check instead of five separate ones. Shared by _render_public_page and
-# onboarding_website_preview below - both already have `business` fetched, so this is free.
+# social_instagram_url and friends), in a fixed display order, so public_page.html's own
+# {% if social_links %} can stay a single check instead of five separate ones. Shared by
+# _render_public_page and onboarding_website_preview below - both already have `business`
+# fetched, so this is free.
+#
+# Instagram/Facebook/X/YouTube always show up here even with url=None - unlinked
+# placeholder icons (public_page.html renders those as a plain <span>, not an <a>) so the
+# icon row's look can be reviewed against a theme before any business has actually filled
+# a URL in. TikTok keeps the original "only if set" rule since nobody's asked for it as a
+# placeholder yet.
 def _social_links_for_business(business):
-    return [
-        link for link in (
-            {"name": "Instagram", "icon": "instagram", "url": business[24]},
-            {"name": "Facebook", "icon": "facebook", "url": business[25]},
-            {"name": "X", "icon": "x", "url": business[26]},
-            {"name": "TikTok", "icon": "tiktok", "url": business[27]},
-            {"name": "YouTube", "icon": "youtube", "url": business[28]},
-        ) if link["url"]
-    ]
+    entries = (
+        {"name": "Instagram", "icon": "instagram", "url": business[24]},
+        {"name": "Facebook", "icon": "facebook", "url": business[25]},
+        {"name": "X", "icon": "x", "url": business[26]},
+        {"name": "TikTok", "icon": "tiktok", "url": business[27]},
+        {"name": "YouTube", "icon": "youtube", "url": business[28]},
+    )
+    always_shown = {"instagram", "facebook", "x", "youtube"}
+    return [link for link in entries if link["url"] or link["icon"] in always_shown]
 
 
 def _render_public_page(page, business, page_url, preview=False):
