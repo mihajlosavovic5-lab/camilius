@@ -1661,67 +1661,74 @@
     // (and re-renders every fixed element accordingly) as the keyboard opens, no JS
     // involved. That native follow is what makes the very first keyboard-open of a
     // session look like one clean motion. On the 2nd+ open in the same session, though,
-    // some WebViews report the keyboard's real inset in two separate steps: a fast
-    // approximate value the instant the keyboard starts showing, then a small correction
-    // - a few more px - roughly half a second later once the IME's own show animation
-    // actually finishes. Native position:fixed has no way to tell those two updates
-    // apart, so it plays both: the panel slides into place, looks done, then gets nudged
-    // a little further a beat later. The very first open in a session is the one case
-    // that only ever gets a single, final report, which is why it alone looks perfect
-    // without any of this.
+    // some WebViews finish that reflow in two separate steps: a fast approximate
+    // position the instant the keyboard starts showing, then a small, separate nudge -
+    // a few more px - roughly half a second later once the IME's own show animation (or
+    // the browser chrome's own hide animation riding along with it) actually settles.
+    // Nothing in CSS can tell those two native reflows apart, so both just play - the
+    // panel slides into place, looks done, then gets nudged a little further a beat
+    // later. The very first open in a session is the one case that only ever gets a
+    // single, final reflow, which is why it alone looks right on its own.
     //
-    // This watches window.visualViewport for that second, small, delayed update and -
-    // only then - cancels it out with an equal and opposite transform, snapped on
-    // instantly (transitions turned off just for that one write) so the correction is
-    // never actually seen; a real, large change (the keyboard actually opening or
-    // closing) always passes straight through untouched, still riding the native motion
-    // exactly as before. chatPanelRestingHeight tracks the tallest visualViewport height
-    // seen since the panel opened - the keyboard-closed baseline - the same technique
-    // already used above (the Android-back-closes-keyboard blur handler), since plain
-    // 100vh/innerHeight isn't reliable once the keyboard's involved at all.
+    // An earlier version of this tried to predict that second reflow from
+    // window.visualViewport's own resize/scroll events, but that only catches keyboard-
+    // driven changes specifically - if the delayed nudge actually comes from the
+    // browser's own chrome (address bar/gesture-nav bar) settling a beat after the
+    // keyboard, visualViewport may never fire for it at all, which is exactly why that
+    // version left the bug completely unfixed even though its (unrelated) shake on the
+    // very first open was real and came from something else - see below.
     //
-    // Small delta alone isn't enough to tell a "correction" apart from an ordinary
-    // in-progress open, though: visualViewport fires resize/scroll repeatedly WHILE the
-    // keyboard is still animating in, not just once at the start and once at rest, and
-    // several of those in-between frames are themselves small steps relative to the one
-    // just before. Reacting to every one of those as if it were a delayed correction is
-    // what actually caused the first open to visibly shake in testing - it was racing
-    // the still-ongoing native animation with its own instant snaps. chatPanelLastEventAt
-    // adds a time gate: a small delta only counts as a correction to cancel if it shows
-    // up on its own, at least CHAT_PANEL_QUIET_GAP_MS after the previous update - i.e.
-    // after everything's actually gone quiet - which the rapid-fire frames of a live
-    // animation never do, but a real ~0.5s-later correction always does.
+    // This version instead polls the panel's OWN rendered position every frame via
+    // getBoundingClientRect() while the panel is open, so it catches a shift no matter
+    // what native mechanism causes it. A shift only gets canceled - with an equal and
+    // opposite transform, snapped on instantly (transitions off for that one write) so
+    // the correction itself is never seen - if it's both small (under
+    // CHAT_PANEL_SMALL_CORRECTION_PX) AND arrives after a real quiet gap
+    // (CHAT_PANEL_QUIET_GAP_MS) since the position last changed at all. That gap is the
+    // part that matters: the rapid-fire frames of a live keyboard-open animation are
+    // always closer together than that gap, so they always pass straight through
+    // untouched (which is what fixed the shake - canceling those in-flight frames
+    // against each other, instead of leaving them alone, was what caused it). A real,
+    // isolated correction half a second after everything already looked settled is the
+    // one thing that's left to catch.
     var CHAT_PANEL_SMALL_CORRECTION_PX = 28;
     var CHAT_PANEL_QUIET_GAP_MS = 180;
-    var chatPanelRestingHeight = 0;
-    var chatPanelCommittedInset = 0;
-    var chatPanelLastEventAt = 0;
-    function repositionChatPanelIfOpen() {
-        if (!open) return;
-        var now = performance.now();
-        var quiet = now - chatPanelLastEventAt > CHAT_PANEL_QUIET_GAP_MS;
-        chatPanelLastEventAt = now;
-        var vv = window.visualViewport;
-        var height = vv ? vv.height : window.innerHeight;
-        if (height > chatPanelRestingHeight) chatPanelRestingHeight = height;
-        var visibleBottom = vv ? (vv.offsetTop + vv.height) : window.innerHeight;
-        var inset = Math.max(0, chatPanelRestingHeight - visibleBottom);
-        var delta = inset - chatPanelCommittedInset;
-        if (quiet && chatPanelCommittedInset > 0 && delta !== 0 && Math.abs(delta) < CHAT_PANEL_SMALL_CORRECTION_PX) {
-            panel.style.transition = "none";
-            panel.style.transform = "translateY(" + delta + "px)";
-            void panel.offsetHeight;
-            panel.style.transition = "";
-            return;
-        }
-        chatPanelCommittedInset = inset;
-        panel.style.transform = "";
+    var chatPanelCommittedBottom = null;
+    var chatPanelCorrection = 0;
+    var chatPanelLastChangeAt = 0;
+    function chatPanelSetCorrection(px) {
+        chatPanelCorrection = px;
+        panel.style.transition = "none";
+        panel.style.transform = chatPanelCorrection ? "translateY(" + chatPanelCorrection + "px)" : "";
+        void panel.offsetHeight;
+        panel.style.transition = "";
     }
-    if (window.visualViewport) {
-        window.visualViewport.addEventListener("resize", repositionChatPanelIfOpen);
-        window.visualViewport.addEventListener("scroll", repositionChatPanelIfOpen);
-    } else {
-        window.addEventListener("resize", repositionChatPanelIfOpen);
+    function chatPanelPollStep() {
+        if (!open) return;
+        // Distance from the bottom of the screen to the panel's CURRENT (possibly
+        // already transform-corrected) rendered edge, converted back to what that
+        // distance would be with no correction applied at all - so this is always
+        // comparing the browser's own native position against its last native position,
+        // regardless of any correction already in flight.
+        var rect = panel.getBoundingClientRect();
+        var nativeBottom = (window.innerHeight - rect.bottom) + chatPanelCorrection;
+        if (chatPanelCommittedBottom === null) {
+            chatPanelCommittedBottom = nativeBottom;
+        } else {
+            var delta = nativeBottom - chatPanelCommittedBottom;
+            if (Math.abs(delta) > 0.5) {
+                var now = performance.now();
+                var quiet = now - chatPanelLastChangeAt > CHAT_PANEL_QUIET_GAP_MS;
+                chatPanelLastChangeAt = now;
+                if (quiet && Math.abs(delta) < CHAT_PANEL_SMALL_CORRECTION_PX) {
+                    chatPanelSetCorrection(chatPanelCorrection + delta);
+                } else {
+                    chatPanelCommittedBottom = nativeBottom;
+                    if (chatPanelCorrection) chatPanelSetCorrection(0);
+                }
+            }
+        }
+        requestAnimationFrame(chatPanelPollStep);
     }
 
     // Same locked-scroll pattern as the mobile menu drawer above (openNavMenu/
@@ -1756,17 +1763,18 @@
             document.body.style.position = "fixed";
             document.body.style.top = (-chatLockedScrollY) + "px";
             document.body.style.width = "100%";
-            // Fresh baseline for this open - see repositionChatPanelIfOpen above.
-            chatPanelRestingHeight = window.visualViewport ? window.visualViewport.height : window.innerHeight;
-            chatPanelCommittedInset = 0;
-            chatPanelLastEventAt = 0;
+            // Fresh baseline for this open - see chatPanelPollStep above.
+            chatPanelCommittedBottom = null;
+            chatPanelCorrection = 0;
+            chatPanelLastChangeAt = 0;
             panel.style.transform = "";
+            requestAnimationFrame(chatPanelPollStep);
         } else if (!open && wasOpen) {
             document.body.style.position = "";
             document.body.style.top = "";
             document.body.style.width = "";
             window.scrollTo({ top: chatLockedScrollY, left: 0, behavior: "instant" });
-            chatPanelCommittedInset = 0;
+            chatPanelCorrection = 0;
             panel.style.transform = "";
         }
     }
