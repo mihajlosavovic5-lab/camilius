@@ -63,7 +63,7 @@ import pages
 import themes
 from page_generator import (
     generate_page_draft, format_working_hours, format_price_list, format_faq,
-    transcribe_voice_description, classify_booking_relevance, MAX_VOICE_AUDIO_BYTES,
+    transcribe_voice_description, MAX_VOICE_AUDIO_BYTES,
 )
 import translate_page
 import stripe_billing
@@ -2484,19 +2484,19 @@ def _social_links_for_business(business):
     ]
 
 
-def _ensure_booking_relevant(business):
-    """business[29] (booking_relevant) is NULL until classified once - see the column's
-    own comment in database.create_database(). Already set for a business created via
-    the onboarding AI draft (onboarding_website_describe()/onboarding_website_review()
-    persist page_generator.generate_page_draft()'s own judgment call); this is the
-    fallback for one that predates the column or skipped that flow, classifying from
-    whatever profile text already exists and caching the result so the LLM call behind
-    it runs at most once per business, ever - not on every page view or chat message."""
-    if business[29] is not None:
-        return business[29]
-    relevant = classify_booking_relevance(business[1], business[8], business[9])
-    set_booking_relevant(business[0], relevant)
-    return relevant
+def _booking_relevant_or_default(business):
+    """business[29] (booking_relevant) is decided up front, never live off the back of a
+    request: for a business created through the onboarding AI draft, it's already set by
+    the time this is ever read (onboarding_website_describe()/onboarding_website_review()
+    persist page_generator.generate_page_draft()'s own judgment call alongside the rest of
+    the draft). For one that predates the column or skipped that flow, it's classified by
+    process_emails.classify_pending_booking_relevance_if_needed() in the background, on
+    its own schedule, not triggered by any particular visitor's page view or chat message.
+    Still NULL here just means "not classified yet" (a brief window right after this
+    feature first shipped, or between a fresh signup and that job's next tick) - treated
+    as allowed in the meantime, same as every business behaved before this column existed,
+    until an actual classification (True or False) lands."""
+    return business[29] is not False
 
 
 def _render_public_page(page, business, page_url, preview=False):
@@ -2508,12 +2508,12 @@ def _render_public_page(page, business, page_url, preview=False):
     # where booking actually makes sense for this kind of business in the first place -
     # a coffee shop selling cups of coffee has nothing to "book", so a visible "Book an
     # appointment" section there (or one that leads to a chat reply of "sorry, I can't
-    # book that") would be worse than no section at all. See _ensure_booking_relevant
+    # book that") would be worse than no section at all. See _booking_relevant_or_default
     # above for how that last check gets decided.
     booking_enabled = (
         (BETA_FREE_MODE or has_pro_access(business_id))
         and any(booking.parse_working_hours(business[7]).values())
-        and _ensure_booking_relevant(business)
+        and _booking_relevant_or_default(business)
     )
     media = business_media.media_for_page(business_id)
 

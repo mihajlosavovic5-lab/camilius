@@ -223,12 +223,13 @@ def classify_booking_relevance(business_name, price_list, faq):
     """Backfill path for a business that never went through generate_page_draft() above
     (predates this feature, or was created some other way) - classifies from whatever
     profile text already exists in the database instead of the original onboarding
-    description, which isn't kept once a page draft is generated. Called at most once per
-    business (see app.py's _ensure_booking_relevant, which persists the result via
-    database.set_booking_relevant and never re-classifies afterward). Defaults to True
-    (booking shown) on any empty input or model/parsing failure - the safer of the two
-    wrong guesses, since a business that doesn't need booking simply never uses it, while
-    one that does and doesn't get it is actually missing something."""
+    description, which isn't kept once a page draft is generated. Called from
+    process_emails.classify_pending_booking_relevance_if_needed, a background worker loop
+    that persists the result via database.set_booking_relevant and never re-classifies a
+    business afterward - never called live off the back of a particular page view or chat
+    message. Defaults to True (booking shown) on any empty input or model/parsing failure -
+    the safer of the two wrong guesses, since a business that doesn't need booking simply
+    never uses it, while one that does and doesn't get it is actually missing something."""
     text = "\n".join(filter(None, [
         f"Business name: {business_name}" if business_name else None,
         f"Price list:\n{price_list}" if price_list else None,

@@ -356,10 +356,12 @@ def create_database():
     # NULL (not TRUE/FALSE) until classified - either immediately from the AI's own
     # onboarding draft (see page_generator.classify_booking_relevance and
     # onboarding_website_review()) or, for a business that predates this column or never
-    # went through that flow, the first time it's actually needed (app.py's
-    # _ensure_booking_relevant, called from both the public page render and an incoming
-    # chat message) - classified once from there and cached via set_booking_relevant()
-    # below, never re-classified automatically afterward.
+    # went through that flow, from the background worker's own catch-up pass
+    # (process_emails.classify_pending_booking_relevance_if_needed) - never decided live
+    # off the back of a particular page view or chat message (see app.py's
+    # _booking_relevant_or_default), so a business's own visitors never trigger or wait
+    # on this. Persisted via set_booking_relevant() below, never re-classified
+    # automatically afterward.
     cursor.execute("ALTER TABLE businesses ADD COLUMN IF NOT EXISTS booking_relevant BOOLEAN")
 
     cursor.execute("""
@@ -969,7 +971,7 @@ def create_database():
 #   ever does change. 24-28 social_instagram_url/social_facebook_url/social_x_url/
 #   social_tiktok_url/social_youtube_url, 29 booking_relevant (None until classified -
 #   see the column's own comment in create_database() and app.py's
-#   _ensure_booking_relevant).
+#   _booking_relevant_or_default).
 
 _BUSINESS_COLUMNS = """id, name, password, contact_email, instagram_account_id,
                        instagram_username, instagram_access_token, working_hours, price_list, faq,
@@ -2936,6 +2938,24 @@ def set_booking_relevant(business_id, value):
     cursor.execute("UPDATE businesses SET booking_relevant = %s WHERE id = %s", (value, business_id))
     connection.commit()
     connection.close()
+
+
+def businesses_needing_booking_relevance_classification(limit):
+    """Backlog for process_emails.classify_pending_booking_relevance_if_needed() - every
+    business whose booking_relevant is still NULL (predates the column, or was created
+    outside the onboarding AI-draft flow that already sets it up front - see
+    onboarding_website_review()). Capped at `limit` per call so that background loop
+    catches up a large backlog gradually (a handful of businesses per tick) rather than
+    firing every pending classification's OpenAI call at once."""
+    connection = connect()
+    cursor = connection.cursor()
+    cursor.execute(
+        "SELECT id, name, price_list, faq FROM businesses WHERE booking_relevant IS NULL LIMIT %s",
+        (limit,),
+    )
+    result = cursor.fetchall()
+    connection.close()
+    return result
 
 
 def get_page_translation(business_id, lang):
