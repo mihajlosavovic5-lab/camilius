@@ -1728,6 +1728,11 @@
     var chatPanelCommittedBottom = null;
     var chatPanelCorrection = 0;
     var chatPanelLastChangeAt = 0;
+    // TEMPORARY - counts every time chatPanelPollStep actually runs, purely for the
+    // debug heartbeat below (see setOpen) to confirm the requestAnimationFrame chain is
+    // genuinely still alive during a keyboard-open, not silently stalled. Delete
+    // alongside the rest of the chatDebugLog machinery.
+    var chatPanelPollFrames = 0;
     function chatPanelSetCorrection(px) {
         chatPanelCorrection = px;
         panel.style.transition = "none";
@@ -1737,6 +1742,7 @@
     }
     function chatPanelPollStep() {
         if (!open) return;
+        chatPanelPollFrames++;
         // Distance from the bottom of the screen to the panel's CURRENT (possibly
         // already transform-corrected) rendered edge, converted back to what that
         // distance would be with no correction applied at all - so this is always
@@ -1812,14 +1818,37 @@
             panel.style.height = "";
             panel.style.height = getComputedStyle(panel).height;
             if (chatDebugEl) chatDebugLog("PANEL OPEN, frozen height=" + panel.style.height + " innerHeight=" + window.innerHeight);
-            // Fresh baseline for this open - see chatPanelPollStep above.
+            // Fresh baseline for this open - see chatPanelPollStep above. Seeded to now
+            // (not 0) so the panel's own brief open-animation right after this doesn't
+            // get misread as "quiet" (a stale 0 timestamp makes literally anything look
+            // like it arrived long after nothing happened, which isn't true here).
             chatPanelCommittedBottom = null;
             chatPanelCorrection = 0;
-            chatPanelLastChangeAt = 0;
+            chatPanelLastChangeAt = performance.now();
             panel.style.transform = "";
+            chatPanelPollFrames = 0;
             requestAnimationFrame(chatPanelPollStep);
+            // TEMPORARY - independent of the requestAnimationFrame chain above (in case
+            // that's somehow the thing not actually running/updating during a real
+            // keyboard-open - this is here specifically to find out), logs the panel's
+            // raw geometry once a second on its own timer for as long as the panel's
+            // open. Delete alongside the rest of the chatDebugLog machinery.
+            if (chatDebugEl) {
+                if (window.chatDebugHeartbeat) clearInterval(window.chatDebugHeartbeat);
+                window.chatDebugHeartbeat = setInterval(function () {
+                    var r = panel.getBoundingClientRect();
+                    chatDebugLog("HEARTBEAT frames=" + chatPanelPollFrames +
+                        " rect(top=" + r.top.toFixed(1) + " bottom=" + r.bottom.toFixed(1) + " h=" + r.height.toFixed(1) + ")" +
+                        " inlineHeight=" + panel.style.height +
+                        " computedHeight=" + getComputedStyle(panel).height +
+                        " innerHeight=" + window.innerHeight);
+                }, 1000);
+            }
         } else if (!open && wasOpen) {
-            if (chatDebugEl) chatDebugLog("PANEL CLOSE");
+            if (chatDebugEl) {
+                chatDebugLog("PANEL CLOSE");
+                if (window.chatDebugHeartbeat) { clearInterval(window.chatDebugHeartbeat); window.chatDebugHeartbeat = null; }
+            }
             document.body.style.position = "";
             document.body.style.top = "";
             document.body.style.width = "";
