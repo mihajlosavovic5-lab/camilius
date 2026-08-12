@@ -806,8 +806,16 @@
         transition: color .12s ease;
     }
     .contact-row svg { width: 18px; height: 18px; flex: 0 0 auto; color: var(--text-muted); transition: color .12s ease; }
-    .contact-row:hover, .contact-row:focus-visible { color: var(--primary); }
-    .contact-row:hover svg, .contact-row:focus-visible svg { color: var(--primary); }
+    .contact-row:focus-visible { color: var(--primary); }
+    .contact-row:focus-visible svg { color: var(--primary); }
+    /* (hover: hover) keeps this off touch devices, which report a tap as :hover with no
+       matching "pointer left" event to clear it - without the guard, the tapped icon/row
+       stays visually stuck in its hover color after the visitor comes back from whatever
+       link they opened, since nothing ever un-hovers it. */
+    @media (hover: hover) {
+        .contact-row:hover { color: var(--primary); }
+        .contact-row:hover svg { color: var(--primary); }
+    }
     .social-links {
         display: flex;
         gap: 10px;
@@ -826,11 +834,23 @@
         transition: background .12s ease, border-color .12s ease, color .12s ease, transform .12s ease;
     }
     .social-link svg { width: 17px; height: 17px; }
-    .social-link:hover, .social-link:focus-visible {
+    .social-link:focus-visible {
         color: var(--on-primary);
         background: var(--primary);
         border-color: var(--primary);
         transform: translateY(-2px);
+    }
+    /* Same (hover: hover) guard as .contact-row above - without it, tapping a social
+       icon on a phone leaves it filled in --primary permanently once the visitor is
+       back on the page, since a touchscreen never fires the "unhover" that would
+       normally clear it. */
+    @media (hover: hover) {
+        .social-link:hover {
+            color: var(--on-primary);
+            background: var(--primary);
+            border-color: var(--primary);
+            transform: translateY(-2px);
+        }
     }
     .hero-video {
         width: 100%;
