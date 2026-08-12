@@ -240,7 +240,7 @@
        heading (hidden there, see the media query below - logo stays) rather than
        showing the same title twice; on desktop it stays hidden and that heading is the
        only one shown. The 0 60px padding and 4.5vw font-size below are only a fallback
-       for the instant before JS runs - layoutTopBarTitle()/fitMainTitle() (bottom of the
+       for the instant before JS runs - layoutTopBarTitle()/fitTopBarTitleText() (bottom of the
        page) measure .nav-menu-btn's and .lang-btn's own real edges plus the title's own
        text every time this page loads, and overwrite both padding and font-size with
        whatever actually fits that business name on that screen, so the title always
@@ -1548,54 +1548,62 @@
     // to be wrong for every other one. SEARCH_MIN/SEARCH_MAX below only bound the search
     // (a sanity range so a one-letter name doesn't blow up to something absurd and a
     // 40-character one doesn't shrink to unreadable dust) - the actual size that gets used
-    // is whatever fitMainTitle() finds fits, every time this runs.
+    // is whatever fitTopBarTitleText() finds fits, every time this runs.
+    //
+    // The business name itself (.title-main) is never shortened with an ellipsis - cutting
+    // characters off a name changes what it says. If it doesn't fit at a comfortable size
+    // it wraps onto another line instead (no cap on how many), same as a person naturally
+    // reading it aloud would just pause and continue rather than stop partway. Only
+    // .title-sub - the smaller line underneath, usually just a location - is optional
+    // supporting context rather than the name, so that one *can* be dropped entirely
+    // (not truncated either, just omitted) if it doesn't comfortably fit alongside it.
     var topBarTitleEl = document.querySelector(".top-bar-title");
     var wrapEl = document.querySelector(".wrap");
     var TOP_BAR_GUTTER_MARGIN = 14;
     var TOP_BAR_SEARCH_MIN_FONT = 14, TOP_BAR_SEARCH_MAX_FONT = 56;
-    var TOP_BAR_MAIN_MAX_LINES = 2;
 
-    // Judges whether .title-main (the business name alone - see renderSplitTitle() above;
-    // .title-sub, usually a short location, sits at its own fraction of this size and
-    // wraps freely underneath without counting against this budget) reads well at fs:
-    // wrapped onto at most two lines of its own, with every individual word actually
-    // fitting the available width rather than getting cut mid-word. Checked with
-    // overflow-wrap forced to "normal" (word breaks only) so a font that only "fits" by
-    // slicing the name itself in half ("Kafeterij" / "a Aroma") is correctly judged as
-    // not fitting, rather than accepted as if it did.
+    // Judges whether .title-main reads well at fs: every individual word in it actually
+    // fits the available width on its own rather than getting cut mid-word - no line-count
+    // limit, since wrapping onto a third or fourth line is always preferred here over
+    // shrinking to unreadable or cutting the name short. Checked with overflow-wrap forced
+    // to "normal" (word breaks only) directly on the span so a font that only "fits" by
+    // slicing the name itself in half ("Kafeterij" / "a Aroma") is correctly judged as not
+    // fitting, rather than accepted as if it did.
     function mainFitsAt(mainSpan, fs) {
         topBarTitleEl.style.fontSize = fs + "px";
-        var maxHeight = fs * 1.14 * TOP_BAR_MAIN_MAX_LINES + fs * 0.3;
-        return mainSpan.scrollHeight <= maxHeight && mainSpan.scrollWidth <= mainSpan.clientWidth + 1;
+        return mainSpan.scrollWidth <= mainSpan.clientWidth + 1;
     }
 
     // Binary search for the largest font-size in [SEARCH_MIN, SEARCH_MAX] that
     // mainFitsAt() accepts - a short name on a wide screen lands near the top of that
     // range, a long one on a narrow phone lands near the bottom, entirely decided by the
-    // measurements above rather than a size picked in advance. Falls back to truncating
-    // .title-main onto a single ellipsized line at the floor size for the rare name that
-    // still doesn't fit even there (e.g. one long unbroken word), so it visibly shortens
-    // rather than spilling under an icon or past two lines.
-    function fitMainTitle(mainSpan) {
-        mainSpan.style.whiteSpace = "";
-        mainSpan.style.overflow = "";
-        mainSpan.style.textOverflow = "";
-        topBarTitleEl.style.overflowWrap = "normal";
+    // measurements above rather than a size picked in advance. Then, at whatever size
+    // that name settled on, drops .title-sub (display: none) if even it can't wrap to fit
+    // the same gutters - the location is expendable, the name never is.
+    function fitTopBarTitleText(mainSpan, subSpan) {
+        mainSpan.style.overflowWrap = "normal";
         var lo = TOP_BAR_SEARCH_MIN_FONT, hi = TOP_BAR_SEARCH_MAX_FONT, best = null;
         while (lo <= hi) {
             var mid = Math.floor((lo + hi) / 2);
             if (mainFitsAt(mainSpan, mid)) { best = mid; lo = mid + 1; } else { hi = mid - 1; }
         }
         if (best === null) {
+            // Not even the search floor lets every word wrap at a space (an extreme case -
+            // one long unbroken token with no spaces or hyphens at all). Breaking that one
+            // word internally as an absolute last resort still shows every character,
+            // unlike an ellipsis, which would delete some of them.
             best = TOP_BAR_SEARCH_MIN_FONT;
             topBarTitleEl.style.fontSize = best + "px";
-            mainSpan.style.whiteSpace = "nowrap";
-            mainSpan.style.overflow = "hidden";
-            mainSpan.style.textOverflow = "ellipsis";
+            mainSpan.style.overflowWrap = "break-word";
         } else {
             topBarTitleEl.style.fontSize = best + "px";
         }
-        topBarTitleEl.style.overflowWrap = "";
+
+        if (subSpan) {
+            subSpan.style.display = "";
+            subSpan.style.overflowWrap = "normal";
+            if (subSpan.scrollWidth > subSpan.clientWidth + 1) subSpan.style.display = "none";
+        }
     }
 
     function layoutTopBarTitle() {
@@ -1616,7 +1624,8 @@
         topBarTitleEl.style.paddingRight = rightGutter + "px";
 
         var mainSpan = topBarTitleEl.querySelector(".title-main");
-        if (mainSpan) fitMainTitle(mainSpan);
+        var subSpan = topBarTitleEl.querySelector(".title-sub");
+        if (mainSpan) fitTopBarTitleText(mainSpan, subSpan);
 
         var barSpace = Math.max(60, Math.ceil(topBarTitleEl.getBoundingClientRect().bottom) + 12);
         if (topBarFill) topBarFill.style.height = barSpace + "px";
