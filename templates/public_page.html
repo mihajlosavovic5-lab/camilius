@@ -1679,18 +1679,35 @@
     // seen since the panel opened - the keyboard-closed baseline - the same technique
     // already used above (the Android-back-closes-keyboard blur handler), since plain
     // 100vh/innerHeight isn't reliable once the keyboard's involved at all.
+    //
+    // Small delta alone isn't enough to tell a "correction" apart from an ordinary
+    // in-progress open, though: visualViewport fires resize/scroll repeatedly WHILE the
+    // keyboard is still animating in, not just once at the start and once at rest, and
+    // several of those in-between frames are themselves small steps relative to the one
+    // just before. Reacting to every one of those as if it were a delayed correction is
+    // what actually caused the first open to visibly shake in testing - it was racing
+    // the still-ongoing native animation with its own instant snaps. chatPanelLastEventAt
+    // adds a time gate: a small delta only counts as a correction to cancel if it shows
+    // up on its own, at least CHAT_PANEL_QUIET_GAP_MS after the previous update - i.e.
+    // after everything's actually gone quiet - which the rapid-fire frames of a live
+    // animation never do, but a real ~0.5s-later correction always does.
     var CHAT_PANEL_SMALL_CORRECTION_PX = 28;
+    var CHAT_PANEL_QUIET_GAP_MS = 180;
     var chatPanelRestingHeight = 0;
     var chatPanelCommittedInset = 0;
+    var chatPanelLastEventAt = 0;
     function repositionChatPanelIfOpen() {
         if (!open) return;
+        var now = performance.now();
+        var quiet = now - chatPanelLastEventAt > CHAT_PANEL_QUIET_GAP_MS;
+        chatPanelLastEventAt = now;
         var vv = window.visualViewport;
         var height = vv ? vv.height : window.innerHeight;
         if (height > chatPanelRestingHeight) chatPanelRestingHeight = height;
         var visibleBottom = vv ? (vv.offsetTop + vv.height) : window.innerHeight;
         var inset = Math.max(0, chatPanelRestingHeight - visibleBottom);
         var delta = inset - chatPanelCommittedInset;
-        if (chatPanelCommittedInset > 0 && delta !== 0 && Math.abs(delta) < CHAT_PANEL_SMALL_CORRECTION_PX) {
+        if (quiet && chatPanelCommittedInset > 0 && delta !== 0 && Math.abs(delta) < CHAT_PANEL_SMALL_CORRECTION_PX) {
             panel.style.transition = "none";
             panel.style.transform = "translateY(" + delta + "px)";
             void panel.offsetHeight;
@@ -1742,6 +1759,7 @@
             // Fresh baseline for this open - see repositionChatPanelIfOpen above.
             chatPanelRestingHeight = window.visualViewport ? window.visualViewport.height : window.innerHeight;
             chatPanelCommittedInset = 0;
+            chatPanelLastEventAt = 0;
             panel.style.transform = "";
         } else if (!open && wasOpen) {
             document.body.style.position = "";
