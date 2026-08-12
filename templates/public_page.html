@@ -312,7 +312,7 @@
         display: flex; align-items: center; gap: 10px;
         padding: 9px 10px; border-radius: 10px;
         border: none; background: none; font-family: inherit; cursor: pointer;
-        font-size: 0.97rem; font-weight: 600; color: var(--text); text-align: left;
+        font-size: 0.97rem; font-weight: 400; color: var(--text); text-align: left;
         -webkit-tap-highlight-color: transparent;
         transition: transform .12s ease;
     }
@@ -1287,6 +1287,13 @@
     var langFlag = document.getElementById("lang-flag");
     var langDropdown = document.getElementById("lang-dropdown");
     var langOptions = Array.prototype.slice.call(document.querySelectorAll(".lang-option"));
+
+    // Marks whichever language the page actually rendered in as active from the very
+    // first paint - applyTranslation below only runs once a visitor picks a language
+    // (or a cached one is reapplied), so without this the dropdown opened showing every
+    // row plain until a language was explicitly chosen, even though one (this one) was
+    // already in effect.
+    langOptions.forEach(function (opt) { opt.classList.toggle("active", opt.dataset.lang === {{ current_lang.code | tojson }}); });
 
     // English fallback for every translatable key, captured once from the as-rendered
     // DOM before any swap - this page's markup is always authored in English, so this
