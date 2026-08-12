@@ -728,21 +728,25 @@
         flex-shrink: 0;
         background: linear-gradient(160deg, color-mix(in srgb, var(--primary) 14%, var(--surface)) 0%, var(--surface) 130%);
     }
+    /* Bigger, and the same outlined/tinted treatment as .chat-fab below (not a solid
+       fill) - the two are the same agent icon, so they should read as one style rather
+       than a small solid badge next to a larger outlined one. */
     .chat-header-avatar {
-        width: 32px;
-        height: 32px;
+        width: 40px;
+        height: 40px;
         border-radius: 50%;
         flex-shrink: 0;
-        background: var(--primary);
-        color: var(--on-primary);
+        border: 1.5px solid var(--primary);
+        background: color-mix(in srgb, var(--primary) 8%, transparent);
+        color: var(--primary);
         display: flex;
         align-items: center;
         justify-content: center;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, .15);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, .12);
     }
     .chat-header-avatar svg {
-        width: 18px;
-        height: 18px;
+        width: 20px;
+        height: 20px;
     }
     .chat-header-text {
         min-width: 0;
