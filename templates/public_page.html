@@ -749,6 +749,7 @@
         height: 20px;
     }
     .chat-header-text {
+        flex: 1;
         min-width: 0;
     }
     .chat-header-text p {
@@ -763,23 +764,6 @@
     .chat-header-text span {
         font-size: 0.78rem;
         color: var(--text-muted);
-    }
-    .chat-close {
-        margin-left: auto;
-        background: none;
-        border: none;
-        color: var(--text-muted);
-        font-size: 1.3rem;
-        line-height: 1;
-        cursor: pointer;
-        padding: 4px 6px;
-        flex-shrink: 0;
-        border-radius: 8px;
-        transition: background .12s ease, color .12s ease;
-    }
-    .chat-close:hover {
-        background: color-mix(in srgb, var(--text) 8%, transparent);
-        color: var(--text);
     }
     .chat-messages {
         flex: 1;
@@ -1590,7 +1574,6 @@
             <p{% if tagline %} data-i18n-content="tagline"{% endif %}>{{ tagline or business_name }}</p>
             <span data-i18n="chat_subtitle">Usually replies in seconds</span>
         </div>
-        <button type="button" class="chat-close" id="chat-close" aria-label="Close">&times;</button>
     </div>
     <div class="chat-messages" id="chat-messages"></div>
     <form class="chat-form" id="chat-form">
@@ -1602,7 +1585,6 @@
 (function () {
     var fab = document.getElementById("chat-fab");
     var panel = document.getElementById("chat-panel");
-    var closeBtn = document.getElementById("chat-close");
     var messagesEl = document.getElementById("chat-messages");
     var form = document.getElementById("chat-form");
     var input = document.getElementById("chat-input");
@@ -1656,7 +1638,15 @@
     }
 
     fab.addEventListener("click", function () { setOpen(!open); });
-    closeBtn.addEventListener("click", function () { setOpen(false); });
+    // Click-outside-to-close - same pattern as the language dropdown's own outside-click
+    // handler above, now the only way to close besides the fab itself (which doubles as
+    // its own close button once open - see .chat-fab-icon-close/.chat-fab.open above -
+    // so a separate in-panel close button would just be a second, redundant one).
+    document.addEventListener("click", function (e) {
+        if (!open) return;
+        if (e.target.closest("#chat-fab") || e.target.closest("#chat-panel")) return;
+        setOpen(false);
+    });
 
     function sendMessage(text) {
         addMessage("user", text);
