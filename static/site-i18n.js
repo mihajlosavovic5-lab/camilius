@@ -58,7 +58,7 @@ const TRANSLATIONS = {
         "common.termsOfService": "Terms of Service",
         "common.privacyPolicy": "Privacy Policy",
 
-        "login.tagline": "AI automatically replies to your customers — day or night, nobody waits.",
+        "login.tagline": "The AI that builds your website — and replies to your customers, day or night.",
         "login.title": "Log in",
         "login.passwordLabel": "Password",
         "login.emailLabel": "Email",
@@ -693,7 +693,7 @@ const TRANSLATIONS = {
         "common.termsOfService": "Términos de Servicio",
         "common.privacyPolicy": "Política de Privacidad",
 
-        "login.tagline": "La IA responde automáticamente a tus clientes — día y noche, nadie espera.",
+        "login.tagline": "La IA que crea tu sitio web — y responde a tus clientes, día y noche.",
         "login.title": "Iniciar sesión",
         "login.passwordLabel": "Contraseña",
         "login.emailLabel": "Correo electrónico",
@@ -1208,7 +1208,7 @@ const TRANSLATIONS = {
         "common.termsOfService": "Termos de Serviço",
         "common.privacyPolicy": "Política de Privacidade",
 
-        "login.tagline": "A IA responde automaticamente aos seus clientes — dia e noite, ninguém espera.",
+        "login.tagline": "A IA que cria o seu site — e responde aos seus clientes, dia e noite.",
         "login.title": "Entrar",
         "login.passwordLabel": "Senha",
         "login.emailLabel": "Email",
@@ -1723,7 +1723,7 @@ const TRANSLATIONS = {
         "common.termsOfService": "Conditions d'utilisation",
         "common.privacyPolicy": "Politique de confidentialité",
 
-        "login.tagline": "L'IA répond automatiquement à vos clients — jour et nuit, personne n'attend.",
+        "login.tagline": "L'IA qui crée votre site web — et répond à vos clients, jour et nuit.",
         "login.title": "Se connecter",
         "login.passwordLabel": "Mot de passe",
         "login.emailLabel": "Email",
@@ -2238,7 +2238,7 @@ const TRANSLATIONS = {
         "common.termsOfService": "Nutzungsbedingungen",
         "common.privacyPolicy": "Datenschutzerklärung",
 
-        "login.tagline": "Die KI beantwortet deine Kunden automatisch — Tag und Nacht, niemand wartet.",
+        "login.tagline": "Die KI, die deine Website erstellt — und deine Kunden Tag und Nacht beantwortet.",
         "login.title": "Anmelden",
         "login.passwordLabel": "Passwort",
         "login.emailLabel": "E-Mail",
@@ -2753,7 +2753,7 @@ const TRANSLATIONS = {
         "common.termsOfService": "Termini di Servizio",
         "common.privacyPolicy": "Informativa sulla Privacy",
 
-        "login.tagline": "L'IA risponde automaticamente ai tuoi clienti — giorno e notte, nessuno aspetta.",
+        "login.tagline": "L'IA che crea il tuo sito web — e risponde ai tuoi clienti, giorno e notte.",
         "login.title": "Accedi",
         "login.passwordLabel": "Password",
         "login.emailLabel": "Email",
@@ -3268,7 +3268,7 @@ const TRANSLATIONS = {
         "common.termsOfService": "Условия использования",
         "common.privacyPolicy": "Политика конфиденциальности",
 
-        "login.tagline": "ИИ автоматически отвечает вашим клиентам — днём и ночью, никто не ждёт.",
+        "login.tagline": "ИИ, который создаёт ваш сайт — и отвечает вашим клиентам днём и ночью.",
         "login.title": "Войти",
         "login.passwordLabel": "Пароль",
         "login.emailLabel": "Email",
@@ -3783,7 +3783,7 @@ const TRANSLATIONS = {
         "common.termsOfService": "Uslovi korišćenja",
         "common.privacyPolicy": "Politika privatnosti",
 
-        "login.tagline": "AI automatski odgovara vašim mušterijama — danju i noću, niko ne čeka.",
+        "login.tagline": "AI koji pravi vaš sajt — i odgovara vašim mušterijama danju i noću.",
         "login.title": "Prijava",
         "login.passwordLabel": "Lozinka",
         "login.emailLabel": "Email",
@@ -4398,7 +4398,7 @@ const TRANSLATIONS = {
         "common.termsOfService": "服务条款",
         "common.privacyPolicy": "隐私政策",
 
-        "login.tagline": "AI自动回复您的顾客——不分昼夜，没有人需要等待。",
+        "login.tagline": "为您打造网站的AI——并全天候回复您的顾客。",
         "login.title": "登录",
         "login.passwordLabel": "密码",
         "login.emailLabel": "邮箱",
@@ -4913,7 +4913,7 @@ const TRANSLATIONS = {
         "common.termsOfService": "Hizmet Şartları",
         "common.privacyPolicy": "Gizlilik Politikası",
 
-        "login.tagline": "Yapay zekâ müşterilerinizi otomatik yanıtlar — gece gündüz, kimse beklemez.",
+        "login.tagline": "Web sitenizi oluşturan yapay zekâ — ve müşterilerinizi gece gündüz yanıtlar.",
         "login.title": "Giriş yap",
         "login.passwordLabel": "Şifre",
         "login.emailLabel": "E-posta",
