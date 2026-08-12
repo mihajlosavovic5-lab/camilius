@@ -35,7 +35,7 @@ def test_website_chat_forwards_uploaded_image_url(client, unique_email, monkeypa
 
     captured = {}
 
-    def fake_answer(message, history=None, business_context=None, image_urls=None):
+    def fake_answer(message, history=None, business_context=None, image_urls=None, tool_impls=None):
         captured["image_urls"] = image_urls
         return "Nice photo!"
 
@@ -63,7 +63,7 @@ def test_website_chat_ignores_image_ids_from_another_business(client, unique_ema
 
     captured = {}
 
-    def fake_answer(message, history=None, business_context=None, image_urls=None):
+    def fake_answer(message, history=None, business_context=None, image_urls=None, tool_impls=None):
         captured["image_urls"] = image_urls
         return "ok"
 

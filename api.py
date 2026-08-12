@@ -44,6 +44,7 @@ import ai_theme
 import domain_lookup
 from page_generator import generate_page_draft, format_working_hours, format_price_list, format_faq, transcribe_voice_description, MAX_VOICE_AUDIO_BYTES
 from website_assistant import answer_website_chat, build_business_context
+import website_content_tools
 
 api = Blueprint("api", __name__, url_prefix="/api")
 
@@ -1254,13 +1255,23 @@ def api_website_chat():
     # website-chat-attach-* in mobile/app.js) - re-fetched by id here rather than trusting
     # client-supplied URLs directly, so a caller can't point the model at an arbitrary
     # (and possibly not-theirs) image by URL.
-    media_by_id = {item["id"]: item for item in business_media.list_media(business_id)}
+    media_list = business_media.list_media(business_id)
+    media_by_id = {item["id"]: item for item in media_list}
     image_urls = [
         media_by_id[media_id]["url"] for media_id in image_ids
         if isinstance(media_id, int) and media_id in media_by_id and media_by_id[media_id]["type"] == "image"
     ]
-    business_context = build_business_context(business_by_id(business_id), get_business_page(business_id))
-    reply = answer_website_chat(message, history=safe_history, business_context=business_context, image_urls=image_urls)
+    business_context = build_business_context(
+        business_by_id(business_id), get_business_page(business_id),
+        media=media_list, documents=business_documents.list_documents(business_id),
+    )
+    # Faza 19: the assistant can also apply what it's asked for directly (tagline/about,
+    # working hours, price list, FAQ, social links) - see website_content_tools.py.
+    tool_impls = website_content_tools.build_tool_impls(business_id)
+    reply = answer_website_chat(
+        message, history=safe_history, business_context=business_context,
+        image_urls=image_urls, tool_impls=tool_impls,
+    )
     return jsonify(reply=reply)
 
 

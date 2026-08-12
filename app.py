@@ -55,6 +55,7 @@ from send_email import send_email
 from send_sms import send_sms, sms_configured
 from support_assistant import answer_support_question
 from website_assistant import answer_website_chat, build_business_context
+import website_content_tools
 import ai_replies
 import booking
 import pages
@@ -3579,8 +3580,16 @@ def website_chat():
         for turn in history[-12:] if isinstance(turn, dict)
     ]
     business_id = session["business_id"]
-    business_context = build_business_context(business_by_id(business_id), get_business_page(business_id))
-    reply = answer_website_chat(message, history=safe_history, business_context=business_context)
+    business_context = build_business_context(
+        business_by_id(business_id), get_business_page(business_id),
+        media=business_media.list_media(business_id), documents=business_documents.list_documents(business_id),
+    )
+    # Faza 19: the assistant can also apply what it's asked for directly (tagline/about,
+    # working hours, price list, FAQ, social links) - see website_content_tools.py.
+    tool_impls = website_content_tools.build_tool_impls(business_id)
+    reply = answer_website_chat(
+        message, history=safe_history, business_context=business_context, tool_impls=tool_impls,
+    )
     return jsonify(reply=reply)
 
 
