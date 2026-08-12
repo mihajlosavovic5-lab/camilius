@@ -2453,11 +2453,19 @@ def _page_visible_to_request(page):
 # _render_public_page and onboarding_website_preview below - both already have `business`
 # fetched, so this is free.
 #
-# Instagram/Facebook/X/YouTube always show up here even with url=None - unlinked
-# placeholder icons (public_page.html renders those as a plain <span>, not an <a>) so the
-# icon row's look can be reviewed against a theme before any business has actually filled
-# a URL in. TikTok keeps the original "only if set" rule since nobody's asked for it as a
-# placeholder yet.
+# Instagram/Facebook/X/YouTube always show up here even when a business hasn't set its
+# own profile URL - falling back to that platform's own homepage (_SOCIAL_FALLBACK_URL)
+# rather than being hidden or left as a dead link, so the icon still goes somewhere
+# real for a business that doesn't have its own page there yet. TikTok keeps the
+# original "only if set" rule since nobody's asked for a homepage fallback there.
+_SOCIAL_FALLBACK_URL = {
+    "instagram": "https://www.instagram.com",
+    "facebook": "https://www.facebook.com",
+    "x": "https://x.com",
+    "youtube": "https://www.youtube.com",
+}
+
+
 def _social_links_for_business(business):
     entries = (
         {"name": "Instagram", "icon": "instagram", "url": business[24]},
@@ -2466,8 +2474,10 @@ def _social_links_for_business(business):
         {"name": "TikTok", "icon": "tiktok", "url": business[27]},
         {"name": "YouTube", "icon": "youtube", "url": business[28]},
     )
-    always_shown = {"instagram", "facebook", "x", "youtube"}
-    return [link for link in entries if link["url"] or link["icon"] in always_shown]
+    return [
+        {**link, "url": link["url"] or _SOCIAL_FALLBACK_URL[link["icon"]]}
+        for link in entries if link["url"] or link["icon"] in _SOCIAL_FALLBACK_URL
+    ]
 
 
 def _render_public_page(page, business, page_url, preview=False):
