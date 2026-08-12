@@ -433,6 +433,7 @@
        out by the iframe's own box model. */
     .location-map-wrap {
         position: relative;
+        height: 260px;
         border-radius: var(--radius);
         overflow: hidden;
         box-shadow: 0 10px 28px -14px rgba(0, 0, 0, .28);
@@ -441,11 +442,30 @@
         content: "";
         position: absolute;
         inset: 0;
+        z-index: 2;
         border-radius: inherit;
         box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--gold) 55%, transparent);
         pointer-events: none;
     }
-    .location-map-wrap iframe { display: block; width: 100%; height: 260px; border: 0; }
+    /* Sized/positioned larger than the wrapper's visible window on every edge, then
+       clipped by overflow:hidden above - Google's own embed chrome (the "Open in Maps"
+       chip top-left, the locator thumbnail bottom-left, the fullscreen toggle
+       bottom-right) all sit within a fixed band near the iframe's edges, so pushing
+       those edges outside the crop hides them without touching the iframe's actual
+       (cross-origin, unreachable) DOM. Never crops away the copyright notice itself -
+       see .location-attribution below, which replaces it outside the cropped area
+       instead of relying on the one that got cropped off with everything else nearby it.
+       pointer-events: none hands every click straight to .location-map-link below it. */
+    .location-map-wrap iframe {
+        position: absolute;
+        top: -56px;
+        left: -12px;
+        width: calc(100% + 24px);
+        height: calc(100% + 150px);
+        border: 0;
+        pointer-events: none;
+    }
+    .location-map-link { position: absolute; inset: 0; z-index: 1; cursor: pointer; }
     /* Address caption below the map - same pill-row language as .contact-row (icon +
        text, muted border) so the placeholder still reads as one of this page's own rows
        rather than a bare label bolted under someone else's embed. */
@@ -464,6 +484,10 @@
         font-weight: 600;
     }
     .location-caption svg { width: 16px; height: 16px; flex: 0 0 auto; color: var(--primary); }
+    /* Stands in for the copyright notice cropped off along with the map chrome above -
+       required attribution stays visible even though Google's own auto-generated one no
+       longer is. */
+    .location-attribution { margin: 6px 0 0; text-align: center; font-size: 0.72rem; color: var(--text-muted); opacity: .8; }
     .about, .faq {
         white-space: pre-line;
         margin: 0;
@@ -1495,13 +1519,23 @@
              through here. -->
         <section id="location" class="reveal">
             <h2 data-i18n="heading_location">Location</h2>
+            <!-- The iframe is cropped larger than .location-map-wrap's visible window (see
+                 CSS) so Google's own "Open in Maps" chip/fullscreen toggle/locator
+                 thumbnail all land outside it instead of cluttering the card - only the
+                 required "Map data (c) Google" copyright notice is left alone (see
+                 .location-attribution below), never hidden. .location-map-link sits on top
+                 of the whole thing (iframe itself is pointer-events:none) so a click
+                 anywhere on the card - not just Google's own tiny controls - opens this
+                 same place directly on Google Maps. -->
             <div class="location-map-wrap">
-                <iframe src="https://www.google.com/maps?q=Torrance,+CA&output=embed" loading="lazy" referrerpolicy="no-referrer-when-downgrade" title="Map"></iframe>
+                <iframe src="https://www.google.com/maps?q=Torrance,+CA&output=embed" loading="lazy" referrerpolicy="no-referrer-when-downgrade" title="Map" tabindex="-1"></iframe>
+                <a class="location-map-link" href="https://www.google.com/maps?q=Torrance,+CA" target="_blank" rel="noopener noreferrer" aria-label="Open Torrance, CA in Google Maps"></a>
             </div>
             <p class="location-caption">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M12 21s7-6.4 7-11.5A7 7 0 0 0 5 9.5C5 14.6 12 21 12 21z" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="9.5" r="2.3"/></svg>
                 <span>Torrance, CA</span>
             </p>
+            <p class="location-attribution">Map data &copy; Google</p>
         </section>
 
         {% if show_badge %}
