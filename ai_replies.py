@@ -55,7 +55,8 @@ def handle_incoming_message(business, business_id, channel, message_id, text, re
     auto_sent, and reply_text, for anything the caller wants beyond the owner push
     already sent here.
     """
-    from app import BETA_FREE_MODE  # deferred: avoid a circular import at module load, same as reminders.py
+    # deferred: avoid a circular import at module load, same as reminders.py
+    from app import BETA_FREE_MODE, _ensure_booking_relevant
 
     prefix = log_prefix or f"[{channel}]"
 
@@ -87,7 +88,11 @@ def handle_incoming_message(business, business_id, channel, message_id, text, re
     # Faza 8/9: Pro-plan (or trialing) businesses get a smarter AI that can check the
     # Schedule for a free slot and book, cancel, or reschedule an appointment directly
     # during the conversation - see generate_reply.generate_reply_with_booking/booking.py.
-    if BETA_FREE_MODE or has_pro_access(business_id):
+    # Also gated on _ensure_booking_relevant (same check the public page's own Book
+    # section uses - see app.py's _render_public_page) so a business booking doesn't
+    # actually make sense for (a coffee shop, say) never has the AI offer to "book" a
+    # cup of coffee just because it happens to have Pro access.
+    if (BETA_FREE_MODE or has_pro_access(business_id)) and _ensure_booking_relevant(business):
         slot_minutes = get_slot_duration(business_id)
         upsell_pairs_text = get_upsell_pairs(business_id)
         # The business's own clock, not the server's - this string is what the model

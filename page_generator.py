@@ -105,8 +105,20 @@ PAGE_SCHEMA = {
                 "additionalProperties": False,
             },
         },
+        "booking_relevant": {
+            "type": "boolean",
+            "description": (
+                "True only if a customer of this specific business would plausibly want to "
+                "reserve a specific time slot in advance - a hair salon, dentist, repair shop, "
+                "consultant, personal trainer, tattoo studio, and the like. False for a business "
+                "that just sells goods/products to walk-in or online customers with nothing to "
+                "schedule - a cafe, bakery, coffee shop, convenience store, or retail shop - "
+                "unless the description itself explicitly mentions taking reservations/booking a "
+                "table/appointments."
+            ),
+        },
     },
-    "required": ["tagline", "about", "slug", "hours", "services", "faq"],
+    "required": ["tagline", "about", "slug", "hours", "services", "faq", "booking_relevant"],
     "additionalProperties": False,
 }
 
@@ -131,6 +143,9 @@ Rules:
 - Every service price must be normalized to "<number> <3-letter currency code>" (see the
   services.price field's own schema description for the exact rule) - never leave a
   currency word or symbol the owner typed (e.g. "din", "dinara", "€") in place of the code.
+- booking_relevant: judge for yourself whether this specific business's customers would
+  actually want to book a time slot, per that field's own schema description - don't
+  default to true just because hours were mentioned; every business has hours.
 """
 
 
@@ -181,6 +196,64 @@ def generate_page_draft(description, document_text=None):
         return json.loads(content)
     except json.JSONDecodeError as error:
         raise ValueError(f"model returned invalid JSON: {error}") from error
+
+
+_BOOKING_RELEVANCE_SCHEMA = {
+    "type": "object",
+    "properties": {"booking_relevant": PAGE_SCHEMA["properties"]["booking_relevant"]},
+    "required": ["booking_relevant"],
+    "additionalProperties": False,
+}
+
+_BOOKING_RELEVANCE_SYSTEM_PROMPT = """You judge whether a business's customers would plausibly want to book a
+specific time slot in advance, from its name and whatever it sells/offers below.
+
+True only for businesses where reserving a specific time makes sense - a hair salon, dentist,
+repair shop, consultant, personal trainer, tattoo studio, and the like.
+
+False for a business that just sells goods/products to walk-in or online customers with nothing
+to schedule - a cafe, bakery, coffee shop, convenience store, or retail shop - unless the text
+itself explicitly mentions taking reservations/booking a table/appointments.
+
+When genuinely unsure, answer True - a business that never uses the resulting booking feature
+loses nothing, while one that needed it and didn't get it would."""
+
+
+def classify_booking_relevance(business_name, price_list, faq):
+    """Backfill path for a business that never went through generate_page_draft() above
+    (predates this feature, or was created some other way) - classifies from whatever
+    profile text already exists in the database instead of the original onboarding
+    description, which isn't kept once a page draft is generated. Called at most once per
+    business (see app.py's _ensure_booking_relevant, which persists the result via
+    database.set_booking_relevant and never re-classifies afterward). Defaults to True
+    (booking shown) on any empty input or model/parsing failure - the safer of the two
+    wrong guesses, since a business that doesn't need booking simply never uses it, while
+    one that does and doesn't get it is actually missing something."""
+    text = "\n".join(filter(None, [
+        f"Business name: {business_name}" if business_name else None,
+        f"Price list:\n{price_list}" if price_list else None,
+        f"FAQ:\n{faq}" if faq else None,
+    ])).strip()[:MAX_DESCRIPTION_LENGTH]
+    if not text:
+        return True
+
+    try:
+        response = client.chat.completions.create(
+            model=MODEL,
+            messages=[
+                {"role": "system", "content": _BOOKING_RELEVANCE_SYSTEM_PROMPT},
+                {"role": "user", "content": text},
+            ],
+            max_tokens=20,
+            response_format={
+                "type": "json_schema",
+                "json_schema": {"name": "booking_relevance", "strict": True, "schema": _BOOKING_RELEVANCE_SCHEMA},
+            },
+        )
+        content = response.choices[0].message.content
+        return bool(json.loads(content).get("booking_relevant", True))
+    except Exception:
+        return True
 
 
 def transcribe_voice_description(audio_bytes, filename, content_type=None):

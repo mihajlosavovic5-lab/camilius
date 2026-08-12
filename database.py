@@ -349,6 +349,19 @@ def create_database():
     # new signups outside Serbia, get different behavior.
     cursor.execute("ALTER TABLE businesses ADD COLUMN IF NOT EXISTS timezone TEXT NOT NULL DEFAULT 'Europe/Belgrade'")
 
+    # Whether booking/scheduling makes sense for this business at all - a coffee shop or
+    # bakery has nothing to "book", so the public page's own Book-an-appointment section
+    # (and the AI chat's booking tools - see ai_replies.py) shouldn't offer it just
+    # because the business happens to have Pro access and some working hours entered.
+    # NULL (not TRUE/FALSE) until classified - either immediately from the AI's own
+    # onboarding draft (see page_generator.classify_booking_relevance and
+    # onboarding_website_review()) or, for a business that predates this column or never
+    # went through that flow, the first time it's actually needed (app.py's
+    # _ensure_booking_relevant, called from both the public page render and an incoming
+    # chat message) - classified once from there and cached via set_booking_relevant()
+    # below, never re-classified automatically afterward.
+    cursor.execute("ALTER TABLE businesses ADD COLUMN IF NOT EXISTS booking_relevant BOOLEAN")
+
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS conversations (
             id SERIAL PRIMARY KEY,
@@ -953,7 +966,10 @@ def create_database():
 #   app.py/api.py/booking.py, so inserting them in the middle would silently shift every
 #   existing index instead of just adding new ones. Read index 20 through booking.tz_for
 #   (business) rather than directly, so there is exactly one place to fix if the shape
-#   ever does change.
+#   ever does change. 24-28 social_instagram_url/social_facebook_url/social_x_url/
+#   social_tiktok_url/social_youtube_url, 29 booking_relevant (None until classified -
+#   see the column's own comment in create_database() and app.py's
+#   _ensure_booking_relevant).
 
 _BUSINESS_COLUMNS = """id, name, password, contact_email, instagram_account_id,
                        instagram_username, instagram_access_token, working_hours, price_list, faq,
@@ -962,7 +978,7 @@ _BUSINESS_COLUMNS = """id, name, password, contact_email, instagram_account_id,
                        messenger_page_id, messenger_page_name, messenger_page_access_token,
                        timezone, google_id, preferred_theme, preferred_custom_theme_json,
                        social_instagram_url, social_facebook_url, social_x_url,
-                       social_tiktok_url, social_youtube_url"""
+                       social_tiktok_url, social_youtube_url, booking_relevant"""
 
 # How many columns _BUSINESS_COLUMNS actually selects. Derived rather than written as a
 # literal because all_businesses()/all_businesses_unfiltered() below select extra
@@ -2906,6 +2922,18 @@ def set_page_content_language(business_id, lang):
     connection = connect()
     cursor = connection.cursor()
     cursor.execute("UPDATE business_pages SET content_language = %s WHERE business_id = %s", (lang, business_id))
+    connection.commit()
+    connection.close()
+
+
+def set_booking_relevant(business_id, value):
+    """Persists whether booking/scheduling makes sense for this business (see
+    businesses.booking_relevant's own comment in create_database() and
+    page_generator.classify_booking_relevance) - same "classify once, cache forever"
+    shape as set_page_content_language above. value is a plain bool."""
+    connection = connect()
+    cursor = connection.cursor()
+    cursor.execute("UPDATE businesses SET booking_relevant = %s WHERE id = %s", (value, business_id))
     connection.commit()
     connection.close()
 

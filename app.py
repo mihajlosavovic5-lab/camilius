@@ -49,6 +49,7 @@ from database import (
     page_chat_session_messages_today,
     set_page_content_language, get_page_translation, upsert_page_translation,
     onboarding_completed, mark_onboarding_completed,
+    set_booking_relevant,
     UniqueViolation, release_db_lock,
 )
 from send_email import send_email
@@ -62,7 +63,7 @@ import pages
 import themes
 from page_generator import (
     generate_page_draft, format_working_hours, format_price_list, format_faq,
-    transcribe_voice_description, MAX_VOICE_AUDIO_BYTES,
+    transcribe_voice_description, classify_booking_relevance, MAX_VOICE_AUDIO_BYTES,
 )
 import translate_page
 import stripe_billing
@@ -1870,6 +1871,7 @@ def onboarding_website_describe():
                     "working_hours": format_working_hours(generated["hours"]),
                     "price_list": format_price_list(generated["services"]),
                     "faq": format_faq(generated["faq"]),
+                    "booking_relevant": generated.get("booking_relevant", True),
                     "ai_theme_options": ai_theme_options,
                 }
                 log_event("onboarding_draft_generated", business_id=business_id)
@@ -2115,6 +2117,7 @@ def onboarding_website_review():
             business_id, business[1], business[3], business[10],
             draft["working_hours"], draft["price_list"], draft["faq"],
         )
+        set_booking_relevant(business_id, draft.get("booking_relevant", True))
         try:
             upsert_business_page(
                 business_id, draft["slug"], True, draft["tagline"], draft["about"],
@@ -2481,17 +2484,36 @@ def _social_links_for_business(business):
     ]
 
 
+def _ensure_booking_relevant(business):
+    """business[29] (booking_relevant) is NULL until classified once - see the column's
+    own comment in database.create_database(). Already set for a business created via
+    the onboarding AI draft (onboarding_website_describe()/onboarding_website_review()
+    persist page_generator.generate_page_draft()'s own judgment call); this is the
+    fallback for one that predates the column or skipped that flow, classifying from
+    whatever profile text already exists and caching the result so the LLM call behind
+    it runs at most once per business, ever - not on every page view or chat message."""
+    if business[29] is not None:
+        return business[29]
+    relevant = classify_booking_relevance(business[1], business[8], business[9])
+    set_booking_relevant(business[0], relevant)
+    return relevant
+
+
 def _render_public_page(page, business, page_url, preview=False):
     business_id = page[1]
     slug = page[2]
     # Booking is only ever offered where the AI chat tool itself is allowed to actually
     # book (see ai_replies.handle_incoming_message's identical has_pro_access/
-    # BETA_FREE_MODE check) and where there's at least one open day to show a slot for -
-    # a visible "Book an appointment" section that leads to a chat reply of "sorry, I
-    # can't book that" would be worse than no section at all.
+    # BETA_FREE_MODE check), where there's at least one open day to show a slot for, and
+    # where booking actually makes sense for this kind of business in the first place -
+    # a coffee shop selling cups of coffee has nothing to "book", so a visible "Book an
+    # appointment" section there (or one that leads to a chat reply of "sorry, I can't
+    # book that") would be worse than no section at all. See _ensure_booking_relevant
+    # above for how that last check gets decided.
     booking_enabled = (
         (BETA_FREE_MODE or has_pro_access(business_id))
         and any(booking.parse_working_hours(business[7]).values())
+        and _ensure_booking_relevant(business)
     )
     media = business_media.media_for_page(business_id)
 
