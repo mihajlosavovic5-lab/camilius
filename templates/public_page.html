@@ -1661,11 +1661,23 @@
     var progressEl = document.getElementById("page-progress");
     var progressTicking = false;
     function updateProgress() {
+        progressTicking = false;
+        // The mobile menu drawer and the chat panel both lock body scroll the same way
+        // while open (document.body.style.position = "fixed", see openNavMenu/setOpen
+        // further down) - window.scrollY reads 0 in that state regardless of where the
+        // visitor actually was (the held position is simulated via body's own negative
+        // top offset instead, not a real scroll), so recomputing here would snap this
+        // bar to empty the instant either overlay opens and leave it wrong until the
+        // page is scrolled for real again. Skipping while locked leaves the bar exactly
+        // where it already was, which is correct - the visitor hasn't scrolled anywhere,
+        // an overlay just opened on top of the page. Both overlays restore the real
+        // scroll position (and un-lock this) on close, which itself fires a genuine
+        // scroll event that lets this catch back up immediately.
+        if (document.body.style.position === "fixed") return;
         var scrollTop = window.scrollY || document.documentElement.scrollTop;
         var docHeight = document.documentElement.scrollHeight - window.innerHeight;
         var pct = docHeight > 0 ? (scrollTop / docHeight) * 100 : 0;
         progressEl.style.width = pct + "%";
-        progressTicking = false;
     }
     window.addEventListener("scroll", function () {
         if (!progressTicking) { window.requestAnimationFrame(updateProgress); progressTicking = true; }
