@@ -1348,13 +1348,15 @@ input.tap-to-edit-field, textarea.tap-to-edit-field { cursor: pointer; backgroun
     color: var(--text-muted); font-size: 19px; line-height: 1; cursor: pointer; flex-shrink: 0;
 }
 .price-remove-btn:active { background: var(--danger-bg); color: var(--danger); }
+/* Size/text/spacing only - same look-and-feel (outlined pill, tap-scale press) as "View
+   page" (#mysite-view-page-btn) comes from the shared .button-secondary/.button-
+   primary-outline/.button-tap-scale classes added alongside this one in index.html,
+   not duplicated here, so the two stay pixel-identical (including their :active
+   behavior) automatically instead of two hand-matched copies drifting apart later. */
 .price-add-btn {
-    display: block; width: 100%; padding: 11px; margin-top: 4px;
-    border: 1.5px dashed var(--border); border-radius: 10px; background: none;
-    color: var(--primary-ink); font-family: inherit; font-size: 15px; font-weight: 600; cursor: pointer;
-    transition: background .12s ease, transform .1s ease;
+    display: block; width: 100%; padding: 11px; margin-top: 4px; border-radius: 11px;
+    font-family: inherit; font-size: 15px; font-weight: 600; cursor: pointer;
 }
-.price-add-btn:active { background: var(--primary-light); transform: scale(.97); }
 
 /* --- Price list currency (Faza 4) - one dropdown applies to the whole list, shown
    just above the rows themselves. The row itself is the tap target (see the click
@@ -1372,7 +1374,8 @@ input.tap-to-edit-field, textarea.tap-to-edit-field { cursor: pointer; backgroun
 /* --- AI upsell pairs picker: repeatable "Service -> suggested service" rows, mirrors
    the website's arrow-separated pair picker (static/pickers.js createUpsellPicker)
    instead of the old freeform "Service -> Add-on" textarea. Reuses .price-remove-btn/
-   .price-add-btn as-is (same circular × / dashed add button look as the price list). */
+   .price-add-btn as-is (same circular × / outlined "View page"-style add button look as
+   the price list). */
 .upsell-picker { margin: 6px 0 4px; }
 .upsell-row { display: flex; gap: 8px; margin-bottom: 8px; align-items: center; }
 .upsell-row .floating-field { min-width: 0; flex: 1; }
