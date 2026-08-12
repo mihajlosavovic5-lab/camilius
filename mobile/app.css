@@ -2166,7 +2166,6 @@ input.tap-to-edit-field, textarea.tap-to-edit-field { cursor: pointer; backgroun
 .schedule-timeline { padding: 0 18px 4px; }
 .schedule-timeline-row { display: flex; gap: 12px; padding: 6px 0; }
 .schedule-timeline-time { width: 46px; flex-shrink: 0; padding-top: 11px; color: var(--text-muted); font-size: 13px; }
-.schedule-timeline-row-hour .schedule-timeline-time { color: var(--text); font-weight: 700; }
 .schedule-timeline-content { flex: 1; min-width: 0; }
 
 /* Past-slots toggle - collapsed by default so a day that's already partly elapsed
