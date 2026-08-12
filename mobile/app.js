@@ -7512,6 +7512,15 @@ el("mysite-field-delete-confirm-confirm").addEventListener("click", () => {
                 });
         }
 
+        // A tap here would otherwise blur the compose textarea first (its default
+        // mousedown behavior) before the click below even fires - same issue as the
+        // attach button above (see its own comment): the keyboard dismisses and the
+        // WebView's viewport resizes back down first, THEN getUserMedia()/startRecording
+        // actually runs, which is what reads as "the mic takes a few seconds to start
+        // listening" - it's the keyboard-collapse reflow blocking the start, not mic
+        // hardware init. Blocking the default keeps focus (and the keyboard, and the
+        // bar's position) exactly where it was, so recording starts immediately instead.
+        recordBtn.addEventListener("mousedown", (event) => event.preventDefault());
         recordBtn.addEventListener("click", () => {
             if (busy) return;
             if (mediaRecorder && mediaRecorder.state === "recording") stopRecording();
