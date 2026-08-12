@@ -348,13 +348,13 @@
        shadow numbers) as the in-app screen titles' own white-on-black style
        (mobile/app.css's .screen-mysite/schedule/profile/settings .topbar-title h1), so
        this generated page's headline reads as the same product. Applied to
-       .top-bar-title too so the compact mobile title matches instead of one going
-       plain ink next to the other. A ring of small blurred shadow copies rather than
-       -webkit-text-stroke - a true stroke's corner miter overshoots past sharp glyph
-       joins (the crossbar meeting the diagonals in "A", the crossbar meeting the stem
-       in "t"), while nudged whole-glyph copies build a uniformly rounded halo with no
-       such per-corner geometry to go wrong. */
-    h1, .top-bar-title {
+       .top-bar-title and the chat panel's own title too so every headline on the page
+       matches instead of some going plain ink next to the others. A ring of small
+       blurred shadow copies rather than -webkit-text-stroke - a true stroke's corner
+       miter overshoots past sharp glyph joins (the crossbar meeting the diagonals in
+       "A", the crossbar meeting the stem in "t"), while nudged whole-glyph copies build
+       a uniformly rounded halo with no such per-corner geometry to go wrong. */
+    h1, .top-bar-title, .chat-header-text p {
         color: #fff;
         text-shadow:
             1.3px 0 0.6px rgba(0, 0, 0, .7),
@@ -752,7 +752,6 @@
         font-family: var(--heading-font);
         font-weight: 700;
         font-size: 1rem;
-        color: var(--text);
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
