@@ -331,6 +331,13 @@ if (capacitorPlugins) {
         } else if (screens.register.classList.contains("active")) {
             if (registerStep > 1) showRegisterStep(registerStep - 1);
             else showScreen("login");
+        } else if (screens.login.classList.contains("active") && el("login-wrap").classList.contains("login-wrap-form-phase")) {
+            // Mirrors #login-email-back-btn's own click handler (see resetLoginPhase()) -
+            // without this, a back press/gesture here fell all the way through to the
+            // canGoBack/exitApp branch below (Login never pushes history), kicking the
+            // visitor out of the app instead of just stepping back to the Google/email
+            // choice the on-screen back arrow already does.
+            resetLoginPhase();
         } else if (screens.forgotPassword.classList.contains("active")) {
             showScreen("login");
         } else if (screens.verifyPending.classList.contains("active")) {
