@@ -185,6 +185,25 @@ def test_upsert_business_page_creates_then_updates(client, unique_email):
     connection.close()
 
 
+def test_upsert_business_page_clears_content_language_only_when_text_changes(client, unique_email):
+    _, business_id = register_and_login(client, unique_email)
+    slug = f"marko-{uuid.uuid4().hex[:8]}"
+
+    database.upsert_business_page(business_id, slug, True, "Fresh cuts daily", "We've been open since 2019.")
+    database.set_page_content_language(business_id, "en")
+    assert database.get_business_page(business_id)[16] == "en"
+
+    # Same tagline/about, just re-saving a different field (published) - the cached
+    # detection is still accurate, so it must survive.
+    database.upsert_business_page(business_id, slug, False, "Fresh cuts daily", "We've been open since 2019.")
+    assert database.get_business_page(business_id)[16] == "en"
+
+    # Rewriting the actual content invalidates the old detection - back to NULL so the
+    # next page view redetects instead of staying stuck showing the old language's flag.
+    database.upsert_business_page(business_id, slug, False, "Sveži rezovi svaki dan", "Radimo od 2019.")
+    assert database.get_business_page(business_id)[16] is None
+
+
 def test_upsert_business_page_slug_collision_raises(client, unique_email):
     _, business_id_a = register_and_login(client, unique_email)
     other_email = f"b-{unique_email}"

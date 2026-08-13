@@ -866,7 +866,11 @@ def create_database():
     # described itself in Serbian. NULL until first detected: app.py's public_page()
     # lazily fills this in on a visitor's first page view (a one-off OpenAI call, not run
     # at save time, so saving the page itself never gets slower) via
-    # set_page_content_language below, then every later view reuses the stored value.
+    # set_page_content_language below, then every later view reuses the stored value -
+    # until upsert_business_page's own ON CONFLICT clears it back to NULL on a tagline/
+    # about edit, so a rewrite into a different language gets redetected instead of
+    # staying stuck on whatever was first saved (including the "en" fallback detection
+    # falls back to when a page first published with empty tagline/about).
     # Drives which extra flag (beyond the fixed EN/ES/FR/DE set) the public page's
     # language switcher offers - see translate_page.py.
     cursor.execute("ALTER TABLE business_pages ADD COLUMN IF NOT EXISTS content_language TEXT")
@@ -2908,6 +2912,18 @@ def upsert_business_page(business_id, slug, published, tagline, about, widget_do
                tagline = EXCLUDED.tagline, about = EXCLUDED.about, widget_domain = EXCLUDED.widget_domain,
                theme = EXCLUDED.theme, custom_theme_json = EXCLUDED.custom_theme_json,
                pending_custom_domain = EXCLUDED.pending_custom_domain,
+               -- Whatever content_language was detected for the OLD tagline/about no
+               -- longer means anything once either actually changes (e.g. a business
+               -- that first published in English later rewrites its page in Serbian) -
+               -- clear it back to NULL so app.py's public_page() redetects on the next
+               -- view, same as a brand-new page. A save that leaves both untouched (a
+               -- theme swap, a slug change) keeps the cached value, no re-detection.
+               content_language = CASE
+                   WHEN EXCLUDED.tagline IS DISTINCT FROM business_pages.tagline
+                     OR EXCLUDED.about IS DISTINCT FROM business_pages.about
+                   THEN NULL
+                   ELSE business_pages.content_language
+               END,
                updated_at = CURRENT_TIMESTAMP""",
         (business_id, slug, published, tagline, about, widget_domain, theme, business_id, custom_theme_json, business_id, pending_custom_domain),
     )
