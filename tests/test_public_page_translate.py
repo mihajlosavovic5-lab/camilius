@@ -26,7 +26,12 @@ def _publish_page(client, unique_email):
 def _fake_translation(lang):
     ui = dict(translate_page.PAGE_UI_STRINGS)
     ui = {key: f"[{lang}] {value}" for key, value in ui.items()}
-    return {"tagline": f"[{lang}] Fresh cuts daily", "about": f"[{lang}] We opened in 2019.", "price_list": f"[{lang}] Haircut: 20 EUR", "faq": f"[{lang}] Q\nA", "ui": ui}
+    # "about" is the one field translation_is_usable checks for an echoed/near-echoed
+    # source (see translate_page._looks_echoed) - genuinely different wording here, not
+    # just the source with a "[lang]" tag stuck on front, so this fixture reads as an
+    # actual translation instead of tripping that check on a short fixture string where a
+    # short prefix is a big enough share of the total length to look suspicious.
+    return {"tagline": f"[{lang}] Fresh cuts daily", "about": f"[{lang}] Contenido totalmente traducido, distinto del original.", "price_list": f"[{lang}] Haircut: 20 EUR", "faq": f"[{lang}] Q\nA", "ui": ui}
 
 
 def test_public_page_shows_default_language_flags(client, unique_email):
@@ -205,6 +210,34 @@ def test_translation_is_usable_false_even_when_the_target_matches_the_source_lan
     assert translate_page.translation_is_usable(result, "T", "Radimo od 2019. godine.", "P", "F") is False
 
 
+def test_translation_is_usable_false_when_about_echo_differs_only_by_unicode_normalization():
+    # A plain == comparison looked airtight but wasn't: Serbian Latin's š/đ/č/ć/ž (and
+    # plenty of other languages' own diacritics) each have both a precomposed single
+    # codepoint and a decomposed base-letter-plus-combining-mark encoding - visually and
+    # semantically identical text, but a different sequence of codepoints, which a model
+    # reply isn't guaranteed to preserve even when it's otherwise just echoing the source
+    # straight back. This reproduces exactly that: same text, only the encoding differs.
+    import unicodedata
+    source = "Radimo već tri godine i pravimo domaću kafu i kolače svakog jutra."
+    echoed_but_renormalized = unicodedata.normalize("NFD", source)
+    assert echoed_but_renormalized != source  # sanity check that this actually exercises the gap
+    ui = {key: f"[es] {value}" for key, value in translate_page.PAGE_UI_STRINGS.items()}
+    result = {"tagline": "t", "about": echoed_but_renormalized, "price_list": "p", "faq": "f", "ui": ui}
+    assert translate_page.translation_is_usable(result, "T", source, "P", "F") is False
+
+
+def test_translation_is_usable_false_when_about_is_a_near_echo_with_a_minor_edit():
+    # A model reply that leaves "about" almost entirely as-is - a token nudged here or
+    # there, nothing resembling an actual translation - is just as much a failure as a
+    # byte-for-byte echo, even though it isn't one; catching it needs a similarity check,
+    # not exact equality.
+    source = "Radimo već tri godine i pravimo domaću kafu i kolače svakog jutra u centru grada."
+    near_echo = source + " Uvek ste dobrodošli."
+    ui = {key: f"[es] {value}" for key, value in translate_page.PAGE_UI_STRINGS.items()}
+    result = {"tagline": "t", "about": near_echo, "price_list": "p", "faq": "f", "ui": ui}
+    assert translate_page.translation_is_usable(result, "T", source, "P", "F") is False
+
+
 def test_translation_is_usable_true_when_a_loanword_heavy_price_list_survives_unchanged():
     # The echo check briefly covered price_list/tagline too (see git history), but a real
     # price list routinely uses loanwords ("Espresso", "Cappuccino") that a genuinely
@@ -269,13 +302,13 @@ def test_translate_endpoint_reruns_the_model_when_the_cached_row_is_degenerate(c
 
     response = client.get(f"/p/{slug}/translate/es")
     assert response.status_code == 200
-    assert response.get_json()["about"] == "[es] We opened in 2019."
+    assert response.get_json()["about"] == "[es] Contenido totalmente traducido, distinto del original."
     assert calls == ["es"]
 
     # The regenerated result overwrote the stale row - a later request is now served from
     # cache again, without a second model call.
     response = client.get(f"/p/{slug}/translate/es")
-    assert response.get_json()["about"] == "[es] We opened in 2019."
+    assert response.get_json()["about"] == "[es] Contenido totalmente traducido, distinto del original."
     assert calls == ["es"]
 
 
@@ -302,5 +335,5 @@ def test_translate_endpoint_reruns_the_model_when_the_cached_row_echoed_the_sour
 
     response = client.get(f"/p/{slug}/translate/es")
     assert response.status_code == 200
-    assert response.get_json()["about"] == "[es] We opened in 2019."
+    assert response.get_json()["about"] == "[es] Contenido totalmente traducido, distinto del original."
     assert calls == ["es"]

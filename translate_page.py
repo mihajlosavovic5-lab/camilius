@@ -8,6 +8,8 @@ database.upsert_page_translation()/set_page_content_language() - see those funct
 own docstrings for the caching contract.
 """
 import json
+import unicodedata
+from difflib import SequenceMatcher
 
 from dotenv import load_dotenv
 from openai import OpenAI
@@ -167,15 +169,43 @@ def detect_content_language(text):
 # deliberately does NOT cover (see the false-positive note below).
 _ECHO_CHECK_MIN_LENGTH = 12
 
+# How similar a translated "about" is allowed to be to its source before it counts as an
+# echo (see _looks_echoed below) - a plain == comparison looked airtight but wasn't: a
+# model reply can come back Unicode-normalized differently than the source (Serbian
+# Latin's š/đ/č/ć/ž each have both a precomposed and a decomposed encoding - visually and
+# semantically identical, but a different sequence of codepoints, so == sees "different"
+# text) or with a token or two nudged without anything resembling an actual translation -
+# both defeat exact equality while still being, for a visitor's purposes, the same
+# unchanged source text. difflib's ratio() is a character-level similarity score from 0
+# (nothing in common) to 1 (identical); real prose translated into a genuinely different
+# language - different alphabet, different words - scores low here almost always, so this
+# threshold is deliberately conservative (closer to "unmistakably the same text" than to
+# "somewhat similar") to avoid flagging a translation that just happens to read alike.
+_ECHO_SIMILARITY_THRESHOLD = 0.85
+
+
+def _looks_echoed(source, translated):
+    """True if `translated` is close enough to `source` (after Unicode-normalizing and
+    collapsing whitespace in both, so neither trips up the comparison - see
+    _ECHO_SIMILARITY_THRESHOLD above) that it reads as the same text, not an actual
+    translation. `source` is assumed already stripped and past the length threshold."""
+    def normalize(text):
+        return unicodedata.normalize("NFC", " ".join((text or "").split()))
+    source_norm = normalize(source)
+    translated_norm = normalize(translated)
+    return SequenceMatcher(None, source_norm, translated_norm).ratio() >= _ECHO_SIMILARITY_THRESHOLD
+
 
 def translation_is_usable(result, tagline, about, price_list, faq):
     """False if `result` (shaped like translate_page_content's own return value, or the
     same shape rebuilt from a business_page_translations row - see app.py's
     public_page_translate) dropped any field that actually had source content, came back
     with an empty string for one of PAGE_UI_STRINGS' own always-non-empty keys, or left
-    "about" byte-for-byte identical to the source - free-form prose essentially never
-    survives translation between two different languages completely unchanged, so an
-    unchanged "about" means the model echoed the source back instead of translating it.
+    "about" reading as essentially the same text as the source (see _looks_echoed above,
+    used rather than a plain == - real prose translated into a genuinely different
+    language virtually never comes back this similar, so this means the model echoed the
+    source back instead of translating it, not that a translation just happens to read
+    the same).
 
     This used to be skipped when the requested language matched the business's own
     detected content_language (a visitor picking the flag that already matches the
@@ -219,7 +249,7 @@ def translation_is_usable(result, tagline, about, price_list, faq):
     if not all((ui.get(key) or "").strip() for key in PAGE_UI_STRINGS):
         return False
     about_stripped = (about or "").strip()
-    if len(about_stripped) >= _ECHO_CHECK_MIN_LENGTH and (result.get("about") or "").strip() == about_stripped:
+    if len(about_stripped) >= _ECHO_CHECK_MIN_LENGTH and _looks_echoed(about_stripped, result.get("about")):
         return False
     return True
 
