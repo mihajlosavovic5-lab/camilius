@@ -204,6 +204,47 @@ def test_upsert_business_page_clears_content_language_only_when_text_changes(cli
     assert database.get_business_page(business_id)[16] is None
 
 
+def test_upsert_business_page_clears_cached_translations_only_when_text_changes(client, unique_email):
+    # A cached business_page_translations row is a translation of one specific snapshot
+    # of tagline/about - once the owner actually rewrites either, that row is a
+    # translation of text that no longer exists on the page, not a stale-but-still-
+    # accurate one, so it must be cleared out rather than kept serving old wording.
+    _, business_id = register_and_login(client, unique_email)
+    slug = f"marko-{uuid.uuid4().hex[:8]}"
+
+    database.upsert_business_page(business_id, slug, True, "Fresh cuts daily", "We've been open since 2019.")
+    database.upsert_page_translation(business_id, "es", "Cortes frescos", "Abrimos en 2019.", "Corte: 20 EUR", "Q\nA", "{}")
+    assert database.get_page_translation(business_id, "es") is not None
+
+    # Same tagline/about, just re-saving a different field (published) - the cached
+    # translation is still a translation of the CURRENT text, so it must survive.
+    database.upsert_business_page(business_id, slug, False, "Fresh cuts daily", "We've been open since 2019.")
+    assert database.get_page_translation(business_id, "es") is not None
+
+    # Rewriting the actual content invalidates every cached translation for this
+    # business, not just the one language a visitor happens to pick next.
+    database.upsert_business_page(business_id, slug, False, "Fresh cuts daily", "We've been open since 2019 - now with pastries!")
+    assert database.get_page_translation(business_id, "es") is None
+
+
+def test_update_business_clears_cached_translations_only_when_price_list_or_faq_changes(client, unique_email):
+    # Same staleness problem as tagline/about (see the upsert_business_page test above),
+    # for the other two fields that feed the same translate_page_content call.
+    _, business_id = register_and_login(client, unique_email)
+    business = database.business_by_id(business_id)
+    database.upsert_page_translation(business_id, "es", "Cortes frescos", "Abrimos en 2019.", "Corte: 20 EUR", "Q\nA", "{}")
+    assert database.get_page_translation(business_id, "es") is not None
+
+    # Same price_list/faq, just updating the name - the cached translation still matches
+    # the current text, so it must survive.
+    database.update_business(business_id, "New Name", business[3], business[10], business[7], business[8], business[9])
+    assert database.get_page_translation(business_id, "es") is not None
+
+    # Rewriting the price list invalidates every cached translation for this business.
+    database.update_business(business_id, "New Name", business[3], business[10], business[7], "Haircut: 25 EUR", business[9])
+    assert database.get_page_translation(business_id, "es") is None
+
+
 def test_upsert_business_page_slug_collision_raises(client, unique_email):
     _, business_id_a = register_and_login(client, unique_email)
     other_email = f"b-{unique_email}"

@@ -1906,8 +1906,18 @@ def update_business(business_id, name, contact_email, phone_number, working_hour
     # number's (now-irrelevant) link was sent. phone_verify_code/expires reset the same
     # way, for the same reason, on whichever of the two flows (link or SMS code) happens
     # to be the active one - see send_sms.sms_configured().
+    #
+    # price_list/faq feed straight into translate_page.translate_page_content alongside
+    # business_pages.tagline/about (see app.py's public_page_translate) - a cached
+    # business_page_translations row is a translation of one specific snapshot of all
+    # four, so editing price_list/faq here makes every cached row just as stale as
+    # upsert_business_page's own tagline/about edit does, for the exact same reason (see
+    # its docstring). Cleared out below whenever either actually changes.
     connection = connect()
     cursor = connection.cursor()
+    cursor.execute("SELECT price_list, faq FROM businesses WHERE id = %s", (business_id,))
+    existing = cursor.fetchone()
+    old_price_list, old_faq = existing if existing else (None, None)
     _execute_or_raise_unique_violation(
         cursor,
         """UPDATE businesses
@@ -1928,6 +1938,8 @@ def update_business(business_id, name, contact_email, phone_number, working_hour
             working_hours, price_list, faq, business_id,
         ),
     )
+    if price_list != old_price_list or faq != old_faq:
+        cursor.execute("DELETE FROM business_page_translations WHERE business_id = %s", (business_id,))
     connection.commit()
     connection.close()
 
@@ -2896,9 +2908,24 @@ def upsert_business_page(business_id, slug, published, tagline, about, widget_do
     given, not COALESCEd) - the mobile My Site form always sends its current pick (or
     None once cleared/never chosen), so there's nothing to preserve here the caller
     doesn't already know. See domain_registrar.py for what turns a pending pick into an
-    actual custom_domain."""
+    actual custom_domain.
+
+    Also clears out every cached business_page_translations row for this business (all
+    languages, not just whichever one a visitor happens to pick next) whenever tagline or
+    about actually changes - each of those rows is a translation of a specific snapshot
+    of the source content, so once that source changes, a cached row is a translation of
+    text that no longer exists on the page, not a stale-but-still-accurate one. Same
+    reasoning as the content_language reset just below, just for the translations
+    themselves rather than the source-language detection - see translate_page.
+    translation_is_usable's own docstring for what was going wrong before this existed:
+    an owner editing their page's wording had no way to ever see that edit reflected in
+    an already-cached language, short of it happening to fail translation_is_usable's own
+    (narrow, on-purpose) checks."""
     connection = connect()
     cursor = connection.cursor()
+    cursor.execute("SELECT tagline, about FROM business_pages WHERE business_id = %s", (business_id,))
+    existing = cursor.fetchone()
+    old_tagline, old_about = existing if existing else (None, None)
     _execute_or_raise_unique_violation(
         cursor,
         """INSERT INTO business_pages (business_id, slug, published, tagline, about, widget_domain, theme, custom_theme_json, pending_custom_domain, updated_at)
@@ -2927,6 +2954,8 @@ def upsert_business_page(business_id, slug, published, tagline, about, widget_do
                updated_at = CURRENT_TIMESTAMP""",
         (business_id, slug, published, tagline, about, widget_domain, theme, business_id, custom_theme_json, business_id, pending_custom_domain),
     )
+    if tagline != old_tagline or about != old_about:
+        cursor.execute("DELETE FROM business_page_translations WHERE business_id = %s", (business_id,))
     connection.commit()
     connection.close()
 
