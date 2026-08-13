@@ -168,19 +168,29 @@ def detect_content_language(text):
 _ECHO_CHECK_MIN_LENGTH = 12
 
 
-def translation_is_usable(result, tagline, about, price_list, faq, lang=None, source_lang=None):
+def translation_is_usable(result, tagline, about, price_list, faq):
     """False if `result` (shaped like translate_page_content's own return value, or the
     same shape rebuilt from a business_page_translations row - see app.py's
     public_page_translate) dropped any field that actually had source content, came back
-    with an empty string for one of PAGE_UI_STRINGS' own always-non-empty keys, or (when
-    `lang`/`source_lang` are given and actually differ) left "about" byte-for-byte
-    identical to the source - free-form prose essentially never survives translation
-    between two different languages completely unchanged, so an unchanged "about" there
-    means the model echoed the source back instead of translating it. That check is
-    skipped when lang == source_lang (e.g. a visitor picking the flag that already
-    matches this business's own content) since an unchanged "about" there is the correct
-    result, not a failure - and skipped entirely when either isn't given, since callers
-    that don't know the source language can't tell the two cases apart.
+    with an empty string for one of PAGE_UI_STRINGS' own always-non-empty keys, or left
+    "about" byte-for-byte identical to the source - free-form prose essentially never
+    survives translation between two different languages completely unchanged, so an
+    unchanged "about" means the model echoed the source back instead of translating it.
+
+    This used to be skipped when the requested language matched the business's own
+    detected content_language (a visitor picking the flag that already matches the
+    page's content is a legitimate no-op there). Dropped that exemption: it depended on
+    content_language being correct, and a business whose content_language was ever wrong
+    or stale - e.g. detected before this file's own upsert_business_page/update_business
+    cache-invalidation existed, or from a brief window with placeholder content - would
+    have this entire check silently disabled for exactly the one language matching that
+    value, forever, with no way to tell from the outside (everything else about the
+    response still looks fine - the UI chrome still translates, since that's unrelated to
+    this check). The cost of dropping the exemption is small and one-sided: the rare
+    visitor who deliberately clicks their page's own already-active flag gets a 502 (an
+    unnecessary but harmless model call - "about" was already showing correctly and stays
+    that way) instead of a silent no-op cache write. That's a better trade than a whole
+    language being invisibly, permanently broken for a business with no way to notice why.
 
     Deliberately NOT applied to tagline/price_list/faq, even though the exact same echo
     bug reproduced for price_list once (see git history) - a short tagline, a price line,
@@ -189,8 +199,8 @@ def translation_is_usable(result, tagline, about, price_list, faq, lang=None, so
     same check applied to those fields rejected genuinely good translations as false
     "echoes" - for a business whose price list happens to be loanword-heavy, EVERY
     language failed this way, every time, which is worse than the bug it was meant to
-    catch. "about" is the one field long/free-form enough that an exact cross-language
-    match is still a reliable failure signal.
+    catch. "about" is the one field long/free-form enough that an exact match (in any
+    language pairing, including a same-language no-op) is still a reliable failure signal.
 
     Nothing here is a translation *quality* check otherwise (a bad but genuinely
     different-looking translation still passes) - only a check that this result is safe
@@ -208,14 +218,13 @@ def translation_is_usable(result, tagline, about, price_list, faq, lang=None, so
     ui = result.get("ui") or {}
     if not all((ui.get(key) or "").strip() for key in PAGE_UI_STRINGS):
         return False
-    if lang and source_lang and lang != source_lang:
-        about_stripped = (about or "").strip()
-        if len(about_stripped) >= _ECHO_CHECK_MIN_LENGTH and (result.get("about") or "").strip() == about_stripped:
-            return False
+    about_stripped = (about or "").strip()
+    if len(about_stripped) >= _ECHO_CHECK_MIN_LENGTH and (result.get("about") or "").strip() == about_stripped:
+        return False
     return True
 
 
-def translate_page_content(lang, tagline, about, price_list, faq, source_lang=None):
+def translate_page_content(lang, tagline, about, price_list, faq):
     """One OpenAI call translating a business's tagline/about/price_list/faq plus the
     page's own fixed PAGE_UI_STRINGS into `lang`, all together so they read as one
     consistent voice. Returns a dict shaped like {"tagline", "about", "price_list",
@@ -226,10 +235,7 @@ def translate_page_content(lang, tagline, about, price_list, faq, source_lang=No
     language straight back instead of translating it - see that function's own docstring)
     - the caller (app.py's public_page_translate route) decides how to surface that;
     nothing here is worth blocking the page itself over, since a visitor just keeps
-    seeing the untranslated original on failure. source_lang is this business's own
-    detected content_language (see app.py's public_page()), passed through only so
-    translation_is_usable can tell a legitimate same-language no-op from an echoed
-    failure - never sent to the model itself."""
+    seeing the untranslated original on failure."""
     lang_name = LANGUAGES.get(lang, {}).get("name", lang)
     messages = [
         {"role": "system", "content": _TRANSLATE_SYSTEM_PROMPT.format(lang=lang_name)},
@@ -258,6 +264,6 @@ def translate_page_content(lang, tagline, about, price_list, faq, source_lang=No
         result = json.loads(content)
     except json.JSONDecodeError as error:
         raise ValueError(f"model returned invalid JSON: {error}") from error
-    if not translation_is_usable(result, tagline, about, price_list, faq, lang=lang, source_lang=source_lang):
+    if not translation_is_usable(result, tagline, about, price_list, faq):
         raise ValueError("model returned a translation missing content the source actually has, or echoed it back untranslated")
     return result

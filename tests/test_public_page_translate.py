@@ -88,7 +88,7 @@ def test_public_page_does_not_duplicate_a_detected_default_language(client, uniq
 def test_translate_endpoint_returns_translated_content_and_caches(client, unique_email, monkeypatch):
     calls = []
 
-    def fake_translate(lang, tagline, about, price_list, faq, source_lang=None):
+    def fake_translate(lang, tagline, about, price_list, faq):
         calls.append(lang)
         return _fake_translation(lang)
 
@@ -143,7 +143,7 @@ def test_translate_endpoint_404s_for_unknown_slug(client):
 
 
 def test_translate_endpoint_502s_when_the_model_call_fails(client, unique_email, monkeypatch):
-    def fake_translate(lang, tagline, about, price_list, faq, source_lang=None):
+    def fake_translate(lang, tagline, about, price_list, faq):
         raise ValueError("model returned no content")
 
     monkeypatch.setattr(translate_page, "translate_page_content", fake_translate)
@@ -184,30 +184,25 @@ def test_translation_is_usable_false_when_a_ui_string_is_missing():
 
 
 def test_translation_is_usable_false_when_about_is_echoed_back_untranslated():
-    # The model returned the source text completely unchanged for a genuinely different
-    # target language - a real translation between two different languages essentially
-    # never looks byte-for-byte identical, so this is a failed/echoed response, not a
-    # translation that just happens to read the same.
+    # The model returned the source text completely unchanged - a real translation
+    # essentially never looks byte-for-byte identical to its source, so this is a
+    # failed/echoed response, not a translation that just happens to read the same.
     ui = {key: f"[es] {value}" for key, value in translate_page.PAGE_UI_STRINGS.items()}
     result = {"tagline": "t", "about": "Radimo od 2019. godine.", "price_list": "p", "faq": "f", "ui": ui}
-    assert translate_page.translation_is_usable(result, "T", "Radimo od 2019. godine.", "P", "F", lang="es", source_lang="sr") is False
+    assert translate_page.translation_is_usable(result, "T", "Radimo od 2019. godine.", "P", "F") is False
 
 
-def test_translation_is_usable_true_when_about_unchanged_and_lang_matches_source():
-    # Picking the flag that already matches the business's own content is a legitimate
-    # no-op - "about" staying the same here is the CORRECT result, not an echoed failure.
+def test_translation_is_usable_false_even_when_the_target_matches_the_source_language():
+    # This used to be exempt (a visitor picking the flag that already matches the
+    # business's own content is a legitimate no-op) via an explicit lang == source_lang
+    # check - dropped because it depended on content_language being correct, and a
+    # business whose content_language was ever wrong or stale had this whole check
+    # silently disabled for exactly the one language matching that value, forever (see
+    # this function's own docstring). The rare cost - a same-language click 502s instead
+    # of silently no-op'ing - is a better trade than a language being invisibly broken.
     ui = {key: f"[sr] {value}" for key, value in translate_page.PAGE_UI_STRINGS.items()}
     result = {"tagline": "t", "about": "Radimo od 2019. godine.", "price_list": "p", "faq": "f", "ui": ui}
-    assert translate_page.translation_is_usable(result, "T", "Radimo od 2019. godine.", "P", "F", lang="sr", source_lang="sr") is True
-
-
-def test_translation_is_usable_skips_echo_check_without_lang_info():
-    # Callers that don't know the source language (lang/source_lang omitted) can't tell a
-    # legitimate no-op from an echoed failure, so the echo check is skipped rather than
-    # guessed at - only the existing empty-field/ui checks still apply.
-    ui = {key: f"[es] {value}" for key, value in translate_page.PAGE_UI_STRINGS.items()}
-    result = {"tagline": "t", "about": "Radimo od 2019. godine.", "price_list": "p", "faq": "f", "ui": ui}
-    assert translate_page.translation_is_usable(result, "T", "Radimo od 2019. godine.", "P", "F") is True
+    assert translate_page.translation_is_usable(result, "T", "Radimo od 2019. godine.", "P", "F") is False
 
 
 def test_translation_is_usable_true_when_a_loanword_heavy_price_list_survives_unchanged():
@@ -220,7 +215,7 @@ def test_translation_is_usable_true_when_a_loanword_heavy_price_list_survives_un
     ui = {key: f"[es] {value}" for key, value in translate_page.PAGE_UI_STRINGS.items()}
     source_price_list = "Espresso: 20 EUR\nCappuccino: 10 EUR\nLatte: 15 EUR"
     result = {"tagline": "Aroma", "about": "Traducción real, distinta del origen.", "price_list": source_price_list, "faq": "f", "ui": ui}
-    assert translate_page.translation_is_usable(result, "Aroma", "Radimo od 2019. godine.", source_price_list, "F", lang="es", source_lang="sr") is True
+    assert translate_page.translation_is_usable(result, "Aroma", "Radimo od 2019. godine.", source_price_list, "F") is True
 
 
 def test_translation_is_usable_true_when_a_short_about_survives_translation_unchanged():
@@ -228,7 +223,7 @@ def test_translation_is_usable_true_when_a_short_about_survives_translation_unch
     # one counts as a suspected echo.
     ui = {key: f"[es] {value}" for key, value in translate_page.PAGE_UI_STRINGS.items()}
     result = {"tagline": "t", "about": "a", "price_list": "p", "faq": "f", "ui": ui}
-    assert translate_page.translation_is_usable(result, "T", "a", "P", "F", lang="es", source_lang="sr") is True
+    assert translate_page.translation_is_usable(result, "T", "a", "P", "F") is True
 
 
 def test_translate_page_content_rejects_a_response_missing_real_content(monkeypatch):
@@ -266,7 +261,7 @@ def test_translate_endpoint_reruns_the_model_when_the_cached_row_is_degenerate(c
 
     calls = []
 
-    def fake_translate(lang, tagline, about, price_list, faq, source_lang=None):
+    def fake_translate(lang, tagline, about, price_list, faq):
         calls.append(lang)
         return _fake_translation(lang)
 
@@ -291,17 +286,16 @@ def test_translate_endpoint_reruns_the_model_when_the_cached_row_echoed_the_sour
     # Spanish flag saw Serbian, forever, since a cache hit never re-called the model.
     register_business_web(client, unique_email)
     business_id, slug = _publish_page(client, unique_email)
-    database.set_page_content_language(business_id, "sr")
     stale_ui = json.dumps(dict(translate_page.PAGE_UI_STRINGS))
     # "We opened in 2019." (the real, un-translated source "about" from _publish_page)
     # cached verbatim under the "es" key - looks like a normal, fully-populated row, but
-    # is actually the Serbian/English source, not a Spanish translation.
+    # is actually the un-translated source, not a Spanish translation.
     database.upsert_page_translation(business_id, "es", "Fresh cuts daily", "We opened in 2019.", "Haircut: 20 EUR", "Q\nA", stale_ui)
 
     calls = []
 
-    def fake_translate(lang, tagline, about, price_list, faq, source_lang=None):
-        calls.append((lang, source_lang))
+    def fake_translate(lang, tagline, about, price_list, faq):
+        calls.append(lang)
         return _fake_translation(lang)
 
     monkeypatch.setattr(translate_page, "translate_page_content", fake_translate)
@@ -309,4 +303,4 @@ def test_translate_endpoint_reruns_the_model_when_the_cached_row_echoed_the_sour
     response = client.get(f"/p/{slug}/translate/es")
     assert response.status_code == 200
     assert response.get_json()["about"] == "[es] We opened in 2019."
-    assert calls == [("es", "sr")]
+    assert calls == ["es"]

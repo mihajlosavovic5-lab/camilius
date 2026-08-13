@@ -2778,11 +2778,6 @@ def public_page_translate(slug, lang):
     if business is None:
         abort(404)
     origin = _custom_domain_cors_origin(page)
-    # This business's own detected source language (page[16], see set_page_content_language)
-    # - passed through so translation_is_usable can tell a genuine same-language no-op
-    # (lang == content_language) from a translation that just echoed the source back
-    # untranslated (see that function's own docstring).
-    content_language = page[16]
 
     cached = get_page_translation(business_id, lang)
     if cached is not None:
@@ -2793,11 +2788,11 @@ def public_page_translate(slug, lang):
         # serving the exact same degenerate result to every visitor forever, since a
         # cache hit here never re-calls the model. Falls through to translate fresh
         # instead, overwriting this row below the same way a first-ever request would.
-        if translate_page.translation_is_usable({"tagline": db_tagline, "about": db_about, "price_list": db_price_list, "faq": db_faq, "ui": db_ui}, page[4], page[5], business[8], business[9], lang=lang, source_lang=content_language):
+        if translate_page.translation_is_usable({"tagline": db_tagline, "about": db_about, "price_list": db_price_list, "faq": db_faq, "ui": db_ui}, page[4], page[5], business[8], business[9]):
             return _json_with_cors(origin, tagline=db_tagline, about=db_about, price_list=db_price_list, faq=db_faq, ui=db_ui)
 
     try:
-        result = translate_page.translate_page_content(lang, page[4], page[5], business[8], business[9], source_lang=content_language)
+        result = translate_page.translate_page_content(lang, page[4], page[5], business[8], business[9])
     except ValueError:
         abort(502)
 
