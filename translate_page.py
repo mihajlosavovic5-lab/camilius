@@ -126,6 +126,11 @@ is a straight translation, not a rewrite - keep the same meaning, tone, and form
 (line breaks, punctuation) as the original. Some fields may already be empty strings;
 leave those as empty strings.
 
+Every non-empty field in your response, "about" included, must actually be written in
+{lang} - never copy a field's original source-language text through unchanged or
+partially unchanged, even if it already reads acceptably in {lang} or you're unsure how
+best to phrase part of it. A real, if imperfect, translation is always required.
+
 For "ui", translate every value in that object into {lang} the same way. Some values
 contain literal {{token}} placeholders (e.g. {{day}}, {{time}}, {{business}}) - copy each
 one through exactly as written, in the same position, without translating its contents
@@ -267,18 +272,31 @@ def translation_rejection_reason(result, tagline, about, price_list, faq):
     return None
 
 
+# How many times translate_page_content below retries an unusable result before giving
+# up - production evidence (a business's real /admin/client-errors log) showed gpt-4o-mini
+# repeatedly leaving "about" completely untranslated for one specific content+language
+# pairing, consistent enough across several manual attempts to look almost deterministic,
+# while every other language for the same business translated correctly. Chat completions
+# aren't run at temperature 0 here, so a second attempt at the exact same prompt is a
+# real, independent draw, not a guaranteed repeat of the first - worth spending a couple
+# of extra model calls on ONLY when the first actually failed, to turn "fails often
+# enough to be visibly broken" into "occasionally needs a second try, invisibly."
+_MAX_TRANSLATE_ATTEMPTS = 3
+
+
 def translate_page_content(lang, tagline, about, price_list, faq):
-    """One OpenAI call translating a business's tagline/about/price_list/faq plus the
-    page's own fixed PAGE_UI_STRINGS into `lang`, all together so they read as one
+    """One OpenAI call (retried up to _MAX_TRANSLATE_ATTEMPTS times - see its own comment
+    - on an unusable result) translating a business's tagline/about/price_list/faq plus
+    the page's own fixed PAGE_UI_STRINGS into `lang`, all together so they read as one
     consistent voice. Returns a dict shaped like {"tagline", "about", "price_list",
     "faq", "ui": {...same keys as PAGE_UI_STRINGS}}. Raises ValueError the same way
-    page_generator.generate_page_draft() does if the model call fails, returns something
-    unparseable, or returns something translation_is_usable() rejects (e.g. cut off
-    mid-response and missing a field that should have real content, or echoing the source
-    language straight back instead of translating it - see that function's own docstring)
-    - the caller (app.py's public_page_translate route) decides how to surface that;
-    nothing here is worth blocking the page itself over, since a visitor just keeps
-    seeing the untranslated original on failure."""
+    page_generator.generate_page_draft() does if every attempt's model call fails,
+    returns something unparseable, or returns something translation_rejection_reason()
+    rejects (e.g. cut off mid-response and missing a field that should have real content,
+    or echoing the source language straight back instead of translating it - see that
+    function's own docstring) - the caller (app.py's public_page_translate route) decides
+    how to surface that; nothing here is worth blocking the page itself over, since a
+    visitor just keeps seeing the untranslated original on failure."""
     lang_name = LANGUAGES.get(lang, {}).get("name", lang)
     messages = [
         {"role": "system", "content": _TRANSLATE_SYSTEM_PROMPT.format(lang=lang_name)},
@@ -291,34 +309,43 @@ def translate_page_content(lang, tagline, about, price_list, faq):
         })},
     ]
 
-    try:
-        response = client.chat.completions.create(
-            model=MODEL,
-            messages=messages,
-            max_tokens=MAX_TRANSLATE_TOKENS,
-            response_format={
-                "type": "json_schema",
-                "json_schema": {"name": "page_translation", "strict": True, "schema": _TRANSLATE_SCHEMA},
-            },
-        )
-    except Exception as error:
-        # Anything the OpenAI call itself can raise (a rate limit, a timeout, a content-
-        # policy refusal, ...) used to propagate straight past this function as some
-        # exception type the caller's `except ValueError` never catches - an unhandled
-        # 500 with nothing logged anywhere, indistinguishable from every other silent
-        # failure mode this whole file exists to avoid (see public_page_translate's own
-        # log_client_error call, which only ever runs for a ValueError). Wrapped the same
-        # way detect_content_language/page_generator.generate_page_draft already treat a
-        # failed OpenAI call elsewhere in this codebase.
-        raise ValueError(f"model call failed: {error}") from error
-    content = response.choices[0].message.content
-    if not content:
-        raise ValueError("model returned no content")
-    try:
-        result = json.loads(content)
-    except json.JSONDecodeError as error:
-        raise ValueError(f"model returned invalid JSON: {error}") from error
-    rejection_reason = translation_rejection_reason(result, tagline, about, price_list, faq)
-    if rejection_reason is not None:
-        raise ValueError(f"model returned an unusable translation: {rejection_reason}")
-    return result
+    last_reason = "unknown failure"
+    for _attempt in range(_MAX_TRANSLATE_ATTEMPTS):
+        try:
+            response = client.chat.completions.create(
+                model=MODEL,
+                messages=messages,
+                max_tokens=MAX_TRANSLATE_TOKENS,
+                response_format={
+                    "type": "json_schema",
+                    "json_schema": {"name": "page_translation", "strict": True, "schema": _TRANSLATE_SCHEMA},
+                },
+            )
+        except Exception as error:
+            # Anything the OpenAI call itself can raise (a rate limit, a timeout, a
+            # content-policy refusal, ...) used to propagate straight past this function
+            # as some exception type the caller's `except ValueError` never catches - an
+            # unhandled 500 with nothing logged anywhere, indistinguishable from every
+            # other silent failure mode this whole file exists to avoid (see
+            # public_page_translate's own log_client_error call, which only ever runs for
+            # a ValueError). Wrapped the same way detect_content_language/page_generator.
+            # generate_page_draft already treat a failed OpenAI call elsewhere in this
+            # codebase - and, being an ordinary loop iteration here, retried the same as
+            # any other kind of failed attempt rather than aborting immediately.
+            last_reason = f"model call failed: {error}"
+            continue
+        content = response.choices[0].message.content
+        if not content:
+            last_reason = "model returned no content"
+            continue
+        try:
+            result = json.loads(content)
+        except json.JSONDecodeError as error:
+            last_reason = f"model returned invalid JSON: {error}"
+            continue
+        rejection_reason = translation_rejection_reason(result, tagline, about, price_list, faq)
+        if rejection_reason is None:
+            return result
+        last_reason = rejection_reason
+
+    raise ValueError(f"model returned an unusable translation after {_MAX_TRANSLATE_ATTEMPTS} attempts: {last_reason}")

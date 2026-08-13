@@ -318,6 +318,36 @@ def test_translate_page_content_rejects_a_response_missing_real_content(monkeypa
         translate_page.translate_page_content("es", "T", "A", "P", "F")
 
 
+def test_translate_page_content_retries_after_an_echoed_first_attempt(monkeypatch):
+    # Production evidence showed a real, reproducible case of the model echoing "about"
+    # untranslated on one attempt - chat completions aren't deterministic here, so a
+    # second attempt at the same prompt is a genuine second chance, not a guaranteed
+    # repeat of the first. The call should keep retrying (up to
+    # translate_page._MAX_TRANSLATE_ATTEMPTS) and return the first attempt that's
+    # actually usable, rather than giving up on the very first bad one.
+    source_about = "Radimo već tri godine i pravimo domaću kafu i kolače svakog jutra."
+    good_ui = dict(translate_page.PAGE_UI_STRINGS)
+
+    def echoed_response(**kwargs):
+        content = json.dumps({"tagline": "t", "about": source_about, "price_list": "p", "faq": "f", "ui": good_ui})
+        return type("R", (), {"choices": [type("C", (), {"message": type("M", (), {"content": content})()})()]})()
+
+    def good_response(**kwargs):
+        content = json.dumps({"tagline": "t", "about": "Una traducción real y distinta.", "price_list": "p", "faq": "f", "ui": good_ui})
+        return type("R", (), {"choices": [type("C", (), {"message": type("M", (), {"content": content})()})()]})()
+
+    attempts = [echoed_response, good_response]
+
+    def fake_create(**kwargs):
+        return attempts.pop(0)(**kwargs)
+
+    monkeypatch.setattr(translate_page.client.chat.completions, "create", fake_create)
+
+    result = translate_page.translate_page_content("es", "T", source_about, "P", "F")
+    assert result["about"] == "Una traducción real y distinta."
+    assert attempts == []  # both attempts were consumed - it really did retry, not just succeed on the first
+
+
 def test_translate_endpoint_reruns_the_model_when_the_cached_row_is_degenerate(client, unique_email, monkeypatch):
     # A row cached before translation_is_usable() existed (or that slipped past it) must
     # not keep serving the same broken result to every future visitor forever - the
