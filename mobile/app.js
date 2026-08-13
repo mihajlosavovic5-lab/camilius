@@ -5541,6 +5541,7 @@ async function loadNotificationPreferences() {
     try {
         const data = await api("/api/notification-preferences");
         el("settings-new-booking-toggle").checked = !!data.new_booking_notifications_enabled;
+        el("settings-ai-task-toggle").checked = !!data.ai_task_notifications_enabled;
         el("settings-reminders-owner-toggle").checked = !!data.owner_reminders_enabled;
         state.reminderOwnerMinutes = data.owner_reminder_minutes || 60;
         applyProAccessLocks();
@@ -5559,6 +5560,7 @@ let appSettingsSnapshot = null;
 function serializeAppSettingsForm() {
     return JSON.stringify({
         newBooking: el("settings-new-booking-toggle").checked,
+        aiTask: el("settings-ai-task-toggle").checked,
         remindersOwner: el("settings-reminders-owner-toggle").checked,
         ownerMinutes: state.reminderOwnerMinutes,
     });
@@ -5573,7 +5575,7 @@ function updateAppSettingsSaveState() {
     triggerAppSettingsAutosave(dirty);
 }
 
-["settings-new-booking-toggle", "settings-reminders-owner-toggle"].forEach((id) => {
+["settings-new-booking-toggle", "settings-ai-task-toggle", "settings-reminders-owner-toggle"].forEach((id) => {
     el(id).addEventListener("change", updateAppSettingsSaveState);
 });
 
@@ -5581,7 +5583,7 @@ function updateAppSettingsSaveState() {
 // toggles is switched on - covers the case where permission was declined (or never
 // asked) at first launch and the user only decides they want it later, instead of
 // leaving them stuck with a toggle that looks on but was never actually granted.
-["settings-new-booking-toggle", "settings-reminders-owner-toggle"].forEach((id) => {
+["settings-new-booking-toggle", "settings-ai-task-toggle", "settings-reminders-owner-toggle"].forEach((id) => {
     el(id).addEventListener("change", (event) => {
         if (event.target.checked) requestPushPermissionAndRegister();
     });
@@ -5665,6 +5667,7 @@ el("settings-app-save").addEventListener("click", async () => {
             method: "POST",
             body: {
                 new_booking_notifications_enabled: el("settings-new-booking-toggle").checked,
+                ai_task_notifications_enabled: el("settings-ai-task-toggle").checked,
                 owner_reminders_enabled: state.proAccess ? el("settings-reminders-owner-toggle").checked : undefined,
                 owner_reminder_minutes: state.proAccess ? state.reminderOwnerMinutes : undefined,
             },

@@ -9,6 +9,7 @@ import io
 import json
 
 import api
+import database
 import storage
 from conftest import register_and_login
 
@@ -113,3 +114,56 @@ def test_website_chat_streams_status_events_before_the_final_reply(client, uniqu
         {"type": "status", "key": "websiteChat.status.updatePriceList"},
         {"type": "done", "reply": "Updated your price list."},
     ]
+
+
+# "AI replies" push toggle (Settings > Notifications) - lets the owner find out a
+# streamed reply finished even if they'd already left the app before it arrived. On by
+# default (see database.py's ai_task_notifications_enabled migration).
+def test_website_chat_sends_push_when_reply_finishes(client, unique_email, monkeypatch):
+    token, business_id = register_and_login(client, unique_email)
+    headers = {"Authorization": f"Bearer {token}"}
+
+    def fake_stream(message, history=None, business_context=None, image_urls=None, tool_impls=None):
+        yield {"type": "status", "key": "websiteChat.status.thinking"}
+        yield {"type": "done", "reply": "Updated your price list."}
+
+    monkeypatch.setattr(api, "answer_website_chat_stream", fake_stream)
+    pushes = []
+    monkeypatch.setattr(api, "send_push_to_business", lambda *a, **k: pushes.append((a, k)))
+
+    response = client.post(
+        "/api/website-chat",
+        json={"message": "Cut is 1500 din", "history": []},
+        headers=headers,
+    )
+
+    assert response.status_code == 200
+    _ndjson_events(response)  # drain the streamed body so the request finishes
+    assert len(pushes) == 1
+    args, kwargs = pushes[0]
+    assert args[0] == business_id
+    assert "Updated your price list." in args[2]
+    assert kwargs["data"] == {"type": "ai_task_done"}
+
+
+def test_website_chat_skips_push_when_ai_task_notifications_disabled(client, unique_email, monkeypatch):
+    token, business_id = register_and_login(client, unique_email)
+    headers = {"Authorization": f"Bearer {token}"}
+    database.set_ai_task_notifications_enabled(business_id, False)
+
+    def fake_stream(message, history=None, business_context=None, image_urls=None, tool_impls=None):
+        yield {"type": "done", "reply": "ok"}
+
+    monkeypatch.setattr(api, "answer_website_chat_stream", fake_stream)
+    pushes = []
+    monkeypatch.setattr(api, "send_push_to_business", lambda *a, **k: pushes.append((a, k)))
+
+    response = client.post(
+        "/api/website-chat",
+        json={"message": "hi", "history": []},
+        headers=headers,
+    )
+
+    assert response.status_code == 200
+    _ndjson_events(response)
+    assert pushes == []

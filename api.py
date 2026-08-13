@@ -26,6 +26,8 @@ from database import (
     get_slot_duration, set_slot_duration, create_appointment, get_appointment, cancel_appointment,
     notifications_for_business, unread_notification_count, mark_notifications_read,
     is_new_booking_notifications_enabled, set_new_booking_notifications_enabled,
+    is_ai_task_notifications_enabled, set_ai_task_notifications_enabled,
+    create_notification,
     record_account_deletion, ACCOUNT_DELETION_REASONS,
     create_oauth_login_session, oauth_login_session_status,
     get_business_page, upsert_business_page, page_by_slug, appointments_in_range,
@@ -34,6 +36,7 @@ from database import (
 )
 from extensions import limiter
 from send_sms import sms_configured
+from push_notifications import send_push_to_business
 import booking
 import paddle_billing
 import google_oauth
@@ -1280,14 +1283,50 @@ def api_website_chat():
     # newline-delimited JSON rather than real SSE framing (no "data: "/blank-line
     # protocol to parse) since this is a one-shot POST response, not something that needs
     # EventSource's auto-reconnect - the client just reads the body as it arrives.
+    # reply_text is only filled in once answer_website_chat_stream actually reaches its
+    # "done" event - the `finally` below fires it as a push regardless of whether the
+    # client is still around to receive that last streamed line. That covers exactly the
+    # case this exists for: the owner sent a message, then backgrounded/closed the app
+    # before the reply finished, so the request's socket may already be gone by the time
+    # we'd otherwise `yield` the "done" event - `finally` still runs (Python throws
+    # GeneratorExit into a closed streaming generator, it doesn't just vanish), so the
+    # push still goes out even though the ndjson line it would ride on never arrived.
     def generate():
-        for event in answer_website_chat_stream(
-            message, history=safe_history, business_context=business_context,
-            image_urls=image_urls, tool_impls=tool_impls,
-        ):
-            yield json.dumps(event, ensure_ascii=False) + "\n"
+        reply_text = None
+        try:
+            for event in answer_website_chat_stream(
+                message, history=safe_history, business_context=business_context,
+                image_urls=image_urls, tool_impls=tool_impls,
+            ):
+                if event.get("type") == "done":
+                    reply_text = event.get("reply")
+                yield json.dumps(event, ensure_ascii=False) + "\n"
+        finally:
+            if reply_text:
+                _notify_website_chat_done(business_id, reply_text)
 
     return Response(stream_with_context(generate()), mimetype="application/x-ndjson")
+
+
+# Best-effort "your AI task is done" push for the mobile "Draft this with AI" chat (see
+# api_website_chat above) - gated by its own Settings toggle (ai_task_notifications_enabled),
+# same on/off-by-type pattern as new-booking and reminder pushes. Always sent on
+# completion regardless of whether the app is foreground or backgrounded: Capacitor
+# already suppresses the system banner and just fires pushNotificationReceived when the
+# app is open (see setupPushListeners in mobile/app.js), same as every other push type -
+# nothing here needs to special-case foreground itself.
+def _notify_website_chat_done(business_id, reply_text):
+    if not is_ai_task_notifications_enabled(business_id):
+        return
+    title = "Camilius AI is done"
+    body = " ".join(reply_text.split())
+    if len(body) > 140:
+        body = body[:139].rstrip() + "…"
+    try:
+        create_notification(business_id, title, body, kind="ai_task_done")
+        send_push_to_business(business_id, title, body, data={"type": "ai_task_done"})
+    except Exception:
+        pass
 
 
 # Mobile's Bearer-authed equivalent of app.py's session-authed /profile/check-domains -
@@ -1486,6 +1525,7 @@ def api_get_notification_preferences():
     return jsonify(
         push_enabled=is_push_enabled(request.business_id),
         new_booking_notifications_enabled=is_new_booking_notifications_enabled(request.business_id),
+        ai_task_notifications_enabled=is_ai_task_notifications_enabled(request.business_id),
         owner_reminders_enabled=is_owner_reminders_enabled(request.business_id),
         owner_reminder_minutes=get_owner_reminder_minutes(request.business_id),
     )
@@ -1502,6 +1542,8 @@ def api_update_notification_preferences():
         set_push_enabled(business_id, bool(data["push_enabled"]))
     if "new_booking_notifications_enabled" in data:
         set_new_booking_notifications_enabled(business_id, bool(data["new_booking_notifications_enabled"]))
+    if "ai_task_notifications_enabled" in data:
+        set_ai_task_notifications_enabled(business_id, bool(data["ai_task_notifications_enabled"]))
     # No-show reminders (Faza 9/11/12) are Pro-only - same server-side gate as the
     # website's /settings/reminders, so a Starter-plan app user can't flip this on
     # (or change its lead time) either.
@@ -1526,6 +1568,7 @@ def api_update_notification_preferences():
         message="saved",
         push_enabled=is_push_enabled(business_id),
         new_booking_notifications_enabled=is_new_booking_notifications_enabled(business_id),
+        ai_task_notifications_enabled=is_ai_task_notifications_enabled(business_id),
         owner_reminders_enabled=is_owner_reminders_enabled(business_id),
         owner_reminder_minutes=get_owner_reminder_minutes(business_id),
     )

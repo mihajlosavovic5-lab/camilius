@@ -55,6 +55,21 @@ def test_notification_preferences_new_booking_toggle_not_pro_gated(client, uniqu
     assert database.is_new_booking_notifications_enabled(business_id) is False
 
 
+def test_notification_preferences_ai_task_toggle_not_pro_gated(client, unique_email, monkeypatch):
+    # "AI replies" (the "Draft this with AI" chat's own push, see api._notify_website_chat_done)
+    # is a base feature too, on by default - same shape as new_booking_notifications_enabled above.
+    monkeypatch.setattr(app_module, "BETA_FREE_MODE", False)
+    headers, business_id = _auth_header(client, unique_email)
+    database.link_subscription(business_id, "cust", "sub", "active", plan="starter")
+
+    get_response = client.get("/api/notification-preferences", headers=headers)
+    assert get_response.get_json()["ai_task_notifications_enabled"] is True
+
+    post_response = client.post("/api/notification-preferences", headers=headers, json={"ai_task_notifications_enabled": False})
+    assert post_response.get_json()["ai_task_notifications_enabled"] is False
+    assert database.is_ai_task_notifications_enabled(business_id) is False
+
+
 def test_api_notifications_list_and_mark_read(client, unique_email):
     # Owner appointment reminders (reminders.py) land in this table instead of an email -
     # this is the mobile app's own bell/notifications screen reading it back.
