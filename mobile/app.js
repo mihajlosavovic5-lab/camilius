@@ -3509,7 +3509,20 @@ function setupPushListeners() {
 
     // Tapping a notification: refresh the inbox and, if we can find the conversation
     // it was about, jump straight to its detail screen instead of just the inbox list.
+    // The "AI replies" push (ai_task_done, see api._notify_website_chat_done) is the one
+    // exception - its reply isn't in the inbox at all, it's in the "Draft this with AI"
+    // chat screen (restoreChatHistory in the screen-website-chat IIFE above already
+    // re-renders that conversation from local storage at boot, independent of which
+    // screen is showing) - so tapping it goes straight there instead of landing on the
+    // inbox like every other push type, which is what previously made a delivered
+    // "AI replies" push feel like it had opened the wrong/old screen.
     capacitorPlugins.PushNotifications.addListener("pushNotificationActionPerformed", async (action) => {
+        const notificationType = action.notification.data && action.notification.data.type;
+        if (notificationType === "ai_task_done") {
+            showTabbar(false);
+            showScreen("websiteChat");
+            return;
+        }
         const conversationId = action.notification.data && action.notification.data.conversation_id;
         setActiveTab("inbox");
         await loadDashboard();
