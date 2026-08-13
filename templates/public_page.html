@@ -492,8 +492,9 @@
         white-space: pre-line;
         margin: 0;
     }
-    /* Prices - a classic printed-menu row (name, dotted leader, price) instead of the
-       plain pre-line text dump every other opaque text field on this page still uses.
+    /* Prices - a clean name/price row (justify-content: space-between pushes the price
+       to the far end) instead of the plain pre-line text dump every other opaque text
+       field on this page still uses.
        .price-list-raw right below holds that same raw "Name: Price" text off-screen
        purely so the language switcher has something to re-parse from - see
        renderPriceRows/parsePriceListText and applyTranslation's price_list case further
@@ -503,23 +504,13 @@
     .price-row {
         display: flex;
         align-items: baseline;
+        justify-content: space-between;
         gap: 8px;
         padding: 10px 0;
         border-bottom: 1px solid var(--border);
     }
     .price-row:last-child { border-bottom: none; }
     .price-row-name { color: var(--text); font-weight: 600; }
-    /* The dotted leader itself - flex: 1 soaks up whatever space the name/price don't
-       need, so it stretches or shrinks to fill the row regardless of how long either
-       side is, same as a printed menu's own leader dots. */
-    .price-row-leader {
-        flex: 1 1 auto;
-        min-width: 12px;
-        height: 0.6em;
-        align-self: flex-end;
-        border-bottom: 1px dotted var(--border);
-        margin: 0 2px;
-    }
     .price-row-amount {
         flex: 0 0 auto;
         color: var(--primary);
@@ -1448,7 +1439,6 @@
                 {% for row in price_list_rows %}
                 <li class="price-row">
                     <span class="price-row-name">{{ row.name }}</span>
-                    <span class="price-row-leader" aria-hidden="true"></span>
                     {% if row.price %}<span class="price-row-amount">{{ row.price }}</span>{% endif %}
                 </li>
                 {% endfor %}
@@ -1691,10 +1681,6 @@
             nameSpan.className = "price-row-name";
             nameSpan.textContent = row.name;
             li.appendChild(nameSpan);
-            var leader = document.createElement("span");
-            leader.className = "price-row-leader";
-            leader.setAttribute("aria-hidden", "true");
-            li.appendChild(leader);
             if (row.price) {
                 var priceSpan = document.createElement("span");
                 priceSpan.className = "price-row-amount";
