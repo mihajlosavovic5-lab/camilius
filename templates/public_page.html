@@ -2181,6 +2181,17 @@ window.pageOverlay = (function () {
     var currentLang = null;
     var loading = false;
 
+    // Per-page (per-slug) key, same localStorage-not-cookie reasoning and try/catch
+    // guard as the chat widget's own SESSION_KEY further down this page - remembers
+    // whichever language a visitor (most commonly the owner themselves, tapping "View
+    // page" over and over while checking the site) last actually picked here, so the
+    // page can restore it below instead of always reopening in content_language, the
+    // page's own server-detected default, every single time.
+    var LANG_KEY = "camilius_page_lang_" + {{ slug | tojson }};
+    function rememberLanguage(lang) {
+        try { localStorage.setItem(LANG_KEY, lang); } catch (e) { /* private mode etc. - just skip remembering */ }
+    }
+
     var langBtn = document.getElementById("lang-btn");
     var langFlag = document.getElementById("lang-flag");
     var langDropdown = document.getElementById("lang-dropdown");
@@ -2552,75 +2563,88 @@ window.pageOverlay = (function () {
         closeDropdown();
     });
 
+    // Switches the page to `lang`, sharing the exact same cache/fetch/loading-overlay/
+    // error-shake behavior whether it's a visitor tapping a flag row (opt is that real
+    // .lang-option element) or the saved-preference restore right below auto-replaying a
+    // previous pick on a fresh load (opt is whichever row matches the saved code, found
+    // the same way). Persists the picked language (see rememberLanguage below) on every
+    // successful switch, cached or freshly fetched alike - so the auto-restore below
+    // finds it again next time this page (or the "View page"/in-app-browser tab it opens
+    // in, which shares this same localStorage per slug) is opened, instead of always
+    // starting back over from the page's own detected content_language.
+    function switchLanguage(lang, opt) {
+        // Already showing this language (its own row is marked .active - kept in sync on
+        // every successful switch below, and set once up front from current_lang on first
+        // paint) - nothing to fetch or apply. translation_is_usable (translate_page.py) no
+        // longer exempts a same-language request from its "about" echo check - a real
+        // translation into a different language essentially never matches the source, so
+        // treating a still-identical "about" as ok specifically when the languages matched
+        // relied on content_language being accurate, which isn't guaranteed - so a request
+        // that reaches the server for the language already on screen can legitimately 502
+        // there. This short-circuit keeps that request from ever being sent in the first
+        // place, for every language alike.
+        if (opt && opt.classList.contains("active")) return;
+        if (loading) return;
+        // Shown for every switch, cached or not - a cache hit applies instantly, so
+        // without the minimum-duration hold below the overlay would flash for a single
+        // frame or not paint at all, making a cached switch feel inconsistent with an
+        // uncached one instead of both giving the same "something happened" feedback.
+        var overlayShownAt = Date.now();
+        var overlayMinMs = 220;
+        // Snap the overlay in (no "closing" class - see the CSS comment on
+        // .lang-loading-overlay for why an instant appearance matters here) - so its
+        // close animation and the shared backdrop's dim-out both play fully hidden
+        // behind the now-opaque overlay instead of racing its own fade-in, which used
+        // to show through as a "flashes open then shut" glitch. Drop "closing" (left
+        // over from a previous switch's fade-out, if any) before re-adding "visible" -
+        // otherwise this appearance would inherit that leftover transition and fade in
+        // instead of snapping, reopening the exact race this is meant to avoid.
+        if (langLoadingOverlay) { langLoadingOverlay.classList.remove("closing"); langLoadingOverlay.classList.add("visible"); }
+        function hideOverlay() {
+            if (!langLoadingOverlay) return;
+            var remaining = overlayMinMs - (Date.now() - overlayShownAt);
+            function hideNow() {
+                langLoadingOverlay.classList.add("closing");
+                langLoadingOverlay.classList.remove("visible");
+            }
+            if (remaining <= 0) hideNow(); else setTimeout(hideNow, remaining);
+        }
+        if (cache[lang]) {
+            applyTranslation(lang, cache[lang]);
+            rememberLanguage(lang);
+            hideOverlay();
+            return;
+        }
+        loading = true;
+        langBtn.classList.add("loading");
+        fetch(translateUrlBase + lang)
+            .then(function (r) { if (!r.ok) throw new Error("bad status"); return r.json(); })
+            .then(function (data) {
+                cache[lang] = data;
+                applyTranslation(lang, data);
+                rememberLanguage(lang);
+            })
+            .catch(function () {
+                // Leaves whatever's currently on screen untouched - a failed
+                // translation is a worse outcome than none, never a broken page. The
+                // shake is the only sign this happened at all - see .lang-btn.error
+                // above - otherwise a failure and a no-op look identical to a visitor.
+                langBtn.classList.add("error");
+                setTimeout(function () { langBtn.classList.remove("error"); }, 500);
+            })
+            .finally(function () {
+                loading = false;
+                langBtn.classList.remove("loading");
+                hideOverlay();
+            });
+    }
+
     langOptions.forEach(function (opt) {
         opt.addEventListener("click", function () {
             var lang = opt.dataset.lang;
-            // Already showing this language (its own row is marked .active - kept in
-            // sync on every successful switch below, and set once up front from
-            // current_lang on first paint) - nothing to fetch or apply, so skip straight
-            // to closing instead of round-tripping to /translate/<lang> for a no-op.
-            // translation_is_usable (translate_page.py) no longer exempts a same-
-            // language request from its "about" echo check - a real translation into a
-            // different language essentially never matches the source, so treating a
-            // still-identical "about" as ok specifically when the languages matched
-            // relied on content_language being accurate, which isn't guaranteed - so a
-            // request that reaches the server for the language already on screen can
-            // legitimately 502 there. This short-circuit keeps that request from ever
-            // being sent in the first place, for every language alike.
             if (opt.classList.contains("active")) { closeDropdown(); return; }
-            if (loading) return;
-            // Shown for every switch, cached or not - a cache hit applies instantly, so
-            // without the minimum-duration hold below the overlay would flash for a single
-            // frame or not paint at all, making a cached switch feel inconsistent with an
-            // uncached one instead of both giving the same "something happened" feedback.
-            var overlayShownAt = Date.now();
-            var overlayMinMs = 220;
-            // Snap the overlay in (no "closing" class - see the CSS comment on
-            // .lang-loading-overlay for why an instant appearance matters here), THEN close
-            // the dropdown - so its close animation and the shared backdrop's dim-out both
-            // play fully hidden behind the now-opaque overlay instead of racing its own
-            // fade-in, which used to show through as a "flashes open then shut" glitch.
-            // Drop "closing" (left over from a previous switch's fade-out, if any) before
-            // re-adding "visible" - otherwise this appearance would inherit that leftover
-            // transition and fade in instead of snapping, reopening the exact race this is
-            // meant to avoid.
-            if (langLoadingOverlay) { langLoadingOverlay.classList.remove("closing"); langLoadingOverlay.classList.add("visible"); }
             closeDropdown();
-            function hideOverlay() {
-                if (!langLoadingOverlay) return;
-                var remaining = overlayMinMs - (Date.now() - overlayShownAt);
-                function hideNow() {
-                    langLoadingOverlay.classList.add("closing");
-                    langLoadingOverlay.classList.remove("visible");
-                }
-                if (remaining <= 0) hideNow(); else setTimeout(hideNow, remaining);
-            }
-            if (cache[lang]) {
-                applyTranslation(lang, cache[lang]);
-                hideOverlay();
-                return;
-            }
-            loading = true;
-            langBtn.classList.add("loading");
-            fetch(translateUrlBase + lang)
-                .then(function (r) { if (!r.ok) throw new Error("bad status"); return r.json(); })
-                .then(function (data) {
-                    cache[lang] = data;
-                    applyTranslation(lang, data);
-                })
-                .catch(function () {
-                    // Leaves whatever's currently on screen untouched - a failed
-                    // translation is a worse outcome than none, never a broken page. The
-                    // shake is the only sign this happened at all - see .lang-btn.error
-                    // above - otherwise a failure and a no-op look identical to a visitor.
-                    langBtn.classList.add("error");
-                    setTimeout(function () { langBtn.classList.remove("error"); }, 500);
-                })
-                .finally(function () {
-                    loading = false;
-                    langBtn.classList.remove("loading");
-                    hideOverlay();
-                });
+            switchLanguage(lang, opt);
         });
     });
 
@@ -2638,6 +2662,23 @@ window.pageOverlay = (function () {
     // match content_language from the start, the same as tagline/about/etc. (rendered
     // server-side already in that language) already do.
     applyTranslation({{ current_lang.code | tojson }}, originalLangContent);
+
+    // Restores whichever language a visitor last actually picked here (see LANG_KEY/
+    // rememberLanguage above), so reopening this same page - most commonly the owner
+    // tapping "View page" over and over while checking the site - shows their last
+    // choice again instead of always reopening in content_language, the page's own
+    // server-detected default. Runs after the seed call above so a real saved
+    // preference always wins over that default. Guarded on the saved code actually
+    // matching one of this page's real language rows (translate_page.LANGUAGES could
+    // have dropped a code, or a stale value could be left over from before this page's
+    // own language list changed) so a bad/unsupported stored value can't get stuck
+    // attempting the same failing switch on every future load.
+    var savedLang = null;
+    try { savedLang = localStorage.getItem(LANG_KEY); } catch (e) { /* private mode etc. */ }
+    if (savedLang && savedLang !== {{ current_lang.code | tojson }}) {
+        var savedOpt = langOptions.filter(function (o) { return o.dataset.lang === savedLang; })[0];
+        if (savedOpt) switchLanguage(savedLang, savedOpt);
+    }
 })();
 </script>
 
