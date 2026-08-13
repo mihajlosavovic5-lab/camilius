@@ -59,17 +59,21 @@ THEMES = {
     },
     "bold": {
         "label": "Bold & contrast",
-        "blurb": "Always-dark background with a vivid accent - modern and energetic.",
-        "swatch": ["#0a0a0a", "#ff4d33", "#f5f5f5"],
+        "blurb": "Vivid red-orange accent on a clean white page - bold and energetic.",
+        "swatch": ["#ff4d33", "#ffffff", "#1a1210"],
         "radius": "6px",
         "heading_font": None,
-        "fixed_dark": True,
+        "fixed_dark": False,
         "base": {
+            "primary": "#ff4d33", "on_primary": "#0a0a0a", "gold": "#ff8a3d",
+            "background": "#ffffff", "surface": "#ffffff", "text": "#1a1210",
+            "text_muted": "#7a6a64", "border": "#f0d9d3",
+        },
+        "dark": {
             "primary": "#ff4d33", "on_primary": "#0a0a0a", "gold": "#ff8a3d",
             "background": "#0a0a0a", "surface": "#171717", "text": "#f5f5f5",
             "text_muted": "#a8a8a8", "border": "#2a2a2a",
         },
-        "dark": None,
     },
     "nature": {
         "label": "Nature & organic",
@@ -91,17 +95,21 @@ THEMES = {
     },
     "luxury": {
         "label": "Luxury",
-        "blurb": "Black and gold, serif headings, always-dark premium feel.",
-        "swatch": ["#0b0b0c", "#c9a227", "#f2ead9"],
+        "blurb": "Gold accent on crisp white, serif headings - premium and refined.",
+        "swatch": ["#c9a227", "#ffffff", "#241f14"],
         "radius": "2px",
         "heading_font": "Georgia, 'Times New Roman', serif",
-        "fixed_dark": True,
+        "fixed_dark": False,
         "base": {
+            "primary": "#c9a227", "on_primary": "#14110a", "gold": "#e8c766",
+            "background": "#ffffff", "surface": "#ffffff", "text": "#241f14",
+            "text_muted": "#8a7d5c", "border": "#ece2c4",
+        },
+        "dark": {
             "primary": "#c9a227", "on_primary": "#14110a", "gold": "#e8c766",
             "background": "#0b0b0c", "surface": "#161616", "text": "#f2ead9",
             "text_muted": "#b8ab8a", "border": "#2a2a2a",
         },
-        "dark": None,
     },
     "ivory": {
         "label": "Soft Ivory",
