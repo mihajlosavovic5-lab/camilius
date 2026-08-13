@@ -2285,10 +2285,9 @@ def onboarding_website_preview():
         # Settings-only) - always None here, so the Location section stays hidden in
         # this tiny thumbnail preview exactly as it would for a real page with none set.
         address=None,
-        # No booking widget and chat disabled in this tiny thumbnail preview (see
-        # chat_url="" above) - hero_cta_for_business always returns None here, same as
-        # it would for a real page with neither.
-        hero_cta=pages.hero_cta_for_business(False, False),
+        # No booking widget in this tiny thumbnail preview - hero_cta_for_business
+        # always returns None here, same as it would for any real page without one.
+        hero_cta=pages.hero_cta_for_business(False),
         # Language switcher still renders (same fixed EN/ES/FR/DE row, plus a leading
         # detected-language flag, as the live page), but nothing is actually saved yet to
         # translate against - translate_url="" is the same "disabled in this in-progress
@@ -2756,11 +2755,9 @@ def _render_public_page(page, business, page_url, preview=False):
         current_theme_id=page[9] if is_owner else None,
         booking_enabled=booking_enabled,
         # The one primary action shown in the hero (and, on mobile, the sticky bottom
-        # bar) - Book > Chat, see hero_cta_for_business's own docstring for why. Chat is
-        # always reachable here (chat_url is a real URL on both routes this function
-        # serves - see chat_url above), unlike onboarding_website_preview's own tiny
-        # thumbnail iframe, which computes this itself with chat disabled.
-        hero_cta=pages.hero_cta_for_business(booking_enabled, True),
+        # bar) - Book only, see hero_cta_for_business's own docstring for why. None (no
+        # button anywhere) for a business without booking enabled.
+        hero_cta=pages.hero_cta_for_business(booking_enabled),
         availability_url=(f"https://{PRIMARY_APP_HOST}" + url_for("public_page_availability", slug=slug)) if booking_enabled else None,
         # Computed once here, embedded straight into the page, so the "Book an
         # appointment" widget can render today's real open times the instant its script
