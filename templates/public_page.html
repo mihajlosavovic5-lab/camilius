@@ -228,18 +228,22 @@
     body[data-overlay="menu"] .lang-btn,
     body[data-overlay="menu"] .chat-fab,
     body[data-overlay="menu"] .theme-fab,
+    body[data-overlay="menu"] .sticky-cta-bar,
     body[data-overlay="lang"] .top-bar-title,
     body[data-overlay="lang"] .nav-menu-btn,
     body[data-overlay="lang"] .chat-fab,
     body[data-overlay="lang"] .theme-fab,
+    body[data-overlay="lang"] .sticky-cta-bar,
     body[data-overlay="chat"] .top-bar-title,
     body[data-overlay="chat"] .nav-menu-btn,
     body[data-overlay="chat"] .lang-btn,
     body[data-overlay="chat"] .theme-fab,
+    body[data-overlay="chat"] .sticky-cta-bar,
     body[data-overlay="theme"] .top-bar-title,
     body[data-overlay="theme"] .nav-menu-btn,
     body[data-overlay="theme"] .lang-btn,
-    body[data-overlay="theme"] .chat-fab {
+    body[data-overlay="theme"] .chat-fab,
+    body[data-overlay="theme"] .sticky-cta-bar {
         opacity: .35;
         pointer-events: none;
         transition: opacity .3s ease;
@@ -512,6 +516,59 @@
     }
     .hero-cta:hover { transform: translateY(-2px); box-shadow: 0 10px 24px -8px color-mix(in srgb, var(--primary) 65%, transparent); }
     .hero-cta:active { transform: translateY(0) scale(.97); }
+    /* Not theme-dependent (unlike the vars in the main :root block above) - a plain
+       constant both .sticky-cta-bar and the .chat-fab/.theme-fab shift rule below read
+       from, so the two stay in sync from one source without needing .sticky-cta-bar to
+       be an ancestor of the FABs (it isn't - both are separate fixed-position siblings
+       at the end of <body>, so a var set ON .sticky-cta-bar itself wouldn't be visible
+       to them at all; :root is the one scope both actually share). */
+    :root { --sticky-cta-height: 64px; }
+    /* Mobile-only repeat of .hero-cta's own primary action, kept reachable once a
+       visitor has scrolled past the hero (see the IntersectionObserver script further
+       down) and that button is long gone - same target/label as hero_cta, just a
+       second place to tap it from. Hidden by default; only ever shown inside the
+       880px media query below, alongside the FAB-shift rule that makes room for it. */
+    .sticky-cta-bar {
+        display: none;
+        position: fixed;
+        inset-inline: 0;
+        bottom: 0;
+        z-index: 951;
+        padding: 10px 16px calc(10px + env(safe-area-inset-bottom));
+        background: color-mix(in srgb, var(--surface) 92%, transparent);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        border-top: 1px solid var(--border);
+        opacity: 0;
+        transform: translateY(100%);
+        pointer-events: none;
+        transition: opacity .25s ease, transform .25s ease;
+    }
+    .sticky-cta-bar.visible { opacity: 1; transform: translateY(0); pointer-events: auto; }
+    .sticky-cta-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        height: calc(var(--sticky-cta-height) - 20px);
+        border-radius: var(--radius);
+        background: var(--primary);
+        color: var(--on-primary);
+        font-weight: 700;
+        font-size: 0.95rem;
+        text-decoration: none;
+    }
+    .sticky-cta-btn:active { transform: scale(.98); }
+    @media (max-width: 880px) {
+        .sticky-cta-bar { display: block; }
+        /* FABs shift up to clear the bar rather than the bar narrowing around them -
+           only applies when hero_cta actually rendered a bar to clear (has-sticky-cta,
+           set server-side on <body> - see public_page.html's own body tag). */
+        body.has-sticky-cta .chat-fab,
+        body.has-sticky-cta .theme-fab {
+            bottom: calc(var(--sticky-cta-height) + env(safe-area-inset-bottom) + 14px);
+        }
+    }
     section {
         background: var(--surface);
         border: 1px solid var(--border);
@@ -1758,7 +1815,7 @@
     }
 </style>
 </head>
-<body>
+<body{% if hero_cta %} class="has-sticky-cta"{% endif %}>
 <div id="page-progress"></div>
 <div class="top-bar-fill" id="top-bar-fill"></div>
 <button type="button" class="nav-menu-btn" id="nav-menu-btn" aria-label="Menu" aria-expanded="false" aria-controls="side-nav">
@@ -3188,6 +3245,23 @@ window.pageOverlay = (function () {
         revealEls.forEach(function (el) { el.classList.add("visible"); });
     }
 
+    // Sticky bottom CTA bar (mobile only, see .sticky-cta-bar's own CSS comment) -
+    // shown once the hero itself (#home, the same element .hero-cta lives in) scrolls
+    // out of view, hidden again scrolled back to the top - so the same action never
+    // shows twice on screen at once. The bar is `display:none` outside the 880px media
+    // query regardless of this class, so this observer is harmless overhead on desktop,
+    // not worth gating behind a matchMedia check of its own.
+    var stickyCtaBar = document.getElementById("sticky-cta-bar");
+    var heroEl = document.getElementById("home");
+    if (stickyCtaBar && heroEl && "IntersectionObserver" in window) {
+        var stickyCtaIo = new IntersectionObserver(function (entries) {
+            entries.forEach(function (entry) {
+                stickyCtaBar.classList.toggle("visible", !entry.isIntersecting);
+            });
+        });
+        stickyCtaIo.observe(heroEl);
+    }
+
     // Side-nav scroll-spy - highlights whichever section is currently in view.
     var navLinks = Array.prototype.slice.call(document.querySelectorAll(".side-nav-link"));
     var spySections = [];
@@ -3405,6 +3479,19 @@ window.pageOverlay = (function () {
 </script>
 {% endif %}
 
+{% if hero_cta %}
+<!-- Mobile-only repeat of the hero's own CTA (see .hero-cta/.sticky-cta-bar's own CSS
+     comments), shown once a visitor scrolls past the hero itself and that button is no
+     longer on screen - see the IntersectionObserver script further down. -->
+<div class="sticky-cta-bar" id="sticky-cta-bar">
+    <a class="sticky-cta-btn"
+       href="{{ hero_cta.target if hero_cta.target != 'chat' else '#' }}"
+       {% if hero_cta.target == 'chat' %}data-hero-cta-chat="true"{% endif %}
+       data-i18n="{{ hero_cta.label_key }}"
+       >{% if hero_cta.label_key == "cta_book" %}Book now{% elif hero_cta.label_key == "cta_call" %}Call now{% else %}Message us{% endif %}</a>
+</div>
+{% endif %}
+
 {% if chat_url %}
 <!-- Chat + booking - the actual product this page exists to deliver, not a website
      builder add-on (see the AI answering questions/hours/prices/faq above, and booking
@@ -3582,17 +3669,17 @@ window.pageOverlay = (function () {
 
     window.pageOverlay.register("chat", function () { setOpen(false); });
     fab.addEventListener("click", function () { setOpen(!open); });
-    // Hero's own CTA button (.hero-cta, see pages.hero_cta_for_business) opens this same
-    // panel when chat is its target - a plain href="#" otherwise (see the template) with
-    // nothing to actually navigate to, so this is the only thing that makes it do
-    // anything at all in that case.
-    var heroCtaChat = document.getElementById("hero-cta");
-    if (heroCtaChat && heroCtaChat.dataset.heroCtaChat) {
-        heroCtaChat.addEventListener("click", function (e) {
+    // The hero's own CTA button (#hero-cta) and its mobile-only repeat in the sticky
+    // bottom bar (#sticky-cta-bar .sticky-cta-btn) both open this same panel when chat
+    // is their target - a plain href="#" otherwise (see the template), with nothing to
+    // actually navigate to, so this is the only thing that makes either do anything at
+    // all in that case.
+    Array.prototype.forEach.call(document.querySelectorAll("[data-hero-cta-chat]"), function (el) {
+        el.addEventListener("click", function (e) {
             e.preventDefault();
             setOpen(true);
         });
-    }
+    });
     // Click-outside-to-close - same pattern as the language dropdown's own outside-click
     // handler above, now the only way to close besides the fab itself (which doubles as
     // its own close button once open - see .chat-fab-icon-close/.chat-fab.open above -
