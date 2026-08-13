@@ -2298,6 +2298,7 @@ def onboarding_website_preview():
         translate_url="",
         content_language=content_language,
         page_languages=[{"code": code, **translate_page.LANGUAGES[code]} for code in page_languages],
+        current_year=datetime.now().year,
     )
 
 
@@ -2789,6 +2790,7 @@ def _render_public_page(page, business, page_url, preview=False):
         contact_email=business[3],
         phone_number=business[10],
         address=page[17],
+        current_year=datetime.now().year,
     )
 
 
