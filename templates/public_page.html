@@ -2139,6 +2139,14 @@
         }
         if (prevBtn) prevBtn.addEventListener("click", prev);
         if (nextBtn) nextBtn.addEventListener("click", next);
+        // A plain overflow-x container starts scrolled to its very first DOM child,
+        // which - now that cloneSecondLast/cloneLast sit ahead of the real slides in the
+        // track (see the clone setup above) - is one of those two clones, not slide 0.
+        // Without this, the page loaded with slide 0 correctly marked "active" (dot lit,
+        // slide undimmed) while the viewport was actually still showing a dimmed clone
+        // sitting in front of it. No animation here - this is the starting position, not
+        // a navigation.
+        viewport.scrollLeft = targetScrollLeft(slides[0]);
         setActive(0);
 
         // Hand-rolled drag - mirrors #book-list's own touchstart/touchmove/touchend
