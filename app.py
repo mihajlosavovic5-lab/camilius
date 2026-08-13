@@ -1878,6 +1878,13 @@ def onboarding_website_describe():
                     "faq": format_faq(generated["faq"]),
                     "booking_relevant": generated.get("booking_relevant", True),
                     "ai_theme_options": ai_theme_options,
+                    # Detected once here, right alongside the rest of the AI draft, so the
+                    # live preview iframe (onboarding_website_preview) can show the same
+                    # leading detected-language flag a published page would - see
+                    # _render_public_page's identical detect-once/cache pattern. Nothing
+                    # is in the database yet to cache this against, so it rides along in
+                    # the session draft instead.
+                    "content_language": translate_page.detect_content_language(f"{generated['tagline']}\n{generated['about']}"),
                 }
                 log_event("onboarding_draft_generated", business_id=business_id)
                 return redirect(url_for("onboarding_website_design"))
@@ -2170,6 +2177,14 @@ def onboarding_website_preview():
     else:
         theme = themes.resolve_theme(requested_theme, draft.get("custom_theme_json"))
     media = business_media.media_for_page(business_id)
+    # draft.get(..., "en") rather than a plain draft["content_language"] - a draft already
+    # in someone's session from before this key existed shouldn't 500 the preview, just
+    # fall back to no extra flag until they regenerate it. See onboarding_website_describe
+    # for where this is actually detected.
+    content_language = draft.get("content_language", "en")
+    page_languages = list(translate_page.DEFAULT_PAGE_LANGUAGES)
+    if content_language in translate_page.LANGUAGES and content_language not in page_languages:
+        page_languages.insert(0, content_language)
     return render_template(
         "public_page.html",
         business_name=business[1],
@@ -2193,14 +2208,15 @@ def onboarding_website_preview():
         social_links=_social_links_for_business(business),
         contact_email=business[3],
         phone_number=business[10],
-        # Language switcher still renders (same fixed EN/ES/FR/DE row as the live page),
-        # but nothing is actually saved yet to translate against - translate_url="" is
-        # the same "disabled in this in-progress draft" convention chat_url="" above
-        # already uses; picking a language here just fails silently (caught in the
-        # switcher's own fetch().catch()), same graceful no-op as tapping the chat bubble.
+        # Language switcher still renders (same fixed EN/ES/FR/DE row, plus a leading
+        # detected-language flag, as the live page), but nothing is actually saved yet to
+        # translate against - translate_url="" is the same "disabled in this in-progress
+        # draft" convention chat_url="" above already uses; picking a language here just
+        # fails silently (caught in the switcher's own fetch().catch()), same graceful
+        # no-op as tapping the chat bubble.
         translate_url="",
-        content_language="en",
-        page_languages=[{"code": code, **translate_page.LANGUAGES[code]} for code in translate_page.DEFAULT_PAGE_LANGUAGES],
+        content_language=content_language,
+        page_languages=[{"code": code, **translate_page.LANGUAGES[code]} for code in page_languages],
     )
 
 

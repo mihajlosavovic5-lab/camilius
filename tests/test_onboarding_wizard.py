@@ -12,6 +12,7 @@ import themes
 from conftest import register_business_web, web_post, get_csrf_token
 import page_generator
 import ai_theme
+import translate_page
 
 
 class _FakeMessage:
@@ -59,6 +60,7 @@ def _mock_ai_draft(monkeypatch):
     # about the wizard's flow, not what the design step's AI suggestions look like (see
     # test_ai_theme.py / test_onboarding_design_ai_suggestions.py for that).
     monkeypatch.setattr(ai_theme, "generate_theme_options", lambda *args, **kwargs: [])
+    monkeypatch.setattr(translate_page, "detect_content_language", lambda text: "en")
 
 
 def _run_describe_step(client, monkeypatch):
@@ -127,6 +129,7 @@ def test_onboarding_address_prefills_ai_suggested_slug(client, unique_email, mon
         lambda **kwargs: _FakeResponse(json.dumps(draft)),
     )
     monkeypatch.setattr(ai_theme, "generate_theme_options", lambda *args, **kwargs: [])
+    monkeypatch.setattr(translate_page, "detect_content_language", lambda text: "en")
     csrf_token = get_csrf_token(client, "/onboarding/website")
     web_post(client, "/onboarding/website", {
         "csrf_token": csrf_token, "description": "A barbershop open weekdays 9-6, haircuts 20 EUR.",
@@ -174,6 +177,7 @@ def _run_describe_step_with_ai_theme_options(client, monkeypatch, options):
         lambda **kwargs: _FakeResponse(json.dumps(VALID_DRAFT)),
     )
     monkeypatch.setattr(ai_theme, "generate_theme_options", lambda *args, **kwargs: options)
+    monkeypatch.setattr(translate_page, "detect_content_language", lambda text: "en")
     csrf_token = get_csrf_token(client, "/onboarding/website")
     return web_post(client, "/onboarding/website", {
         "csrf_token": csrf_token, "description": "A barbershop open weekdays 9-6, haircuts 20 EUR.",
@@ -282,6 +286,22 @@ def test_onboarding_preview_renders_the_chosen_theme_without_chat(client, unique
     response = client.get("/onboarding/website/preview?theme=nature")
     html = response.get_data(as_text=True)
     assert themes.THEMES["nature"]["base"]["primary"] in html
+
+
+def test_onboarding_preview_shows_detected_content_language_flag_first(client, unique_email, monkeypatch):
+    # Same leading-flag behavior as the published page (see
+    # test_public_page_translate.py's equivalent test) - detected here from the AI
+    # draft's own tagline/about instead of a saved page, since nothing's published yet.
+    _mock_ai_draft(monkeypatch)
+    monkeypatch.setattr(translate_page, "detect_content_language", lambda text: "sr")
+    register_business_web(client, unique_email)
+    csrf_token = get_csrf_token(client, "/onboarding/website")
+    web_post(client, "/onboarding/website", {
+        "csrf_token": csrf_token, "description": "A barbershop open weekdays 9-6, haircuts 20 EUR.",
+    })
+
+    html = client.get("/onboarding/website/preview").get_data(as_text=True)
+    assert html.index('data-lang="sr"') < html.index('data-lang="en"')
 
 
 def test_onboarding_design_csp_allows_its_own_preview_iframes(client, unique_email, monkeypatch):
