@@ -358,3 +358,72 @@ def translate_page_content(lang, tagline, about, price_list, faq):
         last_reason = rejection_reason
 
     raise ValueError(f"model returned an unusable translation after {_MAX_TRANSLATE_ATTEMPTS} attempts: {last_reason}")
+
+
+_UI_TRANSLATE_SCHEMA = {
+    "type": "object",
+    "properties": {key: {"type": "string"} for key in PAGE_UI_STRINGS},
+    "required": list(PAGE_UI_STRINGS.keys()),
+    "additionalProperties": False,
+}
+
+_UI_TRANSLATE_SYSTEM_PROMPT = """Translate this fixed set of short website UI labels and messages into
+{lang}. Every value in your response must actually be written in {lang} - never leave one
+in English or copy it through unchanged.
+
+Some values contain literal {{token}} placeholders (e.g. {{day}}, {{time}}) - copy each one
+through exactly as written, in the same position, without translating its contents or the
+surrounding braces.
+
+Respond with plain text values only, no markdown formatting."""
+
+
+def translate_ui_strings(lang):
+    """PAGE_UI_STRINGS (the page's own fixed chrome - nav labels, section headings,
+    booking/chat messages, no business content at all) translated into `lang`. Kept
+    entirely separate from translate_page_content: this exists specifically so
+    app.py's _render_public_page can localize that chrome even when `lang` is the
+    business's own content_language - which translate_page_content can't do, since its
+    about-echo rejection (translation_rejection_reason) exists precisely to catch
+    business prose that LOOKS untranslated, and "about" translated into the language
+    it's already written in always looks exactly like that by definition. These are
+    short, generic, business-agnostic strings instead, with no equivalent echo risk
+    worth guarding against - a missing/empty required key is the only failure mode
+    checked for here. Raises ValueError the same way translate_page_content does if
+    every attempt fails; the caller (app.py) is expected to fall back to plain English
+    chrome on failure rather than block rendering the page over this."""
+    lang_name = LANGUAGES.get(lang, {}).get("name", lang)
+    messages = [
+        {"role": "system", "content": _UI_TRANSLATE_SYSTEM_PROMPT.format(lang=lang_name)},
+        {"role": "user", "content": json.dumps(PAGE_UI_STRINGS)},
+    ]
+    last_reason = "unknown failure"
+    for _attempt in range(_MAX_TRANSLATE_ATTEMPTS):
+        try:
+            response = client.chat.completions.create(
+                model=MODEL,
+                messages=messages,
+                max_tokens=2000,
+                response_format={
+                    "type": "json_schema",
+                    "json_schema": {"name": "ui_string_translation", "strict": True, "schema": _UI_TRANSLATE_SCHEMA},
+                },
+            )
+        except Exception as error:
+            last_reason = f"model call failed: {error}"
+            continue
+        content = response.choices[0].message.content
+        if not content:
+            last_reason = "model returned no content"
+            continue
+        try:
+            result = json.loads(content)
+        except json.JSONDecodeError as error:
+            last_reason = f"model returned invalid JSON: {error}"
+            continue
+        missing = [key for key in PAGE_UI_STRINGS if not (result.get(key) or "").strip()]
+        if not missing:
+            return result
+        last_reason = f"missing/empty keys: {missing[:5]}"
+
+    raise ValueError(f"model returned an unusable ui translation after {_MAX_TRANSLATE_ATTEMPTS} attempts: {last_reason}")

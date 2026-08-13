@@ -899,6 +899,28 @@ def create_database():
     """)
     cursor.execute("CREATE UNIQUE INDEX IF NOT EXISTS business_page_translations_business_lang_idx ON business_page_translations (business_id, lang)")
 
+    # translate_page.PAGE_UI_STRINGS (the page's own fixed chrome - nav labels, section
+    # headings, booking/chat messages) translated into `lang`, cached once ever PER
+    # LANGUAGE rather than per (business, lang) like business_page_translations above -
+    # unlike that table, this content is the exact same fixed English dict for every
+    # business, so there's nothing business-specific to key it on. Used specifically for
+    # a business whose own content_language isn't English: public_page.html always
+    # renders that fixed chrome in English (see its own module docstring) and only
+    # localizes it client-side once a visitor's language is known, including the
+    # visitor's very first paint if content_language itself is what gets used there (see
+    # app.py's _render_public_page) - translating tagline/about/etc. into the language
+    # they're ALREADY written in would trip translate_page.translate_page_content's own
+    # about-echo rejection (a real bug this table's translate_ui_strings() sidesteps
+    # entirely by never touching business content, just this fixed dict).
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS ui_string_translations (
+            id SERIAL PRIMARY KEY,
+            lang TEXT NOT NULL UNIQUE,
+            ui_json TEXT NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+
     # Photos/video a business uploads for its own public page (logo in the header, a
     # gallery of shots of the product/space, one hero video) - see storage.py for the
     # actual Cloudinary upload/delete, this table just links the resulting URL back to
@@ -3033,6 +3055,35 @@ def upsert_page_translation(business_id, lang, tagline, about, price_list, faq, 
                tagline = EXCLUDED.tagline, about = EXCLUDED.about, price_list = EXCLUDED.price_list,
                faq = EXCLUDED.faq, ui_json = EXCLUDED.ui_json, created_at = CURRENT_TIMESTAMP""",
         (business_id, lang, tagline, about, price_list, faq, ui_json),
+    )
+    connection.commit()
+    connection.close()
+
+
+def get_ui_translation(lang):
+    """A previously cached translate_page.PAGE_UI_STRINGS translation into `lang` - see
+    ui_string_translations in create_database(). Returns None on a cache miss (the
+    caller, app.py's _render_public_page, then calls translate_page.translate_ui_strings
+    and saves the result via upsert_ui_translation below)."""
+    connection = connect()
+    cursor = connection.cursor()
+    cursor.execute("SELECT ui_json FROM ui_string_translations WHERE lang = %s", (lang,))
+    result = cursor.fetchone()
+    connection.close()
+    return result[0] if result else None
+
+
+def upsert_ui_translation(lang, ui_json):
+    """Caches translate_page.PAGE_UI_STRINGS translated into one language, keyed only on
+    `lang` (see ui_string_translations' own comment for why - unlike
+    upsert_page_translation, there's no business_id here since this content doesn't vary
+    per business)."""
+    connection = connect()
+    cursor = connection.cursor()
+    cursor.execute(
+        """INSERT INTO ui_string_translations (lang, ui_json) VALUES (%s, %s)
+           ON CONFLICT (lang) DO UPDATE SET ui_json = EXCLUDED.ui_json, created_at = CURRENT_TIMESTAMP""",
+        (lang, ui_json),
     )
     connection.commit()
     connection.close()

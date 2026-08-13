@@ -48,6 +48,7 @@ from database import (
     set_domain_subscription, set_custom_domain_purchasing, resolve_custom_domain_purchase,
     page_chat_session_messages_today,
     set_page_content_language, get_page_translation, upsert_page_translation,
+    get_ui_translation, upsert_ui_translation,
     onboarding_completed, mark_onboarding_completed,
     set_booking_relevant,
     UniqueViolation, release_db_lock,
@@ -2195,6 +2196,7 @@ def onboarding_website_preview():
         tagline=draft["tagline"],
         about=draft["about"],
         about_html=pages.render_about_html(draft["about"]),
+        content_lang_ui=_ui_strings_for_language(content_language),
         opening_hours_schema=[],
         opening_hours_display=pages.opening_hours_display(draft["working_hours"]),
         page_url="",
@@ -2522,6 +2524,42 @@ def _booking_relevant_or_default(business):
     return business[29] is not False
 
 
+def _ui_strings_for_language(lang):
+    """translate_page.PAGE_UI_STRINGS localized into `lang` (cached forever in
+    ui_string_translations - see database.get_ui_translation/upsert_ui_translation, one
+    OpenAI call per language ever, shared across every business), or None for English
+    (public_page.html's own chrome is already authored in English, nothing to localize)
+    or if a translation genuinely can't be produced right now.
+
+    _render_public_page passes this to the template as content_lang_ui so its language
+    switcher's client-side cache seeds the page's own detected content_language entry
+    with real translated chrome, instead of the literal English fallback text baked into
+    the markup (see public_page.html's own "Seed the cache" comment) - that fallback was
+    silently leaving nav labels/section headings in English for every non-English
+    business the moment a visitor picked the flag matching the page's own language,
+    since that pick is served entirely from the client-side seed and never reaches this
+    route's sibling, public_page_translate(), at all. That route can't be reused here
+    either way: asking it to translate this business's own about/tagline text into the
+    language it's already written in is exactly what translate_page.
+    translation_rejection_reason's echo-check exists to catch and reject - see
+    translate_page.translate_ui_strings' own docstring for why this calls that dedicated
+    function instead."""
+    if lang == "en":
+        return None
+    cached = get_ui_translation(lang)
+    if cached is not None:
+        try:
+            return json.loads(cached)
+        except (TypeError, json.JSONDecodeError):
+            pass
+    try:
+        result = translate_page.translate_ui_strings(lang)
+    except ValueError:
+        return None
+    upsert_ui_translation(lang, json.dumps(result))
+    return result
+
+
 def _render_public_page(page, business, page_url, preview=False):
     business_id = page[1]
     slug = page[2]
@@ -2565,6 +2603,7 @@ def _render_public_page(page, business, page_url, preview=False):
         tagline=page[4],
         about=page[5],
         about_html=pages.render_about_html(page[5]),
+        content_lang_ui=_ui_strings_for_language(content_language),
         opening_hours_schema=pages.opening_hours_schema(business[7]),
         opening_hours_display=pages.opening_hours_display(business[7]),
         page_url=page_url,

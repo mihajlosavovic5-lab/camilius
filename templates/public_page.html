@@ -1904,7 +1904,21 @@ window.pageOverlay = (function () {
     // like the loading spinner never finishing. Seeding this up front makes picking the
     // original language back an ordinary cache hit, exactly like any other already-fetched
     // language.
-    var originalLangContent = { ui: fallback };
+    //
+    // The chrome (nav labels/section headings/etc, `ui` above) is always authored in
+    // English in this markup regardless of the business's own language (see this page's
+    // module docstring), so unlike tagline/about/etc. above, `fallback` alone is only
+    // correct here when the page's own content_language actually IS English - app.py's
+    // _render_public_page passes contentLangUi (real chrome translated into
+    // content_language, via translate_page.translate_ui_strings - see its own docstring
+    // for why that's a separate function from the one tagline/about/etc. go through) for
+    // every other language, so picking the flag that matches the page's own language
+    // shows real nav labels/headings in that language instead of leaving them in English.
+    // Merged onto `fallback` rather than used alone so a key missing from an older cached
+    // translation (e.g. one saved before PAGE_UI_STRINGS grew a new key) still shows
+    // something instead of nothing.
+    var contentLangUi = {{ content_lang_ui | tojson }};
+    var originalLangContent = { ui: contentLangUi ? Object.assign({}, fallback, contentLangUi) : fallback };
     document.querySelectorAll("[data-i18n-content]").forEach(function (el) {
         originalLangContent[el.getAttribute("data-i18n-content")] = el.textContent;
     });
@@ -2273,6 +2287,21 @@ window.pageOverlay = (function () {
                 });
         });
     });
+
+    // Applies the seeded cache[content_language] immediately rather than waiting for a
+    // click - applyTranslation otherwise only ever runs once a visitor explicitly picks a
+    // language, and the lang-option click handler above short-circuits on the option
+    // already marked .active without calling it at all (see that handler's own comment on
+    // why - a real round trip for a same-language no-op can 502). Both of those are
+    // correct for a genuinely no-op click, but left the page's own nav labels/section
+    // headings (contentLangUi above) sitting in English forever on a non-English
+    // business's page until a visitor happened to pick a DIFFERENT language and back,
+    // since nothing else ever fed contentLangUi into the DOM. Calling it here (at the very
+    // end of this IIFE, after every var this depends on - PRICE_CURRENCIES and friends
+    // included - has actually been assigned, not just hoisted) makes the initial paint
+    // match content_language from the start, the same as tagline/about/etc. (rendered
+    // server-side already in that language) already do.
+    applyTranslation({{ current_lang.code | tojson }}, originalLangContent);
 })();
 </script>
 
