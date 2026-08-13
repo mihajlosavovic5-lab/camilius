@@ -51,6 +51,13 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+          cache: "pip"
+          # requirements-dev.txt just -r's requirements.txt (see that file) - both need
+          # to be in the hash, or a requirements.txt-only change wouldn't invalidate the
+          # cache and CI would keep installing stale pinned versions.
+          cache-dependency-path: |
+            requirements.txt
+            requirements-dev.txt
 
       - name: Install dependencies
         run: pip install -r requirements-dev.txt
