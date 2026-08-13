@@ -247,8 +247,11 @@ def price_list_rows(price_list_text):
 # line, a right-aligned signature) instead of one flat wall of text. A block is any run
 # of non-blank lines between blank lines:
 #   "# text"  / "## text" -> a heading / sub-heading (bigger, bold)
-#   "- text" (every line in the block)  -> a bullet list
-#   "1. text" (every line in the block) -> a numbered list
+#   "- text" (one or more, ending the block) -> a bullet list; any plain line(s)
+#       directly above them in the same block (e.g. "Kod nas mozete ocekivati:") become
+#       a short lead-in paragraph right before the list, rather than needing their own
+#       blank-line-separated block
+#   "1. text" (same rule) -> a numbered list, with the same optional lead-in
 #   "> text"  -> a highlighted callout line (bigger, set apart)
 #   "-- text" -> a right-aligned signature/closing line (smaller, muted)
 #   anything else -> a plain paragraph
@@ -279,6 +282,28 @@ def _format_about_inline(text):
     return escaped
 
 
+def _split_about_leadin_list(lines, item_re):
+    """`lines` split into (leadin_lines, item_lines) at the earliest point where every
+    remaining line matches `item_re` - so "Kod nas mozete ocekivati:" followed by
+    "- text" lines (no blank line between them, since that would start a new block) comes
+    back as (["Kod nas mozete ocekivati:"], ["- text", ...]) rather than failing to
+    parse as a list at all just because its first line isn't itself a bullet. Both are
+    () (not None) when nothing in `lines` is a list item, so callers can check
+    `item_lines` for truthiness without a separate None check."""
+    for i in range(len(lines)):
+        if all(item_re.match(line) for line in lines[i:]):
+            return lines[:i], lines[i:]
+    return (), ()
+
+
+def _render_about_leadin(lines):
+    """The plain text (if any) that introduced a list within the same block - see
+    _split_about_leadin_list - as one small paragraph directly above it."""
+    if not lines:
+        return ""
+    return f'<p class="about-p about-list-lead">{"<br>".join(_format_about_inline(line) for line in lines)}</p>'
+
+
 def render_about_html(about_text):
     """business_pages.about's raw text (see the formatting syntax comment above) turned
     into the small, fixed set of tags public_page.html's #about section is styled to
@@ -298,6 +323,8 @@ def render_about_html(about_text):
         heading_match = _ABOUT_HEADING_RE.match(lines[0]) if len(lines) == 1 else None
         callout_match = _ABOUT_CALLOUT_RE.match(lines[0]) if len(lines) == 1 else None
         signature_match = _ABOUT_SIGNATURE_RE.match(lines[0]) if len(lines) == 1 else None
+        bullet_leadin, bullet_items = _split_about_leadin_list(lines, _ABOUT_BULLET_RE)
+        numbered_leadin, numbered_items = _split_about_leadin_list(lines, _ABOUT_NUMBERED_RE)
         if heading_match:
             css_class = "about-heading" if len(heading_match.group(1)) == 1 else "about-subheading"
             html_parts.append(f'<p class="{css_class}">{_format_about_inline(heading_match.group(2))}</p>')
@@ -305,11 +332,13 @@ def render_about_html(about_text):
             html_parts.append(f'<p class="about-callout">{_format_about_inline(callout_match.group(1))}</p>')
         elif signature_match:
             html_parts.append(f'<p class="about-sign">{_format_about_inline(signature_match.group(1))}</p>')
-        elif all(_ABOUT_BULLET_RE.match(line) for line in lines):
-            items = "".join(f"<li>{_format_about_inline(_ABOUT_BULLET_RE.match(line).group(1))}</li>" for line in lines)
+        elif bullet_items:
+            html_parts.append(_render_about_leadin(bullet_leadin))
+            items = "".join(f"<li>{_format_about_inline(_ABOUT_BULLET_RE.match(line).group(1))}</li>" for line in bullet_items)
             html_parts.append(f'<ul class="about-list">{items}</ul>')
-        elif all(_ABOUT_NUMBERED_RE.match(line) for line in lines):
-            items = "".join(f"<li>{_format_about_inline(_ABOUT_NUMBERED_RE.match(line).group(1))}</li>" for line in lines)
+        elif numbered_items:
+            html_parts.append(_render_about_leadin(numbered_leadin))
+            items = "".join(f"<li>{_format_about_inline(_ABOUT_NUMBERED_RE.match(line).group(1))}</li>" for line in numbered_items)
             html_parts.append(f'<ol class="about-list">{items}</ol>')
         else:
             html_parts.append(f'<p class="about-p">{"<br>".join(_format_about_inline(line) for line in lines)}</p>')

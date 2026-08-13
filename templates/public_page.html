@@ -613,18 +613,34 @@
         line-height: 1.85;
         font-size: 1.02rem;
     }
+    /* A plain line directly introducing a list right below it (e.g. "Kod nas mozete
+       ocekivati:") - see pages._split_about_leadin_list/splitAboutLeadinList above -
+       pulled tighter to that list and given a touch more weight so the two visibly
+       belong together instead of the list looking like it starts with no lead-in at all. */
+    .about-list-lead {
+        font-weight: 600;
+        margin-bottom: 6px;
+    }
     /* Drop-cap only on a paragraph that opens the section (never a heading/list/callout
        right before it) - .about-p is the first element only when the about text has no
        leading "# heading" of its own, so a heading-led about (which already has its own
-       visual hook) doesn't also get a competing drop-cap under it. */
+       visual hook) doesn't also get a competing drop-cap under it. Sized to float over
+       LESS than one full line of the paragraph's own line-height (30px at this font-size)
+       on purpose - a cap sized to fill closer to a full line (as an early version of this
+       did) still overflows into part of line 2's line box, which pushes line 2 in next to
+       it as well, and then line 3 snaps back out to the full-width margin the moment the
+       text clears the float - a jarring "third line sticks out" look on any about text
+       short enough to wrap to only 2-3 lines. Comfortably under one line's height means
+       only line 1 is ever indented, so every line after it sits at the same left edge no
+       matter how long or short the paragraph is. */
     .about-rendered > .about-p:first-child::first-letter {
         font-family: var(--heading-font);
-        font-size: 2.5em;
+        font-size: 2.3em;
         font-weight: 700;
         color: var(--primary);
         float: left;
-        line-height: .78;
-        padding: .05em .07em 0 0;
+        line-height: .6;
+        padding: 0 .07em 0 0;
     }
     .about-heading, .about-subheading {
         margin: 22px 0 10px;
@@ -2025,6 +2041,29 @@ window.pageOverlay = (function () {
     function appendAboutInline(el, text) {
         formatAboutInlineNodes(text).forEach(function (node) { el.appendChild(node); });
     }
+    // Mirrors pages._split_about_leadin_list(): the earliest index from which every
+    // remaining line matches itemRe, so "Kod nas mozete ocekivati:" directly above
+    // "- text" lines (no blank line between them) splits into a lead-in line plus the
+    // list, instead of failing to read as a list at all just because its first line
+    // isn't itself a bullet. Returns [[], []] when nothing in `lines` is a list item.
+    function splitAboutLeadinList(lines, itemRe) {
+        for (var i = 0; i < lines.length; i++) {
+            if (lines.slice(i).every(function (line) { return itemRe.test(line); })) {
+                return [lines.slice(0, i), lines.slice(i)];
+            }
+        }
+        return [[], []];
+    }
+    function appendAboutLeadin(container, lines) {
+        if (!lines.length) return;
+        var p = document.createElement("p");
+        p.className = "about-p about-list-lead";
+        lines.forEach(function (line, i) {
+            appendAboutInline(p, line);
+            if (i < lines.length - 1) p.appendChild(document.createElement("br"));
+        });
+        container.appendChild(p);
+    }
     function renderAboutBlocks(container, raw) {
         container.textContent = "";
         var text = (raw || "").trim();
@@ -2035,37 +2074,46 @@ window.pageOverlay = (function () {
             var headingMatch = lines.length === 1 ? lines[0].match(/^(#{1,2})\s+(.*)$/) : null;
             var calloutMatch = lines.length === 1 ? lines[0].match(/^>\s+(.*)$/) : null;
             var signatureMatch = lines.length === 1 ? lines[0].match(/^--\s+(.*)$/) : null;
-            var bulletMatches = lines.map(function (line) { return line.match(/^[-*•]\s+(.*)$/); });
-            var numberedMatches = lines.map(function (line) { return line.match(/^\d+[.)]\s+(.*)$/); });
+            var bulletRe = /^[-*•]\s+(.*)$/;
+            var numberedRe = /^\d+[.)]\s+(.*)$/;
+            var bulletSplit = splitAboutLeadinList(lines, bulletRe);
+            var numberedSplit = splitAboutLeadinList(lines, numberedRe);
             var el;
             if (headingMatch) {
                 el = document.createElement("p");
                 el.className = headingMatch[1].length === 1 ? "about-heading" : "about-subheading";
                 appendAboutInline(el, headingMatch[2]);
+                container.appendChild(el);
             } else if (calloutMatch) {
                 el = document.createElement("p");
                 el.className = "about-callout";
                 appendAboutInline(el, calloutMatch[1]);
+                container.appendChild(el);
             } else if (signatureMatch) {
                 el = document.createElement("p");
                 el.className = "about-sign";
                 appendAboutInline(el, signatureMatch[1]);
-            } else if (bulletMatches.every(Boolean)) {
+                container.appendChild(el);
+            } else if (bulletSplit[1].length) {
+                appendAboutLeadin(container, bulletSplit[0]);
                 el = document.createElement("ul");
                 el.className = "about-list";
-                lines.forEach(function (line, i) {
+                bulletSplit[1].forEach(function (line) {
                     var li = document.createElement("li");
-                    appendAboutInline(li, bulletMatches[i][1]);
+                    appendAboutInline(li, line.match(bulletRe)[1]);
                     el.appendChild(li);
                 });
-            } else if (numberedMatches.every(Boolean)) {
+                container.appendChild(el);
+            } else if (numberedSplit[1].length) {
+                appendAboutLeadin(container, numberedSplit[0]);
                 el = document.createElement("ol");
                 el.className = "about-list";
-                lines.forEach(function (line, i) {
+                numberedSplit[1].forEach(function (line) {
                     var li = document.createElement("li");
-                    appendAboutInline(li, numberedMatches[i][1]);
+                    appendAboutInline(li, line.match(numberedRe)[1]);
                     el.appendChild(li);
                 });
+                container.appendChild(el);
             } else {
                 el = document.createElement("p");
                 el.className = "about-p";
@@ -2073,8 +2121,8 @@ window.pageOverlay = (function () {
                     appendAboutInline(el, line);
                     if (i < lines.length - 1) el.appendChild(document.createElement("br"));
                 });
+                container.appendChild(el);
             }
-            container.appendChild(el);
         });
     }
 

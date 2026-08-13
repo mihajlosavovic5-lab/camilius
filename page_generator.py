@@ -66,10 +66,11 @@ PAGE_SCHEMA = {
                 "history. Give it real visual structure instead of one flat paragraph, using "
                 "this formatting syntax (see SYSTEM_PROMPT for the full rules): blank lines "
                 "between distinct ideas, '# text' for an occasional section heading, '- text' "
-                "(repeated) for a list of 3+ concrete offerings/features, '**text**' for a key "
-                "phrase, '*text*' for a softer aside, and optionally one '> text' pull-quote "
-                "line or one '-- text' closing signature line. Only use a heading/list/quote/ "
-                "signature where the content genuinely calls for it."
+                "(repeated) for a list of 3+ concrete offerings/features - always introduced by "
+                "a short lead-in line right above it, e.g. 'Kod nas mozete ocekivati:' - "
+                "'**text**' for a key phrase, '*text*' for a softer aside, and optionally one "
+                "'> text' pull-quote line or one '-- text' closing signature line. Only use a "
+                "heading/list/quote/signature where the content genuinely calls for it."
             ),
         },
         "slug": {"type": "string", "description": "A short, URL-friendly suggested web address for this business's page, e.g. 'blue-star-cafe' - lowercase ASCII letters, digits, and hyphens only, transliterating any non-Latin script or accented letters to plain ASCII. 2-4 words, based on the business's name or what it does."},
@@ -156,7 +157,10 @@ Rules:
       sentences that already read fine as plain prose.
     - Consecutive lines each starting "- " become a bullet list - reach for this when
       there are 3+ concrete things to list (offerings, features, specialties), not for
-      one or two.
+      one or two. Never drop a list straight into the text with nothing above it - the
+      line directly before it (no blank line in between) must be a short lead-in that
+      introduces it, e.g. "Kod nas mozete ocekivati:" / "What we offer:", normally
+      ending in a colon.
     - "**text**" bolds a key phrase (a standout feature, the business name the first
       time it's said); "*text*" italicizes a softer aside.
     - A single ">  text" line renders as a highlighted pull-quote - at most one, for a

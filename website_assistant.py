@@ -82,7 +82,9 @@ Before saving, always do these on the text you're about to write into a field:
   as one flat paragraph, using this formatting syntax (this is DIFFERENT from your own
   chat replies below, which stay plain text) - a blank line starts a new paragraph,
   "# text" on its own line is a section heading, consecutive lines starting "- " become
-  a bullet list (use for 3+ concrete items - offerings, features, specialties),
+  a bullet list (use for 3+ concrete items - offerings, features, specialties) - always
+  put a short lead-in line directly above it (no blank line before the list), e.g. "Kod
+  nas mozete ocekivati:", never drop a list in with nothing introducing it,
   "**text**" bolds a key phrase, "*text*" italicizes a softer aside, a single "> text"
   line renders as a highlighted pull-quote, and a single "-- text" line at the very end
   renders right-aligned as a closing signature. Use these when merging/rewriting about
