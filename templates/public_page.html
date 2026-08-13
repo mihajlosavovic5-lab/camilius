@@ -16,6 +16,16 @@
     it's all reimplemented inline here in plain CSS/JS rather than pulled in from
     style.css/site-i18n.js, to keep this page's own "load fast, nothing else required"
     promise intact.
+
+    This is already the ONE structural template every business's public page renders
+    from (see app.py's public_page()/site_preview()) - the "View page" button always
+    opens this same file with that business's own data. Per-business variation is
+    deliberately confined to content (page_generator.py) and color/font theme
+    (themes.py/ai_theme.py) rather than a second layout: it's the quality/structure bar
+    any future section or generated theme should read as belonging to, not a strait-
+    jacket. Extend it and let ai_theme.py explore new colors/moods freely - just keep
+    new work consistent with the layout language already established here rather than
+    quietly forking a second, different-looking page for some businesses.
 -->
 <html lang="en">
 <head>
