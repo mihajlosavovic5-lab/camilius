@@ -2278,6 +2278,10 @@ def onboarding_website_preview():
         social_links=_social_links_for_business(business),
         contact_email=business[3],
         phone_number=business[10],
+        # No booking widget and chat disabled in this tiny thumbnail preview (see
+        # chat_url="" above) - hero_cta_for_business degrades to phone (if on file) or
+        # nothing at all here, same as it would for a real page with neither.
+        hero_cta=pages.hero_cta_for_business(False, business[10], False),
         # Language switcher still renders (same fixed EN/ES/FR/DE row, plus a leading
         # detected-language flag, as the live page), but nothing is actually saved yet to
         # translate against - translate_url="" is the same "disabled in this in-progress
@@ -2742,6 +2746,12 @@ def _render_public_page(page, business, page_url, preview=False):
         theme_choices=list(themes.THEMES.items()) if is_owner else None,
         current_theme_id=page[9] if is_owner else None,
         booking_enabled=booking_enabled,
+        # The one primary action shown in the hero (and, on mobile, the sticky bottom
+        # bar) - Book > Call > Chat, see hero_cta_for_business's own docstring for why.
+        # Chat is always reachable here (chat_url is a real URL on both routes this
+        # function serves - see chat_url above), unlike onboarding_website_preview's own
+        # tiny thumbnail iframe, which computes this itself with chat disabled.
+        hero_cta=pages.hero_cta_for_business(booking_enabled, business[10], True),
         availability_url=(f"https://{PRIMARY_APP_HOST}" + url_for("public_page_availability", slug=slug)) if booking_enabled else None,
         # Computed once here, embedded straight into the page, so the "Book an
         # appointment" widget can render today's real open times the instant its script
