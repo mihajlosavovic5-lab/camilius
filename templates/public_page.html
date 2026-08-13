@@ -1212,6 +1212,20 @@
     .chat-fab-icon-close { opacity: 0; transform: scale(.5) rotate(-45deg); }
     .chat-fab.open .chat-fab-icon-agent { opacity: 0; transform: scale(.5) rotate(45deg); }
     .chat-fab.open .chat-fab-icon-close { opacity: 1; transform: scale(1) rotate(0); }
+    /* Same open/closed crossfade as .chat-fab-icon-agent above (an <img> rather than an
+       <svg>, so it isn't covered by the ".chat-fab svg" rule above - repeated here
+       instead) - shown in place of the generic agent icon whenever this business has a
+       logo on file (see .page-header's own use of logo_url), so the launcher reads as
+       belonging to THIS business rather than a generic bolted-on chat tool. */
+    .chat-fab-logo {
+        width: 27px;
+        height: 27px;
+        position: absolute;
+        border-radius: 50%;
+        object-fit: cover;
+        transition: opacity .15s ease, transform .15s ease;
+    }
+    .chat-fab.open .chat-fab-logo { opacity: 0; transform: scale(.5) rotate(45deg); }
     /* Idle "I'm here" nudge, same double-bounce every 10s as the logged-in app's own
        support widget launcher (.support-widget-fab-nudge in style.css) - stops for good
        once the visitor actually opens the panel (see the script below). */
@@ -1287,6 +1301,15 @@
     .chat-header-avatar svg {
         width: 20px;
         height: 20px;
+    }
+    /* Fills the whole circle (unlike the generic agent svg, sized smaller and centered
+       inside it) - a real photo, not an icon, reads better filling its frame than
+       floating in the middle of one. */
+    .chat-header-avatar-logo {
+        width: 100%;
+        height: 100%;
+        border-radius: 50%;
+        object-fit: cover;
     }
     .chat-header-text {
         flex: 1;
@@ -3632,10 +3655,14 @@ window.pageOverlay = (function () {
      booking - sendMessage() below shows its own "publish first" copy for that 404
      specifically, not the generic error. -->
 <button type="button" class="chat-fab" id="chat-fab" aria-label="Chat with {{ business_name }}">
+    {% if logo_url %}
+    <img class="chat-fab-logo" src="{{ logo_url }}" alt="">
+    {% else %}
     <svg class="chat-fab-icon-agent" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
         <circle cx="12" cy="8" r="4"/>
         <path d="M4 20.5c0-4.14 3.58-7.5 8-7.5s8 3.36 8 7.5" stroke-linecap="round" stroke-linejoin="round"/>
     </svg>
+    {% endif %}
     <svg class="chat-fab-icon-close" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
         <path d="M6 6l12 12M18 6L6 18" stroke-linecap="round"/>
     </svg>
@@ -3643,10 +3670,14 @@ window.pageOverlay = (function () {
 <div class="chat-panel hidden" id="chat-panel">
     <div class="chat-header">
         <span class="chat-header-avatar" aria-hidden="true">
+            {% if logo_url %}
+            <img class="chat-header-avatar-logo" src="{{ logo_url }}" alt="">
+            {% else %}
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
                 <circle cx="12" cy="8" r="4"/>
                 <path d="M4 20.5c0-4.14 3.58-7.5 8-7.5s8 3.36 8 7.5" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
+            {% endif %}
         </span>
         <div class="chat-header-text">
             <p{% if tagline %} data-i18n-content="tagline"{% endif %}>{{ tagline or business_name }}</p>
