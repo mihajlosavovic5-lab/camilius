@@ -1,6 +1,8 @@
 import json
 import os
+import queue
 import secrets
+import threading
 from datetime import date as date_type, datetime, timedelta
 from functools import wraps
 
@@ -1283,15 +1285,25 @@ def api_website_chat():
     # newline-delimited JSON rather than real SSE framing (no "data: "/blank-line
     # protocol to parse) since this is a one-shot POST response, not something that needs
     # EventSource's auto-reconnect - the client just reads the body as it arrives.
-    # reply_text is only filled in once answer_website_chat_stream actually reaches its
-    # "done" event - the `finally` below fires it as a push regardless of whether the
-    # client is still around to receive that last streamed line. That covers exactly the
-    # case this exists for: the owner sent a message, then backgrounded/closed the app
-    # before the reply finished, so the request's socket may already be gone by the time
-    # we'd otherwise `yield` the "done" event - `finally` still runs (Python throws
-    # GeneratorExit into a closed streaming generator, it doesn't just vanish), so the
-    # push still goes out even though the ndjson line it would ride on never arrived.
-    def generate():
+    #
+    # answer_website_chat_stream is driven from its own thread (_run) rather than
+    # directly inside generate() below, so that the actual OpenAI round trip - and the
+    # "task done" push it ends with - keeps running to completion even if the owner
+    # backgrounds or closes the app before it finishes. A first version drove it straight
+    # from generate() with the push in a `finally`, on the assumption that closing the
+    # connection would just make the next `yield` raise while everything already
+    # computed stayed intact - but tearing down a suspended generator (GeneratorExit)
+    # abandons whatever *it* was iterating too, so the moment the client disconnected
+    # before the "done" event, the `for` loop below was abandoned mid-flight and
+    # answer_website_chat_stream never got driven to completion at all - no reply, no
+    # push, exactly the case this feature exists for. Running it in a separate thread
+    # means the HTTP response's own lifecycle (and generate() being torn down early) has
+    # no effect on it: _run keeps going, and its own `finally` fires the push once the
+    # reply is actually ready, independent of whether anyone is still around to read the
+    # ndjson line it would otherwise have ridden on.
+    events = queue.Queue()
+
+    def _run():
         reply_text = None
         try:
             for event in answer_website_chat_stream(
@@ -1300,10 +1312,20 @@ def api_website_chat():
             ):
                 if event.get("type") == "done":
                     reply_text = event.get("reply")
-                yield json.dumps(event, ensure_ascii=False) + "\n"
+                events.put(event)
         finally:
             if reply_text:
                 _notify_website_chat_done(business_id, reply_text)
+            events.put(None)  # sentinel: tells generate() below there's nothing more coming
+
+    threading.Thread(target=_run, daemon=True).start()
+
+    def generate():
+        while True:
+            event = events.get()
+            if event is None:
+                return
+            yield json.dumps(event, ensure_ascii=False) + "\n"
 
     return Response(stream_with_context(generate()), mimetype="application/x-ndjson")
 

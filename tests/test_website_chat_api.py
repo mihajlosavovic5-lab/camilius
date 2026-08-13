@@ -7,6 +7,7 @@ and mobile/app.js's website-chat-status-pill) carries every status event plus th
 reply, in order."""
 import io
 import json
+import threading
 
 import api
 import database
@@ -167,3 +168,35 @@ def test_website_chat_skips_push_when_ai_task_notifications_disabled(client, uni
     assert response.status_code == 200
     _ndjson_events(response)
     assert pushes == []
+
+
+def test_website_chat_push_fires_even_if_the_response_is_never_read(client, unique_email, monkeypatch):
+    # Regression test for a real bug: an earlier version drove answer_website_chat_stream
+    # directly from the ndjson generator and sent the push from that generator's own
+    # `finally`, which only runs once ITS suspended `yield` is torn down - if the owner
+    # backgrounds/closes the app before the response is ever read, that generator (and
+    # everything it was iterating, including answer_website_chat_stream itself) is simply
+    # abandoned and never runs to completion, so no reply and no push. The fix runs
+    # answer_website_chat_stream in its own thread (_run inside api.api_website_chat),
+    # started before the Response is even returned, so it finishes - and fires the push -
+    # independent of whether anything ever reads the streamed body. This test never calls
+    # _ndjson_events/get_data() on the response at all, simulating exactly that.
+    token, business_id = register_and_login(client, unique_email)
+    headers = {"Authorization": f"Bearer {token}"}
+
+    def fake_stream(message, history=None, business_context=None, image_urls=None, tool_impls=None):
+        yield {"type": "status", "key": "websiteChat.status.thinking"}
+        yield {"type": "done", "reply": "All set."}
+
+    monkeypatch.setattr(api, "answer_website_chat_stream", fake_stream)
+    pushed = threading.Event()
+    monkeypatch.setattr(api, "send_push_to_business", lambda *a, **k: pushed.set())
+
+    response = client.post(
+        "/api/website-chat",
+        json={"message": "hi", "history": []},
+        headers=headers,
+    )
+
+    assert response.status_code == 200
+    assert pushed.wait(timeout=2), "push was never sent even though the reply finished"
