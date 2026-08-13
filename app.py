@@ -2782,13 +2782,17 @@ def public_page_translate(slug, lang):
     cached = get_page_translation(business_id, lang)
     if cached is not None:
         db_tagline, db_about, db_price_list, db_faq, ui_json = cached
-        db_ui = json.loads(ui_json)
-        # A row cached before translate_page.translation_is_usable() existed (or one that
-        # slipped past it - see that function's own docstring) would otherwise keep
-        # serving the exact same degenerate result to every visitor forever, since a
-        # cache hit here never re-calls the model. Falls through to translate fresh
-        # instead, overwriting this row below the same way a first-ever request would.
-        if translate_page.translation_is_usable({"tagline": db_tagline, "about": db_about, "price_list": db_price_list, "faq": db_faq, "ui": db_ui}, page[4], page[5], business[8], business[9]):
+        try:
+            db_ui = json.loads(ui_json)
+        except (TypeError, json.JSONDecodeError):
+            # A row whose ui_json somehow isn't valid JSON is just as unusable as one that
+            # fails translation_is_usable() below, and should get the same "fall through
+            # to a fresh translate" treatment - not crash this route outright (a 500 the
+            # page's own fetch can't tell apart from any other failure, so it looks
+            # exactly like every language quietly not working, with no hint why) and
+            # leave that same broken row sitting there for the next visitor to fail on too.
+            db_ui = None
+        if db_ui is not None and translate_page.translation_is_usable({"tagline": db_tagline, "about": db_about, "price_list": db_price_list, "faq": db_faq, "ui": db_ui}, page[4], page[5], business[8], business[9]):
             return _json_with_cors(origin, tagline=db_tagline, about=db_about, price_list=db_price_list, faq=db_faq, ui=db_ui)
 
     try:

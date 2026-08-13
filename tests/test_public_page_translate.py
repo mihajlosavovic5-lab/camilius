@@ -312,6 +312,30 @@ def test_translate_endpoint_reruns_the_model_when_the_cached_row_is_degenerate(c
     assert calls == ["es"]
 
 
+def test_translate_endpoint_reruns_the_model_when_the_cached_row_json_is_malformed(client, unique_email, monkeypatch):
+    # A cached row whose ui_json somehow isn't valid JSON used to crash this route
+    # outright (an unhandled json.JSONDecodeError) instead of getting the same
+    # "fall through and re-translate" treatment every other kind of bad cached row
+    # already gets - from a visitor's side, a 500 and a 502 both look like a language
+    # that silently does nothing, with nothing pointing at a corrupt row as the reason.
+    register_business_web(client, unique_email)
+    business_id, slug = _publish_page(client, unique_email)
+    database.upsert_page_translation(business_id, "es", "Fresh cuts daily", "Real translation", "Haircut: 20 EUR", "Q\nA", "{not valid json")
+
+    calls = []
+
+    def fake_translate(lang, tagline, about, price_list, faq):
+        calls.append(lang)
+        return _fake_translation(lang)
+
+    monkeypatch.setattr(translate_page, "translate_page_content", fake_translate)
+
+    response = client.get(f"/p/{slug}/translate/es")
+    assert response.status_code == 200
+    assert response.get_json()["about"] == "[es] Contenido totalmente traducido, distinto del original."
+    assert calls == ["es"]
+
+
 def test_translate_endpoint_reruns_the_model_when_the_cached_row_echoed_the_source(client, unique_email, monkeypatch):
     # Reproduces the exact reported bug: a business whose content is written in Serbian
     # had its "es" translation cached at some point with the Serbian "about" echoed back

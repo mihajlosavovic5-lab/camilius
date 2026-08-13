@@ -286,6 +286,18 @@
     .lang-btn:hover { transform: scale(1.08); }
     .lang-btn:active { transform: scale(.92); }
     .lang-btn.loading { opacity: .55; pointer-events: none; }
+    /* A failed translate fetch used to leave zero visible trace - the flag button just
+       quietly stopped loading and the dropdown closed, indistinguishable from a visitor
+       picking a language that happened to already be on screen. This shake is the only
+       signal a failure ever gets (see the fetch().catch() below) - loud enough to notice,
+       gone in under half a second, no layout shift. */
+    @keyframes lang-btn-error-shake {
+        10%, 90% { transform: translateX(-1px); }
+        20%, 80% { transform: translateX(2px); }
+        30%, 50%, 70% { transform: translateX(-4px); }
+        40%, 60% { transform: translateX(4px); }
+    }
+    .lang-btn.error { animation: lang-btn-error-shake .4s ease; }
     .lang-flag {
         width: 40px; height: 28px; object-fit: cover; border-radius: 6px; flex-shrink: 0;
         border: 1px solid var(--border);
@@ -1874,7 +1886,11 @@ window.pageOverlay = (function () {
                 })
                 .catch(function () {
                     // Leaves whatever's currently on screen untouched - a failed
-                    // translation is a worse outcome than none, never a broken page.
+                    // translation is a worse outcome than none, never a broken page. The
+                    // shake is the only sign this happened at all - see .lang-btn.error
+                    // above - otherwise a failure and a no-op look identical to a visitor.
+                    langBtn.classList.add("error");
+                    setTimeout(function () { langBtn.classList.remove("error"); }, 500);
                 })
                 .finally(function () {
                     loading = false;
