@@ -1870,6 +1870,19 @@ window.pageOverlay = (function () {
     langOptions.forEach(function (opt) {
         opt.addEventListener("click", function () {
             var lang = opt.dataset.lang;
+            // Already showing this language (its own row is marked .active - kept in
+            // sync on every successful switch below, and set once up front from
+            // current_lang on first paint) - nothing to fetch or apply, so skip straight
+            // to closing instead of round-tripping to /translate/<lang> for a no-op.
+            // translation_is_usable (translate_page.py) no longer exempts a same-
+            // language request from its "about" echo check - a real translation into a
+            // different language essentially never matches the source, so treating a
+            // still-identical "about" as ok specifically when the languages matched
+            // relied on content_language being accurate, which isn't guaranteed - so a
+            // request that reaches the server for the language already on screen can
+            // legitimately 502 there. This short-circuit keeps that request from ever
+            // being sent in the first place, for every language alike.
+            if (opt.classList.contains("active")) { closeDropdown(); return; }
             if (loading) return;
             if (cache[lang]) {
                 applyTranslation(lang, cache[lang]);
