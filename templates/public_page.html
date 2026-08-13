@@ -3134,6 +3134,7 @@ window.pageOverlay = (function () {
         selectedId = themeId;
         applyThemePreview(theme);
         markSelected(themeId);
+        setOpen(false);
 
         var body = new URLSearchParams();
         body.set("theme_id", themeId);
