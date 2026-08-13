@@ -437,7 +437,19 @@
         border-radius: var(--radius);
         overflow: hidden;
         box-shadow: 0 10px 28px -14px rgba(0, 0, 0, .28);
+        transform: scale(1);
+        transition: transform .25s cubic-bezier(.34, 1.56, .64, 1);
     }
+    /* Same hover/press "zoom" feel as .contact-row/.social-link elsewhere on the page -
+       :hover/:active both apply to an ancestor of whatever's actually under the pointer,
+       so these fire correctly even though .location-map-link (not this element) is what
+       the pointer is really over. .pressed is the same iOS-Safari-webview fallback those
+       other rows use (see the pointerdown/pointerup listener below) - plain :active never
+       fires there without one. */
+    @media (hover: hover) {
+        .location-map-wrap:hover { transform: scale(1.03); }
+    }
+    .location-map-wrap:active, .location-map-wrap.pressed { transform: scale(0.97); transition-duration: .05s; }
     .location-map-wrap::after {
         content: "";
         position: absolute;
@@ -1964,7 +1976,7 @@
     // simply never applies :active styles on a plain <a> unless something is listening
     // for a touch/pointer event on it - with no listener at all, the CSS zoom-press
     // animation below never renders there even though it's otherwise correct.
-    var pressEls = document.querySelectorAll(".contact-row, .social-link");
+    var pressEls = document.querySelectorAll(".contact-row, .social-link, .location-map-wrap");
     pressEls.forEach(function (el) {
         el.addEventListener("pointerdown", function () { el.classList.add("pressed"); });
         ["pointerup", "pointercancel", "pointerleave"].forEach(function (evt) {
