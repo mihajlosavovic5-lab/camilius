@@ -6766,12 +6766,29 @@ el("mysite-field-delete-confirm-confirm").addEventListener("click", () => {
 
     // --- Messages ---
 
+    // Splits "**bold**" runs out of a line into real <strong> nodes, everything else as
+    // plain text nodes - still never innerHTML, so nothing in the text can inject markup.
+    function appendInlineText(el, text) {
+        const parts = String(text).split(/\*\*(.+?)\*\*/g);
+        parts.forEach((part, idx) => {
+            if (!part) return;
+            if (idx % 2 === 1) {
+                const strong = document.createElement("strong");
+                strong.textContent = part;
+                el.appendChild(strong);
+            } else {
+                el.appendChild(document.createTextNode(part));
+            }
+        });
+    }
+
     // Same textContent-only <p>/<ul>/<ol>/<hr> rendering the web dashboard's own
     // website_chat.html uses - one fact per line, "- "/"•" lines become real bullets,
-    // "1. " lines become a numbered list, and a lone "---" line becomes a divider (see
-    // SYSTEM_PROMPT's Formatting section in website_assistant.py, which is what actually
-    // gets the model to write text in this shape). Kept as its own copy since mobile and
-    // the web dashboard don't share a script file.
+    // "1. " lines become a numbered list, "**bold**" runs become real <strong> text, and
+    // a lone "---" line becomes a divider (see SYSTEM_PROMPT's Formatting section in
+    // website_assistant.py, which is what actually gets the model to write text in this
+    // shape). Kept as its own copy since mobile and the web dashboard don't share a
+    // script file.
     function renderBotContent(container, text) {
         const lines = String(text).split(/\n+/).map((line) => line.trim()).filter(Boolean);
         let i = 0;
@@ -6786,7 +6803,7 @@ el("mysite-field-delete-confirm-confirm").addEventListener("click", () => {
                 ul.className = "website-chat-msg-list";
                 while (i < lines.length && /^[-•]\s+/.test(lines[i])) {
                     const li = document.createElement("li");
-                    li.textContent = lines[i].replace(/^[-•]\s+/, "");
+                    appendInlineText(li, lines[i].replace(/^[-•]\s+/, ""));
                     ul.appendChild(li);
                     i++;
                 }
@@ -6796,14 +6813,14 @@ el("mysite-field-delete-confirm-confirm").addEventListener("click", () => {
                 ol.className = "website-chat-msg-list";
                 while (i < lines.length && /^\d+[.)]\s+/.test(lines[i])) {
                     const li = document.createElement("li");
-                    li.textContent = lines[i].replace(/^\d+[.)]\s+/, "");
+                    appendInlineText(li, lines[i].replace(/^\d+[.)]\s+/, ""));
                     ol.appendChild(li);
                     i++;
                 }
                 container.appendChild(ol);
             } else {
                 const p = document.createElement("p");
-                p.textContent = lines[i];
+                appendInlineText(p, lines[i]);
                 container.appendChild(p);
                 i++;
             }

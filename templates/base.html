@@ -517,13 +517,31 @@
             if (open && !widget.contains(event.target)) setOpen(false);
         });
 
+        // Splits "**bold**" runs out of a line into real <strong> nodes, everything else
+        // as plain text nodes - still never innerHTML, so nothing in the text can inject
+        // markup.
+        function appendInlineText(el, text) {
+            var parts = String(text).split(/\*\*(.+?)\*\*/g);
+            for (var j = 0; j < parts.length; j++) {
+                if (!parts[j]) continue;
+                if (j % 2 === 1) {
+                    var strong = document.createElement("strong");
+                    strong.textContent = parts[j];
+                    el.appendChild(strong);
+                } else {
+                    el.appendChild(document.createTextNode(parts[j]));
+                }
+            }
+        }
+
         // Bot replies are asked (see support_assistant.py's SYSTEM_PROMPT) to put each
-        // distinct fact/step on its own line, lead multi-item lists with "1. "/"2. " (not
-        // "- "/"**bold**"), and separate a list from any remark after it with a lone
-        // "---" line - the same rule website_assistant.py's own SYSTEM_PROMPT uses for
-        // "Draft this with AI". Turning that into real <p>/<ul>/<ol>/<hr> nodes (all via
-        // textContent, never innerHTML) is what makes it actually render as short
-        // lines/bullets/numbers instead of one dense blob or literal asterisks.
+        // distinct fact/step on its own line, lead multi-item lists with "1. "/"2. " or
+        // "- ", bold a key phrase with "**text**", and separate a list from any remark
+        // after it with a lone "---" line - the same rule website_assistant.py's own
+        // SYSTEM_PROMPT uses for "Draft this with AI". Turning that into real
+        // <p>/<ul>/<ol>/<hr>/<strong> nodes (all via textContent, never innerHTML) is what
+        // makes it actually render as short lines/bullets/numbers/bold instead of one
+        // dense blob or literal asterisks.
         function renderBotContent(container, text) {
             var lines = String(text).split(/\n+/).map(function (l) { return l.trim(); }).filter(Boolean);
             var i = 0;
@@ -538,7 +556,7 @@
                     ul.className = "support-widget-msg-list";
                     while (i < lines.length && /^[-•]\s+/.test(lines[i])) {
                         var li = document.createElement("li");
-                        li.textContent = lines[i].replace(/^[-•]\s+/, "");
+                        appendInlineText(li, lines[i].replace(/^[-•]\s+/, ""));
                         ul.appendChild(li);
                         i++;
                     }
@@ -548,14 +566,14 @@
                     ol.className = "support-widget-msg-list";
                     while (i < lines.length && /^\d+[.)]\s+/.test(lines[i])) {
                         var oli = document.createElement("li");
-                        oli.textContent = lines[i].replace(/^\d+[.)]\s+/, "");
+                        appendInlineText(oli, lines[i].replace(/^\d+[.)]\s+/, ""));
                         ol.appendChild(oli);
                         i++;
                     }
                     container.appendChild(ol);
                 } else {
                     var p = document.createElement("p");
-                    p.textContent = lines[i];
+                    appendInlineText(p, lines[i]);
                     container.appendChild(p);
                     i++;
                 }
