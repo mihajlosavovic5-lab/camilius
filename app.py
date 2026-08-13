@@ -2797,7 +2797,16 @@ def public_page_translate(slug, lang):
 
     try:
         result = translate_page.translate_page_content(lang, page[4], page[5], business[8], business[9])
-    except ValueError:
+    except ValueError as error:
+        # A translate failure is otherwise completely silent from here on out - the
+        # page's own fetch().catch() just leaves the visitor on whatever they were
+        # already looking at, on purpose (see public_page.html), which means a language
+        # that keeps failing this way looks identical to a language nobody's ever
+        # requested, with nothing anywhere pointing at *why* it keeps failing. This is
+        # the one place that "why" (translate_page.translation_rejection_reason's own
+        # message, e.g. an echoed "about" and its similarity score) ever gets recorded -
+        # visible at /admin/client-errors, same channel as the mobile app's own crash log.
+        log_client_error(business_id, f"translate/{lang} failed: {error}", "", "public_page_translate", "")
         abort(502)
 
     upsert_page_translation(business_id, lang, result["tagline"], result["about"], result["price_list"], result["faq"], json.dumps(result["ui"]))

@@ -159,6 +159,42 @@ def test_translate_endpoint_502s_when_the_model_call_fails(client, unique_email,
     assert response.status_code == 502
 
 
+def test_translate_endpoint_logs_why_a_failed_translation_was_rejected(client, unique_email, monkeypatch):
+    # A failed translation is otherwise completely silent to a visitor (the page's own
+    # fetch().catch() just leaves them on whatever they were already looking at, on
+    # purpose) - this is the one place the actual reason (translate_page.
+    # translation_rejection_reason's own message) ever gets recorded anywhere, so a
+    # language that keeps failing has something more to go on than "it doesn't work."
+    def fake_translate(lang, tagline, about, price_list, faq):
+        raise ValueError("model returned an unusable translation: about looks echoed (similarity=0.97)")
+
+    monkeypatch.setattr(translate_page, "translate_page_content", fake_translate)
+    register_business_web(client, unique_email)
+    business_id, slug = _publish_page(client, unique_email)
+
+    response = client.get(f"/p/{slug}/translate/es")
+    assert response.status_code == 502
+
+    errors = database.recent_client_errors(limit=10)
+    matching = [e for e in errors if e[1] == business_id and e[4] == "public_page_translate"]
+    assert len(matching) == 1
+    assert "about looks echoed" in matching[0][2]
+
+
+def test_translate_page_content_wraps_a_non_valueerror_model_failure(monkeypatch):
+    # Anything the OpenAI call itself can raise (rate limit, timeout, a content-policy
+    # refusal, ...) needs to come out as a ValueError - public_page_translate's own
+    # `except ValueError` (and its log_client_error call) doesn't catch any other
+    # exception type, so an unwrapped failure here would 500 with nothing logged.
+    def fake_create(**kwargs):
+        raise RuntimeError("connection reset")
+
+    monkeypatch.setattr(translate_page.client.chat.completions, "create", fake_create)
+
+    with pytest.raises(ValueError, match="connection reset"):
+        translate_page.translate_page_content("es", "T", "A", "P", "F")
+
+
 # --- translate_page.translation_is_usable (unit) ---
 
 def test_translation_is_usable_true_when_every_source_field_is_covered():

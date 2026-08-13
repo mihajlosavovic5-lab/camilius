@@ -184,16 +184,15 @@ _ECHO_CHECK_MIN_LENGTH = 12
 _ECHO_SIMILARITY_THRESHOLD = 0.85
 
 
-def _looks_echoed(source, translated):
-    """True if `translated` is close enough to `source` (after Unicode-normalizing and
-    collapsing whitespace in both, so neither trips up the comparison - see
-    _ECHO_SIMILARITY_THRESHOLD above) that it reads as the same text, not an actual
-    translation. `source` is assumed already stripped and past the length threshold."""
+def _echo_similarity(source, translated):
+    """Character-level similarity ratio (0-1) between `source` and `translated`, after
+    Unicode-normalizing and collapsing whitespace in both so neither trips up the
+    comparison - see _ECHO_SIMILARITY_THRESHOLD above for what counts as "close enough to
+    read as the same text, not an actual translation." `source` is assumed already
+    stripped and past the length threshold."""
     def normalize(text):
         return unicodedata.normalize("NFC", " ".join((text or "").split()))
-    source_norm = normalize(source)
-    translated_norm = normalize(translated)
-    return SequenceMatcher(None, source_norm, translated_norm).ratio() >= _ECHO_SIMILARITY_THRESHOLD
+    return SequenceMatcher(None, normalize(source), normalize(translated)).ratio()
 
 
 def translation_is_usable(result, tagline, about, price_list, faq):
@@ -242,16 +241,30 @@ def translation_is_usable(result, tagline, about, price_list, faq):
     cache, never a fresh model call again - so both translate_page_content below (before
     caching a fresh result) and public_page_translate (before trusting an already-cached
     row) call this."""
+    return translation_rejection_reason(result, tagline, about, price_list, faq) is None
+
+
+def translation_rejection_reason(result, tagline, about, price_list, faq):
+    """None if translation_is_usable(...) would accept `result`; otherwise a short
+    human-readable string saying which check it failed and why, for server-side
+    diagnostics only (app.py's public_page_translate logs this via
+    database.log_client_error whenever a translation gets rejected - see its own call
+    site) - never shown to a visitor. Split out from translation_is_usable itself so that
+    function's return type stays a plain bool for its two existing call sites, while
+    still sharing this same logic rather than a second copy of it that could drift."""
     for field, source in (("tagline", tagline), ("about", about), ("price_list", price_list), ("faq", faq)):
         if (source or "").strip() and not (result.get(field) or "").strip():
-            return False
+            return f"{field} came back empty; source was {(source or '').strip()[:80]!r}"
     ui = result.get("ui") or {}
-    if not all((ui.get(key) or "").strip() for key in PAGE_UI_STRINGS):
-        return False
+    missing_ui = [key for key in PAGE_UI_STRINGS if not (ui.get(key) or "").strip()]
+    if missing_ui:
+        return f"ui missing/empty for keys: {missing_ui[:5]}"
     about_stripped = (about or "").strip()
-    if len(about_stripped) >= _ECHO_CHECK_MIN_LENGTH and _looks_echoed(about_stripped, result.get("about")):
-        return False
-    return True
+    if len(about_stripped) >= _ECHO_CHECK_MIN_LENGTH:
+        ratio = _echo_similarity(about_stripped, result.get("about"))
+        if ratio >= _ECHO_SIMILARITY_THRESHOLD:
+            return f"about looks echoed (similarity={ratio:.2f}); result was {(result.get('about') or '')[:120]!r}"
+    return None
 
 
 def translate_page_content(lang, tagline, about, price_list, faq):
@@ -278,15 +291,26 @@ def translate_page_content(lang, tagline, about, price_list, faq):
         })},
     ]
 
-    response = client.chat.completions.create(
-        model=MODEL,
-        messages=messages,
-        max_tokens=MAX_TRANSLATE_TOKENS,
-        response_format={
-            "type": "json_schema",
-            "json_schema": {"name": "page_translation", "strict": True, "schema": _TRANSLATE_SCHEMA},
-        },
-    )
+    try:
+        response = client.chat.completions.create(
+            model=MODEL,
+            messages=messages,
+            max_tokens=MAX_TRANSLATE_TOKENS,
+            response_format={
+                "type": "json_schema",
+                "json_schema": {"name": "page_translation", "strict": True, "schema": _TRANSLATE_SCHEMA},
+            },
+        )
+    except Exception as error:
+        # Anything the OpenAI call itself can raise (a rate limit, a timeout, a content-
+        # policy refusal, ...) used to propagate straight past this function as some
+        # exception type the caller's `except ValueError` never catches - an unhandled
+        # 500 with nothing logged anywhere, indistinguishable from every other silent
+        # failure mode this whole file exists to avoid (see public_page_translate's own
+        # log_client_error call, which only ever runs for a ValueError). Wrapped the same
+        # way detect_content_language/page_generator.generate_page_draft already treat a
+        # failed OpenAI call elsewhere in this codebase.
+        raise ValueError(f"model call failed: {error}") from error
     content = response.choices[0].message.content
     if not content:
         raise ValueError("model returned no content")
@@ -294,6 +318,7 @@ def translate_page_content(lang, tagline, about, price_list, faq):
         result = json.loads(content)
     except json.JSONDecodeError as error:
         raise ValueError(f"model returned invalid JSON: {error}") from error
-    if not translation_is_usable(result, tagline, about, price_list, faq):
-        raise ValueError("model returned a translation missing content the source actually has, or echoed it back untranslated")
+    rejection_reason = translation_rejection_reason(result, tagline, about, price_list, faq)
+    if rejection_reason is not None:
+        raise ValueError(f"model returned an unusable translation: {rejection_reason}")
     return result
