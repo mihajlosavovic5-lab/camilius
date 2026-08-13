@@ -14,7 +14,7 @@ import requests
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import padding
 
-from database import push_tokens_for_business, remove_push_token, is_push_enabled
+from database import push_tokens_for_business, remove_push_token, is_push_enabled, log_client_error
 
 FCM_SCOPE = "https://www.googleapis.com/auth/firebase.messaging"
 TOKEN_URL = "https://oauth2.googleapis.com/token"
@@ -71,26 +71,40 @@ def _get_access_token(account):
 
 
 def send_push_to_business(business_id, title, body, data=None):
-    """Sends a push notification to every device registered for this business.
-    Silently does nothing if Firebase isn't configured yet, or if the business has
-    turned notifications off in Settings - and prunes any device token FCM reports as
-    no-longer-valid (app uninstalled, etc.)."""
+    """Sends a push notification to every device registered for this business. Does
+    nothing if Firebase isn't configured yet, or if the business has turned
+    notifications off in Settings - and prunes any device token FCM reports as
+    no-longer-valid (app uninstalled, etc.).
+
+    Every reason nothing went out (not just outright failures) is also logged via
+    log_client_error, visible at /admin/client-errors - this used to just silently
+    return in the "not configured"/"no tokens" cases and print() the rest, both
+    invisible without a shell on the server. That silence is exactly what made an
+    earlier bug (the AI-task-done push never firing when the app was backgrounded)
+    hard to tell apart from "Firebase was never actually configured in this
+    environment" or "this device never registered a token" - all three look
+    identical from the app's side (no notification arrives), but only one of them is
+    a code bug."""
     account = _service_account()
     project_id = os.getenv("FIREBASE_PROJECT_ID")
     if not account or not project_id:
+        log_client_error(business_id, "push skipped: Firebase isn't configured on the server (FIREBASE_PROJECT_ID/FIREBASE_SERVICE_ACCOUNT_JSON not set)", "", "push-skipped", "")
         return
 
     if not is_push_enabled(business_id):
+        log_client_error(business_id, "push skipped: push notifications are turned off in Settings for this business", "", "push-skipped", "")
         return
 
     tokens = push_tokens_for_business(business_id)
     if not tokens:
+        log_client_error(business_id, "push skipped: no device has registered a push token for this business", "", "push-skipped", "")
         return
 
     try:
         access_token = _get_access_token(account)
     except Exception as e:
         print(f"[push] Couldn't get an FCM access token: {e}")
+        log_client_error(business_id, f"push failed: couldn't get an FCM access token ({e})", "", "push-failed", "")
         return
 
     url = f"https://fcm.googleapis.com/v1/projects/{project_id}/messages:send"
@@ -111,7 +125,10 @@ def send_push_to_business(business_id, title, body, data=None):
                 response.status_code == 400 and "UNREGISTERED" in response.text
             ):
                 remove_push_token(token)
+                log_client_error(business_id, "push failed: FCM reports this device's token is no longer valid (app reinstalled/uninstalled) - removed it", "", "push-failed", "")
             elif not response.ok:
                 print(f"[push] FCM send failed ({response.status_code}): {response.text[:200]}")
+                log_client_error(business_id, f"push failed: FCM send failed ({response.status_code}): {response.text[:200]}", "", "push-failed", "")
         except Exception as e:
             print(f"[push] Error sending to a device: {e}")
+            log_client_error(business_id, f"push failed: error sending to a device ({e})", "", "push-failed", "")
