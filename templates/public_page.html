@@ -480,18 +480,25 @@
        a block element so it already spans the section's full width, text-align is all
        that's needed. */
     #about h2, #contact h2, #prices h2, #location h2, #photos h2 { text-align: center; }
-    /* Small gradient "signature" rule under the About heading - the same primary-to-gold
-       mark .title-rule already draws under the page's own big title (see above), reused
-       here via ::after so About reads as one deliberately designed page, not a plain
-       heading dropped over a wall of text. */
-    #about h2::after {
+    /* Small gradient "signature" rule under every section heading - the same primary-to-
+       gold mark .title-rule already draws under the page's own big title (see above),
+       reused here via ::after on every section so the whole page reads as one
+       deliberately designed piece, not a plain heading dropped over each section's own
+       content. Left-aligned by default, under the same side as the heading's own text;
+       the centered-heading sections below (plus Book, centered via its own flex layout
+       rather than the plain text-align rule above) re-center it to match. */
+    section h2::after {
         content: "";
         display: block;
         width: 40px;
         height: 3px;
-        margin: 10px auto 0;
+        margin: 10px 0 0;
         border-radius: 999px;
         background: linear-gradient(90deg, var(--primary), var(--gold));
+    }
+    #about h2::after, #contact h2::after, #prices h2::after, #location h2::after,
+    #photos h2::after, .book-section-head h2::after {
+        margin: 10px auto 0;
     }
     /* Location - a slightly heavier treatment than the plain .contact-row/.price-row
        borders elsewhere on the page (inset gold ring + soft shadow) since the map's own
@@ -598,9 +605,7 @@
        a handful of block types (plain paragraph/heading/sub-heading/callout/signature/
        list) so an about text with real structure (see pages.py's own formatting-syntax
        comment) reads as a deliberately laid-out piece instead of one dense paragraph. A
-       plain about text with no such structure still becomes exactly one .about-p, which
-       keeps the classic drop-cap treatment below - so the common "just a few sentences"
-       case looks the same as before. */
+       plain about text with no such structure still becomes exactly one .about-p. */
     .about-rendered {
         margin: 0 auto;
         max-width: 62ch;
@@ -620,27 +625,6 @@
     .about-list-lead {
         font-weight: 600;
         margin-bottom: 6px;
-    }
-    /* Drop-cap only on a paragraph that opens the section (never a heading/list/callout
-       right before it) - .about-p is the first element only when the about text has no
-       leading "# heading" of its own, so a heading-led about (which already has its own
-       visual hook) doesn't also get a competing drop-cap under it. Sized to float over
-       LESS than one full line of the paragraph's own line-height (30px at this font-size)
-       on purpose - a cap sized to fill closer to a full line (as an early version of this
-       did) still overflows into part of line 2's line box, which pushes line 2 in next to
-       it as well, and then line 3 snaps back out to the full-width margin the moment the
-       text clears the float - a jarring "third line sticks out" look on any about text
-       short enough to wrap to only 2-3 lines. Comfortably under one line's height means
-       only line 1 is ever indented, so every line after it sits at the same left edge no
-       matter how long or short the paragraph is. */
-    .about-rendered > .about-p:first-child::first-letter {
-        font-family: var(--heading-font);
-        font-size: 2.3em;
-        font-weight: 700;
-        color: var(--primary);
-        float: left;
-        line-height: .6;
-        padding: 0 .07em 0 0;
     }
     .about-heading, .about-subheading {
         margin: 22px 0 10px;
