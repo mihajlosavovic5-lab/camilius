@@ -313,9 +313,9 @@
     }
     .lang-loading-overlay.visible { opacity: 1; pointer-events: auto; }
     .lang-loading-spinner {
-        width: 44px; height: 44px;
-        border: 3px solid var(--border);
-        border-top-color: var(--primary);
+        width: 26px; height: 26px;
+        border: 2px solid var(--border);
+        border-top-color: color-mix(in srgb, var(--primary) 65%, transparent);
         border-radius: 50%;
         animation: lang-loading-spin .8s linear infinite;
     }
@@ -1913,14 +1913,27 @@ window.pageOverlay = (function () {
             // being sent in the first place, for every language alike.
             if (opt.classList.contains("active")) { closeDropdown(); return; }
             if (loading) return;
+            // Shown for every switch, cached or not - a cache hit applies instantly, so
+            // without the minimum-duration hold below the overlay would flash for a single
+            // frame or not paint at all, making a cached switch feel inconsistent with an
+            // uncached one instead of both giving the same "something happened" feedback.
+            var overlayShownAt = Date.now();
+            var overlayMinMs = 220;
+            if (langLoadingOverlay) langLoadingOverlay.classList.add("visible");
+            function hideOverlay() {
+                if (!langLoadingOverlay) return;
+                var remaining = overlayMinMs - (Date.now() - overlayShownAt);
+                if (remaining <= 0) { langLoadingOverlay.classList.remove("visible"); }
+                else { setTimeout(function () { langLoadingOverlay.classList.remove("visible"); }, remaining); }
+            }
             if (cache[lang]) {
                 applyTranslation(lang, cache[lang]);
                 closeDropdown();
+                hideOverlay();
                 return;
             }
             loading = true;
             langBtn.classList.add("loading");
-            if (langLoadingOverlay) langLoadingOverlay.classList.add("visible");
             fetch(translateUrlBase + lang)
                 .then(function (r) { if (!r.ok) throw new Error("bad status"); return r.json(); })
                 .then(function (data) {
@@ -1938,7 +1951,7 @@ window.pageOverlay = (function () {
                 .finally(function () {
                     loading = false;
                     langBtn.classList.remove("loading");
-                    if (langLoadingOverlay) langLoadingOverlay.classList.remove("visible");
+                    hideOverlay();
                     closeDropdown();
                 });
         });
