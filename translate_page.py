@@ -68,6 +68,7 @@ MAX_TRANSLATE_TOKENS = 8000
 PAGE_UI_STRINGS = {
     "nav_home": "Home",
     "nav_about": "About",
+    "nav_hours": "Hours",
     "nav_book": "Book",
     "nav_gallery": "Gallery",
     "nav_photos": "Photos",
@@ -76,6 +77,8 @@ PAGE_UI_STRINGS = {
     "nav_contact": "Contact",
     "nav_location": "Location",
     "heading_about": "About",
+    "heading_hours": "Hours",
+    "today_badge": "Today",
     "heading_book": "Book an appointment",
     "heading_gallery": "Gallery",
     "heading_photos": "Photos",
