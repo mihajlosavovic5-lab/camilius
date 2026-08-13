@@ -578,6 +578,12 @@
         transition: box-shadow .25s ease, border-color .25s ease, background .3s ease, color .3s ease;
     }
     section:hover { box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06); }
+    /* Opt-in, not a change to the base rule above - naturally short/light sections
+       (Contact, Location) read as over-padded at the same weight as dense ones (About,
+       Photos, Prices, Hours), so every section on the page reading as one identical-size
+       card regardless of how much is actually in it. Additive/reversible: only the
+       sections that opt in change, nothing else shifts. */
+    .section-compact { padding: 16px 20px; margin-bottom: 14px; }
     section h2 {
         font-family: var(--heading-font);
         font-size: 0.85rem;
@@ -2388,7 +2394,7 @@
         {% endmacro %}
 
         {% if contact_email or phone_number or social_links %}
-        <section id="contact" class="reveal">
+        <section id="contact" class="reveal section-compact">
             <h2 data-i18n="heading_contact">Contact</h2>
             {% if contact_email or phone_number %}
             <div class="contact-list">
@@ -2417,7 +2423,7 @@
         {% endif %}
 
         {% if address %}
-        <section id="location" class="reveal">
+        <section id="location" class="reveal section-compact">
             <h2 data-i18n="heading_location">Location</h2>
             <!-- The iframe is cropped larger than .location-map-wrap's visible window (see
                  CSS) so Google's own "Open in Maps" chip/fullscreen toggle/locator
