@@ -2528,13 +2528,15 @@ def _render_public_page(page, business, page_url, preview=False):
     # ever per business (not on every view - page[16] is content_language, see the
     # column's own comment in create_database()) and cached from then on. A wrong or
     # missing detection just means the extra flag doesn't show; the fixed four still do.
+    # The detected language leads the row (rather than trailing after the fixed four) -
+    # it's the one language guaranteed to actually match this business's own content.
     content_language = page[16]
     if content_language is None:
         content_language = translate_page.detect_content_language(f"{page[4] or ''}\n{page[5] or ''}")
         set_page_content_language(business_id, content_language)
     page_languages = list(translate_page.DEFAULT_PAGE_LANGUAGES)
     if content_language in translate_page.LANGUAGES and content_language not in page_languages:
-        page_languages.append(content_language)
+        page_languages.insert(0, content_language)
 
     return render_template(
         "public_page.html",

@@ -1,10 +1,10 @@
 """Tests for the public page's header language switcher and its backing
 GET /p/<slug>/translate/<lang> endpoint - see app.py's public_page()/
 public_page_translate and translate_page.py. Covers: the switcher's fixed EN/ES/FR/DE
-flag row plus an extra flag for whatever language the business's own content is
-detected to be written in, the translate endpoint's caching (only the first request for
-a given (business, language) pair ever calls OpenAI), and its gating (unknown language,
-unpublished page).
+flag row plus an extra, leading flag for whatever language the business's own content
+is detected to be written in, the translate endpoint's caching (only the first request
+for a given (business, language) pair ever calls OpenAI), and its gating (unknown
+language, unpublished page).
 """
 import json
 import uuid
@@ -48,6 +48,17 @@ def test_public_page_adds_detected_content_language_flag(client, unique_email, m
     assert "rs.png" in html
     page = database.get_business_page(business_id)
     assert page[16] == "sr"
+
+
+def test_public_page_lists_detected_content_language_flag_first(client, unique_email, monkeypatch):
+    # The detected flag leads the row rather than trailing after the fixed EN/ES/FR/DE
+    # four - it's the one language guaranteed to actually match this business's content.
+    monkeypatch.setattr(translate_page, "detect_content_language", lambda text: "sr")
+    register_business_web(client, unique_email)
+    _, slug = _publish_page(client, unique_email)
+
+    html = client.get(f"/p/{slug}").get_data(as_text=True)
+    assert html.index('data-lang="sr"') < html.index('data-lang="en"')
 
 
 def test_content_language_is_detected_only_once(client, unique_email, monkeypatch):
