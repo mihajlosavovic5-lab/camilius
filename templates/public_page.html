@@ -1579,6 +1579,48 @@
         .photo-slide { transition: none !important; }
     }
 
+    /* --- Photo lightbox --- */
+    /* Always in the DOM (not display:none), toggled purely via opacity/pointer-events -
+       same pattern as .lang-loading-overlay/.theme-toast above, so the fade-in/out
+       transition always plays instead of needing a display-swap dance around it. A
+       plain near-black scrim regardless of the business's own theme (unlike every other
+       overlay on this page, which dims with --text at low opacity) - a photo viewer
+       reads as photography-app chrome, not this page's own themed UI, on every site that
+       already does this well. */
+    .photo-lightbox {
+        position: fixed; inset: 0; z-index: 1010;
+        display: flex; align-items: center; justify-content: center;
+        background: rgba(8, 6, 4, .92);
+        opacity: 0; pointer-events: none;
+        transition: opacity .2s ease;
+    }
+    .photo-lightbox.visible { opacity: 1; pointer-events: auto; }
+    .photo-lightbox-img {
+        max-width: min(92vw, 900px);
+        max-height: 86vh;
+        object-fit: contain;
+        border-radius: 10px;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, .5);
+    }
+    .photo-lightbox-close, .photo-lightbox-arrow {
+        position: fixed;
+        border: none;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, .12);
+        color: #fff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: background .15s ease, transform .12s ease;
+    }
+    .photo-lightbox-close:hover, .photo-lightbox-arrow:hover { background: rgba(255, 255, 255, .22); }
+    .photo-lightbox-close:active, .photo-lightbox-arrow:active { transform: scale(.92); }
+    .photo-lightbox-close { top: 18px; right: 18px; width: 40px; height: 40px; font-size: 16px; }
+    .photo-lightbox-arrow { top: 50%; margin-top: -22px; width: 44px; height: 44px; font-size: 26px; }
+    .photo-lightbox-prev { left: 18px; }
+    .photo-lightbox-next { right: 18px; }
+
     @media (max-width: 880px) {
         .shell { flex-direction: column; padding: 0; gap: 0; }
         .nav-menu-btn { display: flex; }
@@ -1961,6 +2003,21 @@
                 {% endif %}
             </div>
         </section>
+        <!-- Lightbox - tapping a photo used to follow its <a href> straight to the raw
+             image file (a bare, unstyled full-res image, opened in a whole new tab), which
+             read as the page abruptly dumping the visitor into a "zoomed in" image viewer
+             instead of anything designed. This is the same in-page "photo opens over a
+             dimmed backdrop, with a close button and its own prev/next" pattern actual
+             photo galleries use - the click on .photo-slide is now intercepted (see the
+             script below) instead of ever navigating away. -->
+        <div class="photo-lightbox" id="photo-lightbox">
+            <button type="button" class="photo-lightbox-close" id="photo-lightbox-close" aria-label="Close">&#10005;</button>
+            {% if gallery_urls|length > 1 %}
+            <button type="button" class="photo-lightbox-arrow photo-lightbox-prev" id="photo-lightbox-prev" aria-label="Previous photo">&#8249;</button>
+            <button type="button" class="photo-lightbox-arrow photo-lightbox-next" id="photo-lightbox-next" aria-label="Next photo">&#8250;</button>
+            {% endif %}
+            <img class="photo-lightbox-img" id="photo-lightbox-img" src="" alt="">
+        </div>
         {% endif %}
 
         {% if booking_enabled %}
@@ -2940,6 +2997,78 @@ window.pageOverlay = (function () {
             else if (scrolled < -SWIPE_THRESHOLD) prev();
             else goTo(current);
         }, { passive: false });
+
+        // Lightbox - tapping a photo used to follow its <a href> straight to the raw
+        // image file in a new tab; now it opens over this dimmed in-page overlay instead
+        // (see .photo-lightbox's own CSS comment). window.pageOverlay handles the shared
+        // page-behind-it scroll lock/dismiss-on-backdrop-tap the same way it already does
+        // for the nav drawer/language dropdown/chat/theme panels - this just supplies its
+        // own opaque backdrop on top of that shared one and its own close button/keyboard
+        // handling. Index-only, independent of the slider's own clone-based wrap-around
+        // animation above (see current()/next()/prev()'s own comments for why THAT needs
+        // clones) - a plain (i + slides.length) % slides.length is all a static image
+        // swap needs to wrap either direction.
+        var lightbox = document.getElementById("photo-lightbox");
+        var lightboxImg = document.getElementById("photo-lightbox-img");
+        var lightboxClose = document.getElementById("photo-lightbox-close");
+        var lightboxPrev = document.getElementById("photo-lightbox-prev");
+        var lightboxNext = document.getElementById("photo-lightbox-next");
+        if (lightbox && lightboxImg) {
+            var lightboxOpen = false;
+            var lightboxIndex = 0;
+            function showLightboxPhoto(i) {
+                lightboxIndex = (i + slides.length) % slides.length;
+                var img = slides[lightboxIndex].querySelector("img");
+                lightboxImg.src = img.src;
+                lightboxImg.alt = img.alt;
+                goTo(lightboxIndex); // keeps the slider itself in sync for once the lightbox closes
+            }
+            function openLightbox(i) {
+                showLightboxPhoto(i);
+                lightboxOpen = true;
+                lightbox.classList.add("visible");
+                window.pageOverlay.set("photo");
+            }
+            function closeLightbox() {
+                if (!lightboxOpen) return;
+                lightboxOpen = false;
+                lightbox.classList.remove("visible");
+                window.pageOverlay.clear("photo");
+            }
+            window.pageOverlay.register("photo", closeLightbox);
+            // Delegated on `track` (not one listener per slide) so the wrap-around clones
+            // - real DOM nodes cloneNode(true) copied straight from a real slide, see the
+            // clone setup above - open the lightbox too if a visitor manages to tap one
+            // mid-swipe, without needing their own listeners: matching the clicked
+            // element's href back to the real slide it stands in for.
+            track.addEventListener("click", function (e) {
+                var slideEl = e.target.closest(".photo-slide");
+                if (!slideEl) return;
+                e.preventDefault();
+                var idx = slides.indexOf(slideEl);
+                if (idx === -1) {
+                    var href = slideEl.getAttribute("href");
+                    idx = slides.findIndex(function (s) { return s.getAttribute("href") === href; });
+                }
+                if (idx !== -1) openLightbox(idx);
+            });
+            if (lightboxClose) lightboxClose.addEventListener("click", closeLightbox);
+            if (lightboxPrev) lightboxPrev.addEventListener("click", function () { showLightboxPhoto(lightboxIndex - 1); });
+            if (lightboxNext) lightboxNext.addEventListener("click", function () { showLightboxPhoto(lightboxIndex + 1); });
+            // Backdrop tap (anywhere that isn't the image/close/arrow buttons, all of
+            // which stopPropagation isn't needed for since they're plain siblings of the
+            // image, not overlapping it) closes same as every other overlay's own
+            // click-outside pattern on this page.
+            lightbox.addEventListener("click", function (e) {
+                if (e.target === lightbox) closeLightbox();
+            });
+            document.addEventListener("keydown", function (e) {
+                if (!lightboxOpen) return;
+                if (e.key === "Escape") closeLightbox();
+                else if (e.key === "ArrowRight") showLightboxPhoto(lightboxIndex + 1);
+                else if (e.key === "ArrowLeft") showLightboxPhoto(lightboxIndex - 1);
+            });
+        }
     })();
 
     // Reveal-on-scroll for the header/CTA/each section - see landing.html's identical
