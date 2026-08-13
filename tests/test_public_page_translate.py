@@ -210,21 +210,25 @@ def test_translation_is_usable_skips_echo_check_without_lang_info():
     assert translate_page.translation_is_usable(result, "T", "Radimo od 2019. godine.", "P", "F") is True
 
 
-def test_translation_is_usable_false_when_price_list_is_echoed_back_untranslated():
-    # Same echo problem reported for "about" turned out to reproduce for price_list too -
-    # the check covers every content field the same way, not just "about".
+def test_translation_is_usable_true_when_a_loanword_heavy_price_list_survives_unchanged():
+    # The echo check briefly covered price_list/tagline too (see git history), but a real
+    # price list routinely uses loanwords ("Espresso", "Cappuccino") that a genuinely
+    # correct translation leaves unchanged in most target languages - flagging that as a
+    # failure rejected good translations outright, for every language, on every request
+    # for a business whose menu happens to read this way. price_list is exempt from the
+    # echo check for exactly this reason; only "about" (free-form prose) is checked.
     ui = {key: f"[es] {value}" for key, value in translate_page.PAGE_UI_STRINGS.items()}
-    source_price_list = "Šišanje muško: 20 EUR\nBrijanje: 10 EUR\nFarbanje kose: 30 EUR"
-    result = {"tagline": "t", "about": "a", "price_list": source_price_list, "faq": "f", "ui": ui}
-    assert translate_page.translation_is_usable(result, "T", "A", source_price_list, "F", lang="es", source_lang="sr") is False
+    source_price_list = "Espresso: 20 EUR\nCappuccino: 10 EUR\nLatte: 15 EUR"
+    result = {"tagline": "Aroma", "about": "Traducción real, distinta del origen.", "price_list": source_price_list, "faq": "f", "ui": ui}
+    assert translate_page.translation_is_usable(result, "Aroma", "Radimo od 2019. godine.", source_price_list, "F", lang="es", source_lang="sr") is True
 
 
-def test_translation_is_usable_true_when_a_short_field_survives_translation_unchanged():
-    # A bare price line or a short/proper-noun tagline can legitimately come back
-    # identical - only long enough fields count as a suspected echo.
+def test_translation_is_usable_true_when_a_short_about_survives_translation_unchanged():
+    # A bare/very short "about" can legitimately come back identical - only a long enough
+    # one counts as a suspected echo.
     ui = {key: f"[es] {value}" for key, value in translate_page.PAGE_UI_STRINGS.items()}
-    result = {"tagline": "Aroma", "about": "a", "price_list": "20 EUR", "faq": "f", "ui": ui}
-    assert translate_page.translation_is_usable(result, "Aroma", "A", "20 EUR", "F", lang="es", source_lang="sr") is True
+    result = {"tagline": "t", "about": "a", "price_list": "p", "faq": "f", "ui": ui}
+    assert translate_page.translation_is_usable(result, "T", "a", "P", "F", lang="es", source_lang="sr") is True
 
 
 def test_translate_page_content_rejects_a_response_missing_real_content(monkeypatch):
