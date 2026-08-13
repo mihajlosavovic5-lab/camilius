@@ -159,3 +159,37 @@ def test_site_preview_link_bridges_to_a_logged_in_preview(client, unique_email):
 def test_site_preview_link_rejects_bad_token(client):
     response = client.get("/site/preview/not-a-real-token")
     assert response.status_code == 404
+
+
+def test_site_preview_link_live_redirects_to_public_page_when_published(client, unique_email):
+    """The mobile app's "View page" button opens the real /p/<slug> URL once a page is
+    published (openLiveSite in mobile/app.js), appending ?live=1 to this same bridge
+    link instead of opening /p/<slug> directly with no session - see app.py's
+    site_preview_mobile. Without a real session there, the owner's own theme picker
+    (public_page.html's is_owner-gated toolbar) could never tell the owner apart from
+    any other visitor on that exact URL."""
+    headers, business_id = _auth_header(client, unique_email)
+    slug = f"live-{business_id}"
+    database.upsert_business_page(business_id, slug, True, "Fresh cuts daily", None)
+
+    link_response = client.get("/api/site-preview-link", headers=headers)
+    token = link_response.get_json()["url"].rsplit("/site/preview/", 1)[1]
+
+    bridge_response = client.get(f"/site/preview/{token}?live=1", follow_redirects=True)
+    assert bridge_response.status_code == 200
+    html = bridge_response.get_data(as_text=True)
+    assert "Fresh cuts daily" in html
+    assert 'id="theme-fab"' in html
+
+
+def test_site_preview_link_live_falls_back_to_preview_when_unpublished(client, unique_email):
+    headers, business_id = _auth_header(client, unique_email)
+    slug = f"draft-{business_id}"
+    database.upsert_business_page(business_id, slug, False, "Fresh cuts daily", None)
+
+    link_response = client.get("/api/site-preview-link", headers=headers)
+    token = link_response.get_json()["url"].rsplit("/site/preview/", 1)[1]
+
+    bridge_response = client.get(f"/site/preview/{token}?live=1")
+    assert bridge_response.status_code == 302
+    assert bridge_response.headers["Location"] == "/site/preview"

@@ -2313,7 +2313,16 @@ def set_site_theme():
 # Mobile-app equivalent of the "View page" button above - same token-bridge pattern as
 # /schedule/<token> and /subscription/<token>, since Capacitor's Browser plugin can't
 # attach the app's Bearer token to a request it opens. Establishes a real session then
-# redirects into the same site_preview() route the website's own button uses.
+# redirects into the same site_preview() route the website's own button uses - or, with
+# ?live=1 (see mobile/app.js's openLiveSite), into the real /p/<slug> URL instead, once
+# published. That ?live=1 branch is what makes the owner's own theme picker (public_page.
+# html's {% if theme_choices %} toolbar, gated on _render_public_page's is_owner check)
+# actually show up there: openLiveSite() used to open /p/<slug> with Browser.open() and
+# no session at all ("no auth needed" - true before the toolbar existed, since every
+# visitor saw the exact same page), so is_owner could never be true from that tap even
+# though the owner really was looking at their own site. Routing through this same
+# token bridge first, same as the still-unpublished fallback below, is what gives that
+# tab a real session before it ever loads /p/<slug>.
 @app.route("/site/preview/<token>")
 def site_preview_mobile(token):
     from api import business_id_from_site_preview_link_token  # deferred: avoid circular import at module load
@@ -2325,6 +2334,10 @@ def site_preview_mobile(token):
     if business:
         session["business_id"] = business_id
         session["business_name"] = business[1]
+    if request.args.get("live"):
+        page = get_business_page(business_id)
+        if page is not None and page[3]:  # page[3]: published
+            return redirect(url_for("public_page", slug=page[2]))
     return redirect(url_for("site_preview"))
 
 

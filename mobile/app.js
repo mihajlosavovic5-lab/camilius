@@ -4855,14 +4855,27 @@ async function openSitePreview() {
         reportClientError(err.message, err.stack, "site-preview-link");
     }
 }
-// The real, public /p/<slug> address - no auth needed (unlike openSitePreview's
-// token-bridge above), so this just opens it directly.
-function openLiveSite(slug) {
-    const url = API_BASE + "/p/" + slug;
-    if (capacitorPlugins && capacitorPlugins.Browser) {
-        capacitorPlugins.Browser.open({ url });
-    } else {
-        window.open(url, "_blank");
+// The real, public /p/<slug> address - now goes through the same token-bridge as
+// openSitePreview above (appending ?live=1, see app.py's site_preview_mobile) rather
+// than opening /p/<slug> directly with no session: the owner's own "Change theme"
+// picker on that page only shows for a request the server recognizes as this exact
+// business's own logged-in session (see public_page.html's {% if theme_choices %}
+// toolbar), and Browser.open() launches a separate in-app browser tab with none of
+// this app's own auth state carried over - a bare /p/<slug> open would show the owner
+// the same plain visitor view as anyone else, no way to tell them apart. slug is no
+// longer used directly here (the server already knows this business's own real slug
+// once the token resolves it), kept as a parameter only so callers don't need to change.
+async function openLiveSite(slug) {
+    try {
+        const data = await api("/api/site-preview-link");
+        const url = data.url + "?live=1";
+        if (capacitorPlugins && capacitorPlugins.Browser) {
+            await capacitorPlugins.Browser.open({ url });
+        } else {
+            window.open(url, "_blank");
+        }
+    } catch (err) {
+        reportClientError(err.message, err.stack, "site-preview-link");
     }
 }
 // Once the page is published, "View page" should go straight to the real live site
