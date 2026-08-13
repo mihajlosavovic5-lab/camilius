@@ -247,7 +247,7 @@
 
     /* --- Top-bar title - same tagline-or-business_name text as .page-header's own big
        headline further down, centered between .nav-menu-btn (fixed top-left, 18px + 34px
-       wide) and .lang-btn (fixed top-right, 16px + 40px wide) once the hamburger takes
+       wide) and .lang-btn (fixed top-right, 18px + 40px wide) once the hamburger takes
        over below the 880px breakpoint. On mobile this replaces .page-header's own big
        heading (hidden there, see the media query below - logo stays) rather than
        showing the same title twice; on desktop it stays hidden and that heading is the
@@ -277,9 +277,14 @@
        standalone and doesn't load either. Visible at every width (unlike the hamburger,
        which only takes over on narrow screens) - the side-nav's own collapse doesn't
        affect this. --- */
+    /* top/height match .nav-menu-btn's own 18px top / 34px height exactly, not just a
+       16px top eyeballed on its own - the flag (.lang-flag below) is 28px tall with no
+       padding here to pad it out to 34px like the hamburger's own box, so a bare 16px
+       top left its center a visible few px above the hamburger's. align-items: center
+       is what actually centers the flag/chevron within this explicit 34px box. */
     .lang-btn {
         display: flex; align-items: center; gap: 4px;
-        position: fixed; top: 16px; right: 16px; z-index: 952;
+        position: fixed; top: 18px; height: 34px; right: 16px; z-index: 952;
         background: none; border: none; padding: 0; cursor: pointer;
         transition: transform .15s ease, opacity .15s ease;
     }
