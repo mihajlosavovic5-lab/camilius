@@ -386,6 +386,40 @@ def render_about_html(about_text):
     return Markup("".join(html_parts))
 
 
+def render_faq_html(faq_text):
+    """business_pages.faq's raw text - already authored as "question on its own line,
+    answer on the next line(s), blank line between pairs" (see page_generator.format_faq's
+    own docstring; the AI drafter and generate_reply.py's system prompt both read/write
+    that same convention already, so this needs no new authoring syntax, just a parser for
+    an existing one) - turned into public_page.html's #faq accordion: one native
+    <details class="faq-item"><summary class="faq-question">...</summary>
+    <div class="faq-answer">...</div></details> per pair, the same JS-free expand/collapse
+    mechanic the booking widget's own .book-day-card already uses, all starting collapsed.
+    Mirrors render_about_html's escape-then-format discipline exactly (reusing
+    _format_about_inline for **bold**/*italic* support within an answer) and its
+    Markup("")-for-empty contract. A block with no separate answer line (a business typed
+    a bare question with nothing under it, or free-typed FAQ text that doesn't follow the
+    convention) still renders - as a question with an empty answer - rather than being
+    silently dropped, since there's no way to tell "answer intentionally blank" apart from
+    "not actually a Q&A pair" without guessing, and dropping content outright is worse
+    than an odd-looking empty answer."""
+    text = (faq_text or "").strip()
+    if not text:
+        return Markup("")
+    items = []
+    for block in re.split(r"\n\s*\n", text):
+        lines = [line for line in block.split("\n") if line.strip()]
+        if not lines:
+            continue
+        question = _format_about_inline(lines[0])
+        answer = "<br>".join(_format_about_inline(line) for line in lines[1:])
+        items.append(
+            f'<details class="faq-item"><summary class="faq-question">{question}</summary>'
+            f'<div class="faq-answer">{answer}</div></details>'
+        )
+    return Markup(f'<div class="faq-list">{"".join(items)}</div>')
+
+
 # A conservative hostname allowlist (ASCII letters/digits/hyphens, dot-separated
 # labels, at least one dot) for normalize_widget_domain below - deliberately stricter
 # than what urlparse itself accepts. This value gets dropped straight into a

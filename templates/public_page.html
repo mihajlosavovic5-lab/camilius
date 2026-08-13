@@ -807,9 +807,52 @@
     }
     .about-rendered strong { font-weight: 700; color: var(--text); }
     .about-rendered em { font-style: italic; font-weight: 300; color: var(--text-muted); }
-    .faq {
-        white-space: pre-line;
-        margin: 0;
+    /* FAQ - one native <details> per Q&A pair (pages.render_faq_html), same JS-free
+       expand/collapse mechanic and marker-hiding treatment as the booking widget's own
+       .book-day-card, restyled for a question/answer pair instead of a day/slot list.
+       All start collapsed. The chevron is a CSS-only border-corner rotated 45deg/-135deg
+       (closed/open) rather than an inline SVG per question, so render_faq_html only ever
+       has to emit plain escaped text. */
+    .faq-list { display: flex; flex-direction: column; gap: 10px; }
+    .faq-item {
+        border: 1px solid var(--border);
+        border-radius: calc(var(--radius) * 0.6);
+        background: var(--background);
+        overflow: hidden;
+    }
+    .faq-question {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        padding: 13px 14px;
+        cursor: pointer;
+        list-style: none;
+        -webkit-tap-highlight-color: transparent;
+        font-weight: 600;
+        color: var(--text);
+        transition: background .15s ease;
+    }
+    .faq-question::-webkit-details-marker { display: none; }
+    .faq-question::marker { display: none; }
+    .faq-question:hover { background: var(--surface); }
+    .faq-question::after {
+        content: "";
+        flex: 0 0 auto;
+        width: 8px;
+        height: 8px;
+        border-right: 2px solid var(--text-muted);
+        border-bottom: 2px solid var(--text-muted);
+        transform: rotate(45deg);
+        transition: transform .2s ease;
+    }
+    .faq-item[open] .faq-question { border-bottom: 1px solid var(--border); }
+    .faq-item[open] .faq-question::after { transform: rotate(-135deg); }
+    .faq-answer {
+        padding: 12px 14px 14px;
+        color: var(--text-muted);
+        font-size: 0.92rem;
+        line-height: 1.55;
     }
     /* Prices - a clean name/price row (justify-content: space-between pushes the price
        to the far end) instead of the plain pre-line text dump every other opaque text
@@ -2243,7 +2286,13 @@
         {% if faq %}
         <section id="faq" class="reveal">
             <h2 data-i18n="heading_questions">Questions</h2>
-            <p class="faq" data-i18n-content="faq">{{ faq }}</p>
+            {# .faq-rendered holds pages.render_faq_html()'s <details>/<summary> accordion
+               for the initial, server-rendered view - same hidden-source/rendered-view
+               split .about-rendered/.about-raw already use, so a language switch has the
+               exact original text to re-translate from and re-run through
+               renderFaqBlocks() (the JS mirror of render_faq_html, below). #}
+            <div class="faq-rendered" id="faq-rendered">{{ faq_html }}</div>
+            <p class="faq-raw hidden" data-i18n-content="faq">{{ faq }}</p>
         </section>
         {% endif %}
 
@@ -2697,6 +2746,41 @@ window.pageOverlay = (function () {
         });
     }
 
+    // JS mirror of pages.render_faq_html() - same "question line, answer line(s), blank
+    // line between pairs" block-split as renderAboutBlocks above, built into real
+    // <details>/<summary>/<div> DOM nodes (never innerHTML from translated text) via the
+    // same appendAboutInline helper renderAboutBlocks already uses for **bold**/*italic*
+    // support. A block with no separate answer line still renders (question, empty
+    // answer) rather than being dropped - same reasoning as render_faq_html's own
+    // docstring on the server side.
+    function renderFaqBlocks(container, raw) {
+        container.textContent = "";
+        var text = (raw || "").trim();
+        if (!text) return;
+        var list = document.createElement("div");
+        list.className = "faq-list";
+        text.split(/\n\s*\n/).forEach(function (block) {
+            var lines = block.split("\n").filter(function (line) { return line.trim(); });
+            if (!lines.length) return;
+            var details = document.createElement("details");
+            details.className = "faq-item";
+            var summary = document.createElement("summary");
+            summary.className = "faq-question";
+            appendAboutInline(summary, lines[0]);
+            var answer = document.createElement("div");
+            answer.className = "faq-answer";
+            var answerLines = lines.slice(1);
+            answerLines.forEach(function (line, i) {
+                appendAboutInline(answer, line);
+                if (i < answerLines.length - 1) answer.appendChild(document.createElement("br"));
+            });
+            details.appendChild(summary);
+            details.appendChild(answer);
+            list.appendChild(details);
+        });
+        container.appendChild(list);
+    }
+
     function applyTranslation(lang, data) {
         var contentEls = document.querySelectorAll("[data-i18n-content]");
         contentEls.forEach(function (el) {
@@ -2704,7 +2788,7 @@ window.pageOverlay = (function () {
             var value = data[key];
             // Every element carrying data-i18n-content only exists in the DOM at all
             // because the server only renders it inside a Jinja guard on non-empty
-            // source content (see .about-raw/.price-list-raw/.faq etc. above) - so a
+            // source content (see .about-raw/.price-list-raw/.faq-raw etc. above) - so a
             // translation response coming back empty/null/missing for this key is always
             // a bad result (a truncated model reply that still happened to parse, a
             // stale/malformed cache row), never a legitimate "this should be blank" -
@@ -2721,6 +2805,10 @@ window.pageOverlay = (function () {
                 el.textContent = value;
                 var aboutRenderedEl = document.getElementById("about-rendered");
                 if (aboutRenderedEl) renderAboutBlocks(aboutRenderedEl, value);
+            } else if (el.matches(".faq-raw")) {
+                el.textContent = value;
+                var faqRenderedEl = document.getElementById("faq-rendered");
+                if (faqRenderedEl) renderFaqBlocks(faqRenderedEl, value);
             } else if (el.matches(".chat-header-text p")) {
                 el.textContent = value;
                 if (window.fitChatHeaderTitle) window.fitChatHeaderTitle();
