@@ -874,11 +874,6 @@ input.tap-to-edit-field, textarea.tap-to-edit-field { cursor: pointer; backgroun
    applies, and back to 1 the instant it doesn't. */
 .button-tap-scale { transition: transform .12s ease; }
 .button-tap-scale:active { transform: scale(0.96); }
-/* Solid-primary buttons that opt into .button-tap-scale (e.g. Schedule's "Book" submit)
-   want the press-in/spring-back scale ONLY, not .button:active's gold flash layered on
-   top of it - same "just one form of tap feedback" reasoning as .button-secondary/
-   .button-google below. */
-.button.button-tap-scale:active { background: var(--primary); }
 /* Confirmation pulse for taps that kick off an async action (e.g. "View page" fetching
    the preview link) - :active alone barely shows since touchend fires almost immediately,
    long before the request resolves. JS re-triggers this class on every click (see
