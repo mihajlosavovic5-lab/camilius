@@ -1699,11 +1699,18 @@ input.tap-to-edit-field, textarea.tap-to-edit-field { cursor: pointer; backgroun
    own overflow internally. That keeps the page's visible end fixed and confines all
    scrolling to the FAQ list itself. */
 .screen-help .detail-body { display: flex; flex-direction: column; overflow-y: hidden; }
-.screen-help .detail-body > *:not(.faq-scroll) { flex-shrink: 0; }
-.faq-scroll { position: relative; flex: 1 1 auto; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+.screen-help .detail-body > *:not(.faq-scroll-wrap) { flex-shrink: 0; }
+/* .faq-scroll itself sets overflow-y: auto, which per spec forces its overflow-x to
+   "auto" too (an axis can't stay "visible" while the other isn't) - so anything
+   positioned outside its own box, like the scroll-affordance line below, would get
+   clipped if hung directly off .faq-scroll. The wrapper carries the flex-sizing and
+   stays overflow: visible (no clipping), with .faq-scroll absolutely filling it and
+   doing the actual scrolling, so the line can sit in the gutter unclipped. */
+.faq-scroll-wrap { position: relative; flex: 1 1 auto; min-height: 0; }
+.faq-scroll { position: absolute; inset: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; }
 /* Faint scroll-affordance line in the left gutter - since the outer page no longer
    scrolls, this is the only visual hint the FAQ list itself has more content below. */
-.faq-scroll::before { content: ''; position: absolute; left: -10px; top: 0; bottom: 0; width: 3px; border-radius: 2px; background: var(--text-muted); opacity: 0.35; }
+.faq-scroll-wrap::before { content: ''; position: absolute; left: -10px; top: 0; bottom: 0; width: 3px; border-radius: 2px; background: var(--text-muted); opacity: 0.35; }
 .question { white-space: pre-wrap; margin: 0; padding: 13px 14px; background: var(--surface); border-radius: 10px; border-left: 3px solid var(--border); font-size: 15.5px; }
 .reply { white-space: pre-wrap; margin: 0; padding: 13px 14px; background: var(--success-bg); border-radius: 10px; border-left: 3px solid var(--success); font-size: 15.5px; }
 /* Expired conversation detail: the expiry-warning alert is moved (via JS in openDetail)
