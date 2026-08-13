@@ -480,6 +480,19 @@
        a block element so it already spans the section's full width, text-align is all
        that's needed. */
     #about h2, #contact h2, #prices h2, #location h2, #photos h2 { text-align: center; }
+    /* Small gradient "signature" rule under the About heading - the same primary-to-gold
+       mark .title-rule already draws under the page's own big title (see above), reused
+       here via ::after so About reads as one deliberately designed page, not a plain
+       heading dropped over a wall of text. */
+    #about h2::after {
+        content: "";
+        display: block;
+        width: 40px;
+        height: 3px;
+        margin: 10px auto 0;
+        border-radius: 999px;
+        background: linear-gradient(90deg, var(--primary), var(--gold));
+    }
     /* Location - a slightly heavier treatment than the plain .contact-row/.price-row
        borders elsewhere on the page (inset gold ring + soft shadow) since the map's own
        colors/UI chrome are Google's, not this business's theme - the frame around it is
@@ -555,7 +568,48 @@
        required attribution stays visible even though Google's own auto-generated one no
        longer is. */
     .location-attribution { margin: 6px 0 0; text-align: center; font-size: 0.72rem; color: var(--text-muted); opacity: .8; }
-    .about, .faq {
+    /* About - a comfortable reading column (max-width in ch, centered) instead of the
+       text spanning the full card edge-to-edge, plus a classic drop-cap first letter so
+       the paragraph reads as one deliberate editorial block rather than a raw text dump.
+       On mobile the card is already narrower than the max-width so this has no visible
+       effect there - no media query needed. #about::before below draws a large, faint
+       closing-quote mark behind the heading/text as a generic "About/Story" ornament
+       (works for any business, not tied to a specific trade), painted before the
+       section's real children so it never needs its own z-index. */
+    #about {
+        position: relative;
+        overflow: hidden;
+    }
+    #about::before {
+        content: "\201D";
+        position: absolute;
+        top: -34px;
+        right: 6px;
+        font-family: var(--heading-font);
+        font-size: 7rem;
+        line-height: 1;
+        color: var(--primary);
+        opacity: .06;
+        pointer-events: none;
+    }
+    .about {
+        white-space: pre-line;
+        margin: 0 auto;
+        max-width: 62ch;
+        line-height: 1.85;
+        font-size: 1.02rem;
+        position: relative;
+    }
+    .about::first-letter {
+        font-family: var(--heading-font);
+        font-size: 2.5em;
+        font-weight: 700;
+        color: var(--primary);
+        float: left;
+        line-height: .78;
+        padding: .05em .07em 0 0;
+    }
+    .faq {
         white-space: pre-line;
         margin: 0;
     }
