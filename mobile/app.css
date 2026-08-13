@@ -1708,9 +1708,15 @@ input.tap-to-edit-field, textarea.tap-to-edit-field { cursor: pointer; backgroun
    doing the actual scrolling, so the line can sit in the gutter unclipped. */
 .faq-scroll-wrap { position: relative; flex: 1 1 auto; min-height: 0; }
 .faq-scroll { position: absolute; inset: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; }
-/* Faint scroll-affordance line in the left gutter - since the outer page no longer
-   scrolls, this is the only visual hint the FAQ list itself has more content below. */
-.faq-scroll-wrap::before { content: ''; position: absolute; left: -10px; top: 0; bottom: 0; width: 3px; border-radius: 2px; background: var(--text-muted); opacity: 0.35; }
+/* Faint scroll track in the left gutter, spanning the full list height - just a groove
+   to place the thumb below in, not itself a scroll-position indicator. */
+.faq-scroll-wrap::before { content: ''; position: absolute; left: -10px; top: 0; bottom: 0; width: 3px; border-radius: 2px; background: var(--text-muted); opacity: 0.15; }
+/* Custom scrollbar thumb for the FAQ list (real <select>-style scrollbars don't render
+   on mobile WebViews) - sized/positioned in JS (updateFaqScrollThumb() in app.js) to
+   mirror how a native scrollbar thumb works: its height is proportional to how much of
+   the list is visible, and it slides down the track as the list scrolls, so a glance at
+   it tells you both that there's more below and roughly how far down you are. */
+.faq-scroll-thumb { position: absolute; left: -10px; width: 3px; border-radius: 2px; background: var(--text-muted); opacity: 0.55; top: 0; height: 40px; }
 .question { white-space: pre-wrap; margin: 0; padding: 13px 14px; background: var(--surface); border-radius: 10px; border-left: 3px solid var(--border); font-size: 15.5px; }
 .reply { white-space: pre-wrap; margin: 0; padding: 13px 14px; background: var(--success-bg); border-radius: 10px; border-left: 3px solid var(--success); font-size: 15.5px; }
 /* Expired conversation detail: the expiry-warning alert is moved (via JS in openDetail)

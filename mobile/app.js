@@ -4731,8 +4731,29 @@ el("logout-confirm-confirm").addEventListener("click", () => {
 
 el("settings-terms-row").addEventListener("click", () => showLegalScreen("terms", "settings"));
 el("settings-privacy-row").addEventListener("click", () => showLegalScreen("privacy", "settings"));
-el("settings-help-row").addEventListener("click", () => showScreen("help"));
+el("settings-help-row").addEventListener("click", () => { showScreen("help"); updateFaqScrollThumb(); });
 el("help-back").addEventListener("click", () => showScreen("settings"));
+
+// Custom scrollbar thumb for the Help screen's FAQ list (see .faq-scroll-thumb in
+// app.css) - real scrollbars don't render on mobile WebViews, so this mirrors one: the
+// thumb's height is proportional to how much of the list is visible, and it slides down
+// the track as the list scrolls.
+function updateFaqScrollThumb() {
+    const scroller = el("help-faq-scroll");
+    const thumb = el("help-faq-thumb");
+    if (!scroller || !thumb) return;
+    const trackHeight = scroller.clientHeight;
+    const contentHeight = scroller.scrollHeight;
+    if (contentHeight <= trackHeight) { thumb.style.display = "none"; return; }
+    thumb.style.display = "";
+    const thumbHeight = Math.max(24, (trackHeight * trackHeight) / contentHeight);
+    const maxScroll = contentHeight - trackHeight;
+    const top = maxScroll > 0 ? (scroller.scrollTop / maxScroll) * (trackHeight - thumbHeight) : 0;
+    thumb.style.height = `${thumbHeight}px`;
+    thumb.style.top = `${top}px`;
+}
+el("help-faq-scroll").addEventListener("scroll", updateFaqScrollThumb);
+window.addEventListener("resize", updateFaqScrollThumb);
 el("settings-subscription-row").addEventListener("click", () => { subscriptionReturnTo = "settings"; showScreen("subscription"); });
 el("subscription-back").addEventListener("click", () => showScreen(subscriptionReturnTo));
 
