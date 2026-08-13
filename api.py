@@ -1099,6 +1099,7 @@ def api_get_page():
         "slug": page_row[2], "published": page_row[3], "tagline": page_row[4], "about": page_row[5],
         "theme": page_row[9], "custom_theme_json": page_row[10],
         "pending_custom_domain": page_row[11], "custom_domain": page_row[12], "custom_domain_status": page_row[13],
+        "address": page_row[17],
     }
 
     # Same "next 7 days, confirmed only" window as the website's own site-overview home()
@@ -1135,6 +1136,7 @@ def api_save_page():
     slug = pages.normalize_slug(data.get("slug") or "")
     tagline = (data.get("tagline") or "").strip()[:200] or None
     about = (data.get("about") or "").strip()[:2000] or None
+    address = (data.get("address") or "").strip()[:200] or None
     published = bool(data.get("published"))
 
     theme = data.get("theme")
@@ -1169,7 +1171,7 @@ def api_save_page():
         return jsonify(error="Please choose a web address using only lowercase letters, numbers, and hyphens."), 400
 
     try:
-        upsert_business_page(business_id, slug, published, tagline, about, None, theme, custom_theme_json, pending_custom_domain)
+        upsert_business_page(business_id, slug, published, tagline, about, None, theme, custom_theme_json, pending_custom_domain, address=address)
     except UniqueViolation:
         return jsonify(error="That web address is already taken - please choose another."), 409
 

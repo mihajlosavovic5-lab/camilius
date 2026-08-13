@@ -5927,6 +5927,7 @@ function serializeMysiteForm() {
         slug: el("mysite-slug").value,
         tagline: el("mysite-tagline-input").value,
         about: el("mysite-about-input").value,
+        address: el("mysite-address-input").value,
         published: el("mysite-published").checked,
         theme: el("mysite-theme-select").value,
         customTheme: mysiteSelectedCustomTheme ? JSON.stringify(mysiteSelectedCustomTheme) : "",
@@ -6017,6 +6018,7 @@ async function loadMySite() {
             mysiteChosenDomain = page.pending_custom_domain || null;
             el("mysite-tagline-input").value = page.tagline || "";
             el("mysite-about-input").value = page.about || "";
+            el("mysite-address-input").value = page.address || "";
             el("mysite-published").checked = !!page.published;
             // Cached the same way as mysiteHasPage/pageTheme above - so next launch's boot
             // sequence can fill these fields in immediately instead of leaving Web
@@ -6024,6 +6026,7 @@ async function loadMySite() {
             storageSet("mysiteSlug", page.slug || "").catch(() => {});
             storageSet("mysiteTagline", page.tagline || "").catch(() => {});
             storageSet("mysiteAbout", page.about || "").catch(() => {});
+            storageSet("mysiteAddress", page.address || "").catch(() => {});
             storageSet("mysiteChosenDomain", page.pending_custom_domain || "").catch(() => {});
             mysitePopulateThemeSelect(page.theme);
             storageSet("pageTheme", page.theme || "warm").catch(() => {});
@@ -6035,6 +6038,7 @@ async function loadMySite() {
             storageSet("mysiteSlug", "").catch(() => {});
             storageSet("mysiteTagline", "").catch(() => {});
             storageSet("mysiteAbout", "").catch(() => {});
+            storageSet("mysiteAddress", "").catch(() => {});
             storageSet("mysiteChosenDomain", "").catch(() => {});
             // Seed the Design row from whatever was picked before a web address existed
             // (see api_save_page's blank-slug branch/set_preferred_theme), instead of
@@ -6167,6 +6171,7 @@ async function saveMysiteForm() {
         slug: el("mysite-slug").value.trim(),
         tagline: el("mysite-tagline-input").value.trim(),
         about: el("mysite-about-input").value.trim(),
+        address: el("mysite-address-input").value.trim(),
         published: el("mysite-published").checked,
         theme: themeValue,
         pending_custom_domain: mysiteChosenDomain || null,
@@ -6443,6 +6448,7 @@ function mysiteUpdateAllFieldFades() {
     mysiteUpdateFieldFade(el("mysite-slug"));
     mysiteUpdateFieldFade(el("mysite-tagline-input"));
     mysiteUpdateFieldFade(el("mysite-about-input"));
+    mysiteUpdateFieldFade(el("mysite-address-input"));
     // Every other tap-to-open-modal field (Profile's Your name/Contact email/Phone
     // number/social links, Schedule's Customer name/Service, and the dynamically
     // created Price list/Related services rows - see openFieldEditModal's own comment)
@@ -6472,6 +6478,7 @@ const MYSITE_FIELD_MODAL_FIELDS = {
     "mysite-slug": { control: "input", titleKey: "mysite.website.slug" },
     "mysite-tagline-input": { control: "input", titleKey: "mysite.website.taglineLabel" },
     "mysite-about-input": { control: "textarea", titleKey: "mysite.website.aboutLabel" },
+    "mysite-address-input": { control: "input", titleKey: "mysite.website.addressLabel" },
     "book-customer-name": { control: "input", titleKey: "schedule.customerNamePlaceholder" },
     "book-service": { control: "input", titleKey: "schedule.servicePlaceholder" },
     "settings-name": { control: "input", titleKey: "settings.name" },
@@ -7998,7 +8005,7 @@ function waitForLayoutSettle() {
 updateOfflineBanner();
 
 (async () => {
-    const [token, businessName, onboardingSeen, theme, donationLink, pageTheme, mysiteHasPage, mysiteHasAppointments, mysiteSlug, mysiteTagline, mysiteAbout, mysiteChosenDomainCached, googleLoginPendingState, scheduleTodayCache] = await Promise.all([
+    const [token, businessName, onboardingSeen, theme, donationLink, pageTheme, mysiteHasPage, mysiteHasAppointments, mysiteSlug, mysiteTagline, mysiteAbout, mysiteAddress, mysiteChosenDomainCached, googleLoginPendingState, scheduleTodayCache] = await Promise.all([
         storageGet("token"),
         storageGet("businessName"),
         storageGet("onboardingSeen"),
@@ -8010,6 +8017,7 @@ updateOfflineBanner();
         storageGet("mysiteSlug"),
         storageGet("mysiteTagline"),
         storageGet("mysiteAbout"),
+        storageGet("mysiteAddress"),
         storageGet("mysiteChosenDomain"),
         storageGet("googleLoginPendingState"),
         storageGet("scheduleTodayCache"),
@@ -8048,6 +8056,7 @@ updateOfflineBanner();
         el("mysite-slug").value = mysiteSlug || "";
         el("mysite-tagline-input").value = mysiteTagline || "";
         el("mysite-about-input").value = mysiteAbout || "";
+        el("mysite-address-input").value = mysiteAddress || "";
         mysiteResetSlugStatus();
         mysiteUpdateAllFieldFades();
         mysiteChosenDomain = mysiteChosenDomainCached || null;

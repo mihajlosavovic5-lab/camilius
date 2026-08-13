@@ -1668,6 +1668,7 @@ def save_business_page():
     slug = pages.normalize_slug(request.form.get("slug", ""))
     tagline = (request.form.get("tagline") or "").strip()[:200] or None
     about = (request.form.get("about") or "").strip()[:2000] or None
+    address = (request.form.get("address") or "").strip()[:200] or None
     published = bool(request.form.get("published"))
     # F5: the one external origin allowed to embed this business's /w/<slug> widget in
     # an iframe elsewhere (see pages.normalize_widget_domain/app.py's
@@ -1709,6 +1710,7 @@ def save_business_page():
             pro_access=BETA_FREE_MODE or has_pro_access(business_id),
             page={
                 "slug": slug, "published": published, "tagline": tagline, "about": about,
+                "address": address,
                 "widget_domain": widget_domain,
                 "theme": theme or (page_row[9] if page_row else themes.DEFAULT_THEME_ID),
                 "custom_theme_json": custom_theme_json or (page_row[10] if page_row else None),
@@ -1735,7 +1737,7 @@ def save_business_page():
         return _rerender_page_error("Please choose a web address using only lowercase letters, numbers, and hyphens.")
 
     try:
-        upsert_business_page(business_id, slug, published, tagline, about, widget_domain, theme, custom_theme_json)
+        upsert_business_page(business_id, slug, published, tagline, about, widget_domain, theme, custom_theme_json, address=address)
     except UniqueViolation:
         return _rerender_page_error("That web address is already taken - please choose another.")
 
@@ -2278,6 +2280,10 @@ def onboarding_website_preview():
         social_links=_social_links_for_business(business),
         contact_email=business[3],
         phone_number=business[10],
+        # Not collected anywhere in onboarding (see Step 4's own scope note - address is
+        # Settings-only) - always None here, so the Location section stays hidden in
+        # this tiny thumbnail preview exactly as it would for a real page with none set.
+        address=None,
         # No booking widget and chat disabled in this tiny thumbnail preview (see
         # chat_url="" above) - hero_cta_for_business degrades to phone (if on file) or
         # nothing at all here, same as it would for a real page with neither.
@@ -2780,6 +2786,7 @@ def _render_public_page(page, business, page_url, preview=False):
         social_links=_social_links_for_business(business),
         contact_email=business[3],
         phone_number=business[10],
+        address=page[17],
     )
 
 

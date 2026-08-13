@@ -258,6 +258,12 @@
         </div>
         <p class="note">Optional formatting: a blank line starts a new paragraph, "# Heading" for a section heading, "- item" (repeated) for a bullet list, "**bold**" / "*italic*" for emphasis, "&gt; text" for a highlighted line, "-- text" for a right-aligned signature at the end.</p>
 
+        <div class="floating-field">
+            <input type="text" id="settings-page-address-input" name="address" value="{{ page.address if page else '' }}" placeholder=" " maxlength="200">
+            <label for="settings-page-address-input">Address (shown on your page's map)</label>
+        </div>
+        <p class="note">Leave blank if you don't have a physical location - the Location section only shows once this is filled in.</p>
+
         <div class="switch-row" style="margin-top: 16px;">
             <div class="switch-row-text">
                 <span class="switch-row-label">Publish this page</span>

@@ -883,6 +883,17 @@ def create_database():
     # language switcher offers - see translate_page.py.
     cursor.execute("ALTER TABLE business_pages ADD COLUMN IF NOT EXISTS content_language TEXT")
 
+    # The business's real street address, shown on the public page's Location section
+    # (public_page.html's #location, driving both the Google Maps embed and the caption
+    # text next to it) - free text, same authoring pattern as every other page field,
+    # edited from the mobile app's My Site screen the same tap-to-edit way as tagline/
+    # about. NULL means "nothing on file" (a service-area/online-only business, or one
+    # that just hasn't filled it in yet), which app.py gates the whole Location section
+    # on - before this column existed, that section instead showed a single hardcoded
+    # placeholder address for every business's page, which was actively wrong information
+    # rather than just an unfinished-looking gap.
+    cursor.execute("ALTER TABLE business_pages ADD COLUMN IF NOT EXISTS address TEXT")
+
     # Per-(business, language) cache of the public page translated into a language other
     # than content_language above - see translate_page.py/app.py's public_page_translate.
     # One OpenAI call per business per language, ever (not per visitor, not per request):
@@ -2884,7 +2895,7 @@ def get_business_page(business_id):
     connection = connect()
     cursor = connection.cursor()
     cursor.execute(
-        "SELECT id, business_id, slug, published, tagline, about, created_at, updated_at, widget_domain, theme, custom_theme_json, pending_custom_domain, custom_domain, custom_domain_status, domain_paddle_subscription_id, domain_subscription_status, content_language FROM business_pages WHERE business_id = %s",
+        "SELECT id, business_id, slug, published, tagline, about, created_at, updated_at, widget_domain, theme, custom_theme_json, pending_custom_domain, custom_domain, custom_domain_status, domain_paddle_subscription_id, domain_subscription_status, content_language, address FROM business_pages WHERE business_id = %s",
         (business_id,),
     )
     result = cursor.fetchone()
@@ -2900,7 +2911,7 @@ def page_by_slug(slug):
     connection = connect()
     cursor = connection.cursor()
     cursor.execute(
-        "SELECT id, business_id, slug, published, tagline, about, created_at, updated_at, widget_domain, theme, custom_theme_json, pending_custom_domain, custom_domain, custom_domain_status, domain_paddle_subscription_id, domain_subscription_status, content_language FROM business_pages WHERE slug = %s",
+        "SELECT id, business_id, slug, published, tagline, about, created_at, updated_at, widget_domain, theme, custom_theme_json, pending_custom_domain, custom_domain, custom_domain_status, domain_paddle_subscription_id, domain_subscription_status, content_language, address FROM business_pages WHERE slug = %s",
         (slug,),
     )
     result = cursor.fetchone()
@@ -2920,7 +2931,7 @@ def page_by_custom_domain(domain):
     connection = connect()
     cursor = connection.cursor()
     cursor.execute(
-        "SELECT id, business_id, slug, published, tagline, about, created_at, updated_at, widget_domain, theme, custom_theme_json, pending_custom_domain, custom_domain, custom_domain_status, domain_paddle_subscription_id, domain_subscription_status, content_language FROM business_pages WHERE custom_domain = %s AND custom_domain_status = 'active'",
+        "SELECT id, business_id, slug, published, tagline, about, created_at, updated_at, widget_domain, theme, custom_theme_json, pending_custom_domain, custom_domain, custom_domain_status, domain_paddle_subscription_id, domain_subscription_status, content_language, address FROM business_pages WHERE custom_domain = %s AND custom_domain_status = 'active'",
         (domain,),
     )
     result = cursor.fetchone()
@@ -2928,7 +2939,7 @@ def page_by_custom_domain(domain):
     return result
 
 
-def upsert_business_page(business_id, slug, published, tagline, about, widget_domain=None, theme=None, custom_theme_json=None, pending_custom_domain=None):
+def upsert_business_page(business_id, slug, published, tagline, about, widget_domain=None, theme=None, custom_theme_json=None, pending_custom_domain=None, address=None):
     """Creates the business's page on first save, updates it on every save after - one
     row per business (business_pages_business_id_idx), so this is a plain upsert rather
     than needing a separate create/update pair. Raises UniqueViolation if `slug` is
@@ -2957,6 +2968,13 @@ def upsert_business_page(business_id, slug, published, tagline, about, widget_do
     doesn't already know. See domain_registrar.py for what turns a pending pick into an
     actual custom_domain.
 
+    address follows the same always-written contract as tagline/about/widget_domain
+    (not COALESCEd) - both callers (this platform's web Settings form and the mobile
+    app's My Site screen) always resend their own field's current value on every save,
+    the same way they already do for tagline/about, so a business clearing the field
+    back to blank actually clears it rather than a None here silently preserving
+    whatever was saved before.
+
     Also clears out every cached business_page_translations row for this business (all
     languages, not just whichever one a visitor happens to pick next) whenever tagline or
     about actually changes - each of those rows is a translation of a specific snapshot
@@ -2975,17 +2993,18 @@ def upsert_business_page(business_id, slug, published, tagline, about, widget_do
     old_tagline, old_about = existing if existing else (None, None)
     _execute_or_raise_unique_violation(
         cursor,
-        """INSERT INTO business_pages (business_id, slug, published, tagline, about, widget_domain, theme, custom_theme_json, pending_custom_domain, updated_at)
+        """INSERT INTO business_pages (business_id, slug, published, tagline, about, widget_domain, theme, custom_theme_json, pending_custom_domain, address, updated_at)
            VALUES (%s, %s, %s, %s, %s, %s,
                    COALESCE(%s, (SELECT theme FROM business_pages WHERE business_id = %s), 'warm'),
                    COALESCE(%s, (SELECT custom_theme_json FROM business_pages WHERE business_id = %s)),
-                   %s,
+                   %s, %s,
                    CURRENT_TIMESTAMP)
            ON CONFLICT (business_id) DO UPDATE SET
                slug = EXCLUDED.slug, published = EXCLUDED.published,
                tagline = EXCLUDED.tagline, about = EXCLUDED.about, widget_domain = EXCLUDED.widget_domain,
                theme = EXCLUDED.theme, custom_theme_json = EXCLUDED.custom_theme_json,
                pending_custom_domain = EXCLUDED.pending_custom_domain,
+               address = EXCLUDED.address,
                -- Whatever content_language was detected for the OLD tagline/about no
                -- longer means anything once either actually changes (e.g. a business
                -- that first published in English later rewrites its page in Serbian) -
@@ -2999,7 +3018,7 @@ def upsert_business_page(business_id, slug, published, tagline, about, widget_do
                    ELSE business_pages.content_language
                END,
                updated_at = CURRENT_TIMESTAMP""",
-        (business_id, slug, published, tagline, about, widget_domain, theme, business_id, custom_theme_json, business_id, pending_custom_domain),
+        (business_id, slug, published, tagline, about, widget_domain, theme, business_id, custom_theme_json, business_id, pending_custom_domain, address),
     )
     if tagline != old_tagline or about != old_about:
         cursor.execute("DELETE FROM business_page_translations WHERE business_id = %s", (business_id,))

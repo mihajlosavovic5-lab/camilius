@@ -2045,13 +2045,12 @@
             <span data-i18n="nav_contact">Contact</span>
         </a>
         {% endif %}
-        <!-- Placeholder section, not gated behind a business field like the ones above yet
-             - there's no real address/map data to key it off of. Always shown with a
-             stand-in map (see #location below) until a real location picker exists. -->
+        {% if address %}
         <a href="#location" class="side-nav-link" data-target="location">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M12 21s7-6.4 7-11.5A7 7 0 0 0 5 9.5C5 14.6 12 21 12 21z" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="9.5" r="2.3"/></svg>
             <span data-i18n="nav_location">Location</span>
         </a>
+        {% endif %}
     </nav>
 
     <div class="wrap">
@@ -2290,11 +2289,7 @@
         </section>
         {% endif %}
 
-        <!-- Same placeholder as the #location nav link above: a fixed Mostarska 69,
-             Kragujevac, Serbia map for now (a real street address geocodes to a tight
-             marker view, more realistic to test against than a bare city name),
-             standing in until the business's real address is captured and wired through
-             here. -->
+        {% if address %}
         <section id="location" class="reveal">
             <h2 data-i18n="heading_location">Location</h2>
             <!-- The iframe is cropped larger than .location-map-wrap's visible window (see
@@ -2306,15 +2301,16 @@
                  anywhere on the card - not just Google's own tiny controls - opens this
                  same place directly on Google Maps. -->
             <div class="location-map-wrap">
-                <iframe src="https://www.google.com/maps?q=Mostarska+69,+Kragujevac,+Serbia&output=embed" loading="lazy" referrerpolicy="no-referrer-when-downgrade" title="Map" tabindex="-1"></iframe>
-                <a class="location-map-link" href="https://www.google.com/maps?q=Mostarska+69,+Kragujevac,+Serbia" target="_blank" rel="noopener noreferrer" aria-label="Open Mostarska 69, Kragujevac in Google Maps"></a>
+                <iframe src="https://www.google.com/maps?q={{ address | urlencode }}&output=embed" loading="lazy" referrerpolicy="no-referrer-when-downgrade" title="Map" tabindex="-1"></iframe>
+                <a class="location-map-link" href="https://www.google.com/maps?q={{ address | urlencode }}" target="_blank" rel="noopener noreferrer" aria-label="Open {{ address }} in Google Maps"></a>
             </div>
             <p class="location-caption">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M12 21s7-6.4 7-11.5A7 7 0 0 0 5 9.5C5 14.6 12 21 12 21z" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="9.5" r="2.3"/></svg>
-                <span>Mostarska 69, Kragujevac</span>
+                <span>{{ address }}</span>
             </p>
             <p class="location-attribution">Map data &copy; Google</p>
         </section>
+        {% endif %}
 
         {% if show_badge %}
         <footer>
