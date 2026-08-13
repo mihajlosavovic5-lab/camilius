@@ -215,27 +215,40 @@ def _clean_price_display(raw_price):
 
 def price_list_rows(price_list_text):
     """businesses.price_list's raw "Name: Price" (one per line, price optional) text
-    turned into a list of {"name": ..., "price": ...} dicts for the public page's
-    menu-style row display - one dict per non-blank line, split on the FIRST ":" only
-    (a price string could itself contain a colon-adjacent character; splitting on the
-    first occurrence rather than a naive str.split(":") avoids mis-splitting on the
-    wrong one) so this matches static/pickers.js's own createPriceListPicker parse()
-    exactly, the same convention the owner-facing editor already relies on. A line with
-    no colon at all becomes {"name": line, "price": ""} - a named item worth listing
-    with no price given (e.g. "Consultation - price on request"), not silently dropped.
-    The price half is passed through _clean_price_display() so an old currency word like
-    "dinara" never reaches the page - see that function for why."""
+    turned into a list of {"type": "item", "name": ..., "price": ...} dicts for the
+    public page's menu-style row display - one dict per non-blank line, split on the
+    FIRST ":" only (a price string could itself contain a colon-adjacent character;
+    splitting on the first occurrence rather than a naive str.split(":") avoids
+    mis-splitting on the wrong one) so this matches static/pickers.js's own
+    createPriceListPicker parse() exactly, the same convention the owner-facing editor
+    already relies on. A line with no colon at all becomes {"price": ""} - a named item
+    worth listing with no price given (e.g. "Consultation - price on request"), not
+    silently dropped. The price half is passed through _clean_price_display() so an old
+    currency word like "dinara" never reaches the page - see that function for why.
+
+    A line starting with "# " is a category header instead - {"type": "category",
+    "name": ...}, no price - reusing render_about_html's own "# " heading marker rather
+    than inventing a second convention. Deliberately NOT a colon-less line (page_generator.
+    format_price_list actively emits those today for any AI-drafted service with no price
+    given - e.g. "Consultation" alone - so reinterpreting that as a category header would
+    silently turn a real unpriced item into a header with nothing under it); neither
+    owner-facing picker (static/pickers.js or the mobile app's mirror) can even produce a
+    colon-less line in the first place, so "# " is unambiguous and can't collide with
+    anything a business has already saved."""
     rows = []
     for raw_line in (price_list_text or "").split("\n"):
         line = raw_line.strip()
         if not line:
             continue
+        if line.startswith("# "):
+            rows.append({"type": "category", "name": line[2:].strip()})
+            continue
         idx = line.find(":")
         if idx == -1:
-            rows.append({"name": line, "price": ""})
+            rows.append({"type": "item", "name": line, "price": ""})
         else:
             price = _clean_price_display(line[idx + 1:].strip())
-            rows.append({"name": line[:idx].strip(), "price": price})
+            rows.append({"type": "item", "name": line[:idx].strip(), "price": price})
     return rows
 
 

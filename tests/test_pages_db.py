@@ -317,12 +317,30 @@ def test_delete_business_removes_its_page(client, unique_email):
 )
 def test_price_list_rows_strips_currency_words_from_display(raw_price, expected):
     rows = pages.price_list_rows(f"Haircut: {raw_price}")
-    assert rows == [{"name": "Haircut", "price": expected}]
+    assert rows == [{"type": "item", "name": "Haircut", "price": expected}]
 
 
 def test_price_list_rows_leaves_no_colon_lines_untouched():
     rows = pages.price_list_rows("Consultation - price on request")
-    assert rows == [{"name": "Consultation - price on request", "price": ""}]
+    assert rows == [{"type": "item", "name": "Consultation - price on request", "price": ""}]
+
+
+def test_price_list_rows_parses_category_headers():
+    rows = pages.price_list_rows("# Haircuts\nMen's: 20 EUR\nWomen's: 30 EUR\n# Add-ons\nWash: 5 EUR")
+    assert rows == [
+        {"type": "category", "name": "Haircuts"},
+        {"type": "item", "name": "Men's", "price": "20 EUR"},
+        {"type": "item", "name": "Women's", "price": "30 EUR"},
+        {"type": "category", "name": "Add-ons"},
+        {"type": "item", "name": "Wash", "price": "5 EUR"},
+    ]
+
+
+def test_price_list_rows_does_not_treat_bare_unpriced_line_as_category():
+    # page_generator.format_price_list emits a colon-less line for any AI-drafted
+    # service with no price given - must stay a normal item, not a category header.
+    rows = pages.price_list_rows("Consultation")
+    assert rows == [{"type": "item", "name": "Consultation", "price": ""}]
 
 
 # --- pages.py: opening_hours_schema ---

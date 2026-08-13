@@ -880,6 +880,21 @@
         font-family: var(--heading-font);
         white-space: nowrap;
     }
+    /* A "# Category" line (pages.price_list_rows) - no price, no row border of its own,
+       just a small label breaking up a longer list into sections. First one needs no
+       top gap (nothing above it to separate from); every one after gets space from the
+       row above via margin instead of :not(:first-child), simpler and equally correct
+       since this is the only element in the list that ever gets this class. */
+    .price-category {
+        font-family: var(--heading-font);
+        font-weight: 700;
+        font-size: 0.78rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: var(--primary);
+        padding: 14px 0 4px;
+    }
+    .price-category:first-child { padding-top: 0; }
 
     .today-badge {
         position: absolute; top: -8px; right: 10px;
@@ -2308,10 +2323,14 @@
             <h2 data-i18n="heading_prices">Prices</h2>
             <ul class="price-rows">
                 {% for row in price_list_rows %}
+                {% if row.type == "category" %}
+                <li class="price-category">{{ row.name }}</li>
+                {% else %}
                 <li class="price-row">
                     <span class="price-row-name">{{ row.name }}</span>
                     {% if row.price %}<span class="price-row-amount">{{ row.price }}</span>{% endif %}
                 </li>
+                {% endif %}
                 {% endfor %}
             </ul>
             {# Kept off-screen (reuses .hidden below, not shown, never meant to be) purely
@@ -2668,23 +2687,30 @@ window.pageOverlay = (function () {
     }
 
     // Mirrors pages.price_list_rows()'s exact split-on-first-colon convention (same one
-    // static/pickers.js's own owner-facing editor already uses) so a freshly-translated
-    // price_list string rebuilds into the identical row shape the server rendered on
-    // first load, rather than applyTranslation's usual raw textContent swap collapsing
-    // the <ul class="price-rows"> back into one unstructured blob every time a visitor
-    // switches language.
+    // static/pickers.js's own owner-facing editor already uses), including its "# " ->
+    // category-header branch, so a freshly-translated price_list string rebuilds into
+    // the identical row shape the server rendered on first load, rather than
+    // applyTranslation's usual raw textContent swap collapsing the <ul class="price-rows">
+    // back into one unstructured blob every time a visitor switches language.
     function parsePriceListText(text) {
         return (text || "").split("\n").map(function (line) { return line.trim(); }).filter(Boolean).map(function (line) {
+            if (line.indexOf("# ") === 0) return { type: "category", name: line.slice(2).trim() };
             var idx = line.indexOf(":");
             return idx === -1
-                ? { name: line, price: "" }
-                : { name: line.slice(0, idx).trim(), price: cleanPriceDisplay(line.slice(idx + 1).trim()) };
+                ? { type: "item", name: line, price: "" }
+                : { type: "item", name: line.slice(0, idx).trim(), price: cleanPriceDisplay(line.slice(idx + 1).trim()) };
         });
     }
     function renderPriceRows(listEl, text) {
         listEl.textContent = "";
         parsePriceListText(text).forEach(function (row) {
             var li = document.createElement("li");
+            if (row.type === "category") {
+                li.className = "price-category";
+                li.textContent = row.name;
+                listEl.appendChild(li);
+                return;
+            }
             li.className = "price-row";
             var nameSpan = document.createElement("span");
             nameSpan.className = "price-row-name";
