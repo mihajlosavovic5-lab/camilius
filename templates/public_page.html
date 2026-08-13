@@ -220,6 +220,22 @@
         opacity: 0; pointer-events: none; transition: opacity .3s ease;
     }
     .nav-menu-backdrop.open { opacity: 1; pointer-events: auto; }
+    /* The mobile side-nav drawer (data-overlay="menu") is a full navigation takeover, so
+       it's the one case where the backdrop SHOULD swallow every tap/scroll behind it (it
+       also locks body scroll itself via openNavMenu's position:fixed, see the script
+       further down). The language dropdown, chat panel and theme panel are small floating
+       popovers, not takeovers - leaving the backdrop tappable/scroll-blocking under THEM
+       reads as the whole page freezing (nothing behind the dim can be tapped or scrolled)
+       even though the popover itself is only a small card. pointer-events: none here lets
+       taps and touch-scrolling reach the real page right through the dim; the popover
+       still closes on an outside tap because that tap's own click event still bubbles to
+       document (see each overlay's own outside-click listener below) - only now the tap
+       also reaches whatever it actually landed on, instead of being swallowed first. */
+    body[data-overlay="lang"] .nav-menu-backdrop,
+    body[data-overlay="chat"] .nav-menu-backdrop,
+    body[data-overlay="theme"] .nav-menu-backdrop {
+        pointer-events: none;
+    }
     /* .top-bar-title/.lang-btn/.nav-menu-btn/.chat-fab all sit above the backdrop's own
        z-index (950 vs their 951/952) so they'd otherwise stay full-brightness and
        tappable while it dims everything else - each rule below dims every one of those
