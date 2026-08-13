@@ -2030,6 +2030,12 @@ body.auth {
 .schedule-slot-form { display: flex; gap: 8px; flex: 1; flex-wrap: wrap; align-items: center; margin: 0; }
 .schedule-slot-form input[type="text"] { margin: 0; padding: 7px 10px; font-size: 14.5px; flex: 1; min-width: 130px; }
 .schedule-slot-form .button { padding: 7px 16px; font-size: 14px; flex-shrink: 0; }
+/* "Book" tap feedback should be a subtle zoom only - not the sitewide .button:hover
+   color darken/lift (which lingers as a "stuck" orange highlight on touch, since
+   :hover stays applied after a tap on touchscreens instead of just showing a
+   momentary press). */
+.schedule-slot-form .button:hover { background: var(--primary); transform: none; box-shadow: none; }
+.schedule-slot-form .button:active { transform: scale(.96); box-shadow: none; }
 .schedule-slot-booked { flex-wrap: wrap; }
 .schedule-slot-booked form { margin: 0; }
 .schedule-slot-booked .button { padding: 7px 14px; font-size: 14px; }
