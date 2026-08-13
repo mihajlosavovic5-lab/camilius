@@ -943,23 +943,24 @@
         color: var(--text-muted);
     }
     footer a { color: inherit; font-weight: 600; }
-    /* A quiet repeat of #contact's own info - the last thing on a long page (About,
-       Hours, Photos, Prices, FAQ, Contact, Location all scrolled past by this point) is
-       a reasonable place to land back on a contact point without scrolling all the way
-       back up. Smaller/plainer than #contact's own treatment on purpose - this is a
-       footer, not a second Contact section competing with the real one. */
-    .footer-contact { margin: 0 0 10px; }
-    .footer-contact a { font-weight: 600; }
-    .footer-social {
-        display: flex;
+    .footer-copyright { margin: 0 0 12px; }
+    /* Small pill echo of .hero-cta - the last thing on a long page (About, Hours,
+       Photos, Prices, FAQ, Contact, Location all scrolled past by this point) is a
+       reasonable place to land back on a way to reach the business without scrolling
+       all the way back up, without repeating the whole Contact section here. */
+    .footer-call {
+        display: inline-flex;
+        align-items: center;
         justify-content: center;
-        gap: 14px;
+        padding: 8px 20px;
         margin: 0 0 14px;
+        border-radius: var(--radius);
+        background: var(--primary);
+        color: var(--on-primary);
+        font-weight: 700;
+        font-size: 0.8rem;
+        text-decoration: none;
     }
-    .footer-social a { color: var(--text-muted); display: flex; transition: color .12s ease; }
-    .footer-social a:hover { color: var(--primary); }
-    .footer-social svg { width: 18px; height: 18px; }
-    .footer-copyright { margin: 0 0 10px; }
     .footer-badge { display: inline-block; }
     .foot-mark {
         display: inline-flex; align-items: center; justify-content: center;
@@ -2451,21 +2452,10 @@
              after Location. Always rendered now; the badge link is the one thing still
              gated, nested inside its own show_badge check below. -->
         <footer>
-            {% if contact_email or phone_number %}
-            <p class="footer-contact">
-                {% if contact_email %}<a href="mailto:{{ contact_email }}">{{ contact_email }}</a>{% endif %}
-                {% if contact_email and phone_number %}&middot;{% endif %}
-                {% if phone_number %}<a href="tel:{{ phone_number }}">{{ phone_number }}</a>{% endif %}
-            </p>
-            {% endif %}
-            {% if social_links %}
-            <div class="footer-social">
-                {% for link in social_links %}
-                <a href="{{ link.url }}" target="_blank" rel="noopener noreferrer" aria-label="{{ link.name }}">{{ social_icon(link.icon) }}</a>
-                {% endfor %}
-            </div>
-            {% endif %}
             <p class="footer-copyright">&copy; {{ current_year }} {{ business_name }}</p>
+            {% if phone_number %}
+            <a class="footer-call" href="tel:{{ phone_number }}" data-i18n="cta_call">Call now</a>
+            {% endif %}
             {% if show_badge %}
             <a class="footer-badge" href="{{ url_for('home', _external=True) }}"><span class="foot-mark">C</span>Powered by Camilius</a>
             {% endif %}
