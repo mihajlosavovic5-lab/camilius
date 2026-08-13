@@ -3440,12 +3440,18 @@ const TAB_REVEAL_TARGETS = {
 };
 const revealedTabs = new Set();
 
-function animateTabReveal(selector) {
-    const targets = document.querySelectorAll(selector);
-    let maxDelay = 0;
-    targets.forEach((target, i) => {
-        const delay = i * 70;
-        maxDelay = Math.max(maxDelay, delay);
+// Shared driver behind both the once-per-session tab reveal above and the Schedule
+// day timeline's per-row reveal (see renderScheduleDay below) - same .tab-reveal-
+// item animation, just parameterized on how far apart each item's delay is and how
+// high that delay is allowed to climb. maxDelay matters for lists that can run long
+// (a full day's worth of slots): without a cap, delayStep * index keeps growing with
+// row count, so a busy day would take visibly longer to finish revealing than a quiet
+// one - capping it means every list finishes its wave in roughly the same, bounded time.
+function animateStaggerReveal(elements, delayStep = 70, maxDelay = Infinity) {
+    let finishAt = 0;
+    elements.forEach((target, i) => {
+        const delay = Math.min(i * delayStep, maxDelay);
+        finishAt = Math.max(finishAt, delay);
         target.style.animationDelay = `${delay}ms`;
         target.classList.add("tab-reveal-item");
     });
@@ -3454,11 +3460,15 @@ function animateTabReveal(selector) {
     // appointments card once its fetch resolves) never accidentally replays a stale
     // leftover animation.
     setTimeout(() => {
-        targets.forEach((target) => {
+        elements.forEach((target) => {
             target.classList.remove("tab-reveal-item");
             target.style.animationDelay = "";
         });
-    }, maxDelay + 550);
+    }, finishAt + 550);
+}
+
+function animateTabReveal(selector) {
+    animateStaggerReveal(Array.from(document.querySelectorAll(selector)));
 }
 
 function playTabRevealOnce(tab) {
@@ -5153,6 +5163,13 @@ function renderScheduleDay(data) {
     } else {
         data.slot_rows.forEach((row) => timeline.appendChild(buildScheduleRow(row)));
     }
+
+    // Every day/week flip re-renders this list from scratch (unlike the tab-level
+    // reveal above, which only ever plays once per tab) - each row should softly rise
+    // and fade in top-to-bottom instead of the whole list just popping in flat. Capped
+    // stagger (see animateStaggerReveal) so a 40-slot day still finishes its wave in
+    // well under a second, same as a short one.
+    animateStaggerReveal(Array.from(timeline.children), 45, 450);
 }
 
 function goToScheduleDay(date) {
