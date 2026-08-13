@@ -418,13 +418,11 @@
         color: var(--primary);
         margin: 0 0 14px;
     }
-    /* About/Contact/Prices read better centered over their own section width, unlike
-       Questions below (left-aligned like a normal section heading) - h2 is a
-       block element so it already spans the section's full width, text-align is all
-       that's needed. Still correct for #about now that Gallery is merged into it (see
-       .about-gallery below) - a centered title over an asymmetric photo mosaic reads
-       fine, same as a centered title over a plain paragraph did before. */
-    #about h2, #contact h2, #prices h2, #location h2 { text-align: center; }
+    /* About/Contact/Prices/Location/Photos read better centered over their own section
+       width, unlike Questions below (left-aligned like a normal section heading) - h2 is
+       a block element so it already spans the section's full width, text-align is all
+       that's needed. */
+    #about h2, #contact h2, #prices h2, #location h2, #photos h2 { text-align: center; }
     /* Location - a slightly heavier treatment than the plain .contact-row/.price-row
        borders elsewhere on the page (inset gold ring + soft shadow) since the map's own
        colors/UI chrome are Google's, not this business's theme - the frame around it is
@@ -1141,55 +1139,74 @@
         display: block;
         background: var(--surface);
     }
-    /* About+Gallery merge - text and photos stacked in one section instead of two
-       separate boxes (see the #about markup further down). .gallery-mosaic replaces the
-       old uniform .gallery grid with an asymmetric one once there's enough photos for
-       "asymmetric" to mean anything: the owner's first-uploaded photo (see the markup
-       comment on gallery_urls|length) is featured at double size, the rest pack in
-       around it via grid-auto-flow: dense so there's never a gap regardless of count. 1
-       and 2 photos get their own simpler treatments below - a lone photo has nothing to
-       be "featured" against, and two read best equal-weight side by side. */
-    .about-gallery {
-        display: flex;
-        flex-direction: column;
-        gap: 20px;
+    /* Photos - a swipeable single-photo-at-a-time carousel, the same viewport/track/
+       peek-a-neighbor mechanics as landing.html's "See it in action" slider (see
+       .lp-slider/.lp-slide in static/style.css) with the same --slide-w-driven peek, just
+       renamed .photo-* and without that one's autoplay/infinite-loop cloning - a business's
+       own photo set doesn't need to demo itself unattended. overflow-x: auto +
+       scroll-snap-type (not overflow: hidden) is real native scroll-snap, so a touch swipe
+       tracks the finger 1:1 and settles on exactly one photo per swipe
+       (scroll-snap-stop: always below) - the script block further down only adds the
+       arrows/dots and keeps them in sync with whatever the visitor actually scrolled to. */
+    .photo-slider {
+        position: relative;
+        max-width: 480px;
+        margin: 0 auto;
+        --photo-slide-w: 84; /* percent; peek on each side = (100 - slide-w) / 2 */
     }
-    .gallery-mosaic { display: grid; gap: 8px; }
-    .gallery-mosaic a {
-        display: block;
-        border-radius: calc(var(--radius) * 0.6);
+    .photo-slider-viewport {
+        overflow-x: auto;
+        overflow-y: hidden;
+        scroll-snap-type: x mandatory;
+        -webkit-overflow-scrolling: touch;
+        border-radius: var(--radius);
+        scrollbar-width: none;
+    }
+    .photo-slider-viewport::-webkit-scrollbar { display: none; }
+    .photo-slider-track { display: flex; }
+    .photo-slide {
+        flex: 0 0 calc(var(--photo-slide-w) * 1%);
+        min-width: 0;
+        aspect-ratio: 4 / 3;
+        border-radius: var(--radius);
         overflow: hidden;
-        transition: transform .2s ease, box-shadow .2s ease;
-    }
-    .gallery-mosaic a:hover { transform: translateY(-3px); box-shadow: 0 8px 20px rgba(0, 0, 0, 0.14); }
-    .gallery-mosaic img {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
         display: block;
+        scroll-snap-align: center;
+        scroll-snap-stop: always;
+        opacity: .5;
+        filter: blur(1.5px) saturate(.8);
+        transition: opacity .2s ease, filter .2s ease;
     }
-    /* A single photo reads better as one wide, capped-height banner (same idea as
-       .hero-video just above) than forced into a square crop it was never composed for. */
-    .gallery-count-1 { grid-template-columns: 1fr; }
-    .gallery-count-1 a { aspect-ratio: 16 / 9; max-height: 360px; }
-    .gallery-count-2 { grid-template-columns: 1fr 1fr; }
-    .gallery-count-2 a { aspect-ratio: 1; }
-    .gallery-count-many {
-        grid-template-columns: repeat(4, 1fr);
-        grid-auto-rows: 1fr;
-        grid-auto-flow: dense;
+    .photo-slide.photo-slide-active { opacity: 1; filter: none; }
+    .photo-slide img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .photo-slider-arrow {
+        position: absolute; top: 50%; transform: translateY(-50%);
+        width: 40px; height: 40px; border-radius: 50%; z-index: 2;
+        display: flex; align-items: center; justify-content: center;
+        background: var(--surface); border: 1px solid var(--border);
+        box-shadow: 0 8px 20px -8px rgba(0, 0, 0, .28);
+        color: var(--text); font-size: 20px; cursor: pointer;
+        transition: transform .18s ease, border-color .18s ease;
     }
-    .gallery-count-many a { aspect-ratio: 1; }
-    /* The featured tile - see the Jinja comment on gallery_urls|length above for why
-       it's specifically the first photo. Every other tile stays a plain 1x1 square (the
-       rule right above), so this is the only place a size override is needed. */
-    .gallery-count-many a:first-child { grid-column: span 2; grid-row: span 2; }
-    /* Narrower phones: 4 columns of an already-small content width would shrink each
-       tile below a useful tap target - two columns instead keeps them a reasonable size
-       (matching the density the old uniform .gallery grid already settled on for
-       mobile), with the featured tile spanning the full width of row one. */
+    .photo-slider-arrow:hover { border-color: var(--primary); }
+    .photo-slider-arrow:active { transform: translateY(-50%) scale(.92); }
+    .photo-slider-prev { left: -18px; }
+    .photo-slider-next { right: -18px; }
+    .photo-slider-dots { display: flex; justify-content: center; gap: 7px; margin-top: 14px; }
+    .photo-slider-dot {
+        width: 7px; height: 7px; border-radius: 99px; background: var(--border);
+        border: none; padding: 0; cursor: pointer;
+        transition: background .2s ease, width .2s ease;
+    }
+    .photo-slider-dot.active { background: var(--primary); width: 20px; }
     @media (max-width: 480px) {
-        .gallery-count-many { grid-template-columns: repeat(2, 1fr); }
+        /* Same call as .lp-slider-arrow at this width - swipe + dots + the peeking
+           neighbor photos already on screen are cue enough without also cramming two
+           more circular buttons over a narrow card. */
+        .photo-slider-arrow { display: none; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+        .photo-slide { transition: none !important; }
     }
 
     @media (max-width: 880px) {
@@ -1314,10 +1331,16 @@
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 11.5 12 5l8 6.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M6 10.5V19a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1v-8.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
             <span data-i18n="nav_home">Home</span>
         </a>
-        {% if about or gallery_urls %}
+        {% if about %}
         <a href="#about" class="side-nav-link" data-target="about">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01" stroke-linecap="round"/></svg>
             <span data-i18n="nav_about">About</span>
+        </a>
+        {% endif %}
+        {% if gallery_urls %}
+        <a href="#photos" class="side-nav-link" data-target="photos">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="3" y="4" width="18" height="15" rx="2"/><circle cx="8.5" cy="10" r="1.6"/><path d="m4 16.5 4.5-4.5c.8-.8 1.7-.8 2.5 0l6 6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <span data-i18n="nav_photos">Photos</span>
         </a>
         {% endif %}
         {% if booking_enabled %}
@@ -1369,33 +1392,38 @@
         <video class="hero-video reveal" src="{{ hero_video_url }}" autoplay muted loop playsinline></video>
         {% endif %}
 
-        {# About and Gallery used to be two separate boxed sections, which read as thin
-           and disconnected whenever a business had only filled in one of the two (a
-           lone paragraph in an otherwise-empty box, or a bare photo grid with no
-           context) and never visually related them even when both existed. Merged into
-           one section under the #about anchor (kept, rather than a new id, so any
-           existing link to a business's own #about still lands correctly) - the text
-           and an asymmetric photo mosaic (see .gallery-mosaic below) sit side by side on
-           a wide screen, stacked on a narrow one, each independently optional. #contact
-           has this same class="reveal" treatment so it doesn't need repeating here. #}
-        {% if about or gallery_urls %}
+        {% if about %}
         <section id="about" class="reveal">
             <h2 data-i18n="heading_about">About</h2>
-            <div class="about-gallery{% if about and gallery_urls %} has-both{% endif %}">
-                {% if about %}
-                <p class="about" data-i18n-content="about">{{ about }}</p>
-                {% endif %}
-                {% if gallery_urls %}
-                {# The first photo is the owner's own upload order (see
-                   business_media_for_business's ORDER BY position), i.e. whichever one
-                   they put first - treated as their intended "primary" shot and given
-                   the larger featured tile in the mosaic below rather than picked at
-                   random or left equal-weight with the rest. #}
-                <div class="gallery-mosaic gallery-count-{% if gallery_urls|length == 1 %}1{% elif gallery_urls|length == 2 %}2{% else %}many{% endif %}">
-                    {% for url in gallery_urls %}
-                    <a href="{{ url }}" target="_blank" rel="noopener"><img src="{{ url }}" alt="{{ business_name }} photo" loading="lazy"></a>
-                    {% endfor %}
+            <p class="about" data-i18n-content="about">{{ about }}</p>
+        </section>
+        {% endif %}
+
+        {# A swipeable single-photo-at-a-time carousel (peek of the neighboring photo on
+           either side, dimmed) rather than the old static grid - same viewport/track/
+           dots/arrow mechanics as landing.html's "See it in action" slider (see
+           .lp-slider there and static/style.css), just without that one's autoplay/
+           infinite-loop cloning, which only earns its complexity for an unattended
+           marketing demo, not a business's own photo set. Native scroll-snap drives the
+           actual swipe/drag for free; the script block below only adds
+           arrows/dots/keeping them in sync with real scroll. #}
+        {% if gallery_urls %}
+        <section id="photos" class="reveal">
+            <h2 data-i18n="heading_photos">Photos</h2>
+            <div class="photo-slider" id="photo-slider">
+                <div class="photo-slider-viewport" id="photo-slider-viewport">
+                    <div class="photo-slider-track">
+                        {% for url in gallery_urls %}
+                        <a class="photo-slide" href="{{ url }}" target="_blank" rel="noopener">
+                            <img src="{{ url }}" alt="{{ business_name }} photo" loading="lazy">
+                        </a>
+                        {% endfor %}
+                    </div>
                 </div>
+                {% if gallery_urls|length > 1 %}
+                <button type="button" class="photo-slider-arrow photo-slider-prev" id="photo-slider-prev" aria-label="Previous photo">&#8249;</button>
+                <button type="button" class="photo-slider-arrow photo-slider-next" id="photo-slider-next" aria-label="Next photo">&#8250;</button>
+                <div class="photo-slider-dots" id="photo-slider-dots"></div>
                 {% endif %}
             </div>
         </section>
@@ -1983,6 +2011,76 @@
             el.addEventListener(evt, function () { el.classList.remove("pressed"); });
         });
     });
+
+    // Photos slider - arrows/dots plus keeping both in sync with whatever the visitor
+    // actually swiped/scrolled to. The swipe/drag itself needs no JS at all (native
+    // scroll-snap on .photo-slider-viewport handles that for free, see the CSS) - this
+    // only drives goTo() for the arrow/dot clicks, and mirrors real scroll position back
+    // into the active dot/dim state for a swipe, which goTo() never sees.
+    (function () {
+        var viewport = document.getElementById("photo-slider-viewport");
+        var track = viewport ? viewport.querySelector(".photo-slider-track") : null;
+        var slides = track ? Array.prototype.slice.call(track.children) : [];
+        if (!viewport || !slides.length) return;
+
+        var dotsWrap = document.getElementById("photo-slider-dots");
+        var prevBtn = document.getElementById("photo-slider-prev");
+        var nextBtn = document.getElementById("photo-slider-next");
+        var current = 0;
+
+        var dots = [];
+        if (dotsWrap && slides.length > 1) {
+            dots = slides.map(function (_, i) {
+                var dot = document.createElement("button");
+                dot.type = "button";
+                dot.className = "photo-slider-dot";
+                dot.setAttribute("aria-label", "Go to photo " + (i + 1));
+                dot.addEventListener("click", function () { goTo(i); });
+                dotsWrap.appendChild(dot);
+                return dot;
+            });
+        }
+
+        function setActive(i) {
+            current = i;
+            slides.forEach(function (slide, idx) { slide.classList.toggle("photo-slide-active", idx === i); });
+            dots.forEach(function (dot, idx) { dot.classList.toggle("active", idx === i); });
+        }
+        // Same off-center delta scroll landing.html's scrollCardIntoView uses, inlined
+        // here rather than shared - only this one caller needs it, and it's three lines.
+        function goTo(i) {
+            i = Math.max(0, Math.min(slides.length - 1, i));
+            var slide = slides[i];
+            var slideRect = slide.getBoundingClientRect();
+            var viewportRect = viewport.getBoundingClientRect();
+            var delta = (slideRect.left + slideRect.width / 2) - (viewportRect.left + viewportRect.width / 2);
+            viewport.scrollTo({ left: viewport.scrollLeft + delta, behavior: reduceMotion ? "auto" : "smooth" });
+            setActive(i);
+        }
+        if (prevBtn) prevBtn.addEventListener("click", function () { goTo(current - 1); });
+        if (nextBtn) nextBtn.addEventListener("click", function () { goTo(current + 1); });
+        setActive(0);
+
+        // A swipe/drag never calls goTo(), so this is the only thing that notices it -
+        // debounced on scroll's own trailing edge (native momentum scrolling fires this
+        // continuously) rather than on every event, so the nearest-slide scan below only
+        // runs once the scroll has actually settled.
+        var scrollSettleTimer = null;
+        viewport.addEventListener("scroll", function () {
+            clearTimeout(scrollSettleTimer);
+            scrollSettleTimer = setTimeout(function () {
+                var viewportCenter = viewport.getBoundingClientRect().left + viewport.getBoundingClientRect().width / 2;
+                var closest = 0;
+                var closestDist = Infinity;
+                slides.forEach(function (slide, idx) {
+                    var rect = slide.getBoundingClientRect();
+                    var dist = Math.abs((rect.left + rect.width / 2) - viewportCenter);
+                    if (dist < closestDist) { closestDist = dist; closest = idx; }
+                });
+                if (closest !== current) setActive(closest);
+            }, 100);
+        }, { passive: true });
+    })();
 
     // Reveal-on-scroll for the header/CTA/each section - see landing.html's identical
     // .lp-reveal/.lp-visible pattern.
