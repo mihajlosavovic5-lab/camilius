@@ -1772,6 +1772,15 @@
         transition: background .2s ease, width .2s ease;
     }
     .photo-slider-dot.active { background: var(--primary); width: 20px; }
+    .photo-slider-count {
+        display: block;
+        text-align: center;
+        margin-top: 8px;
+        font-size: 0.72rem;
+        font-weight: 600;
+        color: var(--text-muted);
+        letter-spacing: 0.02em;
+    }
     @media (max-width: 480px) {
         /* Same call as .lp-slider-arrow at this width - swipe + dots + the peeking
            neighbor photos already on screen are cue enough without also cramming two
@@ -2255,6 +2264,11 @@
                 <button type="button" class="photo-slider-arrow photo-slider-prev" id="photo-slider-prev" aria-label="Previous photo">&#8249;</button>
                 <button type="button" class="photo-slider-arrow photo-slider-next" id="photo-slider-next" aria-label="Next photo">&#8250;</button>
                 <div class="photo-slider-dots" id="photo-slider-dots"></div>
+                <!-- "current / total" - kept in sync by the same setActive() that already
+                     updates the dots (see the script below), right next to it rather than
+                     a separate mechanism. Answers "how many more photos are there" at a
+                     glance, without needing a full grid overview. -->
+                <span class="photo-slider-count" id="photo-slider-count"></span>
                 {% endif %}
             </div>
         </section>
@@ -3163,6 +3177,7 @@ window.pageOverlay = (function () {
         if (!viewport || !slides.length) return;
 
         var dotsWrap = document.getElementById("photo-slider-dots");
+        var countEl = document.getElementById("photo-slider-count");
         var prevBtn = document.getElementById("photo-slider-prev");
         var nextBtn = document.getElementById("photo-slider-next");
         var current = 0;
@@ -3213,6 +3228,7 @@ window.pageOverlay = (function () {
             current = i;
             slides.forEach(function (slide, idx) { slide.classList.toggle("photo-slide-active", idx === i); });
             dots.forEach(function (dot, idx) { dot.classList.toggle("active", idx === i); });
+            if (countEl) countEl.textContent = (i + 1) + " / " + slides.length;
         }
         // Scroll position the viewport would need for `el`'s own left edge to land
         // flush with the viewport's left edge - same math as #book-list's own
