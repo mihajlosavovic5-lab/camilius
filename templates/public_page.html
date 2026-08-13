@@ -298,6 +298,31 @@
         40%, 60% { transform: translateX(4px); }
     }
     .lang-btn.error { animation: lang-btn-error-shake .4s ease; }
+    /* --- Full-page loading overlay shown while a picked language's translation is being
+       fetched - the flag button's own .loading opacity dip (above) was easy to miss, so a
+       tap during a slow translate response looked like nothing happened. Uses --background
+       (not a fixed white) so it matches whichever theme the page is already rendered in.
+       z-index 2000 clears every other fixed layer on this page (.lang-dropdown's own 953
+       included) since it needs to sit above the dropdown that was just open. --- */
+    .lang-loading-overlay {
+        position: fixed; inset: 0; z-index: 2000;
+        background: var(--background);
+        display: flex; align-items: center; justify-content: center;
+        opacity: 0; pointer-events: none;
+        transition: opacity .18s ease;
+    }
+    .lang-loading-overlay.visible { opacity: 1; pointer-events: auto; }
+    .lang-loading-spinner {
+        width: 44px; height: 44px;
+        border: 3px solid var(--border);
+        border-top-color: var(--primary);
+        border-radius: 50%;
+        animation: lang-loading-spin .8s linear infinite;
+    }
+    @keyframes lang-loading-spin { to { transform: rotate(360deg); } }
+    @media (prefers-reduced-motion: reduce) {
+        .lang-loading-spinner { animation-duration: 1.6s; }
+    }
     .lang-flag {
         width: 40px; height: 28px; object-fit: cover; border-radius: 6px; flex-shrink: 0;
         border: 1px solid var(--border);
@@ -1351,6 +1376,9 @@
     </button>
     {% endfor %}
 </div>
+<div class="lang-loading-overlay" id="lang-loading-overlay" aria-hidden="true">
+    <div class="lang-loading-spinner"></div>
+</div>
 <div class="shell">
     <!-- Only lists sections this business actually has content for, in the same order
          they appear below - so an empty section never gets a dead link. -->
@@ -1658,6 +1686,7 @@ window.pageOverlay = (function () {
     var langBtn = document.getElementById("lang-btn");
     var langFlag = document.getElementById("lang-flag");
     var langDropdown = document.getElementById("lang-dropdown");
+    var langLoadingOverlay = document.getElementById("lang-loading-overlay");
     var langOptions = Array.prototype.slice.call(document.querySelectorAll(".lang-option"));
 
     // Marks whichever language the page actually rendered in as active from the very
@@ -1891,6 +1920,7 @@ window.pageOverlay = (function () {
             }
             loading = true;
             langBtn.classList.add("loading");
+            if (langLoadingOverlay) langLoadingOverlay.classList.add("visible");
             fetch(translateUrlBase + lang)
                 .then(function (r) { if (!r.ok) throw new Error("bad status"); return r.json(); })
                 .then(function (data) {
@@ -1908,6 +1938,7 @@ window.pageOverlay = (function () {
                 .finally(function () {
                     loading = false;
                     langBtn.classList.remove("loading");
+                    if (langLoadingOverlay) langLoadingOverlay.classList.remove("visible");
                     closeDropdown();
                 });
         });
