@@ -161,22 +161,35 @@ def detect_content_language(text):
         return "en"
 
 
+# Below this many characters, a source field (a short tagline, a bare "20 EUR" price
+# line) can legitimately survive translation completely unchanged - a number, a currency
+# code, or a short proper noun often just doesn't have anything to translate. Only a
+# longer field staying byte-for-byte identical is actually suspicious - see
+# translation_is_usable below. Deliberately on the low side (a real sentence clears it
+# easily) rather than tuned to look generous - a threshold that lets a genuinely short
+# but real "about" paragraph slip through unchecked defeats the point of this check.
+_ECHO_CHECK_MIN_LENGTH = 12
+
+
 def translation_is_usable(result, tagline, about, price_list, faq, lang=None, source_lang=None):
     """False if `result` (shaped like translate_page_content's own return value, or the
     same shape rebuilt from a business_page_translations row - see app.py's
     public_page_translate) dropped any field that actually had source content, came back
     with an empty string for one of PAGE_UI_STRINGS' own always-non-empty keys, or (when
-    `lang`/`source_lang` are given and actually differ) left "about" byte-for-byte
-    identical to the source - real prose essentially never survives translation between
-    two different languages completely unchanged, so an unchanged "about" there means the
-    model echoed the source back instead of translating it, not that the translation
-    happened to look the same. That last check is skipped when lang == source_lang (e.g. a
-    visitor picking the flag that already matches this business's own content) since an
-    unchanged "about" there is the correct result, not a failure - and skipped entirely
-    when either isn't given, since callers that don't know the source language can't tell
-    the two cases apart. Nothing here is a translation *quality* check otherwise (a bad
-    but genuinely different-looking translation still passes) - only a check that this
-    result is safe to show a visitor or cache for the next one, since public_page.html's
+    `lang`/`source_lang` are given and actually differ) left a long enough field
+    byte-for-byte identical to the source - real prose essentially never survives
+    translation between two different languages completely unchanged, so an unchanged
+    tagline/about/price_list/faq there means the model echoed the source back instead of
+    translating it, not that the translation happened to look the same (this is exactly
+    what shipped for "about" alone after the first report of this bug - and turned out to
+    reproduce for price_list too, so it now covers all four content fields the same way).
+    That last check is skipped when lang == source_lang (e.g. a visitor picking the flag
+    that already matches this business's own content) since an unchanged field there is
+    the correct result, not a failure - and skipped entirely when either isn't given,
+    since callers that don't know the source language can't tell the two cases apart.
+    Nothing here is a translation *quality* check otherwise (a bad but genuinely
+    different-looking translation still passes) - only a check that this result is safe
+    to show a visitor or cache for the next one, since public_page.html's
     applyTranslation() only ever gets to see the field, not the source it came from, and
     skips a field entirely rather than let a bad value overwrite real on-screen content
     (see its own comment). A response that slipped past this once and got cached would
@@ -184,15 +197,18 @@ def translation_is_usable(result, tagline, about, price_list, faq, lang=None, so
     cache, never a fresh model call again - so both translate_page_content below (before
     caching a fresh result) and public_page_translate (before trusting an already-cached
     row) call this."""
-    for field, source in (("tagline", tagline), ("about", about), ("price_list", price_list), ("faq", faq)):
+    fields = (("tagline", tagline), ("about", about), ("price_list", price_list), ("faq", faq))
+    for field, source in fields:
         if (source or "").strip() and not (result.get(field) or "").strip():
             return False
     ui = result.get("ui") or {}
     if not all((ui.get(key) or "").strip() for key in PAGE_UI_STRINGS):
         return False
     if lang and source_lang and lang != source_lang:
-        if (about or "").strip() and (result.get("about") or "").strip() == about.strip():
-            return False
+        for field, source in fields:
+            source_stripped = (source or "").strip()
+            if len(source_stripped) >= _ECHO_CHECK_MIN_LENGTH and (result.get(field) or "").strip() == source_stripped:
+                return False
     return True
 
 

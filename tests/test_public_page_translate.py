@@ -210,6 +210,23 @@ def test_translation_is_usable_skips_echo_check_without_lang_info():
     assert translate_page.translation_is_usable(result, "T", "Radimo od 2019. godine.", "P", "F") is True
 
 
+def test_translation_is_usable_false_when_price_list_is_echoed_back_untranslated():
+    # Same echo problem reported for "about" turned out to reproduce for price_list too -
+    # the check covers every content field the same way, not just "about".
+    ui = {key: f"[es] {value}" for key, value in translate_page.PAGE_UI_STRINGS.items()}
+    source_price_list = "Šišanje muško: 20 EUR\nBrijanje: 10 EUR\nFarbanje kose: 30 EUR"
+    result = {"tagline": "t", "about": "a", "price_list": source_price_list, "faq": "f", "ui": ui}
+    assert translate_page.translation_is_usable(result, "T", "A", source_price_list, "F", lang="es", source_lang="sr") is False
+
+
+def test_translation_is_usable_true_when_a_short_field_survives_translation_unchanged():
+    # A bare price line or a short/proper-noun tagline can legitimately come back
+    # identical - only long enough fields count as a suspected echo.
+    ui = {key: f"[es] {value}" for key, value in translate_page.PAGE_UI_STRINGS.items()}
+    result = {"tagline": "Aroma", "about": "a", "price_list": "20 EUR", "faq": "f", "ui": ui}
+    assert translate_page.translation_is_usable(result, "Aroma", "A", "20 EUR", "F", lang="es", source_lang="sr") is True
+
+
 def test_translate_page_content_rejects_a_response_missing_real_content(monkeypatch):
     # A response that parses fine but is missing translated text for a field the source
     # actually had - the exact shape a truncated-but-still-schema-valid model reply could
