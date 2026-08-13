@@ -247,3 +247,26 @@ def test_site_preview_renders_published_page_too(client, unique_email):
     response = client.get("/site/preview")
     assert response.status_code == 200
     assert "Fresh cuts daily" in response.get_data(as_text=True)
+
+
+def test_public_page_is_never_cached(client, unique_email):
+    """The mobile app's "View page" button reopens this same URL in the same native
+    in-app browser tab (Capacitor's Browser plugin) after every edit - without an
+    explicit no-store, a repeat tap could repaint for a moment from that tab's own
+    cached/bfcached snapshot, flashing the pre-edit title before the fresh response
+    replaces it. See app.py's no_store_public_page docstring.
+
+    Uses a separate, never-logged-in client - this is the real "View page" scenario
+    (openLiveSite in mobile/app.js opens /p/<slug> directly, no session cookie ever
+    gets set) - not the owner's own logged-in web session, which already gets a
+    no-store Cache-Control from no_store_authenticated_pages regardless of this fix."""
+    import app as app_module
+
+    register_business_web(client, unique_email)
+    business_id = database.business_by_contact_email(unique_email)[0]
+    slug = f"live-{uuid.uuid4().hex[:8]}"
+    database.upsert_business_page(business_id, slug, True, "Fresh cuts daily", None)
+
+    anon_client = app_module.app.test_client()
+    response = anon_client.get(f"/p/{slug}")
+    assert response.headers["Cache-Control"] == "no-store, must-revalidate"

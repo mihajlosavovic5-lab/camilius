@@ -236,6 +236,28 @@ def no_store_authenticated_pages(response):
     return response
 
 
+# GET /p/<slug> (public_page) and /site/preview[/<token>] (site_preview /
+# site_preview_mobile) render the owner's page fresh from the DB on every hit - but the
+# mobile app's "View page" button reopens the exact same URL in the same native in-app
+# browser tab (Capacitor's Browser plugin: SFSafariViewController on iOS, Custom Tabs on
+# Android), and both of those share the system browser's own HTTP cache and back/forward
+# cache instead of getting a throwaway WebView. An owner's normal workflow is edit ->
+# View page -> edit again -> View page again, and without an explicit no-store here that
+# repeat tap could repaint for a moment from the previous tab's cached snapshot (the
+# pre-edit business name/tagline still in the title) before the fresh network response
+# replaces it - same bfcache-driven staleness no_store_authenticated_pages above already
+# blocks for logged-in pages, just missing here since these routes aren't gated on
+# session state.
+_NO_STORE_ENDPOINTS = {"public_page", "site_preview", "site_preview_mobile"}
+
+
+@app.after_request
+def no_store_public_page(response):
+    if request.endpoint in _NO_STORE_ENDPOINTS:
+        response.headers["Cache-Control"] = "no-store, must-revalidate"
+    return response
+
+
 # Baseline security headers on every response. CSP allows 'unsafe-inline' for script/
 # style deliberately - the site relies on many small inline <script> blocks (support
 # widget, scroll-to-top, service worker registration, language picker...) throughout
