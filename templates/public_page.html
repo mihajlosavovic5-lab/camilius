@@ -2010,13 +2010,14 @@
         });
     });
 
-    // Photos slider - arrows/dots, plus the same hand-rolled touchstart/touchmove/
-    // touchend drag #book-list further down this page already uses for its day-by-day
-    // carousel (see that block's own comments for why: native scroll-snap can't be
-    // trusted to stop at exactly one slide per flick in the in-app browser this page is
-    // actually opened in). A drag tracks the finger 1:1 by writing scrollLeft directly;
-    // touchend then always resolves to exactly one photo of movement (or zero, below the
-    // threshold), never more, regardless of how hard the flick was.
+    // Photos slider - arrows/dots, the same hand-rolled touchstart/touchmove/touchend
+    // drag #book-list further down this page already uses for its day-by-day carousel
+    // (see that block's own comments for why: native scroll-snap can't be trusted to
+    // stop at exactly one slide per flick in the in-app browser this page is actually
+    // opened in), and wrap-around past either end via the same clone technique
+    // landing.html's "See it in action" slider uses for its own next/prev wrap (see
+    // .lp-slide-clone there) - ported rather than shared, since that one also carries
+    // autoplay/typing-effect logic this section has no use for.
     (function () {
         var viewport = document.getElementById("photo-slider-viewport");
         var track = viewport ? viewport.querySelector(".photo-slider-track") : null;
@@ -2028,7 +2029,36 @@
         var nextBtn = document.getElementById("photo-slider-next");
         var current = 0;
 
+        // A clone of the first/second and last/second-last real photos,
+        // appended/prepended around the real ones, so stepping past either end (via
+        // next()/prev() below) is one ordinary slide-width animation - indistinguishable
+        // from any other step - instead of one long animation sweeping visibly across
+        // every photo in between. Two per side, not one: cloneFirst is the very last
+        // track child, so with nothing after it to peek at, the instant swap straight to
+        // the real slide 0 (which does have slide 1 peeking on its right) would pop that
+        // peek in out of nowhere at that exact instant - cloneSecond gives cloneFirst
+        // something to peek at instead, so the peek is continuous straight through the
+        // swap. Same story in reverse for cloneSecondLast alongside cloneLast. Only
+        // needed past 1 photo - a single photo has nothing to wrap to or from.
         var dots = [];
+        var cloneOffset = 0;
+        if (slides.length > 1) {
+            var makeClone = function (slide) {
+                var clone = slide.cloneNode(true);
+                clone.setAttribute("aria-hidden", "true");
+                clone.tabIndex = -1;
+                return clone;
+            };
+            var cloneFirst = makeClone(slides[0]);
+            var cloneSecond = makeClone(slides[1]);
+            var cloneLast = makeClone(slides[slides.length - 1]);
+            var cloneSecondLast = makeClone(slides[slides.length - 2]);
+            track.insertBefore(cloneSecondLast, slides[0]);
+            track.insertBefore(cloneLast, slides[0]);
+            track.appendChild(cloneFirst);
+            track.appendChild(cloneSecond);
+            cloneOffset = 2;
+        }
         if (dotsWrap && slides.length > 1) {
             dots = slides.map(function (_, i) {
                 var dot = document.createElement("button");
@@ -2046,21 +2076,23 @@
             slides.forEach(function (slide, idx) { slide.classList.toggle("photo-slide-active", idx === i); });
             dots.forEach(function (dot, idx) { dot.classList.toggle("active", idx === i); });
         }
-        // Scroll position the viewport would need for `slide`'s own left edge to land
+        // Scroll position the viewport would need for `el`'s own left edge to land
         // flush with the viewport's left edge - same math as #book-list's own
-        // bookCardTargetScrollLeft further down, independent of offsetParent.
-        function targetScrollLeft(slide) {
-            return slide.getBoundingClientRect().left - viewport.getBoundingClientRect().left + viewport.scrollLeft;
+        // bookCardTargetScrollLeft further down, independent of offsetParent. Works for
+        // a clone exactly the same as a real slide, since both are real track children.
+        function targetScrollLeft(el) {
+            return el.getBoundingClientRect().left - viewport.getBoundingClientRect().left + viewport.scrollLeft;
         }
         // requestAnimationFrame + manual ease-out, not viewport.scrollTo({behavior:
         // "smooth"}) - same reason #book-list's animateBookScrollTo below doesn't use it
         // either: the in-app browser this page is actually opened in silently treats
         // "smooth" as instant, so every arrow/dot/settled-drag snap was landing with no
-        // animation at all.
+        // animation at all. onDone (used by next()/prev() below to swap a clone for the
+        // real slide it stands in for) always fires, even under reduced motion.
         var animFrame = null;
-        function animateScrollTo(left, duration) {
+        function animateScrollTo(left, duration, onDone) {
             if (animFrame !== null) cancelAnimationFrame(animFrame);
-            if (reduceMotion) { viewport.scrollLeft = left; return; }
+            if (reduceMotion) { viewport.scrollLeft = left; if (onDone) onDone(); return; }
             var startLeft = viewport.scrollLeft;
             var delta = left - startLeft;
             var startTime = null;
@@ -2069,7 +2101,9 @@
                 var t = Math.min(1, (now - startTime) / duration);
                 var eased = 1 - Math.pow(1 - t, 3);
                 viewport.scrollLeft = startLeft + delta * eased;
-                animFrame = t < 1 ? requestAnimationFrame(step) : null;
+                if (t < 1) { animFrame = requestAnimationFrame(step); return; }
+                animFrame = null;
+                if (onDone) onDone();
             }
             animFrame = requestAnimationFrame(step);
         }
@@ -2078,8 +2112,33 @@
             animateScrollTo(targetScrollLeft(slides[i]), 420);
             setActive(i);
         }
-        if (prevBtn) prevBtn.addEventListener("click", function () { goTo(current - 1); });
-        if (nextBtn) nextBtn.addEventListener("click", function () { goTo(current + 1); });
+        // At either end, step onto the adjacent clone instead of jumping straight to
+        // goTo(0)/goTo(last) - see the clone setup above for why. Once that animation
+        // lands, instantly (no animation - invisible, since the clone is pixel-identical
+        // to the real photo it stands in for) swap the scroll position over to the real
+        // slide, so `current`/goTo() never has to know clones exist at all.
+        function next() {
+            if (slides.length > 1 && current === slides.length - 1) {
+                animateScrollTo(targetScrollLeft(track.children[cloneOffset + slides.length]), 420, function () {
+                    viewport.scrollLeft = targetScrollLeft(slides[0]);
+                    setActive(0);
+                });
+                return;
+            }
+            goTo(current + 1);
+        }
+        function prev() {
+            if (slides.length > 1 && current === 0) {
+                animateScrollTo(targetScrollLeft(track.children[cloneOffset - 1]), 420, function () {
+                    viewport.scrollLeft = targetScrollLeft(slides[slides.length - 1]);
+                    setActive(slides.length - 1);
+                });
+                return;
+            }
+            goTo(current - 1);
+        }
+        if (prevBtn) prevBtn.addEventListener("click", prev);
+        if (nextBtn) nextBtn.addEventListener("click", next);
         setActive(0);
 
         // Hand-rolled drag - mirrors #book-list's own touchstart/touchmove/touchend
@@ -2088,7 +2147,10 @@
         // starting on a photo isn't hijacked, the preventDefault on a recognized drag so
         // the release doesn't also fire a stray click that would follow the photo's own
         // link, and the 18px threshold so a light flick advances just as readily as a
-        // hard one but never further than one photo).
+        // hard one but never further than one photo). touchend calls next()/prev()
+        // (rather than goTo(current +/- 1) directly) so a swipe at either end wraps the
+        // same way an arrow/dot click does; a drag that never clears the threshold falls
+        // through to goTo(current), snapping back to wherever it actually started.
         var dragStartX = null, dragStartY = null, dragStartScroll = null, dragAxis = null;
         viewport.addEventListener("touchstart", function (e) {
             dragStartX = e.touches[0].clientX;
@@ -2117,10 +2179,9 @@
             if (axis !== null) e.preventDefault();
             if (axis !== "x") return;
             var SWIPE_THRESHOLD = 18;
-            var target = current;
-            if (scrolled > SWIPE_THRESHOLD) target = current + 1;
-            else if (scrolled < -SWIPE_THRESHOLD) target = current - 1;
-            goTo(target);
+            if (scrolled > SWIPE_THRESHOLD) next();
+            else if (scrolled < -SWIPE_THRESHOLD) prev();
+            else goTo(current);
         }, { passive: false });
     })();
 
