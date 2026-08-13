@@ -45,6 +45,7 @@ from database import (
     is_new_booking_notifications_enabled, set_new_booking_notifications_enabled,
     record_account_deletion, recent_account_deletions, ACCOUNT_DELETION_REASONS,
     get_business_page, page_by_slug, page_by_custom_domain, upsert_business_page, published_page_slugs,
+    set_business_page_theme,
     set_domain_subscription, set_custom_domain_purchasing, resolve_custom_domain_purchase,
     page_chat_session_messages_today,
     set_page_content_language, get_page_translation, upsert_page_translation,
@@ -1891,6 +1892,13 @@ def onboarding_website_describe():
                 # empty list here just means onboarding_website_design() shows only the
                 # classic THEMES presets, never a hard failure of this step.
                 ai_theme_options = ai_theme.generate_theme_options(description, document_text=document_text)
+                # Pre-selects a sensible default among the classic THEMES presets (never one of
+                # the ai_theme_options custom cards above) so onboarding_website_design() shows
+                # up with a theme already chosen based on what the owner just described - see
+                # ai_theme.recommend_theme_id's own docstring. The owner still picks any card
+                # (including a different preset or one of the AI-suggested designs above) before
+                # Continue; this only decides what's highlighted first.
+                recommended_theme = ai_theme.recommend_theme_id(description, document_text=document_text)
                 session[_ONBOARDING_SESSION_KEY] = {
                     "description": description,
                     "tagline": generated["tagline"],
@@ -1901,6 +1909,7 @@ def onboarding_website_describe():
                     "faq": format_faq(generated["faq"]),
                     "booking_relevant": generated.get("booking_relevant", True),
                     "ai_theme_options": ai_theme_options,
+                    "theme": recommended_theme,
                     # Detected once here, right alongside the rest of the AI draft, so the
                     # live preview iframe (onboarding_website_preview) can show the same
                     # leading detected-language flag a published page would - see
@@ -2278,6 +2287,29 @@ def site_preview():
     )
 
 
+# AJAX-only, called from the "Change theme" picker rendered directly on site_preview()
+# above (public_page.html's own {% if preview %} owner toolbar - see its docstring).
+# Ownership is the same implicit session["business_id"] check every other owner-only AJAX
+# route in this file uses (save_business_page, update_reminders, ...) - there is exactly
+# one business_pages row per business_id, so there is nothing else to authorize. Only
+# ever accepts one of the classic themes.THEMES preset ids (never "custom"/an AI hex
+# palette - that combination is still only ever set from Settings' own "Suggest AI
+# designs" flow), matching set_business_page_theme's own contract.
+@app.route("/site/theme", methods=["POST"])
+@login_required
+@limiter.limit("30 per hour")
+def set_site_theme():
+    business_id = session["business_id"]
+    theme_id = request.form.get("theme_id") or ""
+    if theme_id not in themes.THEMES:
+        return jsonify(error="Unknown theme."), 400
+    if get_business_page(business_id) is None:
+        abort(404)
+    set_business_page_theme(business_id, theme_id)
+    log_event("site_theme_changed", business_id=business_id)
+    return jsonify(ok=True, theme_id=theme_id)
+
+
 # Mobile-app equivalent of the "View page" button above - same token-bridge pattern as
 # /schedule/<token> and /subscription/<token>, since Capacitor's Browser plugin can't
 # attach the app's Bearer token to a request it opens. Establishes a real session then
@@ -2644,6 +2676,13 @@ def _render_public_page(page, business, page_url, preview=False):
         slug=slug,
         theme=themes.resolve_theme(page[9], page[10]),
         preview=preview,
+        # Owner-only theme picker data (public_page.html's own {% if preview %} toolbar) -
+        # preview is only ever True from site_preview(), a @login_required route reading
+        # session["business_id"], so this never reaches a public /p/<slug> visitor. Cheap
+        # either way (an in-memory dict, no DB/AI call), but kept None on the public path
+        # so that route's response never carries this extra payload for no reason.
+        theme_choices=list(themes.THEMES.items()) if preview else None,
+        current_theme_id=page[9] if preview else None,
         booking_enabled=booking_enabled,
         availability_url=(f"https://{PRIMARY_APP_HOST}" + url_for("public_page_availability", slug=slug)) if booking_enabled else None,
         # Computed once here, embedded straight into the page, so the "Book an

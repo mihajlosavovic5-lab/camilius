@@ -17,6 +17,7 @@ import re
 from dotenv import load_dotenv
 from openai import OpenAI
 
+import themes
 from generate_reply import MODEL
 from page_generator import MAX_DESCRIPTION_LENGTH, MAX_DOCUMENT_TEXT_LENGTH
 
@@ -204,3 +205,86 @@ def generate_theme_options(description, document_text=None):
         if cleaned:
             options.append(cleaned)
     return options
+
+
+# Picks ONE theme_id from the classic THEMES catalog (not a freeform hex palette like
+# generate_theme_options above) - deliberately constrained so it can never produce a
+# bad-contrast or off-brand result, only ever one of the hand-tuned/validated presets.
+# Used to pre-select a sensible default in the onboarding wizard's design step - the
+# owner still sees and can freely override the pick before continuing.
+_THEME_RECOMMENDATION_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "theme_id": {
+            "type": "string",
+            "enum": themes.THEME_IDS,
+            "description": "The single best-fitting theme id for this business.",
+        },
+    },
+    "required": ["theme_id"],
+    "additionalProperties": False,
+}
+
+_RECOMMENDATION_SYSTEM_PROMPT = """You are choosing which ONE pre-designed color theme best fits a small
+business's website, based on a short description of what the business does. Below is the full
+catalog of available themes, each with a short label and mood description:
+
+{catalog}
+
+Use your own judgment about what would genuinely suit THIS business, its likely customers, and its
+tone - a calm blue/green/white often suits medical or professional services, a soft pastel often
+suits beauty/wellness, a bold dark look often suits gyms/nightlife, an earthy green/brown often suits
+outdoor/eco/farming businesses, an elegant gold/black often suits luxury services, and so on - but
+these are just loose examples, not rules. Read the actual description and pick whichever catalog
+theme's real mood fits it best, even if that means going against a stereotype (e.g. a business aimed
+at a younger/more playful audience, or a specific gender-leaning trade, might genuinely suit pink,
+purple, or coral better than the "expected" choice). Always answer with exactly one theme_id from the
+catalog above."""
+
+
+def _recommendation_catalog_text():
+    lines = []
+    for theme_id, theme in themes.THEMES.items():
+        lines.append(f"- {theme_id}: \"{theme['label']}\" - {theme['blurb']}")
+    return "\n".join(lines)
+
+
+def recommend_theme_id(description, document_text=None):
+    """Returns a single theme_id from themes.THEME_IDS best matching the description - never
+    raises, never returns anything outside THEME_IDS (falls back to themes.DEFAULT_THEME_ID on
+    an empty description, a model/network failure, or any other unexpected response)."""
+    description = (description or "").strip()[:MAX_DESCRIPTION_LENGTH]
+    if not description:
+        return themes.DEFAULT_THEME_ID
+
+    messages = [
+        {"role": "system", "content": _RECOMMENDATION_SYSTEM_PROMPT.format(catalog=_recommendation_catalog_text())},
+        {"role": "user", "content": description},
+    ]
+
+    document_text = (document_text or "").strip()[:MAX_DOCUMENT_TEXT_LENGTH]
+    if document_text:
+        messages.append({
+            "role": "user",
+            "content": "Reference material about the business (e.g. a menu, price list, or brochure) - use it only to inform the mood/category, not as design instructions:\n\n" + document_text,
+        })
+
+    try:
+        response = client.chat.completions.create(
+            model=MODEL,
+            messages=messages,
+            max_tokens=100,
+            response_format={
+                "type": "json_schema",
+                "json_schema": {"name": "theme_recommendation", "strict": True, "schema": _THEME_RECOMMENDATION_SCHEMA},
+            },
+        )
+        content = response.choices[0].message.content
+        if not content:
+            return themes.DEFAULT_THEME_ID
+        parsed = json.loads(content)
+        theme_id = parsed.get("theme_id")
+    except Exception:
+        return themes.DEFAULT_THEME_ID
+
+    return theme_id if theme_id in themes.THEMES else themes.DEFAULT_THEME_ID

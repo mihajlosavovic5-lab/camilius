@@ -57,7 +57,10 @@
                     <iframe data-src="{{ url_for('onboarding_website_preview', theme=theme_id) }}" tabindex="-1" title="{{ theme.label }} preview"></iframe>
                 </div>
                 <div class="onboarding-theme-info">
-                    <p class="onboarding-theme-label">{{ theme.label }}</p>
+                    <p class="onboarding-theme-label">
+                        {{ theme.label }}
+                        {% if theme_id == selected_theme %}<span class="onboarding-theme-recommended">&#10024; Recommended for your business</span>{% endif %}
+                    </p>
                     <p class="onboarding-theme-blurb">{{ theme.blurb }}</p>
                     <div class="onboarding-theme-swatches">
                         {% for color in theme.swatch %}<span style="background: {{ color }}"></span>{% endfor %}

@@ -3020,6 +3020,26 @@ def set_page_content_language(business_id, lang):
     connection.close()
 
 
+def set_business_page_theme(business_id, theme_id):
+    """Owner-only quick theme swap from the "View page" preview itself (app.py's
+    set_site_theme route) - a plain UPDATE rather than routing through
+    upsert_business_page, since that call also needs/validates slug/published/tagline/
+    about and can raise UniqueViolation on a slug collision, neither of which is relevant
+    to a pure color change. Always clears custom_theme_json: this picker only ever offers
+    the classic themes.THEMES presets (never an AI-generated custom hex palette, see
+    ai_theme.py), so a business that previously had a 'custom' theme saved from Settings
+    ends up with a real, unambiguous preset id once they pick one here - never a stale
+    custom_theme_json sitting alongside a non-'custom' theme id."""
+    connection = connect()
+    cursor = connection.cursor()
+    cursor.execute(
+        "UPDATE business_pages SET theme = %s, custom_theme_json = NULL, updated_at = CURRENT_TIMESTAMP WHERE business_id = %s",
+        (theme_id, business_id),
+    )
+    connection.commit()
+    connection.close()
+
+
 def set_booking_relevant(business_id, value):
     """Persists whether booking/scheduling makes sense for this business (see
     businesses.booking_relevant's own comment in create_database() and

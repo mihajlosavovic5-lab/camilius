@@ -106,6 +106,11 @@
         background: linear-gradient(180deg, color-mix(in srgb, var(--primary) 18%, var(--background)) 0%, var(--background) 42%) fixed;
         color: var(--text);
         line-height: 1.55;
+        /* Lets a live theme swap from the owner's own "Change theme" panel (see
+           theme_choices below) repaint smoothly instead of snapping instantly - harmless
+           on a normal page load too, since nothing else ever changes these two
+           properties on body after first paint. */
+        transition: background .35s ease, color .35s ease;
     }
     [id] { scroll-margin-top: 24px; }
 
@@ -222,12 +227,19 @@
     body[data-overlay="menu"] .top-bar-title,
     body[data-overlay="menu"] .lang-btn,
     body[data-overlay="menu"] .chat-fab,
+    body[data-overlay="menu"] .theme-fab,
     body[data-overlay="lang"] .top-bar-title,
     body[data-overlay="lang"] .nav-menu-btn,
     body[data-overlay="lang"] .chat-fab,
+    body[data-overlay="lang"] .theme-fab,
     body[data-overlay="chat"] .top-bar-title,
     body[data-overlay="chat"] .nav-menu-btn,
-    body[data-overlay="chat"] .lang-btn {
+    body[data-overlay="chat"] .lang-btn,
+    body[data-overlay="chat"] .theme-fab,
+    body[data-overlay="theme"] .top-bar-title,
+    body[data-overlay="theme"] .nav-menu-btn,
+    body[data-overlay="theme"] .lang-btn,
+    body[data-overlay="theme"] .chat-fab {
         opacity: .35;
         pointer-events: none;
         transition: opacity .3s ease;
@@ -484,7 +496,7 @@
         border-radius: var(--radius);
         padding: 20px 22px;
         margin-bottom: 18px;
-        transition: box-shadow .25s ease, border-color .25s ease;
+        transition: box-shadow .25s ease, border-color .25s ease, background .3s ease, color .3s ease;
     }
     section:hover { box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06); }
     section h2 {
@@ -1242,6 +1254,140 @@
             height: min(60vh, calc(100vh - 96px));
         }
     }
+    {% if theme_choices %}
+    /* --- Owner-only "Change theme" launcher/panel - rendered exclusively when
+       theme_choices is passed in (see app.py's _render_public_page: only site_preview(),
+       a @login_required route, ever sets this - never the public /p/<slug> route, and
+       never onboarding_website_preview()'s tiny thumbnail iframes either, since those
+       don't pass theme_choices even though they also render with preview=True). Mirrors
+       .chat-fab/.chat-panel's exact visual language (size, shadow, panel motion, same
+       952/953 z-index tier, same window.pageOverlay coordination) but pinned to the
+       opposite corner - bottom-left - so it never competes with the chat launcher or the
+       top header's own tightly-fitted hamburger/title/language row. --- */
+    .theme-fab {
+        position: fixed;
+        left: 20px;
+        bottom: 20px;
+        width: 58px;
+        height: 58px;
+        border-radius: 50%;
+        border: 1.5px solid var(--primary);
+        background: color-mix(in srgb, var(--primary) 8%, transparent);
+        color: var(--primary);
+        backdrop-filter: blur(6px);
+        -webkit-backdrop-filter: blur(6px);
+        cursor: pointer;
+        box-shadow: 0 6px 16px -6px rgba(0, 0, 0, .3), 0 1px 3px rgba(0, 0, 0, .1);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 952;
+        transition: transform .18s cubic-bezier(.2, .9, .3, 1.3), box-shadow .18s ease, background .18s ease;
+    }
+    .theme-fab:hover { transform: translateY(-3px) scale(1.06); box-shadow: 0 10px 22px -6px rgba(0, 0, 0, .35), 0 2px 6px rgba(0, 0, 0, .12); }
+    .theme-fab:active { transform: translateY(-1px) scale(.96); }
+    .theme-fab svg { width: 26px; height: 26px; position: absolute; transition: opacity .15s ease, transform .15s ease; }
+    .theme-fab-icon-close { opacity: 0; transform: scale(.5) rotate(-45deg); }
+    .theme-fab.open .theme-fab-icon-palette { opacity: 0; transform: scale(.5) rotate(45deg); }
+    .theme-fab.open .theme-fab-icon-close { opacity: 1; transform: scale(1) rotate(0); }
+    .theme-panel {
+        position: fixed;
+        left: 20px;
+        bottom: 90px;
+        width: min(340px, calc(100vw - 40px));
+        height: min(460px, calc(100vh - 108px));
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 22px;
+        box-shadow: 0 22px 60px rgba(0, 0, 0, .22), 0 6px 16px rgba(0, 0, 0, .12);
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        z-index: 953;
+        transform-origin: bottom left;
+        transition: transform .22s cubic-bezier(.2, .9, .3, 1.3), opacity .16s ease;
+    }
+    .theme-panel.hidden {
+        display: flex;
+        pointer-events: none;
+        opacity: 0;
+        transform: translateY(10px) scale(.95);
+    }
+    .theme-panel-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        padding: 14px 16px;
+        border-bottom: 1px solid var(--border);
+        flex-shrink: 0;
+        background: linear-gradient(160deg, color-mix(in srgb, var(--primary) 14%, var(--surface)) 0%, var(--surface) 130%);
+    }
+    .theme-panel-header p { margin: 0; font-family: var(--heading-font); font-weight: 700; font-size: 0.95rem; }
+    .theme-panel-header span { display: block; font-size: 0.76rem; color: var(--text-muted); margin-top: 2px; }
+    .theme-grid {
+        flex: 1;
+        overflow-y: auto;
+        padding: 14px 16px;
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(92px, 1fr));
+        gap: 10px;
+        align-content: start;
+        background: var(--background);
+    }
+    .theme-swatch-card {
+        border: 2px solid var(--border);
+        border-radius: 14px;
+        padding: 0;
+        cursor: pointer;
+        overflow: hidden;
+        background: var(--surface);
+        text-align: left;
+        transition: border-color .15s ease, transform .12s ease, box-shadow .15s ease;
+    }
+    .theme-swatch-card:hover { transform: translateY(-2px); box-shadow: 0 6px 14px -6px rgba(0, 0, 0, .25); }
+    .theme-swatch-card:active { transform: translateY(0) scale(.97); }
+    .theme-swatch-card.selected { border-color: var(--primary); box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 25%, transparent); }
+    .theme-swatch-preview { height: 46px; position: relative; }
+    .theme-swatch-check {
+        position: absolute; top: 4px; right: 4px; width: 18px; height: 18px; border-radius: 50%;
+        background: rgba(255, 255, 255, .92); color: #141414; display: none;
+        align-items: center; justify-content: center; font-size: 11px; font-weight: 700;
+        box-shadow: 0 1px 4px rgba(0, 0, 0, .3);
+    }
+    .theme-swatch-card.selected .theme-swatch-check { display: flex; }
+    .theme-swatch-label { display: block; padding: 6px 8px 8px; font-size: 0.74rem; font-weight: 600; line-height: 1.25; }
+    /* Fixed, not anchored to a positioned ancestor - independent of whether the panel is
+       open or closed, since a save can happen right as the panel auto-closes. Same
+       left-corner x-position as .theme-fab, floating just above it. */
+    .theme-toast {
+        position: fixed;
+        left: 20px;
+        bottom: 86px;
+        background: var(--text);
+        color: var(--background);
+        font-size: 0.78rem;
+        font-weight: 600;
+        padding: 7px 14px;
+        border-radius: 999px;
+        white-space: nowrap;
+        box-shadow: 0 8px 20px rgba(0, 0, 0, .25);
+        opacity: 0;
+        transform: translateY(6px);
+        pointer-events: none;
+        z-index: 954;
+        transition: opacity .2s ease, transform .2s ease;
+    }
+    .theme-toast.visible { opacity: 1; transform: translateY(0); }
+    @media (max-width: 480px) {
+        .theme-fab { left: 14px; bottom: 14px; }
+        .theme-panel {
+            left: 14px; bottom: 84px; width: min(300px, calc(100vw - 24px));
+            height: min(60vh, calc(100vh - 96px));
+        }
+        .theme-toast { left: 14px; bottom: 80px; }
+    }
+    {% endif %}
     /* Centered title block - logo, name, tagline all stacked and centered. */
     .page-header {
         display: flex;
@@ -2820,6 +2966,151 @@ window.pageOverlay = (function () {
 
 })();
 </script>
+
+{% if theme_choices %}
+<!-- Owner-only "Change theme" launcher - see this block's own CSS comment above for why
+     theme_choices being set at all already guarantees this is the owner's own
+     site_preview() view, never a public visitor. Auto-saves on every pick (no separate
+     Save step - see the script below) since this is the owner's own live-editable
+     control, not a form a stranger could stumble into. -->
+<button type="button" class="theme-fab" id="theme-fab" aria-label="Change theme" aria-expanded="false">
+    <svg class="theme-fab-icon-palette" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
+        <path d="M12 3C7.03 3 3 6.8 3 11.5c0 3.6 2.94 5.5 5.5 5.5H10a1.5 1.5 0 0 1 1.06 2.56c-.4.4-.56.9-.44 1.4.16.66.86 1.04 1.7 1.04C17.53 22 21 17.75 21 12.5 21 7.26 17.08 3 12 3Z" stroke-linejoin="round"/>
+        <circle cx="7.6" cy="11" r="1.15" fill="currentColor" stroke="none"/>
+        <circle cx="10.8" cy="7.3" r="1.15" fill="currentColor" stroke="none"/>
+        <circle cx="15.2" cy="7.6" r="1.15" fill="currentColor" stroke="none"/>
+        <circle cx="17" cy="11.8" r="1.15" fill="currentColor" stroke="none"/>
+    </svg>
+    <svg class="theme-fab-icon-close" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+        <path d="M6 6l12 12M18 6L6 18" stroke-linecap="round"/>
+    </svg>
+</button>
+<div class="theme-panel hidden" id="theme-panel">
+    <div class="theme-panel-header">
+        <div>
+            <p>Change theme</p>
+            <span>Only you can see this - pick a look, it saves instantly</span>
+        </div>
+    </div>
+    <div class="theme-grid" id="theme-grid"></div>
+</div>
+<div class="theme-toast" id="theme-toast"></div>
+<script>
+(function () {
+    var THEME_CHOICES = {{ theme_choices | tojson }};
+    var CURRENT_THEME_ID = {{ current_theme_id | tojson }};
+    var CSRF_TOKEN = {{ csrf_token() | tojson }};
+    var SAVE_URL = {{ url_for('set_site_theme') | tojson }};
+
+    var fab = document.getElementById("theme-fab");
+    var panel = document.getElementById("theme-panel");
+    var grid = document.getElementById("theme-grid");
+    var toast = document.getElementById("theme-toast");
+    var open = false;
+    var selectedId = CURRENT_THEME_ID;
+    var toastTimer = null;
+
+    var CSS_VAR_KEYS = ["primary", "on_primary", "gold", "background", "surface", "text", "text_muted", "border"];
+
+    // Instant client-side repaint - no reload, no flash of the old colors while a save
+    // request is in flight. body/section's own `transition` (see this file's <style>)
+    // is what makes this glide instead of snapping. Purely visual: the actual save is a
+    // separate fetch() below, so a network hiccup never leaves the DOM out of sync with
+    // what's about to be persisted.
+    function applyThemePreview(theme) {
+        var root = document.documentElement.style;
+        CSS_VAR_KEYS.forEach(function (key) {
+            var value = theme.base[key];
+            if (value) root.setProperty("--" + key.replace(/_/g, "-"), value);
+        });
+        if (theme.radius) root.setProperty("--radius", theme.radius);
+        root.setProperty("--heading-font", theme.heading_font || "inherit");
+        var metaTheme = document.querySelector('meta[name="theme-color"]');
+        if (metaTheme) metaTheme.setAttribute("content", theme.base.primary);
+    }
+
+    function renderGrid() {
+        THEME_CHOICES.forEach(function (entry) {
+            var themeId = entry[0], theme = entry[1];
+            var card = document.createElement("button");
+            card.type = "button";
+            card.className = "theme-swatch-card" + (themeId === selectedId ? " selected" : "");
+            card.dataset.themeId = themeId;
+            card.setAttribute("aria-label", theme.label);
+
+            var preview = document.createElement("div");
+            preview.className = "theme-swatch-preview";
+            preview.style.background = "linear-gradient(135deg, " + theme.base.primary + ", " + theme.base.gold + " 55%, " + theme.base.background + ")";
+            var check = document.createElement("span");
+            check.className = "theme-swatch-check";
+            check.textContent = "✓";
+            preview.appendChild(check);
+
+            var label = document.createElement("span");
+            label.className = "theme-swatch-label";
+            label.textContent = theme.label;
+
+            card.appendChild(preview);
+            card.appendChild(label);
+            card.addEventListener("click", function () { pickTheme(themeId, theme, card); });
+            grid.appendChild(card);
+        });
+    }
+
+    function markSelected(themeId) {
+        Array.prototype.forEach.call(grid.querySelectorAll(".theme-swatch-card"), function (card) {
+            card.classList.toggle("selected", card.dataset.themeId === themeId);
+        });
+    }
+
+    function showToast(text) {
+        toast.textContent = text;
+        toast.classList.add("visible");
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(function () { toast.classList.remove("visible"); }, 1800);
+    }
+
+    function pickTheme(themeId, theme, card) {
+        if (themeId === selectedId) return;
+        selectedId = themeId;
+        applyThemePreview(theme);
+        markSelected(themeId);
+
+        var body = new URLSearchParams();
+        body.set("theme_id", themeId);
+        fetch(SAVE_URL, {
+            method: "POST",
+            headers: { "X-CSRFToken": CSRF_TOKEN, "Content-Type": "application/x-www-form-urlencoded" },
+            body: body.toString(),
+        })
+            .then(function (res) { if (!res.ok) throw new Error("save failed"); return res.json(); })
+            .then(function () { showToast("Saved ✓"); })
+            .catch(function () { showToast("Couldn't save - try again"); });
+    }
+
+    function setOpen(value) {
+        open = value;
+        if (open) window.pageOverlay.set("theme"); else window.pageOverlay.clear("theme");
+        panel.classList.toggle("hidden", !open);
+        fab.classList.toggle("open", open);
+        fab.setAttribute("aria-expanded", open ? "true" : "false");
+    }
+
+    window.pageOverlay.register("theme", function () { setOpen(false); });
+    fab.addEventListener("click", function () { setOpen(!open); });
+    document.addEventListener("click", function (e) {
+        if (!open) return;
+        if (e.target.closest("#theme-fab") || e.target.closest("#theme-panel")) return;
+        setOpen(false);
+    });
+    document.addEventListener("keydown", function (e) {
+        if (open && e.key === "Escape") setOpen(false);
+    });
+
+    renderGrid();
+})();
+</script>
+{% endif %}
 
 {% if chat_url %}
 <!-- Chat + booking - the actual product this page exists to deliver, not a website

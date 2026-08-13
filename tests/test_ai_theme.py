@@ -161,3 +161,73 @@ def test_resolve_theme_falls_back_when_custom_json_is_invalid():
 def test_resolve_theme_falls_back_when_custom_selected_but_no_json_saved():
     resolved = themes.resolve_theme(themes.CUSTOM_THEME_ID, None)
     assert resolved == themes.THEMES[themes.DEFAULT_THEME_ID]
+
+
+# --- ai_theme.recommend_theme_id ---
+# Used to pre-select a default in the onboarding wizard's design step (app.py's
+# onboarding_website_describe) - unlike generate_theme_options above, this only ever
+# picks ONE id from the fixed themes.THEME_IDS catalog (enforced via a strict JSON
+# schema enum), never a freeform hex palette, so there's no contrast/validity check to
+# test here - only that it's always a real catalog id, falling back to
+# themes.DEFAULT_THEME_ID whenever it can't be.
+
+def test_recommend_theme_id_returns_model_choice(monkeypatch):
+    monkeypatch.setattr(
+        ai_theme.client.chat.completions, "create",
+        lambda **kwargs: _FakeResponse(json.dumps({"theme_id": "ocean"})),
+    )
+    assert ai_theme.recommend_theme_id("A dentist's office, calm and professional.") == "ocean"
+
+
+def test_recommend_theme_id_empty_description_returns_default():
+    assert ai_theme.recommend_theme_id("") == themes.DEFAULT_THEME_ID
+    assert ai_theme.recommend_theme_id("   ") == themes.DEFAULT_THEME_ID
+
+
+def test_recommend_theme_id_falls_back_on_model_error(monkeypatch):
+    def raise_error(**kwargs):
+        raise RuntimeError("boom")
+    monkeypatch.setattr(ai_theme.client.chat.completions, "create", raise_error)
+    assert ai_theme.recommend_theme_id("A bakery.") == themes.DEFAULT_THEME_ID
+
+
+def test_recommend_theme_id_falls_back_on_invalid_json(monkeypatch):
+    monkeypatch.setattr(ai_theme.client.chat.completions, "create", lambda **kwargs: _FakeResponse("not json"))
+    assert ai_theme.recommend_theme_id("A bakery.") == themes.DEFAULT_THEME_ID
+
+
+def test_recommend_theme_id_falls_back_when_id_not_in_catalog(monkeypatch):
+    # Shouldn't happen with the strict enum schema, but recommend_theme_id validates
+    # anyway rather than trusting the model response blindly.
+    monkeypatch.setattr(
+        ai_theme.client.chat.completions, "create",
+        lambda **kwargs: _FakeResponse(json.dumps({"theme_id": "not-a-real-theme"})),
+    )
+    assert ai_theme.recommend_theme_id("A bakery.") == themes.DEFAULT_THEME_ID
+
+
+def test_recommend_theme_id_prompt_lists_the_full_catalog(monkeypatch):
+    captured = {}
+
+    def fake_create(**kwargs):
+        captured.update(kwargs)
+        return _FakeResponse(json.dumps({"theme_id": "warm"}))
+
+    monkeypatch.setattr(ai_theme.client.chat.completions, "create", fake_create)
+    ai_theme.recommend_theme_id("A dentist.")
+    system_prompt = captured["messages"][0]["content"]
+    for theme_id in themes.THEME_IDS:
+        assert theme_id in system_prompt
+
+
+def test_recommend_theme_id_appends_document_text(monkeypatch):
+    captured = {}
+
+    def fake_create(**kwargs):
+        captured.update(kwargs)
+        return _FakeResponse(json.dumps({"theme_id": "warm"}))
+
+    monkeypatch.setattr(ai_theme.client.chat.completions, "create", fake_create)
+    ai_theme.recommend_theme_id("A dentist.", document_text="Cleaning: 40 EUR")
+    assert len(captured["messages"]) == 3
+    assert "Cleaning: 40 EUR" in captured["messages"][2]["content"]

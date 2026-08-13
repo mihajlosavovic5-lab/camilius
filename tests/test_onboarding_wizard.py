@@ -60,6 +60,12 @@ def _mock_ai_draft(monkeypatch):
     # about the wizard's flow, not what the design step's AI suggestions look like (see
     # test_ai_theme.py / test_onboarding_design_ai_suggestions.py for that).
     monkeypatch.setattr(ai_theme, "generate_theme_options", lambda *args, **kwargs: [])
+    # Faza 15: onboarding_website_describe() also calls ai_theme.recommend_theme_id() to
+    # pre-select a default among the classic THEMES presets (separate from the freeform
+    # AI options above) - mocked here too, same off-the-network rule. Returning the
+    # DEFAULT_THEME_ID keeps every existing test's "which theme ends up selected"
+    # assertions unchanged from before this existed.
+    monkeypatch.setattr(ai_theme, "recommend_theme_id", lambda *args, **kwargs: themes.DEFAULT_THEME_ID)
     monkeypatch.setattr(translate_page, "detect_content_language", lambda text: "en")
 
 
@@ -129,6 +135,7 @@ def test_onboarding_address_prefills_ai_suggested_slug(client, unique_email, mon
         lambda **kwargs: _FakeResponse(json.dumps(draft)),
     )
     monkeypatch.setattr(ai_theme, "generate_theme_options", lambda *args, **kwargs: [])
+    monkeypatch.setattr(ai_theme, "recommend_theme_id", lambda *args, **kwargs: themes.DEFAULT_THEME_ID)
     monkeypatch.setattr(translate_page, "detect_content_language", lambda text: "en")
     csrf_token = get_csrf_token(client, "/onboarding/website")
     web_post(client, "/onboarding/website", {
@@ -177,6 +184,7 @@ def _run_describe_step_with_ai_theme_options(client, monkeypatch, options):
         lambda **kwargs: _FakeResponse(json.dumps(VALID_DRAFT)),
     )
     monkeypatch.setattr(ai_theme, "generate_theme_options", lambda *args, **kwargs: options)
+    monkeypatch.setattr(ai_theme, "recommend_theme_id", lambda *args, **kwargs: themes.DEFAULT_THEME_ID)
     monkeypatch.setattr(translate_page, "detect_content_language", lambda text: "en")
     csrf_token = get_csrf_token(client, "/onboarding/website")
     return web_post(client, "/onboarding/website", {
@@ -228,6 +236,33 @@ def test_onboarding_can_publish_with_an_ai_suggested_theme(client, unique_email,
 
     public_html = client.get(f"/p/{slug}").get_data(as_text=True)
     assert "#111111" in public_html
+
+
+# --- Faza 15: AI-recommended classic theme pre-selected on the design step ---
+
+def test_onboarding_design_preselects_ai_recommended_theme(client, unique_email, monkeypatch):
+    register_business_web(client, unique_email)
+    monkeypatch.setattr(
+        page_generator.client.chat.completions, "create",
+        lambda **kwargs: _FakeResponse(json.dumps(VALID_DRAFT)),
+    )
+    monkeypatch.setattr(ai_theme, "generate_theme_options", lambda *args, **kwargs: [])
+    monkeypatch.setattr(ai_theme, "recommend_theme_id", lambda *args, **kwargs: "ocean")
+    monkeypatch.setattr(translate_page, "detect_content_language", lambda text: "en")
+    csrf_token = get_csrf_token(client, "/onboarding/website")
+    web_post(client, "/onboarding/website", {
+        "csrf_token": csrf_token, "description": "A dentist's office, calm and professional.",
+    })
+
+    html = client.get("/onboarding/website/design").get_data(as_text=True)
+    assert 'value="ocean" checked' in html
+    assert "Recommended for your business" in html
+    # The owner can still freely publish under a totally different pick - the
+    # pre-selection above is only a starting point, never enforced.
+    csrf_token = get_csrf_token(client, "/onboarding/website/design")
+    response = web_post(client, "/onboarding/website/design", {"csrf_token": csrf_token, "theme": "lavender"})
+    assert response.status_code == 302
+    assert response.headers["Location"] == "/onboarding/website/address"
 
 
 def test_onboarding_address_rejects_invalid_and_taken_slugs(client, unique_email, monkeypatch):

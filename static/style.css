@@ -3113,6 +3113,17 @@ html { scroll-behavior: smooth; }
 }
 .onboarding-theme-info { padding: 14px 16px; }
 .onboarding-theme-label { font-weight: 700; margin: 0 0 4px; color: var(--text); }
+.onboarding-theme-recommended {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--primary);
+    background: rgba(214, 148, 16, .12);
+    border-radius: 999px;
+    padding: 2px 8px;
+    margin-left: 6px;
+    vertical-align: middle;
+}
 .onboarding-theme-blurb { font-size: 13px; color: var(--text-muted); margin: 0 0 10px; line-height: 1.4; }
 .onboarding-theme-swatches { display: flex; gap: 6px; }
 .onboarding-theme-swatches span {
