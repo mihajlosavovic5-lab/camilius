@@ -234,8 +234,12 @@ button { font-family: inherit; -webkit-appearance: none; appearance: none; }
        makes the browser apply its built-in visibility timing instead: switches to hidden
        only once this duration has fully elapsed (sliding off first, hidden after), but to
        visible immediately (so a freshly-active screen is paintable right away and slides
-       in from the very first frame). */
-    transition: transform .22s ease, visibility .22s ease;
+       in from the very first frame). cubic-bezier(.22,1,.36,1) is the same gentle
+       decelerate ("ease-out-quint") the Working Hours advanced-view unfold uses (see its
+       own comment further down) - content settles into place instead of the slightly
+       mechanical, constant-speed feel plain "ease" has, and .32s gives it room to actually
+       read as a glide instead of a flick. */
+    transition: transform .32s cubic-bezier(.22, 1, .36, 1), visibility .32s cubic-bezier(.22, 1, .36, 1);
     visibility: hidden;
 }
 .screen.active { transform: translateX(0); visibility: visible; }
@@ -2465,14 +2469,17 @@ input.tap-to-edit-field, textarea.tap-to-edit-field { cursor: pointer; backgroun
     position: fixed; left: 0; right: 0; bottom: 0; z-index: 20;
     display: flex; height: calc(var(--tabbar-h) + var(--safe-bottom)); padding-bottom: var(--safe-bottom);
     background: var(--surface); border-top: 1px solid var(--border);
-    transition: opacity .18s ease, transform .22s cubic-bezier(.22,.9,.32,1.05);
+    /* Same duration/curve as .screen above so the two finish their glide together instead
+       of the tabbar arriving noticeably earlier or later than the screen it's paired
+       with. */
+    transition: opacity .32s cubic-bezier(.22, 1, .36, 1), transform .32s cubic-bezier(.22, 1, .36, 1);
 }
 /* Overrides the generic .hidden{display:none!important} utility (higher specificity, via
    the extra .tabbar, wins the !important-vs-!important tie-break) - showTabbar(false/true)
    around the "Draft this with AI" screen (see app.js) needs the tabbar to stay laid out
-   and fade+slide off/on the bottom edge in step with that screen's own .22s slide (see
-   .screen above), instead of popping away and snapping back on the spot the instant it's
-   toggled while the screen is still mid-slide. */
+   and fade+slide off/on the bottom edge in step with that screen's own slide (see .screen
+   above), instead of popping away and snapping back on the spot the instant it's toggled
+   while the screen is still mid-slide. */
 .tabbar.hidden {
     display: flex !important;
     opacity: 0; transform: translateY(100%); pointer-events: none;
