@@ -793,9 +793,9 @@ body.nav-menu-open .site-lang-select-btn { opacity: .3; pointer-events: none; tr
 }
 .info-card strong { color: var(--text); }
 .block-label { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--text-muted); margin: 18px 0 6px; }
-/* Common questions - scrolls after the first couple of items instead of pushing the
+/* Common questions - scrolls after the first few items instead of pushing the
    rest of Settings down; same thin-scrollbar treatment as .site-lang-modal-list. */
-.faq-scroll { max-height: 240px; overflow-y: auto; }
+.faq-scroll { max-height: 420px; overflow-y: auto; }
 .faq-scroll::-webkit-scrollbar { width: 6px; }
 .faq-scroll::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
 .faq-scroll::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
