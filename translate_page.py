@@ -161,38 +161,56 @@ def detect_content_language(text):
         return "en"
 
 
-def translation_is_usable(result, tagline, about, price_list, faq):
+def translation_is_usable(result, tagline, about, price_list, faq, lang=None, source_lang=None):
     """False if `result` (shaped like translate_page_content's own return value, or the
     same shape rebuilt from a business_page_translations row - see app.py's
-    public_page_translate) dropped any field that actually had source content, or came
-    back with an empty string for one of PAGE_UI_STRINGS' own always-non-empty keys.
-    Nothing here is a translation *quality* check (a bad/nonsensical translation still
-    passes) - only a check that this result is safe to show a visitor or cache for the
-    next one, since public_page.html's applyTranslation() only ever gets to see the
-    field, not the source it came from, and skips a field entirely rather than let an
-    empty value blank out real on-screen content (see its own comment). A response that
-    slipped past this once and got cached would otherwise keep failing the exact same
-    way forever - every later visitor hitting the cache, never a fresh model call again -
-    so both translate_page_content below (before caching a fresh result) and
-    public_page_translate (before trusting an already-cached row) call this."""
+    public_page_translate) dropped any field that actually had source content, came back
+    with an empty string for one of PAGE_UI_STRINGS' own always-non-empty keys, or (when
+    `lang`/`source_lang` are given and actually differ) left "about" byte-for-byte
+    identical to the source - real prose essentially never survives translation between
+    two different languages completely unchanged, so an unchanged "about" there means the
+    model echoed the source back instead of translating it, not that the translation
+    happened to look the same. That last check is skipped when lang == source_lang (e.g. a
+    visitor picking the flag that already matches this business's own content) since an
+    unchanged "about" there is the correct result, not a failure - and skipped entirely
+    when either isn't given, since callers that don't know the source language can't tell
+    the two cases apart. Nothing here is a translation *quality* check otherwise (a bad
+    but genuinely different-looking translation still passes) - only a check that this
+    result is safe to show a visitor or cache for the next one, since public_page.html's
+    applyTranslation() only ever gets to see the field, not the source it came from, and
+    skips a field entirely rather than let a bad value overwrite real on-screen content
+    (see its own comment). A response that slipped past this once and got cached would
+    otherwise keep failing the exact same way forever - every later visitor hitting the
+    cache, never a fresh model call again - so both translate_page_content below (before
+    caching a fresh result) and public_page_translate (before trusting an already-cached
+    row) call this."""
     for field, source in (("tagline", tagline), ("about", about), ("price_list", price_list), ("faq", faq)):
         if (source or "").strip() and not (result.get(field) or "").strip():
             return False
     ui = result.get("ui") or {}
-    return all((ui.get(key) or "").strip() for key in PAGE_UI_STRINGS)
+    if not all((ui.get(key) or "").strip() for key in PAGE_UI_STRINGS):
+        return False
+    if lang and source_lang and lang != source_lang:
+        if (about or "").strip() and (result.get("about") or "").strip() == about.strip():
+            return False
+    return True
 
 
-def translate_page_content(lang, tagline, about, price_list, faq):
+def translate_page_content(lang, tagline, about, price_list, faq, source_lang=None):
     """One OpenAI call translating a business's tagline/about/price_list/faq plus the
     page's own fixed PAGE_UI_STRINGS into `lang`, all together so they read as one
     consistent voice. Returns a dict shaped like {"tagline", "about", "price_list",
     "faq", "ui": {...same keys as PAGE_UI_STRINGS}}. Raises ValueError the same way
     page_generator.generate_page_draft() does if the model call fails, returns something
     unparseable, or returns something translation_is_usable() rejects (e.g. cut off
-    mid-response and missing a field that should have real content) - the caller (app.py's
-    public_page_translate route) decides how to surface that; nothing here is worth
-    blocking the page itself over, since a visitor just keeps seeing the untranslated
-    original on failure."""
+    mid-response and missing a field that should have real content, or echoing the source
+    language straight back instead of translating it - see that function's own docstring)
+    - the caller (app.py's public_page_translate route) decides how to surface that;
+    nothing here is worth blocking the page itself over, since a visitor just keeps
+    seeing the untranslated original on failure. source_lang is this business's own
+    detected content_language (see app.py's public_page()), passed through only so
+    translation_is_usable can tell a legitimate same-language no-op from an echoed
+    failure - never sent to the model itself."""
     lang_name = LANGUAGES.get(lang, {}).get("name", lang)
     messages = [
         {"role": "system", "content": _TRANSLATE_SYSTEM_PROMPT.format(lang=lang_name)},
@@ -221,6 +239,6 @@ def translate_page_content(lang, tagline, about, price_list, faq):
         result = json.loads(content)
     except json.JSONDecodeError as error:
         raise ValueError(f"model returned invalid JSON: {error}") from error
-    if not translation_is_usable(result, tagline, about, price_list, faq):
-        raise ValueError("model returned a translation missing content the source actually has")
+    if not translation_is_usable(result, tagline, about, price_list, faq, lang=lang, source_lang=source_lang):
+        raise ValueError("model returned a translation missing content the source actually has, or echoed it back untranslated")
     return result
