@@ -3205,7 +3205,19 @@ window.pageOverlay = (function () {
             if (value) root.setProperty("--" + key.replace(/_/g, "-"), value);
         });
         if (theme.radius) root.setProperty("--radius", theme.radius);
-        root.setProperty("--heading-font", theme.heading_font || "inherit");
+        // Deliberately NOT --heading-font here, unlike every other var above - the
+        // top-bar title/page-header h1 are sized by fitTopBarTitleText's own binary
+        // search (layoutTopBarTitle further up this page), which measures this exact
+        // text in this exact font once and picks the largest pixel size that still fits
+        // the fixed gap between the nav/lang buttons, then leaves that px value alone
+        // until something re-runs the search (a resize, a language switch, ...) -
+        // nothing here does. Swapping the font family live would change how wide that
+        // same text renders at that same already-chosen px size without ever re-running
+        // the search to correct for it, which is what read as the title visibly growing
+        // or shrinking a little on every theme pick. Every other property here (colors/
+        // radius) previews fine live since none of them affect that measurement - the
+        // heading font itself still applies correctly on an actual page load, which is
+        // when the search runs fresh against it.
         var metaTheme = document.querySelector('meta[name="theme-color"]');
         if (metaTheme) metaTheme.setAttribute("content", theme.base.primary);
     }
