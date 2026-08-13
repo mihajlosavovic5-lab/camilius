@@ -3095,8 +3095,7 @@ window.pageOverlay = (function () {
             headers: { "X-CSRFToken": CSRF_TOKEN, "Content-Type": "application/x-www-form-urlencoded" },
             body: body.toString(),
         })
-            .then(function (res) { if (!res.ok) throw new Error("save failed"); return res.json(); })
-            .then(function () { showToast("Saved ✓"); })
+            .then(function (res) { if (!res.ok) throw new Error("save failed"); })
             .catch(function () { showToast("Couldn't save - try again"); });
     }
 
