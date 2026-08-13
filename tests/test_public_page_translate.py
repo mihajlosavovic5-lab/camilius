@@ -9,6 +9,8 @@ language, unpublished page).
 import json
 import uuid
 
+import pytest
+
 import database
 import translate_page
 from conftest import register_business_web
@@ -150,3 +152,85 @@ def test_translate_endpoint_502s_when_the_model_call_fails(client, unique_email,
 
     response = client.get(f"/p/{slug}/translate/es")
     assert response.status_code == 502
+
+
+# --- translate_page.translation_is_usable (unit) ---
+
+def test_translation_is_usable_true_when_every_source_field_is_covered():
+    ui = {key: f"[es] {value}" for key, value in translate_page.PAGE_UI_STRINGS.items()}
+    result = {"tagline": "t", "about": "a", "price_list": "p", "faq": "f", "ui": ui}
+    assert translate_page.translation_is_usable(result, "T", "A", "P", "F") is True
+
+
+def test_translation_is_usable_false_when_a_nonempty_source_field_translated_empty():
+    ui = {key: f"[es] {value}" for key, value in translate_page.PAGE_UI_STRINGS.items()}
+    result = {"tagline": "t", "about": "", "price_list": "p", "faq": "f", "ui": ui}
+    assert translate_page.translation_is_usable(result, "T", "A", "P", "F") is False
+
+
+def test_translation_is_usable_true_when_an_empty_source_field_stays_empty():
+    # Nothing to translate for a field the business never filled in - an empty result
+    # there is correct, not degenerate.
+    ui = {key: f"[es] {value}" for key, value in translate_page.PAGE_UI_STRINGS.items()}
+    result = {"tagline": "t", "about": "", "price_list": "p", "faq": "f", "ui": ui}
+    assert translate_page.translation_is_usable(result, "T", "", "P", "F") is True
+
+
+def test_translation_is_usable_false_when_a_ui_string_is_missing():
+    ui = {key: f"[es] {value}" for key, value in translate_page.PAGE_UI_STRINGS.items()}
+    ui["chat_send"] = ""
+    result = {"tagline": "t", "about": "a", "price_list": "p", "faq": "f", "ui": ui}
+    assert translate_page.translation_is_usable(result, "T", "A", "P", "F") is False
+
+
+def test_translate_page_content_rejects_a_response_missing_real_content(monkeypatch):
+    # A response that parses fine but is missing translated text for a field the source
+    # actually had - the exact shape a truncated-but-still-schema-valid model reply could
+    # take - must surface as the same ValueError a flat-out failed call would, not as a
+    # "successful" result the caller would go on to cache.
+    class _FakeMessage:
+        content = json.dumps({
+            "tagline": "t", "about": "", "price_list": "p", "faq": "f",
+            "ui": dict(translate_page.PAGE_UI_STRINGS),
+        })
+
+    class _FakeChoice:
+        message = _FakeMessage()
+
+    class _FakeResponse:
+        choices = [_FakeChoice()]
+
+    monkeypatch.setattr(translate_page.client.chat.completions, "create", lambda **kwargs: _FakeResponse())
+
+    with pytest.raises(ValueError):
+        translate_page.translate_page_content("es", "T", "A", "P", "F")
+
+
+def test_translate_endpoint_reruns_the_model_when_the_cached_row_is_degenerate(client, unique_email, monkeypatch):
+    # A row cached before translation_is_usable() existed (or that slipped past it) must
+    # not keep serving the same broken result to every future visitor forever - the
+    # endpoint re-translates instead of trusting a cache hit that fails the same check a
+    # fresh result would.
+    register_business_web(client, unique_email)
+    business_id, slug = _publish_page(client, unique_email)
+    stale_ui = json.dumps(dict(translate_page.PAGE_UI_STRINGS))
+    database.upsert_page_translation(business_id, "es", "[es] Fresh cuts daily", "", "[es] Haircut: 20 EUR", "[es] Q\nA", stale_ui)
+
+    calls = []
+
+    def fake_translate(lang, tagline, about, price_list, faq):
+        calls.append(lang)
+        return _fake_translation(lang)
+
+    monkeypatch.setattr(translate_page, "translate_page_content", fake_translate)
+
+    response = client.get(f"/p/{slug}/translate/es")
+    assert response.status_code == 200
+    assert response.get_json()["about"] == "[es] We opened in 2019."
+    assert calls == ["es"]
+
+    # The regenerated result overwrote the stale row - a later request is now served from
+    # cache again, without a second model call.
+    response = client.get(f"/p/{slug}/translate/es")
+    assert response.get_json()["about"] == "[es] We opened in 2019."
+    assert calls == ["es"]

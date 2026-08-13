@@ -156,15 +156,38 @@ def detect_content_language(text):
         return "en"
 
 
+def translation_is_usable(result, tagline, about, price_list, faq):
+    """False if `result` (shaped like translate_page_content's own return value, or the
+    same shape rebuilt from a business_page_translations row - see app.py's
+    public_page_translate) dropped any field that actually had source content, or came
+    back with an empty string for one of PAGE_UI_STRINGS' own always-non-empty keys.
+    Nothing here is a translation *quality* check (a bad/nonsensical translation still
+    passes) - only a check that this result is safe to show a visitor or cache for the
+    next one, since public_page.html's applyTranslation() only ever gets to see the
+    field, not the source it came from, and skips a field entirely rather than let an
+    empty value blank out real on-screen content (see its own comment). A response that
+    slipped past this once and got cached would otherwise keep failing the exact same
+    way forever - every later visitor hitting the cache, never a fresh model call again -
+    so both translate_page_content below (before caching a fresh result) and
+    public_page_translate (before trusting an already-cached row) call this."""
+    for field, source in (("tagline", tagline), ("about", about), ("price_list", price_list), ("faq", faq)):
+        if (source or "").strip() and not (result.get(field) or "").strip():
+            return False
+    ui = result.get("ui") or {}
+    return all((ui.get(key) or "").strip() for key in PAGE_UI_STRINGS)
+
+
 def translate_page_content(lang, tagline, about, price_list, faq):
     """One OpenAI call translating a business's tagline/about/price_list/faq plus the
     page's own fixed PAGE_UI_STRINGS into `lang`, all together so they read as one
     consistent voice. Returns a dict shaped like {"tagline", "about", "price_list",
     "faq", "ui": {...same keys as PAGE_UI_STRINGS}}. Raises ValueError the same way
-    page_generator.generate_page_draft() does if the model call fails or returns
-    something unparseable - the caller (app.py's public_page_translate route) decides
-    how to surface that; nothing here is worth blocking the page itself over, since a
-    visitor just keeps seeing the untranslated original on failure."""
+    page_generator.generate_page_draft() does if the model call fails, returns something
+    unparseable, or returns something translation_is_usable() rejects (e.g. cut off
+    mid-response and missing a field that should have real content) - the caller (app.py's
+    public_page_translate route) decides how to surface that; nothing here is worth
+    blocking the page itself over, since a visitor just keeps seeing the untranslated
+    original on failure."""
     lang_name = LANGUAGES.get(lang, {}).get("name", lang)
     messages = [
         {"role": "system", "content": _TRANSLATE_SYSTEM_PROMPT.format(lang=lang_name)},
@@ -190,6 +213,9 @@ def translate_page_content(lang, tagline, about, price_list, faq):
     if not content:
         raise ValueError("model returned no content")
     try:
-        return json.loads(content)
+        result = json.loads(content)
     except json.JSONDecodeError as error:
         raise ValueError(f"model returned invalid JSON: {error}") from error
+    if not translation_is_usable(result, tagline, about, price_list, faq):
+        raise ValueError("model returned a translation missing content the source actually has")
+    return result

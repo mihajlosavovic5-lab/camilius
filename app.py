@@ -2782,7 +2782,14 @@ def public_page_translate(slug, lang):
     cached = get_page_translation(business_id, lang)
     if cached is not None:
         db_tagline, db_about, db_price_list, db_faq, ui_json = cached
-        return _json_with_cors(origin, tagline=db_tagline, about=db_about, price_list=db_price_list, faq=db_faq, ui=json.loads(ui_json))
+        db_ui = json.loads(ui_json)
+        # A row cached before translate_page.translation_is_usable() existed (or one that
+        # slipped past it - see that function's own docstring) would otherwise keep
+        # serving the exact same degenerate result to every visitor forever, since a
+        # cache hit here never re-calls the model. Falls through to translate fresh
+        # instead, overwriting this row below the same way a first-ever request would.
+        if translate_page.translation_is_usable({"tagline": db_tagline, "about": db_about, "price_list": db_price_list, "faq": db_faq, "ui": db_ui}, page[4], page[5], business[8], business[9]):
+            return _json_with_cors(origin, tagline=db_tagline, about=db_about, price_list=db_price_list, faq=db_faq, ui=db_ui)
 
     try:
         result = translate_page.translate_page_content(lang, page[4], page[5], business[8], business[9])
