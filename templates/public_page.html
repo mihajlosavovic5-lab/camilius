@@ -1295,8 +1295,8 @@
     .theme-fab.open .theme-fab-icon-close { opacity: 1; transform: scale(1) rotate(0); }
     .theme-panel {
         position: fixed;
-        left: 20px;
-        bottom: 90px;
+        top: 50%;
+        left: 50%;
         width: min(340px, calc(100vw - 40px));
         height: min(460px, calc(100vh - 108px));
         background: var(--surface);
@@ -1307,27 +1307,25 @@
         flex-direction: column;
         overflow: hidden;
         z-index: 953;
-        transform-origin: bottom left;
+        transform: translate(-50%, -50%) scale(1);
         transition: transform .22s cubic-bezier(.2, .9, .3, 1.3), opacity .16s ease;
     }
     .theme-panel.hidden {
         display: flex;
         pointer-events: none;
         opacity: 0;
-        transform: translateY(10px) scale(.95);
+        transform: translate(-50%, -50%) scale(.95);
     }
     .theme-panel-header {
         display: flex;
         align-items: center;
-        justify-content: space-between;
-        gap: 8px;
+        justify-content: center;
         padding: 14px 16px;
         border-bottom: 1px solid var(--border);
         flex-shrink: 0;
         background: linear-gradient(160deg, color-mix(in srgb, var(--primary) 14%, var(--surface)) 0%, var(--surface) 130%);
     }
-    .theme-panel-header p { margin: 0; font-family: var(--heading-font); font-weight: 700; font-size: 0.95rem; }
-    .theme-panel-header span { display: block; font-size: 0.76rem; color: var(--text-muted); margin-top: 2px; }
+    .theme-panel-header p { margin: 0; font-family: var(--heading-font); font-weight: 700; font-size: 0.95rem; text-align: center; }
     .theme-grid {
         flex: 1;
         overflow-y: auto;
@@ -1382,10 +1380,37 @@
         transition: opacity .2s ease, transform .2s ease;
     }
     .theme-toast.visible { opacity: 1; transform: translateY(0); }
+    /* Small animated confirmation for a successful auto-save - same draw-in circle+check
+       technique as the logged-in app's own .save-success-overlay (settings.html/
+       style.css), just centered over the already-centered panel at a smaller scale
+       instead of a full separate dark takeover, since the panel's own backdrop already
+       dims the page. Purely a "yes, that stuck" cue for the auto-save pickTheme() below
+       already does - the toast above still handles the (rarer) save-failed case. */
+    .theme-save-check {
+        position: fixed; top: 50%; left: 50%; z-index: 955;
+        width: 72px; height: 72px;
+        transform: translate(-50%, -50%) scale(.85);
+        opacity: 0; pointer-events: none;
+        transition: opacity .2s ease, transform .2s ease;
+    }
+    .theme-save-check.visible { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+    .theme-save-check svg { width: 100%; height: 100%; overflow: visible; }
+    .theme-save-check-track { fill: none; stroke: color-mix(in srgb, #22c55e 18%, transparent); stroke-width: 7; }
+    .theme-save-check-progress {
+        fill: none; stroke: #22c55e; stroke-width: 7; stroke-linecap: round;
+        stroke-dasharray: 1; stroke-dashoffset: 1; transform: rotate(-90deg); transform-origin: center;
+    }
+    .theme-save-check-mark {
+        fill: none; stroke: #22c55e; stroke-width: 8; stroke-linecap: round; stroke-linejoin: round;
+        stroke-dasharray: 1; stroke-dashoffset: 1;
+    }
+    .theme-save-check.visible .theme-save-check-progress { animation: theme-save-check-draw .5s ease forwards; }
+    .theme-save-check.visible .theme-save-check-mark { animation: theme-save-check-draw .35s ease forwards .45s; }
+    @keyframes theme-save-check-draw { to { stroke-dashoffset: 0; } }
     @media (max-width: 480px) {
         .theme-fab { left: 14px; bottom: 14px; }
         .theme-panel {
-            left: 14px; bottom: 84px; width: min(300px, calc(100vw - 24px));
+            width: min(300px, calc(100vw - 24px));
             height: min(60vh, calc(100vh - 96px));
         }
         .theme-toast { left: 14px; bottom: 80px; }
@@ -3003,14 +3028,18 @@ window.pageOverlay = (function () {
 </button>
 <div class="theme-panel hidden" id="theme-panel">
     <div class="theme-panel-header">
-        <div>
-            <p>Change theme</p>
-            <span>Only you can see this - pick a look, it saves instantly</span>
-        </div>
+        <p>Change theme</p>
     </div>
     <div class="theme-grid" id="theme-grid"></div>
 </div>
 <div class="theme-toast" id="theme-toast"></div>
+<div class="theme-save-check" id="theme-save-check" aria-hidden="true">
+    <svg viewBox="0 0 100 100">
+        <circle class="theme-save-check-track" cx="50" cy="50" r="45"></circle>
+        <circle class="theme-save-check-progress" cx="50" cy="50" r="45" pathLength="1"></circle>
+        <path class="theme-save-check-mark" d="M28 52 L44 68 L74 33" pathLength="1"></path>
+    </svg>
+</div>
 <script>
 (function () {
     var THEME_CHOICES = {{ theme_choices | tojson }};
@@ -3022,9 +3051,11 @@ window.pageOverlay = (function () {
     var panel = document.getElementById("theme-panel");
     var grid = document.getElementById("theme-grid");
     var toast = document.getElementById("theme-toast");
+    var saveCheck = document.getElementById("theme-save-check");
     var open = false;
     var selectedId = CURRENT_THEME_ID;
     var toastTimer = null;
+    var saveCheckTimer = null;
 
     var CSS_VAR_KEYS = ["primary", "on_primary", "gold", "background", "surface", "text", "text_muted", "border"];
 
@@ -3086,6 +3117,18 @@ window.pageOverlay = (function () {
         toastTimer = setTimeout(function () { toast.classList.remove("visible"); }, 1800);
     }
 
+    // Same draw-in circle+check animation as the logged-in app's own save confirmation
+    // (see .theme-save-check's own CSS comment) - removing then re-adding "visible" in
+    // the same frame wouldn't restart the CSS animation on a second pick in a row, so a
+    // forced reflow (the `void ...offsetWidth` read) sits between the two.
+    function showSaveCheck() {
+        saveCheck.classList.remove("visible");
+        void saveCheck.offsetWidth;
+        saveCheck.classList.add("visible");
+        clearTimeout(saveCheckTimer);
+        saveCheckTimer = setTimeout(function () { saveCheck.classList.remove("visible"); }, 1400);
+    }
+
     function pickTheme(themeId, theme, card) {
         if (themeId === selectedId) return;
         selectedId = themeId;
@@ -3100,7 +3143,7 @@ window.pageOverlay = (function () {
             body: body.toString(),
         })
             .then(function (res) { if (!res.ok) throw new Error("save failed"); return res.json(); })
-            .then(function () { showToast("Saved ✓"); })
+            .then(showSaveCheck)
             .catch(function () { showToast("Couldn't save - try again"); });
     }
 
