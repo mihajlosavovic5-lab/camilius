@@ -2025,7 +2025,10 @@ input.tap-to-edit-field, textarea.tap-to-edit-field { cursor: pointer; backgroun
 .website-chat-msg-hr { border: none; border-top: 1px solid var(--border); }
 .website-chat-msg-images { display: flex; flex-wrap: wrap; gap: 6px; }
 .website-chat-msg-images img { width: 72px; height: 72px; object-fit: cover; border-radius: 10px; }
-.website-chat-msg-bot { align-self: flex-start; background: var(--surface); border: 1px solid var(--border); border-bottom-left-radius: 4px; }
+/* Free-floating, no bubble - matches how other AI chat products (ChatGPT etc.)
+   distinguish the two sides: only the owner's own messages get a bubble, the AI's
+   replies just read as plain text at full width. */
+.website-chat-msg-bot { align-self: stretch; max-width: 100%; background: none; border: none; border-radius: 0; padding: 2px 0; }
 /* Same soft primary-into-background wash the public page's own visitor-facing chat
    widget uses (templates/public_page.html's .chat-msg-user) instead of a flat solid
    --primary fill - color-mix stands in for the pale-orange endpoint, fading to plain
