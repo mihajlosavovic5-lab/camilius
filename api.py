@@ -1340,10 +1340,11 @@ def api_website_chat():
 def _notify_website_chat_done(business_id, reply_text):
     if not is_ai_task_notifications_enabled(business_id):
         return
-    title = "Camilius AI is done"
-    body = " ".join(reply_text.split())
-    if len(body) > 140:
-        body = body[:139].rstrip() + "…"
+    # Deliberately a fixed, generic line rather than a snippet of the reply itself (an
+    # earlier version echoed the first ~140 chars of it) - the owner asked for a short
+    # "it's done" nudge they can read at a glance, not a preview to parse.
+    title = "Camilius AI"
+    body = "Camilius has an answer ready for you."
     try:
         create_notification(business_id, title, body, kind="ai_task_done")
         send_push_to_business(business_id, title, body, data={"type": "ai_task_done"})

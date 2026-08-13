@@ -143,7 +143,10 @@ def test_website_chat_sends_push_when_reply_finishes(client, unique_email, monke
     assert len(pushes) == 1
     args, kwargs = pushes[0]
     assert args[0] == business_id
-    assert "Updated your price list." in args[2]
+    # A fixed, generic line rather than a snippet of the reply itself - the owner asked
+    # for a short "it's done" nudge, not a preview of what the AI actually said.
+    assert "Updated your price list." not in args[2]
+    assert args[2] == "Camilius has an answer ready for you."
     assert kwargs["data"] == {"type": "ai_task_done"}
 
 
