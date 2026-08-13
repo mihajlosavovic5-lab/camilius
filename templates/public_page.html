@@ -2075,7 +2075,7 @@
         }
         function goTo(i) {
             i = Math.max(0, Math.min(slides.length - 1, i));
-            animateScrollTo(targetScrollLeft(slides[i]), 260);
+            animateScrollTo(targetScrollLeft(slides[i]), 420);
             setActive(i);
         }
         if (prevBtn) prevBtn.addEventListener("click", function () { goTo(current - 1); });
