@@ -303,15 +303,23 @@
        tap during a slow translate response looked like nothing happened. Uses --background
        (not a fixed white) so it matches whichever theme the page is already rendered in.
        z-index 2000 clears every other fixed layer on this page (.lang-dropdown's own 953
-       included) since it needs to sit above the dropdown that was just open. --- */
+       included) since it needs to sit above the dropdown that was just open.
+       Deliberately snaps to visible with NO transition (see .closing below for why) - the
+       dropdown's own close animation and the shared backdrop's dim-out both start the
+       instant a language is picked (see closeDropdown() in the script below), and if this
+       overlay faded in over the same window instead of appearing instantly, those two
+       transitions would show through its half-opacity for a moment - a "flashes open then
+       shut" glitch. Snapping in first hides both completely from the very first frame;
+       .closing (added only when hiding, once the switch is done) is what gives the
+       overlay's own exit its fade. --- */
     .lang-loading-overlay {
         position: fixed; inset: 0; z-index: 2000;
         background: var(--background);
         display: flex; align-items: center; justify-content: center;
         opacity: 0; pointer-events: none;
-        transition: opacity .18s ease;
     }
     .lang-loading-overlay.visible { opacity: 1; pointer-events: auto; }
+    .lang-loading-overlay.closing { transition: opacity .18s ease; }
     .lang-loading-spinner {
         width: 26px; height: 26px;
         border: 2px solid var(--border);
@@ -1919,16 +1927,28 @@ window.pageOverlay = (function () {
             // uncached one instead of both giving the same "something happened" feedback.
             var overlayShownAt = Date.now();
             var overlayMinMs = 220;
-            if (langLoadingOverlay) langLoadingOverlay.classList.add("visible");
+            // Snap the overlay in (no "closing" class - see the CSS comment on
+            // .lang-loading-overlay for why an instant appearance matters here), THEN close
+            // the dropdown - so its close animation and the shared backdrop's dim-out both
+            // play fully hidden behind the now-opaque overlay instead of racing its own
+            // fade-in, which used to show through as a "flashes open then shut" glitch.
+            // Drop "closing" (left over from a previous switch's fade-out, if any) before
+            // re-adding "visible" - otherwise this appearance would inherit that leftover
+            // transition and fade in instead of snapping, reopening the exact race this is
+            // meant to avoid.
+            if (langLoadingOverlay) { langLoadingOverlay.classList.remove("closing"); langLoadingOverlay.classList.add("visible"); }
+            closeDropdown();
             function hideOverlay() {
                 if (!langLoadingOverlay) return;
                 var remaining = overlayMinMs - (Date.now() - overlayShownAt);
-                if (remaining <= 0) { langLoadingOverlay.classList.remove("visible"); }
-                else { setTimeout(function () { langLoadingOverlay.classList.remove("visible"); }, remaining); }
+                function hideNow() {
+                    langLoadingOverlay.classList.add("closing");
+                    langLoadingOverlay.classList.remove("visible");
+                }
+                if (remaining <= 0) hideNow(); else setTimeout(hideNow, remaining);
             }
             if (cache[lang]) {
                 applyTranslation(lang, cache[lang]);
-                closeDropdown();
                 hideOverlay();
                 return;
             }
@@ -1952,7 +1972,6 @@ window.pageOverlay = (function () {
                     loading = false;
                     langBtn.classList.remove("loading");
                     hideOverlay();
-                    closeDropdown();
                 });
         });
     });
