@@ -1692,9 +1692,15 @@ input.tap-to-edit-field, textarea.tap-to-edit-field { cursor: pointer; backgroun
    customer's message bubble) always sits right before it, and with no margin the label
    ran flush against that bubble instead of sitting clear of it. */
 #detail-pending-block > .block-label, #detail-sent-block > .block-label { margin-top: 18px; }
-/* Common questions (Help screen) - scrolls after the first few items instead of
-   pushing the rest of the screen down; same treatment as the web app_settings page. */
-.faq-scroll { max-height: 460px; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+/* Common questions (Help screen) - the outer .detail-body no longer scrolls at all here;
+   instead it's a column flexbox where everything above .faq-scroll keeps its natural
+   height (flex-shrink: 0) and .faq-scroll (min-height: 0 so it can shrink below its
+   content size) grows to fill whatever room is left down to the tab bar, scrolling its
+   own overflow internally. That keeps the page's visible end fixed and confines all
+   scrolling to the FAQ list itself. */
+.screen-help .detail-body { display: flex; flex-direction: column; overflow-y: hidden; }
+.screen-help .detail-body > *:not(.faq-scroll) { flex-shrink: 0; }
+.faq-scroll { flex: 1 1 auto; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; }
 .question { white-space: pre-wrap; margin: 0; padding: 13px 14px; background: var(--surface); border-radius: 10px; border-left: 3px solid var(--border); font-size: 15.5px; }
 .reply { white-space: pre-wrap; margin: 0; padding: 13px 14px; background: var(--success-bg); border-radius: 10px; border-left: 3px solid var(--success); font-size: 15.5px; }
 /* Expired conversation detail: the expiry-warning alert is moved (via JS in openDetail)
