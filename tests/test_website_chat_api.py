@@ -144,9 +144,12 @@ def test_website_chat_sends_push_when_reply_finishes(client, unique_email, monke
     args, kwargs = pushes[0]
     assert args[0] == business_id
     # A fixed, generic line rather than a snippet of the reply itself - the owner asked
-    # for a short "it's done" nudge, not a preview of what the AI actually said.
+    # for a short "it's done" nudge, not a preview of what the AI actually said. Title is
+    # just the app's actual name ("Camilius", not "Camilius AI"), and the body doesn't
+    # repeat it - the OS notification already shows the app name/icon next to the title.
     assert "Updated your price list." not in args[2]
-    assert args[2] == "Camilius has an answer ready for you."
+    assert args[1] == "Camilius"
+    assert args[2] == "Your answer is ready."
     assert kwargs["data"] == {"type": "ai_task_done"}
 
 

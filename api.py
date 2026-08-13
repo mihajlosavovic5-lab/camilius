@@ -1342,9 +1342,12 @@ def _notify_website_chat_done(business_id, reply_text):
         return
     # Deliberately a fixed, generic line rather than a snippet of the reply itself (an
     # earlier version echoed the first ~140 chars of it) - the owner asked for a short
-    # "it's done" nudge they can read at a glance, not a preview to parse.
-    title = "Camilius AI"
-    body = "Camilius has an answer ready for you."
+    # "it's done" nudge they can read at a glance, not a preview to parse. Title is just
+    # "Camilius" (the app's actual name, not "Camilius AI") and the body doesn't repeat
+    # it - the OS notification already shows the app's own name/icon next to the title,
+    # so saying it twice was redundant.
+    title = "Camilius"
+    body = "Your answer is ready."
     try:
         create_notification(business_id, title, body, kind="ai_task_done")
         send_push_to_business(business_id, title, body, data={"type": "ai_task_done"})
