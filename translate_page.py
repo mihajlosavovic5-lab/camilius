@@ -44,14 +44,19 @@ DEFAULT_PAGE_LANGUAGES = ["en", "es", "fr", "de"]
 
 MAX_DETECT_TEXT_LENGTH = 500
 MAX_TRANSLATE_FIELD_LENGTH = 4000
-# 2000 used to be tight enough that a business with a substantial about/price_list/faq
-# (each sliceable up to MAX_TRANSLATE_FIELD_LENGTH above) plus all ~26 PAGE_UI_STRINGS
-# translated in the same call could run past it and get cut off mid-JSON - which usually
-# fails to parse (caught below, surfaces as a 502 the page's own fetch already tolerates)
-# but occasionally lands on a syntactically-valid-but-incomplete object instead, silently
-# blanking whatever field got cut short. Doubled as headroom, not tuned to any single
-# business's content.
-MAX_TRANSLATE_TOKENS = 4000
+# A business with a substantial about/price_list/faq (each sliceable up to
+# MAX_TRANSLATE_FIELD_LENGTH above) plus all ~26 PAGE_UI_STRINGS translated in the same
+# call can need a lot of output - and some target languages (Spanish among them) reliably
+# run 15-25% longer than the English source for the same meaning, so a business whose
+# content happens to sit comfortably under this ceiling in French or German can still run
+# past it once translated into a more verbose language. Running past it gets the response
+# cut off mid-JSON - which usually fails to parse (caught below, surfaces as a 502 the
+# page's own fetch already tolerates) but can also land on a syntactically-valid-but-
+# incomplete object instead (caught by translation_is_usable below). Either way, a
+# language that always runs a bit long for this one business would otherwise just never
+# work, however many times it's retried - 8000 is comfortably under gpt-4o-mini's 16384
+# output-token ceiling (generate_reply.MODEL), not tuned to any single business's content.
+MAX_TRANSLATE_TOKENS = 8000
 
 # The page's own fixed chrome - section headings, button/placeholder text - translated
 # alongside the business's actual content in the same call (see translate_page_content
