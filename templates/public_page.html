@@ -1538,6 +1538,160 @@
 <div class="lang-loading-overlay" id="lang-loading-overlay" aria-hidden="true">
     <div class="lang-loading-spinner"></div>
 </div>
+<script>
+(function () {
+    // Top-bar title self-fit - runs right here, as early as the elements it measures
+    // (#nav-menu-btn, #lang-btn, .top-bar-title, all already above) exist, rather than
+    // waiting for the rest of this page's markup - often hundreds of lines of about/
+    // gallery/price-list/FAQ/contact/booking/chat content - to parse first, the way this
+    // used to live in the big script block near the end of <body>. .top-bar-title's own
+    // CSS clamp(15px, 4.5vw, 28px) (see that rule's own comment) is only a fallback for
+    // the instant before this first runs - down at the end of <body>, that "instant" was
+    // however long the rest of the page took to parse, long enough to actually see the
+    // fallback size and then watch it jump to the real computed one. Moving the whole
+    // measure-and-fit pass up here removes that gap, the same way pages.split_display_title
+    // already removed the earlier flash where this title's text itself changed shape.
+    //
+    // #top-bar-fill/.wrap don't exist yet the first time this runs (both are defined
+    // further down the page) - looked up fresh inside layoutTopBarTitle() below on every
+    // call instead of cached once, so today's later call (once the rest of the page has
+    // parsed - see that script's own comment) still finds and sizes them correctly, while
+    // this first call already gets the font-size/gutters - the part actually visible up
+    // here at the top of the page - right from the very first paint.
+    //
+    // Recognizes whatever actually sits to .top-bar-title's left (the hamburger,
+    // #nav-menu-btn) and right (the language flag, #lang-btn) by measuring their real
+    // on-screen edges rather than assuming a fixed icon size, reserves exactly that much
+    // gutter on each side so it can never run under either horizontally, AND - just as
+    // important, not just an afterthought - matches their actual on-screen height too:
+    // the whole title block (name + the smaller line under it together) is sized to land
+    // close to however tall .nav-menu-btn/.lang-btn themselves currently render, with
+    // only a little headroom above that for the second line, not a giant multi-line block
+    // towering over two small icons. TOP_BAR_HEIGHT_TOLERANCE below is that "a little" -
+    // not a target size in itself, just how far past the icons' own height the title is
+    // allowed to run. SEARCH_MIN/SEARCH_MAX only bound the search itself (so a one-letter
+    // name doesn't blow up to something absurd); the height-vs-icons rule above is what
+    // actually decides the real size, every time this runs, for whatever name and
+    // whatever screen it happens to be measuring.
+    //
+    // The business name itself (.title-main) is still never shortened with an ellipsis -
+    // cutting characters off a name changes what it says. If it can't read at a size close
+    // to the icons' height it wraps onto another line instead (no cap on how many lines),
+    // same as a person naturally reading it aloud would just pause and continue rather
+    // than stop partway - the height rule above governs the font-size that gets picked,
+    // not whether the full name gets shown. Only .title-sub - the smaller line
+    // underneath, usually just a location - is optional supporting context rather than
+    // the name, so that one *can* be dropped entirely (not truncated either, just
+    // omitted) if it doesn't comfortably fit alongside it.
+    var topBarTitleEl = document.querySelector(".top-bar-title");
+    var TOP_BAR_GUTTER_MARGIN = 14;
+    var TOP_BAR_SEARCH_MIN_FONT = 12, TOP_BAR_SEARCH_MAX_FONT = 56;
+    var TOP_BAR_HEIGHT_TOLERANCE = 1.6;
+
+    // The tallest of the two side icons' own current on-screen height - the anchor
+    // everything else here is measured against, not a guessed constant, so it stays
+    // correct even if those icons' own sizing ever changes. 34 is only a fallback for the
+    // (practically never reached) case neither icon is actually visible to measure.
+    function sideIconHeight(menuBtnEl, langBtnEl) {
+        var h = 0;
+        if (menuBtnEl && getComputedStyle(menuBtnEl).display !== "none") h = Math.max(h, menuBtnEl.getBoundingClientRect().height);
+        if (langBtnEl && getComputedStyle(langBtnEl).display !== "none") h = Math.max(h, langBtnEl.getBoundingClientRect().height);
+        return h || 34;
+    }
+
+    // Judges whether the title reads well at fs: every individual word in .title-main
+    // actually fits the available width on its own rather than getting cut mid-word (no
+    // line-count limit on that by itself - see the file-level comment above), AND the
+    // title's total rendered height (name plus the smaller line under it) stays within
+    // maxHeight - normally what actually caps the size long before word-wrapping would.
+    function titleFitsAt(mainSpan, fs, maxHeight) {
+        topBarTitleEl.style.fontSize = fs + "px";
+        return mainSpan.scrollWidth <= mainSpan.clientWidth + 1 && topBarTitleEl.scrollHeight <= maxHeight;
+    }
+    function mainFitsWidthAt(mainSpan, fs) {
+        topBarTitleEl.style.fontSize = fs + "px";
+        return mainSpan.scrollWidth <= mainSpan.clientWidth + 1;
+    }
+
+    // Binary search for the largest font-size in [SEARCH_MIN, SEARCH_MAX] that
+    // titleFitsAt() accepts - decided entirely by the measurements above (icon height,
+    // available width, this specific name's own length) rather than a size picked in
+    // advance. Falls back to a search ignoring the height budget (so the name still never
+    // gets cut short over a height preference), and only after that to breaking a single
+    // unbreakable word as an absolute last resort. Then, at whatever size the name settled
+    // on, drops .title-sub (display: none) if even it can't wrap to fit the same gutters -
+    // the location is expendable, the name never is.
+    function fitTopBarTitleText(mainSpan, subSpan, maxHeight) {
+        mainSpan.style.overflowWrap = "normal";
+        if (subSpan) { subSpan.style.display = ""; subSpan.style.overflowWrap = "normal"; }
+
+        var lo = TOP_BAR_SEARCH_MIN_FONT, hi = TOP_BAR_SEARCH_MAX_FONT, best = null;
+        while (lo <= hi) {
+            var mid = Math.floor((lo + hi) / 2);
+            if (titleFitsAt(mainSpan, mid, maxHeight)) { best = mid; lo = mid + 1; } else { hi = mid - 1; }
+        }
+        if (best === null) {
+            lo = TOP_BAR_SEARCH_MIN_FONT; hi = TOP_BAR_SEARCH_MAX_FONT;
+            while (lo <= hi) {
+                var mid2 = Math.floor((lo + hi) / 2);
+                if (mainFitsWidthAt(mainSpan, mid2)) { best = mid2; lo = mid2 + 1; } else { hi = mid2 - 1; }
+            }
+        }
+        if (best === null) {
+            // Not even the search floor lets every word wrap at a space (an extreme case -
+            // one long unbroken token with no spaces or hyphens at all). Breaking that one
+            // word internally as an absolute last resort still shows every character,
+            // unlike an ellipsis, which would delete some of them.
+            best = TOP_BAR_SEARCH_MIN_FONT;
+            topBarTitleEl.style.fontSize = best + "px";
+            mainSpan.style.overflowWrap = "break-word";
+        } else {
+            topBarTitleEl.style.fontSize = best + "px";
+        }
+
+        if (subSpan && subSpan.scrollWidth > subSpan.clientWidth + 1) subSpan.style.display = "none";
+    }
+
+    function layoutTopBarTitle() {
+        if (!topBarTitleEl) return;
+        var menuBtnEl = document.getElementById("nav-menu-btn");
+        var langBtnEl = document.getElementById("lang-btn");
+        if (getComputedStyle(topBarTitleEl).display === "none") return;
+
+        var leftGutter = TOP_BAR_GUTTER_MARGIN;
+        if (menuBtnEl && getComputedStyle(menuBtnEl).display !== "none") {
+            leftGutter = Math.ceil(menuBtnEl.getBoundingClientRect().right) + TOP_BAR_GUTTER_MARGIN;
+        }
+        var rightGutter = TOP_BAR_GUTTER_MARGIN;
+        if (langBtnEl && getComputedStyle(langBtnEl).display !== "none") {
+            rightGutter = Math.ceil(window.innerWidth - langBtnEl.getBoundingClientRect().left) + TOP_BAR_GUTTER_MARGIN;
+        }
+        topBarTitleEl.style.paddingLeft = leftGutter + "px";
+        topBarTitleEl.style.paddingRight = rightGutter + "px";
+
+        var mainSpan = topBarTitleEl.querySelector(".title-main");
+        var subSpan = topBarTitleEl.querySelector(".title-sub");
+        if (mainSpan) {
+            var maxHeight = sideIconHeight(menuBtnEl, langBtnEl) * TOP_BAR_HEIGHT_TOLERANCE;
+            fitTopBarTitleText(mainSpan, subSpan, maxHeight);
+        }
+
+        var barSpace = Math.max(60, Math.ceil(topBarTitleEl.getBoundingClientRect().bottom) + 12);
+        var topBarFillEl = document.getElementById("top-bar-fill");
+        var wrapEl = document.querySelector(".wrap");
+        if (topBarFillEl) topBarFillEl.style.height = barSpace + "px";
+        if (wrapEl) wrapEl.style.paddingTop = barSpace + "px";
+    }
+    window.addEventListener("resize", layoutTopBarTitle);
+    layoutTopBarTitle();
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(layoutTopBarTitle);
+    // Exposed so applyTranslation() (language-switcher script further down) can re-run
+    // this once a language swap changes the title's own text (and therefore its width),
+    // and so the script further down that finishes the #top-bar-fill/.wrap sizing (not
+    // knowable yet up here) can call this same function instead of a second copy of it.
+    window.layoutTopBarTitle = layoutTopBarTitle;
+})();
+</script>
 <div class="shell">
     <!-- Only lists sections this business actually has content for, in the same order
          they appear below - so an empty section never gets a dead link. -->
@@ -2363,134 +2517,14 @@ window.pageOverlay = (function () {
     }, { passive: true });
     updateTopBarFill();
 
-    // Top-bar title self-fit - recognizes whatever actually sits to its left (the
-    // hamburger, #nav-menu-btn) and right (the language flag, #lang-btn) by measuring
-    // their real on-screen edges rather than assuming a fixed icon size, reserves exactly
-    // that much gutter on each side so it can never run under either horizontally, AND -
-    // just as important, not just an afterthought - matches their actual on-screen height
-    // too: the whole title block (name + the smaller line under it together) is sized to
-    // land close to however tall .nav-menu-btn/.lang-btn themselves currently render,
-    // with only a little headroom above that for the second line, not a giant multi-line
-    // block towering over two small icons. TOP_BAR_HEIGHT_TOLERANCE below is that "a
-    // little" - not a target size in itself, just how far past the icons' own height the
-    // title is allowed to run. SEARCH_MIN/SEARCH_MAX only bound the search itself (so a
-    // one-letter name doesn't blow up to something absurd); the height-vs-icons rule
-    // above is what actually decides the real size, every time this runs, for whatever
-    // name and whatever screen it happens to be measuring.
-    //
-    // The business name itself (.title-main) is still never shortened with an ellipsis -
-    // cutting characters off a name changes what it says. If it can't read at a size close
-    // to the icons' height it wraps onto another line instead (no cap on how many lines),
-    // same as a person naturally reading it aloud would just pause and continue rather
-    // than stop partway - the height rule above governs the font-size that gets picked,
-    // not whether the full name gets shown. Only .title-sub - the smaller line
-    // underneath, usually just a location - is optional supporting context rather than
-    // the name, so that one *can* be dropped entirely (not truncated either, just
-    // omitted) if it doesn't comfortably fit alongside it.
-    var topBarTitleEl = document.querySelector(".top-bar-title");
-    var wrapEl = document.querySelector(".wrap");
-    var TOP_BAR_GUTTER_MARGIN = 14;
-    var TOP_BAR_SEARCH_MIN_FONT = 12, TOP_BAR_SEARCH_MAX_FONT = 56;
-    var TOP_BAR_HEIGHT_TOLERANCE = 1.6;
-
-    // The tallest of the two side icons' own current on-screen height - the anchor
-    // everything else here is measured against, not a guessed constant, so it stays
-    // correct even if those icons' own sizing ever changes. 34 is only a fallback for the
-    // (practically never reached) case neither icon is actually visible to measure.
-    function sideIconHeight(menuBtnEl, langBtnEl) {
-        var h = 0;
-        if (menuBtnEl && getComputedStyle(menuBtnEl).display !== "none") h = Math.max(h, menuBtnEl.getBoundingClientRect().height);
-        if (langBtnEl && getComputedStyle(langBtnEl).display !== "none") h = Math.max(h, langBtnEl.getBoundingClientRect().height);
-        return h || 34;
-    }
-
-    // Judges whether the title reads well at fs: every individual word in .title-main
-    // actually fits the available width on its own rather than getting cut mid-word (no
-    // line-count limit on that by itself - see the file-level comment above), AND the
-    // title's total rendered height (name plus the smaller line under it) stays within
-    // maxHeight - normally what actually caps the size long before word-wrapping would.
-    function titleFitsAt(mainSpan, fs, maxHeight) {
-        topBarTitleEl.style.fontSize = fs + "px";
-        return mainSpan.scrollWidth <= mainSpan.clientWidth + 1 && topBarTitleEl.scrollHeight <= maxHeight;
-    }
-    function mainFitsWidthAt(mainSpan, fs) {
-        topBarTitleEl.style.fontSize = fs + "px";
-        return mainSpan.scrollWidth <= mainSpan.clientWidth + 1;
-    }
-
-    // Binary search for the largest font-size in [SEARCH_MIN, SEARCH_MAX] that
-    // titleFitsAt() accepts - decided entirely by the measurements above (icon height,
-    // available width, this specific name's own length) rather than a size picked in
-    // advance. Falls back to a search ignoring the height budget (so the name still never
-    // gets cut short over a height preference), and only after that to breaking a single
-    // unbreakable word as an absolute last resort. Then, at whatever size the name settled
-    // on, drops .title-sub (display: none) if even it can't wrap to fit the same gutters -
-    // the location is expendable, the name never is.
-    function fitTopBarTitleText(mainSpan, subSpan, maxHeight) {
-        mainSpan.style.overflowWrap = "normal";
-        if (subSpan) { subSpan.style.display = ""; subSpan.style.overflowWrap = "normal"; }
-
-        var lo = TOP_BAR_SEARCH_MIN_FONT, hi = TOP_BAR_SEARCH_MAX_FONT, best = null;
-        while (lo <= hi) {
-            var mid = Math.floor((lo + hi) / 2);
-            if (titleFitsAt(mainSpan, mid, maxHeight)) { best = mid; lo = mid + 1; } else { hi = mid - 1; }
-        }
-        if (best === null) {
-            lo = TOP_BAR_SEARCH_MIN_FONT; hi = TOP_BAR_SEARCH_MAX_FONT;
-            while (lo <= hi) {
-                var mid2 = Math.floor((lo + hi) / 2);
-                if (mainFitsWidthAt(mainSpan, mid2)) { best = mid2; lo = mid2 + 1; } else { hi = mid2 - 1; }
-            }
-        }
-        if (best === null) {
-            // Not even the search floor lets every word wrap at a space (an extreme case -
-            // one long unbroken token with no spaces or hyphens at all). Breaking that one
-            // word internally as an absolute last resort still shows every character,
-            // unlike an ellipsis, which would delete some of them.
-            best = TOP_BAR_SEARCH_MIN_FONT;
-            topBarTitleEl.style.fontSize = best + "px";
-            mainSpan.style.overflowWrap = "break-word";
-        } else {
-            topBarTitleEl.style.fontSize = best + "px";
-        }
-
-        if (subSpan && subSpan.scrollWidth > subSpan.clientWidth + 1) subSpan.style.display = "none";
-    }
-
-    function layoutTopBarTitle() {
-        if (!topBarTitleEl) return;
-        var menuBtnEl = document.getElementById("nav-menu-btn");
-        var langBtnEl = document.getElementById("lang-btn");
-        if (getComputedStyle(topBarTitleEl).display === "none") return;
-
-        var leftGutter = TOP_BAR_GUTTER_MARGIN;
-        if (menuBtnEl && getComputedStyle(menuBtnEl).display !== "none") {
-            leftGutter = Math.ceil(menuBtnEl.getBoundingClientRect().right) + TOP_BAR_GUTTER_MARGIN;
-        }
-        var rightGutter = TOP_BAR_GUTTER_MARGIN;
-        if (langBtnEl && getComputedStyle(langBtnEl).display !== "none") {
-            rightGutter = Math.ceil(window.innerWidth - langBtnEl.getBoundingClientRect().left) + TOP_BAR_GUTTER_MARGIN;
-        }
-        topBarTitleEl.style.paddingLeft = leftGutter + "px";
-        topBarTitleEl.style.paddingRight = rightGutter + "px";
-
-        var mainSpan = topBarTitleEl.querySelector(".title-main");
-        var subSpan = topBarTitleEl.querySelector(".title-sub");
-        if (mainSpan) {
-            var maxHeight = sideIconHeight(menuBtnEl, langBtnEl) * TOP_BAR_HEIGHT_TOLERANCE;
-            fitTopBarTitleText(mainSpan, subSpan, maxHeight);
-        }
-
-        var barSpace = Math.max(60, Math.ceil(topBarTitleEl.getBoundingClientRect().bottom) + 12);
-        if (topBarFill) topBarFill.style.height = barSpace + "px";
-        if (wrapEl) wrapEl.style.paddingTop = barSpace + "px";
-    }
-    window.addEventListener("resize", layoutTopBarTitle);
-    layoutTopBarTitle();
-    if (document.fonts && document.fonts.ready) document.fonts.ready.then(layoutTopBarTitle);
-    // Exposed so applyTranslation() in the language-switcher script above can re-run this
-    // once a language swap changes the title's own text (and therefore its width).
-    window.layoutTopBarTitle = layoutTopBarTitle;
+    // Top-bar title sizing itself now runs from an early inline <script> right after
+    // #nav-menu-btn/#lang-btn/.top-bar-title, near the top of <body> (see that script's
+    // own comment for why) - #top-bar-fill/.wrap didn't exist yet up there though, so
+    // re-run the same function here, now that the rest of the page (including both of
+    // those) has parsed, to finish sizing them. Cheap and idempotent for the font-size/
+    // gutters it already got right up there - layoutTopBarTitle() re-measures from
+    // scratch every call rather than assuming anything from a previous one.
+    if (window.layoutTopBarTitle) window.layoutTopBarTitle();
 
     // Press feedback for the Contact section's email/phone rows and social icons - driven
     // by Pointer Events + a .pressed class rather than relying on :active alone, since
