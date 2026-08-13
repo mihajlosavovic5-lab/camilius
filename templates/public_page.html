@@ -220,22 +220,6 @@
         opacity: 0; pointer-events: none; transition: opacity .3s ease;
     }
     .nav-menu-backdrop.open { opacity: 1; pointer-events: auto; }
-    /* The mobile side-nav drawer (data-overlay="menu") is a full navigation takeover, so
-       it's the one case where the backdrop SHOULD swallow every tap/scroll behind it (it
-       also locks body scroll itself via openNavMenu's position:fixed, see the script
-       further down). The language dropdown, chat panel and theme panel are small floating
-       popovers, not takeovers - leaving the backdrop tappable/scroll-blocking under THEM
-       reads as the whole page freezing (nothing behind the dim can be tapped or scrolled)
-       even though the popover itself is only a small card. pointer-events: none here lets
-       taps and touch-scrolling reach the real page right through the dim; the popover
-       still closes on an outside tap because that tap's own click event still bubbles to
-       document (see each overlay's own outside-click listener below) - only now the tap
-       also reaches whatever it actually landed on, instead of being swallowed first. */
-    body[data-overlay="lang"] .nav-menu-backdrop,
-    body[data-overlay="chat"] .nav-menu-backdrop,
-    body[data-overlay="theme"] .nav-menu-backdrop {
-        pointer-events: none;
-    }
     /* .top-bar-title/.lang-btn/.nav-menu-btn/.chat-fab all sit above the backdrop's own
        z-index (950 vs their 951/952) so they'd otherwise stay full-brightness and
        tappable while it dims everything else - each rule below dims every one of those
@@ -2137,21 +2121,40 @@
      "Loading open times..."/day-picked-confirmation text needs to read whatever language
      is currently active too, not just this page's own generic [data-i18n] sweep. -->
 <script>
-// Coordinates this page's three top-level overlays - the language dropdown (just below),
-// the mobile menu drawer (script further down), and the chat panel (script at the bottom
-// of the page) - so opening any one dims everything else via the shared
-// #nav-menu-backdrop and closes whichever of the other two was open, the same dimming the
-// menu alone used to get. A plain window global (not scoped inside any one overlay's own
-// IIFE) since all three live in separate script blocks below and each needs to reach it.
+// Coordinates this page's four top-level overlays - the language dropdown (just below),
+// the mobile menu drawer, the chat panel and the theme panel (scripts further down) - so
+// opening any one dims everything else via the shared #nav-menu-backdrop, closes
+// whichever other one was open, and pins the real page in place underneath (position:
+// fixed with a negative top offset, same trick as a native app's modal sheet) so the
+// backdrop's dim isn't the only thing standing between a tap/swipe and the page behind
+// it - on some mobile browsers a touch can still scroll or hit-test past a plain
+// pointer-events covering div, which is what made opening any of these read as only a
+// half-open overlay (the panel shows, but the page behind it keeps scrolling/tappable).
+// A plain window global (not scoped inside any one overlay's own IIFE) since all four
+// live in separate script blocks below and each needs to reach it.
 window.pageOverlay = (function () {
     var backdrop = document.getElementById("nav-menu-backdrop");
     var current = null;
     var closers = {};
+    var lockedScrollY = 0;
     // Each overlay calls this once at setup so pageOverlay knows how to close IT when a
     // different overlay opens (see set() below) or its own backdrop click fires.
     function register(name, closeFn) { closers[name] = closeFn; }
+    function lockScroll() {
+        lockedScrollY = window.scrollY || document.documentElement.scrollTop;
+        document.body.style.position = "fixed";
+        document.body.style.top = (-lockedScrollY) + "px";
+        document.body.style.width = "100%";
+    }
+    function unlockScroll() {
+        document.body.style.position = "";
+        document.body.style.top = "";
+        document.body.style.width = "";
+        window.scrollTo({ top: lockedScrollY, left: 0, behavior: "instant" });
+    }
     function set(name) {
         if (current && current !== name && closers[current]) closers[current]();
+        if (!current) lockScroll();
         current = name;
         document.body.setAttribute("data-overlay", name);
         if (backdrop) backdrop.classList.add("open");
@@ -2164,6 +2167,7 @@ window.pageOverlay = (function () {
         current = null;
         document.body.removeAttribute("data-overlay");
         if (backdrop) backdrop.classList.remove("open");
+        unlockScroll();
     }
     if (backdrop) {
         backdrop.addEventListener("click", function () {
@@ -2648,17 +2652,18 @@ window.pageOverlay = (function () {
     var progressTicking = false;
     function updateProgress() {
         progressTicking = false;
-        // The mobile menu drawer and the chat panel both lock body scroll the same way
-        // while open (document.body.style.position = "fixed", see openNavMenu/setOpen
-        // further down) - window.scrollY reads 0 in that state regardless of where the
-        // visitor actually was (the held position is simulated via body's own negative
-        // top offset instead, not a real scroll), so recomputing here would snap this
-        // bar to empty the instant either overlay opens and leave it wrong until the
-        // page is scrolled for real again. Skipping while locked leaves the bar exactly
-        // where it already was, which is correct - the visitor hasn't scrolled anywhere,
-        // an overlay just opened on top of the page. Both overlays restore the real
-        // scroll position (and un-lock this) on close, which itself fires a genuine
-        // scroll event that lets this catch back up immediately.
+        // Every overlay on this page locks body scroll the same way while open
+        // (document.body.style.position = "fixed", see window.pageOverlay's own
+        // lockScroll/unlockScroll above) - window.scrollY reads 0 in that state
+        // regardless of where the visitor actually was (the held position is simulated
+        // via body's own negative top offset instead, not a real scroll), so
+        // recomputing here would snap this bar to empty the instant any overlay opens
+        // and leave it wrong until the page is scrolled for real again. Skipping while
+        // locked leaves the bar exactly where it already was, which is correct - the
+        // visitor hasn't scrolled anywhere, an overlay just opened on top of the page.
+        // pageOverlay restores the real scroll position (and un-locks this) once every
+        // overlay is closed, which itself fires a genuine scroll event that lets this
+        // catch back up immediately.
         if (document.body.style.position === "fixed") return;
         var scrollTop = window.scrollY || document.documentElement.scrollTop;
         var docHeight = document.documentElement.scrollHeight - window.innerHeight;
@@ -2946,27 +2951,18 @@ window.pageOverlay = (function () {
 
     // Mobile menu button - opens/closes .side-nav as a slide-out drawer at the 880px
     // breakpoint above, same locked-scroll pattern as the logged-in app's own hamburger
-    // drawer (base.html's openNavMenu/closeNavMenu) - remembers the scroll position it
-    // opened at and pins the page there via position:fixed so the page behind can't
-    // scroll while the drawer is open, then restores that exact position on close.
-    // Reimplemented here since this page doesn't load that script.
+    // drawer (base.html's openNavMenu/closeNavMenu) - the scroll-lock itself now lives in
+    // window.pageOverlay.set/clear (shared by every overlay on this page, see that
+    // script's own comment), so this just toggles the drawer's own classes and lets
+    // pageOverlay handle pinning/restoring the page behind it.
     var menuBtn = document.getElementById("nav-menu-btn");
     var sideNav = document.getElementById("side-nav");
-    var menuLockedScrollY = 0;
     function closeNavMenu() {
         if (sideNav) sideNav.classList.remove("open");
         if (menuBtn) { menuBtn.classList.remove("open"); menuBtn.setAttribute("aria-expanded", "false"); }
-        document.body.style.position = "";
-        document.body.style.top = "";
-        document.body.style.width = "";
-        window.scrollTo({ top: menuLockedScrollY, left: 0, behavior: "instant" });
         window.pageOverlay.clear("menu");
     }
     function openNavMenu() {
-        menuLockedScrollY = window.scrollY || document.documentElement.scrollTop;
-        document.body.style.position = "fixed";
-        document.body.style.top = (-menuLockedScrollY) + "px";
-        document.body.style.width = "100%";
         if (sideNav) sideNav.classList.add("open");
         if (menuBtn) { menuBtn.classList.add("open"); menuBtn.setAttribute("aria-expanded", "true"); }
         window.pageOverlay.set("menu");
@@ -3264,20 +3260,19 @@ window.pageOverlay = (function () {
     // nothing here to detect or cancel. Left as plain CSS, riding the browser's own
     // behavior as-is, same as the very first open that already looks right.
 
-    // Same locked-scroll pattern as the mobile menu drawer above (openNavMenu/
-    // closeNavMenu) - remembers the scroll position the panel opened at and pins the
-    // page there via position:fixed for as long as the panel stays open, then restores
-    // that exact position on close. Without this, the very first keyboard open of a
-    // page view looks smooth (clean scroll position to start from), but the mobile
+    // The page-behind-it scroll lock itself now lives in window.pageOverlay.set/clear
+    // (shared by every overlay on this page, see that script's own comment) - what's left
+    // here is chat-specific: freezing the panel's own `height` for as long as it's open.
+    // Without this, the very first keyboard open of a page view looks smooth (clean
+    // scroll position to start from, courtesy of pageOverlay's lock), but the mobile
     // browser's native "scroll the focused input into view" still nudges the page a
     // little on every focus even though #chat-input sits inside an already
     // position:fixed panel that never needed that scroll - and that stray scroll is
     // never undone. Each later keyboard open on the same panel-open session then starts
     // from wherever that drift left the page, which shows up as the keyboard's resize
-    // reflow landing in two visible steps instead of one. Pinning the page via
-    // position:fixed removes the scroll position entirely, so there's nothing left for
-    // the browser to drift.
-    var chatLockedScrollY = 0;
+    // reflow landing in two visible steps instead of one. Freezing `height` to a plain
+    // px value (see below) removes the live `calc(100vh - ...)` that stray scroll would
+    // otherwise recompute against, so there's nothing left for the browser to drift.
     function setOpen(value) {
         var wasOpen = open;
         open = value;
@@ -3293,10 +3288,6 @@ window.pageOverlay = (function () {
             addMessage("bot", window.pageT("chat_greeting"));
         }
         if (open && !wasOpen) {
-            chatLockedScrollY = window.scrollY || document.documentElement.scrollTop;
-            document.body.style.position = "fixed";
-            document.body.style.top = (-chatLockedScrollY) + "px";
-            document.body.style.width = "100%";
             // Freezes `height` to whatever it resolves to right now (keyboard-closed,
             // so this is always its normal CSS-authored value) as a plain inline px
             // value, instead of leaving it as the live `calc(100vh - ...)` from the CSS
@@ -3308,10 +3299,6 @@ window.pageOverlay = (function () {
             panel.style.height = "";
             panel.style.height = getComputedStyle(panel).height;
         } else if (!open && wasOpen) {
-            document.body.style.position = "";
-            document.body.style.top = "";
-            document.body.style.width = "";
-            window.scrollTo({ top: chatLockedScrollY, left: 0, behavior: "instant" });
             panel.style.height = "";
         }
     }
