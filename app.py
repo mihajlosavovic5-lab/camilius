@@ -2208,6 +2208,7 @@ def onboarding_website_preview():
     page_languages = list(translate_page.DEFAULT_PAGE_LANGUAGES)
     if content_language in translate_page.LANGUAGES and content_language not in page_languages:
         page_languages.insert(0, content_language)
+    title_main, title_sub = pages.split_display_title(draft["tagline"] or business[1])
     return render_template(
         "public_page.html",
         business_name=business[1],
@@ -2221,6 +2222,8 @@ def onboarding_website_preview():
         content_lang_ui=_ui_strings_for_language(content_language),
         opening_hours_schema=[],
         opening_hours_display=pages.opening_hours_display(draft["working_hours"]),
+        title_main=title_main,
+        title_sub=title_sub,
         page_url="",
         chat_url="",
         slug="preview",
@@ -2615,6 +2618,7 @@ def _render_public_page(page, business, page_url, preview=False):
     if content_language in translate_page.LANGUAGES and content_language not in page_languages:
         page_languages.insert(0, content_language)
 
+    title_main, title_sub = pages.split_display_title(page[4] or business[1])
     return render_template(
         "public_page.html",
         business_name=business[1],
@@ -2628,6 +2632,8 @@ def _render_public_page(page, business, page_url, preview=False):
         content_lang_ui=_ui_strings_for_language(content_language),
         opening_hours_schema=pages.opening_hours_schema(business[7]),
         opening_hours_display=pages.opening_hours_display(business[7]),
+        title_main=title_main,
+        title_sub=title_sub,
         page_url=page_url,
         # Absolute, and always pointed at the platform's own primary host - never
         # url_for's default of "whatever Host this particular request came in on" -

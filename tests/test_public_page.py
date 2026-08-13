@@ -136,6 +136,27 @@ def test_public_page_renders_when_published(client, unique_email):
     assert "https://schema.org/Monday" in html
 
 
+def test_public_page_title_renders_pre_split_server_side(client, unique_email):
+    """The top-bar title/page header used to render as one plain line of text and only
+    get restructured into .title-main/.title-sub spans by client JS after the page
+    loaded - visible as a flash from the raw "Name - Location" line into the split,
+    two-tier display once that script ran. pages.split_display_title now does the same
+    split server-side so the first byte of HTML is already correct - see app.py's
+    _render_public_page/title_main/title_sub and the template's own comment on why the
+    initial splitTitleEls JS pass was removed."""
+    register_business_web(client, unique_email)
+    business_id = database.business_by_contact_email(unique_email)[0]
+    slug = f"live-{uuid.uuid4().hex[:8]}"
+    database.upsert_business_page(business_id, slug, True, "Kafeterija Aroma - Novi Sad", None)
+
+    response = client.get(f"/p/{slug}")
+    html = response.get_data(as_text=True)
+    assert '<div class="top-bar-title" data-i18n-content="tagline">'\
+        '<span class="title-main">Kafeterija Aroma</span><span class="title-sub">Novi Sad</span></div>' in html
+    assert '<h1 data-i18n-content="tagline">'\
+        '<span class="title-main">Kafeterija Aroma</span><span class="title-sub">Novi Sad</span></h1>' in html
+
+
 def test_public_page_hides_badge_during_active_trial(client, unique_email):
     """F4: every business gets a real 14-day trial on signup (add_business's own
     initial_status="trialing" default) - the "Powered by Camilius" badge is gone from

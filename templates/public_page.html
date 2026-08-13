@@ -435,16 +435,21 @@
             0.9px -0.9px 0.6px rgba(0, 0, 0, .7),
             -0.9px -0.9px 0.6px rgba(0, 0, 0, .7);
     }
-    /* Title split into a main line + a smaller sub-line - renderSplitTitle() (bottom of
-       the page) picks the tagline/business_name text apart at a natural separator (an
-       em/en-dash or a comma - e.g. "Kafeterija Aroma - Novi Sad") and wraps each half in
-       one of these spans, so a business name reads as the prominent line with its
+    /* Title split into a main line + a smaller sub-line - pages.split_display_title()
+       (app.py's _render_public_page/onboarding_website_preview) picks the tagline/
+       business_name text apart at a natural separator (an em/en-dash or a comma - e.g.
+       "Kafeterija Aroma - Novi Sad") and the template wraps each half in one of these
+       spans server-side, so a business name reads as the prominent line with its
        location/descriptor sitting smaller underneath instead of both halves competing at
-       the same size. Sized in em so it scales with whatever font-size its parent
-       (.top-bar-title or h1) currently has - including .top-bar-title's own JS-driven
-       shrink-to-fit on narrow screens. Text with no such separator never gets a .title-sub
-       at all (renderSplitTitle leaves it as a single .title-main), so a plain business
-       name with no tagline looks exactly as before. */
+       the same size - and so first paint already shows this, not a plain single line that
+       then flashes into two once JS ran (the same split still happens client-side too,
+       via renderSplitTitle further down, but only to re-split a freshly-translated
+       tagline after a real language switch). Sized in em so it scales with whatever
+       font-size its parent (.top-bar-title or h1) currently has - including
+       .top-bar-title's own JS-driven shrink-to-fit on narrow screens. Text with no such
+       separator never gets a .title-sub at all (split_display_title/renderSplitTitle both
+       leave it as a single .title-main), so a plain business name with no tagline looks
+       exactly as before. */
     .title-main { display: block; }
     .title-sub {
         display: block;
@@ -1516,7 +1521,7 @@
     <span class="nav-menu-btn-bar"></span>
 </button>
 <div class="nav-menu-backdrop" id="nav-menu-backdrop"></div>
-<div class="top-bar-title"{% if tagline %} data-i18n-content="tagline"{% endif %}>{{ tagline or business_name }}</div>
+<div class="top-bar-title"{% if tagline %} data-i18n-content="tagline"{% endif %}><span class="title-main">{{ title_main }}</span>{% if title_sub %}<span class="title-sub">{{ title_sub }}</span>{% endif %}</div>
 {% set current_lang = (page_languages | selectattr('code', 'equalto', content_language) | first) or page_languages[0] %}
 <button type="button" class="lang-btn" id="lang-btn" aria-label="Change language" aria-haspopup="true" aria-expanded="false">
     <img class="lang-flag" id="lang-flag" src="{{ url_for('static', filename='flags/' + current_lang.flag) }}" alt="{{ current_lang.name }}">
@@ -1594,7 +1599,7 @@
                its own separate line underneath. Hidden entirely on mobile (see the media
                query below) since .top-bar-title above already shows this exact same
                text there - one headline visible at a time, not two. #}
-            <h1{% if tagline %} data-i18n-content="tagline"{% endif %}>{{ tagline or business_name }}</h1>
+            <h1{% if tagline %} data-i18n-content="tagline"{% endif %}><span class="title-main">{{ title_main }}</span>{% if title_sub %}<span class="title-sub">{{ title_sub }}</span>{% endif %}</h1>
             <span class="title-rule" aria-hidden="true"></span>
         </header>
 
@@ -1882,10 +1887,9 @@ window.pageOverlay = (function () {
     fallback.chat_greeting = "Hi! How can I help you?";
 
     // Seeds `cache` with the page's own as-rendered content under its own content-language
-    // code, captured now (before renderSplitTitle below restructures .top-bar-title/
-    // .page-header h1's markup, which would otherwise make a raw textContent read here
-    // come back missing its tagline/business_name separator). Without this, switching away
-    // to another language and then back to THIS original one (never actually fetched - the
+    // code (see the "tagline" special-case right below for the one key this can't just
+    // scrape off the DOM directly). Without this, switching away to another language and
+    // then back to THIS original one (never actually fetched - the
     // server just rendered it directly) fell through to a real /translate/<original-lang>
     // call - which translate_page.py's own echo check always rejects, since translating
     // text into the language it's already written in reads as an echo by definition. That
@@ -1908,9 +1912,19 @@ window.pageOverlay = (function () {
     // something instead of nothing.
     var contentLangUi = {{ content_lang_ui | tojson }};
     var originalLangContent = { ui: contentLangUi ? Object.assign({}, fallback, contentLangUi) : fallback };
+    // .top-bar-title/.page-header h1 render their tagline pre-split into .title-main/
+    // .title-sub spans server-side (pages.split_display_title, see the template's own
+    // comment on those two elements) so first paint never flashes from one line to two -
+    // their raw textContent is now just those two parts run together with no separator,
+    // so "tagline" is seeded straight from the original string below instead of scraped
+    // off either of them (data-i18n-content still lives on both purely so applyTranslation
+    // knows to re-split them into title-main/title-sub on a real language switch).
     document.querySelectorAll("[data-i18n-content]").forEach(function (el) {
-        originalLangContent[el.getAttribute("data-i18n-content")] = el.textContent;
+        var key = el.getAttribute("data-i18n-content");
+        if (key === "tagline") return;
+        originalLangContent[key] = el.textContent;
     });
+    originalLangContent.tagline = {{ (tagline or business_name) | tojson }};
     cache[{{ current_lang.code | tojson }}] = originalLangContent;
 
     // Exposed for the chat/booking script below - reads whichever language is currently
@@ -1950,8 +1964,10 @@ window.pageOverlay = (function () {
             el.appendChild(subSpan);
         }
     }
-    var splitTitleEls = document.querySelectorAll(".top-bar-title, .page-header h1");
-    splitTitleEls.forEach(function (el) { renderSplitTitle(el, el.textContent); });
+    // No initial splitTitleEls pass here: .top-bar-title/.page-header h1 already render
+    // pre-split into .title-main/.title-sub server-side (see the originalLangContent
+    // comment above) - renderSplitTitle is only ever needed later, from applyTranslation,
+    // to re-split a freshly-translated tagline string after a real language switch.
 
     // Same currency list/alias table as static/pickers.js's createPricePicker and
     // pages._clean_price_display() (app.py) - kept in sync by hand since there's no

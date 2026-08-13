@@ -239,6 +239,26 @@ def price_list_rows(price_list_text):
     return rows
 
 
+_TITLE_SPLIT_DASH_RE = re.compile(r"^(.+?)\s[–—-]\s(.+)$")
+_TITLE_SPLIT_COMMA_RE = re.compile(r"^(.+?),\s*(.+)$")
+
+
+def split_display_title(text):
+    """Splits a tagline/business_name string into a prominent main line and a smaller
+    sub-line at its natural separator (an em/en-dash or plain hyphen surrounded by
+    spaces, so a hyphenated word like "Well-Known" never gets cut in two, then a comma
+    as a fallback) - mirrors public_page.html's own client-side splitDisplayTitle()
+    exactly. Used to render the top-bar title and page header already split on first
+    paint (public_page.html's title_main/title_sub), instead of the plain single-line
+    text first painting and then visibly flashing into two lines once that client JS
+    restructures it. No separator found means no sub-line - the whole string is main."""
+    text = text or ""
+    m = _TITLE_SPLIT_DASH_RE.match(text) or _TITLE_SPLIT_COMMA_RE.match(text)
+    if m and m.group(1).strip() and m.group(2).strip():
+        return m.group(1).strip(), m.group(2).strip()
+    return text, ""
+
+
 # Small line-oriented formatting syntax business_pages.about can carry, understood by
 # render_about_html below - the same shape of syntax page_generator.py's SYSTEM_PROMPT
 # teaches the onboarding draft AI to write in, and website_assistant.py teaches the
