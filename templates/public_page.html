@@ -1787,27 +1787,36 @@ window.pageOverlay = (function () {
         var contentEls = document.querySelectorAll("[data-i18n-content]");
         contentEls.forEach(function (el) {
             var key = el.getAttribute("data-i18n-content");
-            if (data[key] === undefined) return;
+            var value = data[key];
+            // Every element carrying data-i18n-content only exists in the DOM at all
+            // because the server only renders it inside a Jinja guard on non-empty
+            // source content (see .about/.price-list-raw/.faq etc. above) - so a
+            // translation response coming back empty/null/missing for this key is always
+            // a bad result (a truncated model reply that still happened to parse, a
+            // stale/malformed cache row), never a legitimate "this should be blank" -
+            // skip it and keep whatever's already on screen, same "a failed translation
+            // is worse than none" rule the whole-request .catch() below already follows.
+            if (!value) return;
             if (el.matches(".top-bar-title, .page-header h1")) {
-                renderSplitTitle(el, data[key]);
+                renderSplitTitle(el, value);
             } else if (el.matches(".price-list-raw")) {
-                el.textContent = data[key];
+                el.textContent = value;
                 var priceRowsEl = document.querySelector(".price-rows");
-                if (priceRowsEl) renderPriceRows(priceRowsEl, data[key]);
+                if (priceRowsEl) renderPriceRows(priceRowsEl, value);
             } else if (el.matches(".chat-header-text p")) {
-                el.textContent = data[key];
+                el.textContent = value;
                 if (window.fitChatHeaderTitle) window.fitChatHeaderTitle();
             } else {
-                el.textContent = data[key];
+                el.textContent = value;
             }
         });
         document.querySelectorAll("[data-i18n]").forEach(function (el) {
             var key = el.getAttribute("data-i18n");
-            if (data.ui && data.ui[key] !== undefined) el.textContent = data.ui[key];
+            if (data.ui && data.ui[key]) el.textContent = data.ui[key];
         });
         document.querySelectorAll("[data-i18n-placeholder]").forEach(function (el) {
             var key = el.getAttribute("data-i18n-placeholder");
-            if (data.ui && data.ui[key] !== undefined) el.placeholder = data.ui[key];
+            if (data.ui && data.ui[key]) el.placeholder = data.ui[key];
         });
         currentLang = lang;
         document.documentElement.lang = lang;

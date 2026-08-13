@@ -44,7 +44,14 @@ DEFAULT_PAGE_LANGUAGES = ["en", "es", "fr", "de"]
 
 MAX_DETECT_TEXT_LENGTH = 500
 MAX_TRANSLATE_FIELD_LENGTH = 4000
-MAX_TRANSLATE_TOKENS = 2000
+# 2000 used to be tight enough that a business with a substantial about/price_list/faq
+# (each sliceable up to MAX_TRANSLATE_FIELD_LENGTH above) plus all ~26 PAGE_UI_STRINGS
+# translated in the same call could run past it and get cut off mid-JSON - which usually
+# fails to parse (caught below, surfaces as a 502 the page's own fetch already tolerates)
+# but occasionally lands on a syntactically-valid-but-incomplete object instead, silently
+# blanking whatever field got cut short. Doubled as headroom, not tuned to any single
+# business's content.
+MAX_TRANSLATE_TOKENS = 4000
 
 # The page's own fixed chrome - section headings, button/placeholder text - translated
 # alongside the business's actual content in the same call (see translate_page_content
