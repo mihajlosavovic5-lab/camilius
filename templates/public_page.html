@@ -1723,7 +1723,7 @@
 <div class="top-bar-title"{% if tagline %} data-i18n-content="tagline"{% endif %}><span class="title-main">{{ title_main }}</span>{% if title_sub %}<span class="title-sub">{{ title_sub }}</span>{% endif %}</div>
 {% set current_lang = (page_languages | selectattr('code', 'equalto', content_language) | first) or page_languages[0] %}
 <button type="button" class="lang-btn" id="lang-btn" aria-label="Change language" aria-haspopup="true" aria-expanded="false">
-    <img class="lang-flag" id="lang-flag" src="{{ url_for('static', filename='flags/' + current_lang.flag) }}" alt="{{ current_lang.name }}">
+    <img class="lang-flag" id="lang-flag" src="{{ flag_data_uri(current_lang.flag) }}" alt="{{ current_lang.name }}">
     <span class="lang-chevron" aria-hidden="true">&#8964;</span>
 </button>
 <div class="lang-dropdown" id="lang-dropdown" role="menu">

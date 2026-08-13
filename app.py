@@ -1,4 +1,5 @@
 import os
+import base64
 import hmac
 import hashlib
 import json
@@ -207,6 +208,38 @@ _NO_STORE_PATHS = {"/static/mobile-bundle.zip", "/api/mobile-manifest"}
 @app.context_processor
 def inject_static_versions():
     return {"static_versions": STATIC_VERSIONS}
+
+
+# public_page.html's header flag (#lang-flag) used to load like any other <img>, a
+# separate request for /static/flags/<file> that briefly showed an empty box before it
+# arrived - harmless on a page with a warm HTTP cache, but the mobile app's "View page"
+# button reopens this page in a fresh in-app browser tab each time (see mobile/app.js's
+# openSitePreview/openLiveSite), which doesn't reliably reuse a cache across separate
+# opens, so that empty-then-pop-in flash showed on every single open instead of just the
+# first. Only the ONE flag actually shown on first paint needs this - the dropdown's
+# other rows (LANGUAGES has ten) stay ordinary cached <img src> since they're never
+# visible until a visitor opens it. Cached in-process by filename: these are static
+# files bundled with the deploy, never changing without a restart, so there's nothing to
+# invalidate.
+_FLAG_DATA_URI_CACHE = {}
+
+
+def flag_data_uri(filename):
+    cached = _FLAG_DATA_URI_CACHE.get(filename)
+    if cached is not None:
+        return cached
+    path = os.path.join(app.static_folder, "flags", filename)
+    mime = "image/svg+xml" if filename.endswith(".svg") else "image/png"
+    with open(path, "rb") as f:
+        encoded = base64.b64encode(f.read()).decode("ascii")
+    uri = f"data:{mime};base64,{encoded}"
+    _FLAG_DATA_URI_CACHE[filename] = uri
+    return uri
+
+
+@app.context_processor
+def inject_flag_data_uri():
+    return {"flag_data_uri": flag_data_uri}
 
 
 @app.after_request
