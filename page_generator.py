@@ -59,7 +59,19 @@ PAGE_SCHEMA = {
     "type": "object",
     "properties": {
         "tagline": {"type": "string", "description": "One short, appealing sentence a customer sees first (under 80 characters)."},
-        "about": {"type": "string", "description": "2-4 warm, concrete sentences about the business - no filler, no made-up history."},
+        "about": {
+            "type": "string",
+            "description": (
+                "3-6 warm, concrete sentences about the business - no filler, no made-up "
+                "history. Give it real visual structure instead of one flat paragraph, using "
+                "this formatting syntax (see SYSTEM_PROMPT for the full rules): blank lines "
+                "between distinct ideas, '# text' for an occasional section heading, '- text' "
+                "(repeated) for a list of 3+ concrete offerings/features, '**text**' for a key "
+                "phrase, '*text*' for a softer aside, and optionally one '> text' pull-quote "
+                "line or one '-- text' closing signature line. Only use a heading/list/quote/ "
+                "signature where the content genuinely calls for it."
+            ),
+        },
         "slug": {"type": "string", "description": "A short, URL-friendly suggested web address for this business's page, e.g. 'blue-star-cafe' - lowercase ASCII letters, digits, and hyphens only, transliterating any non-Latin script or accented letters to plain ASCII. 2-4 words, based on the business's name or what it does."},
         "hours": {
             "type": "object",
@@ -136,6 +148,24 @@ Rules:
 - Write in the same language as the description.
 - tagline and about are customer-facing marketing copy: warm and specific, never generic
   filler like "we provide quality service to every customer".
+- about's renderer understands a small formatting syntax - use it to give the text real
+  structure instead of one dense paragraph, but only where it genuinely fits:
+    - A blank line starts a new paragraph.
+    - "# text" on its own line is a section heading (e.g. "# Our story") - use at most
+      one or two, only when there's an actual sub-topic to introduce, never for two
+      sentences that already read fine as plain prose.
+    - Consecutive lines each starting "- " become a bullet list - reach for this when
+      there are 3+ concrete things to list (offerings, features, specialties), not for
+      one or two.
+    - "**text**" bolds a key phrase (a standout feature, the business name the first
+      time it's said); "*text*" italicizes a softer aside.
+    - A single ">  text" line renders as a highlighted pull-quote - at most one, for a
+      genuine standout line (a motto, a promise), never a paraphrase of the paragraph
+      right above it.
+    - A single "-- text" line at the very end renders right-aligned as a closing
+      signature (e.g. "-- The Aroma team") - optional, only when it reads naturally.
+  Every about text should still make sense as plain reading text with these markers
+  removed - they're a presentation layer, not a substitute for real sentences.
 - faq answers should sound like the business owner speaking, not a legal disclaimer.
 - slug is not customer-facing copy - always fill it in, in plain ASCII (lowercase
   letters/digits/hyphens only), even when the description itself is in another language

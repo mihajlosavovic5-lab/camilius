@@ -6,6 +6,8 @@ non-database rules on top of it, same separation booking.py has for calendar mat
 import re
 from urllib.parse import urlparse
 
+from markupsafe import Markup, escape
+
 import booking
 from database import page_by_slug
 
@@ -235,6 +237,83 @@ def price_list_rows(price_list_text):
             price = _clean_price_display(line[idx + 1:].strip())
             rows.append({"name": line[:idx].strip(), "price": price})
     return rows
+
+
+# Small line-oriented formatting syntax business_pages.about can carry, understood by
+# render_about_html below - the same shape of syntax page_generator.py's SYSTEM_PROMPT
+# teaches the onboarding draft AI to write in, and website_assistant.py teaches the
+# "Draft this with AI" chat to write in when it saves this field, so the about section
+# reads as a deliberately structured block (headings, lists, emphasis, a highlighted
+# line, a right-aligned signature) instead of one flat wall of text. A block is any run
+# of non-blank lines between blank lines:
+#   "# text"  / "## text" -> a heading / sub-heading (bigger, bold)
+#   "- text" (every line in the block)  -> a bullet list
+#   "1. text" (every line in the block) -> a numbered list
+#   "> text"  -> a highlighted callout line (bigger, set apart)
+#   "-- text" -> a right-aligned signature/closing line (smaller, muted)
+#   anything else -> a plain paragraph
+# Inside any block, "**text**" is bold and "*text*"/"_text_" is italic. Everything else
+# is HTML-escaped up front (see _format_about_inline) before any tag is ever added, so
+# arbitrary characters a business types (including literal "<"/"&") can never produce
+# real markup - only the fixed set of tags this function itself writes ever reaches the
+# page. public_page.html's own JS (renderAboutBlocks) mirrors this exact syntax for
+# re-rendering the about section after a language switch, the same way renderPriceRows
+# there already mirrors price_list_rows above for price_list.
+_ABOUT_BOLD_RE = re.compile(r"\*\*(.+?)\*\*")
+_ABOUT_ITALIC_RE = re.compile(r"\*(.+?)\*|_(.+?)_")
+_ABOUT_BULLET_RE = re.compile(r"^[-*•]\s+(.*)$")
+_ABOUT_NUMBERED_RE = re.compile(r"^\d+[.)]\s+(.*)$")
+_ABOUT_HEADING_RE = re.compile(r"^(#{1,2})\s+(.*)$")
+_ABOUT_CALLOUT_RE = re.compile(r"^>\s+(.*)$")
+_ABOUT_SIGNATURE_RE = re.compile(r"^--\s+(.*)$")
+
+
+def _format_about_inline(text):
+    """One line/item's worth of about text, HTML-escaped then given **bold**/*italic*
+    inline emphasis - escaping happens first, against the raw string, so the bold/italic
+    regexes only ever see (and can only ever produce tags around) text that's already
+    safe to drop into HTML verbatim."""
+    escaped = str(escape(text))
+    escaped = _ABOUT_BOLD_RE.sub(lambda m: f"<strong>{m.group(1)}</strong>", escaped)
+    escaped = _ABOUT_ITALIC_RE.sub(lambda m: f"<em>{m.group(1) or m.group(2)}</em>", escaped)
+    return escaped
+
+
+def render_about_html(about_text):
+    """business_pages.about's raw text (see the formatting syntax comment above) turned
+    into the small, fixed set of tags public_page.html's #about section is styled to
+    expect (.about-p/.about-heading/.about-subheading/.about-callout/.about-sign/
+    .about-list, plus inline <strong>/<em>) - safe to render unescaped (a markupsafe
+    Markup, so Jinja won't double-escape it) since every bit of the business's own text
+    passed through _format_about_inline's escape() first. Returns Markup("") for empty
+    input, same "nothing to show" contract callers already get from an empty string."""
+    text = (about_text or "").strip()
+    if not text:
+        return Markup("")
+    html_parts = []
+    for block in re.split(r"\n\s*\n", text):
+        lines = [line for line in block.split("\n") if line.strip()]
+        if not lines:
+            continue
+        heading_match = _ABOUT_HEADING_RE.match(lines[0]) if len(lines) == 1 else None
+        callout_match = _ABOUT_CALLOUT_RE.match(lines[0]) if len(lines) == 1 else None
+        signature_match = _ABOUT_SIGNATURE_RE.match(lines[0]) if len(lines) == 1 else None
+        if heading_match:
+            css_class = "about-heading" if len(heading_match.group(1)) == 1 else "about-subheading"
+            html_parts.append(f'<p class="{css_class}">{_format_about_inline(heading_match.group(2))}</p>')
+        elif callout_match:
+            html_parts.append(f'<p class="about-callout">{_format_about_inline(callout_match.group(1))}</p>')
+        elif signature_match:
+            html_parts.append(f'<p class="about-sign">{_format_about_inline(signature_match.group(1))}</p>')
+        elif all(_ABOUT_BULLET_RE.match(line) for line in lines):
+            items = "".join(f"<li>{_format_about_inline(_ABOUT_BULLET_RE.match(line).group(1))}</li>" for line in lines)
+            html_parts.append(f'<ul class="about-list">{items}</ul>')
+        elif all(_ABOUT_NUMBERED_RE.match(line) for line in lines):
+            items = "".join(f"<li>{_format_about_inline(_ABOUT_NUMBERED_RE.match(line).group(1))}</li>" for line in lines)
+            html_parts.append(f'<ol class="about-list">{items}</ol>')
+        else:
+            html_parts.append(f'<p class="about-p">{"<br>".join(_format_about_inline(line) for line in lines)}</p>')
+    return Markup("".join(html_parts))
 
 
 # A conservative hostname allowlist (ASCII letters/digits/hyphens, dot-separated

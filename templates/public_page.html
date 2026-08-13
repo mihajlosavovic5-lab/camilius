@@ -592,15 +592,32 @@
         opacity: .06;
         pointer-events: none;
     }
-    .about {
-        white-space: pre-line;
+    /* .about-rendered holds pages.render_about_html()'s output (mirrored client-side by
+       renderAboutBlocks() after a language switch, see the script below) - a comfortable
+       reading column instead of the text spanning the full card edge-to-edge, made up of
+       a handful of block types (plain paragraph/heading/sub-heading/callout/signature/
+       list) so an about text with real structure (see pages.py's own formatting-syntax
+       comment) reads as a deliberately laid-out piece instead of one dense paragraph. A
+       plain about text with no such structure still becomes exactly one .about-p, which
+       keeps the classic drop-cap treatment below - so the common "just a few sentences"
+       case looks the same as before. */
+    .about-rendered {
         margin: 0 auto;
         max-width: 62ch;
-        line-height: 1.85;
-        font-size: 1.02rem;
         position: relative;
     }
-    .about::first-letter {
+    .about-rendered > *:first-child { margin-top: 0; }
+    .about-rendered > *:last-child { margin-bottom: 0; }
+    .about-p {
+        margin: 0 0 14px;
+        line-height: 1.85;
+        font-size: 1.02rem;
+    }
+    /* Drop-cap only on a paragraph that opens the section (never a heading/list/callout
+       right before it) - .about-p is the first element only when the about text has no
+       leading "# heading" of its own, so a heading-led about (which already has its own
+       visual hook) doesn't also get a competing drop-cap under it. */
+    .about-rendered > .about-p:first-child::first-letter {
         font-family: var(--heading-font);
         font-size: 2.5em;
         font-weight: 700;
@@ -609,6 +626,76 @@
         line-height: .78;
         padding: .05em .07em 0 0;
     }
+    .about-heading, .about-subheading {
+        margin: 22px 0 10px;
+        text-align: left;
+        font-family: var(--heading-font);
+        font-weight: 700;
+        color: var(--text);
+    }
+    .about-heading { font-size: 1.3rem; }
+    .about-subheading { font-size: 1.08rem; color: var(--primary); }
+    /* Callout - a standout line the about text wants to set apart (a promise, a motto),
+       pulled left with a gold rule the way a pull-quote would be in print, and given more
+       room to breathe than a plain paragraph gets. */
+    .about-callout {
+        margin: 16px 0;
+        padding: 4px 0 4px 16px;
+        border-left: 3px solid var(--gold);
+        font-style: italic;
+        font-size: 1.12rem;
+        line-height: 1.6;
+        color: var(--text);
+    }
+    /* Signature/closing line - pulled right and quieted down, the opposite treatment
+       from .about-callout, so an about text can end on a short aside ("- The Aroma team")
+       without it reading as just another sentence in the paragraph above it. */
+    .about-sign {
+        margin: 14px 0 0;
+        text-align: right;
+        font-style: italic;
+        font-size: 0.85rem;
+        font-weight: 300;
+        color: var(--text-muted);
+    }
+    .about-list {
+        list-style: none;
+        margin: 0 0 14px;
+        padding: 0;
+        line-height: 1.7;
+    }
+    .about-list li {
+        position: relative;
+        padding-left: 22px;
+        margin-bottom: 6px;
+    }
+    .about-list li::before {
+        content: "";
+        position: absolute;
+        left: 4px;
+        top: 0.65em;
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: var(--primary);
+    }
+    ol.about-list { counter-reset: about-list-counter; }
+    ol.about-list li { padding-left: 26px; }
+    ol.about-list li::before {
+        counter-increment: about-list-counter;
+        content: counter(about-list-counter) ".";
+        width: auto;
+        height: auto;
+        border-radius: 0;
+        background: none;
+        top: 0;
+        left: 0;
+        font-weight: 700;
+        color: var(--primary);
+        font-size: 0.9em;
+    }
+    .about-rendered strong { font-weight: 700; color: var(--text); }
+    .about-rendered em { font-style: italic; font-weight: 300; color: var(--text-muted); }
     .faq {
         white-space: pre-line;
         margin: 0;
@@ -1513,7 +1600,15 @@
         {% if about %}
         <section id="about" class="reveal">
             <h2 data-i18n="heading_about">About</h2>
-            <p class="about" data-i18n-content="about">{{ about }}</p>
+            {# .about-rendered holds pages.render_about_html()'s structured markup (headings/
+               lists/emphasis/callout/signature - see that function's own docstring for the
+               formatting syntax) for the initial, server-rendered view. .about-raw is the
+               same plain source text, hidden, kept only so a language switch has the exact
+               original to re-translate from and re-run through renderAboutBlocks() (the JS
+               mirror of render_about_html, below) - same hidden-source/rendered-view split
+               .price-list-raw/.price-rows already use for price_list. #}
+            <div class="about-rendered" id="about-rendered">{{ about_html }}</div>
+            <p class="about-raw hidden" data-i18n-content="about">{{ about }}</p>
         </section>
         {% endif %}
 
@@ -1904,6 +1999,85 @@ window.pageOverlay = (function () {
         });
     }
 
+    // Mirrors pages.render_about_html()'s exact formatting syntax (see that function's
+    // own docstring in pages.py) so a freshly-translated about string rebuilds into the
+    // identical block structure the server rendered on first load, rather than
+    // applyTranslation's usual raw textContent swap collapsing #about-rendered back into
+    // one unstructured blob every time a visitor switches language. Builds real DOM nodes
+    // (createElement/textContent) rather than ever setting innerHTML from this text - the
+    // translated string is model output, not something this page should trust enough to
+    // parse as HTML.
+    function formatAboutInlineNodes(text) {
+        var nodes = [];
+        var re = /\*\*(.+?)\*\*|\*(.+?)\*|_(.+?)_/g;
+        var lastIndex = 0;
+        var match;
+        while ((match = re.exec(text)) !== null) {
+            if (match.index > lastIndex) nodes.push(document.createTextNode(text.slice(lastIndex, match.index)));
+            var tag = document.createElement(match[1] !== undefined ? "strong" : "em");
+            tag.textContent = match[1] !== undefined ? match[1] : (match[2] !== undefined ? match[2] : match[3]);
+            nodes.push(tag);
+            lastIndex = re.lastIndex;
+        }
+        if (lastIndex < text.length) nodes.push(document.createTextNode(text.slice(lastIndex)));
+        return nodes;
+    }
+    function appendAboutInline(el, text) {
+        formatAboutInlineNodes(text).forEach(function (node) { el.appendChild(node); });
+    }
+    function renderAboutBlocks(container, raw) {
+        container.textContent = "";
+        var text = (raw || "").trim();
+        if (!text) return;
+        text.split(/\n\s*\n/).forEach(function (block) {
+            var lines = block.split("\n").filter(function (line) { return line.trim(); });
+            if (!lines.length) return;
+            var headingMatch = lines.length === 1 ? lines[0].match(/^(#{1,2})\s+(.*)$/) : null;
+            var calloutMatch = lines.length === 1 ? lines[0].match(/^>\s+(.*)$/) : null;
+            var signatureMatch = lines.length === 1 ? lines[0].match(/^--\s+(.*)$/) : null;
+            var bulletMatches = lines.map(function (line) { return line.match(/^[-*•]\s+(.*)$/); });
+            var numberedMatches = lines.map(function (line) { return line.match(/^\d+[.)]\s+(.*)$/); });
+            var el;
+            if (headingMatch) {
+                el = document.createElement("p");
+                el.className = headingMatch[1].length === 1 ? "about-heading" : "about-subheading";
+                appendAboutInline(el, headingMatch[2]);
+            } else if (calloutMatch) {
+                el = document.createElement("p");
+                el.className = "about-callout";
+                appendAboutInline(el, calloutMatch[1]);
+            } else if (signatureMatch) {
+                el = document.createElement("p");
+                el.className = "about-sign";
+                appendAboutInline(el, signatureMatch[1]);
+            } else if (bulletMatches.every(Boolean)) {
+                el = document.createElement("ul");
+                el.className = "about-list";
+                lines.forEach(function (line, i) {
+                    var li = document.createElement("li");
+                    appendAboutInline(li, bulletMatches[i][1]);
+                    el.appendChild(li);
+                });
+            } else if (numberedMatches.every(Boolean)) {
+                el = document.createElement("ol");
+                el.className = "about-list";
+                lines.forEach(function (line, i) {
+                    var li = document.createElement("li");
+                    appendAboutInline(li, numberedMatches[i][1]);
+                    el.appendChild(li);
+                });
+            } else {
+                el = document.createElement("p");
+                el.className = "about-p";
+                lines.forEach(function (line, i) {
+                    appendAboutInline(el, line);
+                    if (i < lines.length - 1) el.appendChild(document.createElement("br"));
+                });
+            }
+            container.appendChild(el);
+        });
+    }
+
     function applyTranslation(lang, data) {
         var contentEls = document.querySelectorAll("[data-i18n-content]");
         contentEls.forEach(function (el) {
@@ -1911,7 +2085,7 @@ window.pageOverlay = (function () {
             var value = data[key];
             // Every element carrying data-i18n-content only exists in the DOM at all
             // because the server only renders it inside a Jinja guard on non-empty
-            // source content (see .about/.price-list-raw/.faq etc. above) - so a
+            // source content (see .about-raw/.price-list-raw/.faq etc. above) - so a
             // translation response coming back empty/null/missing for this key is always
             // a bad result (a truncated model reply that still happened to parse, a
             // stale/malformed cache row), never a legitimate "this should be blank" -
@@ -1924,6 +2098,10 @@ window.pageOverlay = (function () {
                 el.textContent = value;
                 var priceRowsEl = document.querySelector(".price-rows");
                 if (priceRowsEl) renderPriceRows(priceRowsEl, value);
+            } else if (el.matches(".about-raw")) {
+                el.textContent = value;
+                var aboutRenderedEl = document.getElementById("about-rendered");
+                if (aboutRenderedEl) renderAboutBlocks(aboutRenderedEl, value);
             } else if (el.matches(".chat-header-text p")) {
                 el.textContent = value;
                 if (window.fitChatHeaderTitle) window.fitChatHeaderTitle();

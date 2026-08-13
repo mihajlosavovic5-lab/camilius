@@ -136,7 +136,16 @@ contain literal {{token}} placeholders (e.g. {{day}}, {{time}}, {{business}}) - 
 one through exactly as written, in the same position, without translating its contents
 or the surrounding braces.
 
-Respond with plain text values only, no markdown formatting."""
+"about" may contain a small formatting syntax the page renders specially: a line
+starting "# " (heading), lines starting "- " (bullet list), a line starting "> "
+(highlighted line), a line starting "-- " (signature line), and inline "**bold**"/
+"*italic*" markers. Translate the words inside these exactly like any other text, but
+keep the markers themselves - the leading "#"/"- "/"> "/"-- " and the "**"/"*" pairs -
+in the same positions, unchanged, so the translated result still has the identical
+structure as the original.
+
+Respond with plain text values only, no markdown formatting outside of "about"'s own
+formatting syntax described above."""
 
 
 def detect_content_language(text):
