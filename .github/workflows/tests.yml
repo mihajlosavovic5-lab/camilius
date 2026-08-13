@@ -8,7 +8,13 @@ name: Tests
 on:
   push:
     branches: [master]
+    paths-ignore:
+      - "**.md"
+      - "docs/**"
   pull_request:
+    paths-ignore:
+      - "**.md"
+      - "docs/**"
 
 # Several automated sessions push to master in quick succession; without this, each
 # push queues its own full test run and they pile up waiting for a free runner, sitting
