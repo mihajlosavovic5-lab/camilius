@@ -541,9 +541,14 @@ a:focus-visible, button:focus-visible, [tabindex]:focus-visible {
    too instead of scrolling out of view after ~16px, same as the logged-out landing
    page's own fixed flag (body.landing above) tracks its fixed #lp-header. No dynamic
    half-height centering needed here unlike landing's version - the app navbar's height
-   doesn't shrink on scroll, so the same top offset the default rule already uses lines
-   up correctly in both states. */
-body.app .site-lang-select-btn { position: fixed; }
+   doesn't shrink on scroll.
+   top/height here match .nav-menu-btn's own 14px top / 34px height exactly (not just the
+   base rule's 16px top, which was tuned for the flag's own ~31px intrinsic content height
+   on auth/public pages, not for lining up against the hamburger's fixed 34px box) - height
+   plus this rule's own align-items: center (inherited from the base rule) is what actually
+   centers the flag/chevron within that 34px box to match the hamburger's center, rather
+   than just eyeballing a top offset that happened to look close. */
+body.app .site-lang-select-btn { position: fixed; top: calc(14px + var(--install-banner-h)); height: 34px; }
 /* Full-bleed, not capped/centered like .content - the brand sits flush in the true
    left corner and the nav links flush in the true right corner of the browser window,
    regardless of viewport width (Faza 5). */
