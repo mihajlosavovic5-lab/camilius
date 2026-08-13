@@ -272,22 +272,20 @@ def split_display_title(text):
     return text, ""
 
 
-def hero_cta_for_business(booking_enabled, phone_number, chat_available):
+def hero_cta_for_business(booking_enabled, chat_available):
     """The single primary call-to-action button shown in the public page's hero
     (public_page.html's .page-header) and, on mobile, repeated in the sticky bottom bar -
-    one button, not several competing for attention. Priority is Book > Call > Chat: Book
-    and Call are both a single tap to a real action, whereas Chat (this page's AI
-    assistant) is always reachable anyway via the corner .chat-fab regardless of what the
-    hero shows, so ranking it last doesn't hide a unique capability - it just avoids the
-    hero CTA and the always-visible FAB competing for the same lowest-friction attention.
-    Returns None (render nothing) only when a business has none of the three - no
-    booking, no phone number on file, and chat itself disabled (the onboarding draft
-    preview, which passes chat_available=False since nothing's saved yet to chat
-    against)."""
+    one button, not several competing for attention. Priority is Book > Chat: Book is a
+    single tap to a real action, whereas Chat (this page's AI assistant) is always
+    reachable anyway via the corner .chat-fab regardless of what the hero shows, so
+    ranking it second doesn't hide a unique capability - it just avoids the hero CTA and
+    the always-visible FAB competing for the same lowest-friction attention. No Call
+    option - a phone number is just contact info listed in Contact, not a CTA. Returns
+    None (render nothing) only when a business has neither - no booking, and chat itself
+    disabled (the onboarding draft preview, which passes chat_available=False since
+    nothing's saved yet to chat against)."""
     if booking_enabled:
         return {"target": "#book-section", "label_key": "cta_book"}
-    if phone_number:
-        return {"target": f"tel:{phone_number}", "label_key": "cta_call"}
     if chat_available:
         return {"target": "chat", "label_key": "cta_chat"}
     return None

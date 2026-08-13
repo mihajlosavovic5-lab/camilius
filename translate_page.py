@@ -87,7 +87,6 @@ PAGE_UI_STRINGS = {
     "heading_contact": "Contact",
     "heading_location": "Location",
     "cta_book": "Book now",
-    "cta_call": "Call now",
     "cta_chat": "Message us",
     "book_loading": "Loading open times...",
     "book_empty": "No upcoming openings right now - message us in chat to check.",

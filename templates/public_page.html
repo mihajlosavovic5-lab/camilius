@@ -944,23 +944,6 @@
     }
     footer a { color: inherit; font-weight: 600; }
     .footer-copyright { margin: 0 0 12px; }
-    /* Small pill echo of .hero-cta - the last thing on a long page (About, Hours,
-       Photos, Prices, FAQ, Contact, Location all scrolled past by this point) is a
-       reasonable place to land back on a way to reach the business without scrolling
-       all the way back up, without repeating the whole Contact section here. */
-    .footer-call {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        padding: 8px 20px;
-        margin: 0 0 14px;
-        border-radius: var(--radius);
-        background: var(--primary);
-        color: var(--on-primary);
-        font-weight: 700;
-        font-size: 0.8rem;
-        text-decoration: none;
-    }
     .footer-badge { display: inline-block; }
     .foot-mark {
         display: inline-flex; align-items: center; justify-content: center;
@@ -2179,16 +2162,16 @@
             <h1{% if tagline %} data-i18n-content="tagline"{% endif %}><span class="title-main">{{ title_main }}</span>{% if title_sub %}<span class="title-sub">{{ title_sub }}</span>{% endif %}</h1>
             <span class="title-rule" aria-hidden="true"></span>
             {% if hero_cta %}
-            {# hero_cta (pages.hero_cta_for_business) is always exactly one target - Book,
-               Call, or Chat, in that priority - never more than one button competing for
+            {# hero_cta (pages.hero_cta_for_business) is always exactly one target - Book
+               or Chat, in that priority - never more than one button competing for
                attention in the hero. Static English text matches PAGE_UI_STRINGS'
-               cta_book/cta_call/cta_chat entries, same "real fallback text, not just a
-               key" convention every other data-i18n element on this page already uses. #}
+               cta_book/cta_chat entries, same "real fallback text, not just a key"
+               convention every other data-i18n element on this page already uses. #}
             <a class="hero-cta" id="hero-cta"
                href="{{ hero_cta.target if hero_cta.target != 'chat' else '#' }}"
                {% if hero_cta.target == 'chat' %}data-hero-cta-chat="true"{% endif %}
                data-i18n="{{ hero_cta.label_key }}"
-               >{% if hero_cta.label_key == "cta_book" %}Book now{% elif hero_cta.label_key == "cta_call" %}Call now{% else %}Message us{% endif %}</a>
+               >{% if hero_cta.label_key == "cta_book" %}Book now{% else %}Message us{% endif %}</a>
             {% endif %}
         </header>
 
@@ -2453,9 +2436,6 @@
              gated, nested inside its own show_badge check below. -->
         <footer>
             <p class="footer-copyright">&copy; {{ current_year }} {{ business_name }}</p>
-            {% if phone_number %}
-            <a class="footer-call" href="tel:{{ phone_number }}" data-i18n="cta_call">Call now</a>
-            {% endif %}
             {% if show_badge %}
             <a class="footer-badge" href="{{ url_for('home', _external=True) }}"><span class="foot-mark">C</span>Powered by Camilius</a>
             {% endif %}
@@ -3675,7 +3655,7 @@ window.pageOverlay = (function () {
        href="{{ hero_cta.target if hero_cta.target != 'chat' else '#' }}"
        {% if hero_cta.target == 'chat' %}data-hero-cta-chat="true"{% endif %}
        data-i18n="{{ hero_cta.label_key }}"
-       >{% if hero_cta.label_key == "cta_book" %}Book now{% elif hero_cta.label_key == "cta_call" %}Call now{% else %}Message us{% endif %}</a>
+       >{% if hero_cta.label_key == "cta_book" %}Book now{% else %}Message us{% endif %}</a>
 </div>
 {% endif %}
 
