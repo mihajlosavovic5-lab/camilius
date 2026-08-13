@@ -2651,6 +2651,17 @@ def _render_public_page(page, business, page_url, preview=False):
         page_languages.insert(0, content_language)
 
     title_main, title_sub = pages.split_display_title(page[4] or business[1])
+    # Whether the CURRENTLY LOGGED-IN session belongs to this exact page's own business -
+    # deliberately NOT the same thing as `preview` (which only toggles SEO meta tags, see
+    # below): once a page is published, the mobile app's own "View page" button opens the
+    # real /p/<slug> URL directly rather than the session-only site_preview() route (see
+    # mobile/app.js's openSitePreview/openLiveSite split), so the owner's own "View page"
+    # tap and a random visitor's link both land on THIS same route/URL. is_owner is what
+    # tells them apart there - same session["business_id"] check _page_visible_to_request
+    # already uses for the owner's own booking-availability carve-out on an unpublished
+    # page, just applied here too so the owner also gets their own toolbar on the live URL,
+    # not only on the site_preview() fallback for a page that isn't published yet.
+    is_owner = session.get("business_id") == business_id
     return render_template(
         "public_page.html",
         business_name=business[1],
@@ -2676,13 +2687,14 @@ def _render_public_page(page, business, page_url, preview=False):
         slug=slug,
         theme=themes.resolve_theme(page[9], page[10]),
         preview=preview,
-        # Owner-only theme picker data (public_page.html's own {% if preview %} toolbar) -
-        # preview is only ever True from site_preview(), a @login_required route reading
-        # session["business_id"], so this never reaches a public /p/<slug> visitor. Cheap
-        # either way (an in-memory dict, no DB/AI call), but kept None on the public path
-        # so that route's response never carries this extra payload for no reason.
-        theme_choices=list(themes.THEMES.items()) if preview else None,
-        current_theme_id=page[9] if preview else None,
+        # Owner-only theme picker data (public_page.html's own {% if theme_choices %}
+        # toolbar) - gated on is_owner (see above), NOT preview, so the owner gets their
+        # own "Change theme" control whether they arrive via site_preview() (unpublished
+        # fallback) or the real /p/<slug> URL their own "View page" button opens once
+        # published. Cheap either way (an in-memory dict, no DB/AI call), but kept None
+        # for every other visitor so their response never carries this extra payload.
+        theme_choices=list(themes.THEMES.items()) if is_owner else None,
+        current_theme_id=page[9] if is_owner else None,
         booking_enabled=booking_enabled,
         availability_url=(f"https://{PRIMARY_APP_HOST}" + url_for("public_page_availability", slug=slug)) if booking_enabled else None,
         # Computed once here, embedded straight into the page, so the "Book an

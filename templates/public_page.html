@@ -1256,10 +1256,13 @@
     }
     {% if theme_choices %}
     /* --- Owner-only "Change theme" launcher/panel - rendered exclusively when
-       theme_choices is passed in (see app.py's _render_public_page: only site_preview(),
-       a @login_required route, ever sets this - never the public /p/<slug> route, and
-       never onboarding_website_preview()'s tiny thumbnail iframes either, since those
-       don't pass theme_choices even though they also render with preview=True). Mirrors
+       theme_choices is passed in (see app.py's _render_public_page: gated on is_owner,
+       session["business_id"] matching this exact page's own business - set whether the
+       owner arrives via site_preview() or the real /p/<slug> URL their own "View page"
+       button opens once published, see mobile/app.js's openSitePreview/openLiveSite
+       split, but never for any other visitor on either route. Also never set by
+       onboarding_website_preview()'s tiny thumbnail iframes, since those don't pass
+       theme_choices at all regardless of who's logged in). Mirrors
        .chat-fab/.chat-panel's exact visual language (size, shadow, panel motion, same
        952/953 z-index tier, same window.pageOverlay coordination) but pinned to the
        opposite corner - bottom-left - so it never competes with the chat launcher or the
@@ -2969,10 +2972,11 @@ window.pageOverlay = (function () {
 
 {% if theme_choices %}
 <!-- Owner-only "Change theme" launcher - see this block's own CSS comment above for why
-     theme_choices being set at all already guarantees this is the owner's own
-     site_preview() view, never a public visitor. Auto-saves on every pick (no separate
-     Save step - see the script below) since this is the owner's own live-editable
-     control, not a form a stranger could stumble into. -->
+     theme_choices being set at all already guarantees this is the owner's own logged-in
+     session for this exact business, never a public visitor, on either /site/preview or
+     the real /p/<slug> URL. Auto-saves on every pick (no separate Save step - see the
+     script below) since this is the owner's own live-editable control, not a form a
+     stranger could stumble into. -->
 <button type="button" class="theme-fab" id="theme-fab" aria-label="Change theme" aria-expanded="false">
     <svg class="theme-fab-icon-palette" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
         <path d="M12 3C7.03 3 3 6.8 3 11.5c0 3.6 2.94 5.5 5.5 5.5H10a1.5 1.5 0 0 1 1.06 2.56c-.4.4-.56.9-.44 1.4.16.66.86 1.04 1.7 1.04C17.53 22 21 17.75 21 12.5 21 7.26 17.08 3 12 3Z" stroke-linejoin="round"/>

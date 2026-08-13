@@ -90,11 +90,43 @@ def test_site_preview_includes_owner_theme_picker(client, unique_email):
         assert f'"{theme_id}"' in html
 
 
-def test_public_page_never_shows_owner_theme_picker(client, unique_email):
+def test_public_page_shows_owner_theme_picker_when_owner_is_logged_in(client, unique_email):
+    """The mobile app's own "View page" button opens the real /p/<slug> URL directly
+    (not the session-only /site/preview route) once a page is published - see
+    mobile/app.js's openSitePreview/openLiveSite split - so the owner's own logged-in
+    session hitting this exact route must also get their theme picker, not just
+    /site/preview's unpublished-page fallback."""
     register_business_web(client, unique_email)
     business_id = database.business_by_contact_email(unique_email)[0]
     slug = f"live-{uuid.uuid4().hex[:8]}"
     database.upsert_business_page(business_id, slug, True, None, None)
+
+    html = client.get(f"/p/{slug}").get_data(as_text=True)
+    assert 'id="theme-fab"' in html
+    assert 'id="theme-panel"' in html
+
+
+def test_public_page_hides_theme_picker_from_anonymous_visitors(client, unique_email):
+    register_business_web(client, unique_email)
+    business_id = database.business_by_contact_email(unique_email)[0]
+    slug = f"live-{uuid.uuid4().hex[:8]}"
+    database.upsert_business_page(business_id, slug, True, None, None)
+
+    with client.session_transaction() as sess:
+        sess.clear()
+    html = client.get(f"/p/{slug}").get_data(as_text=True)
+    assert 'id="theme-fab"' not in html
+    assert 'id="theme-panel"' not in html
+
+
+def test_public_page_hides_theme_picker_from_a_different_logged_in_business(client, unique_email):
+    register_business_web(client, unique_email)
+    business_id = database.business_by_contact_email(unique_email)[0]
+    slug = f"live-{uuid.uuid4().hex[:8]}"
+    database.upsert_business_page(business_id, slug, True, None, None)
+
+    other_email = f"other-{unique_email}"
+    register_business_web(client, other_email)  # switches this client's session to the new business
 
     html = client.get(f"/p/{slug}").get_data(as_text=True)
     assert 'id="theme-fab"' not in html
