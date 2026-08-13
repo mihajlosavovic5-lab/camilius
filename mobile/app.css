@@ -874,6 +874,11 @@ input.tap-to-edit-field, textarea.tap-to-edit-field { cursor: pointer; backgroun
    applies, and back to 1 the instant it doesn't. */
 .button-tap-scale { transition: transform .12s ease; }
 .button-tap-scale:active { transform: scale(0.96); }
+/* Solid-primary buttons that opt into .button-tap-scale (e.g. Schedule's "Book" submit)
+   want the press-in/spring-back scale ONLY, not .button:active's gold flash layered on
+   top of it - same "just one form of tap feedback" reasoning as .button-secondary/
+   .button-google below. */
+.button.button-tap-scale:active { background: var(--primary); }
 /* Confirmation pulse for taps that kick off an async action (e.g. "View page" fetching
    the preview link) - :active alone barely shows since touchend fires almost immediately,
    long before the request resolves. JS re-triggers this class on every click (see
@@ -2199,8 +2204,11 @@ input.tap-to-edit-field, textarea.tap-to-edit-field { cursor: pointer; backgroun
 .schedule-slot-free {
     width: 100%; padding: 11px 12px; background: none; border: 1px dashed var(--border);
     color: var(--text-muted); text-align: center; font-family: inherit; cursor: pointer;
+    transition: transform .12s ease;
 }
-.schedule-slot-free:active { border-color: var(--primary); color: var(--primary-ink); background: var(--primary-light); }
+/* Tap feedback is a subtle zoom only - no color/border flash (previously turned amber
+   on every tap, which read as a state change rather than just "the tap registered"). */
+.schedule-slot-free:active { transform: scale(0.97); }
 .schedule-slot-past { padding: 11px 12px; border: 1px dashed var(--border); color: var(--text-muted); opacity: .55; text-align: center; }
 /* A slot swallowed by a longer appointment that started earlier (see api.py's
    covered_by) - reads as blocked/unavailable, not a free "Book" button, but distinct
