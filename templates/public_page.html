@@ -140,14 +140,17 @@
 
     /* --- One-time cascading entrance for the whole page on open - same fade/rise cadence
        as the mobile app's own .tab-reveal-item (Home/Profile/etc, played once when a tab
-       first opens): the top bar controls and hero (.load-reveal) and then every section
-       below them (.load-cascade) animate into place one after another, top to bottom,
-       instead of the whole page just snapping into view flat. Each element's
-       animation-delay is set server-side below, per element, rather than by JS after the
-       fact - it plays unconditionally from page load, so there's no IntersectionObserver
-       deciding this after paint, and no scroll-position/timing race for it to lose (the
-       "whole first screen snaps into place a beat after every open" bug this page used to
-       have - see the View Page screen recording - was exactly that kind of race).
+       first opens): the owner-only theme fab and chat fab, then the hero (.load-reveal),
+       then every section below it (.load-cascade) animate into place one after another,
+       top to bottom, instead of just snapping into view flat. The nav-menu button, top
+       bar title and language flag deliberately do NOT get this - they're the page's own
+       fixed chrome, expected on screen instantly rather than performing an entrance every
+       time. Each element's animation-delay is set server-side below, per element, rather
+       than by JS after the fact - it plays unconditionally from page load, so there's no
+       IntersectionObserver deciding this after paint, and no scroll-position/timing race
+       for it to lose (the "whole first screen snaps into place a beat after every open"
+       bug this page used to have - see the View Page screen recording - was exactly that
+       kind of race).
 
        .load-cascade (the sections) intentionally animates transform only, never opacity:
        a very fast fling straight down the page in the first ~1s after open could reach
@@ -155,8 +158,8 @@
        read as a blank/broken gap where real content should be (this is what the "cudna
        bela oblast" bug actually was) - transform-only keeps every section fully opaque
        and readable throughout, worst case briefly sitting a little lower than its resting
-       position, never blank. The top bar controls and hero (.load-reveal) don't carry
-       that risk - a visitor never scrolls to reach them, they're already the first thing
+       position, never blank. The theme/chat fabs and hero (.load-reveal) don't carry that
+       risk - a visitor never scrolls to reach them, they're already the first thing
        painted - so they get the fuller fade+rise treatment. --- */
     .load-reveal { animation: load-reveal .5s cubic-bezier(.22, .9, .32, 1.15) both; }
     @keyframes load-reveal {
@@ -2031,15 +2034,15 @@
 <body{% if hero_cta %} class="has-sticky-cta"{% endif %}>
 <div id="page-progress"></div>
 <div class="top-bar-fill" id="top-bar-fill"></div>
-<button type="button" class="nav-menu-btn load-reveal" id="nav-menu-btn" aria-label="Menu" aria-expanded="false" aria-controls="side-nav">
+<button type="button" class="nav-menu-btn" id="nav-menu-btn" aria-label="Menu" aria-expanded="false" aria-controls="side-nav">
     <span class="nav-menu-btn-bar"></span>
     <span class="nav-menu-btn-bar"></span>
     <span class="nav-menu-btn-bar"></span>
 </button>
 <div class="nav-menu-backdrop" id="nav-menu-backdrop"></div>
-<div class="top-bar-title load-reveal" style="animation-delay:60ms"{% if tagline %} data-i18n-content="tagline"{% endif %}><span class="title-main">{{ title_main }}</span>{% if title_sub %}<span class="title-sub">{{ title_sub }}</span>{% endif %}</div>
+<div class="top-bar-title"{% if tagline %} data-i18n-content="tagline"{% endif %}><span class="title-main">{{ title_main }}</span>{% if title_sub %}<span class="title-sub">{{ title_sub }}</span>{% endif %}</div>
 {% set current_lang = (page_languages | selectattr('code', 'equalto', content_language) | first) or page_languages[0] %}
-<button type="button" class="lang-btn load-reveal" id="lang-btn" aria-label="Change language" aria-haspopup="true" aria-expanded="false" style="animation-delay:120ms">
+<button type="button" class="lang-btn" id="lang-btn" aria-label="Change language" aria-haspopup="true" aria-expanded="false">
     <img class="lang-flag" id="lang-flag" src="{{ flag_data_uri(current_lang.flag) }}" alt="{{ current_lang.name }}">
     <span class="lang-chevron" aria-hidden="true">&#8964;</span>
 </button>
