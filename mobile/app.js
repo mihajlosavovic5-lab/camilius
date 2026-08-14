@@ -6514,7 +6514,8 @@ function mysiteUpdateAllFieldFades() {
     mysiteUpdateFieldFade(el("mysite-slug"));
     mysiteUpdateFieldFade(el("mysite-tagline-input"));
     mysiteUpdateFieldFade(el("mysite-about-input"));
-    mysiteUpdateFieldFade(el("mysite-address-input"));
+    // mysite-address-input is a hidden field now (see its own comment in index.html) -
+    // nothing to fade.
     // Every other tap-to-open-modal field (Profile's Your name/Contact email/Phone
     // number/social links, Schedule's Customer name/Service, and the dynamically
     // created Price list/Related services rows - see openFieldEditModal's own comment)
@@ -6544,12 +6545,10 @@ const MYSITE_FIELD_MODAL_FIELDS = {
     "mysite-slug": { control: "input", titleKey: "mysite.website.slug" },
     "mysite-tagline-input": { control: "input", titleKey: "mysite.website.taglineLabel" },
     "mysite-about-input": { control: "textarea", titleKey: "mysite.website.aboutLabel" },
-    "mysite-address-input": { control: "input", titleKey: "mysite.website.addressLabel" },
-    // Same underlying business_pages.address field as mysite-address-input above, shown
-    // again in Profile > Account (see index.html's own comment on it) - kept in sync with
-    // it by profile-address-input's own "input" listener further down, not through this
-    // shared modal's own field-config.
-    "profile-address-input": { control: "input", titleKey: "mysite.website.addressLabel" },
+    // Address (business_pages.address) is NOT in this map - it's a hidden field now (see
+    // its own comment in index.html), and its one visible home, Profile's
+    // profile-address-input, is directly editable with live suggestions
+    // (initAddressAutocomplete below) rather than this shared tap-to-edit modal.
     "book-customer-name": { control: "input", titleKey: "schedule.customerNamePlaceholder" },
     "book-service": { control: "input", titleKey: "schedule.servicePlaceholder" },
     "settings-name": { control: "input", titleKey: "settings.name" },
@@ -6774,16 +6773,19 @@ Object.keys(MYSITE_FIELD_MODAL_FIELDS).forEach((fieldId) => {
     el(fieldId).addEventListener("click", () => openMysiteFieldModal(fieldId));
 });
 
-// profile-address-input (Profile > Account) edits the same business_pages.address value
-// as My Site's own mysite-address-input, just from a second spot in the app - not a
-// second save path. Every edit (the shared modal above dispatches "input" on whichever
-// field it was opened for, see mysiteFieldModalSync) is mirrored onto the real
-// mysite-address-input and saved through My Site's own autosave, exactly as if it had
-// been typed there directly - #screen-profile's own delegated autosave (further up this
-// file) never sees this field change, since address is page content, not account data.
+// profile-address-input (Profile > Account) is the one visible field for
+// business_pages.address (My Site's own mysite-address-input is now just a hidden value
+// holder, see index.html) - directly typable, with the same live-suggestions dropdown
+// Sign up's own address field uses (initAddressAutocomplete, declared alongside it up
+// near registerHoursPicker). Every keystroke (typed directly, or a suggestion tapped -
+// see initAddressAutocomplete's own click handler, which dispatches "input" the same way)
+// is mirrored onto the hidden mysite-address-input and saved through My Site's own
+// autosave, exactly as if it had been typed there directly - #screen-profile's own
+// delegated autosave (further up this file) never sees this field change, since address
+// is page content, not account data.
+initAddressAutocomplete(el("profile-address-input"), el("profile-address-suggestions"));
 el("profile-address-input").addEventListener("input", () => {
     el("mysite-address-input").value = el("profile-address-input").value;
-    mysiteUpdateFieldFade(el("mysite-address-input"));
     updateMysiteSaveValidity();
 });
 

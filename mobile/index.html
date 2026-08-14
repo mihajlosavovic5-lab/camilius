@@ -1,5 +1,5 @@
 <!doctype html>
-<html data-bundle-version="d03c62ca499e" lang="en">
+<html data-bundle-version="9ef1cbfb16ae" lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
@@ -16,7 +16,7 @@
 <link rel="preload" href="fonts/lora-latin-ext.woff2?v=e8c32fe92ded" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="fonts/familjen-grotesk-latin.woff2?v=e8c32fe92ded" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="fonts/familjen-grotesk-latin-ext.woff2?v=e8c32fe92ded" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="app.css?v=d03c62ca499e">
+<link rel="stylesheet" href="app.css?v=9ef1cbfb16ae">
 </head>
 <body>
 
@@ -971,10 +971,13 @@
           <textarea id="mysite-about-input" rows="1" maxlength="2000" placeholder=" " readonly></textarea>
           <label for="mysite-about-input" data-i18n="mysite.website.aboutLabel">About</label>
         </div>
-        <div class="floating-field">
-          <input type="text" id="mysite-address-input" placeholder=" " maxlength="200" readonly>
-          <label for="mysite-address-input" data-i18n="mysite.website.addressLabel">Address</label>
-        </div>
+        <!-- Address now lives only in Profile > Account (profile-address-input, directly
+             editable with live suggestions there - see app.js's initAddressAutocomplete)
+             rather than duplicated here too. This hidden field is purely the value the
+             existing My Site save flow (serializeMysiteForm/triggerMysiteAutosave) already
+             reads/writes - profile-address-input's own "input" listener keeps it mirrored,
+             see app.js. -->
+        <input type="hidden" id="mysite-address-input">
         <button type="button" id="mysite-view-page-btn" class="button button-secondary button-primary-outline button-full button-tap-scale hidden" data-i18n="mysite.website.viewPage">View page</button>
         <div class="settings-row hidden" id="mysite-theme-select-row" style="margin-top:14px; border-bottom:none;">
           <span data-i18n="settings.page.design">Design</span>
@@ -1318,16 +1321,19 @@
           <button type="button" class="button button-secondary" id="settings-phone-verify-code-submit" data-i18n="verifyPending.verify">Verify</button>
         </div>
 
-        <!-- Same business_pages.address field as My Site's own mysite-address-input
-             (index.html further up) - shown again here, right under Phone number, since
-             that's where an owner actually looks for it. Kept in sync with the My Site
-             field and saved through that same page-save path (see profile-address-input's
-             own "input" listener in app.js), not this section's own account-settings save -
+        <!-- The only place the business_pages.address field is shown now (My Site's own
+             mysite-address-input above is a hidden mirror - see that comment) - directly
+             editable (unlike this section's readonly/tap-to-edit-modal fields above) with
+             live suggestions as you type, same OSM-backed autocomplete as Sign up's own
+             address field (app.js's initAddressAutocomplete). Kept in sync with the hidden
+             My Site field and saved through that same page-save path (see this field's own
+             "input" listener in app.js), not this section's own account-settings save -
              address is public-page content, not account data. -->
         <div class="floating-field">
-          <input type="text" id="profile-address-input" class="tap-to-edit-field" placeholder=" " maxlength="200" readonly>
+          <input type="text" id="profile-address-input" placeholder=" " maxlength="200" autocomplete="off">
           <label for="profile-address-input" data-i18n="mysite.website.addressLabel">Address</label>
         </div>
+        <div class="address-suggest-list hidden" id="profile-address-suggestions"></div>
       </div>
 
       <div class="profile-section">
@@ -1837,8 +1843,8 @@
   </button>
 </nav>
 
-<script src="i18n.js?v=d03c62ca499e"></script>
-<script src="hours-picker.js?v=d03c62ca499e"></script>
-<script src="app.js?v=d03c62ca499e"></script>
+<script src="i18n.js?v=9ef1cbfb16ae"></script>
+<script src="hours-picker.js?v=9ef1cbfb16ae"></script>
+<script src="app.js?v=9ef1cbfb16ae"></script>
 </body>
 </html>
