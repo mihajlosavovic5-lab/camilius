@@ -4560,6 +4560,32 @@ window.pageOverlay = (function () {
         goTo(current);
     }, { passive: true });
 
+    // Last-resort safety net, independent of which specific gesture caused it: this
+    // in-app browser is already documented above (and on .book-list further up this
+    // page) as unreliable about native touch/scroll handling, and touchmove's own
+    // e.preventDefault() (see above) is exactly the kind of thing that document already
+    // says gets ignored here sometimes. If native momentum/inertial scrolling ever
+    // slips through and keeps drifting viewport.scrollLeft *after* touchend/touchcancel
+    // have already fired and this carousel's own code has moved on - nothing above
+    // would ever notice, since every correction here is triggered by the next gesture
+    // starting, not by anything watching the position afterward. That reads as exactly
+    // what got reported: a card left stranded off-center that never recovers on its
+    // own, only once the visitor grabs the slider again. Debounced on "scroll" (fires
+    // for both native drift and this file's own scrollLeft writes - touchmove's drag
+    // clamp, animateScrollTo's own easing - so it only acts once things have been quiet
+    // for a bit) and gated on no drag/animation currently owning the position, so it
+    // never fights either of those - it only ever steps in for scrollLeft ending up
+    // somewhere neither of them put it.
+    var scrollWatchdog = null;
+    viewport.addEventListener("scroll", function () {
+        clearTimeout(scrollWatchdog);
+        scrollWatchdog = setTimeout(function () {
+            if (dragStartX !== null || animFrame !== null) return;
+            if (!slides[current]) return;
+            if (Math.abs(viewport.scrollLeft - targetScrollLeft(slides[current])) > 1) goTo(current);
+        }, 150);
+    }, { passive: true });
+
     function showToast(text) {
         toast.textContent = text;
         toast.classList.add("visible");
