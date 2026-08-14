@@ -1589,12 +1589,15 @@ body.auth {
 .field-inline-btn:hover, .field-inline-btn:focus-visible { border-color: var(--primary); color: var(--primary-ink); }
 .field-inline-btn:disabled { opacity: .6; cursor: default; }
 /* Caption + outline pill button pair ("New to Camilius?" / "Create account" on the
-   APK) replacing a plain text link for the register CTA. Margin/padding match the
-   APK's own .login-signup-divider (mobile/app.css) exactly, now that the phase-stack
-   fix above stops the card from padding this out with dead reserved space first. */
+   APK) replacing a plain text link for the register CTA. On the APK this divider sits
+   below .login-spacer (mobile/app.css - a flex:1 spacer that soaks up whatever's left
+   of the full screen height), which reads as a noticeably bigger gap above it than its
+   own 14px padding-top alone suggests. The web card has no equivalent flexible spacer
+   to fill (it's sized to its content, not the screen), so that extra breathing room is
+   added here directly as margin-top instead. */
 .auth-divider {
     text-align: center; font-size: 13.5px; font-weight: 600; color: var(--text-muted);
-    margin: 0 0 10px; padding-top: 14px; border-top: 1px solid var(--border);
+    margin: 40px 0 10px; padding-top: 14px; border-top: 1px solid var(--border);
 }
 /* The "or" between "Continue with Google" and "Continue with email" - a bigger, bolder
    word flanked by short lines on each side, rather than .auth-divider's single line above
