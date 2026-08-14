@@ -565,3 +565,107 @@ def test_saving_the_page_via_the_web_form_triggers_a_background_pretranslate(cli
         "tagline": "Fresh cuts daily", "about": "We opened in 2019.",
     })
     assert calls == [business_id]
+
+
+# --- translate_page.ui_translation_rejection_reason / translate_ui_strings /
+# app._ui_strings_for_language - reproduces the reported bug: a business's public page
+# chrome (nav labels/section headings, PAGE_UI_STRINGS) is translated and cached once per
+# language, shared across every business, forever (see database.upsert_ui_translation). A
+# response that left just one key - "heading_hours" ("Working hours") - copied through
+# untranslated used to pass the old missing/empty-only check, get cached, and then serve
+# that same untranslated "Working hours" heading to every business and visitor in that
+# language forever, even though the page's nav ("nav_hours") and every other heading
+# translated correctly. ---
+
+def test_ui_translation_rejection_reason_none_for_a_fully_translated_result():
+    ui = {key: f"[sr] {value}" for key, value in translate_page.PAGE_UI_STRINGS.items()}
+    assert translate_page.ui_translation_rejection_reason(ui) is None
+
+
+def test_ui_translation_rejection_reason_flags_a_missing_key():
+    ui = {key: f"[sr] {value}" for key, value in translate_page.PAGE_UI_STRINGS.items()}
+    ui["chat_send"] = ""
+    assert "chat_send" in translate_page.ui_translation_rejection_reason(ui)
+
+
+def test_ui_translation_rejection_reason_flags_a_long_key_left_untranslated():
+    # Reproduces the exact reported bug: every key translated except "heading_hours",
+    # which came back byte-for-byte identical to its English source.
+    ui = {key: f"[sr] {value}" for key, value in translate_page.PAGE_UI_STRINGS.items()}
+    ui["heading_hours"] = translate_page.PAGE_UI_STRINGS["heading_hours"]
+    reason = translate_page.ui_translation_rejection_reason(ui)
+    assert reason is not None
+    assert "heading_hours" in reason
+
+
+def test_ui_translation_rejection_reason_ignores_a_short_key_coincidentally_unchanged():
+    # Short, generic words ("Home", "Send", ...) can legitimately come back identical in
+    # another language - only long enough phrases are a reliable "not actually
+    # translated" signal (see _UI_ECHO_MIN_LENGTH's own comment).
+    ui = {key: f"[sr] {value}" for key, value in translate_page.PAGE_UI_STRINGS.items()}
+    ui["nav_home"] = translate_page.PAGE_UI_STRINGS["nav_home"]
+    assert translate_page.ui_translation_rejection_reason(ui) is None
+
+
+def test_translate_ui_strings_retries_after_one_key_comes_back_untranslated(monkeypatch):
+    bad_ui = dict(translate_page.PAGE_UI_STRINGS)
+    bad_ui.update({key: f"[sr] {value}" for key, value in translate_page.PAGE_UI_STRINGS.items() if key != "heading_hours"})
+    good_ui = {key: f"[sr] {value}" for key, value in translate_page.PAGE_UI_STRINGS.items()}
+
+    def bad_response(**kwargs):
+        content = json.dumps(bad_ui)
+        return type("R", (), {"choices": [type("C", (), {"message": type("M", (), {"content": content})()})()]})()
+
+    def good_response(**kwargs):
+        content = json.dumps(good_ui)
+        return type("R", (), {"choices": [type("C", (), {"message": type("M", (), {"content": content})()})()]})()
+
+    attempts = [bad_response, good_response]
+    monkeypatch.setattr(translate_page.client.chat.completions, "create", lambda **kwargs: attempts.pop(0)(**kwargs))
+
+    result = translate_page.translate_ui_strings("sr")
+
+    assert result == good_ui
+    assert attempts == []  # both attempts were consumed - it really did retry
+
+
+def test_ui_strings_for_language_reruns_the_model_when_the_cached_row_left_a_key_untranslated(monkeypatch):
+    # A row cached before ui_translation_rejection_reason's echo check existed (or that
+    # slipped past it) must not keep serving the same "Working hours" heading to every
+    # business in Serbian forever - the same self-healing already applied to page-content
+    # translations (see test_translate_endpoint_reruns_the_model_when_the_cached_row_echoed_
+    # the_source above), extended to this separately-cached, business-agnostic chrome.
+    stale_ui = dict(translate_page.PAGE_UI_STRINGS)
+    stale_ui.update({key: f"[sr] {value}" for key, value in translate_page.PAGE_UI_STRINGS.items() if key != "heading_hours"})
+    database.upsert_ui_translation("sr", json.dumps(stale_ui))
+
+    fresh_ui = {key: f"[sr] {value}" for key, value in translate_page.PAGE_UI_STRINGS.items()}
+    calls = []
+
+    def fake_translate(lang):
+        calls.append(lang)
+        return fresh_ui
+
+    monkeypatch.setattr(translate_page, "translate_ui_strings", fake_translate)
+
+    result = app_module._ui_strings_for_language("sr")
+
+    assert result == fresh_ui
+    assert calls == ["sr"]
+    # The regenerated result overwrote the stale row - a later call is served from cache
+    # again, without a second model call.
+    result_again = app_module._ui_strings_for_language("sr")
+    assert result_again == fresh_ui
+    assert calls == ["sr"]
+
+
+def test_ui_strings_for_language_trusts_an_already_good_cached_row(monkeypatch):
+    good_ui = {key: f"[sr] {value}" for key, value in translate_page.PAGE_UI_STRINGS.items()}
+    database.upsert_ui_translation("sr", json.dumps(good_ui))
+
+    def fake_translate(lang):
+        raise AssertionError("should not re-translate an already-usable cached row")
+
+    monkeypatch.setattr(translate_page, "translate_ui_strings", fake_translate)
+
+    assert app_module._ui_strings_for_language("sr") == good_ui

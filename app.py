@@ -2671,9 +2671,19 @@ def _ui_strings_for_language(lang):
     cached = get_ui_translation(lang)
     if cached is not None:
         try:
-            return json.loads(cached)
+            parsed = json.loads(cached)
         except (TypeError, json.JSONDecodeError):
-            pass
+            parsed = None
+        # A cache hit only short-circuits the model call when it's still usable - see
+        # translate_page.ui_translation_rejection_reason's own docstring for the bug this
+        # guards against: a bad translation (one key left untranslated, e.g. "heading_hours"
+        # staying "Working hours" in an otherwise-correct Serbian row) that slipped past the
+        # old missing/empty-only check once would otherwise stay cached, and so wrong for
+        # every business and visitor in that language, forever. Falling through to a fresh
+        # translate_ui_strings call below (which re-upserts on success) self-heals a row
+        # like that the next time anyone requests it, instead of needing a manual DB fix.
+        if parsed is not None and translate_page.ui_translation_rejection_reason(parsed) is None:
+            return parsed
     try:
         result = translate_page.translate_ui_strings(lang)
     except ValueError:

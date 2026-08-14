@@ -388,6 +388,45 @@ surrounding braces.
 
 Respond with plain text values only, no markdown formatting."""
 
+# Minimum source-string length (after stripping) before an unchanged PAGE_UI_STRINGS value
+# counts as a suspected echo in ui_translation_rejection_reason below - short entries
+# ("Home", "Send", "Location", ...) can legitimately come back identical in another
+# language (a loanword, or just a short word that happens to spell the same), so only
+# longer phrases - where a coincidental identical translation is effectively impossible -
+# are used as a reliable "the model didn't actually translate this" signal. Mirrors
+# translate_page.py's own _ECHO_CHECK_MIN_LENGTH/_ECHO_SIMILARITY_THRESHOLD reasoning for
+# "about", scoped down here to a plain post-strip equality check since these values are
+# copied straight from the English source when they echo, not merely close to it.
+_UI_ECHO_MIN_LENGTH = 10
+
+
+def ui_translation_rejection_reason(result):
+    """None if `result` (shaped like translate_ui_strings' own return value, or a
+    previously cached ui_string_translations row rebuilt to that shape) is usable;
+    otherwise a short human-readable string saying which check it failed, for
+    diagnostics. Rejects a missing/empty value for any PAGE_UI_STRINGS key, and also -
+    unlike the original version of this check - a value left as an unchanged copy of its
+    English source for any key long enough that a coincidental identical translation is
+    effectively impossible (see _UI_ECHO_MIN_LENGTH above). That second check exists
+    because gpt-4o-mini was observed leaving one single key ("heading_hours": "Working
+    hours") copied through untranslated for a specific language while every other key
+    (including the same section's own "nav_hours") translated correctly - a missing/empty
+    check alone never catches that, and since translate_ui_strings' result is cached
+    forever per language (see database.upsert_ui_translation), a single bad key like that
+    used to stay wrong for every business and every visitor in that language until
+    someone noticed and manually fixed the cached row."""
+    missing = [key for key in PAGE_UI_STRINGS if not (result.get(key) or "").strip()]
+    if missing:
+        return f"missing/empty keys: {missing[:5]}"
+    echoed = [
+        key for key, source in PAGE_UI_STRINGS.items()
+        if len(source.strip()) >= _UI_ECHO_MIN_LENGTH
+        and (result.get(key) or "").strip().casefold() == source.strip().casefold()
+    ]
+    if echoed:
+        return f"keys left untranslated (identical to English source): {echoed[:5]}"
+    return None
+
 
 def translate_ui_strings(lang):
     """PAGE_UI_STRINGS (the page's own fixed chrome - nav labels, section headings,
@@ -398,11 +437,11 @@ def translate_ui_strings(lang):
     about-echo rejection (translation_rejection_reason) exists precisely to catch
     business prose that LOOKS untranslated, and "about" translated into the language
     it's already written in always looks exactly like that by definition. These are
-    short, generic, business-agnostic strings instead, with no equivalent echo risk
-    worth guarding against - a missing/empty required key is the only failure mode
-    checked for here. Raises ValueError the same way translate_page_content does if
-    every attempt fails; the caller (app.py) is expected to fall back to plain English
-    chrome on failure rather than block rendering the page over this."""
+    short, generic, business-agnostic strings instead - see ui_translation_rejection_reason
+    above for the (missing/empty key, or unchanged-from-English) checks applied to each
+    attempt. Raises ValueError the same way translate_page_content does if every attempt
+    fails; the caller (app.py) is expected to fall back to plain English chrome on failure
+    rather than block rendering the page over this."""
     lang_name = LANGUAGES.get(lang, {}).get("name", lang)
     messages = [
         {"role": "system", "content": _UI_TRANSLATE_SYSTEM_PROMPT.format(lang=lang_name)},
@@ -432,9 +471,9 @@ def translate_ui_strings(lang):
         except json.JSONDecodeError as error:
             last_reason = f"model returned invalid JSON: {error}"
             continue
-        missing = [key for key in PAGE_UI_STRINGS if not (result.get(key) or "").strip()]
-        if not missing:
+        rejection_reason = ui_translation_rejection_reason(result)
+        if rejection_reason is None:
             return result
-        last_reason = f"missing/empty keys: {missing[:5]}"
+        last_reason = rejection_reason
 
     raise ValueError(f"model returned an unusable ui translation after {_MAX_TRANSLATE_ATTEMPTS} attempts: {last_reason}")
