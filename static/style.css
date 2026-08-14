@@ -1537,6 +1537,24 @@ body.auth {
    screen fills toward the bottom (see .login-spacer in mobile/app.css), even though the
    APK has no equivalent footer of its own to compare directly. */
 .auth-login .auth-wrapper { justify-content: flex-end; }
+/* The APK's own login screen (mobile/app.css) runs noticeably bigger/looser than the
+   web version did: a 76px logo (vs 64px here), a 23px wordmark (vs 21px), 26px side
+   margins (vs 16px), and buttons with more vertical padding (13px vs 10px) plus their
+   own 18px margin-top between them. Matched (and in places nudged a bit past, since
+   "increase" was the actual ask) rather than left at the tighter desktop-derived sizes
+   the rest of the site uses - scoped to .auth-login only, everywhere else keeps them. */
+.auth-login .auth-wrapper { padding-left: 24px; padding-right: 24px; }
+.auth-login .auth-brand { margin-bottom: 32px; }
+.auth-login .auth-brand .brand-mark { width: 76px; height: 76px; }
+.auth-login .auth-brand .brand-name { font-size: 24px; }
+.auth-login .auth-tagline { font-size: 16.5px; }
+.auth-login .auth-choice .button,
+.auth-login .auth-form-wrap .button,
+.auth-login .auth-card > .button-primary-outline {
+    padding: 14px 22px; font-size: 17px;
+}
+.auth-login .auth-or-divider { margin: 22px 0 10px; font-size: 16px; }
+.auth-login .auth-divider { font-size: 14.5px; }
 /* Choice <-> email-form swap slides instead of an instant cut - same feel as the mobile
    app's own screen-to-screen navigation. Whichever panel is INACTIVE is pulled out of
    flow (position: absolute, sized to this wrapper via inset: 0) so the card always hugs
