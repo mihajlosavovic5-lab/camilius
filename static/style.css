@@ -486,8 +486,18 @@ html { scrollbar-gutter: stable; }
    a subpixel rounding edge case) should just get clipped here rather than surface as a
    draggable strip of blank page past the real content, with its own scroll thumb at
    the bottom. Any element that DOES need its own horizontal scroll (wide tables, code
-   blocks, etc.) sets overflow-x on its own inner wrapper, so this doesn't affect those. */
-html, body { overflow-x: hidden; max-width: 100%; }
+   blocks, etc.) sets overflow-x on its own inner wrapper, so this doesn't affect those.
+   Only on html, not body: setting it on body too made body's own (forced-auto, see the
+   overflow shorthand spec) overflow-y independently establish body as its own nested
+   scroll container instead of the propagation-to-viewport case, which every top offset
+   anchored off --install-banner-h (.navbar, #lp-header, the language flag/hamburger)
+   assumes it's positioned against. Nesting that scroll container inside the viewport's
+   own meant .navbar's sticky `top` got measured against body's padding box - which
+   itself already carries the same --install-banner-h as its padding-top (see body{}
+   below) - double-applying the install banner's height and shoving the whole navbar
+   (brand included) down an extra banner-height while the banner was showing. */
+html { overflow-x: hidden; max-width: 100%; }
+body { max-width: 100%; }
 
 body {
     margin: 0;
