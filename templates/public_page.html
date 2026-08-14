@@ -1686,12 +1686,20 @@
         overflow: hidden;
     }
     .theme-slider { position: relative; }
-    .theme-slider-viewport {
-        overflow-x: auto;
-        overflow-y: hidden;
-        scrollbar-width: none;
-    }
-    .theme-slider-viewport::-webkit-scrollbar { display: none; }
+    /* overflow: clip, not overflow-x: auto - see the JS's setOffset()/trackOffset
+       comment for why this carousel positions .theme-slider-track with a plain JS-
+       driven transform instead of the scrollLeft-based approach .photo-slider-viewport
+       further up this page still uses: a real native-scrollable viewport gives the
+       in-app browser's own momentum/inertial scrolling something to act on, which is
+       exactly what was fighting every scrollLeft write below. Deliberately clip, not
+       hidden - verified directly (headless-browser harness, forcing
+       viewport.scrollLeft after the fact the way native momentum would) that hidden
+       still leaves a live, JS-settable scroll offset that visibly shifts the track
+       out from under its own transform if anything - this WebView's own native
+       scrolling, a stray extension, whatever - ever writes to it; clip removes the
+       scroll port entirely, so scrollLeft is permanently inert at 0 and there is
+       nothing left for any native scroll physics to grab, full stop. */
+    .theme-slider-viewport { overflow: clip; }
     .theme-slider-track { display: flex; gap: 14px; padding: 0 8px; }
     .theme-slide {
         flex: 0 0 68%;
@@ -4328,7 +4336,7 @@ window.pageOverlay = (function () {
     }
 
     // Center-distance math, like .photo-slider's own targetScrollLeft further up this
-    // page - the scrollLeft `el` needs to sit centered in the viewport, so the active
+    // page - the position `el` needs to sit centered in the viewport, so the active
     // card lands in the middle with a neighbor peeking on each side - but built from
     // offsetLeft/offsetWidth rather than getBoundingClientRect(). Unlike the photo
     // slider (always plainly on-screen), this carousel's very first positioning below
@@ -4337,12 +4345,34 @@ window.pageOverlay = (function () {
     // math read off that shrunk, not-yet-painted state and landed the deck off-center
     // until the visitor's first manual swipe recomputed it against the real geometry.
     // offsetLeft/offsetWidth reflect an element's plain layout box, unaffected by any
-    // transform on it or an ancestor, so this reads correctly however .theme-panel
-    // happens to be transformed at the moment. `el` and `viewport` share the same
-    // offsetParent (#theme-slider, the nearest position:relative ancestor of both), so
-    // their offsetLeft values are directly comparable.
-    function targetScrollLeft(el) {
+    // transform on it or an ancestor, so this reads correctly however .theme-panel or
+    // .theme-slider-track itself happens to be transformed at the moment. `el` and
+    // `viewport` share the same offsetParent (#theme-slider, the nearest
+    // position:relative ancestor of both), so their offsetLeft values are directly
+    // comparable.
+    function targetOffset(el) {
         return (el.offsetLeft - viewport.offsetLeft) + (el.offsetWidth - viewport.clientWidth) / 2;
+    }
+    // The deck's position is a plain JS number + a CSS transform on .theme-slider-track,
+    // not viewport.scrollLeft on a native-scrollable element (contrast .photo-slider-
+    // viewport further up this page, which still scrolls natively). Every earlier fix in
+    // this file's history (touchcancel leaving scrollLeft stranded, a cut-short animation
+    // settling off-center, a scroll-drift watchdog re-centering a card after native
+    // momentum kept nudging scrollLeft well after touchend had already fired) was this
+    // same root cause wearing a different hat: the in-app browser this page actually
+    // opens in is already documented above (see .book-list's own CSS comment) as
+    // unreliable about honoring touch-action/preventDefault, so a real overflow-x:auto
+    // viewport gives its native momentum/inertial scrolling something to grab and fight
+    // every scrollLeft write below with, and there's no reliable way from CSS/JS here to
+    // tell that native scrolling to stay off. A `translateX` on the track has no such
+    // native physics attached to it at all - .theme-slider-viewport is overflow: clip
+    // (see its CSS), not a scroll container at all, so there's nothing for the browser's
+    // own scroll machinery to ever take over. `trackOffset` is the single source of
+    // truth for the deck's position; setOffset() is the only thing allowed to write it.
+    var trackOffset = 0;
+    function setOffset(x) {
+        trackOffset = x;
+        track.style.transform = "translateX(" + (-x) + "px)";
     }
     // requestAnimationFrame + manual ease-out rather than scrollTo({behavior: "smooth"})
     // - see .photo-slider's own animateScrollTo comment further up this page: the in-app
@@ -4365,8 +4395,8 @@ window.pageOverlay = (function () {
     }
     function animateScrollTo(left, duration, onDone) {
         flushPendingPreview();
-        if (reduceMotion) { viewport.scrollLeft = left; if (onDone) onDone(); return; }
-        var startLeft = viewport.scrollLeft;
+        if (reduceMotion) { setOffset(left); if (onDone) onDone(); return; }
+        var startLeft = trackOffset;
         var delta = left - startLeft;
         var startTime = null;
         pendingOnDone = onDone;
@@ -4374,7 +4404,7 @@ window.pageOverlay = (function () {
             if (startTime === null) startTime = now;
             var t = Math.min(1, (now - startTime) / duration);
             var eased = 1 - Math.pow(1 - t, 3);
-            viewport.scrollLeft = startLeft + delta * eased;
+            setOffset(startLeft + delta * eased);
             if (t < 1) { animFrame = requestAnimationFrame(step); return; }
             animFrame = null;
             pendingOnDone = null;
@@ -4406,8 +4436,8 @@ window.pageOverlay = (function () {
     function goTo(i, instant) {
         i = Math.max(0, Math.min(slides.length - 1, i));
         setCurrent(i);
-        if (instant) { viewport.scrollLeft = targetScrollLeft(slides[i]); previewCurrentTheme(); }
-        else animateScrollTo(targetScrollLeft(slides[i]), 380, previewCurrentTheme);
+        if (instant) { setOffset(targetOffset(slides[i])); previewCurrentTheme(); }
+        else animateScrollTo(targetOffset(slides[i]), 380, previewCurrentTheme);
     }
     // At either end, step onto the adjacent clone instead of jumping straight to
     // goTo(0)/goTo(last) - same wrap-around technique as .photo-slider's own next()/
@@ -4417,8 +4447,8 @@ window.pageOverlay = (function () {
     // clones exist at all.
     function next() {
         if (slides.length > 1 && current === slides.length - 1) {
-            animateScrollTo(targetScrollLeft(track.children[cloneOffset + slides.length]), 380, function () {
-                viewport.scrollLeft = targetScrollLeft(slides[0]);
+            animateScrollTo(targetOffset(track.children[cloneOffset + slides.length]), 380, function () {
+                setOffset(targetOffset(slides[0]));
                 setCurrent(0);
                 previewCurrentTheme();
             });
@@ -4428,8 +4458,8 @@ window.pageOverlay = (function () {
     }
     function prev() {
         if (slides.length > 1 && current === 0) {
-            animateScrollTo(targetScrollLeft(track.children[cloneOffset - 1]), 380, function () {
-                viewport.scrollLeft = targetScrollLeft(slides[slides.length - 1]);
+            animateScrollTo(targetOffset(track.children[cloneOffset - 1]), 380, function () {
+                setOffset(targetOffset(slides[slides.length - 1]));
                 setCurrent(slides.length - 1);
                 previewCurrentTheme();
             });
@@ -4445,43 +4475,40 @@ window.pageOverlay = (function () {
     // each piece: the 10px/1.3-ratio axis lock, the preventDefault on a recognized drag
     // so release doesn't also fire a stray click on the card underneath, the 18px
     // threshold, and the wrap-around clones the drag bound below reaches through at
-    // either end).
-    var dragStartX = null, dragStartY = null, dragStartScroll = null, dragAxis = null;
+    // either end). Unlike that slider, this one drives a plain `trackOffset` + transform
+    // (see setOffset() above) instead of a native-scrollable viewport's scrollLeft, so
+    // there's no native momentum for the browser to keep applying once a touch ends -
+    // every position change is one of the setOffset()/animateScrollTo() calls below,
+    // full stop.
+    var dragStartX = null, dragStartY = null, dragStartOffset = null, dragAxis = null;
     var dragMin = null, dragMax = null;
     viewport.addEventListener("touchstart", function (e) {
         // flushPendingPreview() (not a bare cancelAnimationFrame) - a still-pending
         // animation here isn't always a plain goTo() whose onDone is just
         // previewCurrentTheme: next()/prev()'s wrap-around case (above) owes a
-        // scrollLeft snap onto the real first/last slide once its clone-animation
+        // setOffset() snap onto the real first/last slide once its clone-animation
         // lands. Cancelling animFrame alone left that snap sitting in pendingOnDone
         // uncleared - a *later* animateScrollTo() (from whatever this new drag turns
         // into) would flush it then instead, teleporting the deck back to slide 0/last
         // mid-navigation, after the user had already dragged somewhere else. Flushing
-        // here - before dragStartScroll is captured below - means any such snap lands
+        // here - before dragStartOffset is captured below - means any such snap lands
         // now, so this drag starts from the corrected position instead of having it
         // sprung on it later.
         flushPendingPreview();
         // Belt-and-braces on top of flushPendingPreview() itself: a plain (non-wrap)
-        // goTo()'s onDone is only previewCurrentTheme, which never touches scrollLeft -
+        // goTo()'s onDone is only previewCurrentTheme, which never touches trackOffset -
         // so cutting its easing animation off partway (the cancelAnimationFrame just
         // above, inside flushPendingPreview) can still leave the deck sitting at that
         // half-eased position even once flushed, even though `current`/the active dot
         // already read as the (correct) target that interrupted animation was heading
         // to (goTo sets `current` synchronously before its animation even starts).
-        // Whether that got corrected used to depend entirely on what this new touch
-        // turned into next - a drag ending in another animateScrollTo() masked it, but
-        // one recognized as a genuine vertical scroll (axis "y", which rightly never
-        // touches scrollLeft either) or too small/brief to ever pick an axis left it
-        // stuck off-center instead, looking "settled" on the wrong position because the
-        // label/dot already matched `current`. Snapping straight to `current`'s own
-        // target here - before this new drag even begins - is a no-op whenever nothing
-        // was actually interrupted (scrollLeft is already sitting exactly there), so
-        // it's safe to run unconditionally rather than only patch the specific
-        // way-it-later-resolves paths that turned up so far.
-        if (slides[current]) viewport.scrollLeft = targetScrollLeft(slides[current]);
+        // Snapping straight to `current`'s own target here - before this new drag even
+        // begins - is a no-op whenever nothing was actually interrupted (trackOffset is
+        // already sitting exactly there), so it's safe to run unconditionally.
+        if (slides[current]) setOffset(targetOffset(slides[current]));
         dragStartX = e.touches[0].clientX;
         dragStartY = e.touches[0].clientY;
-        dragStartScroll = viewport.scrollLeft;
+        dragStartOffset = trackOffset;
         dragAxis = null;
         // Bounds the drag itself (not just where it snaps to on release) to the
         // immediate neighbor on either side - through the wrap-around clones at either
@@ -4491,10 +4518,10 @@ window.pageOverlay = (function () {
         if (slides.length > 1) {
             var prevChild = current === 0 ? track.children[cloneOffset - 1] : slides[current - 1];
             var nextChild = current === slides.length - 1 ? track.children[cloneOffset + slides.length] : slides[current + 1];
-            dragMin = targetScrollLeft(prevChild);
-            dragMax = targetScrollLeft(nextChild);
+            dragMin = targetOffset(prevChild);
+            dragMax = targetOffset(nextChild);
         } else {
-            dragMin = dragMax = dragStartScroll;
+            dragMin = dragMax = dragStartOffset;
         }
     }, { passive: true });
     viewport.addEventListener("touchmove", function (e) {
@@ -4507,24 +4534,24 @@ window.pageOverlay = (function () {
         }
         if (dragAxis === "y") return;
         e.preventDefault();
-        viewport.scrollLeft = Math.max(dragMin, Math.min(dragMax, dragStartScroll - dx));
+        setOffset(Math.max(dragMin, Math.min(dragMax, dragStartOffset - dx)));
     }, { passive: false });
     viewport.addEventListener("touchend", function (e) {
         if (dragStartX === null) return;
         var axis = dragAxis;
-        var scrolled = viewport.scrollLeft - dragStartScroll;
+        var scrolled = trackOffset - dragStartOffset;
         dragStartX = null;
         dragAxis = null;
         if (axis !== null) e.preventDefault();
-        // Only a real vertical gesture (touchmove never touched scrollLeft, nothing to
+        // Only a real vertical gesture (touchmove never touched trackOffset, nothing to
         // settle) skips outright. A touch too brief/small to ever pick an axis (axis
         // still null here) used to bail out the same way "y" does - but touchstart's
-        // flushPendingPreview() above can leave viewport.scrollLeft wherever a just-
-        // cancelled animation had reached mid-flight, not the centered target it was
-        // easing toward (a plain goTo()'s onDone only re-applies the theme, it doesn't
-        // re-snap scrollLeft). Bailing here left that half-eased position stuck - a
-        // card visibly off-center, no longer settling on its own, until some later
-        // drag happened to pass through it. Falling through instead - same as any
+        // flushPendingPreview() above can leave trackOffset wherever a just-cancelled
+        // animation had reached mid-flight, not the centered target it was easing
+        // toward (a plain goTo()'s onDone only re-applies the theme, it doesn't re-snap
+        // trackOffset). Bailing here left that half-eased position stuck - a card
+        // visibly off-center, no longer settling on its own, until some later drag
+        // happened to pass through it. Falling through instead - same as any
         // sub-threshold swipe - re-centers on `current` via goTo() below; `scrolled` is
         // 0 in the null case (touchmove never ran), so this can't misfire as an
         // unintended next()/prev().
@@ -4540,57 +4567,21 @@ window.pageOverlay = (function () {
     // handling, and firing touchcancel *instead of* touchend mid-drag (the OS/WebView
     // yanking the gesture away - an edge-navigation swipe, a system UI interruption,
     // its own scroll/zoom machinery deciding to take over) is a standard, spec-legal way
-    // for that to show up. Without this listener, that left `dragStartX` non-null forever
-    // and, worse, left viewport.scrollLeft frozen at whatever raw mid-drag position
+    // for that to show up. Without this listener, that left `dragStartX` non-null
+    // forever and, worse, left trackOffset frozen at whatever raw mid-drag position
     // touchmove's last write had reached - not a card boundary, not centered on
     // anything, just wherever the finger happened to be - with no further correction
-    // until the visitor managed to grab the slider again. Reproduced directly: a drag
-    // cut off by touchcancel left the active (labeled/dotted-as-current) card sitting
-    // at a scrollLeft ~85px off its true center - visually a card jammed off to one
-    // side, checkmark and label still reading correctly because those never depended on
-    // scrollLeft in the first place. goTo(current) (not interpreting `scrolled` as a
-    // real swipe) is deliberate - a cancelled gesture's distance-so-far says nothing
-    // about which card the visitor actually meant to land on, so this only ever
-    // re-centers on whichever card was already current, the same safe fallback
-    // touchend's own sub-threshold branch already uses.
+    // until the visitor managed to grab the slider again. goTo(current) (not
+    // interpreting the distance dragged so far as a real swipe) is deliberate - a
+    // cancelled gesture's distance-so-far says nothing about which card the visitor
+    // actually meant to land on, so this only ever re-centers on whichever card was
+    // already current, the same safe fallback touchend's own sub-threshold branch
+    // already uses.
     viewport.addEventListener("touchcancel", function () {
         if (dragStartX === null) return;
         dragStartX = null;
         dragAxis = null;
         goTo(current);
-    }, { passive: true });
-
-    // Last-resort safety net, independent of which specific gesture caused it: this
-    // in-app browser is already documented above (and on .book-list further up this
-    // page) as unreliable about native touch/scroll handling, and touchmove's own
-    // e.preventDefault() (see above) is exactly the kind of thing that document already
-    // says gets ignored here sometimes. If native momentum/inertial scrolling ever
-    // slips through and keeps drifting viewport.scrollLeft *after* touchend/touchcancel
-    // have already fired and this carousel's own code has moved on - nothing above
-    // would ever notice, since every correction here is triggered by the next gesture
-    // starting, not by anything watching the position afterward. That reads as exactly
-    // what got reported: a card left stranded off-center that never recovers on its
-    // own, only once the visitor grabs the slider again. Debounced on "scroll" (fires
-    // for both native drift and this file's own scrollLeft writes - touchmove's drag
-    // clamp, animateScrollTo's own easing - so it only acts once things have been quiet
-    // for a bit) and gated on no drag/animation currently owning the position, so it
-    // never fights either of those - it only ever steps in for scrollLeft ending up
-    // somewhere neither of them put it. goTo(current, true) - instant, not the plain
-    // animated goTo(current) this first shipped with - is deliberate: the animated form
-    // re-plays the same 380ms glide a real navigation uses, which on a card that had
-    // already drifted off-center reads as its own visible "slides left, then eases back
-    // to center" glitch, i.e. exactly the bug this watchdog exists to make disappear,
-    // just delayed behind this debounce instead of the drift itself being visible.
-    // Snapping straight to the target the instant a genuine drift is caught keeps this a
-    // correction nobody sees rather than a second, self-inflicted animation.
-    var scrollWatchdog = null;
-    viewport.addEventListener("scroll", function () {
-        clearTimeout(scrollWatchdog);
-        scrollWatchdog = setTimeout(function () {
-            if (dragStartX !== null || animFrame !== null) return;
-            if (!slides[current]) return;
-            if (Math.abs(viewport.scrollLeft - targetScrollLeft(slides[current])) > 1) goTo(current, true);
-        }, 150);
     }, { passive: true });
 
     function showToast(text) {
@@ -4618,11 +4609,11 @@ window.pageOverlay = (function () {
     //
     // One silent retry, half a second later, before ever bothering the owner with the
     // toast - the same in-app browser already documented above as unreliable about
-    // touch/scroll (see the scroll-drift watchdog) is exactly the kind of environment
-    // where a save fired right as a swipe lands can drop for a transient reason (a
-    // request briefly starved while the WebView is still busy with the gesture, a
-    // one-off network blip) rather than anything actually wrong with the theme or the
-    // owner's session - the first "Couldn't save" toast landing mid-browse, for a
+    // touch/scroll is exactly the kind of environment where a save fired right as a
+    // swipe lands can drop for a transient reason (a request briefly starved while the
+    // WebView is still busy with the gesture, a one-off network blip) rather than
+    // anything actually wrong with the theme or the owner's session - the first
+    // "Couldn't save" toast landing mid-browse, for a
     // request that would have gone through a moment later anyway, was what got reported.
     // Guarded on selectedId still matching themeId at both the retry and the final
     // failure: if the owner has since swiped on to a different card, that later card's
@@ -4664,7 +4655,7 @@ window.pageOverlay = (function () {
         // dismiss-on-open-elsewhere below) shouldn't leave whichever card browsing
         // last landed on unsaved just because its settle animation hadn't finished
         // yet - flush it the same way a fresh navigation preempting an old one does.
-        // Also re-syncs scrollLeft to `current`'s own target, same reasoning as the
+        // Also re-syncs trackOffset to `current`'s own target, same reasoning as the
         // touchstart handler above - flushPendingPreview() alone doesn't do this for a
         // plain (non-wrap) goTo(), and reopening the panel later never re-centers it
         // itself (that only happens once, at page load - see goTo(initialIndex, true)
@@ -4672,7 +4663,7 @@ window.pageOverlay = (function () {
         // leave the deck stuck off-center the next time it's opened, not just this time.
         if (!value) {
             flushPendingPreview();
-            if (slides[current]) viewport.scrollLeft = targetScrollLeft(slides[current]);
+            if (slides[current]) setOffset(targetOffset(slides[current]));
         }
         open = value;
         if (open) window.pageOverlay.set("theme"); else window.pageOverlay.clear("theme");
