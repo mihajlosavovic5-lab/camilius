@@ -148,12 +148,27 @@
        blank/broken gap where real content should be (this is what the "cudna bela
        oblast" bug actually was). transform-only keeps every section fully opaque and
        readable at all times - worst case on a very fast scroll is it's briefly sitting
-       22px lower than its resting position, not blank. --- */
-    .reveal { transform: translateY(22px); transition: transform .6s cubic-bezier(.16, 1, .3, 1); }
-    .reveal.visible { transform: none; }
+       22px lower than its resting position, not blank.
+
+       Resting position (transform: none) is the CSS default here, deliberately - .pending
+       (not .reveal itself) is what applies the 22px starting offset, and the script below
+       only ever adds .pending to a section it has confirmed, via getBoundingClientRect,
+       is actually off-screen. Anything already on/near screen at load (the whole first
+       viewportful, not just the hero - see REVEAL_LEAD_PX in that script) never gets
+       .pending in the first place, so there is nothing for it to snap back from once the
+       script finishes loading and running - whatever paints first already IS its final
+       position. Doing it the other way around (offset by default, JS removing the offset
+       once it decides a section doesn't need it) is what used to make the entire first
+       screen visibly snap into place a beat after every page open, however long that
+       correction took to arrive on a given connection (see the View Page screen
+       recording) - a default that already-visible content might still need correcting is
+       the actual bug, not how fast the correction runs. --- */
+    .reveal { transition: transform .6s cubic-bezier(.16, 1, .3, 1); }
+    .reveal.pending { transform: translateY(22px); }
     @media (prefers-reduced-motion: reduce) {
         html { scroll-behavior: auto; }
-        .reveal { transform: none !important; transition: none !important; }
+        .reveal.pending { transform: none !important; }
+        .reveal { transition: none !important; }
         .lp-typing-dots span { animation: none !important; }
     }
 
@@ -2230,7 +2245,7 @@
     </nav>
 
     <div class="wrap">
-        <header class="page-header reveal" id="home">
+        <header class="page-header" id="home">
             {% if logo_url %}<img class="logo" src="{{ logo_url }}" alt="{{ business_name }} logo">{% endif %}
             {# The tagline reads as the headline (bold, large), falling back to
                business_name when no tagline is set - the business name never shows as
@@ -2249,7 +2264,7 @@
         </header>
 
         {% if hero_video_url %}
-        <video class="hero-video reveal" src="{{ hero_video_url }}" autoplay muted loop playsinline></video>
+        <video class="hero-video" src="{{ hero_video_url }}" autoplay muted loop playsinline></video>
         {% endif %}
 
         {% if about %}
@@ -3619,30 +3634,55 @@ window.pageOverlay = (function () {
         frame.addEventListener("load", function () { placeholder.classList.add("loaded"); }, { once: true });
     });
 
-    // Reveal-on-scroll for the header/CTA/each section - see landing.html's identical
-    // .lp-reveal/.lp-visible pattern (.reveal here is transform-only, not an opacity
-    // fade - see its own CSS comment for why). rootMargin is a large POSITIVE bottom
-    // value (not landing.html's -40px) so a section is marked "visible" - and starts its
-    // .6s slide-in transition - while it's still this much below the viewport, not only
-    // once it's already scrolled into view: on a fast fling the IntersectionObserver
-    // callback can lag behind the scroll itself, and without this lead time the slide-in
-    // would still be mid-transition (translated down from its resting position) for
-    // whatever section the fling lands on. A big lead margin means it's already finished
-    // settling into place well before a visitor - even one flicking fast - reaches it.
+    // Reveal-on-scroll for each section - see landing.html's identical .lp-reveal/
+    // .lp-visible pattern (.reveal here is transform-only, not an opacity fade - see its
+    // own CSS comment for why). The hero header/video deliberately carry no .reveal class
+    // at all (landing.html's own hero doesn't either) - they're the very first thing on
+    // screen, never actually "scrolled into view", so they should just render in their
+    // resting position from the first paint.
+    //
+    // Every OTHER .reveal section starts at rest too (see .reveal.pending's own CSS
+    // comment - resting is the default now, offset is the opt-in) - this pass is what
+    // opts a section INTO the 22px starting offset, and only for one already confirmed,
+    // via getBoundingClientRect, to be off-screen. REVEAL_LEAD_PX is the same lead
+    // distance the observer's own rootMargin below uses: anything within that distance of
+    // the viewport at load time is going to fire the observer's callback on its very
+    // first tick anyway, with no scrolling involved at all, so it never gets .pending
+    // added (and never needs correcting) in the first place - on a typical phone
+    // viewport that lead zone covers most of the page's first screenful, not just the
+    // hero. A section that's actually off-screen gets .pending now and is only ever
+    // un-pended once the observer below fires for real, so its very first paint is
+    // already mid-page, invisible to the visitor - there's no flash to cause there
+    // either. This is the fix for the whole page snapping/sliding into place a beat
+    // after every open (see the View Page screen recording): nothing on screen at load
+    // is ever in a state that needs correcting, so there's nothing left to snap.
+    var REVEAL_LEAD_PX = 600;
     var revealEls = document.querySelectorAll(".reveal");
     if ("IntersectionObserver" in window && !reduceMotion) {
+        // rootMargin is a large POSITIVE bottom value (not landing.html's -40px) so a
+        // pending section is un-pended - and starts its slide-in - while it's still this
+        // much below the viewport, not only once scrolled fully into view: on a fast
+        // fling the IntersectionObserver callback can lag behind the scroll itself, and
+        // without this lead time the slide-in would still be mid-transition for whatever
+        // section the fling lands on.
         var revealIo = new IntersectionObserver(function (entries) {
             entries.forEach(function (entry) {
                 if (entry.isIntersecting) {
-                    entry.target.classList.add("visible");
+                    entry.target.classList.remove("pending");
                     revealIo.unobserve(entry.target);
                 }
             });
-        }, { threshold: 0, rootMargin: "0px 0px 600px 0px" });
-        revealEls.forEach(function (el) { revealIo.observe(el); });
-    } else {
-        revealEls.forEach(function (el) { el.classList.add("visible"); });
+        }, { threshold: 0, rootMargin: "0px 0px " + REVEAL_LEAD_PX + "px 0px" });
+        revealEls.forEach(function (el) {
+            var rect = el.getBoundingClientRect();
+            if (rect.top < window.innerHeight + REVEAL_LEAD_PX && rect.bottom > 0) return;
+            el.classList.add("pending");
+            revealIo.observe(el);
+        });
     }
+    // No else branch needed for reduced-motion/no-IntersectionObserver: resting position
+    // is already the default with nothing pending, so every section is already exactly
+    // where it should be without this script doing anything at all.
 
     // Sticky bottom CTA bar (mobile only, see .sticky-cta-bar's own CSS comment) -
     // shown once the hero itself (#home, the same element .hero-cta lives in) scrolls
