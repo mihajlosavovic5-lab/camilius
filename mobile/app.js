@@ -6758,19 +6758,23 @@ el("mysite-field-modal-input").addEventListener("input", mysiteFieldModalSync);
 el("mysite-field-modal-textarea").addEventListener("input", mysiteFieldModalSync);
 el("mysite-field-modal-backdrop").addEventListener("click", closeMysiteFieldModal);
 
-// Tapping anywhere in the Web address/Headline/About editor's text always lands the
-// cursor at the very end of what's already typed, instead of wherever the tap happened
-// to land - so continuing to type just picks up where the text left off, the way a
-// "jump to the end" field is expected to behave rather than a plain text input. Handled
-// on click (fires after the browser's own mousedown-driven caret placement) so this
-// runs last and wins.
+// The tap that first opens the Web address/Headline/About editor's text lands the
+// cursor at the very end of what's already typed, instead of wherever that tap happened
+// to land - so continuing to type just picks up where the text left off. Only the tap
+// that focuses the field does this ("focus" only fires on that transition, not on every
+// click while it's already focused) - once in, further taps position the cursor exactly
+// where tapped like any normal text field, so it's still possible to edit mid-text.
+// Deferred a tick so it runs after the browser's own mousedown-driven caret placement
+// for that same tap, which would otherwise win and leave the cursor wherever tapped.
 function mysiteFieldModalCaretToEnd(event) {
     const field = event.currentTarget;
-    const end = field.value.length;
-    field.setSelectionRange(end, end);
+    setTimeout(() => {
+        const end = field.value.length;
+        field.setSelectionRange(end, end);
+    }, 0);
 }
-el("mysite-field-modal-input").addEventListener("click", mysiteFieldModalCaretToEnd);
-el("mysite-field-modal-textarea").addEventListener("click", mysiteFieldModalCaretToEnd);
+el("mysite-field-modal-input").addEventListener("focus", mysiteFieldModalCaretToEnd);
+el("mysite-field-modal-textarea").addEventListener("focus", mysiteFieldModalCaretToEnd);
 
 // Web address only - the fixed "https://.../p/" prefix (see MYSITE_SLUG_LINK_PREFIX
 // above) isn't itself an input, so tapping it did nothing: no keyboard, no scroll. A tap
