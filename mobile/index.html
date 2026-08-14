@@ -1,5 +1,5 @@
 <!doctype html>
-<html data-bundle-version="9ef1cbfb16ae" lang="en">
+<html data-bundle-version="dede00d53a85" lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
@@ -16,7 +16,7 @@
 <link rel="preload" href="fonts/lora-latin-ext.woff2?v=e8c32fe92ded" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="fonts/familjen-grotesk-latin.woff2?v=e8c32fe92ded" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="fonts/familjen-grotesk-latin-ext.woff2?v=e8c32fe92ded" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="app.css?v=9ef1cbfb16ae">
+<link rel="stylesheet" href="app.css?v=dede00d53a85">
 </head>
 <body>
 
@@ -394,6 +394,10 @@
         </button>
       </div>
       <textarea id="mysite-field-modal-textarea" class="mysite-field-modal-control hidden" rows="1"></textarea>
+      <!-- Address only (Profile's profile-address-input - see openFieldEditModal's own
+           mysiteFieldModalAddressActive toggle in app.js) - live OSM-backed suggestions
+           while typing, same address-suggest-list/-item as Sign up's own address field. -->
+      <div class="address-suggest-list hidden" id="mysite-field-modal-address-suggestions"></div>
     </div>
   </div>
 </div>
@@ -1322,18 +1326,20 @@
         </div>
 
         <!-- The only place the business_pages.address field is shown now (My Site's own
-             mysite-address-input above is a hidden mirror - see that comment) - directly
-             editable (unlike this section's readonly/tap-to-edit-modal fields above) with
-             live suggestions as you type, same OSM-backed autocomplete as Sign up's own
-             address field (app.js's initAddressAutocomplete). Kept in sync with the hidden
-             My Site field and saved through that same page-save path (see this field's own
-             "input" listener in app.js), not this section's own account-settings save -
+             mysite-address-input above is a hidden mirror - see that comment) - same
+             readonly/tap-to-edit-modal pattern as every other field in this section, so it
+             opens with the same zoom-in modal transition. That modal grows its own live
+             suggestions dropdown while this field is the one open in it (see
+             mysite-field-modal-address-suggestions/mysiteFieldModalAddressActive in
+             app.js) - same OSM-backed autocomplete as Sign up's own address field. Kept in
+             sync with the hidden My Site field and saved through that same page-save path
+             (see this field's own "input" listener in app.js, fired by the modal's own
+             sync-back-to-source mechanism), not this section's own account-settings save -
              address is public-page content, not account data. -->
         <div class="floating-field">
-          <input type="text" id="profile-address-input" placeholder=" " maxlength="200" autocomplete="off">
+          <input type="text" id="profile-address-input" class="tap-to-edit-field" placeholder=" " maxlength="200" readonly>
           <label for="profile-address-input" data-i18n="mysite.website.addressLabel">Address</label>
         </div>
-        <div class="address-suggest-list hidden" id="profile-address-suggestions"></div>
       </div>
 
       <div class="profile-section">
@@ -1843,8 +1849,8 @@
   </button>
 </nav>
 
-<script src="i18n.js?v=9ef1cbfb16ae"></script>
-<script src="hours-picker.js?v=9ef1cbfb16ae"></script>
-<script src="app.js?v=9ef1cbfb16ae"></script>
+<script src="i18n.js?v=dede00d53a85"></script>
+<script src="hours-picker.js?v=dede00d53a85"></script>
+<script src="app.js?v=dede00d53a85"></script>
 </body>
 </html>

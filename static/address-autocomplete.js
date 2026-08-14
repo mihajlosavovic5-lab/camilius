@@ -20,6 +20,7 @@ function initAddressAutocomplete(input, list) {
     let latestQuery = "";
 
     function hideList() {
+        list.classList.remove("visible");
         list.classList.add("hidden");
         list.innerHTML = "";
     }
@@ -42,7 +43,12 @@ function initAddressAutocomplete(input, list) {
             });
             list.appendChild(item);
         });
+        // "hidden" (display:none) comes off first, then "visible" (the actual fade/slide
+        // transition, see style.css) goes on a frame later - added in the same tick, the
+        // transition would have nothing to animate from since the element wasn't
+        // rendered yet to begin with.
         list.classList.remove("hidden");
+        requestAnimationFrame(() => list.classList.add("visible"));
     }
 
     function fetchSuggestions(query) {

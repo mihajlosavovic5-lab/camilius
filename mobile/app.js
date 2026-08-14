@@ -1083,14 +1083,26 @@ function createUpsellPicker(rowsContainerId, addButtonId) {
 // /api/address-suggest endpoint (OpenStreetMap Nominatim, see address_lookup.py's own
 // docstring) and debounce/stale-response-guard shape as the web version
 // (static/address-autocomplete.js), just plain fetch(API_BASE + ...) instead of that
-// file's relative fetch() - the mobile app is never same-origin with the API.
+// file's relative fetch() - the mobile app is never same-origin with the API. Profile's
+// own address field (profile-address-input) does NOT use this - it's edited through the
+// shared tap-to-edit modal instead, which grows its own separate copy of this same
+// dropdown behavior (see mysiteFieldModalAddressActive further down) since the modal's
+// one shared input is reused for many other fields this must stay off for.
 function initAddressAutocomplete(input, list) {
     if (!input || !list) return;
 
     let debounceTimer = null;
     let latestQuery = "";
+    // Picking a suggestion sets input.value programmatically, then dispatches a real
+    // "input" event so anything else listening on this field (there is none for
+    // register-address today, but the modal's own copy of this needs it - see below)
+    // still sees the change. Without this guard, that same dispatch would immediately
+    // re-trigger this listener and pop the list right back open a moment later, which is
+    // exactly the "not smooth, snaps back" glitch this once had.
+    let suppressNextFetch = false;
 
     function hideList() {
+        list.classList.remove("visible");
         list.classList.add("hidden");
         list.innerHTML = "";
     }
@@ -1107,13 +1119,19 @@ function initAddressAutocomplete(input, list) {
             item.className = "address-suggest-item";
             item.textContent = text;
             item.addEventListener("click", () => {
+                suppressNextFetch = true;
                 input.value = text;
-                hideList();
                 input.dispatchEvent(new Event("input", { bubbles: true }));
+                hideList();
             });
             list.appendChild(item);
         });
+        // "hidden" (display: none) comes off first, then "visible" (the actual
+        // opacity/transform transition, see app.css) goes on a frame later - added in
+        // the same tick, the fade would have nothing to animate from since the element
+        // wasn't rendered yet to begin with.
         list.classList.remove("hidden");
+        requestAnimationFrame(() => list.classList.add("visible"));
     }
 
     function fetchSuggestions(query) {
@@ -1131,6 +1149,7 @@ function initAddressAutocomplete(input, list) {
     }
 
     input.addEventListener("input", () => {
+        if (suppressNextFetch) { suppressNextFetch = false; return; }
         const query = input.value.trim();
         if (debounceTimer) clearTimeout(debounceTimer);
         if (query.length < 3) {
@@ -6545,10 +6564,12 @@ const MYSITE_FIELD_MODAL_FIELDS = {
     "mysite-slug": { control: "input", titleKey: "mysite.website.slug" },
     "mysite-tagline-input": { control: "input", titleKey: "mysite.website.taglineLabel" },
     "mysite-about-input": { control: "textarea", titleKey: "mysite.website.aboutLabel" },
-    // Address (business_pages.address) is NOT in this map - it's a hidden field now (see
-    // its own comment in index.html), and its one visible home, Profile's
-    // profile-address-input, is directly editable with live suggestions
-    // (initAddressAutocomplete below) rather than this shared tap-to-edit modal.
+    // profile-address-input (Profile > Account) - business_pages.address's one visible
+    // field now (mysite-address-input above is a hidden mirror, see its own comment in
+    // index.html). Opens this same modal like every other field here, which grows its
+    // own live-suggestions dropdown specifically while this is the field open in it -
+    // see mysiteFieldModalAddressActive/openFieldEditModal further down.
+    "profile-address-input": { control: "input", titleKey: "mysite.website.addressLabel" },
     "book-customer-name": { control: "input", titleKey: "schedule.customerNamePlaceholder" },
     "book-service": { control: "input", titleKey: "schedule.servicePlaceholder" },
     "settings-name": { control: "input", titleKey: "settings.name" },
@@ -6611,6 +6632,12 @@ function openFieldEditModal(sourceEl, titleText, { textarea: showTextarea = fals
     // slug alone. No other field gets any of this.
     const isSlug = sourceEl.id === "mysite-slug";
     inputRow.classList.toggle("mysite-field-modal-input-row-slug", isSlug);
+    // Address only - toggles the modal's own live-suggestions dropdown on/off for
+    // whichever field is open now (see mysiteFieldModalAddressActive's own comment).
+    // Always starts hidden/reset here regardless of which field this actually is, same
+    // as every other per-field-type reset in this function.
+    mysiteFieldModalAddressActive = sourceEl.id === "profile-address-input";
+    hideMysiteFieldModalAddressSuggestions();
     el("mysite-field-modal-slug-prefix").classList.toggle("hidden", !isSlug);
     el("mysite-field-modal-copy-btn").classList.toggle("hidden", !isSlug);
     if (isSlug) {
@@ -6664,6 +6691,8 @@ function closeMysiteFieldModal() {
     el("mysite-field-modal").classList.remove("open");
     el("mysite-field-modal-input").blur();
     el("mysite-field-modal-textarea").blur();
+    hideMysiteFieldModalAddressSuggestions();
+    mysiteFieldModalAddressActive = false;
     // Web address only - runs the availability check the moment the editor closes
     // (tapping the backdrop, below), instead of a separate "Check" button the owner had
     // to remember to tap themselves. Checked before mysiteFieldModalTargetEl is cleared
@@ -6775,18 +6804,89 @@ Object.keys(MYSITE_FIELD_MODAL_FIELDS).forEach((fieldId) => {
 
 // profile-address-input (Profile > Account) is the one visible field for
 // business_pages.address (My Site's own mysite-address-input is now just a hidden value
-// holder, see index.html) - directly typable, with the same live-suggestions dropdown
-// Sign up's own address field uses (initAddressAutocomplete, declared alongside it up
-// near registerHoursPicker). Every keystroke (typed directly, or a suggestion tapped -
-// see initAddressAutocomplete's own click handler, which dispatches "input" the same way)
-// is mirrored onto the hidden mysite-address-input and saved through My Site's own
-// autosave, exactly as if it had been typed there directly - #screen-profile's own
-// delegated autosave (further up this file) never sees this field change, since address
-// is page content, not account data.
-initAddressAutocomplete(el("profile-address-input"), el("profile-address-suggestions"));
+// holder, see index.html) - edited through the shared tap-to-edit modal like every other
+// field in this section, which grows its own live-suggestions dropdown specifically
+// while this is the field open in it (see mysiteFieldModalAddressActive below). Every
+// keystroke inside the modal (typed directly, or a suggestion tapped) is synced back
+// onto profile-address-input itself by mysiteFieldModalSync above like any other field,
+// which is what this listener actually reacts to - mirrored from there onto the hidden
+// mysite-address-input and saved through My Site's own autosave, exactly as if it had
+// been typed there directly. #screen-profile's own delegated autosave (further up this
+// file) never sees this field change, since address is page content, not account data.
 el("profile-address-input").addEventListener("input", () => {
     el("mysite-address-input").value = el("profile-address-input").value;
     updateMysiteSaveValidity();
+});
+
+// The shared field-edit modal's own copy of the address-suggestions dropdown above -
+// can't reuse initAddressAutocomplete as-is, since that attaches one permanent listener
+// to one field; #mysite-field-modal-input is reused for many different fields (tagline,
+// phone, socials, ...), so fetching address suggestions has to be gated on whichever
+// field is CURRENTLY open in it, not run unconditionally on every keystroke regardless
+// of field. mysiteFieldModalAddressActive (toggled in openFieldEditModal/
+// closeMysiteFieldModal below) is that gate.
+let mysiteFieldModalAddressActive = false;
+let mysiteFieldModalAddressDebounce = null;
+let mysiteFieldModalAddressLatestQuery = "";
+let mysiteFieldModalAddressSuppressNext = false; // see initAddressAutocomplete's own comment on the same guard
+
+function hideMysiteFieldModalAddressSuggestions() {
+    const list = el("mysite-field-modal-address-suggestions");
+    list.classList.remove("visible");
+    list.classList.add("hidden");
+    list.innerHTML = "";
+}
+
+function renderMysiteFieldModalAddressSuggestions(suggestions) {
+    const list = el("mysite-field-modal-address-suggestions");
+    list.innerHTML = "";
+    if (!suggestions.length) {
+        hideMysiteFieldModalAddressSuggestions();
+        return;
+    }
+    suggestions.forEach((text) => {
+        const item = document.createElement("button");
+        item.type = "button";
+        item.className = "address-suggest-item";
+        item.textContent = text;
+        item.addEventListener("click", () => {
+            mysiteFieldModalAddressSuppressNext = true;
+            const input = el("mysite-field-modal-input");
+            input.value = text;
+            input.dispatchEvent(new Event("input", { bubbles: true })); // syncs back to profile-address-input via mysiteFieldModalSync
+            hideMysiteFieldModalAddressSuggestions();
+        });
+        list.appendChild(item);
+    });
+    list.classList.remove("hidden");
+    requestAnimationFrame(() => list.classList.add("visible"));
+}
+
+function fetchMysiteFieldModalAddressSuggestions(query) {
+    mysiteFieldModalAddressLatestQuery = query;
+    fetch(API_BASE + "/api/address-suggest?q=" + encodeURIComponent(query))
+        .then((response) => response.json())
+        .then((data) => {
+            if (!mysiteFieldModalAddressActive || query !== mysiteFieldModalAddressLatestQuery) return;
+            renderMysiteFieldModalAddressSuggestions(data.suggestions || []);
+        })
+        .catch(() => {
+            if (query !== mysiteFieldModalAddressLatestQuery) return;
+            hideMysiteFieldModalAddressSuggestions();
+        });
+}
+
+el("mysite-field-modal-input").addEventListener("input", () => {
+    if (!mysiteFieldModalAddressActive) return;
+    if (mysiteFieldModalAddressSuppressNext) { mysiteFieldModalAddressSuppressNext = false; return; }
+    const query = el("mysite-field-modal-input").value.trim();
+    if (mysiteFieldModalAddressDebounce) clearTimeout(mysiteFieldModalAddressDebounce);
+    if (query.length < 3) {
+        mysiteFieldModalAddressLatestQuery = query;
+        hideMysiteFieldModalAddressSuggestions();
+        return;
+    }
+    mysiteFieldModalAddressDebounce = setTimeout(() => fetchMysiteFieldModalAddressSuggestions(query), 300);
 });
 
 // Delete badge (top-right of the sheet) - same Cancel/Delete confirm pattern as

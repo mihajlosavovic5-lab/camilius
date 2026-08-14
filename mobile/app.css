@@ -645,11 +645,19 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
     margin-top: 6px;
     background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
     overflow: hidden;
+    /* Starts faded/slightly raised, .hidden (display:none) comes off first and .visible
+       goes on a frame later (see renderSuggestions/renderMysiteFieldModalAddressSuggestions
+       in app.js) so this transition actually has something to animate from, instead of
+       the list just snapping into place the instant results come back. */
+    opacity: 0; transform: translateY(-6px);
+    transition: opacity .18s ease, transform .18s ease;
 }
+.address-suggest-list.visible { opacity: 1; transform: translateY(0); }
 .address-suggest-item {
-    display: block; width: 100%; text-align: left; padding: 10px 12px;
+    display: block; width: 100%; text-align: left; padding: 11px 12px;
     border: none; border-bottom: 1px solid var(--border); background: none;
     font-size: 14.5px; color: var(--text); cursor: pointer;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .address-suggest-item:last-child { border-bottom: none; }
 .address-suggest-item:active { background: var(--primary-light); }
