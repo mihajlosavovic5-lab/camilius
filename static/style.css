@@ -276,6 +276,10 @@ body.site-lang-open { position: fixed; left: 0; right: 0; width: 100%; overflow:
     --shadow: 0 2px 6px rgba(38, 32, 20, .05), 0 1px 2px rgba(38, 32, 20, .04);
     --shadow-lg: 0 16px 44px rgba(38, 32, 20, .10), 0 4px 10px rgba(38, 32, 20, .05);
     --radius: 12px;
+    /* Fill/ring for .page-title-outlined below - same values as the mobile app's own
+       --title-text/--title-outline (mobile/app.css). */
+    --title-text: #fff;
+    --title-outline: rgba(0, 0, 0, .7);
     /* Header-menu drawer panel + its row "chips" (static/style.css .lp-menu-modal-*).
        The sheet uses the exact same gold-wash-into-background gradient as <body>
        itself (see body's own comment further down) instead of a see-through glass
@@ -346,6 +350,8 @@ body.site-lang-open { position: fixed; left: 0; right: 0; width: 100%; overflow:
         --menu-sheet-bg: linear-gradient(180deg, var(--primary-light) 0%, var(--background) 42%);
         --menu-row-bg: var(--surface);
         --menu-row-border: var(--border);
+        --title-text: #f2b93f;
+        --title-outline: rgba(0, 0, 0, .65);
     }
 
     :root:not([data-theme="light"]) body {
@@ -408,6 +414,8 @@ body.site-lang-open { position: fixed; left: 0; right: 0; width: 100%; overflow:
     --menu-sheet-bg: linear-gradient(180deg, var(--primary-light) 0%, var(--background) 42%);
     --menu-row-bg: var(--surface);
     --menu-row-border: var(--border);
+    --title-text: #f2b93f;
+    --title-outline: rgba(0, 0, 0, .65);
 }
 
 :root[data-theme="dark"] body {
@@ -746,6 +754,32 @@ body.nav-menu-open .site-lang-select-btn { opacity: .3; pointer-events: none; tr
    .topbar-title h1) and every page title on this site uses it at the same
    size, business name included, instead of one page standing out. */
 .page-header h1 { font-family: var(--font-serif); font-weight: 700; font-size: 27px; color: var(--text); }
+/* Same white-fill/black-ring treatment as the mobile app's own tab-root titles (Home/
+   Schedule/Profile/Settings, .screen-mysite .topbar-title h1 & co. in mobile/app.css) -
+   a ring of small blurred shadow copies nudged in 8 directions instead of a stroked
+   outline, since a stroke's corner miter overshoots past sharp glyph joins (the
+   crossbar in "A"/"t") and reads as crossing lines rather than one clean corner. Applied
+   via its own class (not folded into the plain .page-header h1 rule above) so it only
+   reaches the same five pages the app scopes it to - every other page's title (Help,
+   Subscription, Delete account, ...) keeps its own plain dark text, same as the app's own
+   "every other back-button detail screen keeps its own dark title text". --title-text/
+   --title-outline are white-on-black in light mode and the theme's own gold-on-black
+   ring in dark mode (see their own dark-mode definitions), so both themes read as the
+   same thin-outline treatment the app uses. */
+.page-title-outlined {
+    color: var(--title-text);
+    text-align: center;
+    width: 100%;
+    text-shadow:
+        1.3px 0 0.6px var(--title-outline),
+        -1.3px 0 0.6px var(--title-outline),
+        0 1.3px 0.6px var(--title-outline),
+        0 -1.3px 0.6px var(--title-outline),
+        0.9px 0.9px 0.6px var(--title-outline),
+        -0.9px 0.9px 0.6px var(--title-outline),
+        0.9px -0.9px 0.6px var(--title-outline),
+        -0.9px -0.9px 0.6px var(--title-outline);
+}
 .business-title-rule {
     width: 56px; height: 3px; margin: 12px auto 0; border-radius: 999px;
     background: linear-gradient(90deg, var(--primary), var(--gold-dark));
