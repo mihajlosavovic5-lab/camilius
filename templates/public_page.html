@@ -4248,6 +4248,14 @@ window.pageOverlay = (function () {
         current = i;
         slides.forEach(function (slide, idx) { slide.classList.toggle("theme-slide-active", idx === i); });
         dots.forEach(function (dot, idx) { dot.classList.toggle("active", idx === i); });
+        // Live-previews (and saves) the card browsing just landed on, same as tapping
+        // it directly would - see applyAndSaveTheme below. THEME_CHOICES is in the same
+        // order slides was built from, so index i lines up with slide i. Guarded inside
+        // applyAndSaveTheme itself against re-applying the theme that's already live -
+        // covers the very first call here, at page load, landing on the already-current
+        // theme.
+        var entry = THEME_CHOICES[i];
+        if (entry) applyAndSaveTheme(entry[0], entry[1]);
     }
     function goTo(i, instant) {
         i = Math.max(0, Math.min(slides.length - 1, i));
@@ -4345,12 +4353,16 @@ window.pageOverlay = (function () {
         toastTimer = setTimeout(function () { toast.classList.remove("visible"); }, 1800);
     }
 
-    function pickTheme(themeId, theme) {
+    // Applies + persists whichever theme is passed in, live - called both by a direct
+    // tap on a card (pickTheme below) and, via setCurrent above, the instant browsing
+    // (swipe/arrow/dot/wrap) lands on a new card, so the site behind the panel always
+    // shows whatever theme is currently centered rather than only updating once the
+    // panel closes.
+    function applyAndSaveTheme(themeId, theme) {
         if (themeId === selectedId) return;
         selectedId = themeId;
         applyThemePreview(theme);
         markSelected(themeId);
-        setOpen(false);
 
         var body = new URLSearchParams();
         body.set("theme_id", themeId);
@@ -4361,6 +4373,14 @@ window.pageOverlay = (function () {
         })
             .then(function (res) { if (!res.ok) throw new Error("save failed"); })
             .catch(function () { showToast("Couldn't save - try again"); });
+    }
+
+    // A direct tap on a card - unlike just browsing past it - also closes the panel,
+    // since tapping (rather than swiping through) is the deliberate "this one, I'm
+    // done" gesture.
+    function pickTheme(themeId, theme) {
+        applyAndSaveTheme(themeId, theme);
+        setOpen(false);
     }
 
     function setOpen(value) {
