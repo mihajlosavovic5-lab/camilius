@@ -1688,23 +1688,29 @@
         transition: opacity .25s ease, transform .25s ease;
     }
     .theme-slide.theme-slide-active { opacity: 1; transform: scale(1); }
-    .theme-slide-card {
-        position: relative;
-        display: block;
-        border-radius: 16px;
-        overflow: hidden;
-        border: 2px solid var(--border);
-        box-shadow: 0 8px 20px -10px rgba(0, 0, 0, .3);
-        transition: border-color .15s ease, box-shadow .15s ease;
-    }
-    .theme-slide.theme-slide-selected .theme-slide-card { border-color: var(--primary); box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 28%, transparent); }
     /* The mockup itself - a tiny stand-in "page" (top bar + two text lines + accent
        button) painted with that theme's own actual base colors, so a card previews how
-       the theme will actually look rather than just its raw palette as a gradient bar. */
+       the theme will actually look rather than just its raw palette as a gradient bar.
+       No separate card/frame wrapping it (there used to be one, with its own border +
+       background) - narrower than the slide itself and centered via margin: auto so it
+       reads as a floating color swatch, not a big white panel with a small color strip
+       inside it. The mock's own border-radius/box-shadow now carry the "card" look
+       directly, and the selected ring below rings the mock's own edge instead of a
+       wrapper a few pixels further out. */
     .theme-slide-mock {
+        position: relative;
         aspect-ratio: 4 / 3;
         display: flex;
         flex-direction: column;
+        width: 82%;
+        margin: 0 auto;
+        border-radius: 16px;
+        overflow: hidden;
+        box-shadow: 0 8px 20px -10px rgba(0, 0, 0, .3);
+        transition: box-shadow .15s ease;
+    }
+    .theme-slide.theme-slide-selected .theme-slide-mock {
+        box-shadow: 0 0 0 3px var(--primary), 0 8px 20px -10px rgba(0, 0, 0, .3);
     }
     .theme-slide-mock-topbar { height: 20%; flex-shrink: 0; }
     .theme-slide-mock-content {
@@ -4073,9 +4079,6 @@ window.pageOverlay = (function () {
             slide.dataset.themeId = themeId;
             slide.setAttribute("aria-label", theme.label);
 
-            var card = document.createElement("span");
-            card.className = "theme-slide-card";
-
             var mock = document.createElement("span");
             mock.className = "theme-slide-mock";
             mock.style.background = base.background;
@@ -4102,13 +4105,12 @@ window.pageOverlay = (function () {
             content.appendChild(line2);
             content.appendChild(btn);
             mock.appendChild(content);
-            card.appendChild(mock);
 
             var check = document.createElement("span");
             check.className = "theme-slide-check";
             check.textContent = "✓";
-            card.appendChild(check);
-            slide.appendChild(card);
+            mock.appendChild(check);
+            slide.appendChild(mock);
 
             var label = document.createElement("span");
             label.className = "theme-slide-label";
