@@ -3642,6 +3642,7 @@ window.pageOverlay = (function () {
         // same way an arrow/dot click does; a drag that never clears the threshold falls
         // through to goTo(current), snapping back to wherever it actually started.
         var dragStartX = null, dragStartY = null, dragStartScroll = null, dragAxis = null;
+        var dragMin = null, dragMax = null;
         viewport.addEventListener("touchstart", function (e) {
             // A still-running animateScrollTo from the previous swipe (e.g. a quick
             // double-flick, or grabbing the slider again before its snap settles) would
@@ -3654,6 +3655,19 @@ window.pageOverlay = (function () {
             dragStartY = e.touches[0].clientY;
             dragStartScroll = viewport.scrollLeft;
             dragAxis = null;
+            // Bounds the drag itself (not just where it snaps to on release) to the
+            // immediate neighbor on either side - accounting for the wraparound clones
+            // at either end the same way next()/prev() above do - so a single continuous
+            // drag can never visually carry more than one photo past, however far the
+            // finger travels before lifting.
+            if (slides.length > 1) {
+                var prevChild = current === 0 ? track.children[cloneOffset - 1] : slides[current - 1];
+                var nextChild = current === slides.length - 1 ? track.children[cloneOffset + slides.length] : slides[current + 1];
+                dragMin = targetScrollLeft(prevChild);
+                dragMax = targetScrollLeft(nextChild);
+            } else {
+                dragMin = dragMax = dragStartScroll;
+            }
         }, { passive: true });
         viewport.addEventListener("touchmove", function (e) {
             if (dragStartX === null) return;
@@ -3665,7 +3679,7 @@ window.pageOverlay = (function () {
             }
             if (dragAxis === "y") return;
             e.preventDefault();
-            viewport.scrollLeft = dragStartScroll - dx;
+            viewport.scrollLeft = Math.max(dragMin, Math.min(dragMax, dragStartScroll - dx));
         }, { passive: false });
         viewport.addEventListener("touchend", function (e) {
             if (dragStartX === null) return;
@@ -3838,12 +3852,24 @@ window.pageOverlay = (function () {
             // cancellation on touchstart), duplicated rather than shared since it drags a
             // different viewport/index than the section slider does.
             var lbDragStartX = null, lbDragStartY = null, lbDragStartScroll = null, lbDragAxis = null;
+            var lbDragMin = null, lbDragMax = null;
             lightboxViewport.addEventListener("touchstart", function (e) {
                 if (lightboxAnimFrame !== null) { cancelAnimationFrame(lightboxAnimFrame); lightboxAnimFrame = null; }
                 lbDragStartX = e.touches[0].clientX;
                 lbDragStartY = e.touches[0].clientY;
                 lbDragStartScroll = lightboxViewport.scrollLeft;
                 lbDragAxis = null;
+                // Same drag-bounding as the section slider above - clamps to the
+                // immediate neighbor (through the wraparound clones at either end) so a
+                // single continuous drag never carries more than one photo past.
+                if (lightboxSlides.length > 1) {
+                    var lbPrevChild = lightboxIndex === 0 ? lightboxTrack.children[lightboxCloneOffset - 1] : lightboxSlides[lightboxIndex - 1];
+                    var lbNextChild = lightboxIndex === lightboxSlides.length - 1 ? lightboxTrack.children[lightboxCloneOffset + lightboxSlides.length] : lightboxSlides[lightboxIndex + 1];
+                    lbDragMin = lightboxTargetScrollLeft(lbPrevChild);
+                    lbDragMax = lightboxTargetScrollLeft(lbNextChild);
+                } else {
+                    lbDragMin = lbDragMax = lbDragStartScroll;
+                }
             }, { passive: true });
             lightboxViewport.addEventListener("touchmove", function (e) {
                 if (lbDragStartX === null) return;
@@ -3855,7 +3881,7 @@ window.pageOverlay = (function () {
                 }
                 if (lbDragAxis === "y") return;
                 e.preventDefault();
-                lightboxViewport.scrollLeft = lbDragStartScroll - dx;
+                lightboxViewport.scrollLeft = Math.max(lbDragMin, Math.min(lbDragMax, lbDragStartScroll - dx));
             }, { passive: false });
             lightboxViewport.addEventListener("touchend", function (e) {
                 if (lbDragStartX === null) return;
@@ -4202,12 +4228,19 @@ window.pageOverlay = (function () {
     // threshold). No wrap-around here (unlike the photo slider) - goTo() already clamps
     // to the first/last card, and the arrows disable themselves at either end to match.
     var dragStartX = null, dragStartY = null, dragStartScroll = null, dragAxis = null;
+    var dragMin = null, dragMax = null;
     viewport.addEventListener("touchstart", function (e) {
         if (animFrame !== null) { cancelAnimationFrame(animFrame); animFrame = null; }
         dragStartX = e.touches[0].clientX;
         dragStartY = e.touches[0].clientY;
         dragStartScroll = viewport.scrollLeft;
         dragAxis = null;
+        // Bounds the drag itself (not just where it snaps to on release) to the
+        // immediate neighbor on either side, clamped to the first/last card the same
+        // way goTo() is - so a single continuous drag can never visually carry more
+        // than one card past, however far the finger travels before lifting.
+        dragMin = targetScrollLeft(slides[Math.max(0, current - 1)]);
+        dragMax = targetScrollLeft(slides[Math.min(slides.length - 1, current + 1)]);
     }, { passive: true });
     viewport.addEventListener("touchmove", function (e) {
         if (dragStartX === null) return;
@@ -4219,7 +4252,7 @@ window.pageOverlay = (function () {
         }
         if (dragAxis === "y") return;
         e.preventDefault();
-        viewport.scrollLeft = dragStartScroll - dx;
+        viewport.scrollLeft = Math.max(dragMin, Math.min(dragMax, dragStartScroll - dx));
     }, { passive: false });
     viewport.addEventListener("touchend", function (e) {
         if (dragStartX === null) return;
