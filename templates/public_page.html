@@ -2845,7 +2845,21 @@ window.pageOverlay = (function () {
         container.appendChild(list);
     }
 
-    function applyTranslation(lang, data) {
+    function applyTranslation(lang, data, skipTitleRefit) {
+        // skipTitleRefit: the one-time initial seed call below (applyTranslation for
+        // content_language, run unconditionally on every load) hands in the exact same
+        // tagline/business_name text the server already rendered .top-bar-title/.page-
+        // header h1/.chat-header-text p with (pre-split into .title-main/.title-sub,
+        // already sized by the early top-bar-fit script above). Re-running renderSplitTitle
+        // and the fit passes on text that hasn't changed can't improve anything - it can
+        // only ever repaint the exact same title a second time, and on a slower load where
+        // that repaint lands after first paint (a real font/layout settle in between,
+        // scrollbar appearing as the rest of the page finishes laying out, etc.) it shows
+        // up as the title visibly resizing a moment after the page appears, since this
+        // second pass measures against a viewport/font state that's drifted slightly from
+        // the first. A real language switch (skipTitleRefit left falsy) still needs both -
+        // the tagline text itself changed - only this seed call, where it provably hasn't,
+        // skips them.
         var contentEls = document.querySelectorAll("[data-i18n-content]");
         contentEls.forEach(function (el) {
             var key = el.getAttribute("data-i18n-content");
@@ -2860,6 +2874,7 @@ window.pageOverlay = (function () {
             // is worse than none" rule the whole-request .catch() below already follows.
             if (!value) return;
             if (el.matches(".top-bar-title, .page-header h1")) {
+                if (skipTitleRefit) return;
                 renderSplitTitle(el, value);
             } else if (el.matches(".price-list-raw")) {
                 el.textContent = value;
@@ -2874,6 +2889,7 @@ window.pageOverlay = (function () {
                 var faqRenderedEl = document.getElementById("faq-rendered");
                 if (faqRenderedEl) renderFaqBlocks(faqRenderedEl, value);
             } else if (el.matches(".chat-header-text p")) {
+                if (skipTitleRefit) return;
                 el.textContent = value;
                 if (window.fitChatHeaderTitle) window.fitChatHeaderTitle();
             } else {
@@ -2892,8 +2908,12 @@ window.pageOverlay = (function () {
         document.documentElement.lang = lang;
         // Title text just changed length (new language, possibly a longer/shorter
         // tagline) - re-run the top-bar title's own left/right-aware fit so its font-size
-        // and gutters stay correct for the new text.
-        if (window.layoutTopBarTitle) window.layoutTopBarTitle();
+        // and gutters stay correct for the new text. Skipped on the initial seed call
+        // (skipTitleRefit) - that call's text is unchanged from what the early top-bar-fit
+        // script (top of <body>) already sized correctly, so re-running this would only
+        // risk landing on a different result if the viewport/font state has drifted since
+        // then, visibly resizing the title a moment after first paint for no reason.
+        if (!skipTitleRefit && window.layoutTopBarTitle) window.layoutTopBarTitle();
         langOptions.forEach(function (opt) { opt.classList.toggle("active", opt.dataset.lang === lang); });
         var opt = langOptions.filter(function (o) { return o.dataset.lang === lang; })[0];
         if (opt) { langFlag.src = opt.dataset.flag; langFlag.alt = opt.dataset.name; }
@@ -3023,7 +3043,7 @@ window.pageOverlay = (function () {
     // included - has actually been assigned, not just hoisted) makes the initial paint
     // match content_language from the start, the same as tagline/about/etc. (rendered
     // server-side already in that language) already do.
-    applyTranslation({{ current_lang.code | tojson }}, originalLangContent);
+    applyTranslation({{ current_lang.code | tojson }}, originalLangContent, true);
 
     // Restores whichever language a visitor last actually picked here (see LANG_KEY/
     // rememberLanguage above), so reopening this same page - most commonly the owner
