@@ -172,6 +172,27 @@
         .lp-typing-dots span { animation: none !important; }
     }
 
+    /* --- One-time cascading fade+rise for the part of the page that's already on screen
+       at load (top bar controls + hero), same easing/duration as the mobile app's own
+       .tab-reveal-item entrance (Home/Profile/etc, played once when a tab first opens) -
+       so opening this page reads like opening a screen in the app instead of the whole
+       top of the page just snapping into place flat. A different mechanism from
+       .reveal/.pending above on purpose: that one deliberately skips whatever's already
+       in the first viewport at load (see its own CSS comment on why animating on-screen
+       content used to make the whole first screen visibly snap into place). This one
+       IS that on-screen content, styled to animate in from its very first paint via pure
+       CSS (animation-delay set server-side below, per element) - there's no JS deciding
+       after the fact whether to offset something already rendered, so the "snap" bug that
+       comment describes doesn't apply here. */
+    .load-reveal { animation: load-reveal .5s cubic-bezier(.22, .9, .32, 1.15) both; }
+    @keyframes load-reveal {
+        0% { opacity: 0; transform: translateY(14px); }
+        100% { opacity: 1; transform: translateY(0); }
+    }
+    @media (prefers-reduced-motion: reduce) {
+        .load-reveal { animation: none !important; opacity: 1 !important; transform: none !important; }
+    }
+
     .shell {
         display: flex;
         align-items: flex-start;
@@ -1321,6 +1342,15 @@
     @media (prefers-reduced-motion: no-preference) {
         .chat-fab { animation: chat-fab-nudge 10s ease-in-out infinite; }
         .chat-fab:hover, .chat-fab.chat-fab-nudge-done { animation: none; }
+        /* .load-reveal (see its own CSS comment further up) and the nudge above both set
+           the single `animation` shorthand, so whichever rule the cascade actually picks
+           would silently drop the other's animation entirely rather than blending them.
+           The extra .load-reveal class here (specificity 0,2,0) reliably beats the plain
+           .chat-fab rule above regardless of source order, and runs both off the same
+           shorthand's comma-list: the one-shot entrance first, then the idle loop picks
+           up right behind it. */
+        .chat-fab.load-reveal { animation: load-reveal .5s cubic-bezier(.22, .9, .32, 1.15) 240ms both, chat-fab-nudge 10s ease-in-out infinite 240ms; }
+        .chat-fab.load-reveal:hover, .chat-fab.load-reveal.chat-fab-nudge-done { animation: none; }
     }
     @keyframes chat-fab-nudge {
         0%, 75%, 100% { transform: translateY(0); }
@@ -2019,15 +2049,15 @@
 <body{% if hero_cta %} class="has-sticky-cta"{% endif %}>
 <div id="page-progress"></div>
 <div class="top-bar-fill" id="top-bar-fill"></div>
-<button type="button" class="nav-menu-btn" id="nav-menu-btn" aria-label="Menu" aria-expanded="false" aria-controls="side-nav">
+<button type="button" class="nav-menu-btn load-reveal" id="nav-menu-btn" aria-label="Menu" aria-expanded="false" aria-controls="side-nav">
     <span class="nav-menu-btn-bar"></span>
     <span class="nav-menu-btn-bar"></span>
     <span class="nav-menu-btn-bar"></span>
 </button>
 <div class="nav-menu-backdrop" id="nav-menu-backdrop"></div>
-<div class="top-bar-title"{% if tagline %} data-i18n-content="tagline"{% endif %}><span class="title-main">{{ title_main }}</span>{% if title_sub %}<span class="title-sub">{{ title_sub }}</span>{% endif %}</div>
+<div class="top-bar-title load-reveal" style="animation-delay:60ms"{% if tagline %} data-i18n-content="tagline"{% endif %}><span class="title-main">{{ title_main }}</span>{% if title_sub %}<span class="title-sub">{{ title_sub }}</span>{% endif %}</div>
 {% set current_lang = (page_languages | selectattr('code', 'equalto', content_language) | first) or page_languages[0] %}
-<button type="button" class="lang-btn" id="lang-btn" aria-label="Change language" aria-haspopup="true" aria-expanded="false">
+<button type="button" class="lang-btn load-reveal" id="lang-btn" aria-label="Change language" aria-haspopup="true" aria-expanded="false" style="animation-delay:120ms">
     <img class="lang-flag" id="lang-flag" src="{{ flag_data_uri(current_lang.flag) }}" alt="{{ current_lang.name }}">
     <span class="lang-chevron" aria-hidden="true">&#8964;</span>
 </button>
@@ -2052,7 +2082,7 @@
      #lang-btn, so it paints in that same first instant instead of only after the whole
      page below (about/gallery/price-list/FAQ/booking) has parsed - see .theme-fab's own
      "part of the page, not bolted on after" CSS comment. -->
-<button type="button" class="theme-fab" id="theme-fab" aria-label="Change theme" aria-expanded="false">
+<button type="button" class="theme-fab load-reveal" id="theme-fab" aria-label="Change theme" aria-expanded="false" style="animation-delay:180ms">
     <svg class="theme-fab-icon-palette" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
         <path d="M12 3C7.03 3 3 6.8 3 11.5c0 3.6 2.94 5.5 5.5 5.5H10a1.5 1.5 0 0 1 1.06 2.56c-.4.4-.56.9-.44 1.4.16.66.86 1.04 1.7 1.04C17.53 22 21 17.75 21 12.5 21 7.26 17.08 3 12 3Z" stroke-linejoin="round"/>
         <circle cx="7.6" cy="11" r="1.15" fill="currentColor" stroke="none"/>
@@ -2083,7 +2113,7 @@
      the owner-only theme fab above), so it paints in that same first instant instead of
      only after the whole page below has parsed - see the wiring script further down for
      why that script itself doesn't need to move too. -->
-<button type="button" class="chat-fab" id="chat-fab" aria-label="Chat with {{ business_name }}">
+<button type="button" class="chat-fab load-reveal" id="chat-fab" aria-label="Chat with {{ business_name }}">
     {% if logo_url %}
     <img class="chat-fab-logo" src="{{ logo_url }}" alt="">
     {% else %}
@@ -2348,7 +2378,7 @@
     </nav>
 
     <div class="wrap">
-        <header class="page-header" id="home">
+        <header class="page-header load-reveal" id="home" style="animation-delay:320ms">
             {% if logo_url %}<img class="logo" src="{{ logo_url }}" alt="{{ business_name }} logo">{% endif %}
             {# The tagline reads as the headline (bold, large), falling back to
                business_name when no tagline is set - the business name never shows as
@@ -2367,7 +2397,7 @@
         </header>
 
         {% if hero_video_url %}
-        <video class="hero-video" src="{{ hero_video_url }}" autoplay muted loop playsinline></video>
+        <video class="hero-video load-reveal" src="{{ hero_video_url }}" autoplay muted loop playsinline style="animation-delay:320ms"></video>
         {% endif %}
 
         {% if about %}
