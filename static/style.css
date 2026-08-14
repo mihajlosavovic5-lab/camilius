@@ -1529,6 +1529,14 @@ body.auth {
     background: none; border: none; box-shadow: none; padding: 0;
 }
 .auth-login .auth-card.auth-card-email-active { padding-top: 0; }
+/* Centering the whole block (base .auth-wrapper rule above) split the leftover vertical
+   space evenly above/below it, so the footer links (Terms/Privacy/Replay intro) floated
+   in the middle of the screen with just as much empty space under them as above the
+   flag. Bottom-aligning instead collects all of that leftover space at the top, so the
+   footer sits down near the actual bottom edge - closer to how the APK's own login
+   screen fills toward the bottom (see .login-spacer in mobile/app.css), even though the
+   APK has no equivalent footer of its own to compare directly. */
+.auth-login .auth-wrapper { justify-content: flex-end; }
 /* Choice <-> email-form swap slides instead of an instant cut - same feel as the mobile
    app's own screen-to-screen navigation. Whichever panel is INACTIVE is pulled out of
    flow (position: absolute, sized to this wrapper via inset: 0) so the card always hugs
