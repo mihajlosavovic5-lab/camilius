@@ -165,6 +165,20 @@
         .lp-typing-dots span { animation: none !important; }
     }
 
+    /* --- Suppresses the very first paint entirely for a returning visitor whose saved
+       language (localStorage, see the language-restore script further down) differs
+       from this page's own server-rendered content_language - without this, the page
+       always paints in content_language first (the server has no way to know a
+       client-only preference before it's ever requested this page), then swaps to the
+       saved language a beat later once that script runs, which reads as the wrong
+       language flashing on screen before the right one replaces it. The earliest
+       possible inline script (the very top of <body>) adds .lang-pending the instant
+       it detects that mismatch, before any of the body below has had a chance to
+       paint; that same script's later completion (cached or freshly fetched) removes
+       it again. Never added at all for the common case (no saved language yet, or it
+       already matches content_language), so a first-time visitor never waits on this. --- */
+    html.lang-pending body { visibility: hidden; }
+
     .shell {
         display: flex;
         align-items: flex-start;
@@ -2146,6 +2160,22 @@
 </style>
 </head>
 <body{% if hero_cta %} class="has-sticky-cta"{% endif %}>
+{% set current_lang = (page_languages | selectattr('code', 'equalto', content_language) | first) or page_languages[0] %}
+<script>
+// Runs before anything else in <body> gets a chance to paint - see .lang-pending's own
+// CSS comment in <head> above for the full "why". Purely a synchronous localStorage
+// read + one class add; the actual language switch (and this class's removal) is the
+// existing restore logic further down this page, once THEME_CHOICES/langOptions/etc.
+// it depends on actually exist.
+(function () {
+    try {
+        var saved = localStorage.getItem("camilius_page_lang_" + {{ slug | tojson }});
+        if (saved && saved !== {{ current_lang.code | tojson }}) {
+            document.documentElement.classList.add("lang-pending");
+        }
+    } catch (e) { /* private mode etc. - just show content_language normally */ }
+})();
+</script>
 <div id="page-progress"></div>
 <div class="top-bar-fill" id="top-bar-fill"></div>
 <button type="button" class="nav-menu-btn" id="nav-menu-btn" aria-label="Menu" aria-expanded="false" aria-controls="side-nav">
@@ -2155,7 +2185,6 @@
 </button>
 <div class="nav-menu-backdrop" id="nav-menu-backdrop"></div>
 <div class="top-bar-title"{% if tagline %} data-i18n-content="tagline"{% endif %}><span class="title-main">{{ title_main }}</span>{% if title_sub %}<span class="title-sub">{{ title_sub }}</span>{% endif %}</div>
-{% set current_lang = (page_languages | selectattr('code', 'equalto', content_language) | first) or page_languages[0] %}
 <button type="button" class="lang-btn" id="lang-btn" aria-label="Change language" aria-haspopup="true" aria-expanded="false">
     <img class="lang-flag" id="lang-flag" src="{{ flag_data_uri(current_lang.flag) }}" alt="{{ current_lang.name }}">
     <span class="lang-chevron" aria-hidden="true">&#8964;</span>
@@ -3333,7 +3362,14 @@ window.pageOverlay = (function () {
     // finds it again next time this page (or the "View page"/in-app-browser tab it opens
     // in, which shares this same localStorage per slug) is opened, instead of always
     // starting back over from the page's own detected content_language.
-    function switchLanguage(lang, opt) {
+    // onSettled (only ever passed by the initial saved-language restore further down)
+    // fires once this switch has fully resolved one way or another - applied from
+    // cache, freshly fetched, or failed - so that caller can reveal the page it's kept
+    // hidden behind .lang-pending. Deliberately NOT tied to hideOverlay()'s own
+    // minimum-visible-time hold below (a cosmetic touch for a switch a visitor
+    // triggered themselves mid-visit) - the very first reveal shouldn't wait out an
+    // artificial minimum just to close an overlay nothing could have seen yet anyway.
+    function switchLanguage(lang, opt, onSettled) {
         // Already showing this language (its own row is marked .active - kept in sync on
         // every successful switch below, and set once up front from current_lang on first
         // paint) - nothing to fetch or apply. translation_is_usable (translate_page.py) no
@@ -3344,8 +3380,8 @@ window.pageOverlay = (function () {
         // that reaches the server for the language already on screen can legitimately 502
         // there. This short-circuit keeps that request from ever being sent in the first
         // place, for every language alike.
-        if (opt && opt.classList.contains("active")) return;
-        if (loading) return;
+        if (opt && opt.classList.contains("active")) { if (onSettled) onSettled(); return; }
+        if (loading) { if (onSettled) onSettled(); return; }
         // Shown for every switch, cached or not - a cache hit applies instantly, so
         // without the minimum-duration hold below the overlay would flash for a single
         // frame or not paint at all, making a cached switch feel inconsistent with an
@@ -3374,6 +3410,7 @@ window.pageOverlay = (function () {
             applyTranslation(lang, cache[lang]);
             rememberLanguage(lang);
             hideOverlay();
+            if (onSettled) onSettled();
             return;
         }
         loading = true;
@@ -3398,6 +3435,7 @@ window.pageOverlay = (function () {
                 loading = false;
                 langBtn.classList.remove("loading");
                 hideOverlay();
+                if (onSettled) onSettled();
             });
     }
 
@@ -3435,11 +3473,20 @@ window.pageOverlay = (function () {
     // have dropped a code, or a stale value could be left over from before this page's
     // own language list changed) so a bad/unsupported stored value can't get stuck
     // attempting the same failing switch on every future load.
+    // Removes .lang-pending (see its own CSS comment in <head>, and the blocking
+    // script at the very top of <body> that adds it) - called once the restore below
+    // has fully settled, whatever the outcome, so the page is never left hidden.
+    function revealPageContent() {
+        document.documentElement.classList.remove("lang-pending");
+    }
     var savedLang = null;
     try { savedLang = localStorage.getItem(LANG_KEY); } catch (e) { /* private mode etc. */ }
     if (savedLang && savedLang !== {{ current_lang.code | tojson }}) {
         var savedOpt = langOptions.filter(function (o) { return o.dataset.lang === savedLang; })[0];
-        if (savedOpt) switchLanguage(savedLang, savedOpt);
+        if (savedOpt) switchLanguage(savedLang, savedOpt, revealPageContent);
+        else revealPageContent(); // stale/unsupported saved code - nothing to switch to, don't stay hidden
+    } else {
+        revealPageContent(); // .lang-pending was never added for this case to begin with
     }
 })();
 </script>
