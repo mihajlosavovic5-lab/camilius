@@ -75,6 +75,29 @@
             if (typeof htmx !== "undefined") htmx.config.globalViewTransitions = true;
         });
     </script>
+    <!-- A boosted nav tap (Home/Schedule/Profile/Settings, see _nav.html) that can't
+         complete its AJAX request - no network, a timeout, a 5xx - previously failed
+         completely silently: htmx neither swaps anything nor shows any error, so the tap
+         looked exactly like it had never registered at all ("I click Home and nothing
+         happens"). Most likely to hit on a flaky mobile connection, which is also
+         exactly when a plain full-page navigation (the browser's own request, with its
+         own retry/offline handling) is more likely to actually get through than a
+         fetch() that just failed once. Falls back to it here, on the same two events
+         htmx fires for "no response at all" (sendError) and "got an
+         error status" (responseError) - reusing the boosted link's own href rather than
+         re-deriving the URL from event details that differ between the two. Bound on
+         document (not document.body, unavailable this early in <head>) since both
+         events bubble all the way up and boosted swaps only ever replace body's
+         children, never body itself. -->
+    <script>
+        function fallBackToRealNav(event) {
+            var elt = event.detail && event.detail.elt;
+            var link = elt && elt.closest && elt.closest("#nav-links a[href]");
+            if (link) window.location.href = link.getAttribute("href");
+        }
+        document.addEventListener("htmx:sendError", fallBackToRealNav);
+        document.addEventListener("htmx:responseError", fallBackToRealNav);
+    </script>
     <!-- Mobile nav hamburger toggle (see _nav.html/.nav-menu-btn in style.css) - bound
          via delegation on document rather than the button itself, since htmx's boosted
          nav clicks (hx-boost on .nav-links) replace the whole <body>, including this
