@@ -646,6 +646,46 @@
         transform: scale(1);
         transition: transform .25s cubic-bezier(.34, 1.56, .64, 1);
     }
+    /* Covers the iframe for however long it takes Google's map to actually paint tiles
+       (a blank <iframe> is opaque, not transparent, so it hides anything placed behind
+       it - the only way to show something better is to sit IN FRONT of it and fade out
+       once it's loaded). Without this, a fast scroll that reaches #location before the
+       embed has rendered shows a flat, undecorated blank rectangle that reads as broken
+       rather than loading - this pin + spinner reads as "loading" instead. Sits above
+       both the iframe and .location-map-link (z-index 3 vs their 0/1) but stays
+       pointer-events:none throughout so it never blocks the "open in Maps" tap target.
+       The "loaded" class (added by the iframe's load listener below) fades it out. */
+    .location-map-placeholder {
+        position: absolute;
+        inset: 0;
+        z-index: 3;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        background: var(--surface);
+        color: var(--text-muted);
+        pointer-events: none;
+        opacity: 1;
+        transition: opacity .3s ease;
+    }
+    .location-map-placeholder.loaded { opacity: 0; }
+    .location-map-placeholder svg {
+        width: 22px; height: 22px;
+        color: var(--primary);
+        opacity: .55;
+    }
+    .location-map-placeholder-spinner {
+        width: 15px; height: 15px;
+        border: 2px solid var(--border);
+        border-top-color: color-mix(in srgb, var(--primary) 65%, transparent);
+        border-radius: 50%;
+        animation: location-map-spin .8s linear infinite;
+    }
+    @keyframes location-map-spin { to { transform: rotate(360deg); } }
+    @media (prefers-reduced-motion: reduce) {
+        .location-map-placeholder-spinner { animation-duration: 1.6s; }
+    }
     /* Same hover/press "zoom" feel as .contact-row/.social-link elsewhere on the page -
        :hover/:active both apply to an ancestor of whatever's actually under the pointer,
        so these fire correctly even though .location-map-link (not this element) is what
@@ -2421,8 +2461,12 @@
                  anywhere on the card - not just Google's own tiny controls - opens this
                  same place directly on Google Maps. -->
             <div class="location-map-wrap">
-                <iframe src="https://www.google.com/maps?q={{ address | urlencode }}&output=embed" loading="lazy" referrerpolicy="no-referrer-when-downgrade" title="Map" tabindex="-1"></iframe>
+                <iframe src="https://www.google.com/maps?q={{ address | urlencode }}&output=embed" referrerpolicy="no-referrer-when-downgrade" title="Map" tabindex="-1"></iframe>
                 <a class="location-map-link" href="https://www.google.com/maps?q={{ address | urlencode }}" target="_blank" rel="noopener noreferrer" aria-label="Open {{ address }} in Google Maps"></a>
+                <div class="location-map-placeholder" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M12 21s7-6.4 7-11.5A7 7 0 0 0 5 9.5C5 14.6 12 21 12 21z" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="9.5" r="2.3"/></svg>
+                    <span class="location-map-placeholder-spinner"></span>
+                </div>
             </div>
             <p class="location-caption">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M12 21s7-6.4 7-11.5A7 7 0 0 0 5 9.5C5 14.6 12 21 12 21z" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="9.5" r="2.3"/></svg>
@@ -3541,6 +3585,19 @@ window.pageOverlay = (function () {
             }, { passive: false });
         }
     })();
+
+    // Fades .location-map-placeholder out once the map iframe has actually loaded
+    // (rather than leaving a blank rectangle up for however long that takes - see
+    // .location-map-placeholder's own CSS comment). "load" is the earliest cross-origin
+    // signal available here (the iframe's own document is unreachable to inspect), so on
+    // a slow connection the pin/spinner can outlast the very first tiles painting - still
+    // strictly better than showing nothing.
+    document.querySelectorAll(".location-map-wrap").forEach(function (wrap) {
+        var frame = wrap.querySelector("iframe");
+        var placeholder = wrap.querySelector(".location-map-placeholder");
+        if (!frame || !placeholder) return;
+        frame.addEventListener("load", function () { placeholder.classList.add("loaded"); }, { once: true });
+    });
 
     // Reveal-on-scroll for the header/CTA/each section - see landing.html's identical
     // .lp-reveal/.lp-visible pattern.
