@@ -3554,12 +3554,16 @@ window.pageOverlay = (function () {
             slides.forEach(function (slide, idx) { slide.classList.toggle("photo-slide-active", idx === i); });
             dots.forEach(function (dot, idx) { dot.classList.toggle("active", idx === i); });
         }
-        // Scroll position the viewport would need for `el`'s own left edge to land
-        // flush with the viewport's left edge - same math as #book-list's own
-        // bookCardTargetScrollLeft further down, independent of offsetParent. Works for
-        // a clone exactly the same as a real slide, since both are real track children.
+        // Scroll position the viewport would need for `el` to sit centered within it -
+        // same center-distance math as landing.html's own scrollCardIntoView, so the
+        // active slide always lands in the middle with a neighbor peeking on each side,
+        // not flush against the viewport's left edge. Independent of offsetParent;
+        // works for a clone exactly the same as a real slide, since both are real track
+        // children.
         function targetScrollLeft(el) {
-            return el.getBoundingClientRect().left - viewport.getBoundingClientRect().left + viewport.scrollLeft;
+            var elRect = el.getBoundingClientRect();
+            var vpRect = viewport.getBoundingClientRect();
+            return viewport.scrollLeft + (elRect.left + elRect.width / 2) - (vpRect.left + vpRect.width / 2);
         }
         // requestAnimationFrame + manual ease-out, not viewport.scrollTo({behavior:
         // "smooth"}) - same reason #book-list's animateBookScrollTo below doesn't use it
@@ -4144,11 +4148,13 @@ window.pageOverlay = (function () {
         });
     }
 
-    // Same relative-position math as .photo-slider's own targetScrollLeft further up
-    // this page - the scrollLeft `el`'s own left edge would need for it to sit flush
-    // with the viewport's left edge.
+    // Same center-distance math as .photo-slider's own targetScrollLeft further up
+    // this page - the scrollLeft `el` would need to sit centered in the viewport, so
+    // the active card lands in the middle with a neighbor peeking on each side.
     function targetScrollLeft(el) {
-        return el.getBoundingClientRect().left - viewport.getBoundingClientRect().left + viewport.scrollLeft;
+        var elRect = el.getBoundingClientRect();
+        var vpRect = viewport.getBoundingClientRect();
+        return viewport.scrollLeft + (elRect.left + elRect.width / 2) - (vpRect.left + vpRect.width / 2);
     }
     // requestAnimationFrame + manual ease-out rather than scrollTo({behavior: "smooth"})
     // - see .photo-slider's own animateScrollTo comment further up this page: the in-app
