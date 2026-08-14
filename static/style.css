@@ -1468,11 +1468,18 @@ input.search-input {
 /* --- Auth pages (login, register...) --- */
 body.auth {
     /* Background is now the shared body gradient above (Faza 6 unification) -
-       auth pages just need the full-viewport height for their centered card. */
+       auth pages just need the full-viewport height for their centered card.
+       100vh on mobile Chrome/Safari is measured against the viewport with the
+       address bar collapsed, taller than what's actually visible once it's
+       showing - that left a stretch of empty page below the fold whenever the
+       bar was expanded. 100dvh tracks the real visible viewport instead; the
+       100vh line stays first as a fallback for browsers without dvh support. */
     min-height: 100vh;
+    min-height: 100dvh;
 }
 .auth-wrapper {
-    min-height: 100vh; display: flex; flex-direction: column;
+    min-height: 100vh; min-height: 100dvh;
+    display: flex; flex-direction: column;
     align-items: center; justify-content: center; padding: 40px 16px;
 }
 .auth-brand { margin-bottom: 22px; text-align: center; }
