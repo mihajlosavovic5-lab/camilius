@@ -575,6 +575,13 @@ body.app .site-lang-select-btn { position: fixed; top: calc(14px + var(--install
     box-shadow: 0 6px 14px -6px rgba(38, 32, 20, .18), 0 1px 3px rgba(38, 32, 20, .06);
 }
 .nav-links a:not(.button):active { transform: translateY(0); box-shadow: 0 1px 3px rgba(38, 32, 20, .1); }
+/* htmx adds this class to a boosted link itself (no explicit hx-indicator target,
+   see htmx's requestClass config) for as long as its AJAX request is in flight - the
+   only visible sign a tap registered at all otherwise, since a slow/failed request on a
+   flaky mobile connection previously left the tapped link looking completely inert
+   (see base.html's htmx:sendError/htmx:responseError handling for what happens if the
+   request never completes). */
+.nav-links a.htmx-request { opacity: .5; }
 /* Current page is marked with an underline, not a filled background - the
    .not(.button):hover card lift above still applies on top of it (same as
    every other nav link), it just no longer turns orange on hover. A pseudo-
