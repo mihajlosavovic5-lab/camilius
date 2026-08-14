@@ -6019,6 +6019,7 @@ async function loadMySite() {
             el("mysite-tagline-input").value = page.tagline || "";
             el("mysite-about-input").value = page.about || "";
             el("mysite-address-input").value = page.address || "";
+            el("profile-address-input").value = page.address || ""; // Profile tab's own mirror, see its declaration above
             el("mysite-published").checked = !!page.published;
             // Cached the same way as mysiteHasPage/pageTheme above - so next launch's boot
             // sequence can fill these fields in immediately instead of leaving Web
@@ -6479,6 +6480,11 @@ const MYSITE_FIELD_MODAL_FIELDS = {
     "mysite-tagline-input": { control: "input", titleKey: "mysite.website.taglineLabel" },
     "mysite-about-input": { control: "textarea", titleKey: "mysite.website.aboutLabel" },
     "mysite-address-input": { control: "input", titleKey: "mysite.website.addressLabel" },
+    // Same underlying business_pages.address field as mysite-address-input above, shown
+    // again in Profile > Account (see index.html's own comment on it) - kept in sync with
+    // it by profile-address-input's own "input" listener further down, not through this
+    // shared modal's own field-config.
+    "profile-address-input": { control: "input", titleKey: "mysite.website.addressLabel" },
     "book-customer-name": { control: "input", titleKey: "schedule.customerNamePlaceholder" },
     "book-service": { control: "input", titleKey: "schedule.servicePlaceholder" },
     "settings-name": { control: "input", titleKey: "settings.name" },
@@ -6701,6 +6707,19 @@ el("mysite-field-modal-password-toggle").addEventListener("click", () => {
 
 Object.keys(MYSITE_FIELD_MODAL_FIELDS).forEach((fieldId) => {
     el(fieldId).addEventListener("click", () => openMysiteFieldModal(fieldId));
+});
+
+// profile-address-input (Profile > Account) edits the same business_pages.address value
+// as My Site's own mysite-address-input, just from a second spot in the app - not a
+// second save path. Every edit (the shared modal above dispatches "input" on whichever
+// field it was opened for, see mysiteFieldModalSync) is mirrored onto the real
+// mysite-address-input and saved through My Site's own autosave, exactly as if it had
+// been typed there directly - #screen-profile's own delegated autosave (further up this
+// file) never sees this field change, since address is page content, not account data.
+el("profile-address-input").addEventListener("input", () => {
+    el("mysite-address-input").value = el("profile-address-input").value;
+    mysiteUpdateFieldFade(el("mysite-address-input"));
+    updateMysiteSaveValidity();
 });
 
 // Delete badge (top-right of the sheet) - same Cancel/Delete confirm pattern as
@@ -8057,6 +8076,7 @@ updateOfflineBanner();
         el("mysite-tagline-input").value = mysiteTagline || "";
         el("mysite-about-input").value = mysiteAbout || "";
         el("mysite-address-input").value = mysiteAddress || "";
+        el("profile-address-input").value = mysiteAddress || ""; // Profile tab's own mirror, see its declaration above
         mysiteResetSlugStatus();
         mysiteUpdateAllFieldFades();
         mysiteChosenDomain = mysiteChosenDomainCached || null;

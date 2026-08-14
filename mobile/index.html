@@ -1305,6 +1305,18 @@
           <p class="field-error hidden" id="settings-phone-verify-code-error"></p>
           <button type="button" class="button button-secondary" id="settings-phone-verify-code-submit" data-i18n="verifyPending.verify">Verify</button>
         </div>
+
+        <!-- Same business_pages.address field as My Site's own mysite-address-input
+             (index.html further up) - shown again here, right under Phone number, since
+             that's where an owner actually looks for it. Kept in sync with the My Site
+             field and saved through that same page-save path (see profile-address-input's
+             own "input" listener in app.js), not this section's own account-settings save -
+             address is public-page content, not account data. -->
+        <div class="floating-field">
+          <input type="text" id="profile-address-input" class="tap-to-edit-field" placeholder=" " maxlength="200" readonly>
+          <label for="profile-address-input" data-i18n="mysite.website.addressLabel">Address</label>
+        </div>
+        <p class="field-hint" data-i18n="mysite.website.addressHint">Shown on your public page's map. Leave blank if you don't have a physical location.</p>
       </div>
 
       <div class="profile-section">
