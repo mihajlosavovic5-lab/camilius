@@ -272,6 +272,32 @@ def split_display_title(text):
     return text, ""
 
 
+def short_address(address):
+    """Shortens a full geocoded address (address_lookup.py's Nominatim display_name -
+    e.g. "Mostarska 69, Mostarska, Bresnica, Kragujevac, Grad Kragujevac, Sumadija
+    District, Central Serbia, 34203, Serbia") down to just the street/number plus up to
+    two more identifying parts, for public_page.html's Location caption text. The map
+    above it (and its "open in Google Maps" link/aria-label) keep using the full address
+    for pinpoint accuracy - this is only ever the short line of text underneath, and any
+    future page section that shows a location should follow the same rule: full address
+    for the map, a short version for what's actually printed on the page. Drops the
+    postal code and any part that's just a repeat of the street name (Nominatim commonly
+    lists the road twice - once with the house number, once bare). None/empty in, empty
+    string out."""
+    parts = [p.strip() for p in (address or "").split(",") if p.strip()]
+    if not parts:
+        return ""
+    street = parts[0]
+    short = [street]
+    for part in parts[1:]:
+        if len(short) >= 3:
+            break
+        if part.isdigit() or part.lower() in street.lower():
+            continue
+        short.append(part)
+    return ", ".join(short)
+
+
 def hero_cta_for_business(booking_enabled):
     """The single primary call-to-action button shown in the public page's hero
     (public_page.html's .page-header) and, on mobile, repeated in the sticky bottom bar -
