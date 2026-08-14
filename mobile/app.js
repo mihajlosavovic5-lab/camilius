@@ -5108,6 +5108,11 @@ async function loadSchedule(date, { force = false } = {}) {
 
     try {
         const data = await api(`/api/schedule?${params.toString()}`);
+        // When the cached render above already put this exact data on screen, the fresh
+        // copy landing a moment later is a no-op - re-running renderSchedule would tear
+        // down and rebuild the same rows, replaying the stagger fade-in a second time and
+        // making an already-visited day look like it's loading twice.
+        const alreadyShowing = cached && !cached.locked && !data.locked && JSON.stringify(data) === JSON.stringify(cached);
         state.scheduleCache[cacheKey] = data;
         // Same "instant on next launch" trick as the donation strip / My Site fields
         // (see the boot IIFE below): persists just the default day:today view so it's
@@ -5128,7 +5133,7 @@ async function loadSchedule(date, { force = false } = {}) {
         state.scheduleSlotMinutes = data.slot_minutes;
         el("schedule-locked").classList.add("hidden");
         el("schedule-body").classList.remove("hidden");
-        renderSchedule(data);
+        if (!alreadyShowing) renderSchedule(data);
     } catch (err) {
         if (err.status === 401) { logout(false); return; }
         el("schedule-loading").classList.add("hidden");
