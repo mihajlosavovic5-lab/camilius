@@ -102,7 +102,13 @@
            --background pair instead of a fixed --primary-light token this page doesn't
            define. Fixed (not scroll) so the fade stays pinned to the viewport's top
            instead of scrolling away after the first ~350px, matching how it reads on
-           every other page in the app. */
+           every other page in the app - but ONLY on hover-capable (desktop) pointers,
+           see the touch override just below: background-attachment: fixed forces the
+           browser to repaint this whole gradient on the main thread on every scroll
+           frame instead of letting it composite normally, and mobile engines can't keep
+           that up - the visible result is a plain white strip flashing in wherever the
+           repaint hasn't caught up yet (worst at the bottom/leading edge while scrolling
+           down), even at an ordinary scroll speed, not just a fast fling. */
         background: linear-gradient(180deg, color-mix(in srgb, var(--primary) 18%, var(--background)) 0%, var(--background) 42%) fixed;
         color: var(--text);
         line-height: 1.55;
@@ -111,6 +117,15 @@
            on a normal page load too, since nothing else ever changes these two
            properties on body after first paint. */
         transition: background .35s ease, color .35s ease;
+    }
+    /* Touch devices don't get the fixed-attachment gradient above (see its own comment) -
+       just the plain scrolling one, which composites cheaply and never causes the white
+       scroll-repaint flash. Loses the "tint always hugs the viewport's top" effect once
+       scrolled past it, but that's a fair trade for a page that's never blank. (hover:
+       none) rather than a max-width check since this is a pointer/input trait, not a
+       screen-size one - a touch laptop should get the same fix a phone needs. */
+    @media (hover: none) {
+        body { background-attachment: scroll; }
     }
     [id] { scroll-margin-top: 24px; }
 
