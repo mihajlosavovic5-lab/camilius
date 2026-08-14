@@ -273,29 +273,42 @@ def split_display_title(text):
 
 
 def short_address(address):
-    """Shortens a full geocoded address (address_lookup.py's Nominatim display_name -
-    e.g. "Mostarska 69, Mostarska, Bresnica, Kragujevac, Grad Kragujevac, Sumadija
-    District, Central Serbia, 34203, Serbia") down to just the street/number plus up to
-    two more identifying parts, for public_page.html's Location caption text. The map
-    above it (and its "open in Google Maps" link/aria-label) keep using the full address
-    for pinpoint accuracy - this is only ever the short line of text underneath, and any
-    future page section that shows a location should follow the same rule: full address
-    for the map, a short version for what's actually printed on the page. Drops the
-    postal code and any part that's just a repeat of the street name (Nominatim commonly
-    lists the road twice - once with the house number, once bare). None/empty in, empty
-    string out."""
+    """Splits a full geocoded address (address_lookup.py's Nominatim display_name - e.g.
+    "Mostarska 69, Mostarska, Bresnica, Kragujevac, Grad Kragujevac, Sumadija District,
+    Central Serbia, 34203, Serbia") into a (street, area) pair for public_page.html's
+    Location caption: the street/number on its own line, and just the settlement plus
+    country underneath - not the whole chain of neighbourhood/district/region/postal
+    code Nominatim packs in between. The map above it (and its "open in Google Maps"
+    link/aria-label) keep using the full address for pinpoint accuracy; this pair is only
+    ever what's actually printed under it, and any future page section that shows a
+    location should follow the same split. area is "" when nothing beyond the street is
+    known. None/empty in -> ("", "").
+
+    The settlement is picked heuristically since display_name isn't tagged: Nominatim
+    commonly lists a place twice for a Serbian-style address - once bare ("Kragujevac"),
+    then again wrapped in an administrative label right after ("Grad Kragujevac") - so
+    the first part that turns up as a substring of a later one is taken as the
+    settlement. Failing that (the common "Street, City, State, Zip, Country" shape with
+    no such repeat), the first part right after the street is used instead."""
     parts = [p.strip() for p in (address or "").split(",") if p.strip()]
     if not parts:
-        return ""
+        return "", ""
     street = parts[0]
-    short = [street]
-    for part in parts[1:]:
-        if len(short) >= 3:
+    rest = [p for p in parts[1:] if not p.isdigit() and p.lower() not in street.lower()]
+    if not rest:
+        return street, ""
+    country = rest[-1]
+    middle = rest[:-1]
+    settlement = None
+    for i, part in enumerate(middle):
+        if any(part.lower() != other.lower() and part.lower() in other.lower() for other in middle[i + 1:]):
+            settlement = part
             break
-        if part.isdigit() or part.lower() in street.lower():
-            continue
-        short.append(part)
-    return ", ".join(short)
+    if settlement is None:
+        settlement = middle[0] if middle else country
+    if settlement.lower() == country.lower():
+        return street, country
+    return street, f"{settlement}, {country}"
 
 
 def hero_cta_for_business(booking_enabled):

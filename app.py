@@ -2817,9 +2817,9 @@ def _render_public_page(page, business, page_url, preview=False):
         phone_number=business[10],
         address=page[17],
         # Full address above is still what the map/its "open in Maps" link and
-        # aria-label use for pinpoint accuracy - this shortened one is only for the line
-        # of text actually printed under the map (see pages.short_address's docstring).
-        address_display=pages.short_address(page[17]),
+        # aria-label use for pinpoint accuracy - this street/area split is only for the
+        # two lines actually printed under the map (see pages.short_address's docstring).
+        address_lines=pages.short_address(page[17]),
         current_year=datetime.now().year,
     )
 

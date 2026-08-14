@@ -773,10 +773,14 @@
         border: 1px solid var(--border);
         border-radius: var(--radius);
         color: var(--text-muted);
-        font-size: 0.9rem;
-        font-weight: 600;
     }
     .location-caption svg { width: 16px; height: 16px; flex: 0 0 auto; color: var(--primary); }
+    /* Street on its own line, settlement+country smaller and muted underneath - same
+       "descriptor sitting smaller underneath" pattern as .title-main/.title-sub, just
+       centered here instead of that pair's left alignment. */
+    .location-caption-text { display: flex; flex-direction: column; align-items: center; text-align: center; }
+    .location-caption-street { font-size: 0.9rem; font-weight: 600; }
+    .location-caption-area { margin-top: 2px; font-size: 0.78rem; font-weight: 500; opacity: .75; }
     /* Stands in for the copyright notice cropped off along with the map chrome above -
        required attribution stays visible even though Google's own auto-generated one no
        longer is. */
@@ -2608,10 +2612,14 @@
                     <span class="location-map-placeholder-spinner"></span>
                 </div>
             </div>
-            <p class="location-caption">
+            {% set address_street, address_area = address_lines %}
+            <div class="location-caption">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M12 21s7-6.4 7-11.5A7 7 0 0 0 5 9.5C5 14.6 12 21 12 21z" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="9.5" r="2.3"/></svg>
-                <span>{{ address_display }}</span>
-            </p>
+                <span class="location-caption-text">
+                    <span class="location-caption-street">{{ address_street }}</span>
+                    {% if address_area %}<span class="location-caption-area">{{ address_area }}</span>{% endif %}
+                </span>
+            </div>
             <p class="location-attribution">Map data &copy; Google</p>
         </section>
         {% endif %}
