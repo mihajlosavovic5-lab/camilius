@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" role="img" aria-label="harbor-view-bnb photo placeholder">
+  <rect width="400" height="400" fill="#ffffff"/>
+  <rect x="0" y="0" width="400" height="400" fill="#c9a227" opacity="0.07"/>
+  <g transform="translate(40 40) scale(0.8)" opacity="0.9">
+    <g fill="none" stroke="#c9a227" stroke-width="14" stroke-linejoin="round" stroke-linecap="round"><path d="M80 210 L200 110 L320 210"/><rect x="110" y="210" width="180" height="130"/><rect x="180" y="260" width="40" height="80"/></g>
+  </g>
+</svg>

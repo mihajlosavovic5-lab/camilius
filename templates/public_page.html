@@ -652,7 +652,8 @@
            only applies when hero_cta actually rendered a bar to clear (has-sticky-cta,
            set server-side on <body> - see public_page.html's own body tag). */
         body.has-sticky-cta .chat-fab,
-        body.has-sticky-cta .theme-fab {
+        body.has-sticky-cta .theme-fab,
+        body.has-sticky-cta .showcase-badge {
             bottom: calc(var(--sticky-cta-height) + env(safe-area-inset-bottom) + 14px);
         }
     }
@@ -1602,7 +1603,36 @@
             right: 14px; bottom: 84px; width: min(300px, calc(100vw - 24px));
             height: min(60vh, calc(100vh - 96px));
         }
+        .showcase-badge { left: 14px; bottom: 14px; padding: 8px 12px; font-size: 0.76rem; }
     }
+    /* Showcase-only "this is an example" badge - rendered exclusively by app.py's
+       showcase_page route (see showcase_data.py), which is the only caller that ever
+       passes showcase_back_url; no real business's page ever renders this markup, so
+       there's nothing here for a real page to collide with. Sits bottom-left, the same
+       corner .theme-fab (owner-only) uses below - the two can never both be on screen at
+       once (a showcase page is never is_owner, so theme_choices is never set for it),
+       so there's no z-index fight to design around either. */
+    .showcase-badge {
+        position: fixed;
+        left: 20px;
+        bottom: 20px;
+        z-index: 950;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 16px;
+        border-radius: 999px;
+        border: 1.5px solid var(--primary);
+        background: color-mix(in srgb, var(--surface) 88%, transparent);
+        backdrop-filter: blur(6px);
+        -webkit-backdrop-filter: blur(6px);
+        color: var(--text);
+        font-size: 0.82rem;
+        font-weight: 600;
+        text-decoration: none;
+        box-shadow: 0 6px 16px -6px rgba(0, 0, 0, .3), 0 1px 3px rgba(0, 0, 0, .1);
+    }
+    .showcase-badge strong { color: var(--primary); }
     {% if theme_choices %}
     /* --- Owner-only "Change theme" launcher/panel - rendered exclusively when
        theme_choices is passed in (see app.py's _render_public_page: gated on is_owner,
@@ -2199,6 +2229,11 @@
     } catch (e) { /* private mode etc. - just show content_language normally */ }
 })();
 </script>
+{% if showcase_back_url %}
+<a class="showcase-badge" href="{{ showcase_back_url }}">
+    <span aria-hidden="true">&#8592;</span> <strong>Camilius</strong> example site
+</a>
+{% endif %}
 <div id="page-progress"></div>
 <div class="top-bar-fill" id="top-bar-fill"></div>
 <button type="button" class="nav-menu-btn" id="nav-menu-btn" aria-label="Menu" aria-expanded="false" aria-controls="side-nav">

@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" role="img" aria-label="maple-and-co-bakery photo placeholder">
+  <rect width="400" height="400" fill="#d9a012"/>
+  <rect x="0" y="0" width="400" height="400" fill="#fffaf0" opacity="0.07"/>
+  <g transform="translate(60 60) scale(0.65)" opacity="0.9">
+    <path fill="#fffaf0" d="M110 250c0-70 60-130 130-130 30 0 56 10 76 28-14-4-28-6-42-6-80 0-146 66-146 146 0 14 2 28 6 42-16-20-24-48-24-80z"/><path fill="#fffaf0" d="M320 150c30 20 48 54 48 92 0 62-50 112-112 112-38 0-72-18-92-48 18 12 40 18 62 18 62 0 112-50 112-112 0-22-6-44-18-62z"/>
+  </g>
+</svg>

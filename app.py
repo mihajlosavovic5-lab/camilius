@@ -81,6 +81,7 @@ import business_documents
 import ai_theme
 import domain_lookup
 import domain_registrar
+import showcase_data
 from database import all_businesses_unfiltered
 from api import api as api_blueprint, APK_VERSION, make_token
 from extensions import limiter
@@ -3228,6 +3229,165 @@ def public_page_chat(slug):
     return _json_with_cors(origin, reply=result["reply_text"])
 
 
+# "See it in action" on the marketing landing page (templates/landing.html's
+# #lp-examples) - 8 fictional local-service businesses (showcase_data.py), rendered
+# through the exact same public_page.html template every real business's page uses, so
+# what a visitor clicks into is pixel-for-pixel what Camilius actually builds - not a
+# mockup or screenshot of it. Modeled directly on onboarding_website_preview() above:
+# same render_template("public_page.html", ...) call, same "plain dict of values, no
+# business/page database rows involved" shape, just backed by showcase_data.py's fixture
+# dict instead of a session draft. Public, no login, no database writes - these aren't
+# real accounts.
+_SHOWCASE_SLOT_MINUTES = 30
+_SHOWCASE_AVAILABILITY_DAYS = 14
+
+
+def _showcase_availability_days(fixture):
+    """Same {"date", "label", "slots"} shape as _public_page_availability_days above,
+    computed straight from the fixture's working hours via booking.day_slots (pure
+    calendar math, no appointments table to check against - a demo business has no real
+    bookings to conflict with, so every slot within business hours is "free"). Recomputed
+    fresh on every call (never cached) so the demo always looks like today, not a fixture
+    frozen on whatever date this feature shipped."""
+    working_hours_text = json.dumps(fixture["working_hours"])
+    tz = booking.DEFAULT_TZ
+    now = booking.now_local(tz)
+    days = []
+    d = now.date()
+    for _ in range(_SHOWCASE_AVAILABILITY_DAYS):
+        slots = [s for s in booking.day_slots(working_hours_text, _SHOWCASE_SLOT_MINUTES, d, tz) if s >= now]
+        if slots:
+            days.append({
+                "date": d.isoformat(),
+                "label": d.strftime("%a, %b %d"),
+                "slots": [s.strftime("%H:%M") for s in slots],
+            })
+        d += timedelta(days=1)
+    return days
+
+
+def _showcase_chat_reply(business_name, message):
+    """Canned, deterministic reply for the showcase chat panel - deliberately NOT routed
+    through ai_replies.handle_incoming_message (no OpenAI call, no cost, no way for an
+    anonymous marketing-page visitor to run up real spend against a fixture business that
+    isn't paying for anything). Still honest about what it is: says outright that it's a
+    demo rather than pretending to be a live AI answering from real business data, same
+    "never claim more than Camilius actually does" spirit as page_generator.py's own
+    system prompt."""
+    if "book an appointment" in message.lower():
+        return (
+            f"This is a demo of {business_name}'s Camilius site - on a real, published "
+            "business, this would check the calendar and confirm that booking instantly, "
+            "no back-and-forth needed. Want a site like this, answering for your own "
+            "business?"
+        )
+    return (
+        f"This is a demo of the AI chat every Camilius site includes. On a real, "
+        f"published business it would answer using {business_name}'s own hours, prices "
+        "and FAQ - grounded in what's actually true, never made up. Want to see one built "
+        "for your business?"
+    )
+
+
+def _landing_showcase_examples():
+    """The "See it in action" carousel's own card data (templates/landing.html's
+    #lp-examples) - one entry per showcase_data.py fixture, in that module's own
+    (deliberately ordered) iteration order. `swatch` reuses themes.py's own 3-color
+    preview swatch (the same one the onboarding design step already shows for each
+    theme) rather than a second copy of representative colors, so a theme's landing-page
+    preview can never drift from what picking it in the wizard actually looks like."""
+    return [
+        {
+            "slug": slug,
+            "index": i + 1,
+            "business_name": fixture["business_name"],
+            "swatch": themes.THEMES[fixture["theme_id"]]["swatch"],
+            "url": url_for("showcase_page", slug=slug),
+        }
+        for i, (slug, fixture) in enumerate(showcase_data.SHOWCASE_BUSINESSES.items())
+    ]
+
+
+@app.route("/showcase/<slug>")
+def showcase_page(slug):
+    fixture = showcase_data.SHOWCASE_BUSINESSES.get(slug)
+    if fixture is None:
+        abort(404)
+    booking_enabled = fixture["booking_enabled"]
+    working_hours_text = json.dumps(fixture["working_hours"])
+    title_main, title_sub = pages.split_display_title(fixture["tagline"] or fixture["business_name"])
+    content_language = "en"
+    page_languages = list(translate_page.DEFAULT_PAGE_LANGUAGES)
+    return render_template(
+        "public_page.html",
+        business_name=fixture["business_name"],
+        working_hours=working_hours_text,
+        price_list=fixture["price_list"],
+        price_list_rows=pages.price_list_rows(fixture["price_list"]),
+        faq=fixture["faq"],
+        faq_html=pages.render_faq_html(fixture["faq"]),
+        tagline=fixture["tagline"],
+        about=fixture["about"],
+        about_html=pages.render_about_html(fixture["about"]),
+        content_lang_ui=_ui_strings_for_language(content_language),
+        opening_hours_schema=pages.opening_hours_schema(working_hours_text),
+        opening_hours_display=pages.opening_hours_display(working_hours_text),
+        title_main=title_main,
+        title_sub=title_sub,
+        page_url=url_for("showcase_page", slug=slug, _external=True),
+        chat_url=url_for("showcase_chat", slug=slug),
+        slug=slug,
+        theme=themes.resolve_theme(fixture["theme_id"]),
+        preview=True,  # noindex - this is a fictional demo business, never meant to rank
+        show_badge=True,
+        logo_url=url_for("static", filename=f"showcase/{slug}/logo.svg"),
+        gallery_urls=[
+            url_for("static", filename=f"showcase/{slug}/gallery-1.svg"),
+            url_for("static", filename=f"showcase/{slug}/gallery-2.svg"),
+        ],
+        hero_video_url=None,
+        social_links=[],
+        contact_email=fixture["contact_email"],
+        phone_number=fixture["phone_number"],
+        address=None,
+        address_lines=("", ""),
+        hero_cta=pages.hero_cta_for_business(booking_enabled),
+        booking_enabled=booking_enabled,
+        availability_url=url_for("showcase_availability", slug=slug) if booking_enabled else None,
+        initial_availability_days=_showcase_availability_days(fixture) if booking_enabled else None,
+        translate_url="",
+        content_language=content_language,
+        page_languages=[{"code": code, **translate_page.LANGUAGES[code]} for code in page_languages],
+        current_year=datetime.now().year,
+        # Only rendered by showcase-aware markup in public_page.html (guarded, so every
+        # real business's page - which never passes this - is completely unaffected).
+        showcase_back_url=url_for("home"),
+    )
+
+
+@app.route("/showcase/<slug>/availability")
+@limiter.limit("30 per minute")
+def showcase_availability(slug):
+    fixture = showcase_data.SHOWCASE_BUSINESSES.get(slug)
+    if fixture is None or not fixture["booking_enabled"]:
+        abort(404)
+    return jsonify(days=_showcase_availability_days(fixture))
+
+
+@app.route("/showcase/<slug>/chat", methods=["POST"])
+@csrf.exempt  # anonymous visitor, no session/CSRF token of ours - rate-limited below instead
+@limiter.limit("20 per hour")
+def showcase_chat(slug):
+    fixture = showcase_data.SHOWCASE_BUSINESSES.get(slug)
+    if fixture is None:
+        abort(404)
+    data = request.get_json(silent=True) or {}
+    message = (data.get("message") or "").strip()[:2000]
+    if not message:
+        abort(400)
+    return jsonify(reply=_showcase_chat_reply(fixture["business_name"], message))
+
+
 # F5: the embeddable widget for a business that already has its own site - a small
 # <iframe> (see widget_frame.html) loaded by the equally small loader script at
 # GET /widget.js below, both reusing the exact same /p/<slug>/chat backend the hosted
@@ -3569,7 +3729,7 @@ def home():
         session["_seen_landing"] = True
         if not already_seen:
             log_event("landing_view")
-        return render_template("landing.html")
+        return render_template("landing.html", showcase_examples=_landing_showcase_examples())
 
     business_id = session["business_id"]
     page_row = get_business_page(business_id)

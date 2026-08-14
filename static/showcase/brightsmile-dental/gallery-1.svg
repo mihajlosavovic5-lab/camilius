@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" role="img" aria-label="brightsmile-dental photo placeholder">
+  <rect width="400" height="400" fill="#f4f8fc"/>
+  <rect x="0" y="0" width="400" height="400" fill="#3d7bb8" opacity="0.07"/>
+  <g transform="translate(40 40) scale(0.8)" opacity="0.9">
+    <path fill="#3d7bb8" d="M210 90c-34 0-52 22-70 22s-34-18-58-18c-30 0-46 26-46 62 0 46 20 96 34 130 10 24 18 44 38 44 22 0 22-40 34-40s12 40 34 40c20 0 28-20 38-44 14-34 34-84 34-130 0-38-16-66-38-66z" transform="translate(60 10) scale(0.85)"/>
+  </g>
+</svg>
