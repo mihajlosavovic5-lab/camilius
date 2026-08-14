@@ -1662,13 +1662,13 @@ body.auth {
    as the mobile app's own .back-btn, kept as a separate class since the web page has no
    shared bundle with mobile/app.css to reuse it from directly. Pinned to the whole
    screen's top-left corner (.auth-wrapper, not .auth-card - the card has no visible
-   corner of its own to pin to anymore), inset to match .site-lang-select-btn's own
-   top offset on the opposite corner, so the two read as a matched pair. Its own small
-   fade+slide is driven by the .auth-card-email-active class added to this element
-   directly (see login.html's script), the same class the choice/form panels use, so it
-   appears/disappears in step with them without needing to live inside either one. */
+   corner of its own to pin to anymore). top is offset 1.5px above
+   .site-lang-select-btn's own top (16px) rather than matching it exactly - this button
+   is 34px tall while the flag button (23px flag image + 4px top/bottom padding = 31px)
+   is 3px shorter, so a shared top would leave their vertical centers 1.5px apart; this
+   centers both on the same line instead, so the two read as a true matched pair. */
 .auth-back-btn {
-    position: absolute; top: calc(16px + var(--install-banner-h)); left: 16px;
+    position: absolute; top: calc(14.5px + var(--install-banner-h)); left: 16px;
     width: 34px; height: 34px; border-radius: 99px; border: none; background: var(--background);
     color: var(--text); font-size: 23px; line-height: 1; cursor: pointer;
     opacity: 0; pointer-events: none; transform: translateX(10px);
