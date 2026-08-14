@@ -4498,7 +4498,19 @@ window.pageOverlay = (function () {
         dragStartX = null;
         dragAxis = null;
         if (axis !== null) e.preventDefault();
-        if (axis !== "x") return;
+        // Only a real vertical gesture (touchmove never touched scrollLeft, nothing to
+        // settle) skips outright. A touch too brief/small to ever pick an axis (axis
+        // still null here) used to bail out the same way "y" does - but touchstart's
+        // flushPendingPreview() above can leave viewport.scrollLeft wherever a just-
+        // cancelled animation had reached mid-flight, not the centered target it was
+        // easing toward (a plain goTo()'s onDone only re-applies the theme, it doesn't
+        // re-snap scrollLeft). Bailing here left that half-eased position stuck - a
+        // card visibly off-center, no longer settling on its own, until some later
+        // drag happened to pass through it. Falling through instead - same as any
+        // sub-threshold swipe - re-centers on `current` via goTo() below; `scrolled` is
+        // 0 in the null case (touchmove never ran), so this can't misfire as an
+        // unintended next()/prev().
+        if (axis === "y") return;
         var SWIPE_THRESHOLD = 18;
         if (scrolled > SWIPE_THRESHOLD) next();
         else if (scrolled < -SWIPE_THRESHOLD) prev();
