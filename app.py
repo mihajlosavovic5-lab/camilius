@@ -1485,8 +1485,12 @@ def settings():
         working_hours = request.form["working_hours"]
         price_list = request.form["price_list"]
         # No longer an editable field on this page - carry the existing value through
-        # unchanged (same pattern as phone_number below) instead of wiping it on every save.
+        # unchanged instead of wiping it on every save.
         faq = business[9]
+        # Same Account-card field as the mobile app's own Profile screen - previously
+        # this route always carried business[10] straight through unchanged, since the
+        # web Profile page had no field for it at all (see settings.html's Account card).
+        phone_number = (request.form.get("phone_number") or "").strip() or None
         current_password = request.form.get("current_password", "")
         new_password = request.form.get("new_password", "")
         # Social links have no validation of their own, so they're read once up top and
@@ -1520,6 +1524,7 @@ def settings():
                     "pending_contact_email": pending_contact_email,
                                         "working_hours": working_hours, "price_list": price_list, "faq": faq,
                     "upsell_pairs": get_upsell_pairs(business_id), "address": business[30],
+                    "phone_number": phone_number or "",
                     **submitted_social,
                 },
             )
@@ -1551,9 +1556,12 @@ def settings():
             if len(new_password) < 8:
                 return _rerender("New password must be at least 8 characters.")
 
-        # Phone isn't editable from this page (the mobile app's Profile screen is where
-        # that lives) - carry the existing value through unchanged.
-        update_business(business_id, name, contact_email, business[10], working_hours, price_list, faq)
+        if phone_number and phone_number != (business[10] or "") and phone_number_taken(phone_number, exclude_business_id=business_id):
+            return _rerender("That phone number is already taken.")
+
+        # update_business() itself resets phone_verified (and any pending verification
+        # token/code) whenever phone_number actually changes - see its own docstring.
+        update_business(business_id, name, contact_email, phone_number, working_hours, price_list, faq)
         session["business_name"] = name
 
         if new_password:
@@ -1593,6 +1601,7 @@ def settings():
                 "pending_contact_email": pending_contact_email,
                                 "working_hours": working_hours, "price_list": price_list, "faq": faq, "upsell_pairs": upsell_pairs,
                 "address": business[30],
+                "phone_number": phone_number or "",
                 **submitted_social,
             },
         )
@@ -1614,6 +1623,7 @@ def settings():
             "pending_contact_email": pending_contact_email,
                         "working_hours": business[7], "price_list": business[8], "faq": business[9],
             "upsell_pairs": get_upsell_pairs(business_id), "address": business[30],
+            "phone_number": business[10] or "",
             **social_links,
         },
     )
@@ -2243,8 +2253,8 @@ def onboarding_website_review():
 
     if request.method == "POST":
         business = business_by_id(business_id)
-        # phone_number (business[10]) carried through unchanged, same as settings()'s
-        # own update_business() call - this step never touches it.
+        # phone_number (business[10]) carried through unchanged - this onboarding step
+        # never collects it, unlike settings()'s own update_business() call further down.
         update_business(
             business_id, business[1], business[3], business[10],
             draft["working_hours"], draft["price_list"], draft["faq"],
