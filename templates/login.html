@@ -140,4 +140,30 @@
         });
     })();
 </script>
+<!-- TEMPORARY diagnostic overlay - to pin down a reported mobile-web layout bug where
+     the login card renders far narrower than the viewport with a big empty gap on the
+     right. Remove once diagnosed; not meant to ship long-term. -->
+<script>
+    (function () {
+        var wrapper = document.querySelector(".auth-wrapper");
+        var card = document.getElementById("login-card");
+        var wr = wrapper.getBoundingClientRect();
+        var cr = card.getBoundingClientRect();
+        var lines = [
+            "innerWidth=" + window.innerWidth,
+            "visualViewport.width=" + (window.visualViewport ? Math.round(window.visualViewport.width) : "n/a"),
+            "devicePixelRatio=" + window.devicePixelRatio,
+            "html.clientWidth=" + document.documentElement.clientWidth,
+            "body.clientWidth=" + document.body.clientWidth,
+            "body.scrollWidth=" + document.body.scrollWidth,
+            "body.classList=" + document.body.className,
+            "wrapper: x=" + Math.round(wr.x) + " w=" + Math.round(wr.width),
+            "card: x=" + Math.round(cr.x) + " w=" + Math.round(cr.width),
+        ];
+        var box = document.createElement("div");
+        box.textContent = lines.join(" | ");
+        box.style.cssText = "position:fixed;left:0;right:0;bottom:0;z-index:99999;background:#000;color:#0f0;font:10px monospace;padding:6px;word-break:break-all;";
+        document.body.appendChild(box);
+    })();
+</script>
 {% endblock %}
