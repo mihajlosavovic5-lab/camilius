@@ -2042,6 +2042,83 @@
 <div class="lang-loading-overlay" id="lang-loading-overlay" aria-hidden="true">
     <div class="lang-loading-spinner"></div>
 </div>
+{% if theme_choices %}
+<!-- Owner-only "Change theme" launcher - see this block's own CSS comment above for why
+     theme_choices being set at all already guarantees this is the owner's own logged-in
+     session for this exact business, never a public visitor, on either /site/preview or
+     the real /p/<slug> URL. Auto-saves on every pick (no separate Save step - see the
+     wiring script further down) since this is the owner's own live-editable control, not
+     a form a stranger could stumble into. Sits up here, right after #nav-menu-btn/
+     #lang-btn, so it paints in that same first instant instead of only after the whole
+     page below (about/gallery/price-list/FAQ/booking) has parsed - see .theme-fab's own
+     "part of the page, not bolted on after" CSS comment. -->
+<button type="button" class="theme-fab" id="theme-fab" aria-label="Change theme" aria-expanded="false">
+    <svg class="theme-fab-icon-palette" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
+        <path d="M12 3C7.03 3 3 6.8 3 11.5c0 3.6 2.94 5.5 5.5 5.5H10a1.5 1.5 0 0 1 1.06 2.56c-.4.4-.56.9-.44 1.4.16.66.86 1.04 1.7 1.04C17.53 22 21 17.75 21 12.5 21 7.26 17.08 3 12 3Z" stroke-linejoin="round"/>
+        <circle cx="7.6" cy="11" r="1.15" fill="currentColor" stroke="none"/>
+        <circle cx="10.8" cy="7.3" r="1.15" fill="currentColor" stroke="none"/>
+        <circle cx="15.2" cy="7.6" r="1.15" fill="currentColor" stroke="none"/>
+        <circle cx="17" cy="11.8" r="1.15" fill="currentColor" stroke="none"/>
+    </svg>
+    <svg class="theme-fab-icon-close" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+        <path d="M6 6l12 12M18 6L6 18" stroke-linecap="round"/>
+    </svg>
+</button>
+<div class="theme-panel hidden" id="theme-panel">
+    <div class="theme-panel-header">
+        <p>Change theme</p>
+    </div>
+    <div class="theme-grid" id="theme-grid"></div>
+</div>
+<div class="theme-toast" id="theme-toast"></div>
+{% endif %}
+{% if chat_url %}
+<!-- Chat + booking launcher - the actual product this page exists to deliver, not a
+     website builder add-on (see the AI answering questions/hours/prices/faq below, and
+     booking an appointment directly - see public_page_chat() in app.py). Gated on
+     chat_url (not `preview`) so app.py's site_preview() - a real saved page, just not
+     published yet - renders this identically to the live page; only
+     onboarding_website_preview()'s in-progress draft (no real slug/chat_url yet for this
+     to talk to) skips it entirely. Sits up here, right after #nav-menu-btn/#lang-btn (and
+     the owner-only theme fab above), so it paints in that same first instant instead of
+     only after the whole page below has parsed - see the wiring script further down for
+     why that script itself doesn't need to move too. -->
+<button type="button" class="chat-fab" id="chat-fab" aria-label="Chat with {{ business_name }}">
+    {% if logo_url %}
+    <img class="chat-fab-logo" src="{{ logo_url }}" alt="">
+    {% else %}
+    <svg class="chat-fab-icon-agent" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
+        <circle cx="12" cy="8" r="4"/>
+        <path d="M4 20.5c0-4.14 3.58-7.5 8-7.5s8 3.36 8 7.5" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    {% endif %}
+    <svg class="chat-fab-icon-close" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+        <path d="M6 6l12 12M18 6L6 18" stroke-linecap="round"/>
+    </svg>
+</button>
+<div class="chat-panel hidden" id="chat-panel">
+    <div class="chat-header">
+        <span class="chat-header-avatar" aria-hidden="true">
+            {% if logo_url %}
+            <img class="chat-header-avatar-logo" src="{{ logo_url }}" alt="">
+            {% else %}
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
+                <circle cx="12" cy="8" r="4"/>
+                <path d="M4 20.5c0-4.14 3.58-7.5 8-7.5s8 3.36 8 7.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            {% endif %}
+        </span>
+        <div class="chat-header-text">
+            <p{% if tagline %} data-i18n-content="tagline"{% endif %}>{{ tagline or business_name }}</p>
+        </div>
+    </div>
+    <div class="chat-messages" id="chat-messages"></div>
+    <form class="chat-form" id="chat-form">
+        <input type="text" id="chat-input" data-i18n-placeholder="chat_placeholder" placeholder="Ask anything..." autocomplete="off">
+        <button type="submit" class="chat-send" aria-label="Send">&#10148;</button>
+    </form>
+</div>
+{% endif %}
 <script>
 (function () {
     // Top-bar title self-fit - runs right here, as early as the elements it measures
@@ -3792,31 +3869,10 @@ window.pageOverlay = (function () {
 </script>
 
 {% if theme_choices %}
-<!-- Owner-only "Change theme" launcher - see this block's own CSS comment above for why
-     theme_choices being set at all already guarantees this is the owner's own logged-in
-     session for this exact business, never a public visitor, on either /site/preview or
-     the real /p/<slug> URL. Auto-saves on every pick (no separate Save step - see the
-     script below) since this is the owner's own live-editable control, not a form a
-     stranger could stumble into. -->
-<button type="button" class="theme-fab" id="theme-fab" aria-label="Change theme" aria-expanded="false">
-    <svg class="theme-fab-icon-palette" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
-        <path d="M12 3C7.03 3 3 6.8 3 11.5c0 3.6 2.94 5.5 5.5 5.5H10a1.5 1.5 0 0 1 1.06 2.56c-.4.4-.56.9-.44 1.4.16.66.86 1.04 1.7 1.04C17.53 22 21 17.75 21 12.5 21 7.26 17.08 3 12 3Z" stroke-linejoin="round"/>
-        <circle cx="7.6" cy="11" r="1.15" fill="currentColor" stroke="none"/>
-        <circle cx="10.8" cy="7.3" r="1.15" fill="currentColor" stroke="none"/>
-        <circle cx="15.2" cy="7.6" r="1.15" fill="currentColor" stroke="none"/>
-        <circle cx="17" cy="11.8" r="1.15" fill="currentColor" stroke="none"/>
-    </svg>
-    <svg class="theme-fab-icon-close" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-        <path d="M6 6l12 12M18 6L6 18" stroke-linecap="round"/>
-    </svg>
-</button>
-<div class="theme-panel hidden" id="theme-panel">
-    <div class="theme-panel-header">
-        <p>Change theme</p>
-    </div>
-    <div class="theme-grid" id="theme-grid"></div>
-</div>
-<div class="theme-toast" id="theme-toast"></div>
+<!-- Markup lives near the top of <body> now (see it there) so it paints in the same
+     instant as #nav-menu-btn/#lang-btn instead of after the whole page parses - only the
+     wiring stays down here, since THEME_CHOICES/CURRENT_THEME_ID/etc. don't need to be
+     ready before first paint, just before a visitor could plausibly click the fab. -->
 <script>
 (function () {
     var THEME_CHOICES = {{ theme_choices | tojson }};
@@ -3956,53 +4012,11 @@ window.pageOverlay = (function () {
 {% endif %}
 
 {% if chat_url %}
-<!-- Chat + booking - the actual product this page exists to deliver, not a website
-     builder add-on (see the AI answering questions/hours/prices/faq above, and booking
-     an appointment directly - see public_page_chat() in app.py). Gated on chat_url (not
-     `preview`) so app.py's site_preview() - a real saved page, just not published yet -
-     renders this identically to the live page; only onboarding_website_preview()'s
-     in-progress draft (no real slug/chat_url yet for this to talk to) skips it entirely.
-     The booking calendar below loads real open times even in that preview (see
-     app.py's _page_visible_to_request - read-only, safe to show early). Chat is
-     different: public_page_chat() still 404s for any unpublished slug, owner's own
-     preview included, since a real reply costs a real AI call and can complete a real
-     booking - sendMessage() below shows its own "publish first" copy for that 404
-     specifically, not the generic error. -->
-<button type="button" class="chat-fab" id="chat-fab" aria-label="Chat with {{ business_name }}">
-    {% if logo_url %}
-    <img class="chat-fab-logo" src="{{ logo_url }}" alt="">
-    {% else %}
-    <svg class="chat-fab-icon-agent" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
-        <circle cx="12" cy="8" r="4"/>
-        <path d="M4 20.5c0-4.14 3.58-7.5 8-7.5s8 3.36 8 7.5" stroke-linecap="round" stroke-linejoin="round"/>
-    </svg>
-    {% endif %}
-    <svg class="chat-fab-icon-close" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-        <path d="M6 6l12 12M18 6L6 18" stroke-linecap="round"/>
-    </svg>
-</button>
-<div class="chat-panel hidden" id="chat-panel">
-    <div class="chat-header">
-        <span class="chat-header-avatar" aria-hidden="true">
-            {% if logo_url %}
-            <img class="chat-header-avatar-logo" src="{{ logo_url }}" alt="">
-            {% else %}
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
-                <circle cx="12" cy="8" r="4"/>
-                <path d="M4 20.5c0-4.14 3.58-7.5 8-7.5s8 3.36 8 7.5" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-            {% endif %}
-        </span>
-        <div class="chat-header-text">
-            <p{% if tagline %} data-i18n-content="tagline"{% endif %}>{{ tagline or business_name }}</p>
-        </div>
-    </div>
-    <div class="chat-messages" id="chat-messages"></div>
-    <form class="chat-form" id="chat-form">
-        <input type="text" id="chat-input" data-i18n-placeholder="chat_placeholder" placeholder="Ask anything..." autocomplete="off">
-        <button type="submit" class="chat-send" aria-label="Send">&#10148;</button>
-    </form>
-</div>
+<!-- Markup lives near the top of <body> now (see it there) so the launcher paints in the
+     same instant as #nav-menu-btn/#lang-btn instead of after the whole page (about/
+     gallery/price-list/FAQ/booking content) parses - only the wiring stays down here,
+     since it doesn't need to be ready before first paint, just before a visitor could
+     plausibly click the fab. -->
 <script>
 (function () {
     var fab = document.getElementById("chat-fab");
