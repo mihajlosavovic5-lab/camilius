@@ -761,8 +761,11 @@
     .location-map-link { position: absolute; inset: 0; z-index: 1; cursor: pointer; }
     /* Address caption below the map - same muted-pill language as .contact-row so the
        placeholder still reads as one of this page's own rows rather than a bare label
-       bolted under someone else's embed. No icon - just the street/area text, centered. */
+       bolted under someone else's embed. Street/area text sits centered on its own
+       (position:relative here is only so .location-copy-btn below can anchor to this
+       box's left edge without pulling the centered text off-center). */
     .location-caption {
+        position: relative;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -779,6 +782,36 @@
     .location-caption-text { display: flex; flex-direction: column; align-items: center; text-align: center; }
     .location-caption-street { font-size: 0.9rem; font-weight: 600; }
     .location-caption-area { margin-top: 2px; font-size: 0.78rem; font-weight: 500; opacity: .75; }
+    /* Copy-address button, pinned to the card's left edge (absolute, so it never pushes
+       the centered street/area text off-center) - the checkmark swaps in over the
+       clipboard icon for a beat after a successful copy (see the click handler below). */
+    .location-copy-btn {
+        position: absolute;
+        left: 10px;
+        top: 50%;
+        transform: translateY(-50%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 30px;
+        height: 30px;
+        padding: 0;
+        border: none;
+        background: transparent;
+        border-radius: 8px;
+        color: var(--text-muted);
+        cursor: pointer;
+        transform-origin: center;
+        transition: color .12s ease, background .12s ease;
+    }
+    .location-copy-btn svg { width: 16px; height: 16px; flex: 0 0 auto; }
+    .location-copy-btn .location-copy-check { display: none; color: var(--primary); }
+    .location-copy-btn.copied .location-copy-icon { display: none; }
+    .location-copy-btn.copied .location-copy-check { display: block; }
+    @media (hover: hover) {
+        .location-copy-btn:hover { color: var(--primary); background: var(--border); }
+    }
+    .location-copy-btn:active, .location-copy-btn.pressed { transform: translateY(-50%) scale(0.9); transition-duration: .05s; }
     /* Stands in for the copyright notice cropped off along with the map chrome above -
        required attribution stays visible even though Google's own auto-generated one no
        longer is. */
@@ -2612,6 +2645,10 @@
             </div>
             {% set address_street, address_area = address_lines %}
             <div class="location-caption">
+                <button type="button" class="location-copy-btn" aria-label="Copy address">
+                    <svg class="location-copy-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    <svg class="location-copy-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 12.5l5 5L20 6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </button>
                 <span class="location-caption-text">
                     <span class="location-caption-street">{{ address_street }}</span>
                     {% if address_area %}<span class="location-caption-area">{{ address_area }}</span>{% endif %}
@@ -3344,7 +3381,7 @@ window.pageOverlay = (function () {
     // simply never applies :active styles on a plain <a> unless something is listening
     // for a touch/pointer event on it - with no listener at all, the CSS zoom-press
     // animation below never renders there even though it's otherwise correct.
-    var pressEls = document.querySelectorAll(".contact-row, .social-link, .location-map-wrap");
+    var pressEls = document.querySelectorAll(".contact-row, .social-link, .location-map-wrap, .location-copy-btn");
     pressEls.forEach(function (el) {
         el.addEventListener("pointerdown", function () { el.classList.add("pressed"); });
         ["pointerup", "pointercancel", "pointerleave"].forEach(function (evt) {
@@ -3744,6 +3781,36 @@ window.pageOverlay = (function () {
         var placeholder = wrap.querySelector(".location-map-placeholder");
         if (!frame || !placeholder) return;
         frame.addEventListener("load", function () { placeholder.classList.add("loaded"); }, { once: true });
+    });
+
+    // Copies the Location caption's own street/area text (not the full raw geocoded
+    // address the map/its "open in Maps" link use - see pages.short_address's docstring)
+    // to the clipboard. navigator.clipboard needs a secure context, which this page
+    // always is, but still falls back to the old select+execCommand trick (same pattern
+    // app_settings.html's own copy-email button uses) for any browser without it. Swaps
+    // the icon for a checkmark briefly as the only feedback - no toast, so it can't cover
+    // the very text that was just copied.
+    document.querySelectorAll(".location-copy-btn").forEach(function (btn) {
+        var caption = btn.closest(".location-caption");
+        var streetEl = caption.querySelector(".location-caption-street");
+        var areaEl = caption.querySelector(".location-caption-area");
+        var copiedTimer = null;
+        btn.addEventListener("click", async function () {
+            var text = areaEl ? streetEl.textContent + ", " + areaEl.textContent : streetEl.textContent;
+            try {
+                await navigator.clipboard.writeText(text);
+            } catch (e) {
+                var temp = document.createElement("input");
+                temp.value = text;
+                document.body.appendChild(temp);
+                temp.select();
+                document.execCommand("copy");
+                document.body.removeChild(temp);
+            }
+            btn.classList.add("copied");
+            clearTimeout(copiedTimer);
+            copiedTimer = setTimeout(function () { btn.classList.remove("copied"); }, 2000);
+        });
     });
 
     // Cascading entrance (.load-reveal) for the theme/chat fabs, hero and every section
