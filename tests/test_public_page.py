@@ -151,7 +151,7 @@ def test_public_page_title_renders_pre_split_server_side(client, unique_email):
 
     response = client.get(f"/p/{slug}")
     html = response.get_data(as_text=True)
-    assert '<div class="top-bar-title" data-i18n-content="tagline">'\
+    assert '<div class="top-bar-title load-reveal" style="animation-delay:60ms" data-i18n-content="tagline">'\
         '<span class="title-main">Kafeterija Aroma</span><span class="title-sub">Novi Sad</span></div>' in html
     assert '<h1 data-i18n-content="tagline">'\
         '<span class="title-main">Kafeterija Aroma</span><span class="title-sub">Novi Sad</span></h1>' in html

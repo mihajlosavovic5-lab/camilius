@@ -9,9 +9,9 @@
     row (tagline/about), so there is exactly one place a business edits this information
     and it's the same place the AI answers questions from.
 
-    The layout below (side nav, centered title + rule, scroll progress bar, reveal-on-
-    scroll, the hours grid) intentionally mirrors the logged-in app's own design language
-    (_nav.html/base.html/dashboard.html/schedule.html, and landing.html's #lp-progress/
+    The layout below (side nav, centered title + rule, scroll progress bar, cascading
+    load-in reveal, the hours grid) intentionally mirrors the logged-in app's own design
+    language (_nav.html/base.html/dashboard.html/schedule.html, and landing.html's #lp-progress/
     .lp-reveal) so a page a visitor lands on doesn't look like a different product - but
     it's all reimplemented inline here in plain CSS/JS rather than pulled in from
     style.css/site-i18n.js, to keep this page's own "load fast, nothing else required"
@@ -138,37 +138,40 @@
         z-index: 1000; transition: width .1s linear;
     }
 
-    /* --- Reveal-on-scroll - same technique as landing.html's .lp-reveal/.lp-visible
-       (IntersectionObserver toggling a class), reimplemented here under its own name
-       since this page doesn't load style.css. Deliberately NOT an opacity fade (landing.
-       html's version is): the reveal-on-scroll JS below can only mark a section
-       ".visible" once the IntersectionObserver actually fires, and on a fast fling that
-       can lag behind the scroll itself - with an opacity:0 starting state, whatever
-       section the fling lands on mid-lag is still fully invisible, which reads as a
-       blank/broken gap where real content should be (this is what the "cudna bela
-       oblast" bug actually was). transform-only keeps every section fully opaque and
-       readable at all times - worst case on a very fast scroll is it's briefly sitting
-       22px lower than its resting position, not blank.
+    /* --- One-time cascading entrance for the whole page on open - same fade/rise cadence
+       as the mobile app's own .tab-reveal-item (Home/Profile/etc, played once when a tab
+       first opens): the top bar controls and hero (.load-reveal) and then every section
+       below them (.load-cascade) animate into place one after another, top to bottom,
+       instead of the whole page just snapping into view flat. Each element's
+       animation-delay is set server-side below, per element, rather than by JS after the
+       fact - it plays unconditionally from page load, so there's no IntersectionObserver
+       deciding this after paint, and no scroll-position/timing race for it to lose (the
+       "whole first screen snaps into place a beat after every open" bug this page used to
+       have - see the View Page screen recording - was exactly that kind of race).
 
-       Resting position (transform: none) is the CSS default here, deliberately - .pending
-       (not .reveal itself) is what applies the 22px starting offset, and the script below
-       only ever adds .pending to a section it has confirmed, via getBoundingClientRect,
-       is actually off-screen. Anything already on/near screen at load (the whole first
-       viewportful, not just the hero - see REVEAL_LEAD_PX in that script) never gets
-       .pending in the first place, so there is nothing for it to snap back from once the
-       script finishes loading and running - whatever paints first already IS its final
-       position. Doing it the other way around (offset by default, JS removing the offset
-       once it decides a section doesn't need it) is what used to make the entire first
-       screen visibly snap into place a beat after every page open, however long that
-       correction took to arrive on a given connection (see the View Page screen
-       recording) - a default that already-visible content might still need correcting is
-       the actual bug, not how fast the correction runs. --- */
-    .reveal { transition: transform .6s cubic-bezier(.16, 1, .3, 1); }
-    .reveal.pending { transform: translateY(22px); }
+       .load-cascade (the sections) intentionally animates transform only, never opacity:
+       a very fast fling straight down the page in the first ~1s after open could reach
+       one of them before its own delay has elapsed, and starting it from opacity:0 would
+       read as a blank/broken gap where real content should be (this is what the "cudna
+       bela oblast" bug actually was) - transform-only keeps every section fully opaque
+       and readable throughout, worst case briefly sitting a little lower than its resting
+       position, never blank. The top bar controls and hero (.load-reveal) don't carry
+       that risk - a visitor never scrolls to reach them, they're already the first thing
+       painted - so they get the fuller fade+rise treatment. --- */
+    .load-reveal { animation: load-reveal .5s cubic-bezier(.22, .9, .32, 1.15) both; }
+    @keyframes load-reveal {
+        0% { opacity: 0; transform: translateY(14px); }
+        100% { opacity: 1; transform: translateY(0); }
+    }
+    .load-cascade { animation: load-cascade .6s cubic-bezier(.22, .9, .32, 1.15) both; }
+    @keyframes load-cascade {
+        0% { transform: translateY(22px); }
+        100% { transform: translateY(0); }
+    }
     @media (prefers-reduced-motion: reduce) {
         html { scroll-behavior: auto; }
-        .reveal.pending { transform: none !important; }
-        .reveal { transition: none !important; }
+        .load-reveal { animation: none !important; opacity: 1 !important; transform: none !important; }
+        .load-cascade { animation: none !important; transform: none !important; }
         .lp-typing-dots span { animation: none !important; }
     }
 
@@ -1321,6 +1324,15 @@
     @media (prefers-reduced-motion: no-preference) {
         .chat-fab { animation: chat-fab-nudge 10s ease-in-out infinite; }
         .chat-fab:hover, .chat-fab.chat-fab-nudge-done { animation: none; }
+        /* .load-reveal (see its own CSS comment further up) and the nudge above both set
+           the single `animation` shorthand, so whichever rule the cascade actually picks
+           would silently drop the other's animation entirely rather than blending them.
+           The extra .load-reveal class here (specificity 0,2,0) reliably beats the plain
+           .chat-fab rule above regardless of source order, and runs both off the same
+           shorthand's comma-list: the one-shot entrance first, then the idle loop picks
+           up right behind it. */
+        .chat-fab.load-reveal { animation: load-reveal .5s cubic-bezier(.22, .9, .32, 1.15) 240ms both, chat-fab-nudge 10s ease-in-out infinite 240ms; }
+        .chat-fab.load-reveal:hover, .chat-fab.load-reveal.chat-fab-nudge-done { animation: none; }
     }
     @keyframes chat-fab-nudge {
         0%, 75%, 100% { transform: translateY(0); }
@@ -1488,9 +1500,9 @@
         font-size: 0.92rem;
         background: var(--background);
         color: var(--text);
-        /* Same premium-motion cubic-bezier as this page's own .reveal/panel-open
-           animations, just slowed to a beat that fits a small focus ring rather than a
-           big panel move - eases into place instead of the flat .12s ease snap. */
+        /* Same premium-motion cubic-bezier as this page's own panel-open animations,
+           just slowed to a beat that fits a small focus ring rather than a big panel
+           move - eases into place instead of the flat .12s ease snap. */
         transition: border-color .25s cubic-bezier(.16, 1, .3, 1), box-shadow .25s cubic-bezier(.16, 1, .3, 1);
     }
     .chat-form input:focus {
@@ -2019,15 +2031,15 @@
 <body{% if hero_cta %} class="has-sticky-cta"{% endif %}>
 <div id="page-progress"></div>
 <div class="top-bar-fill" id="top-bar-fill"></div>
-<button type="button" class="nav-menu-btn" id="nav-menu-btn" aria-label="Menu" aria-expanded="false" aria-controls="side-nav">
+<button type="button" class="nav-menu-btn load-reveal" id="nav-menu-btn" aria-label="Menu" aria-expanded="false" aria-controls="side-nav">
     <span class="nav-menu-btn-bar"></span>
     <span class="nav-menu-btn-bar"></span>
     <span class="nav-menu-btn-bar"></span>
 </button>
 <div class="nav-menu-backdrop" id="nav-menu-backdrop"></div>
-<div class="top-bar-title"{% if tagline %} data-i18n-content="tagline"{% endif %}><span class="title-main">{{ title_main }}</span>{% if title_sub %}<span class="title-sub">{{ title_sub }}</span>{% endif %}</div>
+<div class="top-bar-title load-reveal" style="animation-delay:60ms"{% if tagline %} data-i18n-content="tagline"{% endif %}><span class="title-main">{{ title_main }}</span>{% if title_sub %}<span class="title-sub">{{ title_sub }}</span>{% endif %}</div>
 {% set current_lang = (page_languages | selectattr('code', 'equalto', content_language) | first) or page_languages[0] %}
-<button type="button" class="lang-btn" id="lang-btn" aria-label="Change language" aria-haspopup="true" aria-expanded="false">
+<button type="button" class="lang-btn load-reveal" id="lang-btn" aria-label="Change language" aria-haspopup="true" aria-expanded="false" style="animation-delay:120ms">
     <img class="lang-flag" id="lang-flag" src="{{ flag_data_uri(current_lang.flag) }}" alt="{{ current_lang.name }}">
     <span class="lang-chevron" aria-hidden="true">&#8964;</span>
 </button>
@@ -2052,7 +2064,7 @@
      #lang-btn, so it paints in that same first instant instead of only after the whole
      page below (about/gallery/price-list/FAQ/booking) has parsed - see .theme-fab's own
      "part of the page, not bolted on after" CSS comment. -->
-<button type="button" class="theme-fab" id="theme-fab" aria-label="Change theme" aria-expanded="false">
+<button type="button" class="theme-fab load-reveal" id="theme-fab" aria-label="Change theme" aria-expanded="false" style="animation-delay:180ms">
     <svg class="theme-fab-icon-palette" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
         <path d="M12 3C7.03 3 3 6.8 3 11.5c0 3.6 2.94 5.5 5.5 5.5H10a1.5 1.5 0 0 1 1.06 2.56c-.4.4-.56.9-.44 1.4.16.66.86 1.04 1.7 1.04C17.53 22 21 17.75 21 12.5 21 7.26 17.08 3 12 3Z" stroke-linejoin="round"/>
         <circle cx="7.6" cy="11" r="1.15" fill="currentColor" stroke="none"/>
@@ -2083,7 +2095,7 @@
      the owner-only theme fab above), so it paints in that same first instant instead of
      only after the whole page below has parsed - see the wiring script further down for
      why that script itself doesn't need to move too. -->
-<button type="button" class="chat-fab" id="chat-fab" aria-label="Chat with {{ business_name }}">
+<button type="button" class="chat-fab load-reveal" id="chat-fab" aria-label="Chat with {{ business_name }}">
     {% if logo_url %}
     <img class="chat-fab-logo" src="{{ logo_url }}" alt="">
     {% else %}
@@ -2348,7 +2360,7 @@
     </nav>
 
     <div class="wrap">
-        <header class="page-header" id="home">
+        <header class="page-header load-reveal" id="home" style="animation-delay:320ms">
             {% if logo_url %}<img class="logo" src="{{ logo_url }}" alt="{{ business_name }} logo">{% endif %}
             {# The tagline reads as the headline (bold, large), falling back to
                business_name when no tagline is set - the business name never shows as
@@ -2367,11 +2379,11 @@
         </header>
 
         {% if hero_video_url %}
-        <video class="hero-video" src="{{ hero_video_url }}" autoplay muted loop playsinline></video>
+        <video class="hero-video load-reveal" src="{{ hero_video_url }}" autoplay muted loop playsinline style="animation-delay:320ms"></video>
         {% endif %}
 
         {% if about %}
-        <section id="about" class="reveal">
+        <section id="about" class="load-cascade" style="animation-delay:390ms">
             <h2 data-i18n="heading_about">About</h2>
             {# .about-rendered holds pages.render_about_html()'s structured markup (headings/
                lists/emphasis/callout/signature - see that function's own docstring for the
@@ -2396,7 +2408,7 @@
            hours_closed in translate_page.PAGE_UI_STRINGS - rather than needing a
            business-content-style re-render mirror. Times themselves ("09:00 - 18:00")
            carry no data-i18n at all since a time doesn't need translating. #}
-        <section id="hours" class="reveal">
+        <section id="hours" class="load-cascade" style="animation-delay:460ms">
             <h2 data-i18n="heading_hours">Working hours</h2>
             <ul class="hours-rows" id="hours-rows">
                 {% for day_name, hours_text in opening_hours_display %}
@@ -2418,7 +2430,7 @@
            actual swipe/drag for free; the script block below only adds
            arrows/dots/keeping them in sync with real scroll. #}
         {% if gallery_urls %}
-        <section id="photos" class="reveal">
+        <section id="photos" class="load-cascade" style="animation-delay:530ms">
             <h2 data-i18n="heading_photos">Photos</h2>
             <div class="photo-slider" id="photo-slider">
                 <div class="photo-slider-viewport" id="photo-slider-viewport">
@@ -2461,7 +2473,7 @@
         {% endif %}
 
         {% if booking_enabled %}
-        <section id="book-section" class="reveal">
+        <section id="book-section" class="load-cascade" style="animation-delay:600ms">
             <div class="book-section-head">
                 <div class="book-date-picker">
                     <button type="button" class="book-date-btn" id="book-date-btn" aria-label="Pick a date" aria-haspopup="true" aria-expanded="false">
@@ -2504,7 +2516,7 @@
         {% endif %}
 
         {% if price_list %}
-        <section id="prices" class="reveal">
+        <section id="prices" class="load-cascade" style="animation-delay:670ms">
             <h2 data-i18n="heading_prices">Prices</h2>
             <ul class="price-rows">
                 {% for row in price_list_rows %}
@@ -2529,7 +2541,7 @@
         {% endif %}
 
         {% if faq %}
-        <section id="faq" class="reveal">
+        <section id="faq" class="load-cascade" style="animation-delay:740ms">
             <h2 data-i18n="heading_questions">Questions</h2>
             {# .faq-rendered holds pages.render_faq_html()'s <details>/<summary> accordion
                for the initial, server-rendered view - same hidden-source/rendered-view
@@ -2559,7 +2571,7 @@
         {% endmacro %}
 
         {% if contact_email or phone_number or social_links %}
-        <section id="contact" class="reveal section-compact">
+        <section id="contact" class="load-cascade section-compact" style="animation-delay:810ms">
             <h2 data-i18n="heading_contact">Contact</h2>
             {% if contact_email or phone_number %}
             <div class="contact-list">
@@ -2588,7 +2600,7 @@
         {% endif %}
 
         {% if address %}
-        <section id="location" class="reveal section-compact">
+        <section id="location" class="load-cascade section-compact" style="animation-delay:880ms">
             <h2 data-i18n="heading_location">Location</h2>
             <!-- The iframe is cropped larger than .location-map-wrap's visible window (see
                  CSS) so Google's own "Open in Maps" chip/fullscreen toggle/locator
@@ -3739,55 +3751,10 @@ window.pageOverlay = (function () {
         frame.addEventListener("load", function () { placeholder.classList.add("loaded"); }, { once: true });
     });
 
-    // Reveal-on-scroll for each section - see landing.html's identical .lp-reveal/
-    // .lp-visible pattern (.reveal here is transform-only, not an opacity fade - see its
-    // own CSS comment for why). The hero header/video deliberately carry no .reveal class
-    // at all (landing.html's own hero doesn't either) - they're the very first thing on
-    // screen, never actually "scrolled into view", so they should just render in their
-    // resting position from the first paint.
-    //
-    // Every OTHER .reveal section starts at rest too (see .reveal.pending's own CSS
-    // comment - resting is the default now, offset is the opt-in) - this pass is what
-    // opts a section INTO the 22px starting offset, and only for one already confirmed,
-    // via getBoundingClientRect, to be off-screen. REVEAL_LEAD_PX is the same lead
-    // distance the observer's own rootMargin below uses: anything within that distance of
-    // the viewport at load time is going to fire the observer's callback on its very
-    // first tick anyway, with no scrolling involved at all, so it never gets .pending
-    // added (and never needs correcting) in the first place - on a typical phone
-    // viewport that lead zone covers most of the page's first screenful, not just the
-    // hero. A section that's actually off-screen gets .pending now and is only ever
-    // un-pended once the observer below fires for real, so its very first paint is
-    // already mid-page, invisible to the visitor - there's no flash to cause there
-    // either. This is the fix for the whole page snapping/sliding into place a beat
-    // after every open (see the View Page screen recording): nothing on screen at load
-    // is ever in a state that needs correcting, so there's nothing left to snap.
-    var REVEAL_LEAD_PX = 600;
-    var revealEls = document.querySelectorAll(".reveal");
-    if ("IntersectionObserver" in window && !reduceMotion) {
-        // rootMargin is a large POSITIVE bottom value (not landing.html's -40px) so a
-        // pending section is un-pended - and starts its slide-in - while it's still this
-        // much below the viewport, not only once scrolled fully into view: on a fast
-        // fling the IntersectionObserver callback can lag behind the scroll itself, and
-        // without this lead time the slide-in would still be mid-transition for whatever
-        // section the fling lands on.
-        var revealIo = new IntersectionObserver(function (entries) {
-            entries.forEach(function (entry) {
-                if (entry.isIntersecting) {
-                    entry.target.classList.remove("pending");
-                    revealIo.unobserve(entry.target);
-                }
-            });
-        }, { threshold: 0, rootMargin: "0px 0px " + REVEAL_LEAD_PX + "px 0px" });
-        revealEls.forEach(function (el) {
-            var rect = el.getBoundingClientRect();
-            if (rect.top < window.innerHeight + REVEAL_LEAD_PX && rect.bottom > 0) return;
-            el.classList.add("pending");
-            revealIo.observe(el);
-        });
-    }
-    // No else branch needed for reduced-motion/no-IntersectionObserver: resting position
-    // is already the default with nothing pending, so every section is already exactly
-    // where it should be without this script doing anything at all.
+    // Cascading entrance for the top bar/hero (.load-reveal) and every section below them
+    // (.load-cascade) is pure CSS now, with each element's animation-delay set
+    // server-side in the markup - see that CSS block's own comment further up. Nothing to
+    // wire up here: it plays unconditionally from page load, not on scroll.
 
     // Sticky bottom CTA bar (mobile only, see .sticky-cta-bar's own CSS comment) -
     // shown once the hero itself (#home, the same element .hero-cta lives in) scrolls
