@@ -294,6 +294,19 @@
         color: var(--text); text-align: center;
         white-space: normal; overflow-wrap: break-word;
         pointer-events: none;
+        /* Hidden (not display:none - still needs real layout for layoutTopBarTitle()
+           below to measure it against) until that first JS pass sets the real font-size
+           and reveals it (see the script's own visibility="visible" line) - on a slow
+           connection the inline script tag right after this element in the HTML can
+           take a real, visible fraction of a second to actually arrive and run, and this
+           clamp() fallback would otherwise paint at its own (usually smaller) size for
+           that whole gap, then visibly snap to the real one the instant the script
+           finally executes. Hiding it for that gap instead of showing the wrong size is
+           the only way to close it for good - shortening the gap (this script already
+           runs as early as physically possible, right after the elements it measures)
+           can't, since the gap is however long those bytes take to arrive, not this
+           page's own doing. */
+        visibility: hidden;
     }
 
     /* --- Language switcher - a flag button fixed top-right (mirroring .nav-menu-btn's
@@ -2080,6 +2093,12 @@
         var wrapEl = document.querySelector(".wrap");
         if (topBarFillEl) topBarFillEl.style.height = barSpace + "px";
         if (wrapEl) wrapEl.style.paddingTop = barSpace + "px";
+
+        // Reveal now that a real font-size is actually applied (see this element's own
+        // CSS comment on the visibility:hidden it starts with) - every call here re-sets
+        // this the same "visible" either way, so a later resize/re-fit never needs its
+        // own separate reveal logic.
+        topBarTitleEl.style.visibility = "visible";
     }
     window.addEventListener("resize", layoutTopBarTitle);
     layoutTopBarTitle();
