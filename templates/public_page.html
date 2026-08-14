@@ -1746,7 +1746,6 @@
     .theme-slider-arrow:active { transform: translateY(-50%) scale(.92); }
     .theme-slider-prev { left: -6px; }
     .theme-slider-next { right: -6px; }
-    .theme-slider-arrow.disabled { opacity: .35; pointer-events: none; }
     .theme-slider-dots { display: flex; justify-content: center; flex-wrap: wrap; gap: 6px; padding: 0 12px; }
     .theme-slider-dot {
         width: 6px; height: 6px; border-radius: 99px; background: var(--border);
@@ -4052,6 +4051,7 @@ window.pageOverlay = (function () {
     var slides = [];
     var dots = [];
     var current = 0;
+    var cloneOffset = 0;
     var reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     // The live page's own :root colors come from theme.base, overridden by theme.dark
     // under this exact same media query (see this file's top <style> block) - matching
@@ -4060,6 +4060,11 @@ window.pageOverlay = (function () {
     var prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
 
     var CSS_VAR_KEYS = ["primary", "on_primary", "gold", "background", "surface", "text", "text_muted", "border"];
+    // Looked up by the delegated click handler below (a wrap-around clone carries no
+    // event listener of its own - see renderSlides()'s clone setup - just its source
+    // slide's data-theme-id, so a tap on it still has to resolve back to a real theme).
+    var THEME_BY_ID = {};
+    THEME_CHOICES.forEach(function (entry) { THEME_BY_ID[entry[0]] = entry[1]; });
 
     function activeColors(theme) {
         return (prefersDark && theme.dark) ? theme.dark : theme.base;
@@ -4098,9 +4103,7 @@ window.pageOverlay = (function () {
     // Builds one carousel card per theme - a tiny mockup "page" (top bar + two text
     // lines + accent button) painted with that theme's own actual colors, rather than
     // the old flat gradient chip, so scrolling through the deck previews how each theme
-    // will actually look. Click (not drag - see the touchend handler below, which
-    // preventDefaults the synthetic click a real swipe would otherwise also fire) picks
-    // that theme immediately, same as the old grid did.
+    // will actually look.
     function renderSlides() {
         THEME_CHOICES.forEach(function (entry) {
             var themeId = entry[0], theme = entry[1];
@@ -4150,7 +4153,6 @@ window.pageOverlay = (function () {
             label.textContent = theme.label;
             slide.appendChild(label);
 
-            slide.addEventListener("click", function () { pickTheme(themeId, theme); });
             track.appendChild(slide);
             slides.push(slide);
         });
@@ -4166,7 +4168,46 @@ window.pageOverlay = (function () {
                 return dot;
             });
         }
+
+        // A clone of the first/second and last/second-last theme cards, appended/
+        // prepended around the real ones, so stepping past either end (via next()/
+        // prev() below) wraps straight to the opposite end - one ordinary card-width
+        // animation, same as .photo-slider's own wrap-around further up this page (see
+        // that block's own clone-setup comment for the full reasoning, including why
+        // two per side rather than one).
+        if (slides.length > 1) {
+            var makeClone = function (slide) {
+                var clone = slide.cloneNode(true);
+                clone.setAttribute("aria-hidden", "true");
+                clone.tabIndex = -1;
+                return clone;
+            };
+            var cloneFirst = makeClone(slides[0]);
+            var cloneSecond = makeClone(slides[1]);
+            var cloneLast = makeClone(slides[slides.length - 1]);
+            var cloneSecondLast = makeClone(slides[slides.length - 2]);
+            track.insertBefore(cloneSecondLast, slides[0]);
+            track.insertBefore(cloneLast, slides[0]);
+            track.appendChild(cloneFirst);
+            track.appendChild(cloneSecond);
+            cloneOffset = 2;
+        }
     }
+    // Delegated on `track` (not one listener per slide) so the wrap-around clones -
+    // real DOM nodes cloneNode(true) copied straight from a real slide, see the clone
+    // setup above - pick a theme too if a visitor manages to tap one mid-swipe,
+    // without needing their own listeners: matching the clicked element's
+    // data-theme-id back to the real theme it stands in for. Click (not drag - see the
+    // touchend handler below, which preventDefaults the synthetic click a real swipe
+    // would otherwise also fire) picks that theme immediately, same as the old grid
+    // did.
+    track.addEventListener("click", function (e) {
+        var slideEl = e.target.closest(".theme-slide");
+        if (!slideEl) return;
+        var themeId = slideEl.dataset.themeId;
+        var theme = THEME_BY_ID[themeId];
+        if (theme) pickTheme(themeId, theme);
+    });
 
     function markSelected(themeId) {
         slides.forEach(function (slide) {
@@ -4186,9 +4227,9 @@ window.pageOverlay = (function () {
     // - see .photo-slider's own animateScrollTo comment further up this page: the in-app
     // browser this page actually opens in silently treats "smooth" as instant.
     var animFrame = null;
-    function animateScrollTo(left, duration) {
+    function animateScrollTo(left, duration, onDone) {
         if (animFrame !== null) cancelAnimationFrame(animFrame);
-        if (reduceMotion) { viewport.scrollLeft = left; return; }
+        if (reduceMotion) { viewport.scrollLeft = left; if (onDone) onDone(); return; }
         var startLeft = viewport.scrollLeft;
         var delta = left - startLeft;
         var startTime = null;
@@ -4199,18 +4240,14 @@ window.pageOverlay = (function () {
             viewport.scrollLeft = startLeft + delta * eased;
             if (t < 1) { animFrame = requestAnimationFrame(step); return; }
             animFrame = null;
+            if (onDone) onDone();
         }
         animFrame = requestAnimationFrame(step);
-    }
-    function updateArrows() {
-        if (prevBtn) prevBtn.classList.toggle("disabled", current === 0);
-        if (nextBtn) nextBtn.classList.toggle("disabled", current === slides.length - 1);
     }
     function setCurrent(i) {
         current = i;
         slides.forEach(function (slide, idx) { slide.classList.toggle("theme-slide-active", idx === i); });
         dots.forEach(function (dot, idx) { dot.classList.toggle("active", idx === i); });
-        updateArrows();
     }
     function goTo(i, instant) {
         i = Math.max(0, Math.min(slides.length - 1, i));
@@ -4218,15 +4255,41 @@ window.pageOverlay = (function () {
         else animateScrollTo(targetScrollLeft(slides[i]), 380);
         setCurrent(i);
     }
-    if (prevBtn) prevBtn.addEventListener("click", function () { goTo(current - 1); });
-    if (nextBtn) nextBtn.addEventListener("click", function () { goTo(current + 1); });
+    // At either end, step onto the adjacent clone instead of jumping straight to
+    // goTo(0)/goTo(last) - same wrap-around technique as .photo-slider's own next()/
+    // prev() further up this page (see that block's comment for the full reasoning):
+    // one ordinary card-width animation onto the clone, then an invisible instant swap
+    // over to the real slide it stands in for, so current/goTo() never has to know
+    // clones exist at all.
+    function next() {
+        if (slides.length > 1 && current === slides.length - 1) {
+            animateScrollTo(targetScrollLeft(track.children[cloneOffset + slides.length]), 380, function () {
+                viewport.scrollLeft = targetScrollLeft(slides[0]);
+                setCurrent(0);
+            });
+            return;
+        }
+        goTo(current + 1);
+    }
+    function prev() {
+        if (slides.length > 1 && current === 0) {
+            animateScrollTo(targetScrollLeft(track.children[cloneOffset - 1]), 380, function () {
+                viewport.scrollLeft = targetScrollLeft(slides[slides.length - 1]);
+                setCurrent(slides.length - 1);
+            });
+            return;
+        }
+        goTo(current - 1);
+    }
+    if (prevBtn) prevBtn.addEventListener("click", prev);
+    if (nextBtn) nextBtn.addEventListener("click", next);
 
     // Hand-rolled drag - mirrors .photo-slider-viewport's own touchstart/touchmove/
     // touchend further up this page (see that block's comments for the reasoning behind
     // each piece: the 10px/1.3-ratio axis lock, the preventDefault on a recognized drag
     // so release doesn't also fire a stray click on the card underneath, the 18px
-    // threshold). No wrap-around here (unlike the photo slider) - goTo() already clamps
-    // to the first/last card, and the arrows disable themselves at either end to match.
+    // threshold, and the wrap-around clones the drag bound below reaches through at
+    // either end).
     var dragStartX = null, dragStartY = null, dragStartScroll = null, dragAxis = null;
     var dragMin = null, dragMax = null;
     viewport.addEventListener("touchstart", function (e) {
@@ -4236,11 +4299,18 @@ window.pageOverlay = (function () {
         dragStartScroll = viewport.scrollLeft;
         dragAxis = null;
         // Bounds the drag itself (not just where it snaps to on release) to the
-        // immediate neighbor on either side, clamped to the first/last card the same
-        // way goTo() is - so a single continuous drag can never visually carry more
-        // than one card past, however far the finger travels before lifting.
-        dragMin = targetScrollLeft(slides[Math.max(0, current - 1)]);
-        dragMax = targetScrollLeft(slides[Math.min(slides.length - 1, current + 1)]);
+        // immediate neighbor on either side - through the wrap-around clones at either
+        // end, same as next()/prev() above - so a single continuous drag can never
+        // visually carry more than one card past, however far the finger travels
+        // before lifting.
+        if (slides.length > 1) {
+            var prevChild = current === 0 ? track.children[cloneOffset - 1] : slides[current - 1];
+            var nextChild = current === slides.length - 1 ? track.children[cloneOffset + slides.length] : slides[current + 1];
+            dragMin = targetScrollLeft(prevChild);
+            dragMax = targetScrollLeft(nextChild);
+        } else {
+            dragMin = dragMax = dragStartScroll;
+        }
     }, { passive: true });
     viewport.addEventListener("touchmove", function (e) {
         if (dragStartX === null) return;
@@ -4263,8 +4333,8 @@ window.pageOverlay = (function () {
         if (axis !== null) e.preventDefault();
         if (axis !== "x") return;
         var SWIPE_THRESHOLD = 18;
-        if (scrolled > SWIPE_THRESHOLD) goTo(current + 1);
-        else if (scrolled < -SWIPE_THRESHOLD) goTo(current - 1);
+        if (scrolled > SWIPE_THRESHOLD) next();
+        else if (scrolled < -SWIPE_THRESHOLD) prev();
         else goTo(current);
     }, { passive: false });
 
