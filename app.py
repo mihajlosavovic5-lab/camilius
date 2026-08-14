@@ -3325,6 +3325,18 @@ def terms():
     return render_template("terms.html", logged_in=bool(session.get("business_id")))
 
 
+# Its own page, not a card inline on app_settings.html - matches the mobile app's own
+# Settings screen, where Help & support (screen-help) is a separate screen reached via a
+# chevron row, exactly like Terms of Service/Privacy Policy are (see settings-help-row's
+# click handler in mobile/app.js). Login-required (unlike terms/privacy above, which are
+# also reachable from outside the app e.g. at signup) since its content only makes sense
+# to someone who already has a Profile/Settings/Conversations to be pointed at.
+@app.route("/help")
+@login_required
+def help_page():
+    return render_template("help.html")
+
+
 # Swipeable onboarding slides shown once, only inside the installed Android app
 # (never in a regular browser) - see the redirect check in landing.html.
 @app.route("/intro")

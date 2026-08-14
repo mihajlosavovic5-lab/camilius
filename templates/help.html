@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+{% block title %}Help & support - Camilius{% endblock %}
+{% block body_class %}app{% endblock %}
+
+{% block content %}
+{% include "_nav.html" %}
+
+<div class="content content-narrow">
+    <div class="page-header">
+        <div>
+            <h1 data-i18n="appSettings.support.heading">Help &amp; support</h1>
+        </div>
+    </div>
+
+    <div class="card settings-card">
+        <div class="info-card">
+            <strong data-i18n="appSettings.support.emailLabel">Email us</strong><br>
+            <span id="settings-email-text">support@ai-auto-reply-mail.com</span>
+        </div>
+
+        <a class="button button-full" href="mailto:support@ai-auto-reply-mail.com?subject=Camilius%20support" data-i18n="appSettings.support.emailCta">Send us an email</a>
+        <button type="button" class="button button-secondary button-full" id="settings-copy-email-btn" style="margin-top:12px;" data-i18n="appSettings.support.copyBtn">Copy email address</button>
+        <div id="settings-copy-confirmation" class="alert alert-success hidden" style="margin-top:14px;" data-i18n="appSettings.support.copied">Copied to clipboard.</div>
+
+        <div class="block-label" data-i18n="appSettings.support.faqTitle">Common questions</div>
+        <div class="faq-scroll">
+            <div class="info-card">
+                <strong data-i18n="appSettings.support.faq1Q">Why didn't a customer message show up?</strong><br>
+                <span data-i18n="appSettings.support.faq1A">Make sure your page is published in Profile, and that your daily reply limit hasn't been reached.</span>
+            </div>
+            <div class="info-card">
+                <strong data-i18n="appSettings.support.faq2Q">Can I see what the AI told a customer?</strong><br>
+                <span data-i18n="appSettings.support.faq2A">Yes - every reply is sent instantly since the customer is chatting live, and you can review the full conversation anytime in Conversations.</span>
+            </div>
+            <div class="info-card">
+                <strong data-i18n="appSettings.support.faq3Q">How does the AI know what to reply with?</strong><br>
+                <span data-i18n="appSettings.support.faq3A">It uses the working hours, price list, and FAQ answers saved in your Profile, plus OpenAI, to draft a reply suited to each customer message.</span>
+            </div>
+            <div class="info-card">
+                <strong data-i18n="appSettings.support.faq5Q">Can Camilius book appointments automatically?</strong><br>
+                <span data-i18n="appSettings.support.faq5A">Yes - when a customer asks for a time that fits your working hours, it can book the appointment directly and let you know.</span>
+            </div>
+            <div class="info-card">
+                <strong data-i18n="appSettings.support.faq7Q">How do appointment reminders work?</strong><br>
+                <span data-i18n="appSettings.support.faq7A">Turn them on in Settings to get an app notification a set amount of time before each upcoming appointment.</span>
+            </div>
+            <div class="info-card">
+                <strong data-i18n="appSettings.support.faq8Q">Can I change my working hours or prices later?</strong><br>
+                <span data-i18n="appSettings.support.faq8A">Yes - update them anytime in Profile. The AI always uses whatever is saved there for new replies.</span>
+            </div>
+            {% if not beta_free_mode %}
+            <div class="info-card">
+                <strong data-i18n="appSettings.support.faq9Q">What's included in the Pro plan?</strong><br>
+                <span data-i18n="appSettings.support.faq9A">Pro unlocks features like appointment reminders. Check Subscription in Settings for the current plan and pricing.</span>
+            </div>
+            {% endif %}
+            <div class="info-card">
+                <strong data-i18n="appSettings.support.faq10Q">Is my data shared with anyone?</strong><br>
+                <span data-i18n="appSettings.support.faq10A">Customer messages and your business info are sent to OpenAI to generate replies. See the Privacy Policy for full details.</span>
+            </div>
+            <div class="info-card">
+                <strong data-i18n="appSettings.support.faq11Q">Can I delete my account and data?</strong><br>
+                <span data-i18n="appSettings.support.faq11A">Yes - go to Settings and choose Delete account. This permanently removes your account and conversations and can't be undone.</span>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+    var copyBtn = document.getElementById("settings-copy-email-btn");
+    if (!copyBtn) return;
+    var email = document.getElementById("settings-email-text").textContent;
+    copyBtn.addEventListener("click", async function () {
+        try {
+            await navigator.clipboard.writeText(email);
+        } catch (e) {
+            var temp = document.createElement("input");
+            temp.value = email;
+            document.body.appendChild(temp);
+            temp.select();
+            document.execCommand("copy");
+            document.body.removeChild(temp);
+        }
+        var confirmation = document.getElementById("settings-copy-confirmation");
+        confirmation.classList.remove("hidden");
+        setTimeout(function () { confirmation.classList.add("hidden"); }, 2500);
+    });
+})();
+</script>
+{% endblock %}
