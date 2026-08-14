@@ -4019,8 +4019,17 @@ window.pageOverlay = (function () {
     var dots = [];
     var current = 0;
     var reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    // The live page's own :root colors come from theme.base, overridden by theme.dark
+    // under this exact same media query (see this file's top <style> block) - matching
+    // it here is what keeps a swatch's colors the ones actually on screen right now,
+    // instead of always the light variant even when the page itself is rendering dark.
+    var prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
 
     var CSS_VAR_KEYS = ["primary", "on_primary", "gold", "background", "surface", "text", "text_muted", "border"];
+
+    function activeColors(theme) {
+        return (prefersDark && theme.dark) ? theme.dark : theme.base;
+    }
 
     // Instant client-side repaint - no reload, no flash of the old colors while a save
     // request is in flight. body/section's own `transition` (see this file's <style>)
@@ -4029,8 +4038,9 @@ window.pageOverlay = (function () {
     // what's about to be persisted.
     function applyThemePreview(theme) {
         var root = document.documentElement.style;
+        var colors = activeColors(theme);
         CSS_VAR_KEYS.forEach(function (key) {
-            var value = theme.base[key];
+            var value = colors[key];
             if (value) root.setProperty("--" + key.replace(/_/g, "-"), value);
         });
         if (theme.radius) root.setProperty("--radius", theme.radius);
@@ -4048,7 +4058,7 @@ window.pageOverlay = (function () {
         // heading font itself still applies correctly on an actual page load, which is
         // when the search runs fresh against it.
         var metaTheme = document.querySelector('meta[name="theme-color"]');
-        if (metaTheme) metaTheme.setAttribute("content", theme.base.primary);
+        if (metaTheme) metaTheme.setAttribute("content", colors.primary);
     }
 
     // Builds one carousel card per theme - a tiny mockup "page" (top bar + two text
@@ -4060,7 +4070,7 @@ window.pageOverlay = (function () {
     function renderSlides() {
         THEME_CHOICES.forEach(function (entry) {
             var themeId = entry[0], theme = entry[1];
-            var base = theme.base;
+            var base = activeColors(theme);
 
             var slide = document.createElement("button");
             slide.type = "button";
