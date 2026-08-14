@@ -10,6 +10,34 @@
        its actual top-left corner, exactly like the APK's own .login-email-back-btn
        (mobile/app.css) sits relative to .login-wrap rather than any inner panel. #}
     <button type="button" class="auth-back-btn{% if error or message %} auth-card-email-active{% endif %}" id="login-back-btn" aria-label="Back">&lsaquo;</button>
+    {# Same top-left corner as the back button above, on request - the two take turns
+       occupying it (see .login-menu-btn-hidden in style.css/the script below): this
+       hamburger shows on the choice screen, so there's a way off the login page entirely
+       (Home, the rest of the site), and swaps for the back arrow once the email form is
+       open. Reuses the landing page's own .lp-menu-btn/.lp-menu-modal markup and CSS
+       as-is (static/style.css, landing.html) rather than a new component, so it's the
+       exact "classic hamburger" already on the homepage - just with its own id (the CSS
+       is class-scoped, not id-scoped) and a shorter, login-appropriate link list (no
+       "Log in" - that's this page already). Starts hidden (like the back button starts
+       shown) whenever there's an error/message, since that means the page opened
+       straight into the email-form phase - see login.html's own comment further down. #}
+    <button type="button" id="login-menu-btn" class="lp-menu-btn{% if error or message %} login-menu-btn-hidden{% endif %}" aria-label="Menu" aria-expanded="false" aria-controls="login-menu-modal">
+        <span></span><span></span><span></span>
+    </button>
+    <div id="login-menu-modal" class="lp-menu-modal">
+        <div class="lp-menu-modal-backdrop" id="login-menu-modal-backdrop"></div>
+        <nav class="lp-menu-modal-sheet" id="login-menu-modal-sheet">
+            <a href="{{ url_for('home') }}" data-i18n="common.home">Home</a>
+            <a href="{{ url_for('home') }}#lp-examples" data-i18n="landing.slider.sectionTitle">See it in action</a>
+            <a href="{{ url_for('home') }}#lp-who-for" data-i18n="landing.nav.whoFor">Who it's for</a>
+            <a href="{{ url_for('home') }}#lp-how-it-works" data-i18n="landing.howItWorks.title">How it works</a>
+            {% if not beta_free_mode %}<a href="{{ url_for('home') }}#lp-pricing" data-i18n="terms.pricing.heading">Pricing</a>{% endif %}
+            <div class="lp-menu-modal-divider"></div>
+            <a href="{{ url_for('register') }}" class="button" data-i18n="landing.nav.tryFree">Try for free</a>
+            <div class="lp-menu-modal-divider lp-menu-mobile-only"></div>
+            <a href="{{ play_store_url }}" target="_blank" rel="noopener" class="lp-menu-mobile-only" data-i18n="download.cta">Download for Android</a>
+        </nav>
+    </div>
     <div class="auth-brand">
         <span class="brand">
             <span class="brand-mark">C</span>
@@ -135,13 +163,53 @@
     (function () {
         var card = document.getElementById("login-card");
         var backBtn = document.getElementById("login-back-btn");
+        var menuBtn = document.getElementById("login-menu-btn");
         document.getElementById("login-email-btn").addEventListener("click", function () {
             card.classList.add("auth-card-email-active");
             backBtn.classList.add("auth-card-email-active");
+            menuBtn.classList.add("login-menu-btn-hidden");
         });
         backBtn.addEventListener("click", function () {
             card.classList.remove("auth-card-email-active");
             backBtn.classList.remove("auth-card-email-active");
+            menuBtn.classList.remove("login-menu-btn-hidden");
+        });
+    })();
+</script>
+<script>
+    // Hamburger menu (top-left, choice-screen only - see the markup/comment above) -
+    // trimmed-down version of landing.html's own #lp-menu-btn/#lp-menu-modal open/close
+    // logic: same scroll-lock-while-open pattern, minus the slider-autoplay-resume and
+    // bfcache-repaint bits landing.html needs that don't apply here (this page has
+    // neither a slider nor enough content to ever need a repaint nudge).
+    (function () {
+        var menuBtn = document.getElementById("login-menu-btn");
+        var menuModal = document.getElementById("login-menu-modal");
+        var menuBackdrop = document.getElementById("login-menu-modal-backdrop");
+        var menuSheet = document.getElementById("login-menu-modal-sheet");
+        var lockedScrollY = 0;
+        function closeMenu() {
+            menuModal.classList.remove("open");
+            menuBtn.classList.remove("active");
+            menuBtn.setAttribute("aria-expanded", "false");
+            document.body.classList.remove("lp-menu-open");
+            document.body.style.top = "";
+            window.scrollTo({ top: lockedScrollY, left: 0, behavior: "instant" });
+        }
+        function openMenu() {
+            lockedScrollY = window.scrollY || document.documentElement.scrollTop;
+            document.body.style.top = (-lockedScrollY) + "px";
+            document.body.classList.add("lp-menu-open");
+            menuModal.classList.add("open");
+            menuBtn.classList.add("active");
+            menuBtn.setAttribute("aria-expanded", "true");
+        }
+        menuBtn.addEventListener("click", function () {
+            if (menuModal.classList.contains("open")) closeMenu(); else openMenu();
+        });
+        menuBackdrop.addEventListener("click", closeMenu);
+        menuSheet.querySelectorAll("a").forEach(function (link) {
+            link.addEventListener("click", closeMenu);
         });
     })();
 </script>

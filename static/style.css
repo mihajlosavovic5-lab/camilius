@@ -1679,6 +1679,27 @@ body.auth {
 }
 .auth-back-btn:hover { background: var(--border); }
 
+/* Hamburger menu (login.html only) shares the back button's exact top-left slot -
+   overrides .lp-menu-btn's own landing-page positioning (position: fixed, tracking
+   #lp-header's scroll-dependent height) with the same absolute/scrolls-with-the-page
+   placement as .auth-back-btn right above, so the two align pixel-for-pixel and simply
+   take turns being visible instead of one popping to a different spot. Visible by
+   default (the choice screen); .login-menu-btn-hidden (toggled by login.html's own
+   script, same trigger as .auth-card-email-active above) fades/slides it out once the
+   email form takes over that corner. */
+.auth-login .lp-menu-btn {
+    position: absolute; top: calc(14.5px + var(--install-banner-h)); left: 16px;
+    transform: none;
+    transition: opacity .18s ease, transform .22s cubic-bezier(.22,.9,.32,1.05), background-color .2s ease;
+}
+@media (hover: hover) and (pointer: fine) {
+    .auth-login .lp-menu-btn:hover { transform: scale(1.08); }
+}
+.auth-login .lp-menu-btn:active { transform: scale(.92); }
+.auth-login .lp-menu-btn.login-menu-btn-hidden {
+    opacity: 0; pointer-events: none; transform: translateX(-10px);
+}
+
 .auth-card h1 { font-size: 20px; margin-bottom: 4px; }
 .auth-subtitle { color: var(--text-muted); font-size: 15px; margin: 0 0 10px; }
 .auth-links { margin-top: 18px; text-align: center; font-size: 15px; }
