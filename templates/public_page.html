@@ -1322,10 +1322,6 @@
         white-space: nowrap;
         overflow-wrap: break-word;
     }
-    .chat-header-text span {
-        font-size: 0.78rem;
-        color: var(--text-muted);
-    }
     .chat-messages {
         flex: 1;
         overflow-y: auto;
@@ -3806,7 +3802,6 @@ window.pageOverlay = (function () {
         </span>
         <div class="chat-header-text">
             <p{% if tagline %} data-i18n-content="tagline"{% endif %}>{{ tagline or business_name }}</p>
-            <span data-i18n="chat_subtitle">Usually replies in seconds</span>
         </div>
     </div>
     <div class="chat-messages" id="chat-messages"></div>

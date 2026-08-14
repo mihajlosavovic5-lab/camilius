@@ -98,7 +98,6 @@ PAGE_UI_STRINGS = {
     "book_empty": "No upcoming openings right now - message us in chat to check.",
     "book_error": "Couldn't load open times - please try again shortly.",
     "book_confirm": "Requested {day} at {time} - continue in the chat to confirm.",
-    "chat_subtitle": "Usually replies in seconds",
     "chat_placeholder": "Ask anything...",
     "chat_send": "Send",
     "chat_greeting": "Hi! How can I help you?",
