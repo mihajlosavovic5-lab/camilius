@@ -266,24 +266,17 @@
         });
     }
 
-    // Per-booking duration dropdown on each free slot's form (.duration-dd) - a custom
-    // dropdown instead of a native <select> specifically so its menu always opens
-    // downward (a native select's popup flips upward near the bottom of the screen,
-    // which is exactly the "options fly up out of nowhere" complaint this replaces).
-    // "Custom" swaps the trigger button for a number input (duration_custom) in the
-    // same spot rather than showing both - the hidden "duration" input is what actually
-    // gets submitted either way; see create_appointment_route in app.py.
-    function closeAllDurationMenus() {
-        document.querySelectorAll(".duration-dd-menu").forEach(function (m) { m.classList.add("hidden"); });
-    }
-    // This listener targets `document`, which (unlike the elements below) survives htmx
-    // swaps - guard so re-running this block on every visit to Schedule doesn't pile up
-    // a duplicate handler each time.
-    if (!window.__scheduleDurationMenuHandlerAdded) {
-        document.addEventListener("click", closeAllDurationMenus);
-        window.__scheduleDurationMenuHandlerAdded = true;
-    }
-
+    // Per-booking duration dropdown on each free slot's form (.duration-dd) - opens the
+    // shared centered option modal (openOptionModal, static/pickers.js) instead of a
+    // locally-anchored popup menu, matching the mobile app's own working-hours/currency/
+    // duration pickers (a small sheet that zooms in centered on screen with a dimmed
+    // backdrop, see mobile/app.css's #option-modal). The Jinja-rendered .duration-dd-menu/
+    // .duration-dd-option markup stays in the DOM (still translated by data-i18n on the
+    // "Custom" option) purely as the data source the modal reads its option list from -
+    // it's never itself shown anymore. "Custom" swaps the trigger button for a number
+    // input (duration_custom) in the same spot rather than showing both - the hidden
+    // "duration" input is what actually gets submitted either way; see
+    // create_appointment_route in app.py.
     document.querySelectorAll(".duration-dd").forEach(function (dd) {
         var hiddenValue = dd.querySelector(".duration-dd-value");
         var trigger = dd.querySelector(".duration-dd-trigger");
@@ -292,31 +285,31 @@
         var lastPresetValue = hiddenValue.value;
         var lastPresetLabel = trigger.textContent;
 
+        function selectOption(value, label) {
+            if (value === "custom") {
+                hiddenValue.value = "custom";
+                trigger.classList.add("hidden");
+                customInput.classList.remove("hidden");
+                customInput.disabled = false;
+                customInput.value = "";
+                customInput.focus();
+                return;
+            }
+            lastPresetValue = value;
+            lastPresetLabel = label;
+            hiddenValue.value = value;
+            trigger.textContent = label;
+            menu.querySelectorAll(".duration-dd-option").forEach(function (o) { o.classList.toggle("active", o.dataset.value === value); });
+        }
+
         trigger.addEventListener("click", function (e) {
             e.stopPropagation();
-            var willOpen = menu.classList.contains("hidden");
-            closeAllDurationMenus();
-            menu.classList.toggle("hidden", !willOpen);
-        });
-        menu.addEventListener("click", function (e) { e.stopPropagation(); });
-
-        menu.querySelectorAll(".duration-dd-option").forEach(function (option) {
-            option.addEventListener("click", function () {
-                menu.classList.add("hidden");
-                if (option.dataset.value === "custom") {
-                    hiddenValue.value = "custom";
-                    trigger.classList.add("hidden");
-                    customInput.classList.remove("hidden");
-                    customInput.disabled = false;
-                    customInput.value = "";
-                    customInput.focus();
-                    return;
-                }
-                lastPresetValue = option.dataset.value;
-                lastPresetLabel = option.dataset.label;
-                hiddenValue.value = lastPresetValue;
-                trigger.textContent = lastPresetLabel;
-                menu.querySelectorAll(".duration-dd-option").forEach(function (o) { o.classList.toggle("active", o === option); });
+            var options = Array.prototype.map.call(menu.querySelectorAll(".duration-dd-option"), function (o) {
+                return { value: o.dataset.value, label: o.dataset.label };
+            });
+            openOptionModal(options, hiddenValue.value, function (value) {
+                var match = options.find(function (o) { return o.value === value; });
+                selectOption(value, match.label);
             });
         });
 

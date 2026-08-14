@@ -152,13 +152,15 @@
             </form>
             <script>
             (function () {
-                // Same anchored dropdown pattern as the Schedule page's per-slot duration
-                // field (.duration-dd, see schedule.html) and the mobile app's own
-                // reminder lead-time field (.picker-btn, mobile/index.html) - a compact
-                // trigger showing the current value that opens a small option list right
-                // below it, instead of a whole grid of pill buttons taking up the row.
-                // Closing one dropdown when the other (or anything else) is clicked is
-                // handled by the shared document-level listener below.
+                // Opens the shared centered option modal (openOptionModal, static/pickers.js)
+                // instead of a locally-anchored popup menu - matches the mobile app's own
+                // reminder lead-time field (.picker-btn -> the shared #option-modal,
+                // mobile/app.js's openReminderOwnerLeadPicker), a small sheet that zooms in
+                // centered on screen with a dimmed backdrop rather than a dropdown popping
+                // open below the button. The Jinja-rendered .duration-dd-menu/
+                // .duration-dd-option markup stays in the DOM (still translated by
+                // data-i18n on the "Custom" option) purely as the data source the modal
+                // reads its option list from - it's never itself shown anymore.
                 // Nothing here submits the form directly anymore - toggling a switch or
                 // picking a lead time only stages the change locally (shows the floating
                 // Save button below, via initRemindersSaveButton's snapshot diff); only an
@@ -179,38 +181,39 @@
                     var lastPresetValue = hiddenValue.value;
                     var lastPresetLabel = trigger.textContent;
 
+                    function selectOption(value, label) {
+                        if (value === "custom") {
+                            hiddenValue.value = "custom";
+                            trigger.classList.add("hidden");
+                            customInput.classList.remove("hidden");
+                            customInput.disabled = false;
+                            customInput.value = "";
+                            customInput.focus();
+                            // "change" (not "input") so the Save-button snapshot diff below
+                            // picks up the switch to custom mode right away, even before the
+                            // user types a single digit.
+                            dd.dispatchEvent(new Event("change", { bubbles: true }));
+                            return;
+                        }
+                        lastPresetValue = value;
+                        lastPresetLabel = label;
+                        hiddenValue.value = value;
+                        trigger.textContent = label;
+                        menu.querySelectorAll(".duration-dd-option").forEach(function (o) { o.classList.toggle("active", o.dataset.value === value); });
+                        dd.dispatchEvent(new Event("change", { bubbles: true }));
+                    }
+
                     trigger.addEventListener("click", function (e) {
                         e.stopPropagation();
-                        var willOpen = menu.classList.contains("hidden");
-                        document.querySelectorAll(".duration-dd-menu").forEach(function (m) { m.classList.add("hidden"); });
-                        menu.classList.toggle("hidden", !willOpen);
-                    });
-                    menu.addEventListener("click", function (e) { e.stopPropagation(); });
-
-                    menu.querySelectorAll(".duration-dd-option").forEach(function (option) {
-                        option.addEventListener("click", function () {
-                            menu.classList.add("hidden");
-                            if (option.dataset.value === "custom") {
-                                hiddenValue.value = "custom";
-                                trigger.classList.add("hidden");
-                                customInput.classList.remove("hidden");
-                                customInput.disabled = false;
-                                customInput.value = "";
-                                customInput.focus();
-                                // "change" (not "input") so the Save-button snapshot diff
-                                // below picks up the switch to custom mode right away, even
-                                // before the user types a single digit.
-                                dd.dispatchEvent(new Event("change", { bubbles: true }));
-                                return;
-                            }
-                            lastPresetValue = option.dataset.value;
-                            lastPresetLabel = option.dataset.label;
-                            hiddenValue.value = lastPresetValue;
-                            trigger.textContent = lastPresetLabel;
-                            menu.querySelectorAll(".duration-dd-option").forEach(function (o) { o.classList.toggle("active", o === option); });
-                            dd.dispatchEvent(new Event("change", { bubbles: true }));
+                        var options = Array.prototype.map.call(menu.querySelectorAll(".duration-dd-option"), function (o) {
+                            return { value: o.dataset.value, label: o.dataset.label };
+                        });
+                        openOptionModal(options, hiddenValue.value, function (value) {
+                            var match = options.find(function (o) { return o.value === value; });
+                            selectOption(value, match.label);
                         });
                     });
+
                     // Enter just confirms/blurs - saving happens only via the Save button now.
                     customInput.addEventListener("keydown", function (e) {
                         if (e.key === "Enter") { e.preventDefault(); customInput.blur(); }
@@ -226,18 +229,6 @@
                         customInput.classList.add("hidden");
                         customInput.disabled = true;
                     });
-                }
-
-                // Closes any open reminder dropdown on a click anywhere else on the page -
-                // guarded against htmx re-running this whole script block on every boosted
-                // visit to Settings (see the hamburger toggle's own listener in base.html
-                // for the same pattern), which would otherwise stack a duplicate document
-                // listener per visit.
-                if (!window.__reminderDurationMenuHandlerAdded) {
-                    document.addEventListener("click", function () {
-                        document.querySelectorAll(".duration-dd-menu").forEach(function (m) { m.classList.add("hidden"); });
-                    });
-                    window.__reminderDurationMenuHandlerAdded = true;
                 }
 
                 initReminderPicker("owner");

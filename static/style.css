@@ -1138,6 +1138,58 @@ input[readonly]:hover { border-color: var(--border); }
 .confirm-modal-message { margin: 0 0 22px; color: var(--text); font-size: 15.5px; line-height: 1.5; }
 .confirm-modal-actions { display: flex; justify-content: flex-end; gap: 10px; }
 
+/* --- Option-list modal (static/pickers.js's openOptionModal) --- */
+/* Shared centered picker for every "pick one value from a short list" field on the site -
+   working-hours time fields, the price list's currency field, and the Schedule/reminder
+   duration pickers (see the .duration-dd-trigger click handlers in pickers.js/schedule.html/
+   app_settings.html). Same overlay/backdrop/scale-in choreography as .confirm-modal above,
+   with a scrollable option list instead of a message + buttons - matches the mobile app's
+   own shared #option-modal (mobile/app.css/app.js's createAnchoredListPicker): a small sheet
+   that zooms in centered on screen with a dimmed backdrop, opened already scrolled to the
+   current value, instead of a dropdown menu anchored below the field that opened it. One
+   singleton instance (appended to <body> on first use by ensureOptionModal) reused by every
+   field on the page, same as .lang-modal is one instance per picker kind on mobile. */
+.option-modal {
+    position: fixed; inset: 0; z-index: 1060;
+    display: flex; align-items: center; justify-content: center; padding: 20px;
+    visibility: hidden; pointer-events: none;
+}
+.option-modal.open { visibility: visible; pointer-events: auto; }
+.option-modal-backdrop {
+    position: absolute; inset: 0; background: rgba(20,15,8,.42);
+    opacity: 0; transition: opacity .2s ease;
+}
+.option-modal.open .option-modal-backdrop { opacity: 1; }
+.option-modal-sheet {
+    position: relative; background: var(--surface); border-radius: var(--radius); box-shadow: var(--shadow-lg);
+    padding: 8px; width: 220px; max-width: calc(100% - 40px);
+    display: flex; flex-direction: column;
+    transform: translateY(6px) scale(.96); opacity: 0;
+    transition: transform .2s cubic-bezier(.22,.9,.32,1.2), opacity .16s ease;
+}
+.option-modal.open .option-modal-sheet { transform: translateY(0) scale(1); opacity: 1; }
+/* Optional framing text (title/subtitle) around the list - only a field whose trigger
+   alone doesn't already carry a label sets these (see openOptionModal's own callers);
+   every other field leaves them hidden, since they already show their own label outside
+   the modal (e.g. "Appointment length" above the Schedule duration picker). */
+.option-modal-title { text-align: center; font-size: 15px; font-weight: 700; padding: 6px 10px 2px; color: var(--text); }
+.option-modal-title.hidden, .option-modal-subtitle.hidden { display: none; }
+.option-modal-subtitle { text-align: center; font-size: 13px; color: var(--text-muted); padding: 2px 10px 6px; }
+/* No padding, and height caps at 5 rows (44px each) instead of being fixed to it - a
+   short list (e.g. a handful of duration options) is only as tall as its real rows, and
+   a long one (the 48 half-hour time slots) scrolls past 220px - same reasoning as the
+   mobile app's own .country-modal-list. */
+.option-modal-list { overflow-y: auto; max-height: 220px; }
+.option-modal-option {
+    display: block; width: 100%; background: none; border: none; text-align: center;
+    padding: 11px 14px; border-radius: 10px; font-family: inherit; font-size: 16px;
+    color: var(--text-muted); font-weight: 500; cursor: pointer; white-space: nowrap;
+    min-height: 44px; box-sizing: border-box;
+    transition: color .15s ease, font-weight .15s ease, background-color .15s ease;
+}
+.option-modal-option:hover, .option-modal-option:focus-visible { background: var(--background); }
+.option-modal-option.active { color: var(--primary-ink); font-weight: 700; background: var(--primary-light); }
+
 /* --- Badges (status) --- */
 .badge {
     display: inline-flex; align-items: center; gap: 6px;

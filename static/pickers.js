@@ -39,28 +39,89 @@ const HOURS_DAY_I18N_KEYS = {
     thursday: "pickers.days.thursday", friday: "pickers.days.friday", saturday: "pickers.days.saturday", sunday: "pickers.days.sunday",
 };
 
-// Closes every open pill-dropdown menu (time fields and the currency field alike) -
-// called both when a click lands outside any of them and right before opening one (so
-// opening a second dropdown auto-closes the first).
-function closeAllPillDropdowns() {
-    document.querySelectorAll(".pill-dd-menu").forEach((m) => m.classList.add("hidden"));
+// Shared centered option-list picker (openOptionModal below) - one singleton instance
+// (built lazily by ensureOptionModal, appended to <body> the first time anything opens
+// it) reused by every "pick one value from a short list" field on the site: the working-
+// hours time fields and price-list currency field below, plus schedule.html's per-slot
+// duration picker and app_settings.html's reminder lead-time picker (each wires its own
+// existing .duration-dd markup to call openOptionModal directly - see those templates).
+// Matches the mobile app's own shared #option-modal (mobile/app.css/app.js's
+// createAnchoredListPicker): a small sheet that zooms in centered on screen with a
+// dimmed backdrop, opened already scrolled to the current value, instead of a dropdown
+// menu anchored below whichever field opened it.
+let _optionModalEl = null;
+function ensureOptionModal() {
+    if (_optionModalEl) return _optionModalEl;
+    const modal = document.createElement("div");
+    modal.className = "option-modal";
+    modal.innerHTML =
+        '<div class="option-modal-backdrop"></div>' +
+        '<div class="option-modal-sheet">' +
+        '<p class="option-modal-title hidden"></p>' +
+        '<p class="option-modal-subtitle hidden"></p>' +
+        '<div class="option-modal-list" role="listbox"></div>' +
+        "</div>";
+    document.body.appendChild(modal);
+    modal.querySelector(".option-modal-backdrop").addEventListener("click", closeOptionModal);
+    document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape" && modal.classList.contains("open")) closeOptionModal();
+    });
+    _optionModalEl = modal;
+    return modal;
 }
-if (!window.__pillDropdownHandlerAdded) {
-    document.addEventListener("click", closeAllPillDropdowns);
-    window.__pillDropdownHandlerAdded = true;
+function closeOptionModal() {
+    if (_optionModalEl) _optionModalEl.classList.remove("open");
+}
+// options: array of either plain strings or {value, label} objects (a plain string is
+// its own label). activeValue is compared against each option's value to mark/scroll to
+// the current selection. onSelect(value) fires once, right before the modal closes.
+// title/subtitle are optional framing text shown above/below the list - only set by a
+// field whose trigger doesn't already carry its own label outside the modal (see
+// mobile/app.js's openReminderOwnerLeadPicker for the one field that uses this).
+function openOptionModal(options, activeValue, onSelect, title, subtitle) {
+    const modal = ensureOptionModal();
+    const list = modal.querySelector(".option-modal-list");
+    const titleEl = modal.querySelector(".option-modal-title");
+    const subtitleEl = modal.querySelector(".option-modal-subtitle");
+    titleEl.textContent = title || "";
+    titleEl.classList.toggle("hidden", !title);
+    subtitleEl.textContent = subtitle || "";
+    subtitleEl.classList.toggle("hidden", !subtitle);
+
+    list.innerHTML = "";
+    let activeBtn = null;
+    options.forEach((opt) => {
+        const value = typeof opt === "object" ? opt.value : opt;
+        const label = typeof opt === "object" ? opt.label : opt;
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "option-modal-option";
+        btn.textContent = label;
+        if (value === activeValue) { btn.classList.add("active"); activeBtn = btn; }
+        btn.addEventListener("click", () => {
+            closeOptionModal();
+            onSelect(value);
+        });
+        list.appendChild(btn);
+    });
+
+    modal.classList.add("open");
+    // Marking/scrolling needs a layout pass first (list.innerHTML was just rebuilt
+    // above), hence the rAF - same reasoning as mobile's own markActiveOption() call.
+    requestAnimationFrame(() => { (activeBtn || list.firstElementChild)?.scrollIntoView({ block: "nearest" }); });
 }
 
 // A field built the same way schedule.html builds its per-slot duration dropdown
-// (.duration-dd/.schedule-slot-duration-select/.duration-dd-menu/.duration-dd-option) -
-// reusing those classes gives it the exact same look (pill shape, shadow/glow, depth) and,
-// more importantly, the same fix: a native <select>'s own popup picks its open direction
-// based on viewport space and flips upward for a field placed low on the page, which is
-// exactly what made the Working hours time fields fly open toward the top of the screen.
-// Built as a real DOM node with a `value` property and native change events, so every call
-// site can keep treating it exactly like the <select> it replaces (x.value,
-// x.addEventListener("change", ...), etc.) without any other code changing. extraClass
-// hangs off the root for field-specific tweaks (e.g. trigger width) - see .hours-time-dd/
-// .price-currency-dd in style.css.
+// (.duration-dd/.schedule-slot-duration-select/.duration-dd-trigger) - reusing those
+// classes gives it the exact same trigger look (pill shape, shadow/glow, depth). Opens
+// the shared centered option modal above on tap, instead of a native <select>'s own
+// popup, whose open direction picks based on viewport space and flips upward for a field
+// placed low on the page - exactly what made the Working hours time fields fly open
+// toward the top of the screen before this replaced them. Built as a real DOM node with
+// a `value` property and native change events, so every call site can keep treating it
+// exactly like the <select> it replaces (x.value, x.addEventListener("change", ...),
+// etc.) without any other code changing. extraClass hangs off the root for field-specific
+// tweaks (e.g. trigger width) - see .hours-time-dd/.price-currency-dd in style.css.
 function createPillDropdown(options, defaultValue, extraClass) {
     const dd = document.createElement("div");
     dd.className = "duration-dd pill-dd" + (extraClass ? ` ${extraClass}` : "");
@@ -69,18 +130,12 @@ function createPillDropdown(options, defaultValue, extraClass) {
     trigger.type = "button";
     trigger.className = "schedule-slot-duration-select duration-dd-trigger";
     trigger.setAttribute("aria-haspopup", "listbox");
-    trigger.setAttribute("aria-expanded", "false");
     trigger.textContent = defaultValue;
-
-    const menu = document.createElement("div");
-    menu.className = "duration-dd-menu pill-dd-menu hidden";
-    menu.setAttribute("role", "listbox");
 
     let currentValue = defaultValue;
     function setValue(value, silent) {
         currentValue = value;
         trigger.textContent = value;
-        menu.querySelectorAll(".duration-dd-option").forEach((o) => o.classList.toggle("active", o.dataset.value === value));
         // Must bubble: settings.html's Save button listens for "change" on the whole
         // #settings-form (one delegated listener catching every field, including this
         // dropdown), not on this element directly - a non-bubbling event never reaches
@@ -89,35 +144,10 @@ function createPillDropdown(options, defaultValue, extraClass) {
         if (!silent) dd.dispatchEvent(new Event("change", { bubbles: true }));
     }
 
-    options.forEach((value) => {
-        const option = document.createElement("button");
-        option.type = "button";
-        option.className = "duration-dd-option" + (value === defaultValue ? " active" : "");
-        option.dataset.value = value;
-        option.textContent = value;
-        option.addEventListener("click", (e) => {
-            e.stopPropagation();
-            menu.classList.add("hidden");
-            trigger.setAttribute("aria-expanded", "false");
-            setValue(value);
-        });
-        menu.appendChild(option);
-    });
-
     trigger.addEventListener("click", (e) => {
         e.stopPropagation();
-        const willOpen = menu.classList.contains("hidden");
-        closeAllPillDropdowns();
-        menu.classList.toggle("hidden", !willOpen);
-        trigger.setAttribute("aria-expanded", String(willOpen));
-        // Long option lists scroll (e.g. 48 half-hour time slots) - jump straight to the
-        // current value instead of always opening scrolled to the top.
-        if (willOpen) {
-            const active = menu.querySelector(".duration-dd-option.active");
-            if (active) active.scrollIntoView({ block: "nearest" });
-        }
+        openOptionModal(options, currentValue, (value) => setValue(value));
     });
-    menu.addEventListener("click", (e) => e.stopPropagation());
 
     Object.defineProperty(dd, "value", {
         get() { return currentValue; },
@@ -125,7 +155,6 @@ function createPillDropdown(options, defaultValue, extraClass) {
     });
 
     dd.appendChild(trigger);
-    dd.appendChild(menu);
     return dd;
 }
 
