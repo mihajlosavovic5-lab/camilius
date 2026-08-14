@@ -2852,6 +2852,37 @@ window.pageOverlay = (function () {
         try { localStorage.setItem(LANG_KEY, lang); } catch (e) { /* private mode etc. - just skip remembering */ }
     }
 
+    // Persists every successfully-fetched translation too, not just which language was
+    // picked (LANG_KEY above) - `cache` itself is a plain in-memory object, empty again
+    // on every fresh load, so a returning visitor whose saved language differs from
+    // content_language (the common "closed the tab, reopened View page" case LANG_KEY
+    // is already meant to serve) still had to wait through a real /translate/<lang>
+    // round trip on every single load, visibly showing the server-rendered
+    // content_language text until that resolved - the "loads in Serbian for a moment,
+    // then jumps to German" flash. Seeding `cache` from this below means a language
+    // already fetched once applies instantly on every later load, same as it does when
+    // switching to it a second time within one already-open page. Can go stale if the
+    // business edits their about/price list/FAQ after a translation was cached this
+    // way - the same staleness `cache` itself already accepts for the remainder of a
+    // single page load, just over a longer window; picking a language fetches fresh
+    // and re-persists it regardless, so a visitor who switches away and back always
+    // sees current content, same as before.
+    var TRANSLATION_CACHE_KEY = "camilius_page_translations_" + {{ slug | tojson }};
+    function loadPersistedTranslations() {
+        try {
+            var parsed = JSON.parse(localStorage.getItem(TRANSLATION_CACHE_KEY) || "{}");
+            if (parsed && typeof parsed === "object") return parsed;
+        } catch (e) { /* private mode, corrupt JSON, etc. */ }
+        return {};
+    }
+    function persistTranslation(lang, data) {
+        try {
+            var all = loadPersistedTranslations();
+            all[lang] = data;
+            localStorage.setItem(TRANSLATION_CACHE_KEY, JSON.stringify(all));
+        } catch (e) { /* private mode, storage quota, etc. - just skip persisting */ }
+    }
+
     var langBtn = document.getElementById("lang-btn");
     var langFlag = document.getElementById("lang-flag");
     var langDropdown = document.getElementById("lang-dropdown");
@@ -2927,6 +2958,10 @@ window.pageOverlay = (function () {
         originalLangContent[key] = el.textContent;
     });
     originalLangContent.tagline = {{ (tagline or business_name) | tojson }};
+    // Persisted translations first, content_language's own fresh server-rendered seed
+    // second (and so unconditionally winning that one key) - see
+    // loadPersistedTranslations' own comment above for why this exists at all.
+    Object.assign(cache, loadPersistedTranslations());
     cache[{{ current_lang.code | tojson }}] = originalLangContent;
 
     // Exposed for the chat/booking script below - reads whichever language is currently
@@ -3347,6 +3382,7 @@ window.pageOverlay = (function () {
             .then(function (r) { if (!r.ok) throw new Error("bad status"); return r.json(); })
             .then(function (data) {
                 cache[lang] = data;
+                persistTranslation(lang, data);
                 applyTranslation(lang, data);
                 rememberLanguage(lang);
             })
