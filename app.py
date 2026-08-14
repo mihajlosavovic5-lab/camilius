@@ -4,6 +4,7 @@ import hmac
 import hashlib
 import json
 import secrets
+import threading
 from datetime import datetime, timedelta, timezone, date as date_type
 from functools import wraps
 
@@ -1742,6 +1743,7 @@ def save_business_page():
         return _rerender_page_error("That web address is already taken - please choose another.")
 
     log_event("business_page_saved", business_id=business_id)
+    _pretranslate_page_languages_in_background(business_id)
     return redirect(url_for("settings", message="Your page has been saved."))
 
 
@@ -2209,6 +2211,7 @@ def onboarding_website_review():
         mark_onboarding_completed(business_id)
         log_event("onboarding_completed", business_id=business_id)
         session.pop(_ONBOARDING_SESSION_KEY, None)
+        _pretranslate_page_languages_in_background(business_id)
         return redirect(url_for("home", onboarding_done=1))
 
     return render_template(
@@ -2935,6 +2938,57 @@ def public_page_availability(slug):
         abort(404)
     origin = _custom_domain_cors_origin(page)
     return _json_with_cors(origin, days=_public_page_availability_days(business_id, business))
+
+
+# Pre-warms business_page_translations for every fixed switcher language
+# (DEFAULT_PAGE_LANGUAGES) other than the page's own detected content_language, so a
+# visitor's first pick of any of them is already a cache hit instead of the switcher
+# paying a live OpenAI translate call on that visitor's own behalf (see
+# public_page_translate below - previously the ONLY way any of these rows ever got
+# filled in). content_language itself is deliberately skipped - _render_public_page
+# seeds that flag's content straight from the original tagline/about/etc. client-side,
+# never through this cache (see public_page.html's originalLangContent comment), so
+# translating into it would just be a wasted call. Always run from a background thread
+# (see this function's own callers) - up to 4 real model calls in a row is much too slow
+# to run inside a save request.
+#
+# Safe to call after ANY publish-relevant save, not just ones that actually changed
+# translatable content: upsert_business_page() already clears every cached row for this
+# business the moment tagline/about changes, so get_page_translation() below correctly
+# sees "nothing cached yet" and re-translates only when there's actually something new
+# to translate - a save that didn't touch tagline/about just finds every language still
+# cached and does nothing. Never raises: a language that fails to pre-warm here (a bad
+# model response, a rate limit, ...) simply falls back to translating lazily on a real
+# visitor's first request instead, exactly the behavior this business already had before
+# pre-warming existed.
+def _pretranslate_page_languages(business_id):
+    page = get_business_page(business_id)
+    if page is None or not page[3]:  # not published - nothing a visitor could reach yet
+        return
+    business = business_by_id(business_id)
+    if business is None:
+        return
+    content_language = page[16]
+    if content_language is None:
+        content_language = translate_page.detect_content_language(f"{page[4] or ''}\n{page[5] or ''}")
+        set_page_content_language(business_id, content_language)
+    # Deliberately NOT translated into: whichever flag matches content_language is always
+    # seeded straight from the original tagline/about/etc. client-side (see public_page.html's
+    # own originalLangContent comment) - a cache row for it would never actually get read.
+    for lang in translate_page.DEFAULT_PAGE_LANGUAGES:
+        if lang == content_language:
+            continue
+        if get_page_translation(business_id, lang) is not None:
+            continue  # already cached, from an earlier pre-warm or a real visitor
+        try:
+            result = translate_page.translate_page_content(lang, page[4], page[5], business[8], business[9])
+        except ValueError:
+            continue
+        upsert_page_translation(business_id, lang, result["tagline"], result["about"], result["price_list"], result["faq"], json.dumps(result["ui"]))
+
+
+def _pretranslate_page_languages_in_background(business_id):
+    threading.Thread(target=_pretranslate_page_languages, args=(business_id,), daemon=True).start()
 
 
 # Translates the public page's own content + fixed chrome (see translate_page.py's

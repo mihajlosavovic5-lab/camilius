@@ -1176,6 +1176,8 @@ def api_save_page():
         return jsonify(error="That web address is already taken - please choose another."), 409
 
     log_event("business_page_saved", business_id=business_id)
+    from app import _pretranslate_page_languages_in_background  # deferred: avoid circular import at module load
+    _pretranslate_page_languages_in_background(business_id)
 
     # Publishing with a still-unpurchased domain pick is what starts buying it - but
     # NOT directly: the domain is charged to the business itself (a separate $15/yr

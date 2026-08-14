@@ -11,6 +11,7 @@ import uuid
 
 import pytest
 
+import app as app_module
 import database
 import translate_page
 from conftest import register_business_web
@@ -427,3 +428,140 @@ def test_translate_endpoint_reruns_the_model_when_the_cached_row_echoed_the_sour
     assert response.status_code == 200
     assert response.get_json()["about"] == "[es] Contenido totalmente traducido, distinto del original."
     assert calls == ["es"]
+
+
+# --- _pretranslate_page_languages (app.py) - pre-warming business_page_translations so a
+# visitor's first flag pick is a cache hit, instead of that visitor's own request paying
+# for the live OpenAI call. Called directly here (not via the background-thread wrapper
+# the real save routes use) so these tests stay synchronous and deterministic. ---
+
+def test_pretranslate_fills_the_cache_for_every_default_language(client, unique_email, monkeypatch):
+    # Content language deliberately outside DEFAULT_PAGE_LANGUAGES, so none of the four
+    # fixed switcher languages get skipped as "this is the page's own language".
+    monkeypatch.setattr(translate_page, "detect_content_language", lambda text: "pt")
+    calls = []
+
+    def fake_translate(lang, tagline, about, price_list, faq):
+        calls.append(lang)
+        return _fake_translation(lang)
+
+    monkeypatch.setattr(translate_page, "translate_page_content", fake_translate)
+    register_business_web(client, unique_email)
+    business_id, slug = _publish_page(client, unique_email)
+
+    app_module._pretranslate_page_languages(business_id)
+
+    assert sorted(calls) == sorted(translate_page.DEFAULT_PAGE_LANGUAGES)
+    for lang in translate_page.DEFAULT_PAGE_LANGUAGES:
+        cached = database.get_page_translation(business_id, lang)
+        assert cached is not None
+        assert cached[0] == f"[{lang}] Fresh cuts daily"
+
+
+def test_pretranslate_never_translates_into_the_detected_content_language(client, unique_email, monkeypatch):
+    # "sr" isn't one of DEFAULT_PAGE_LANGUAGES, but it's still the page's own detected
+    # language here - the switcher offers it as a flag (see _render_public_page's
+    # page_languages), but its content is always seeded directly from the original
+    # tagline/about/etc. client-side, never through this cache, so it must never be
+    # requested from the translator even though it's outside the fixed four.
+    monkeypatch.setattr(translate_page, "detect_content_language", lambda text: "sr")
+    calls = []
+
+    def fake_translate(lang, tagline, about, price_list, faq):
+        calls.append(lang)
+        return _fake_translation(lang)
+
+    monkeypatch.setattr(translate_page, "translate_page_content", fake_translate)
+    register_business_web(client, unique_email)
+    business_id, slug = _publish_page(client, unique_email)
+
+    app_module._pretranslate_page_languages(business_id)
+
+    assert sorted(calls) == sorted(translate_page.DEFAULT_PAGE_LANGUAGES)
+    assert "sr" not in calls
+    assert database.get_page_translation(business_id, "sr") is None
+    assert database.get_business_page(business_id)[16] == "sr"
+
+
+def test_pretranslate_skips_the_content_language_itself(client, unique_email, monkeypatch):
+    # "es" is both a DEFAULT_PAGE_LANGUAGES entry and (here) the detected content
+    # language - translating the page into the language it's already written in is a
+    # wasted call (and would fail translation_is_usable's own echo check), so it must be
+    # skipped rather than requested like every other target language.
+    monkeypatch.setattr(translate_page, "detect_content_language", lambda text: "es")
+    calls = []
+
+    def fake_translate(lang, tagline, about, price_list, faq):
+        calls.append(lang)
+        return _fake_translation(lang)
+
+    monkeypatch.setattr(translate_page, "translate_page_content", fake_translate)
+    register_business_web(client, unique_email)
+    business_id, slug = _publish_page(client, unique_email)
+
+    app_module._pretranslate_page_languages(business_id)
+
+    assert "es" not in calls
+    assert database.get_page_translation(business_id, "es") is None
+
+
+def test_pretranslate_skips_languages_already_cached(client, unique_email, monkeypatch):
+    monkeypatch.setattr(translate_page, "detect_content_language", lambda text: "pt")
+    calls = []
+
+    def fake_translate(lang, tagline, about, price_list, faq):
+        calls.append(lang)
+        return _fake_translation(lang)
+
+    monkeypatch.setattr(translate_page, "translate_page_content", fake_translate)
+    register_business_web(client, unique_email)
+    business_id, slug = _publish_page(client, unique_email)
+    # Already cached from an earlier real visitor - pre-warming shouldn't pay for it again.
+    database.upsert_page_translation(business_id, "es", "[es] Fresh cuts daily", "[es] x", "[es] y", "[es] z", json.dumps(dict(translate_page.PAGE_UI_STRINGS)))
+
+    app_module._pretranslate_page_languages(business_id)
+
+    assert "es" not in calls
+    assert sorted(calls) == sorted(lang for lang in translate_page.DEFAULT_PAGE_LANGUAGES if lang != "es")
+
+
+def test_pretranslate_does_nothing_for_an_unpublished_page(client, unique_email, monkeypatch):
+    calls = []
+    monkeypatch.setattr(translate_page, "translate_page_content", lambda lang, *a: calls.append(lang) or _fake_translation(lang))
+    register_business_web(client, unique_email)
+    business_id = database.business_by_contact_email(unique_email)[0]
+    slug = f"tr-{uuid.uuid4().hex[:8]}"
+    database.upsert_business_page(business_id, slug, False, "Fresh cuts daily", "We opened in 2019.")
+
+    app_module._pretranslate_page_languages(business_id)
+
+    assert calls == []
+
+
+def test_pretranslate_never_raises_when_a_language_fails_to_translate(client, unique_email, monkeypatch):
+    def fake_translate(lang, tagline, about, price_list, faq):
+        raise ValueError("model returned garbage")
+
+    monkeypatch.setattr(translate_page, "translate_page_content", fake_translate)
+    register_business_web(client, unique_email)
+    business_id, slug = _publish_page(client, unique_email)
+
+    app_module._pretranslate_page_languages(business_id)  # must not raise
+
+    for lang in translate_page.DEFAULT_PAGE_LANGUAGES:
+        assert database.get_page_translation(business_id, lang) is None
+
+
+def test_saving_the_page_via_the_web_form_triggers_a_background_pretranslate(client, unique_email, monkeypatch):
+    from conftest import get_csrf_token, web_post
+
+    calls = []
+    monkeypatch.setattr(app_module, "_pretranslate_page_languages_in_background", lambda business_id: calls.append(business_id))
+    register_business_web(client, unique_email)
+    business_id = database.business_by_contact_email(unique_email)[0]
+    csrf_token = get_csrf_token(client, "/settings")
+    web_post(client, "/profile/page", {
+        "csrf_token": csrf_token, "slug": f"tr-{uuid.uuid4().hex[:8]}",
+        "tagline": "Fresh cuts daily", "about": "We opened in 2019.",
+    })
+    assert calls == [business_id]

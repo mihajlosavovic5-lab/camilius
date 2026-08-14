@@ -287,3 +287,17 @@ def test_suggest_themes_requires_description(client, unique_email):
 
 def test_suggest_themes_requires_auth(client):
     assert client.post("/api/suggest-themes", json={"description": "A shop."}).status_code == 401
+
+
+def test_saving_the_page_via_the_mobile_api_triggers_a_background_pretranslate(client, unique_email, monkeypatch):
+    import app as app_module
+
+    calls = []
+    monkeypatch.setattr(app_module, "_pretranslate_page_languages_in_background", lambda business_id: calls.append(business_id))
+    headers, business_id = _auth(client, unique_email)
+    slug = f"cool-business-{uuid.uuid4().hex[:8]}"
+    response = client.post("/api/page", json={
+        "slug": slug, "tagline": "Fresh cuts", "about": "A great barbershop.", "published": True,
+    }, headers=headers)
+    assert response.status_code == 200
+    assert calls == [business_id]
