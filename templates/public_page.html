@@ -2182,14 +2182,19 @@
            week, Monday first, "HH:MM - HH:MM" or "Closed" for every day - never omits a
            day the way a business might if hours were free-typed, so a visitor always
            sees the complete week rather than wondering whether a missing day means
-           closed or just not filled in. #}
+           closed or just not filled in. Day names and "Closed" are this page's own fixed
+           chrome vocabulary (not business-authored content), so they translate the same
+           plain data-i18n way every nav label/heading does - day_monday.."day_sunday"/
+           hours_closed in translate_page.PAGE_UI_STRINGS - rather than needing a
+           business-content-style re-render mirror. Times themselves ("09:00 - 18:00")
+           carry no data-i18n at all since a time doesn't need translating. #}
         <section id="hours" class="reveal">
             <h2 data-i18n="heading_hours">Working hours</h2>
             <ul class="hours-rows" id="hours-rows">
                 {% for day_name, hours_text in opening_hours_display %}
                 <li class="hours-row">
-                    <span class="hours-row-day">{{ day_name }}</span>
-                    <span class="hours-row-time">{{ hours_text }}</span>
+                    <span class="hours-row-day" data-i18n="day_{{ day_name.lower() }}">{{ day_name }}</span>
+                    <span class="hours-row-time"{% if hours_text == "Closed" %} data-i18n="hours_closed"{% endif %}>{{ hours_text }}</span>
                 </li>
                 {% endfor %}
             </ul>
