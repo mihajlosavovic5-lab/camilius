@@ -1793,9 +1793,15 @@
         height: 100%;
         display: flex; align-items: center; justify-content: center;
     }
+    /* Fixed width/height (not max-width/max-height) - every photo's own frame is
+       identically sized regardless of that photo's own aspect ratio, same as
+       .photo-slide's fixed aspect-ratio box in the unzoomed slider above. object-fit:
+       contain still keeps the whole photo visible (letterboxed inside its frame rather
+       than cropped) instead of matching .photo-slide's object-fit: cover, since cropping
+       away part of the photo would defeat the point of zooming in to see it. */
     .photo-lightbox-slide img {
-        max-width: min(92vw, 900px);
-        max-height: 86vh;
+        width: min(92vw, 900px);
+        height: 86vh;
         object-fit: contain;
         border-radius: 10px;
         box-shadow: 0 20px 60px rgba(0, 0, 0, .5);
@@ -3270,6 +3276,13 @@ window.pageOverlay = (function () {
         // through to goTo(current), snapping back to wherever it actually started.
         var dragStartX = null, dragStartY = null, dragStartScroll = null, dragAxis = null;
         viewport.addEventListener("touchstart", function (e) {
+            // A still-running animateScrollTo from the previous swipe (e.g. a quick
+            // double-flick, or grabbing the slider again before its snap settles) would
+            // otherwise keep overwriting viewport.scrollLeft every frame in a race against
+            // this drag's own writes below - the glitchy stutter that produced. Cancelling
+            // it here means a new touch always takes over cleanly from wherever the slider
+            // actually is at that instant.
+            if (animFrame !== null) { cancelAnimationFrame(animFrame); animFrame = null; }
             dragStartX = e.touches[0].clientX;
             dragStartY = e.touches[0].clientY;
             dragStartScroll = viewport.scrollLeft;
@@ -3310,7 +3323,8 @@ window.pageOverlay = (function () {
         // handling. Its own real overflow-x track (one slide per photo, see
         // .photo-lightbox-viewport's own CSS comment) rather than a single swapped <img> -
         // arrows/keyboard still work, but a visitor can now swipe/scroll between full-size
-        // photos the same way they already can in the section itself.
+        // photos the same way they already can in the section itself, including the same
+        // clone-based infinite wrap past either end (see the clone setup above for why).
         var lightbox = document.getElementById("photo-lightbox");
         var lightboxViewport = document.getElementById("photo-lightbox-viewport");
         var lightboxTrack = document.getElementById("photo-lightbox-track");
@@ -3322,17 +3336,40 @@ window.pageOverlay = (function () {
             var lightboxOpen = false;
             var lightboxIndex = 0;
 
+            // Same two-clone-per-side technique as the section slider's own (see its setup
+            // above for the full reasoning) - captured from lightboxSlides, i.e. before any
+            // clone is appended, so lightboxSlides itself always stays the real, clone-free
+            // list.
+            var lightboxCloneOffset = 0;
+            if (lightboxSlides.length > 1) {
+                var makeLightboxClone = function (slide) {
+                    var clone = slide.cloneNode(true);
+                    clone.setAttribute("aria-hidden", "true");
+                    return clone;
+                };
+                var lbCloneFirst = makeLightboxClone(lightboxSlides[0]);
+                var lbCloneSecond = makeLightboxClone(lightboxSlides[1]);
+                var lbCloneLast = makeLightboxClone(lightboxSlides[lightboxSlides.length - 1]);
+                var lbCloneSecondLast = makeLightboxClone(lightboxSlides[lightboxSlides.length - 2]);
+                lightboxTrack.insertBefore(lbCloneSecondLast, lightboxSlides[0]);
+                lightboxTrack.insertBefore(lbCloneLast, lightboxSlides[0]);
+                lightboxTrack.appendChild(lbCloneFirst);
+                lightboxTrack.appendChild(lbCloneSecond);
+                lightboxCloneOffset = 2;
+            }
+
             function lightboxTargetScrollLeft(el) {
                 return el.getBoundingClientRect().left - lightboxViewport.getBoundingClientRect().left + lightboxViewport.scrollLeft;
             }
             // Same manual ease-out as the section slider's own animateScrollTo (see its
-            // comment for why not scrollTo({behavior:"smooth"})) - duplicated rather than
-            // shared since this one animates a different viewport and never needs an
-            // onDone callback (nothing here swaps a clone back in afterward).
+            // comment for why not scrollTo({behavior:"smooth"})), duplicated rather than
+            // shared since this one animates a different viewport/index - onDone added so
+            // stepLightboxNext/Prev below can swap a clone back to the real slide it stands
+            // in for, same as the section slider's own next()/prev().
             var lightboxAnimFrame = null;
-            function animateLightboxScrollTo(left, duration) {
+            function animateLightboxScrollTo(left, duration, onDone) {
                 if (lightboxAnimFrame !== null) cancelAnimationFrame(lightboxAnimFrame);
-                if (reduceMotion || !duration) { lightboxViewport.scrollLeft = left; return; }
+                if (reduceMotion) { lightboxViewport.scrollLeft = left; if (onDone) onDone(); return; }
                 var startLeft = lightboxViewport.scrollLeft;
                 var delta = left - startLeft;
                 var startTime = null;
@@ -3343,20 +3380,42 @@ window.pageOverlay = (function () {
                     lightboxViewport.scrollLeft = startLeft + delta * eased;
                     if (t < 1) { lightboxAnimFrame = requestAnimationFrame(step); return; }
                     lightboxAnimFrame = null;
+                    if (onDone) onDone();
                 }
                 lightboxAnimFrame = requestAnimationFrame(step);
             }
-            // `i` arrives un-wrapped (e.g. -1 or slides.length, from a prev/next past
-            // either end) so wrap-vs-adjacent can be told apart before it's folded back
-            // into range: an ordinary step animates (the "scroll effect" itself), while a
-            // wrap jumps straight there instantly instead of visibly sweeping across every
-            // photo in between.
-            function showLightboxPhoto(i) {
-                var wrap = i < 0 || i >= lightboxSlides.length;
-                var wrapped = (i + lightboxSlides.length) % lightboxSlides.length;
-                lightboxIndex = wrapped;
-                animateLightboxScrollTo(lightboxTargetScrollLeft(lightboxSlides[wrapped]), wrap ? 0 : 320);
-                goTo(wrapped); // keeps the section slider itself in sync for once the lightbox closes
+            function setLightboxActive(i) {
+                lightboxIndex = i;
+                goTo(i); // keeps the section slider itself in sync for once the lightbox closes
+            }
+            function goToLightboxSlide(i) {
+                i = Math.max(0, Math.min(lightboxSlides.length - 1, i));
+                animateLightboxScrollTo(lightboxTargetScrollLeft(lightboxSlides[i]), 320);
+                setLightboxActive(i);
+            }
+            // Mirrors the section slider's own next()/prev() line for line: at either end,
+            // step onto the adjacent clone instead of jumping straight across every photo in
+            // between, then once that lands, instantly swap the scroll position over to the
+            // real slide so lightboxIndex/goToLightboxSlide never has to know clones exist.
+            function stepLightboxNext() {
+                if (lightboxSlides.length > 1 && lightboxIndex === lightboxSlides.length - 1) {
+                    animateLightboxScrollTo(lightboxTargetScrollLeft(lightboxTrack.children[lightboxCloneOffset + lightboxSlides.length]), 320, function () {
+                        lightboxViewport.scrollLeft = lightboxTargetScrollLeft(lightboxSlides[0]);
+                        setLightboxActive(0);
+                    });
+                    return;
+                }
+                goToLightboxSlide(lightboxIndex + 1);
+            }
+            function stepLightboxPrev() {
+                if (lightboxSlides.length > 1 && lightboxIndex === 0) {
+                    animateLightboxScrollTo(lightboxTargetScrollLeft(lightboxTrack.children[lightboxCloneOffset - 1]), 320, function () {
+                        lightboxViewport.scrollLeft = lightboxTargetScrollLeft(lightboxSlides[lightboxSlides.length - 1]);
+                        setLightboxActive(lightboxSlides.length - 1);
+                    });
+                    return;
+                }
+                goToLightboxSlide(lightboxIndex - 1);
             }
             function openLightbox(i) {
                 lightboxIndex = (i + lightboxSlides.length) % lightboxSlides.length;
@@ -3390,8 +3449,8 @@ window.pageOverlay = (function () {
                 if (idx !== -1) openLightbox(idx);
             });
             if (lightboxClose) lightboxClose.addEventListener("click", closeLightbox);
-            if (lightboxPrev) lightboxPrev.addEventListener("click", function () { showLightboxPhoto(lightboxIndex - 1); });
-            if (lightboxNext) lightboxNext.addEventListener("click", function () { showLightboxPhoto(lightboxIndex + 1); });
+            if (lightboxPrev) lightboxPrev.addEventListener("click", stepLightboxPrev);
+            if (lightboxNext) lightboxNext.addEventListener("click", stepLightboxNext);
             // Backdrop tap (anywhere that isn't the viewport/close/arrow buttons) closes
             // same as every other overlay's own click-outside pattern on this page - a tap
             // that lands on the image/track itself no longer bubbles here as a "backdrop"
@@ -3403,15 +3462,17 @@ window.pageOverlay = (function () {
             document.addEventListener("keydown", function (e) {
                 if (!lightboxOpen) return;
                 if (e.key === "Escape") closeLightbox();
-                else if (e.key === "ArrowRight") showLightboxPhoto(lightboxIndex + 1);
-                else if (e.key === "ArrowLeft") showLightboxPhoto(lightboxIndex - 1);
+                else if (e.key === "ArrowRight") stepLightboxNext();
+                else if (e.key === "ArrowLeft") stepLightboxPrev();
             });
             // Hand-rolled drag - same touchstart/touchmove/touchend shape as the section
             // slider's own (see its comment for the reasoning behind the 10px/1.3-ratio
-            // axis lock and the 18px flick threshold), duplicated rather than shared since
-            // it drags a different viewport/index than the section slider does.
+            // axis lock and the 18px flick threshold, and the in-flight-animation
+            // cancellation on touchstart), duplicated rather than shared since it drags a
+            // different viewport/index than the section slider does.
             var lbDragStartX = null, lbDragStartY = null, lbDragStartScroll = null, lbDragAxis = null;
             lightboxViewport.addEventListener("touchstart", function (e) {
+                if (lightboxAnimFrame !== null) { cancelAnimationFrame(lightboxAnimFrame); lightboxAnimFrame = null; }
                 lbDragStartX = e.touches[0].clientX;
                 lbDragStartY = e.touches[0].clientY;
                 lbDragStartScroll = lightboxViewport.scrollLeft;
@@ -3438,9 +3499,9 @@ window.pageOverlay = (function () {
                 if (axis !== null) e.preventDefault();
                 if (axis !== "x") return;
                 var SWIPE_THRESHOLD = 18;
-                if (scrolled > SWIPE_THRESHOLD) showLightboxPhoto(lightboxIndex + 1);
-                else if (scrolled < -SWIPE_THRESHOLD) showLightboxPhoto(lightboxIndex - 1);
-                else showLightboxPhoto(lightboxIndex);
+                if (scrolled > SWIPE_THRESHOLD) stepLightboxNext();
+                else if (scrolled < -SWIPE_THRESHOLD) stepLightboxPrev();
+                else goToLightboxSlide(lightboxIndex);
             }, { passive: false });
         }
     })();
