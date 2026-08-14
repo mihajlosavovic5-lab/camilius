@@ -1,9 +1,15 @@
 {% extends "base.html" %}
 {% block title %}Log in - Camilius{% endblock %}
-{% block body_class %}auth{% endblock %}
+{% block body_class %}auth auth-login{% endblock %}
 
 {% block content %}
 <div class="auth-wrapper">
+    {# Lives outside .auth-card entirely (unlike before) - now that the card has no visible
+       background/border of its own (Faza 9: matching the APK's cardless login screen, see
+       .auth-card below), the back button reads as belonging to the whole screen, pinned to
+       its actual top-left corner, exactly like the APK's own .login-email-back-btn
+       (mobile/app.css) sits relative to .login-wrap rather than any inner panel. #}
+    <button type="button" class="auth-back-btn{% if error or message %} auth-card-email-active{% endif %}" id="login-back-btn" aria-label="Back">&lsaquo;</button>
     <div class="auth-brand">
         <span class="brand">
             <span class="brand-mark">C</span>
@@ -14,7 +20,10 @@
     </div>
 
     <div class="auth-card{% if error or message %} auth-card-email-active{% endif %}" id="login-card">
-        <h1 data-i18n="login.title">Log in</h1>
+        {# Visually hidden, not deleted - the APK's own login screen (mobile/index.html)
+           has no "Log in" heading at all (the brand block above doubles as the screen's
+           title), so this is kept for a real page <h1>/SEO rather than shown on screen. #}
+        <h1 class="sr-only" data-i18n="login.title">Log in</h1>
 
         {% if error %}
             <div class="alert alert-error"><span class="alert-icon">&#9888;&#65039;</span><span>{{ error }}</span></div>
@@ -31,17 +40,10 @@
            visitor already submitted the form, so hiding it behind the choice screen again
            on reload would bury exactly the feedback they're here to see.
 
-           The two panels share one grid cell (see .login-phase-stack in style.css) and
-           slide past each other on .auth-card-email-active instead of an instant cut -
-           same slide-in feel as the mobile app's own screen-to-screen navigation. #}
-        {# .auth-back-btn lives outside .login-phase-stack deliberately: .auth-form-wrap
-           below gets a transform for its slide, and any transformed ancestor becomes the
-           containing block for its position:absolute descendants - nesting the back
-           button in there made it re-anchor to the sliding panel's own box for the whole
-           transition, flashing at roughly its old pre-slide spot before snapping to the
-           corner once the transition settled. Kept out here, it stays anchored to
-           .auth-card throughout and just fades/slides itself in on the same class. #}
-        <button type="button" class="auth-back-btn" id="login-back-btn" aria-label="Back">&lsaquo;</button>
+           The two panels take turns being the one in-flow child (see .login-phase-stack
+           in style.css) and slide past each other on .auth-card-email-active instead of
+           an instant cut - same slide-in feel as the mobile app's own screen-to-screen
+           navigation. #}
         <div class="login-phase-stack">
         <div class="auth-choice" id="login-choice">
             {% if google_oauth_configured %}
@@ -77,7 +79,7 @@
         </div>
         </div>
 
-        <div class="auth-divider"><span data-i18n="login.noAccount">Don't have an account?</span></div>
+        <div class="auth-divider"><span data-i18n="login.noAccount">New to Camilius?</span></div>
         <a class="button button-secondary button-full button-pill button-primary-outline" href="{{ url_for('register') }}" data-i18n="login.registerLink">Create account</a>
     </div>
 
@@ -132,11 +134,14 @@
 <script>
     (function () {
         var card = document.getElementById("login-card");
+        var backBtn = document.getElementById("login-back-btn");
         document.getElementById("login-email-btn").addEventListener("click", function () {
             card.classList.add("auth-card-email-active");
+            backBtn.classList.add("auth-card-email-active");
         });
-        document.getElementById("login-back-btn").addEventListener("click", function () {
+        backBtn.addEventListener("click", function () {
             card.classList.remove("auth-card-email-active");
+            backBtn.classList.remove("auth-card-email-active");
         });
     })();
 </script>
