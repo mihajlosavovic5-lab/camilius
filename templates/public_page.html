@@ -759,14 +759,13 @@
         pointer-events: none;
     }
     .location-map-link { position: absolute; inset: 0; z-index: 1; cursor: pointer; }
-    /* Address caption below the map - same pill-row language as .contact-row (icon +
-       text, muted border) so the placeholder still reads as one of this page's own rows
-       rather than a bare label bolted under someone else's embed. */
+    /* Address caption below the map - same muted-pill language as .contact-row so the
+       placeholder still reads as one of this page's own rows rather than a bare label
+       bolted under someone else's embed. No icon - just the street/area text, centered. */
     .location-caption {
         display: flex;
         align-items: center;
         justify-content: center;
-        gap: 8px;
         margin: 12px 0 0;
         padding: 10px 14px;
         background: var(--background);
@@ -774,7 +773,6 @@
         border-radius: var(--radius);
         color: var(--text-muted);
     }
-    .location-caption svg { width: 16px; height: 16px; flex: 0 0 auto; color: var(--primary); }
     /* Street on its own line, settlement+country smaller and muted underneath - same
        "descriptor sitting smaller underneath" pattern as .title-main/.title-sub, just
        centered here instead of that pair's left alignment. */
@@ -2614,7 +2612,6 @@
             </div>
             {% set address_street, address_area = address_lines %}
             <div class="location-caption">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M12 21s7-6.4 7-11.5A7 7 0 0 0 5 9.5C5 14.6 12 21 12 21z" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="9.5" r="2.3"/></svg>
                 <span class="location-caption-text">
                     <span class="location-caption-street">{{ address_street }}</span>
                     {% if address_area %}<span class="location-caption-area">{{ address_area }}</span>{% endif %}
