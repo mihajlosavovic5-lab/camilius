@@ -6918,8 +6918,15 @@ el("mysite-field-delete-confirm-backdrop").addEventListener("click", closeMysite
 el("mysite-field-delete-confirm-cancel").addEventListener("click", closeMysiteFieldDeleteConfirmModal);
 el("mysite-field-delete-confirm-confirm").addEventListener("click", () => {
     closeMysiteFieldDeleteConfirmModal();
-    mysiteFieldModalActiveControl().value = "";
-    mysiteFieldModalSync();
+    const active = mysiteFieldModalActiveControl();
+    active.value = "";
+    // Dispatched (not a direct mysiteFieldModalSync() call, which this used to be) so
+    // every other "input" listener on this control reacts too - specifically
+    // scheduleMysiteFieldModalAddressSearch further down, which is what actually hides
+    // a still-showing address-suggestions list once its field's text is cleared this
+    // way. mysiteFieldModalSync itself is one of those listeners (registered on this
+    // same element further up), so it still runs exactly as before.
+    active.dispatchEvent(new Event("input", { bubbles: true }));
 });
 
 // "Draft this with AI" chat (Faza 16) - see screen-website-chat in index.html and
