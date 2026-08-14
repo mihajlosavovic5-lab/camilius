@@ -3045,7 +3045,7 @@ def public_page_translate(slug, lang):
             # exactly like every language quietly not working, with no hint why) and
             # leave that same broken row sitting there for the next visitor to fail on too.
             db_ui = None
-        if db_ui is not None and translate_page.translation_is_usable({"tagline": db_tagline, "about": db_about, "price_list": db_price_list, "faq": db_faq, "ui": db_ui}, page[4], page[5], business[8], business[9]):
+        if db_ui is not None and translate_page.translation_is_usable({"tagline": db_tagline, "about": db_about, "price_list": db_price_list, "faq": db_faq, "ui": db_ui}, page[4], page[5], business[8], business[9], lang):
             return _json_with_cors(origin, tagline=db_tagline, about=db_about, price_list=db_price_list, faq=db_faq, ui=db_ui)
 
     try:

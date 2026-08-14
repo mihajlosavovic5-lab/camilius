@@ -220,7 +220,7 @@ def _echo_similarity(source, translated):
     return SequenceMatcher(None, normalize(source), normalize(translated)).ratio()
 
 
-def translation_is_usable(result, tagline, about, price_list, faq):
+def translation_is_usable(result, tagline, about, price_list, faq, lang=None):
     """False if `result` (shaped like translate_page_content's own return value, or the
     same shape rebuilt from a business_page_translations row - see app.py's
     public_page_translate) dropped any field that actually had source content, came back
@@ -265,11 +265,16 @@ def translation_is_usable(result, tagline, about, price_list, faq):
     otherwise keep failing the exact same way forever - every later visitor hitting the
     cache, never a fresh model call again - so both translate_page_content below (before
     caching a fresh result) and public_page_translate (before trusting an already-cached
-    row) call this."""
-    return translation_rejection_reason(result, tagline, about, price_list, faq) is None
+    row) call this.
+
+    `lang` (the target language this result/cached row is for) is optional and only used
+    for the English-specific staleness check documented on translation_rejection_reason
+    below - pass it whenever it's known (both of this function's own call sites now do)
+    so an "en" row generated before a later PAGE_UI_STRINGS wording change gets caught."""
+    return translation_rejection_reason(result, tagline, about, price_list, faq, lang) is None
 
 
-def translation_rejection_reason(result, tagline, about, price_list, faq):
+def translation_rejection_reason(result, tagline, about, price_list, faq, lang=None):
     """None if translation_is_usable(...) would accept `result`; otherwise a short
     human-readable string saying which check it failed and why, for server-side
     diagnostics only (app.py's public_page_translate logs this via
@@ -284,6 +289,19 @@ def translation_rejection_reason(result, tagline, about, price_list, faq):
     missing_ui = [key for key in PAGE_UI_STRINGS if not (ui.get(key) or "").strip()]
     if missing_ui:
         return f"ui missing/empty for keys: {missing_ui[:5]}"
+    # "en" is special: PAGE_UI_STRINGS IS the English chrome, so a correct "en" result's
+    # ui must be byte-for-byte PAGE_UI_STRINGS, never something merely "close" - translate_
+    # page_content below enforces this directly rather than trusting the model to reliably
+    # echo it back unchanged, which makes this check exact-equality rather than fuzzy. Its
+    # real purpose is catching an already-cached "en" row saved before a later edit to
+    # PAGE_UI_STRINGS itself (e.g. renaming a nav label) - without this, that edit would
+    # never reach an existing business's already-cached "en" translation, only ever a
+    # fresh one, and reproduce the exact bug this exists to catch (a stale value served
+    # forever, this time for the page's own native/original language rather than a
+    # translated one).
+    if lang == "en" and ui != PAGE_UI_STRINGS:
+        stale = {key: ui.get(key) for key in PAGE_UI_STRINGS if ui.get(key) != PAGE_UI_STRINGS[key]}
+        return f"en ui doesn't match current PAGE_UI_STRINGS: {dict(list(stale.items())[:5])}"
     about_stripped = (about or "").strip()
     if len(about_stripped) >= _ECHO_CHECK_MIN_LENGTH:
         ratio = _echo_similarity(about_stripped, result.get("about"))
@@ -316,7 +334,19 @@ def translate_page_content(lang, tagline, about, price_list, faq):
     or echoing the source language straight back instead of translating it - see that
     function's own docstring) - the caller (app.py's public_page_translate route) decides
     how to surface that; nothing here is worth blocking the page itself over, since a
-    visitor just keeps seeing the untranslated original on failure."""
+    visitor just keeps seeing the untranslated original on failure.
+
+    lang == "en" is special-cased: "ui" is forced to exactly PAGE_UI_STRINGS rather than
+    trusting whatever the model came back with for that sub-object, since PAGE_UI_STRINGS
+    IS the English chrome by definition - there's nothing for the model to translate there
+    at all, only tagline/about/price_list/faq (the business's own content) genuinely need
+    a real English translation when the business's content isn't already written in
+    English. Forcing this deterministically (rather than just relying on the model to
+    echo it back unchanged, which it isn't guaranteed to) is what makes translation_
+    rejection_reason's own "en" staleness check exact-equality reliable: a freshly
+    generated "en" row always matches current PAGE_UI_STRINGS, so a cached row that
+    doesn't match is unambiguously stale, not a false positive from ordinary model
+    variance."""
     lang_name = LANGUAGES.get(lang, {}).get("name", lang)
     messages = [
         {"role": "system", "content": _TRANSLATE_SYSTEM_PROMPT.format(lang=lang_name)},
@@ -363,7 +393,9 @@ def translate_page_content(lang, tagline, about, price_list, faq):
         except json.JSONDecodeError as error:
             last_reason = f"model returned invalid JSON: {error}"
             continue
-        rejection_reason = translation_rejection_reason(result, tagline, about, price_list, faq)
+        if lang == "en":
+            result["ui"] = dict(PAGE_UI_STRINGS)
+        rejection_reason = translation_rejection_reason(result, tagline, about, price_list, faq, lang)
         if rejection_reason is None:
             return result
         last_reason = rejection_reason

@@ -296,6 +296,96 @@ def test_translation_is_usable_true_when_a_short_about_survives_translation_unch
     assert translate_page.translation_is_usable(result, "T", "a", "P", "F") is True
 
 
+def test_translation_is_usable_true_for_an_en_row_matching_current_page_ui_strings():
+    # PAGE_UI_STRINGS IS the English chrome - a correct "en" row's ui is just that dict
+    # verbatim, no translation involved at all.
+    ui = dict(translate_page.PAGE_UI_STRINGS)
+    result = {"tagline": "t", "about": "a", "price_list": "p", "faq": "f", "ui": ui}
+    assert translate_page.translation_is_usable(result, "T", "a", "P", "F", "en") is True
+
+
+def test_translation_is_usable_false_for_an_en_row_stale_relative_to_page_ui_strings():
+    # Reproduces the reported bug: a business's "en" translation was cached back when
+    # PAGE_UI_STRINGS still had "nav_hours": "Hours" - after that source string was
+    # edited to "Working hours", the old cached row still says "Hours" and, unlike every
+    # other language, isn't even a real translation issue - it's just plain stale, and
+    # would otherwise never self-heal since nothing ever re-requests an "en" translation
+    # once it's cached.
+    ui = dict(translate_page.PAGE_UI_STRINGS)
+    ui["nav_hours"] = "Hours"  # the old, since-renamed source value
+    result = {"tagline": "t", "about": "a", "price_list": "p", "faq": "f", "ui": ui}
+    assert translate_page.translation_is_usable(result, "T", "a", "P", "F", "en") is False
+
+
+def test_translation_is_usable_ignores_en_staleness_check_when_lang_is_unspecified():
+    # `lang` is optional (defaults to None) for callers that don't have it or don't care -
+    # the "en" staleness check must only ever fire when the caller explicitly says this
+    # row is for "en", never as a side effect of some other language's row happening to
+    # already read identical to PAGE_UI_STRINGS (translation_is_usable's other existing
+    # callers/tests all rely on this).
+    ui = dict(translate_page.PAGE_UI_STRINGS)
+    ui["nav_hours"] = "Hours"
+    result = {"tagline": "t", "about": "a", "price_list": "p", "faq": "f", "ui": ui}
+    assert translate_page.translation_is_usable(result, "T", "a", "P", "F") is True
+
+
+def test_translate_page_content_forces_english_ui_to_match_page_ui_strings(monkeypatch):
+    # Even if the model returns something else for "ui" on an "en" request (it shouldn't,
+    # but nothing guarantees it), translate_page_content must not trust it - "ui" for "en"
+    # is deterministically PAGE_UI_STRINGS, not model output, so a fresh "en" result can
+    # never itself be stale the way a row cached before this existed can be.
+    wrong_ui = dict(translate_page.PAGE_UI_STRINGS)
+    wrong_ui["nav_hours"] = "Hours"
+
+    def fake_create(**kwargs):
+        content = json.dumps({"tagline": "t", "about": "a", "price_list": "p", "faq": "f", "ui": wrong_ui})
+        return type("R", (), {"choices": [type("C", (), {"message": type("M", (), {"content": content})()})()]})()
+
+    monkeypatch.setattr(translate_page.client.chat.completions, "create", fake_create)
+
+    result = translate_page.translate_page_content("en", "t", "a", "p", "f")
+
+    assert result["ui"] == translate_page.PAGE_UI_STRINGS
+    assert result["ui"]["nav_hours"] == "Working hours"
+
+
+def test_translate_endpoint_reruns_the_model_when_the_cached_en_row_has_a_stale_ui(client, unique_email, monkeypatch):
+    # Same self-healing as test_translate_endpoint_reruns_the_model_when_the_cached_row_
+    # echoed_the_source above, but for the specific case this bug report was actually
+    # about: an "en" row cached before a PAGE_UI_STRINGS wording change (nav_hours
+    # "Hours" -> "Working hours") keeps serving the old wording to this business's own
+    # English-flag visitors forever unless the cache read re-validates against the
+    # current source. Content language is deliberately not English here - requesting a
+    # translation into the business's own content language always 502s by design (see
+    # test_translation_is_usable_false_even_when_the_target_matches_the_source_language
+    # above), so a same-language business would fail this test for a reason unrelated to
+    # the "en" ui staleness check this is actually about.
+    monkeypatch.setattr(translate_page, "detect_content_language", lambda text: "sr")
+    register_business_web(client, unique_email)
+    business_id, slug = _publish_page(client, unique_email)
+    stale_ui = dict(translate_page.PAGE_UI_STRINGS)
+    stale_ui["nav_hours"] = "Hours"
+    database.upsert_page_translation(business_id, "en", "Fresh cuts daily", "We opened in 2019.", "Haircut: 20 EUR", "Q\nA", json.dumps(stale_ui))
+
+    calls = []
+
+    def fake_translate(lang, tagline, about, price_list, faq):
+        calls.append(lang)
+        return {"tagline": tagline, "about": "A real English translation, distinct from the source.", "price_list": price_list, "faq": faq, "ui": dict(translate_page.PAGE_UI_STRINGS)}
+
+    monkeypatch.setattr(translate_page, "translate_page_content", fake_translate)
+
+    response = client.get(f"/p/{slug}/translate/en")
+    assert response.status_code == 200
+    assert response.get_json()["ui"]["nav_hours"] == "Working hours"
+    assert calls == ["en"]
+
+    # The regenerated result overwrote the stale row.
+    response = client.get(f"/p/{slug}/translate/en")
+    assert response.get_json()["ui"]["nav_hours"] == "Working hours"
+    assert calls == ["en"]
+
+
 def test_translate_page_content_rejects_a_response_missing_real_content(monkeypatch):
     # A response that parses fine but is missing translated text for a field the source
     # actually had - the exact shape a truncated-but-still-schema-valid model reply could
