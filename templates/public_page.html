@@ -1637,16 +1637,6 @@
         opacity: 0;
         transform: translate(-50%, -50%) scale(.95);
     }
-    .theme-panel-header {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding: 14px 16px;
-        border-bottom: 1px solid var(--border);
-        flex-shrink: 0;
-        background: linear-gradient(160deg, color-mix(in srgb, var(--primary) 14%, var(--surface)) 0%, var(--surface) 130%);
-    }
-    .theme-panel-header p { margin: 0; font-family: var(--heading-font); font-weight: 700; font-size: 0.95rem; text-align: center; }
     /* --- Swipeable theme carousel, replacing the old static scrolling grid - one card
        front-and-center with its neighbors peeking on each side (same "peek" pattern as
        .photo-slider above), so browsing themes reads as flicking through a deck of
@@ -2201,9 +2191,6 @@
     </svg>
 </button>
 <div class="theme-panel hidden" id="theme-panel">
-    <div class="theme-panel-header">
-        <p>Change theme</p>
-    </div>
     <div class="theme-panel-body">
         <div class="theme-slider" id="theme-slider">
             <div class="theme-slider-viewport" id="theme-slider-viewport">
