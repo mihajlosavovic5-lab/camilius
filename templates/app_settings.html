@@ -68,6 +68,19 @@
                 </label>
             </div>
 
+            <!-- Same third notification row as the mobile app's Settings screen
+                 (settings-ai-task-row, mobile/index.html) - a "Draft this with AI" chat
+                 task finishing while the owner isn't looking at it. -->
+            <div class="switch-row" style="margin-top:16px;">
+                <div class="switch-row-text">
+                    <span class="switch-row-label" data-i18n="appSettings.aiTaskHeading">AI replies</span>
+                </div>
+                <label class="hours-day-toggle">
+                    <input type="checkbox" name="ai_task_notifications_enabled" {% if ai_task_notifications_enabled %}checked{% endif %}>
+                    <span class="hours-day-toggle-track"><span class="hours-day-toggle-thumb"></span></span>
+                </label>
+            </div>
+
             <div class="form-actions" style="text-align:right;">
                 <button class="button floating-save-btn hidden" type="submit" id="notifications-save-btn" data-i18n="settings.saveChanges">Save changes</button>
             </div>

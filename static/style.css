@@ -2076,8 +2076,14 @@ body.auth {
 .schedule-slot-booked { flex-wrap: wrap; }
 .schedule-slot-booked form { margin: 0; }
 .schedule-slot-booked .button { padding: 7px 14px; font-size: 14px; }
-.schedule-slot-info { flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+/* Stacked column, not a wrapping inline row - same layout as the mobile app's own
+   .schedule-slot-booked-info (mobile/app.css), so a booked slot's name/service/time-
+   range/source badge reads as a scannable little card instead of a run-on line. */
+.schedule-slot-info { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 3px; }
 .schedule-slot-info strong { font-size: 15px; }
+
+.schedule-week-day { cursor: pointer; }
+.schedule-week-day-header, .schedule-week-more { cursor: pointer; }
 
 .schedule-week-legend { display: flex; gap: 16px; margin-bottom: 10px; }
 .schedule-week-legend-item { display: flex; align-items: center; gap: 6px; font-size: 13.5px; color: var(--text-muted); }

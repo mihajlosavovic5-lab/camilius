@@ -139,7 +139,7 @@
         </div>
         <div class="schedule-week-grid">
             {% for day in days %}
-                <div class="card schedule-week-day {{ 'today' if day.is_today }}">
+                <div class="card schedule-week-day {{ 'today' if day.is_today }}" data-day-href="{{ url_for('schedule', view='day', date=day.iso) }}">
                     <a href="{{ url_for('schedule', view='day', date=day.iso) }}" class="schedule-week-day-header">
                         <span data-i18n-date="{{ day.iso }}" data-i18n-date-format="weekdayShort">{{ day.date.strftime('%a') }}</span>
                         <span class="schedule-week-day-number">{{ day.date.day }}</span>
@@ -210,6 +210,23 @@
 // below only touches DOM already present earlier in this same page, so it's safe to run
 // immediately rather than wait for an event that won't come back.
 (function () {
+    // Whole week-day card is a tap target (mobile parity: goToScheduleDay in
+    // mobile/app.js jumps to the day from anywhere on the card, not just its header) -
+    // a delegated listener on `document` (survives htmx swaps, unlike a listener bound
+    // directly to the cards) that ignores clicks already handled by a real link inside
+    // the card (the header and "+N more" - closest("a") check below) so those keep their
+    // own href/middle-click/right-click-to-open-in-new-tab behavior instead of this
+    // double-handling them.
+    if (!window.__scheduleWeekDayClickHandlerAdded) {
+        document.addEventListener("click", function (e) {
+            var card = e.target.closest(".schedule-week-day");
+            if (!card || e.target.closest("a")) return;
+            var href = card.dataset.dayHref;
+            if (href) window.location.href = href;
+        });
+        window.__scheduleWeekDayClickHandlerAdded = true;
+    }
+
     // Header "Appointment length" pill picker - clicking a pill submits the form right
     // away (same UX as the old auto-submitting <select>). "Custom" swaps itself out for
     // a number input in the same spot (same pattern as the per-slot duration control

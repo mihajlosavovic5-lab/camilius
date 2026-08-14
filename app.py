@@ -55,6 +55,8 @@ from database import (
     get_ui_translation, upsert_ui_translation,
     onboarding_completed, mark_onboarding_completed,
     set_booking_relevant,
+    update_business_social_links,
+    is_ai_task_notifications_enabled, set_ai_task_notifications_enabled,
     UniqueViolation, release_db_lock,
 )
 from send_email import send_email
@@ -1452,10 +1454,17 @@ def settings():
     business_id = session["business_id"]
     business = business_by_id(business_id)
     # indices: 0 id, 1 name, 3 contact_email, 7 working_hours, 8 price_list,
-    # 9 faq, 10 phone_number, 13 pending_contact_email, 30 address (the sign-up-time
-    # seed for business_pages.address - see database.py's add_business docstring)
+    # 9 faq, 10 phone_number, 13 pending_contact_email, 24-28 social_instagram_url/
+    # social_facebook_url/social_x_url/social_tiktok_url/social_youtube_url,
+    # 30 address (the sign-up-time seed for business_pages.address - see
+    # database.py's add_business docstring)
     contact_email = business[3]
     pending_contact_email = business[13]
+    social_links = {
+        "social_instagram_url": business[24] or "", "social_facebook_url": business[25] or "",
+        "social_x_url": business[26] or "", "social_tiktok_url": business[27] or "",
+        "social_youtube_url": business[28] or "",
+    }
     pro_access = BETA_FREE_MODE or has_pro_access(business_id)
     # get_business_page returns a plain positional row (id, business_id, slug,
     # published, tagline, about, created_at, updated_at, widget_domain, theme,
@@ -1480,6 +1489,18 @@ def settings():
         faq = business[9]
         current_password = request.form.get("current_password", "")
         new_password = request.form.get("new_password", "")
+        # Social links have no validation of their own, so they're read once up top and
+        # carried through every render below (including an early-return on an unrelated
+        # error, e.g. a taken email) rather than only being handled on the success path -
+        # otherwise a validation error elsewhere on the form would silently discard
+        # whatever the owner had just typed into these fields.
+        submitted_social = {
+            "social_instagram_url": request.form.get("social_instagram_url", social_links["social_instagram_url"]),
+            "social_facebook_url": request.form.get("social_facebook_url", social_links["social_facebook_url"]),
+            "social_x_url": request.form.get("social_x_url", social_links["social_x_url"]),
+            "social_tiktok_url": request.form.get("social_tiktok_url", social_links["social_tiktok_url"]),
+            "social_youtube_url": request.form.get("social_youtube_url", social_links["social_youtube_url"]),
+        }
 
         def _rerender(error):
             return render_template(
@@ -1499,6 +1520,7 @@ def settings():
                     "pending_contact_email": pending_contact_email,
                                         "working_hours": working_hours, "price_list": price_list, "faq": faq,
                     "upsell_pairs": get_upsell_pairs(business_id), "address": business[30],
+                    **submitted_social,
                 },
             )
 
@@ -1545,6 +1567,15 @@ def settings():
             upsell_pairs = request.form["upsell_pairs"]
             set_upsell_pairs(business_id, upsell_pairs)
 
+        # Social media links (Instagram/Facebook/X/TikTok/YouTube) - mobile app's own
+        # Profile screen equivalent (mysite-instagram etc. in mobile/app.js). Blank
+        # inputs clear a previously-saved link, same as update_business_social_links'
+        # own normalization already does for the mobile/API callers of this function.
+        update_business_social_links(
+            business_id, submitted_social["social_instagram_url"], submitted_social["social_facebook_url"],
+            submitted_social["social_x_url"], submitted_social["social_tiktok_url"], submitted_social["social_youtube_url"],
+        )
+
         return render_template(
             "settings.html",
             error=None,
@@ -1562,6 +1593,7 @@ def settings():
                 "pending_contact_email": pending_contact_email,
                                 "working_hours": working_hours, "price_list": price_list, "faq": faq, "upsell_pairs": upsell_pairs,
                 "address": business[30],
+                **submitted_social,
             },
         )
 
@@ -1582,6 +1614,7 @@ def settings():
             "pending_contact_email": pending_contact_email,
                         "working_hours": business[7], "price_list": business[8], "faq": business[9],
             "upsell_pairs": get_upsell_pairs(business_id), "address": business[30],
+            **social_links,
         },
     )
 
@@ -1619,6 +1652,7 @@ def app_settings():
     return render_template(
         "app_settings.html",
         new_booking_notifications_enabled=is_new_booking_notifications_enabled(business_id),
+        ai_task_notifications_enabled=is_ai_task_notifications_enabled(business_id),
         owner_reminders_enabled=is_owner_reminders_enabled(business_id),
         owner_reminder_minutes=owner_minutes,
         owner_reminder_choices=owner_choices,
@@ -1639,6 +1673,7 @@ def app_settings():
 def update_notifications():
     business_id = session["business_id"]
     set_new_booking_notifications_enabled(business_id, bool(request.form.get("new_booking_notifications_enabled")))
+    set_ai_task_notifications_enabled(business_id, bool(request.form.get("ai_task_notifications_enabled")))
     return redirect(url_for("app_settings"))
 
 

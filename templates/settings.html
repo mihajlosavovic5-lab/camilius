@@ -115,6 +115,36 @@
             <button type="button" class="price-add-btn" id="settings-price-add" data-i18n="pricePicker.addButton">+ Add service</button>
         </div>
 
+        <!-- Same five optional links as the mobile app's own Profile screen (Faza 17,
+             settings-instagram et al. in mobile/index.html) - saved through the shared
+             #settings-form Save button below rather than a card of their own, same as
+             every other field on this page. -->
+        <div class="card profile-section" style="margin-top: 20px;">
+            <div class="profile-section-header">
+                <p class="profile-section-title" data-i18n="social.heading">Social media</p>
+            </div>
+            <div class="floating-field" style="margin-top: 0;">
+                <input type="text" id="settings-instagram-input" name="social_instagram_url" value="{{ business.social_instagram_url }}" placeholder=" " autocapitalize="off" autocorrect="off">
+                <label for="settings-instagram-input" data-i18n="social.instagram">Instagram</label>
+            </div>
+            <div class="floating-field">
+                <input type="text" id="settings-facebook-input" name="social_facebook_url" value="{{ business.social_facebook_url }}" placeholder=" " autocapitalize="off" autocorrect="off">
+                <label for="settings-facebook-input" data-i18n="social.facebook">Facebook</label>
+            </div>
+            <div class="floating-field">
+                <input type="text" id="settings-x-input" name="social_x_url" value="{{ business.social_x_url }}" placeholder=" " autocapitalize="off" autocorrect="off">
+                <label for="settings-x-input" data-i18n="social.x">X</label>
+            </div>
+            <div class="floating-field">
+                <input type="text" id="settings-tiktok-input" name="social_tiktok_url" value="{{ business.social_tiktok_url }}" placeholder=" " autocapitalize="off" autocorrect="off">
+                <label for="settings-tiktok-input" data-i18n="social.tiktok">TikTok</label>
+            </div>
+            <div class="floating-field">
+                <input type="text" id="settings-youtube-input" name="social_youtube_url" value="{{ business.social_youtube_url }}" placeholder=" " autocapitalize="off" autocorrect="off">
+                <label for="settings-youtube-input" data-i18n="social.youtube">YouTube</label>
+            </div>
+        </div>
+
         <div class="card profile-section" style="margin-top: 20px;">
             <div class="profile-section-header">
                 <p class="profile-section-title"><span data-i18n="settings.upsell.heading">AI upsell</span></p>
@@ -327,6 +357,24 @@
             <p class="onboarding-media-label" data-i18n="onboarding.media.video">Video</p>
             <div class="onboarding-media-grid" id="settings-media-video-grid" data-role="hero_video" data-max="1"></div>
         </div>
+    </div>
+
+    <!-- Business documents (PDF/Word) - mobile app's own Profile "Documents" card
+         (document-list/document-add-btn in mobile/index.html). Same
+         upload-immediately-on-selection shape as the media card above, against the
+         same /api/onboarding/document route onboarding_describe.html's own document
+         manager uses (see this file's own script block, right after the media grids'
+         wiring). -->
+    <div class="card profile-section" style="margin-top: 20px;" id="settings-documents-card">
+        <div class="profile-section-header">
+            <p class="profile-section-title" data-i18n="settings.documents.heading">Documents</p>
+        </div>
+        <div class="onboarding-document-list" id="settings-document-list"></div>
+        <label class="onboarding-document-add" id="settings-document-add">
+            <span data-i18n="onboarding.describe.documentsAdd">+ Add document</span>
+            <input type="file" id="settings-document-input" accept="application/pdf,.pdf,.docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document">
+        </label>
+        <p class="onboarding-media-error hidden" id="settings-document-error"></p>
     </div>
 </div>
 {% endblock %}
@@ -639,7 +687,7 @@ if (document.readyState === "loading") {
 // grandfathered in before the wizard existed) had no way back to it at all. Living here
 // too means it's always reachable from Settings, same as the media card.
 (function () {
-    const csrfInput = document.querySelector('#settings-generate-form input[name="csrf_token"]');
+    const csrfInput = document.querySelector('#settings-form input[name="csrf_token"]');
     const list = document.getElementById("settings-document-list");
     const input = document.getElementById("settings-document-input");
     const errorBox = document.getElementById("settings-document-error");
