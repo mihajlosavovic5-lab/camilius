@@ -1674,11 +1674,15 @@
         text-align: center;
         font: inherit;
         color: inherit;
-        opacity: .55;
-        transform: scale(.92);
-        transition: opacity .25s ease, transform .25s ease;
+        /* No transform/scale here on purpose - see .lp-slide's own comment in
+           style.css: scaling shrinks toward the slide's own center, eating into the
+           edge that's supposed to peek into the viewport. Opacity/blur alone matches
+           the same peek-a-neighbor look as that slider and .photo-slide above. */
+        opacity: .5;
+        filter: blur(1.5px) saturate(.8);
+        transition: opacity .2s ease, filter .2s ease;
     }
-    .theme-slide.theme-slide-active { opacity: 1; transform: scale(1); }
+    .theme-slide.theme-slide-active { opacity: 1; filter: none; }
     /* The mockup itself - a tiny stand-in "page" (top bar + two text lines + accent
        button) painted with that theme's own actual base colors, so a card previews how
        the theme will actually look rather than just its raw palette as a gradient bar.
