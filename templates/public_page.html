@@ -181,10 +181,18 @@
        language flashing on screen before the right one replaces it. The earliest
        possible inline script (the very top of <body>) adds .lang-pending the instant
        it detects that mismatch, before any of the body below has had a chance to
-       paint; that same script's later completion (cached or freshly fetched) removes
-       it again. Never added at all for the common case (no saved language yet, or it
-       already matches content_language), so a first-time visitor never waits on this. --- */
-    html.lang-pending body { visibility: hidden; }
+       paint; that same script's later completion (cached or freshly fetched, or a
+       4-second safety-timeout fallback if neither has settled by then - see the
+       setTimeout next to the restore call further down) removes it again. Never added
+       at all for the common case (no saved language yet, or it already matches
+       content_language), so a first-time visitor never waits on this. Fades in via
+       `body`'s own opacity
+       transition below rather than popping straight from invisible to visible -
+       visibility itself still switches instantly (so removing the class immediately
+       makes the page paintable/interactive again), but opacity animates from 0, so a
+       switch that took a moment reveals smoothly instead of snapping in all at once. --- */
+    html.lang-pending body { visibility: hidden; opacity: 0; }
+    body { transition: opacity .25s ease; }
 
     .shell {
         display: flex;
@@ -3482,7 +3490,10 @@ window.pageOverlay = (function () {
     // attempting the same failing switch on every future load.
     // Removes .lang-pending (see its own CSS comment in <head>, and the blocking
     // script at the very top of <body> that adds it) - called once the restore below
-    // has fully settled, whatever the outcome, so the page is never left hidden.
+    // has fully settled, whatever the outcome, so the page is never left hidden. Safe
+    // to call more than once (classList.remove on an already-missing class is a
+    // harmless no-op) - both the real settle and the timeout fallback right below can
+    // end up calling this, whichever happens first.
     function revealPageContent() {
         document.documentElement.classList.remove("lang-pending");
     }
@@ -3490,8 +3501,19 @@ window.pageOverlay = (function () {
     try { savedLang = localStorage.getItem(LANG_KEY); } catch (e) { /* private mode etc. */ }
     if (savedLang && savedLang !== {{ current_lang.code | tojson }}) {
         var savedOpt = langOptions.filter(function (o) { return o.dataset.lang === savedLang; })[0];
-        if (savedOpt) switchLanguage(savedLang, savedOpt, revealPageContent);
-        else revealPageContent(); // stale/unsupported saved code - nothing to switch to, don't stay hidden
+        if (savedOpt) {
+            switchLanguage(savedLang, savedOpt, revealPageContent);
+            // A slow first-ever /translate/<lang> fetch (or one that never resolves at
+            // all) shouldn't leave a visitor staring at a blank page indefinitely -
+            // reveals in content_language regardless past this point (the switch, if
+            // it eventually does land, still applies normally on top of that, exactly
+            // as if it had just taken this long in the first place). Comfortably above
+            // both a cache hit (effectively instant) and a normal fetch (well under a
+            // second in practice) so this is never what a visitor actually sees.
+            setTimeout(revealPageContent, 4000);
+        } else {
+            revealPageContent(); // stale/unsupported saved code - nothing to switch to, don't stay hidden
+        }
     } else {
         revealPageContent(); // .lang-pending was never added for this case to begin with
     }
