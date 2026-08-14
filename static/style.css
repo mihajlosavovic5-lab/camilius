@@ -1494,7 +1494,17 @@ body.auth {
 }
 .auth-wrapper {
     position: relative;
+    /* body's own padding-top: var(--install-banner-h) (see body{} above) already pushes
+       this wrapper down by the banner's height when it's showing - min-height: 100dvh on
+       top of that made body's total height 100dvh + the banner's height, taller than the
+       real viewport by exactly that much. That extra sliver was genuinely scrollable
+       (nothing else on the page reaches down that far), which read as the page randomly
+       gaining a tiny bit of scroll - and sticking/jittering as you tried to use it -
+       only while the banner was shown, and behaving normally the instant it wasn't.
+       Subtracting the banner's height here keeps body's total height at exactly 100dvh
+       either way. */
     min-height: 100vh; min-height: 100dvh;
+    min-height: calc(100vh - var(--install-banner-h)); min-height: calc(100dvh - var(--install-banner-h));
     display: flex; flex-direction: column;
     align-items: center; justify-content: center; padding: 40px 16px;
 }
