@@ -17,38 +17,15 @@
         })();
     </script>
     <meta charset="UTF-8">
-    <meta name="viewport" id="viewport-meta" content="width=device-width, initial-scale=1">
-    <!-- Some Android Chrome builds (seen on devices with an unusual/custom display
-         density - e.g. after the OS "Display size" accessibility setting changes DPI)
-         lay the page out against a stale, much wider fallback viewport than
-         window.innerWidth/document.documentElement.clientWidth later report - real
-         content (this page's own centered cards/wrappers) ends up correctly centered
-         but inside a narrow box, leaving a large blank gap next to it instead of
-         filling the screen. Re-writing the viewport meta's content (nudging
-         initial-scale off 1 and immediately back) forces the browser to recompute
-         the viewport against the real numbers, closing that gap. Checked against a
-         40px slop (ordinary scrollbar-gutter/rounding differences are only a few px)
-         so this never fires - and never causes a visible reflow - on a normal render. -->
-    <script>
-        (function () {
-            var meta = document.getElementById("viewport-meta");
-            if (!meta) return;
-            var original = meta.getAttribute("content");
-            function fixViewportIfStale() {
-                if (Math.abs(window.innerWidth - document.documentElement.clientWidth) > 40) {
-                    meta.setAttribute("content", "width=device-width, initial-scale=1.0001");
-                    requestAnimationFrame(function () {
-                        meta.setAttribute("content", original);
-                    });
-                }
-            }
-            document.addEventListener("DOMContentLoaded", fixViewportIfStale);
-            window.addEventListener("load", fixViewportIfStale);
-            window.addEventListener("orientationchange", function () {
-                setTimeout(fixViewportIfStale, 300);
-            });
-        })();
-    </script>
+    <!-- maximum-scale=1/user-scalable=no - the diagnostic overlay's numbers turned out
+         to be a red herring for an actual browser bug: the gap the report described
+         only ever showed up after pinch-zooming out (confirmed by the reporter), which
+         is exactly what a smaller visual-viewport-vs-layout-viewport reading looks
+         like. Disabling zoom here matches what the packaged app already does
+         (mobile/index.html's own viewport tag) so the web version can't be pinched
+         into that same "correctly laid out, but zoomed away from filling the screen"
+         state at all. -->
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
     <title>{% block title %}Camilius{% endblock %}</title>
     <meta name="description" content="{% block description %}Camilius is an AI that builds your business a website - complete with an AI chat agent that answers customers and books appointments automatically, based on your working hours, price list, and FAQ.{% endblock %}">
     <link rel="canonical" href="{{ request.base_url }}">
