@@ -4719,6 +4719,7 @@ window.pageOverlay = (function () {
     var chatUrl = {{ chat_url | tojson }};
     var open = false;
     var greeted = false;
+    var greetingEl = null;
 
     // Chat header title self-fit - shrinks the business name's font-size only as far as
     // needed for it to actually fit the panel's own width (min(320px, viewport - 40px),
@@ -4825,7 +4826,7 @@ window.pageOverlay = (function () {
         if (open) fab.classList.add("chat-fab-nudge-done");
         if (open && !greeted) {
             greeted = true;
-            addMessage("bot", window.pageT("chat_greeting"));
+            greetingEl = addMessage("bot", window.pageT("chat_greeting"));
         }
         if (open && !wasOpen) {
             // Freezes `height` to whatever it resolves to right now (keyboard-closed,
@@ -4842,6 +4843,16 @@ window.pageOverlay = (function () {
             panel.style.height = "";
         }
     }
+
+    // Re-translates the chat's opening greeting on every language switch, as long as
+    // it's still the only message in the panel - once a visitor has actually started
+    // talking, later switches leave the real conversation alone (same rule the
+    // support widget in base.html and website_chat.html's own greeting follow).
+    document.addEventListener("pagelanguagechange", function () {
+        if (greetingEl && messagesEl.children.length === 1) {
+            greetingEl.textContent = window.pageT("chat_greeting");
+        }
+    });
 
     window.pageOverlay.register("chat", function () { setOpen(false); });
     fab.addEventListener("click", function () { setOpen(!open); });
