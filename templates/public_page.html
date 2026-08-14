@@ -4575,14 +4575,21 @@ window.pageOverlay = (function () {
     // clamp, animateScrollTo's own easing - so it only acts once things have been quiet
     // for a bit) and gated on no drag/animation currently owning the position, so it
     // never fights either of those - it only ever steps in for scrollLeft ending up
-    // somewhere neither of them put it.
+    // somewhere neither of them put it. goTo(current, true) - instant, not the plain
+    // animated goTo(current) this first shipped with - is deliberate: the animated form
+    // re-plays the same 380ms glide a real navigation uses, which on a card that had
+    // already drifted off-center reads as its own visible "slides left, then eases back
+    // to center" glitch, i.e. exactly the bug this watchdog exists to make disappear,
+    // just delayed behind this debounce instead of the drift itself being visible.
+    // Snapping straight to the target the instant a genuine drift is caught keeps this a
+    // correction nobody sees rather than a second, self-inflicted animation.
     var scrollWatchdog = null;
     viewport.addEventListener("scroll", function () {
         clearTimeout(scrollWatchdog);
         scrollWatchdog = setTimeout(function () {
             if (dragStartX !== null || animFrame !== null) return;
             if (!slides[current]) return;
-            if (Math.abs(viewport.scrollLeft - targetScrollLeft(slides[current])) > 1) goTo(current);
+            if (Math.abs(viewport.scrollLeft - targetScrollLeft(slides[current])) > 1) goTo(current, true);
         }, 150);
     }, { passive: true });
 
@@ -4593,26 +4600,51 @@ window.pageOverlay = (function () {
         toastTimer = setTimeout(function () { toast.classList.remove("visible"); }, 1800);
     }
 
+    function postThemeSave(themeId) {
+        var body = new URLSearchParams();
+        body.set("theme_id", themeId);
+        return fetch(SAVE_URL, {
+            method: "POST",
+            headers: { "X-CSRFToken": CSRF_TOKEN, "Content-Type": "application/x-www-form-urlencoded" },
+            body: body.toString(),
+        }).then(function (res) { if (!res.ok) throw new Error("save failed"); });
+    }
+
     // Applies + persists whichever theme is passed in, live - called both by a direct
     // tap on a card (pickTheme below) and, via setCurrent above, the instant browsing
     // (swipe/arrow/dot/wrap) lands on a new card, so the site behind the panel always
     // shows whatever theme is currently centered rather than only updating once the
     // panel closes.
+    //
+    // One silent retry, half a second later, before ever bothering the owner with the
+    // toast - the same in-app browser already documented above as unreliable about
+    // touch/scroll (see the scroll-drift watchdog) is exactly the kind of environment
+    // where a save fired right as a swipe lands can drop for a transient reason (a
+    // request briefly starved while the WebView is still busy with the gesture, a
+    // one-off network blip) rather than anything actually wrong with the theme or the
+    // owner's session - the first "Couldn't save" toast landing mid-browse, for a
+    // request that would have gone through a moment later anyway, was what got reported.
+    // Guarded on selectedId still matching themeId at both the retry and the final
+    // failure: if the owner has since swiped on to a different card, that later card's
+    // own save already supersedes this one, so neither retrying nor surfacing a toast
+    // for this now-stale attempt would be right - it would risk clobbering the newer
+    // pick, or alarming the owner about a save nobody's still waiting on.
     function applyAndSaveTheme(themeId, theme) {
         if (themeId === selectedId) return;
         selectedId = themeId;
         applyThemePreview(theme);
         markSelected(themeId);
 
-        var body = new URLSearchParams();
-        body.set("theme_id", themeId);
-        fetch(SAVE_URL, {
-            method: "POST",
-            headers: { "X-CSRFToken": CSRF_TOKEN, "Content-Type": "application/x-www-form-urlencoded" },
-            body: body.toString(),
-        })
-            .then(function (res) { if (!res.ok) throw new Error("save failed"); })
-            .catch(function () { showToast("Couldn't save - try again"); });
+        postThemeSave(themeId).catch(function () {
+            if (selectedId !== themeId) return;
+            setTimeout(function () {
+                if (selectedId !== themeId) return;
+                postThemeSave(themeId).catch(function () {
+                    if (selectedId !== themeId) return;
+                    showToast("Couldn't save - try again");
+                });
+            }, 500);
+        });
     }
 
     // A direct tap on a card - unlike just browsing past it - also closes the panel,
