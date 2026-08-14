@@ -4257,20 +4257,28 @@ window.pageOverlay = (function () {
         current = i;
         slides.forEach(function (slide, idx) { slide.classList.toggle("theme-slide-active", idx === i); });
         dots.forEach(function (dot, idx) { dot.classList.toggle("active", idx === i); });
-        // Live-previews (and saves) the card browsing just landed on, same as tapping
-        // it directly would - see applyAndSaveTheme below. THEME_CHOICES is in the same
-        // order slides was built from, so index i lines up with slide i. Guarded inside
-        // applyAndSaveTheme itself against re-applying the theme that's already live -
-        // covers the very first call here, at page load, landing on the already-current
-        // theme.
-        var entry = THEME_CHOICES[i];
+    }
+    // Live-previews (and saves) whichever card is now `current`, same as tapping it
+    // directly would - see applyAndSaveTheme below. Deliberately called once a
+    // navigation has actually landed (see goTo/next/prev below), not from inside
+    // setCurrent itself: applying a theme rewrites a dozen CSS custom properties on
+    // :root, which the whole page reads via var(...) - doing that mid-flight, while
+    // animateScrollTo's own requestAnimationFrame loop is still stepping the scroll
+    // position every frame, forced a full-page style recalc on top of that animation
+    // and was what read as the card jittering left-right as it slid in, worse on some
+    // devices/frames than others. THEME_CHOICES is in the same order slides was built
+    // from, so index `current` lines up with slide `current`. Guarded inside
+    // applyAndSaveTheme itself against re-applying the theme that's already live -
+    // covers the very first call, at page load, landing on the already-current theme.
+    function previewCurrentTheme() {
+        var entry = THEME_CHOICES[current];
         if (entry) applyAndSaveTheme(entry[0], entry[1]);
     }
     function goTo(i, instant) {
         i = Math.max(0, Math.min(slides.length - 1, i));
-        if (instant) viewport.scrollLeft = targetScrollLeft(slides[i]);
-        else animateScrollTo(targetScrollLeft(slides[i]), 380);
         setCurrent(i);
+        if (instant) { viewport.scrollLeft = targetScrollLeft(slides[i]); previewCurrentTheme(); }
+        else animateScrollTo(targetScrollLeft(slides[i]), 380, previewCurrentTheme);
     }
     // At either end, step onto the adjacent clone instead of jumping straight to
     // goTo(0)/goTo(last) - same wrap-around technique as .photo-slider's own next()/
@@ -4283,6 +4291,7 @@ window.pageOverlay = (function () {
             animateScrollTo(targetScrollLeft(track.children[cloneOffset + slides.length]), 380, function () {
                 viewport.scrollLeft = targetScrollLeft(slides[0]);
                 setCurrent(0);
+                previewCurrentTheme();
             });
             return;
         }
@@ -4293,6 +4302,7 @@ window.pageOverlay = (function () {
             animateScrollTo(targetScrollLeft(track.children[cloneOffset - 1]), 380, function () {
                 viewport.scrollLeft = targetScrollLeft(slides[slides.length - 1]);
                 setCurrent(slides.length - 1);
+                previewCurrentTheme();
             });
             return;
         }
