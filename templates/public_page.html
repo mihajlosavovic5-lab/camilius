@@ -4461,6 +4461,24 @@ window.pageOverlay = (function () {
         // now, so this drag starts from the corrected position instead of having it
         // sprung on it later.
         flushPendingPreview();
+        // Belt-and-braces on top of flushPendingPreview() itself: a plain (non-wrap)
+        // goTo()'s onDone is only previewCurrentTheme, which never touches scrollLeft -
+        // so cutting its easing animation off partway (the cancelAnimationFrame just
+        // above, inside flushPendingPreview) can still leave the deck sitting at that
+        // half-eased position even once flushed, even though `current`/the active dot
+        // already read as the (correct) target that interrupted animation was heading
+        // to (goTo sets `current` synchronously before its animation even starts).
+        // Whether that got corrected used to depend entirely on what this new touch
+        // turned into next - a drag ending in another animateScrollTo() masked it, but
+        // one recognized as a genuine vertical scroll (axis "y", which rightly never
+        // touches scrollLeft either) or too small/brief to ever pick an axis left it
+        // stuck off-center instead, looking "settled" on the wrong position because the
+        // label/dot already matched `current`. Snapping straight to `current`'s own
+        // target here - before this new drag even begins - is a no-op whenever nothing
+        // was actually interrupted (scrollLeft is already sitting exactly there), so
+        // it's safe to run unconditionally rather than only patch the specific
+        // way-it-later-resolves paths that turned up so far.
+        if (slides[current]) viewport.scrollLeft = targetScrollLeft(slides[current]);
         dragStartX = e.touches[0].clientX;
         dragStartY = e.touches[0].clientY;
         dragStartScroll = viewport.scrollLeft;
@@ -4563,7 +4581,16 @@ window.pageOverlay = (function () {
         // dismiss-on-open-elsewhere below) shouldn't leave whichever card browsing
         // last landed on unsaved just because its settle animation hadn't finished
         // yet - flush it the same way a fresh navigation preempting an old one does.
-        if (!value) flushPendingPreview();
+        // Also re-syncs scrollLeft to `current`'s own target, same reasoning as the
+        // touchstart handler above - flushPendingPreview() alone doesn't do this for a
+        // plain (non-wrap) goTo(), and reopening the panel later never re-centers it
+        // itself (that only happens once, at page load - see goTo(initialIndex, true)
+        // near the bottom of this file), so closing mid-animation without this used to
+        // leave the deck stuck off-center the next time it's opened, not just this time.
+        if (!value) {
+            flushPendingPreview();
+            if (slides[current]) viewport.scrollLeft = targetScrollLeft(slides[current]);
+        }
         open = value;
         if (open) window.pageOverlay.set("theme"); else window.pageOverlay.clear("theme");
         panel.classList.toggle("hidden", !open);
