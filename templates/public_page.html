@@ -1691,13 +1691,7 @@
        reads as a floating color swatch, not a big white panel with a small color strip
        inside it. The mock's own border-radius/box-shadow now carry the "card" look
        directly, and the selected ring below rings the mock's own edge instead of a
-       wrapper a few pixels further out. A thin fixed-tone border (not var(--border),
-       which tracks whichever theme is currently live rather than the one this card is
-       previewing) is what actually separates it from the panel behind it though - a
-       light-background theme (base.background near-white) blurred to 50% opacity would
-       otherwise read as almost nothing peeking in against .theme-panel-body's own
-       near-white background, unlike a dark-background theme's own topbar/shadow, which
-       already reads fine without one. */
+       wrapper a few pixels further out. */
     .theme-slide-mock {
         position: relative;
         aspect-ratio: 4 / 3;
@@ -1707,7 +1701,6 @@
         margin: 0 auto;
         border-radius: 16px;
         overflow: hidden;
-        border: 1px solid rgba(0, 0, 0, .12);
         box-shadow: 0 8px 20px -10px rgba(0, 0, 0, .3);
         transition: box-shadow .15s ease;
     }
@@ -4222,13 +4215,22 @@ window.pageOverlay = (function () {
         });
     }
 
-    // Same center-distance math as .photo-slider's own targetScrollLeft further up
-    // this page - the scrollLeft `el` would need to sit centered in the viewport, so
-    // the active card lands in the middle with a neighbor peeking on each side.
+    // Center-distance math, like .photo-slider's own targetScrollLeft further up this
+    // page - the scrollLeft `el` needs to sit centered in the viewport, so the active
+    // card lands in the middle with a neighbor peeking on each side - but built from
+    // offsetLeft/offsetWidth rather than getBoundingClientRect(). Unlike the photo
+    // slider (always plainly on-screen), this carousel's very first positioning below
+    // runs while .theme-panel still sits behind .hidden's `transform: scale(.95);
+    // opacity: 0` (see .theme-panel.hidden in this file's <style> block) - rect-based
+    // math read off that shrunk, not-yet-painted state and landed the deck off-center
+    // until the visitor's first manual swipe recomputed it against the real geometry.
+    // offsetLeft/offsetWidth reflect an element's plain layout box, unaffected by any
+    // transform on it or an ancestor, so this reads correctly however .theme-panel
+    // happens to be transformed at the moment. `el` and `viewport` share the same
+    // offsetParent (#theme-slider, the nearest position:relative ancestor of both), so
+    // their offsetLeft values are directly comparable.
     function targetScrollLeft(el) {
-        var elRect = el.getBoundingClientRect();
-        var vpRect = viewport.getBoundingClientRect();
-        return viewport.scrollLeft + (elRect.left + elRect.width / 2) - (vpRect.left + vpRect.width / 2);
+        return (el.offsetLeft - viewport.offsetLeft) + (el.offsetWidth - viewport.clientWidth) / 2;
     }
     // requestAnimationFrame + manual ease-out rather than scrollTo({behavior: "smooth"})
     // - see .photo-slider's own animateScrollTo comment further up this page: the in-app
