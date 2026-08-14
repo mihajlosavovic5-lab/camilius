@@ -294,7 +294,14 @@
        containing block (same reasoning as style.css's .navbar::before comment) -
        toggled via the script at the bottom of this page. */
     .top-bar-fill {
-        position: fixed; top: 0; left: 0; right: 0; z-index: 949; height: 60px;
+        position: fixed; top: 0; left: 0; right: 0; z-index: 949;
+        /* --top-bar-space is set by layoutTopBarTitle() below the moment it first
+           computes it - see that variable's own comment there for why reading it here
+           (rather than this element's own style.height, which requires it to already
+           exist in the DOM) is what keeps this in sync with .wrap's padding-top without
+           a later correction. 60px matches this rule's own old static value, for a
+           no-JS visitor only - only reachable this way. */
+        height: var(--top-bar-space, 60px);
         background: transparent; border-bottom: 1px solid transparent;
         transition: background .25s ease, border-color .25s ease, box-shadow .25s ease;
         pointer-events: none;
@@ -1996,7 +2003,16 @@
         .side-nav-link.active {
             background: var(--surface); border-color: var(--border); color: var(--nav-ink);
         }
-        .wrap { max-width: 640px; width: 100%; margin: 0 auto; padding: 64px 20px 80px; }
+        /* padding-top: var(--top-bar-space, 64px) - not a plain 64px baked into the
+           shorthand above, and not JS writing wrapEl.style.paddingTop once .wrap exists
+           either (that used to be the only way this got set, see layoutTopBarTitle()'s
+           own comment on --top-bar-space) - both of those paint a real frame at 64px
+           (or whatever the static fallback was) and then visibly nudge every section on
+           the page down or up once the real, business-name-dependent value lands a beat
+           later. Reading the same custom property .top-bar-fill's height reads means
+           .wrap's first-ever paint already uses the real value, whenever that happens to
+           land relative to .wrap itself first existing - nothing to correct afterward. */
+        .wrap { max-width: 640px; width: 100%; margin: 0 auto; padding: 0 20px 80px; padding-top: var(--top-bar-space, 64px); }
     }
 </style>
 </head>
@@ -2041,11 +2057,11 @@
     // already removed the earlier flash where this title's text itself changed shape.
     //
     // #top-bar-fill/.wrap don't exist yet the first time this runs (both are defined
-    // further down the page) - looked up fresh inside layoutTopBarTitle() below on every
-    // call instead of cached once, so today's later call (once the rest of the page has
-    // parsed - see that script's own comment) still finds and sizes them correctly, while
-    // this first call already gets the font-size/gutters - the part actually visible up
-    // here at the top of the page - right from the very first paint.
+    // further down the page) - sized via the --top-bar-space custom property (see
+    // layoutTopBarTitle()'s own comment on it) rather than a direct style write that
+    // would need them to already exist, so this first call already gets everything
+    // right from the very first paint: the font-size/gutters actually visible up here at
+    // the top of the page, AND the space every section below the fold needs to clear it.
     //
     // Recognizes whatever actually sits to .top-bar-title's left (the hamburger,
     // #nav-menu-btn) and right (the language flag, #lang-btn) by measuring their real
@@ -2165,10 +2181,19 @@
         }
 
         var barSpace = Math.max(60, Math.ceil(topBarTitleEl.getBoundingClientRect().bottom) + 12);
-        var topBarFillEl = document.getElementById("top-bar-fill");
-        var wrapEl = document.querySelector(".wrap");
-        if (topBarFillEl) topBarFillEl.style.height = barSpace + "px";
-        if (wrapEl) wrapEl.style.paddingTop = barSpace + "px";
+        // --top-bar-space, not a direct style write on #top-bar-fill/.wrap: those two
+        // don't exist yet the first time this whole function runs (see the file-level
+        // comment above), so writing to their .style directly used to mean the CSS
+        // fallback (a plain static px value, see both rules' own comments) was what
+        // actually painted first, corrected to this real value only once each element
+        // existed and this ran again - visible as the whole page nudging up or down a
+        // beat after paint for any business name whose real barSpace differs from that
+        // static guess (basically every one - see the View Page screen recording). A
+        // custom property on the root is visible to a descendant the instant that
+        // descendant is styled, however long after this line it's actually parsed - so
+        // by the time #top-bar-fill/.wrap exist, this is already set to its real value,
+        // and their first paint IS that value, nothing to correct.
+        document.documentElement.style.setProperty("--top-bar-space", barSpace + "px");
 
         // Reveal now that a real font-size is actually applied (see this element's own
         // CSS comment on the visibility:hidden it starts with) - every call here re-sets
@@ -2181,8 +2206,9 @@
     if (document.fonts && document.fonts.ready) document.fonts.ready.then(layoutTopBarTitle);
     // Exposed so applyTranslation() (language-switcher script further down) can re-run
     // this once a language swap changes the title's own text (and therefore its width),
-    // and so the script further down that finishes the #top-bar-fill/.wrap sizing (not
-    // knowable yet up here) can call this same function instead of a second copy of it.
+    // and so the script further down that re-measures once the rest of the page has
+    // parsed (icons can render fractionally differently once everything else has
+    // settled) can call this same function instead of a second copy of it.
     window.layoutTopBarTitle = layoutTopBarTitle;
 })();
 </script>
@@ -3219,11 +3245,13 @@ window.pageOverlay = (function () {
 
     // Top-bar title sizing itself now runs from an early inline <script> right after
     // #nav-menu-btn/#lang-btn/.top-bar-title, near the top of <body> (see that script's
-    // own comment for why) - #top-bar-fill/.wrap didn't exist yet up there though, so
-    // re-run the same function here, now that the rest of the page (including both of
-    // those) has parsed, to finish sizing them. Cheap and idempotent for the font-size/
-    // gutters it already got right up there - layoutTopBarTitle() re-measures from
-    // scratch every call rather than assuming anything from a previous one.
+    // own comment for why), including #top-bar-fill/.wrap's own sizing via the
+    // --top-bar-space custom property both those rules read - re-running the same
+    // function again here, now that the rest of the page has parsed, is just a cheap,
+    // idempotent re-measure in case the icons render fractionally differently once
+    // everything else has settled, not a first-time fix-up: layoutTopBarTitle()
+    // re-measures from scratch every call rather than assuming anything from a
+    // previous one.
     if (window.layoutTopBarTitle) window.layoutTopBarTitle();
 
     // Press feedback for the Contact section's email/phone rows and social icons - driven
