@@ -276,6 +276,16 @@
         pointer-events: none;
         transition: opacity .3s ease;
     }
+    /* .theme-fab sits bottom-LEFT (same x as the mobile drawer/.side-nav), so unlike
+       .chat-fab/.top-bar-title/.lang-btn it's actually inside the open drawer's own
+       footprint, not just floating over the page next to it. Dimming it to .35 opacity
+       (rule above) still left it visible poking out above the drawer's own background,
+       since its 952 z-index outranks .side-nav's 951 - dropped below the drawer here
+       (950 backdrop and 951 drawer both still above) so the menu's own panel fully
+       covers it instead of the icon showing through the drawer's edge. */
+    body[data-overlay="menu"] .theme-fab {
+        z-index: 940;
+    }
 
     /* --- Top-bar fill - transparent over the page's own gradient at rest, then the
        identical frosted-glass fill/blur/shadow the logged-in app's own sticky navbar
