@@ -446,14 +446,14 @@
         }
     })();
 </script>
-{% if request.endpoint not in ('intro', 'terms', 'privacy') %}
+{% if request.endpoint not in ('intro', 'terms', 'privacy', 'login') %}
 <!-- Floating Support AI widget (Faza 8) - bottom-right on every page (logged in or not,
      since the knowledge base covers pricing/how-it-works questions a visitor might have
      before signing up too). Talks about USING Camilius itself, not a business's own
      customers - see support_assistant.py. Excluded on /intro (full-bleed onboarding
-     slides, same reasoning as the install banner above) and on Terms/Privacy - legal
-     text a visitor is reading (often to actually verify something), not a screen where
-     a floating chat bubble belongs. -->
+     slides, same reasoning as the install banner above), on Terms/Privacy - legal text
+     a visitor is reading (often to actually verify something), not a screen where a
+     floating chat bubble belongs - and on /login, by request. -->
 <!-- Same dim-the-page treatment as the hamburger drawer (.lp-menu-modal-backdrop) -
      opens/closes together with the panel below via the "open" class, and (being a
      sibling of #support-widget, not a descendant) the existing outside-click

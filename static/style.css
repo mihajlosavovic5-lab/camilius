@@ -1511,22 +1511,24 @@ body.auth {
 .auth-card.auth-card-email-active { padding-top: 64px; }
 .auth-card-wide { max-width: 560px; }
 /* Choice <-> email-form swap slides instead of an instant cut - same feel as the mobile
-   app's own screen-to-screen navigation. Both panels share one grid cell (grid stacking -
-   the container's height tracks whichever is tallest, no manual height needed) and slide
-   past each other on .auth-card-email-active, driven purely by that one class rather than
-   each panel's own hidden state. No position:relative here deliberately - .auth-back-btn
-   lives outside this stack entirely (see login.html) precisely so it never ends up a
-   descendant of a transformed panel. */
-.login-phase-stack { display: grid; }
+   app's own screen-to-screen navigation. Whichever panel is INACTIVE is pulled out of
+   flow (position: absolute, sized to this wrapper via inset: 0) so the card always hugs
+   the height of the one panel actually showing, instead of permanently reserving room
+   for both (the choice panel is much shorter than the email+password form - reserving
+   the form's height under the choice screen left a large dead gap above the "Register
+   your business" section below the card, which the app's own login screen doesn't have
+   since it isn't a bounded card - see .login-signup-divider in mobile/app.css). */
+.login-phase-stack { position: relative; }
 .login-phase-stack > .auth-choice,
 .login-phase-stack > .auth-form-wrap {
-    grid-area: 1 / 1;
     transition: transform .26s cubic-bezier(.22,.9,.32,1.05), opacity .2s ease;
 }
 .auth-card:not(.auth-card-email-active) .auth-form-wrap {
+    position: absolute; inset: 0;
     transform: translateX(100%); opacity: 0; pointer-events: none;
 }
 .auth-card.auth-card-email-active .auth-choice {
+    position: absolute; inset: 0;
     transform: translateX(-100%); opacity: 0; pointer-events: none;
 }
 /* Pill-shaped fields on auth pages - same floating-field treatment as the APK login
@@ -1587,10 +1589,12 @@ body.auth {
 .field-inline-btn:hover, .field-inline-btn:focus-visible { border-color: var(--primary); color: var(--primary-ink); }
 .field-inline-btn:disabled { opacity: .6; cursor: default; }
 /* Caption + outline pill button pair ("New to Camilius?" / "Create account" on the
-   APK) replacing a plain text link for the register CTA. */
+   APK) replacing a plain text link for the register CTA. Margin/padding match the
+   APK's own .login-signup-divider (mobile/app.css) exactly, now that the phase-stack
+   fix above stops the card from padding this out with dead reserved space first. */
 .auth-divider {
     text-align: center; font-size: 13.5px; font-weight: 600; color: var(--text-muted);
-    margin: 22px 0 10px; padding-top: 16px; border-top: 1px solid var(--border);
+    margin: 0 0 10px; padding-top: 14px; border-top: 1px solid var(--border);
 }
 /* The "or" between "Continue with Google" and "Continue with email" - a bigger, bolder
    word flanked by short lines on each side, rather than .auth-divider's single line above
