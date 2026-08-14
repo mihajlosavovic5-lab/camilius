@@ -2402,7 +2402,7 @@
              after Location. Always rendered now; the badge link is the one thing still
              gated, nested inside its own show_badge check below. -->
         <footer>
-            <p class="footer-copyright">&copy; {{ current_year }} {{ business_name }}</p>
+            <p class="footer-copyright">&copy; {{ current_year }} {{ tagline or business_name }}</p>
             {% if show_badge %}
             <a class="footer-badge" href="{{ url_for('home', _external=True) }}"><span class="foot-mark">C</span>Powered by Camilius</a>
             {% endif %}
