@@ -4236,12 +4236,28 @@ window.pageOverlay = (function () {
     // - see .photo-slider's own animateScrollTo comment further up this page: the in-app
     // browser this page actually opens in silently treats "smooth" as instant.
     var animFrame = null;
+    // The onDone a currently-running animateScrollTo owes, if any hasn't fired yet -
+    // tracked so a swipe/arrow/dot navigation that lands *another* new one mid-flight
+    // (rapidly flicking through several cards before any one of them visually settles)
+    // doesn't just cancelAnimationFrame the previous one straight into oblivion, taking
+    // its still-unfired previewCurrentTheme with it. Every theme actually browsed to
+    // is meant to get applied and saved, not only the one the deck happens to still be
+    // sliding toward when the panel closes or the next swipe starts.
+    var pendingOnDone = null;
+    // Fires (and clears) whatever onDone is still owed, right now, synchronously -
+    // called both when a new animation is about to preempt an old one and when the
+    // panel is closing outright (see setOpen below), so neither drops a card's save.
+    function flushPendingPreview() {
+        if (animFrame !== null) { cancelAnimationFrame(animFrame); animFrame = null; }
+        if (pendingOnDone) { var fn = pendingOnDone; pendingOnDone = null; fn(); }
+    }
     function animateScrollTo(left, duration, onDone) {
-        if (animFrame !== null) cancelAnimationFrame(animFrame);
+        flushPendingPreview();
         if (reduceMotion) { viewport.scrollLeft = left; if (onDone) onDone(); return; }
         var startLeft = viewport.scrollLeft;
         var delta = left - startLeft;
         var startTime = null;
+        pendingOnDone = onDone;
         function step(now) {
             if (startTime === null) startTime = now;
             var t = Math.min(1, (now - startTime) / duration);
@@ -4249,6 +4265,7 @@ window.pageOverlay = (function () {
             viewport.scrollLeft = startLeft + delta * eased;
             if (t < 1) { animFrame = requestAnimationFrame(step); return; }
             animFrame = null;
+            pendingOnDone = null;
             if (onDone) onDone();
         }
         animFrame = requestAnimationFrame(step);
@@ -4396,13 +4413,22 @@ window.pageOverlay = (function () {
 
     // A direct tap on a card - unlike just browsing past it - also closes the panel,
     // since tapping (rather than swiping through) is the deliberate "this one, I'm
-    // done" gesture.
+    // done" gesture. Flushes any still-pending settle-save first (a tap can land on a
+    // neighbor while the deck is still animating toward a previous target) so that
+    // stale pending save can't fire after this one, inside setOpen's own flush, and
+    // clobber the theme the visitor just deliberately picked.
     function pickTheme(themeId, theme) {
+        flushPendingPreview();
         applyAndSaveTheme(themeId, theme);
         setOpen(false);
     }
 
     function setOpen(value) {
+        // Closing (backdrop tap, Escape, the fab itself, or the overlay's own
+        // dismiss-on-open-elsewhere below) shouldn't leave whichever card browsing
+        // last landed on unsaved just because its settle animation hadn't finished
+        // yet - flush it the same way a fresh navigation preempting an old one does.
+        if (!value) flushPendingPreview();
         open = value;
         if (open) window.pageOverlay.set("theme"); else window.pageOverlay.clear("theme");
         panel.classList.toggle("hidden", !open);
