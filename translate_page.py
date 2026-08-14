@@ -137,10 +137,19 @@ is a straight translation, not a rewrite - keep the same meaning, tone, and form
 (line breaks, punctuation) as the original. Some fields may already be empty strings;
 leave those as empty strings.
 
-Every non-empty field in your response, "about" included, must actually be written in
-{lang} - never copy a field's original source-language text through unchanged or
-partially unchanged, even if it already reads acceptably in {lang} or you're unsure how
-best to phrase part of it. A real, if imperfect, translation is always required.
+Proper nouns - the business's own name, a person's name, a place name, a brand - must be
+copied through exactly as written in the source, never translated, transliterated, or
+reworded, no matter which field they appear in or how much of that field they make up.
+This matters most for "tagline": for many businesses it's nothing but their own name with
+no other text at all, and that name must come back completely unchanged, not "translated"
+into something that reads more like {lang}. A name does not change between languages.
+
+Every other non-empty field in your response, "about" included, must actually be written
+in {lang} - never copy the original source-language text through unchanged or partially
+unchanged just because it already reads acceptably in {lang} or you're unsure how best to
+phrase part of it (that rule does not apply to the proper nouns described above, which are
+supposed to stay unchanged). A real, if imperfect, translation is always required for
+everything else.
 
 For "ui", translate every value in that object into {lang} the same way. Some values
 contain literal {{token}} placeholders (e.g. {{day}}, {{time}}, {{business}}) - copy each
