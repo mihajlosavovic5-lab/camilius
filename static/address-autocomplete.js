@@ -65,7 +65,7 @@ function initAddressAutocomplete(input, list) {
             });
     }
 
-    input.addEventListener("input", () => {
+    function scheduleSearch() {
         const query = input.value.trim();
         if (debounceTimer) clearTimeout(debounceTimer);
         if (query.length < 3) {
@@ -74,7 +74,16 @@ function initAddressAutocomplete(input, list) {
             return;
         }
         debounceTimer = setTimeout(() => fetchSuggestions(query), 300);
-    });
+    }
+    // "input" alone missed real keystrokes on some mobile keyboards - composing text
+    // (predictive/gesture typing, some IMEs) doesn't always fire it until the word is
+    // committed (a space, autocorrect, or the keyboard's own Done/checkmark button),
+    // which read as "nothing happens until I finish typing and tap Done". "keyup" and
+    // "compositionend" both catch what "input" alone missed; scheduleSearch's own
+    // clearTimeout/setTimeout make firing it more than once per keystroke harmless.
+    input.addEventListener("input", scheduleSearch);
+    input.addEventListener("keyup", scheduleSearch);
+    input.addEventListener("compositionend", scheduleSearch);
 
     input.addEventListener("keydown", (event) => {
         if (event.key === "Escape") hideList();

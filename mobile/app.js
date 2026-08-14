@@ -1148,7 +1148,7 @@ function initAddressAutocomplete(input, list) {
             });
     }
 
-    input.addEventListener("input", () => {
+    function scheduleSearch() {
         if (suppressNextFetch) { suppressNextFetch = false; return; }
         const query = input.value.trim();
         if (debounceTimer) clearTimeout(debounceTimer);
@@ -1158,7 +1158,16 @@ function initAddressAutocomplete(input, list) {
             return;
         }
         debounceTimer = setTimeout(() => fetchSuggestions(query), 300);
-    });
+    }
+    // "input" alone missed real keystrokes on some Android keyboards - composing text
+    // (predictive/gesture typing, some IMEs) doesn't always fire it until the word is
+    // committed (a space, autocorrect, or the keyboard's own Done/checkmark button),
+    // which read as "nothing happens until I finish typing and tap Done". "keyup" and
+    // "compositionend" both catch what "input" alone missed; scheduleSearch's own
+    // clearTimeout/setTimeout make firing it more than once per keystroke harmless.
+    input.addEventListener("input", scheduleSearch);
+    input.addEventListener("keyup", scheduleSearch);
+    input.addEventListener("compositionend", scheduleSearch);
 }
 initAddressAutocomplete(el("register-address"), el("register-address-suggestions"));
 
@@ -6876,7 +6885,7 @@ function fetchMysiteFieldModalAddressSuggestions(query) {
         });
 }
 
-el("mysite-field-modal-input").addEventListener("input", () => {
+function scheduleMysiteFieldModalAddressSearch() {
     if (!mysiteFieldModalAddressActive) return;
     if (mysiteFieldModalAddressSuppressNext) { mysiteFieldModalAddressSuppressNext = false; return; }
     const query = el("mysite-field-modal-input").value.trim();
@@ -6887,7 +6896,14 @@ el("mysite-field-modal-input").addEventListener("input", () => {
         return;
     }
     mysiteFieldModalAddressDebounce = setTimeout(() => fetchMysiteFieldModalAddressSuggestions(query), 300);
-});
+}
+// "input" alone missed real keystrokes on some Android keyboards - see
+// initAddressAutocomplete's own comment on the same fix for the full reasoning; "keyup"
+// and "compositionend" catch what it missed, harmlessly (scheduleMysiteFieldModalAddressSearch's
+// own clearTimeout/setTimeout absorb firing more than once per keystroke).
+el("mysite-field-modal-input").addEventListener("input", scheduleMysiteFieldModalAddressSearch);
+el("mysite-field-modal-input").addEventListener("keyup", scheduleMysiteFieldModalAddressSearch);
+el("mysite-field-modal-input").addEventListener("compositionend", scheduleMysiteFieldModalAddressSearch);
 
 // Delete badge (top-right of the sheet) - same Cancel/Delete confirm pattern as
 // closeLogoutConfirmModal/settings-logout above, just clearing whichever field this
