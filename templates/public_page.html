@@ -596,7 +596,7 @@
        width, unlike Questions below (left-aligned like a normal section heading) - h2 is
        a block element so it already spans the section's full width, text-align is all
        that's needed. */
-    #about h2, #contact h2, #prices h2, #location h2, #photos h2 { text-align: center; }
+    #about h2, #contact h2, #prices h2, #location h2, #photos h2, #hours h2 { text-align: center; }
     /* Small gradient "signature" rule under every section heading - the same primary-to-
        gold mark .title-rule already draws under the page's own big title (see above),
        reused here via ::after on every section so the whole page reads as one
@@ -614,7 +614,7 @@
         background: linear-gradient(90deg, var(--primary), var(--gold));
     }
     #about h2::after, #contact h2::after, #prices h2::after, #location h2::after,
-    #photos h2::after, .book-section-head h2::after {
+    #photos h2::after, #hours h2::after, .book-section-head h2::after {
         margin: 10px auto 0;
     }
     /* Location - a slightly heavier treatment than the plain .contact-row/.price-row
@@ -902,21 +902,10 @@
     }
     .price-category:first-child { padding-top: 0; }
 
-    .today-badge {
-        position: absolute; top: -8px; right: 10px;
-        background: var(--primary); color: var(--on-primary);
-        font-size: 0.62rem; font-weight: 700; letter-spacing: 0.03em; text-transform: uppercase;
-        padding: 2px 7px; border-radius: 999px;
-    }
-
     /* --- Hours - same row shape as .price-rows/.price-row above, just day/time instead
-       of name/price. .hours-row needs position:relative as .today-badge's own
-       containing block (see that class above - shared with the booking table's day
-       cards, but placed via one absolutely-positioned badge here rather than a bordered
-       card, since a plain row has no card edge for a border treatment to read against). */
+       of name/price. */
     .hours-rows { list-style: none; margin: 0; padding: 0; }
     .hours-row {
-        position: relative;
         display: flex;
         align-items: baseline;
         justify-content: space-between;
@@ -926,7 +915,6 @@
     }
     .hours-row:last-child { border-bottom: none; }
     .hours-row-day { color: var(--text); font-weight: 600; }
-    .hours-row.today .hours-row-day, .hours-row.today .hours-row-time { color: var(--primary); font-weight: 700; }
     .hours-row-time {
         flex: 0 0 auto;
         color: var(--text-muted);
@@ -2194,34 +2182,18 @@
            week, Monday first, "HH:MM - HH:MM" or "Closed" for every day - never omits a
            day the way a business might if hours were free-typed, so a visitor always
            sees the complete week rather than wondering whether a missing day means
-           closed or just not filled in. data-day carries the same English day name
-           opening_hours_display itself uses (pages._SCHEMA_DAY_NAMES), matched against
-           by the small script below to highlight today - computed client-side since
-           this page has no request timezone to compute it correctly server-side. #}
+           closed or just not filled in. #}
         <section id="hours" class="reveal">
-            <h2 data-i18n="heading_hours">Hours</h2>
+            <h2 data-i18n="heading_hours">Working hours</h2>
             <ul class="hours-rows" id="hours-rows">
                 {% for day_name, hours_text in opening_hours_display %}
-                <li class="hours-row" data-day="{{ day_name }}">
-                    <span class="today-badge" data-i18n="today_badge" hidden>Today</span>
+                <li class="hours-row">
                     <span class="hours-row-day">{{ day_name }}</span>
                     <span class="hours-row-time">{{ hours_text }}</span>
                 </li>
                 {% endfor %}
             </ul>
         </section>
-        <script>
-            (function () {
-                var ENGLISH_DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-                var today = ENGLISH_DAYS[new Date().getDay()];
-                var row = document.querySelector('#hours-rows .hours-row[data-day="' + today + '"]');
-                if (row) {
-                    row.classList.add("today");
-                    var badge = row.querySelector(".today-badge");
-                    if (badge) badge.hidden = false;
-                }
-            })();
-        </script>
         {% endif %}
 
         {# A swipeable single-photo-at-a-time carousel (peek of the neighboring photo on
