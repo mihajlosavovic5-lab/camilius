@@ -1321,7 +1321,7 @@
            .chat-fab rule above regardless of source order, and runs both off the same
            shorthand's comma-list: the one-shot entrance first, then the idle loop picks
            up right behind it. */
-        .chat-fab.load-reveal { animation: load-reveal .5s cubic-bezier(.22, .9, .32, 1.15) 240ms both, chat-fab-nudge 10s ease-in-out infinite 240ms; }
+        .chat-fab.load-reveal { animation: load-reveal .5s cubic-bezier(.22, .9, .32, 1.15) 120ms both, chat-fab-nudge 10s ease-in-out infinite 120ms; }
         .chat-fab.load-reveal:hover, .chat-fab.load-reveal.chat-fab-nudge-done { animation: none; }
     }
     @keyframes chat-fab-nudge {
@@ -2054,7 +2054,7 @@
      #lang-btn, so it paints in that same first instant instead of only after the whole
      page below (about/gallery/price-list/FAQ/booking) has parsed - see .theme-fab's own
      "part of the page, not bolted on after" CSS comment. -->
-<button type="button" class="theme-fab load-reveal" id="theme-fab" aria-label="Change theme" aria-expanded="false" style="animation-delay:180ms">
+<button type="button" class="theme-fab load-reveal" id="theme-fab" aria-label="Change theme" aria-expanded="false" style="animation-delay:90ms">
     <svg class="theme-fab-icon-palette" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
         <path d="M12 3C7.03 3 3 6.8 3 11.5c0 3.6 2.94 5.5 5.5 5.5H10a1.5 1.5 0 0 1 1.06 2.56c-.4.4-.56.9-.44 1.4.16.66.86 1.04 1.7 1.04C17.53 22 21 17.75 21 12.5 21 7.26 17.08 3 12 3Z" stroke-linejoin="round"/>
         <circle cx="7.6" cy="11" r="1.15" fill="currentColor" stroke="none"/>
@@ -2350,7 +2350,7 @@
     </nav>
 
     <div class="wrap">
-        <header class="page-header load-reveal" id="home" style="animation-delay:320ms">
+        <header class="page-header load-reveal" id="home" style="animation-delay:160ms">
             {% if logo_url %}<img class="logo" src="{{ logo_url }}" alt="{{ business_name }} logo">{% endif %}
             {# The tagline reads as the headline (bold, large), falling back to
                business_name when no tagline is set - the business name never shows as
@@ -2369,11 +2369,11 @@
         </header>
 
         {% if hero_video_url %}
-        <video class="hero-video load-reveal" src="{{ hero_video_url }}" autoplay muted loop playsinline style="animation-delay:320ms"></video>
+        <video class="hero-video load-reveal" src="{{ hero_video_url }}" autoplay muted loop playsinline style="animation-delay:160ms"></video>
         {% endif %}
 
         {% if about %}
-        <section id="about" class="load-reveal" style="animation-delay:390ms">
+        <section id="about" class="load-reveal" style="animation-delay:195ms">
             <h2 data-i18n="heading_about">About</h2>
             {# .about-rendered holds pages.render_about_html()'s structured markup (headings/
                lists/emphasis/callout/signature - see that function's own docstring for the
@@ -2398,7 +2398,7 @@
            hours_closed in translate_page.PAGE_UI_STRINGS - rather than needing a
            business-content-style re-render mirror. Times themselves ("09:00 - 18:00")
            carry no data-i18n at all since a time doesn't need translating. #}
-        <section id="hours" class="load-reveal" style="animation-delay:460ms">
+        <section id="hours" class="load-reveal" style="animation-delay:230ms">
             <h2 data-i18n="heading_hours">Working hours</h2>
             <ul class="hours-rows" id="hours-rows">
                 {% for day_name, hours_text in opening_hours_display %}
@@ -2420,7 +2420,7 @@
            actual swipe/drag for free; the script block below only adds
            arrows/dots/keeping them in sync with real scroll. #}
         {% if gallery_urls %}
-        <section id="photos" class="load-reveal" style="animation-delay:530ms">
+        <section id="photos" class="load-reveal" style="animation-delay:265ms">
             <h2 data-i18n="heading_photos">Photos</h2>
             <div class="photo-slider" id="photo-slider">
                 <div class="photo-slider-viewport" id="photo-slider-viewport">
@@ -2463,7 +2463,7 @@
         {% endif %}
 
         {% if booking_enabled %}
-        <section id="book-section" class="load-reveal" style="animation-delay:600ms">
+        <section id="book-section" class="load-reveal" style="animation-delay:300ms">
             <div class="book-section-head">
                 <div class="book-date-picker">
                     <button type="button" class="book-date-btn" id="book-date-btn" aria-label="Pick a date" aria-haspopup="true" aria-expanded="false">
@@ -2506,7 +2506,7 @@
         {% endif %}
 
         {% if price_list %}
-        <section id="prices" class="load-reveal" style="animation-delay:670ms">
+        <section id="prices" class="load-reveal" style="animation-delay:335ms">
             <h2 data-i18n="heading_prices">Prices</h2>
             <ul class="price-rows">
                 {% for row in price_list_rows %}
@@ -2531,7 +2531,7 @@
         {% endif %}
 
         {% if faq %}
-        <section id="faq" class="load-reveal" style="animation-delay:740ms">
+        <section id="faq" class="load-reveal" style="animation-delay:370ms">
             <h2 data-i18n="heading_questions">Questions</h2>
             {# .faq-rendered holds pages.render_faq_html()'s <details>/<summary> accordion
                for the initial, server-rendered view - same hidden-source/rendered-view
@@ -2561,7 +2561,7 @@
         {% endmacro %}
 
         {% if contact_email or phone_number or social_links %}
-        <section id="contact" class="load-reveal section-compact" style="animation-delay:810ms">
+        <section id="contact" class="load-reveal section-compact" style="animation-delay:405ms">
             <h2 data-i18n="heading_contact">Contact</h2>
             {% if contact_email or phone_number %}
             <div class="contact-list">
@@ -2590,7 +2590,7 @@
         {% endif %}
 
         {% if address %}
-        <section id="location" class="load-reveal section-compact" style="animation-delay:880ms">
+        <section id="location" class="load-reveal section-compact" style="animation-delay:440ms">
             <h2 data-i18n="heading_location">Location</h2>
             <!-- The iframe is cropped larger than .location-map-wrap's visible window (see
                  CSS) so Google's own "Open in Maps" chip/fullscreen toggle/locator
