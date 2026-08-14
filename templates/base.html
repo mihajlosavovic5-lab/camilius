@@ -186,6 +186,10 @@
          later swap. -->
     <script src="{{ url_for('static', filename='hours-picker.js') }}?v={{ static_versions['hours-picker.js'] }}" defer></script>
     <script src="{{ url_for('static', filename='pickers.js') }}?v={{ static_versions['pickers.js'] }}" defer></script>
+    <!-- Address autocomplete (static/address-autocomplete.js) - same "load once here,
+         never reloaded" reasoning as pickers.js just above; used by register.html and
+         settings.html. -->
+    <script src="{{ url_for('static', filename='address-autocomplete.js') }}?v={{ static_versions['address-autocomplete.js'] }}" defer></script>
     <!-- Smart install banner init (Faza 5; the banner's own markup is in <body>, right
          where it renders - see #mobile-install-banner below). Lives here in <head>, not
          next to that markup, for the same reason as pickers.js above: a hx-boosted tab switch swaps <body>, and a

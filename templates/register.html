@@ -101,6 +101,18 @@
                             <p class="field-success hidden" id="register-phone-success" data-i18n="register.phoneAvailable">Available</p>
                         </div>
                     </div>
+
+                    <!-- Optional street address (businesses.address) - a starting point for
+                         the public page's own Location/map section, filled in for real (and
+                         independently editable) once the page itself is created - see
+                         database.py's add_business docstring. Autocomplete suggestions via
+                         static/address-autocomplete.js, same OpenStreetMap-backed endpoint
+                         as Settings' own address field. -->
+                    <div class="floating-field">
+                        <input type="text" id="register-address-input" name="address" value="{{ data.get('address', '') }}" placeholder=" " maxlength="200" autocomplete="off">
+                        <label for="register-address-input" data-i18n="register.address">Address (optional)</label>
+                        <div class="address-suggest-list hidden" id="register-address-suggestions"></div>
+                    </div>
                 </div>
 
                 <div class="register-step" id="register-step-2">
@@ -172,6 +184,7 @@
 document.addEventListener("DOMContentLoaded", function () {
     var registerHoursPicker = createHoursPicker("register-hours-picker-mount", "register-working-hours");
     var registerPricesPicker = createPricePicker("register-price-picker-mount", "register-price-add", "register-price-currency", "register-price-list");
+    initAddressAutocomplete(document.getElementById("register-address-input"), document.getElementById("register-address-suggestions"));
 
     // Every ITU calling code, longest-prefix-first, so a live "+1876..." doesn't get
     // mis-detected as the shorter "+1" (US/Canada) - same list/approach as the mobile

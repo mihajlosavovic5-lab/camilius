@@ -372,6 +372,16 @@ def create_database():
     # automatically afterward.
     cursor.execute("ALTER TABLE businesses ADD COLUMN IF NOT EXISTS booking_relevant BOOLEAN")
 
+    # Captured at sign-up (register()/api_register() - see the address-autocomplete field
+    # on both) so a business already has a real street address on file the first time it
+    # gets around to actually publishing a page, rather than starting from a blank
+    # Location section every time. Purely a starting point: business_pages.address (see
+    # its own comment further down) is the one that's actually shown on the public
+    # page and can be edited independently from Settings/My Site at any time - this
+    # column is never read back into the live page directly, only used to pre-fill that
+    # field's initial value when a page is first created with none of its own yet.
+    cursor.execute("ALTER TABLE businesses ADD COLUMN IF NOT EXISTS address TEXT")
+
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS conversations (
             id SERIAL PRIMARY KEY,
@@ -1025,7 +1035,7 @@ _BUSINESS_COLUMNS = """id, name, password, contact_email, instagram_account_id,
                        messenger_page_id, messenger_page_name, messenger_page_access_token,
                        timezone, google_id, preferred_theme, preferred_custom_theme_json,
                        social_instagram_url, social_facebook_url, social_x_url,
-                       social_tiktok_url, social_youtube_url, booking_relevant"""
+                       social_tiktok_url, social_youtube_url, booking_relevant, address"""
 
 # How many columns _BUSINESS_COLUMNS actually selects. Derived rather than written as a
 # literal because all_businesses()/all_businesses_unfiltered() below select extra
@@ -1049,7 +1059,7 @@ def _decrypt_row_token(row):
     return row[:6] + (ig_token,) + row[7:16] + (wa_token,) + row[17:19] + (fb_token,) + row[20:]
 
 
-def add_business(name, password, contact_email, working_hours, price_list, faq, phone_number=None, initial_status="trialing", push_enabled=True, auto_send=True, new_booking_notifications_enabled=True, reminders_enabled=False, google_id=None, email_verified=False):
+def add_business(name, password, contact_email, working_hours, price_list, faq, phone_number=None, initial_status="trialing", push_enabled=True, auto_send=True, new_booking_notifications_enabled=True, reminders_enabled=False, google_id=None, email_verified=False, address=None):
     """Creates the account itself. phone_number is optional - purely an extra way to log
     in later, not required.
 
@@ -1082,15 +1092,19 @@ def add_business(name, password, contact_email, working_hours, price_list, faq, 
     password-based match: google_id links the account for future Google sign-ins, and
     email_verified=True skips the normal confirm-your-email step entirely since Google has
     already proven the address. Every other caller leaves both at their defaults (no
-    Google link, unverified - the normal password-signup flow)."""
+    Google link, unverified - the normal password-signup flow).
+
+    address is optional (None if the sign-up form's own address field was left blank -
+    a service-area/online-only business has no street address to give) - see the
+    businesses.address column's own comment above for what it's actually used for."""
     connection = connect()
     cursor = connection.cursor()
 
     _execute_or_raise_unique_violation(
         cursor,
-        """INSERT INTO businesses (name, password, contact_email, working_hours, price_list, faq, phone_number, subscription_status, email_verified, phone_verified, push_enabled, auto_send, new_booking_notifications_enabled, reminders_enabled, google_id)
-           VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, FALSE, %s, %s, %s, %s, %s) RETURNING id""",
-        (name, generate_password_hash(password), contact_email, working_hours, price_list, faq, phone_number or None, initial_status, email_verified, push_enabled, auto_send, new_booking_notifications_enabled, reminders_enabled, google_id),
+        """INSERT INTO businesses (name, password, contact_email, working_hours, price_list, faq, phone_number, subscription_status, email_verified, phone_verified, push_enabled, auto_send, new_booking_notifications_enabled, reminders_enabled, google_id, address)
+           VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, FALSE, %s, %s, %s, %s, %s, %s) RETURNING id""",
+        (name, generate_password_hash(password), contact_email, working_hours, price_list, faq, phone_number or None, initial_status, email_verified, push_enabled, auto_send, new_booking_notifications_enabled, reminders_enabled, google_id, address or None),
     )
 
     new_id = cursor.fetchone()[0]

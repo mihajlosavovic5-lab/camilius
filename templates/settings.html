@@ -259,10 +259,13 @@
         <p class="note">Optional formatting: a blank line starts a new paragraph, "# Heading" for a section heading, "- item" (repeated) for a bullet list, "**bold**" / "*italic*" for emphasis, "&gt; text" for a highlighted line, "-- text" for a right-aligned signature at the end.</p>
 
         <div class="floating-field">
-            <input type="text" id="settings-page-address-input" name="address" value="{{ page.address if page else '' }}" placeholder=" " maxlength="200">
+            <input type="text" id="settings-page-address-input" name="address" value="{{ (page.address if page else business.address) or '' }}" placeholder=" " maxlength="200">
+            <!-- Autocomplete dropdown (address_lookup.py's /api/address-suggest, same OSM
+                 Nominatim source as Sign up's own address field) - see static/pickers.js's
+                 initAddressAutocomplete for the shared behavior both this and Sign up use. -->
+            <div class="address-suggest-list hidden" id="settings-page-address-suggestions"></div>
             <label for="settings-page-address-input">Address (shown on your page's map)</label>
         </div>
-        <p class="note">Leave blank if you don't have a physical location - the Location section only shows once this is filled in.</p>
 
         <div class="switch-row" style="margin-top: 16px;">
             <div class="switch-row-text">
@@ -359,6 +362,7 @@ function initSettingsPickers() {
     safeInit(initSaveSuccessOverlay);
     safeInit(initSettingsPasswordValidation);
     safeInit(initScrollPreservation);
+    safeInit(() => initAddressAutocomplete(document.getElementById("settings-page-address-input"), document.getElementById("settings-page-address-suggestions")));
     // Runs last, once every picker above (including the collapseToSimple() call, which can
     // shorten Working hours a lot) has already settled the page's final height - restoring
     // any earlier than that would just get overwritten by the layout still shifting under

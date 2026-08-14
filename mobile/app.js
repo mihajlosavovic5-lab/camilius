@@ -1079,6 +1079,70 @@ function createUpsellPicker(rowsContainerId, addButtonId) {
     };
 }
 
+// Address autocomplete (Create Account's own address field) - same api.py
+// /api/address-suggest endpoint (OpenStreetMap Nominatim, see address_lookup.py's own
+// docstring) and debounce/stale-response-guard shape as the web version
+// (static/address-autocomplete.js), just plain fetch(API_BASE + ...) instead of that
+// file's relative fetch() - the mobile app is never same-origin with the API.
+function initAddressAutocomplete(input, list) {
+    if (!input || !list) return;
+
+    let debounceTimer = null;
+    let latestQuery = "";
+
+    function hideList() {
+        list.classList.add("hidden");
+        list.innerHTML = "";
+    }
+
+    function renderSuggestions(suggestions) {
+        list.innerHTML = "";
+        if (!suggestions.length) {
+            hideList();
+            return;
+        }
+        suggestions.forEach((text) => {
+            const item = document.createElement("button");
+            item.type = "button";
+            item.className = "address-suggest-item";
+            item.textContent = text;
+            item.addEventListener("click", () => {
+                input.value = text;
+                hideList();
+                input.dispatchEvent(new Event("input", { bubbles: true }));
+            });
+            list.appendChild(item);
+        });
+        list.classList.remove("hidden");
+    }
+
+    function fetchSuggestions(query) {
+        latestQuery = query;
+        fetch(API_BASE + "/api/address-suggest?q=" + encodeURIComponent(query))
+            .then((response) => response.json())
+            .then((data) => {
+                if (query !== latestQuery) return; // superseded by a newer keystroke
+                renderSuggestions(data.suggestions || []);
+            })
+            .catch(() => {
+                if (query !== latestQuery) return;
+                hideList();
+            });
+    }
+
+    input.addEventListener("input", () => {
+        const query = input.value.trim();
+        if (debounceTimer) clearTimeout(debounceTimer);
+        if (query.length < 3) {
+            latestQuery = query;
+            hideList();
+            return;
+        }
+        debounceTimer = setTimeout(() => fetchSuggestions(query), 300);
+    });
+}
+initAddressAutocomplete(el("register-address"), el("register-address-suggestions"));
+
 const registerHoursPicker = createHoursPicker("register-hours-picker");
 const registerPricesPicker = createPricePicker("register-prices-rows", "register-prices-add", "register-price-currency");
 registerPricesPicker.setValue("");
@@ -3305,6 +3369,7 @@ el("register-form").addEventListener("submit", async (event) => {
                 password: el("register-password").value,
                 contact_email: el("register-contact-email").value.trim(),
                 phone_number: composePhoneNumber(el("register-phone"), selectedPhoneCountry),
+                address: el("register-address").value.trim(),
                 working_hours: registerHoursPicker.getValue(),
                 price_list: registerPricesPicker.getValue(),
                 accept_terms: el("register-terms").checked,

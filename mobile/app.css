@@ -636,6 +636,23 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
 .phone-input-row .floating-field {
     margin-top: 0;
 }
+/* Address autocomplete dropdown (app.js's initAddressAutocomplete, shared with the web
+   register/settings address fields' own version in static/address-autocomplete.js) -
+   plain normal-flow block right under the field rather than an absolutely-positioned
+   popover, so it just pushes the rest of the step down instead of needing its own
+   positioning context on every screen it might appear on. */
+.address-suggest-list {
+    margin-top: 6px;
+    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+    overflow: hidden;
+}
+.address-suggest-item {
+    display: block; width: 100%; text-align: left; padding: 10px 12px;
+    border: none; border-bottom: 1px solid var(--border); background: none;
+    font-size: 14.5px; color: var(--text); cursor: pointer;
+}
+.address-suggest-item:last-child { border-bottom: none; }
+.address-suggest-item:active { background: var(--primary-light); }
 /* <input> defaults to display:inline-block (never overridden anywhere in this file),
    which leaves room below it for descenders in an anonymous inline formatting context -
    invisible on its own, but it makes .floating-field (which sizes to the input) taller

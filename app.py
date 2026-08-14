@@ -184,8 +184,9 @@ STATIC_VERSIONS = {
     "site-i18n.js": _static_file_version("site-i18n.js"),
     "hours-picker.js": _static_file_version("hours-picker.js"),
     "pickers.js": _static_file_version("pickers.js"),
+    "address-autocomplete.js": _static_file_version("address-autocomplete.js"),
 }
-_FOREVER_CACHE_STATIC_PATHS = {"/static/style.css", "/static/htmx.min.js", "/static/site-i18n.js", "/static/hours-picker.js", "/static/pickers.js"}
+_FOREVER_CACHE_STATIC_PATHS = {"/static/style.css", "/static/htmx.min.js", "/static/site-i18n.js", "/static/hours-picker.js", "/static/pickers.js", "/static/address-autocomplete.js"}
 _MODERATE_CACHE_STATIC_PATHS = {
     "/static/manifest.json",
     "/static/icon-192.png",
@@ -738,6 +739,7 @@ def register():
                 initial_status="none" if paddle_billing.is_configured() else "trialing",
                 google_id=google_id,
                 email_verified=bool(google_id),
+                address=(request.form.get("address") or "").strip() or None,
             )
         except UniqueViolation:
             return render_template("register.html", error="That contact email or phone number is already taken.", data=request.form)
@@ -1439,19 +1441,21 @@ def settings():
     business_id = session["business_id"]
     business = business_by_id(business_id)
     # indices: 0 id, 1 name, 3 contact_email, 7 working_hours, 8 price_list,
-    # 9 faq, 10 phone_number, 13 pending_contact_email
+    # 9 faq, 10 phone_number, 13 pending_contact_email, 30 address (the sign-up-time
+    # seed for business_pages.address - see database.py's add_business docstring)
     contact_email = business[3]
     pending_contact_email = business[13]
     pro_access = BETA_FREE_MODE or has_pro_access(business_id)
     # get_business_page returns a plain positional row (id, business_id, slug,
     # published, tagline, about, created_at, updated_at, widget_domain, theme,
-    # custom_theme_json) or None - turned into a dict here, same as `business` is built
-    # as a dict below, so settings.html can use page.slug/page.tagline/... instead of a
-    # second set of magic indices.
+    # custom_theme_json, ..., content_language, address) or None - turned into a dict
+    # here, same as `business` is built as a dict below, so settings.html can use
+    # page.slug/page.tagline/... instead of a second set of magic indices.
     page_row = get_business_page(business_id)
     business_page = None if page_row is None else {
         "slug": page_row[2], "published": page_row[3], "tagline": page_row[4], "about": page_row[5],
         "widget_domain": page_row[8], "theme": page_row[9], "custom_theme_json": page_row[10],
+        "address": page_row[17],
     }
     page_error = request.args.get("page_error")
 
@@ -1483,7 +1487,7 @@ def settings():
                     "name": name, "contact_email": contact_email,
                     "pending_contact_email": pending_contact_email,
                                         "working_hours": working_hours, "price_list": price_list, "faq": faq,
-                    "upsell_pairs": get_upsell_pairs(business_id),
+                    "upsell_pairs": get_upsell_pairs(business_id), "address": business[30],
                 },
             )
 
@@ -1546,6 +1550,7 @@ def settings():
                 "name": name, "contact_email": contact_email,
                 "pending_contact_email": pending_contact_email,
                                 "working_hours": working_hours, "price_list": price_list, "faq": faq, "upsell_pairs": upsell_pairs,
+                "address": business[30],
             },
         )
 
@@ -1565,7 +1570,7 @@ def settings():
             "name": business[1], "contact_email": contact_email,
             "pending_contact_email": pending_contact_email,
                         "working_hours": business[7], "price_list": business[8], "faq": business[9],
-            "upsell_pairs": get_upsell_pairs(business_id),
+            "upsell_pairs": get_upsell_pairs(business_id), "address": business[30],
         },
     )
 

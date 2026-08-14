@@ -48,6 +48,7 @@ import pages
 import themes
 import ai_theme
 import domain_lookup
+import address_lookup
 from page_generator import generate_page_draft, format_working_hours, format_price_list, format_faq, transcribe_voice_description, MAX_VOICE_AUDIO_BYTES
 from website_assistant import answer_website_chat_stream, build_business_context
 import website_content_tools
@@ -352,6 +353,7 @@ def api_register():
             reminders_enabled=bool(data.get("reminders_enabled", False)),
             google_id=google_id,
             email_verified=bool(google_id),
+            address=(data.get("address") or "").strip() or None,
         )
     except UniqueViolation:
         return jsonify(error="That contact email or phone number is already taken."), 409
@@ -556,6 +558,19 @@ def api_check_availability():
         return jsonify(taken=bool(existing and existing[11]))
 
     return jsonify(taken=check(value, exclude_business_id=exclude_id))
+
+
+# Address autocomplete for the Sign up screen's own address field (web register.html and
+# the mobile Create Account wizard both call this the same way check-availability above
+# is called mid-signup) - unauthenticated like it, since there's no account yet at that
+# point. Client-side debounces keystrokes before calling this; the rate limit here is
+# just a backstop against something hammering it directly, well under Nominatim's own
+# roughly-1-request/second fair-use ceiling (see address_lookup.py's own docstring).
+@api.route("/address-suggest")
+@limiter.limit("30 per minute")
+def api_address_suggest():
+    query = (request.args.get("q") or "").strip()
+    return jsonify(suggestions=address_lookup.suggest_addresses(query))
 
 
 # Returns a short-lived link the mobile app opens via its in-app browser (same mechanism

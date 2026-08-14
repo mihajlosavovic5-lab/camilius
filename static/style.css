@@ -1085,6 +1085,23 @@ input[readonly]:hover { border-color: var(--border); }
 }
 .domain-check-choose-btn:hover, .domain-check-choose-btn:focus-visible { background: var(--primary-light); }
 
+/* Address autocomplete dropdown (static/address-autocomplete.js) - a floating card of
+   clickable matches directly under whichever .floating-field the address input sits in
+   (that wrapper is already position: relative, see .floating-field above), same
+   surface/border/shadow language as every other floating popover on this page. */
+.address-suggest-list {
+    position: absolute; left: 0; right: 0; top: calc(100% + 4px); z-index: 5;
+    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+    box-shadow: var(--shadow-lg); max-height: 220px; overflow-y: auto;
+}
+.address-suggest-item {
+    display: block; width: 100%; text-align: left; padding: 10px 12px;
+    border: none; border-bottom: 1px solid var(--border); background: none;
+    font-size: 14.5px; color: var(--text); cursor: pointer;
+}
+.address-suggest-item:last-child { border-bottom: none; }
+.address-suggest-item:hover, .address-suggest-item:focus-visible { background: var(--primary-light); }
+
 /* --- "Upgrade to Pro" badge / locked-feature notice (Faza 9/10) - shared component for
    any Pro-only feature shown to a Starter (or expired) business: a small pill badge next
    to the feature's heading, plus a dimmed/disabled wrapper around the control itself. --- */
