@@ -4449,7 +4449,18 @@ window.pageOverlay = (function () {
     var dragStartX = null, dragStartY = null, dragStartScroll = null, dragAxis = null;
     var dragMin = null, dragMax = null;
     viewport.addEventListener("touchstart", function (e) {
-        if (animFrame !== null) { cancelAnimationFrame(animFrame); animFrame = null; }
+        // flushPendingPreview() (not a bare cancelAnimationFrame) - a still-pending
+        // animation here isn't always a plain goTo() whose onDone is just
+        // previewCurrentTheme: next()/prev()'s wrap-around case (above) owes a
+        // scrollLeft snap onto the real first/last slide once its clone-animation
+        // lands. Cancelling animFrame alone left that snap sitting in pendingOnDone
+        // uncleared - a *later* animateScrollTo() (from whatever this new drag turns
+        // into) would flush it then instead, teleporting the deck back to slide 0/last
+        // mid-navigation, after the user had already dragged somewhere else. Flushing
+        // here - before dragStartScroll is captured below - means any such snap lands
+        // now, so this drag starts from the corrected position instead of having it
+        // sprung on it later.
+        flushPendingPreview();
         dragStartX = e.touches[0].clientX;
         dragStartY = e.touches[0].clientY;
         dragStartScroll = viewport.scrollLeft;
