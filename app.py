@@ -11,6 +11,7 @@ from functools import wraps
 import requests
 from dotenv import load_dotenv
 from flask import Flask, render_template, request, redirect, url_for, session, abort, jsonify, send_from_directory, Response, g
+from flask_compress import Compress
 from flask_wtf import CSRFProtect
 from werkzeug.middleware.proxy_fix import ProxyFix
 from werkzeug.security import check_password_hash
@@ -105,6 +106,16 @@ app.config["SESSION_COOKIE_SECURE"] = os.getenv("FLASK_DEBUG", "false").lower() 
 
 create_database()
 
+# gzip/br-compresses every text response - most load-bearing for public_page.html: that
+# page is deliberately one self-contained HTML/CSS/JS file (no external stylesheet/script
+# to fetch, see its own docstring) so nothing else has to arrive before it renders, but
+# that also makes it render-blocking end to end - nothing paints until the browser has
+# the full inline <style> block, and a real page runs a few hundred KB uncompressed. On a
+# slow connection that reads as a blank screen for a couple of seconds and then the whole
+# page popping in at once the moment the last byte lands (the "elements jump" symptom
+# from the View Page screen recording) rather than a real bug in the page's own layout.
+# Compression alone cuts that page to well under a third of its raw size.
+Compress(app)
 limiter.init_app(app)
 csrf = CSRFProtect(app)
 
