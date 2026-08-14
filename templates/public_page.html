@@ -27,10 +27,17 @@
     new work consistent with the layout language already established here rather than
     quietly forking a second, different-looking page for some businesses.
 -->
-<html lang="en">
+<html lang="en" translate="no">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- Tells Chrome not to offer its own "Translate page?" banner - this page already
+     has its own dedicated language picker (the flag button/dropdown, see the
+     language-restore script near the top of <body>), so a second, generic
+     machine-translate offer on top of that would just be confusing overlap rather
+     than a useful fallback. translate="no" above is the same signal for browsers
+     that honor the HTML attribute instead of/alongside this meta tag. -->
+<meta name="google" content="notranslate">
 <title>{{ business_name }}{% if tagline %} - {{ tagline }}{% endif %}</title>
 <meta name="description" content="{{ tagline or (business_name ~ ' - hours, prices, and answers, any time.') }}">
 {% if preview %}
