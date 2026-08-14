@@ -473,6 +473,14 @@ body.site-lang-open { position: fixed; left: 0; right: 0; width: 100%; overflow:
    (centered content re-centers wider, right-anchored fixed elements like the
    language flag sit further from the true edge) - and shifts back on close. */
 html { scrollbar-gutter: stable; }
+/* Belt-and-suspenders alongside the locked-zoom viewport meta (base.html) - stops the
+   page from being horizontally pannable/scrollable at all. Everything on the site is
+   meant to lay out within the device width; any stray overflow (a touch wider element,
+   a subpixel rounding edge case) should just get clipped here rather than surface as a
+   draggable strip of blank page past the real content, with its own scroll thumb at
+   the bottom. Any element that DOES need its own horizontal scroll (wide tables, code
+   blocks, etc.) sets overflow-x on its own inner wrapper, so this doesn't affect those. */
+html, body { overflow-x: hidden; max-width: 100%; }
 
 body {
     margin: 0;
