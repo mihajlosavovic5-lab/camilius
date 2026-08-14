@@ -125,15 +125,20 @@
 
     /* --- Reveal-on-scroll - same technique as landing.html's .lp-reveal/.lp-visible
        (IntersectionObserver toggling a class), reimplemented here under its own name
-       since this page doesn't load style.css. --- */
-    .reveal {
-        opacity: 0; transform: translateY(22px);
-        transition: opacity .6s cubic-bezier(.16, 1, .3, 1), transform .6s cubic-bezier(.16, 1, .3, 1);
-    }
-    .reveal.visible { opacity: 1; transform: none; }
+       since this page doesn't load style.css. Deliberately NOT an opacity fade (landing.
+       html's version is): the reveal-on-scroll JS below can only mark a section
+       ".visible" once the IntersectionObserver actually fires, and on a fast fling that
+       can lag behind the scroll itself - with an opacity:0 starting state, whatever
+       section the fling lands on mid-lag is still fully invisible, which reads as a
+       blank/broken gap where real content should be (this is what the "cudna bela
+       oblast" bug actually was). transform-only keeps every section fully opaque and
+       readable at all times - worst case on a very fast scroll is it's briefly sitting
+       22px lower than its resting position, not blank. --- */
+    .reveal { transform: translateY(22px); transition: transform .6s cubic-bezier(.16, 1, .3, 1); }
+    .reveal.visible { transform: none; }
     @media (prefers-reduced-motion: reduce) {
         html { scroll-behavior: auto; }
-        .reveal { opacity: 1 !important; transform: none !important; transition: none !important; }
+        .reveal { transform: none !important; transition: none !important; }
         .lp-typing-dots span { animation: none !important; }
     }
 
@@ -3600,7 +3605,15 @@ window.pageOverlay = (function () {
     });
 
     // Reveal-on-scroll for the header/CTA/each section - see landing.html's identical
-    // .lp-reveal/.lp-visible pattern.
+    // .lp-reveal/.lp-visible pattern (.reveal here is transform-only, not an opacity
+    // fade - see its own CSS comment for why). rootMargin is a large POSITIVE bottom
+    // value (not landing.html's -40px) so a section is marked "visible" - and starts its
+    // .6s slide-in transition - while it's still this much below the viewport, not only
+    // once it's already scrolled into view: on a fast fling the IntersectionObserver
+    // callback can lag behind the scroll itself, and without this lead time the slide-in
+    // would still be mid-transition (translated down from its resting position) for
+    // whatever section the fling lands on. A big lead margin means it's already finished
+    // settling into place well before a visitor - even one flicking fast - reaches it.
     var revealEls = document.querySelectorAll(".reveal");
     if ("IntersectionObserver" in window && !reduceMotion) {
         var revealIo = new IntersectionObserver(function (entries) {
@@ -3610,7 +3623,7 @@ window.pageOverlay = (function () {
                     revealIo.unobserve(entry.target);
                 }
             });
-        }, { threshold: 0.12, rootMargin: "0px 0px -40px 0px" });
+        }, { threshold: 0, rootMargin: "0px 0px 600px 0px" });
         revealEls.forEach(function (el) { revealIo.observe(el); });
     } else {
         revealEls.forEach(function (el) { el.classList.add("visible"); });
