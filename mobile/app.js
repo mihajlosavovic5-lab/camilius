@@ -6758,6 +6758,20 @@ el("mysite-field-modal-input").addEventListener("input", mysiteFieldModalSync);
 el("mysite-field-modal-textarea").addEventListener("input", mysiteFieldModalSync);
 el("mysite-field-modal-backdrop").addEventListener("click", closeMysiteFieldModal);
 
+// Tapping anywhere in the Web address/Headline/About editor's text always lands the
+// cursor at the very end of what's already typed, instead of wherever the tap happened
+// to land - so continuing to type just picks up where the text left off, the way a
+// "jump to the end" field is expected to behave rather than a plain text input. Handled
+// on click (fires after the browser's own mousedown-driven caret placement) so this
+// runs last and wins.
+function mysiteFieldModalCaretToEnd(event) {
+    const field = event.currentTarget;
+    const end = field.value.length;
+    field.setSelectionRange(end, end);
+}
+el("mysite-field-modal-input").addEventListener("click", mysiteFieldModalCaretToEnd);
+el("mysite-field-modal-textarea").addEventListener("click", mysiteFieldModalCaretToEnd);
+
 // Web address only - the fixed "https://.../p/" prefix (see MYSITE_SLUG_LINK_PREFIX
 // above) isn't itself an input, so tapping it did nothing: no keyboard, no scroll. A tap
 // anywhere in the row that isn't the copy button or the real editable slug now scrolls
