@@ -4534,6 +4534,31 @@ window.pageOverlay = (function () {
         else if (scrolled < -SWIPE_THRESHOLD) prev();
         else goTo(current);
     }, { passive: false });
+    // touchend's whole settle logic above only ever runs if touchend actually fires -
+    // the in-app browser this page is opened in is already documented (see .book-list's
+    // own CSS comment further up this page) as unreliable about native touch/scroll
+    // handling, and firing touchcancel *instead of* touchend mid-drag (the OS/WebView
+    // yanking the gesture away - an edge-navigation swipe, a system UI interruption,
+    // its own scroll/zoom machinery deciding to take over) is a standard, spec-legal way
+    // for that to show up. Without this listener, that left `dragStartX` non-null forever
+    // and, worse, left viewport.scrollLeft frozen at whatever raw mid-drag position
+    // touchmove's last write had reached - not a card boundary, not centered on
+    // anything, just wherever the finger happened to be - with no further correction
+    // until the visitor managed to grab the slider again. Reproduced directly: a drag
+    // cut off by touchcancel left the active (labeled/dotted-as-current) card sitting
+    // at a scrollLeft ~85px off its true center - visually a card jammed off to one
+    // side, checkmark and label still reading correctly because those never depended on
+    // scrollLeft in the first place. goTo(current) (not interpreting `scrolled` as a
+    // real swipe) is deliberate - a cancelled gesture's distance-so-far says nothing
+    // about which card the visitor actually meant to land on, so this only ever
+    // re-centers on whichever card was already current, the same safe fallback
+    // touchend's own sub-threshold branch already uses.
+    viewport.addEventListener("touchcancel", function () {
+        if (dragStartX === null) return;
+        dragStartX = null;
+        dragAxis = null;
+        goTo(current);
+    }, { passive: true });
 
     function showToast(text) {
         toast.textContent = text;
