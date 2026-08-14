@@ -2403,9 +2403,19 @@ def site_preview():
 # ever accepts one of the classic themes.THEMES preset ids (never "custom"/an AI hex
 # palette - that combination is still only ever set from Settings' own "Suggest AI
 # designs" flow), matching set_business_page_theme's own contract.
+# 300/hour, not the usual 20-30/hour tier most other owner-action POSTs in this file use
+# - those fire once per deliberate action, but public_page.html's carousel (see its own
+# "Preview each theme live as you browse to it" / "Never drop a browsed-to theme's save"
+# comments) deliberately calls this once per card landed on while just swiping through
+# the deck, not only on a final tap. A visitor browsing the full 14-theme deck a few
+# times over in one sitting was tripping the old 30/hour ceiling well before they'd
+# settled on one, surfacing as a real "Couldn't save - try again" toast for what's just
+# normal browsing, not abuse - this is a single cheap UPDATE on the owner's own row
+# (set_business_page_theme), not an external-API spend like public_page_translate's own
+# per-hour limit further down this file, so there's real headroom to give it.
 @app.route("/site/theme", methods=["POST"])
 @login_required
-@limiter.limit("30 per hour")
+@limiter.limit("300 per hour")
 def set_site_theme():
     business_id = session["business_id"]
     theme_id = request.form.get("theme_id") or ""
