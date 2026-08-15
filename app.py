@@ -3308,6 +3308,16 @@ def _landing_showcase_examples():
     ]
 
 
+# Showcase businesses default to 2 placeholder gallery-N.svg illustrations (see
+# showcase_page below). Once a business gets real photos (static/showcase/<slug>/
+# gallery-1.jpg, gallery-2.jpg, ...), list its real count here so it switches over to
+# those instead - real ai-auto-reply site galleries are user-uploaded, so mirroring the
+# same gallery-N.<ext> naming here keeps the two paths visually indistinguishable.
+_SHOWCASE_REAL_GALLERY_COUNT = {
+    "bella-hair-studio": 10,
+}
+
+
 @app.route("/showcase/<slug>")
 def showcase_page(slug):
     fixture = showcase_data.SHOWCASE_BUSINESSES.get(slug)
@@ -3344,10 +3354,17 @@ def showcase_page(slug):
         # falls back to its normal no-logo treatment (plain person icon on the chat
         # launcher, no image in the header) instead of a made-up placeholder mark.
         logo_url=None,
-        gallery_urls=[
-            url_for("static", filename=f"showcase/{slug}/gallery-1.svg"),
-            url_for("static", filename=f"showcase/{slug}/gallery-2.svg"),
-        ],
+        gallery_urls=(
+            [
+                url_for("static", filename=f"showcase/{slug}/gallery-{i}.jpg")
+                for i in range(1, _SHOWCASE_REAL_GALLERY_COUNT[slug] + 1)
+            ]
+            if slug in _SHOWCASE_REAL_GALLERY_COUNT
+            else [
+                url_for("static", filename=f"showcase/{slug}/gallery-1.svg"),
+                url_for("static", filename=f"showcase/{slug}/gallery-2.svg"),
+            ]
+        ),
         hero_video_url=None,
         # Every platform, none with a real profile behind it - unlike
         # _social_links_for_business() (real businesses), which only shows a platform
