@@ -81,7 +81,16 @@
         <div class="login-phase-stack">
         <div class="auth-choice" id="login-choice">
             {% if google_oauth_configured %}
-            <a class="button button-google button-full button-pill" href="{{ url_for('auth_google', intent='login') }}">
+            {# Same button as always, visually - the script block below wires its click to
+               Google Identity Services' One Tap prompt (a card Google itself slides up
+               from the bottom of the screen on mobile web, the closest web equivalent to
+               the Android app's Credential Manager bottom sheet) instead of the plain
+               href navigation. That href is still real and still works on its own - it's
+               what runs if GIS never loaded, and what the prompt itself falls back to if
+               Google reports it couldn't be shown (FedCM unsupported/blocked, one-tap
+               dismissed too recently, etc.) - so nothing here ever leaves this button
+               unable to sign someone in. #}
+            <a class="button button-google button-full button-pill" id="login-google-btn" href="{{ url_for('auth_google', intent='login') }}">
                 {% include "_google_icon.html" %}
                 <span data-i18n="login.continueWithGoogle">Continue with Google</span>
             </a>
@@ -213,4 +222,65 @@
         });
     })();
 </script>
+{% if google_oauth_configured %}
+<script>
+    // Intercepts a click on #login-google-btn to try Google's own One Tap prompt first -
+    // a card Google slides up from the bottom of the screen on mobile web (top-right on
+    // desktop), instead of the plain href's full-page redirect through accounts.google.com.
+    // Three separate things all have to go right for that to actually happen; anything
+    // that doesn't just lets the click fall through to the plain href, unmodified:
+    //   1. The GIS script itself has to load (gisReady below) - network block, offline,
+    //      an ad blocker, etc. leave it false forever, click does a normal navigation.
+    //   2. Once clicked, google.accounts.id.prompt() is what can actually still refuse to
+    //      display anything (FedCM unsupported by this browser, third-party sign-in
+    //      blocked, one-tap dismissed too recently to re-offer) - its own notification
+    //      callback below catches exactly that and falls back to the href navigation from
+    //      inside the click handler, same outcome as if this script had never run.
+    //   3. If it DOES display and a credential comes back, handleCredential posts it to
+    //      the server and navigates on to whatever it says - and if THAT request itself
+    //      fails (offline mid-flow, server error), falls back to the href too.
+    (function () {
+        var button = document.getElementById("login-google-btn");
+        if (!button) return;
+        var gisReady = false;
+
+        function handleCredential(response) {
+            fetch("{{ url_for('auth_google_token') }}", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ credential: response.credential, intent: "login" }),
+            })
+                .then(function (r) { return r.json(); })
+                .then(function (data) { window.location.href = data.redirect || button.href; })
+                .catch(function () { window.location.href = button.href; });
+        }
+
+        var script = document.createElement("script");
+        script.src = "https://accounts.google.com/gsi/client";
+        script.async = true;
+        script.defer = true;
+        script.onload = function () {
+            if (!window.google || !google.accounts || !google.accounts.id) return;
+            google.accounts.id.initialize({
+                client_id: {{ google_client_id | tojson }},
+                callback: handleCredential,
+            });
+            gisReady = true;
+        };
+        // No .onerror handling needed - leaving gisReady false (the click handler below
+        // falls through to the plain href) IS the error handling.
+        document.head.appendChild(script);
+
+        button.addEventListener("click", function (event) {
+            if (!gisReady) return; // GIS never loaded - let the plain href navigation happen.
+            event.preventDefault();
+            google.accounts.id.prompt(function (notification) {
+                if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
+                    window.location.href = button.href;
+                }
+            });
+        });
+    })();
+</script>
+{% endif %}
 {% endblock %}

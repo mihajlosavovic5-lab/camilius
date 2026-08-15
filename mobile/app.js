@@ -2745,42 +2745,12 @@ function hideGoogleSigninOverlay() {
     el("google-signin-overlay").classList.add("hidden");
 }
 
-// One status check - returns true once the attempt has actually resolved (done/
-// needs_signup/no_account/error), false while still 'pending' (or on a network hiccup,
-// which the caller just retries). Shared by pollGoogleLogin's interval loop and the App
-// Link listener's immediate check below - attempt.settled makes sure whichever of the
-// two "wins" the race handles the result exactly once; the loser's own fetch (if it was
-// already in flight) just sees 'expired' (the row is single-use - see
-// database.oauth_login_session_status) and is a silent no-op.
-async function checkGoogleLoginStatusOnce(attempt, { closeBrowser = true } = {}) {
-    if (attempt.settled) return true;
-    let data;
-    try {
-        data = await api("/api/google-login/status?state=" + encodeURIComponent(attempt.state));
-    } catch (err) {
-        return false;
-    }
-    if (attempt.settled) return true; // Resolved by the other path while this fetch was in flight.
-    if (data.status === "pending") return false;
-
-    attempt.settled = true;
-    hideGoogleSigninOverlay();
-    storageRemove("googleLoginPendingState");
-    if (activeGoogleLoginAttempt === attempt) {
-        activeGoogleLoginAttempt = null;
-        // A pending OTA update (see checkForOtaUpdate's own guard) was deferred while
-        // this attempt was in flight - worth a prompt re-check now rather than waiting
-        // for the next unrelated foreground/visibility event.
-        if (checkForOtaUpdateFn) checkForOtaUpdateFn();
-    }
-    // closeBrowser is false only when the App Link listener below called this - Android
-    // already dismissed the Custom Tab itself as part of handing the intent to this app
-    // (see AndroidManifest.xml), so there's no tab left to close; calling Browser.close()
-    // on it anyway would just be targeting a session the OS already tore down.
-    if (closeBrowser && capacitorPlugins && capacitorPlugins.Browser) {
-        capacitorPlugins.Browser.close().catch(() => {});
-    }
-    const errorBox = attempt.errorBox;
+// Applies a settled Google sign-in result to the UI - shared by the Custom Tab polling
+// bridge below (checkGoogleLoginStatusOnce) and the native Credential Manager flow
+// (startGoogleLoginNative further down), since api_google_login_status and
+// api_google_login_verify_id_token return the exact same status/field shape for exactly
+// this reason: a caller here shouldn't need to know or care which flow produced it.
+function applyGoogleLoginResult(data, errorBox) {
     if (data.status === "done") {
         state.token = data.token;
         state.businessName = data.business_name;
@@ -2817,6 +2787,44 @@ async function checkGoogleLoginStatusOnce(attempt, { closeBrowser = true } = {})
         // treatment either way, nothing more specific to say.
         showErrorBox(errorBox, t("login.googleError"));
     }
+}
+
+// One status check - returns true once the attempt has actually resolved (done/
+// needs_signup/no_account/error), false while still 'pending' (or on a network hiccup,
+// which the caller just retries). Shared by pollGoogleLogin's interval loop and the App
+// Link listener's immediate check below - attempt.settled makes sure whichever of the
+// two "wins" the race handles the result exactly once; the loser's own fetch (if it was
+// already in flight) just sees 'expired' (the row is single-use - see
+// database.oauth_login_session_status) and is a silent no-op.
+async function checkGoogleLoginStatusOnce(attempt, { closeBrowser = true } = {}) {
+    if (attempt.settled) return true;
+    let data;
+    try {
+        data = await api("/api/google-login/status?state=" + encodeURIComponent(attempt.state));
+    } catch (err) {
+        return false;
+    }
+    if (attempt.settled) return true; // Resolved by the other path while this fetch was in flight.
+    if (data.status === "pending") return false;
+
+    attempt.settled = true;
+    hideGoogleSigninOverlay();
+    storageRemove("googleLoginPendingState");
+    if (activeGoogleLoginAttempt === attempt) {
+        activeGoogleLoginAttempt = null;
+        // A pending OTA update (see checkForOtaUpdate's own guard) was deferred while
+        // this attempt was in flight - worth a prompt re-check now rather than waiting
+        // for the next unrelated foreground/visibility event.
+        if (checkForOtaUpdateFn) checkForOtaUpdateFn();
+    }
+    // closeBrowser is false only when the App Link listener below called this - Android
+    // already dismissed the Custom Tab itself as part of handing the intent to this app
+    // (see AndroidManifest.xml), so there's no tab left to close; calling Browser.close()
+    // on it anyway would just be targeting a session the OS already tore down.
+    if (closeBrowser && capacitorPlugins && capacitorPlugins.Browser) {
+        capacitorPlugins.Browser.close().catch(() => {});
+    }
+    applyGoogleLoginResult(data, attempt.errorBox);
     return true;
 }
 
@@ -2842,11 +2850,90 @@ async function pollGoogleLogin(attempt) {
     }
 }
 
+// Memoized - SocialLogin.initialize() only needs to run once per app session; a second tap
+// re-using the same in-flight/settled promise avoids a redundant native init call (and two
+// racing ones). Fetches the Google web client ID from the server (see api_mobile_manifest's
+// own comment on why it's safe to hand over plainly) rather than hardcoding it here, so
+// rotating it server-side doesn't need a new APK release.
+let googleSocialLoginInitPromise = null;
+function ensureGoogleSocialLoginInitialized() {
+    if (!googleSocialLoginInitPromise) {
+        googleSocialLoginInitPromise = (async () => {
+            const response = await fetch(API_BASE + "/api/mobile-manifest");
+            const manifest = await response.json();
+            if (!manifest.google_web_client_id) {
+                throw new Error(t("login.googleError"));
+            }
+            await capacitorPlugins.SocialLogin.initialize({
+                google: { webClientId: manifest.google_web_client_id },
+            });
+        })().catch((err) => {
+            // Don't cache a failure - a transient network blip during init shouldn't
+            // brick the button for the rest of the session; the next tap starts fresh.
+            googleSocialLoginInitPromise = null;
+            throw err;
+        });
+    }
+    return googleSocialLoginInitPromise;
+}
+
+// Android Credential Manager path (see @capgo/capacitor-social-login, wired up via
+// capacitor.config.json's SocialLogin.providers). A signed APK built with the plugin gets
+// the real native "Sign in with Google" bottom sheet (style: "bottom") instead of the
+// Custom Tab flow below; startGoogleLogin's own feature-detect (capacitorPlugins.SocialLogin)
+// is what falls an install built before this shipped straight through to that unchanged
+// fallback. No overlay, no polling, no oauth_login_sessions row needed - Credential Manager
+// hands back an ID token synchronously in the same call, and api_google_login_verify_id_token
+// resolves the whole attempt in one request, in the same status shape
+// api_google_login_status produces (see applyGoogleLoginResult above).
+async function startGoogleLoginNative(errorBox, intent) {
+    try {
+        await ensureGoogleSocialLoginInitialized();
+    } catch (err) {
+        showErrorBox(errorBox, err.message || t("login.googleError"));
+        return;
+    }
+
+    let login;
+    try {
+        login = await capacitorPlugins.SocialLogin.login({
+            provider: "google",
+            options: { style: "bottom" },
+        });
+    } catch (err) {
+        // Visitor dismissed the bottom sheet, no Google account on the device, etc. -
+        // same "explain and let them retry" treatment as every other cancelled/failed
+        // Google sign-in (see applyGoogleLoginResult's own 'error' branch).
+        showErrorBox(errorBox, t("login.googleError"));
+        return;
+    }
+
+    const idToken = login && login.result && login.result.idToken;
+    if (!idToken) {
+        showErrorBox(errorBox, t("login.googleError"));
+        return;
+    }
+
+    let data;
+    try {
+        data = await api("/api/google-login/verify-id-token", { method: "POST", body: { id_token: idToken, intent } });
+    } catch (err) {
+        showErrorBox(errorBox, err.message || t("login.googleError"));
+        return;
+    }
+    applyGoogleLoginResult(data, errorBox);
+}
+
 async function startGoogleLogin(button, errorBox, intent) {
     errorBox.classList.add("hidden");
     clearTimeout(errorBox._autoHideTimer);
     button.disabled = true;
     try {
+        if (capacitorPlugins && capacitorPlugins.SocialLogin) {
+            await startGoogleLoginNative(errorBox, intent);
+            return;
+        }
+
         const data = await api("/api/google-login/start", { method: "POST", body: { intent } });
         // Persisted (and awaited - this one write needs to actually be on disk before
         // backgrounding, not just fired off) BEFORE the browser opens, so a boot that
