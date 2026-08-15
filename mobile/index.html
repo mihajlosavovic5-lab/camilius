@@ -1,5 +1,5 @@
 <!doctype html>
-<html data-bundle-version="e54b7f948693" lang="en">
+<html data-bundle-version="bd039e98fb8b" lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
@@ -16,7 +16,7 @@
 <link rel="preload" href="fonts/lora-latin-ext.woff2?v=e8c32fe92ded" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="fonts/familjen-grotesk-latin.woff2?v=e8c32fe92ded" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="fonts/familjen-grotesk-latin-ext.woff2?v=e8c32fe92ded" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="app.css?v=e54b7f948693">
+<link rel="stylesheet" href="app.css?v=bd039e98fb8b">
 </head>
 <body>
 
@@ -392,12 +392,15 @@
             <line class="password-toggle-slash" x1="2.5" y1="21.5" x2="21.5" y2="2.5" stroke-width="1.6" stroke-linecap="round"/>
           </svg>
         </button>
+        <!-- Address fields only (Profile's profile-address-input, Sign up's register-address -
+             see openFieldEditModal's own mysiteFieldModalAddressActive toggle in app.js) -
+             live OSM-backed suggestions while typing. Nested inside this row (rather than
+             sitting below it as a normal-flow sibling) and absolutely positioned (app.css)
+             so suggestions appearing/disappearing can't change the sheet's own height -
+             see that rule's own comment for why that matters here. -->
+        <div class="address-suggest-list hidden" id="mysite-field-modal-address-suggestions"></div>
       </div>
       <textarea id="mysite-field-modal-textarea" class="mysite-field-modal-control hidden" rows="1"></textarea>
-      <!-- Address fields only (Profile's profile-address-input, Sign up's register-address -
-           see openFieldEditModal's own mysiteFieldModalAddressActive toggle in app.js) -
-           live OSM-backed suggestions while typing. -->
-      <div class="address-suggest-list hidden" id="mysite-field-modal-address-suggestions"></div>
     </div>
   </div>
 </div>
@@ -1851,8 +1854,8 @@
   </button>
 </nav>
 
-<script src="i18n.js?v=e54b7f948693"></script>
-<script src="hours-picker.js?v=e54b7f948693"></script>
-<script src="app.js?v=e54b7f948693"></script>
+<script src="i18n.js?v=bd039e98fb8b"></script>
+<script src="hours-picker.js?v=bd039e98fb8b"></script>
+<script src="app.js?v=bd039e98fb8b"></script>
 </body>
 </html>
