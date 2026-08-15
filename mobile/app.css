@@ -319,13 +319,16 @@ button { font-family: inherit; -webkit-appearance: none; appearance: none; }
 .detail-sender { font-weight: 700; font-size: 16px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .detail-time { color: var(--text-muted); font-size: 13px; }
 
-/* White page titles - the 4 tab roots (Home/Schedule/Profile/Settings) plus the "Draft
-   this with AI" chat's own Camilius header. .topbar itself stays transparent (no colored
-   band behind it - tried that first, read as a bolted-on slab), so plain white nearly
-   vanished against the screen's own light cream wash on its own too - the 8-direction
-   text-shadow ring below is what actually keeps the letterforms readable. Scoped to just
-   these five screens (via their own .screen-* class) - every other back-button detail
-   screen (Help, Subscription, Delete account, ...) keeps its own dark title text.
+/* White page titles - every screen's own title, from the 4 tab roots (Home/Schedule/
+   Profile/Settings) and the "Draft this with AI" chat's Camilius header, through the
+   back-button detail screens (Conversations, Help, Terms, Privacy, Subscription,
+   Delete account). .topbar itself stays transparent (no colored band behind it - tried
+   that first, read as a bolted-on slab), so plain white nearly vanished against the
+   screen's own light cream wash on its own too - the 8-direction text-shadow ring below
+   is what actually keeps the letterforms readable. Scoped via each screen's own
+   .screen-* class (screen-legal covers Terms/Privacy/Subscription, which share it)
+   rather than a bare .topbar-title h1 rule, so it stays easy to exempt a screen later
+   if one ever needs its own plain dark title again.
    Deliberately NOT -webkit-text-stroke (tried that first, in two different weights):
    a stroked outline is drawn along the glyph's own outline path, and at a sharp join
    like the crossbar meeting the diagonals in "A" or the crossbar meeting the stem in
@@ -344,7 +347,13 @@ button { font-family: inherit; -webkit-appearance: none; appearance: none; }
 .screen-schedule .topbar-title h1,
 .screen-profile .topbar-title h1,
 .screen-settings .topbar-title h1,
-.screen-website-chat .topbar-title h1 {
+.screen-website-chat .topbar-title h1,
+.screen-inbox .topbar-title h1,
+.screen-help .topbar-title h1,
+.screen-legal .topbar-title h1,
+.screen-delete-warning .topbar-title h1,
+.screen-delete-reason .topbar-title h1,
+.screen-delete-confirm .topbar-title h1 {
     color: var(--title-text);
     text-shadow:
         1.3px 0 0.6px var(--title-outline),

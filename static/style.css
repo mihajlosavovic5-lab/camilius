@@ -84,8 +84,8 @@
 }
 
 /* Familjen Grotesk - same self-hosted approach as Inter/Lora above, used only by
-   .page-title-outlined below (the same five titles the mobile app gives this font to -
-   see mobile/app.css's own copy of this font-face block). Only weight 700, since that's
+   .page-title-outlined below (the same titles the mobile app gives this font to - see
+   mobile/app.css's own copy of this font-face block). Only weight 700, since that's
    the only weight the title ever uses. No Cyrillic subset exists for this font upstream,
    so Cyrillic text in a title falls through to --font-sans (which does cover Cyrillic)
    via the font-family fallback list, same mechanism as any missing glyph. */
@@ -806,15 +806,15 @@ body.nav-menu-open .site-lang-select-btn { opacity: .3; pointer-events: none; tr
    .topbar-title h1) and every page title on this site uses it at the same
    size, business name included, instead of one page standing out. */
 .page-header h1 { font-family: var(--font-serif); font-weight: 700; font-size: 27px; color: var(--text); }
-/* Same white-fill/black-ring treatment as the mobile app's own tab-root titles (Home/
-   Schedule/Profile/Settings, .screen-mysite .topbar-title h1 & co. in mobile/app.css) -
-   a ring of small blurred shadow copies nudged in 8 directions instead of a stroked
-   outline, since a stroke's corner miter overshoots past sharp glyph joins (the
-   crossbar in "A"/"t") and reads as crossing lines rather than one clean corner. Applied
-   via its own class (not folded into the plain .page-header h1 rule above) so it only
-   reaches the same five pages the app scopes it to - every other page's title (Help,
-   Subscription, Delete account, ...) keeps its own plain dark text, same as the app's own
-   "every other back-button detail screen keeps its own dark title text". --title-text/
+/* Same white-fill/black-ring treatment as the mobile app's own page titles (Home/
+   Schedule/Profile/Settings, Conversations, Help, Terms, Privacy, Subscription, Delete
+   account - .screen-mysite .topbar-title h1 & co. in mobile/app.css) - a ring of small
+   blurred shadow copies nudged in 8 directions instead of a stroked outline, since a
+   stroke's corner miter overshoots past sharp glyph joins (the crossbar in "A"/"t") and
+   reads as crossing lines rather than one clean corner. Applied via its own class (not
+   folded into the plain .page-header h1 rule above) so each page opts in explicitly by
+   adding the class to its own h1, same as the app opts a screen in via its own
+   .screen-* class. --title-text/
    --title-outline are white-on-black in light mode and the theme's own gold-on-black
    ring in dark mode (see their own dark-mode definitions), so both themes read as the
    same thin-outline treatment the app uses. */
