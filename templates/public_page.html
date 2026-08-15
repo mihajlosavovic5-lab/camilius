@@ -1662,6 +1662,33 @@
         box-shadow: 0 6px 16px -6px rgba(0, 0, 0, .3), 0 1px 3px rgba(0, 0, 0, .1);
     }
     .showcase-badge strong { color: var(--primary); }
+    /* Showcase-only toast for the social icons below #contact (see app.py's
+       showcase_page route - it fills social_links with every platform icon, all
+       pointing nowhere real, purely so the example looks like a finished real page
+       instead of one missing a section a real business would actually have) - tapping
+       one of those shows this instead of silently doing nothing, so it reads as "this
+       one's just for show" rather than "broken". Centered at the bottom, same toast
+       treatment as .theme-toast (owner-only, further down) but this one's visitor-
+       facing on every showcase page, not gated behind is_owner. */
+    .showcase-social-toast {
+        position: fixed;
+        left: 50%;
+        bottom: 20px;
+        transform: translateX(-50%) translateY(6px);
+        z-index: 954;
+        background: var(--text);
+        color: var(--background);
+        font-size: 0.78rem;
+        font-weight: 600;
+        padding: 7px 14px;
+        border-radius: 999px;
+        white-space: nowrap;
+        box-shadow: 0 8px 20px rgba(0, 0, 0, .25);
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity .2s ease, transform .2s ease;
+    }
+    .showcase-social-toast.visible { opacity: 1; transform: translateX(-50%) translateY(0); }
     {% if theme_choices %}
     /* --- Owner-only "Change theme" launcher/panel - rendered exclusively when
        theme_choices is passed in (see app.py's _render_public_page: gated on is_owner,
@@ -2262,6 +2289,26 @@
 <a class="showcase-badge" href="{{ showcase_back_url }}">
     <span aria-hidden="true">&#8592;</span> <strong>Camilius</strong> example site
 </a>
+<div class="showcase-social-toast" id="showcase-social-toast"></div>
+<script>
+// Deferred to DOMContentLoaded (unlike the rest of this page's early inline scripts,
+// which only ever touch elements already above them in the markup) since .social-link
+// itself lives in #contact, far below this point in the page - querying for it here
+// synchronously would always come back empty.
+document.addEventListener("DOMContentLoaded", function () {
+    var toast = document.getElementById("showcase-social-toast");
+    var toastTimer = null;
+    document.querySelectorAll(".social-link").forEach(function (el) {
+        el.addEventListener("click", function (e) {
+            e.preventDefault();
+            toast.textContent = "Only for test";
+            toast.classList.add("visible");
+            clearTimeout(toastTimer);
+            toastTimer = setTimeout(function () { toast.classList.remove("visible"); }, 1800);
+        });
+    });
+});
+</script>
 {% endif %}
 <div id="page-progress"></div>
 <div class="top-bar-fill" id="top-bar-fill"></div>
