@@ -78,7 +78,7 @@ const TRANSLATIONS = {
         "login.accountDeletedMessage": "Your account has been permanently deleted. We're sorry to see you go.",
         "login.backToHome": "Back to home page",
 
-        "register.tagline": "Set up in minutes — Camilius builds your website and starts answering customers right away.",
+        "register.tagline": "You can change all of these fields later in settings.",
         "register.title": "Register your business",
         "register.subtitle": "You can change all of these fields later in settings.",
         "register.accountSection": "Account",
@@ -704,7 +704,7 @@ const TRANSLATIONS = {
         "login.accountDeletedMessage": "Tu cuenta ha sido eliminada permanentemente. Lamentamos que te vayas.",
         "login.backToHome": "Volver a la página de inicio",
 
-        "register.tagline": "Configúralo en minutos — tu IA empieza a responder a los clientes de inmediato.",
+        "register.tagline": "Puedes cambiar todos estos campos más tarde en configuración.",
         "register.title": "Registra tu negocio",
         "register.subtitle": "Puedes cambiar todos estos campos más tarde en configuración.",
         "register.accountSection": "Cuenta",
@@ -1200,7 +1200,7 @@ const TRANSLATIONS = {
         "login.accountDeletedMessage": "Sua conta foi excluída permanentemente. Sentimos muito por você partir.",
         "login.backToHome": "Voltar à página inicial",
 
-        "register.tagline": "Configure em minutos — sua IA já começa a responder aos clientes.",
+        "register.tagline": "Você pode alterar todos esses campos depois nas configurações.",
         "register.title": "Cadastre seu negócio",
         "register.subtitle": "Você pode alterar todos esses campos depois nas configurações.",
         "register.accountSection": "Conta",
@@ -1696,7 +1696,7 @@ const TRANSLATIONS = {
         "login.accountDeletedMessage": "Votre compte a été définitivement supprimé. Nous sommes désolés de vous voir partir.",
         "login.backToHome": "Retour à la page d'accueil",
 
-        "register.tagline": "Configurez-le en quelques minutes — votre IA commence aussitôt à répondre à vos clients.",
+        "register.tagline": "Vous pourrez modifier tous ces champs plus tard dans les paramètres.",
         "register.title": "Inscrivez votre entreprise",
         "register.subtitle": "Vous pourrez modifier tous ces champs plus tard dans les paramètres.",
         "register.accountSection": "Compte",
@@ -2192,7 +2192,7 @@ const TRANSLATIONS = {
         "login.accountDeletedMessage": "Ihr Konto wurde dauerhaft gelöscht. Es tut uns leid, dass Sie gehen.",
         "login.backToHome": "Zurück zur Startseite",
 
-        "register.tagline": "In wenigen Minuten eingerichtet — deine KI beantwortet Kunden sofort.",
+        "register.tagline": "Du kannst all diese Felder später in den Einstellungen ändern.",
         "register.title": "Registriere dein Unternehmen",
         "register.subtitle": "Du kannst all diese Felder später in den Einstellungen ändern.",
         "register.accountSection": "Konto",
@@ -2688,7 +2688,7 @@ const TRANSLATIONS = {
         "login.accountDeletedMessage": "Il tuo account è stato eliminato definitivamente. Ci dispiace vederti andare via.",
         "login.backToHome": "Torna alla home page",
 
-        "register.tagline": "Configuralo in pochi minuti — la tua IA inizia subito a rispondere ai clienti.",
+        "register.tagline": "Potrai modificare tutti questi campi più tardi nelle impostazioni.",
         "register.title": "Registra la tua attività",
         "register.subtitle": "Potrai modificare tutti questi campi più tardi nelle impostazioni.",
         "register.accountSection": "Account",
@@ -3184,7 +3184,7 @@ const TRANSLATIONS = {
         "login.accountDeletedMessage": "Ваш аккаунт был безвозвратно удалён. Нам жаль, что вы уходите.",
         "login.backToHome": "Вернуться на главную страницу",
 
-        "register.tagline": "Настройка за пару минут — ваш ИИ сразу начнёт отвечать клиентам.",
+        "register.tagline": "Вы сможете изменить все эти поля позже в настройках.",
         "register.title": "Зарегистрируйте свой бизнес",
         "register.subtitle": "Вы сможете изменить все эти поля позже в настройках.",
         "register.accountSection": "Аккаунт",
@@ -3686,7 +3686,7 @@ const TRANSLATIONS = {
         "login.accountDeletedMessage": "Vaš nalog je trajno obrisan. Žao nam je što odlazite.",
         "login.backToHome": "Nazad na početnu stranicu",
 
-        "register.tagline": "Podesite za par minuta — Camilius pravi vaš sajt i odmah počinje da odgovara mušterijama.",
+        "register.tagline": "Sva ova polja možete kasnije promeniti u podešavanjima.",
         "register.title": "Registrujte svoj biznis",
         "register.subtitle": "Sva ova polja možete kasnije promeniti u podešavanjima.",
         "register.accountSection": "Nalog",
@@ -4290,7 +4290,7 @@ const TRANSLATIONS = {
         "login.accountDeletedMessage": "您的账户已被永久删除。很遗憾看到您离开。",
         "login.backToHome": "返回首页",
 
-        "register.tagline": "几分钟内完成设置——您的AI立即开始回复顾客。",
+        "register.tagline": "您之后可以在设置中更改所有这些字段。",
         "register.title": "注册您的商家",
         "register.subtitle": "您之后可以在设置中更改所有这些字段。",
         "register.accountSection": "账户",
@@ -4786,7 +4786,7 @@ const TRANSLATIONS = {
         "login.accountDeletedMessage": "Hesabınız kalıcı olarak silindi. Ayrıldığınız için üzgünüz.",
         "login.backToHome": "Ana sayfaya dön",
 
-        "register.tagline": "Birkaç dakikada kurulur — yapay zekânız hemen müşterilere yanıt vermeye başlar.",
+        "register.tagline": "Bu alanların tümünü daha sonra ayarlardan değiştirebilirsiniz.",
         "register.title": "İşletmenizi kaydedin",
         "register.subtitle": "Bu alanların tümünü daha sonra ayarlardan değiştirebilirsiniz.",
         "register.accountSection": "Hesap",
