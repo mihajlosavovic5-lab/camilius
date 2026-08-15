@@ -3340,7 +3340,10 @@ def showcase_page(slug):
         theme=themes.resolve_theme(fixture["theme_id"]),
         preview=True,  # noindex - this is a fictional demo business, never meant to rank
         show_badge=True,
-        logo_url=url_for("static", filename=f"showcase/{slug}/logo.svg"),
+        # No logo_url: these fictional demo businesses have no real logo, so the page
+        # falls back to its normal no-logo treatment (plain person icon on the chat
+        # launcher, no image in the header) instead of a made-up placeholder mark.
+        logo_url=None,
         gallery_urls=[
             url_for("static", filename=f"showcase/{slug}/gallery-1.svg"),
             url_for("static", filename=f"showcase/{slug}/gallery-2.svg"),
@@ -3351,7 +3354,10 @@ def showcase_page(slug):
         phone_number=fixture["phone_number"],
         address=None,
         address_lines=("", ""),
-        hero_cta=pages.hero_cta_for_business(booking_enabled),
+        # No hero_cta: these showcase pages skip the hero "Book now" shortcut button;
+        # the full booking widget further down the page (gated on booking_enabled
+        # alone) still renders normally for the businesses that have it enabled.
+        hero_cta=None,
         booking_enabled=booking_enabled,
         availability_url=url_for("showcase_availability", slug=slug) if booking_enabled else None,
         initial_availability_days=_showcase_availability_days(fixture) if booking_enabled else None,
