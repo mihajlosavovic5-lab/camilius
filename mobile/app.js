@@ -300,41 +300,14 @@ if (capacitorPlugins) {
         if (backdrop) backdrop.click(); else topModal.classList.remove("open");
         return true;
     }
-    // Reachable from native code (MainActivity.dispatchKeyEvent(), via a plain
-    // WebView.evaluateJavascript() call - see its own comment for why) as well as from
-    // the backButton listener below - a bare function declaration would also end up
-    // implicitly global under sloppy-mode hoisting, but that's incidental scoping
-    // behavior, not something to depend on, so it's exported explicitly here instead.
-    window.closeTopmostOverlay = closeTopmostOverlay;
 
-    // Keeps MainActivity informed of whether any popup/sheet/lightbox is currently open,
-    // so it can decide whether THIS back press is one it should intercept itself (see
-    // dispatchKeyEvent()'s own comment) before the WebView gets a chance to swallow it
-    // for hiding the keyboard. A MutationObserver on the class attribute - rather than
-    // hooking every individual open()/close() function across the app (there are a
-    // couple dozen, spread across app.js and i18n.js) - means every current AND future
-    // overlay using the existing .lang-modal/#image-lightbox "open" class convention is
-    // covered automatically, from one place, with no risk of a call site being missed.
-    if (capacitorPlugins.OverlayState) {
-        let lastOverlayOpen = false;
-        const syncOverlayOpenState = () => {
-            const open = !!document.querySelector(".lang-modal.open") ||
-                (el("image-lightbox") && el("image-lightbox").classList.contains("open")) ||
-                (el("document-viewer") && el("document-viewer").classList.contains("open"));
-            if (open === lastOverlayOpen) return;
-            lastOverlayOpen = open;
-            capacitorPlugins.OverlayState.setOverlayOpen({ open }).catch(() => {});
-        };
-        new MutationObserver(syncOverlayOpenState).observe(document.body, {
-            attributes: true, attributeFilter: ["class"], subtree: true,
-        });
-    }
-
-    capacitorPlugins.App.addListener("backButton", ({ canGoBack }) => {
-      try {
-        if (closeTopmostOverlay()) {
-            // handled - a popup/sheet/lightbox was open and just got closed
-        } else if (screens.detail.classList.contains("active")) {
+    // The screen-navigation half of a hardware/gesture back press, once
+    // closeTopmostOverlay() above has already had its turn and found nothing to close.
+    // Pulled out into its own function (not left inline in the backButton listener)
+    // so window.closeTopmostOverlay below can also reach it - see that export's own
+    // comment for why it needs to.
+    function performBackNavigation(canGoBack) {
+        if (screens.detail.classList.contains("active")) {
             history.back();
         } else if (screens.register.classList.contains("active")) {
             if (registerStep > 1) showRegisterStep(registerStep - 1);
@@ -384,6 +357,78 @@ if (capacitorPlugins) {
             // the timeout doesn't leave the message anywhere it could look stuck.
             lastExitBackPressAt = Date.now();
             showToast(t("nav.exitConfirm") || "Tap back again to exit", true);
+        }
+    }
+
+    // Most recent canGoBack Capacitor itself reported - kept around only for
+    // window.closeTopmostOverlay's fallback below, for a hardware back press that never
+    // reaches the real "backButton" listener at all (see that export's own comment).
+    // Slightly stale by definition (it's last press's value, not this one's), but every
+    // branch performBackNavigation actually cares about on a screen with no explicit
+    // case is the exit-confirm toast, not history.back() - a stale true/false here only
+    // ever changes which of those two harmless fallbacks runs.
+    let lastKnownCanGoBack = false;
+
+    // Reachable from native code (MainActivity.dispatchKeyEvent(), via a plain
+    // WebView.evaluateJavascript() call - see its own comment for why) as well as from
+    // the backButton listener below.
+    //
+    // MainActivity only ever calls this while its own overlayOpen flag is true - it's
+    // meant to be a sure thing, closing exactly the popup that made it set that flag in
+    // the first place. But overlayOpen is fed by syncOverlayOpenState's own async
+    // OverlayState.setOverlayOpen() plugin call below, round-tripping the bridge on
+    // every open/close - if two of those calls (a fast close-then-reopen, or just an
+    // unlucky scheduling gap) ever resolve out of order, the native flag can end up
+    // stuck true seconds after the DOM has nothing open at all. Before this fallback,
+    // that desync meant dispatchKeyEvent ate the ENTIRE hardware back press for a
+    // popup that didn't exist - closeTopmostOverlay() found nothing, returned false,
+    // and nothing else ever ran, so the press did visibly nothing (confirmed on video:
+    // Android's own edge-swipe back affordance shows, the app just never reacts).
+    // Falling through to the normal screen navigation here, exactly like the listener
+    // below does on its own closeTopmostOverlay() === false, means a desynced press
+    // still does the right thing instead of a silent dead end - and re-syncing the
+    // native flag alongside it stops the SAME desync from eating the next press too.
+    window.closeTopmostOverlay = function () {
+        if (closeTopmostOverlay()) return true;
+        if (capacitorPlugins.OverlayState) capacitorPlugins.OverlayState.setOverlayOpen({ open: false }).catch(() => {});
+        try {
+            performBackNavigation(lastKnownCanGoBack);
+        } catch (e) {
+            reportClientError(e.message, e.stack, "closeTopmostOverlay-fallback");
+        }
+        return false;
+    };
+
+    // Keeps MainActivity informed of whether any popup/sheet/lightbox is currently open,
+    // so it can decide whether THIS back press is one it should intercept itself (see
+    // dispatchKeyEvent()'s own comment) before the WebView gets a chance to swallow it
+    // for hiding the keyboard. A MutationObserver on the class attribute - rather than
+    // hooking every individual open()/close() function across the app (there are a
+    // couple dozen, spread across app.js and i18n.js) - means every current AND future
+    // overlay using the existing .lang-modal/#image-lightbox "open" class convention is
+    // covered automatically, from one place, with no risk of a call site being missed.
+    if (capacitorPlugins.OverlayState) {
+        let lastOverlayOpen = false;
+        const syncOverlayOpenState = () => {
+            const open = !!document.querySelector(".lang-modal.open") ||
+                (el("image-lightbox") && el("image-lightbox").classList.contains("open")) ||
+                (el("document-viewer") && el("document-viewer").classList.contains("open"));
+            if (open === lastOverlayOpen) return;
+            lastOverlayOpen = open;
+            capacitorPlugins.OverlayState.setOverlayOpen({ open }).catch(() => {});
+        };
+        new MutationObserver(syncOverlayOpenState).observe(document.body, {
+            attributes: true, attributeFilter: ["class"], subtree: true,
+        });
+    }
+
+    capacitorPlugins.App.addListener("backButton", ({ canGoBack }) => {
+      lastKnownCanGoBack = canGoBack;
+      try {
+        if (closeTopmostOverlay()) {
+            // handled - a popup/sheet/lightbox was open and just got closed
+        } else {
+            performBackNavigation(canGoBack);
         }
       } catch (e) {
         // A bug in any branch above previously meant the whole hardware back press
