@@ -1080,13 +1080,26 @@ input[readonly].tap-to-edit-field:hover, textarea[readonly].tap-to-edit-field:ho
 .field-success { color: var(--checkmark); font-size: 13.5px; margin: 5px 0 0; display: flex; align-items: center; gap: 5px; }
 .field-success::before { content: "\2713"; font-weight: 700; }
 
-/* Live country-code hint shown next to the phone field once enough digits have been
-   typed to recognize a calling code (e.g. "+381" -> Serbia) - see register.html. */
-.phone-country-hint {
-    display: inline-flex; align-items: center; gap: 6px;
-    margin-top: 6px; font-size: 14px; color: var(--text-muted);
+/* Phone field's country-select button (flag + dial code, e.g. "\1F1F7\1F1F8 +381") - opens the
+   full country list via the shared centered option modal (createPhoneCountryPicker,
+   static/pickers.js). Same layout/look as the mobile app's own .phone-input-row/
+   .phone-country-btn (mobile/app.css) - a fixed-width button beside the (flexible)
+   .floating-field phone input, not a dropdown baked into the field itself. The row itself
+   carries the usual 16px .floating-field top margin (cancelled on the field below so it
+   isn't double-spaced) so the button and input line up on the same baseline instead of
+   the button sitting lower if it carried that margin individually. No align-items
+   override - default stretch matches the mobile app's own .phone-input-row, so the
+   button's box stretches to the taller .floating-field's own height, with the button's
+   own align-items: center (below) centering the flag/dial content inside that. */
+.phone-input-row { display: flex; gap: 8px; margin-top: 16px; }
+.phone-input-row .floating-field { flex: 1; min-width: 0; margin-top: 0; }
+.phone-country-btn {
+    display: flex; align-items: center; gap: 6px; flex-shrink: 0;
+    padding: 12px 10px; border: 1px solid var(--border); border-radius: 9px;
+    background: var(--surface); font-family: inherit; font-size: 16px; color: var(--text); cursor: pointer;
+    transition: border-color .15s;
 }
-.phone-country-hint .flag { font-size: 16px; }
+.phone-country-btn:hover { border-color: var(--primary-ink); }
 
 /* Settings row that links to its own page (e.g. Billing -> Subscription) - mirrors the
    mobile app's Settings screen rows (a label + chevron, whole row clickable), used as a
@@ -1259,6 +1272,15 @@ input[readonly].tap-to-edit-field:hover, textarea[readonly].tap-to-edit-field:ho
 }
 .option-modal-option:hover, .option-modal-option:focus-visible { background: var(--background); }
 .option-modal-option.active { color: var(--primary-ink); font-weight: 700; background: var(--primary-light); }
+/* Rich rows (currently only the phone country picker, see openOptionModal's own html
+   param and createPhoneCountryPicker in pickers.js) - flag/name/dial columns instead of
+   .option-modal-option's plain centered label, same left-aligned layout as the mobile
+   app's own .country-option-btn. */
+.option-modal-option-rich { display: flex; align-items: center; gap: 10px; text-align: left; }
+.country-option-flag { font-size: 19px; flex-shrink: 0; }
+.country-option-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.country-option-dial { color: var(--text-muted); font-size: 14px; flex-shrink: 0; }
+.option-modal-option-rich.active .country-option-dial { color: inherit; }
 
 /* --- Field-edit modal (static/field-edit-modal.js) --- */
 /* Narrow-viewport-only tap-to-zoom text editor, ported from the mobile app's own shared

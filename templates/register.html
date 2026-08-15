@@ -76,11 +76,24 @@
                         </div>
 
                         <div class="register-field-col">
-                            <div class="floating-field">
-                                <input type="tel" id="register-phone-input" class="tap-to-edit-field" name="phone_number" value="{{ data.get('phone_number', '') }}" placeholder=" ">
-                                <label for="register-phone-input" data-i18n="register.phone">Phone number (optional)</label>
+                            <!-- Combined "+<dial> <local number>" value actually sent to the
+                                 server (app.py's register()) - name="phone_number" moved here
+                                 from the visible input below, kept in sync with it and the
+                                 country-select button by updateHiddenPhoneField() further
+                                 down. Same split-into-two-fields-but-one-value-on-submit shape
+                                 as register-name-input above. -->
+                            <input type="hidden" id="register-phone-number-input" name="phone_number" value="{{ data.get('phone_number', '') }}">
+                            <div class="phone-input-row">
+                                <!-- Serbia default pre-rendered here (matches PHONE_COUNTRIES'
+                                     own fallback in pickers.js) so there's no empty-button
+                                     flash before JS runs; createPhoneCountryPicker overwrites
+                                     it immediately with the real default/saved country. -->
+                                <button type="button" class="phone-country-btn" id="register-phone-country-btn" aria-label="Country code">🇷🇸 +381</button>
+                                <div class="floating-field">
+                                    <input type="tel" id="register-phone-input" class="tap-to-edit-field" placeholder=" ">
+                                    <label for="register-phone-input" data-i18n="register.phone">Phone number (optional)</label>
+                                </div>
                             </div>
-                            <p class="phone-country-hint hidden" id="register-phone-country-hint"><span class="flag" id="register-phone-country-flag"></span><span id="register-phone-country-name"></span></p>
                             <p class="field-error hidden" id="register-phone-error"></p>
                             <p class="field-success hidden" id="register-phone-success" data-i18n="register.phoneAvailable">Available</p>
                         </div>
@@ -216,91 +229,31 @@ document.addEventListener("DOMContentLoaded", function () {
     // open behind/underneath the readonly field at the same time as the modal's own copy.
     initAddressAutocomplete(document.getElementById("register-address-input"), document.getElementById("register-address-suggestions"), function () { return !TAP_TO_EDIT_MQ.matches; });
 
-    // Every ITU calling code, longest-prefix-first, so a live "+1876..." doesn't get
-    // mis-detected as the shorter "+1" (US/Canada) - same list/approach as the mobile
-    // app's own country picker (mobile/app.js), duplicated here since the web has no
-    // shared bundle with it. Only used for the live "+381 -> Serbia" hint below; the
-    // number is still stored exactly as typed (no reformatting).
-    var COUNTRIES = [
-        ["Afghanistan","AF","+93"],["Albania","AL","+355"],["Algeria","DZ","+213"],["Andorra","AD","+376"],
-        ["Angola","AO","+244"],["Antigua and Barbuda","AG","+1268"],["Argentina","AR","+54"],["Armenia","AM","+374"],
-        ["Australia","AU","+61"],["Austria","AT","+43"],["Azerbaijan","AZ","+994"],["Bahamas","BS","+1242"],
-        ["Bahrain","BH","+973"],["Bangladesh","BD","+880"],["Barbados","BB","+1246"],["Belarus","BY","+375"],
-        ["Belgium","BE","+32"],["Belize","BZ","+501"],["Benin","BJ","+229"],["Bhutan","BT","+975"],
-        ["Bolivia","BO","+591"],["Bosnia and Herzegovina","BA","+387"],["Botswana","BW","+267"],["Brazil","BR","+55"],
-        ["Brunei","BN","+673"],["Bulgaria","BG","+359"],["Burkina Faso","BF","+226"],["Burundi","BI","+257"],
-        ["Cabo Verde","CV","+238"],["Cambodia","KH","+855"],["Cameroon","CM","+237"],["Canada","CA","+1"],
-        ["Central African Republic","CF","+236"],["Chad","TD","+235"],["Chile","CL","+56"],["China","CN","+86"],
-        ["Colombia","CO","+57"],["Comoros","KM","+269"],["Congo","CG","+242"],["Costa Rica","CR","+506"],
-        ["Croatia","HR","+385"],["Cuba","CU","+53"],["Cyprus","CY","+357"],["Czechia","CZ","+420"],
-        ["DR Congo","CD","+243"],["Denmark","DK","+45"],["Djibouti","DJ","+253"],["Dominica","DM","+1767"],
-        ["Dominican Republic","DO","+1809"],["Ecuador","EC","+593"],["Egypt","EG","+20"],["El Salvador","SV","+503"],
-        ["Equatorial Guinea","GQ","+240"],["Eritrea","ER","+291"],["Estonia","EE","+372"],["Eswatini","SZ","+268"],
-        ["Ethiopia","ET","+251"],["Fiji","FJ","+679"],["Finland","FI","+358"],["France","FR","+33"],
-        ["Gabon","GA","+241"],["Gambia","GM","+220"],["Georgia","GE","+995"],["Germany","DE","+49"],
-        ["Ghana","GH","+233"],["Greece","GR","+30"],["Grenada","GD","+1473"],["Guatemala","GT","+502"],
-        ["Guinea","GN","+224"],["Guinea-Bissau","GW","+245"],["Guyana","GY","+592"],["Haiti","HT","+509"],
-        ["Honduras","HN","+504"],["Hungary","HU","+36"],["Iceland","IS","+354"],["India","IN","+91"],
-        ["Indonesia","ID","+62"],["Iran","IR","+98"],["Iraq","IQ","+964"],["Ireland","IE","+353"],
-        ["Israel","IL","+972"],["Italy","IT","+39"],["Ivory Coast","CI","+225"],["Jamaica","JM","+1876"],
-        ["Japan","JP","+81"],["Jordan","JO","+962"],["Kazakhstan","KZ","+7"],["Kenya","KE","+254"],
-        ["Kiribati","KI","+686"],["Kosovo","XK","+383"],["Kuwait","KW","+965"],["Kyrgyzstan","KG","+996"],
-        ["Laos","LA","+856"],["Latvia","LV","+371"],["Lebanon","LB","+961"],["Lesotho","LS","+266"],
-        ["Liberia","LR","+231"],["Libya","LY","+218"],["Liechtenstein","LI","+423"],["Lithuania","LT","+370"],
-        ["Luxembourg","LU","+352"],["Madagascar","MG","+261"],["Malawi","MW","+265"],["Malaysia","MY","+60"],
-        ["Maldives","MV","+960"],["Mali","ML","+223"],["Malta","MT","+356"],["Marshall Islands","MH","+692"],
-        ["Mauritania","MR","+222"],["Mauritius","MU","+230"],["Mexico","MX","+52"],["Micronesia","FM","+691"],
-        ["Moldova","MD","+373"],["Monaco","MC","+377"],["Mongolia","MN","+976"],["Montenegro","ME","+382"],
-        ["Morocco","MA","+212"],["Mozambique","MZ","+258"],["Myanmar","MM","+95"],["Namibia","NA","+264"],
-        ["Nauru","NR","+674"],["Nepal","NP","+977"],["Netherlands","NL","+31"],["New Zealand","NZ","+64"],
-        ["Nicaragua","NI","+505"],["Niger","NE","+227"],["Nigeria","NG","+234"],["North Korea","KP","+850"],
-        ["North Macedonia","MK","+389"],["Norway","NO","+47"],["Oman","OM","+968"],["Pakistan","PK","+92"],
-        ["Palau","PW","+680"],["Palestine","PS","+970"],["Panama","PA","+507"],["Papua New Guinea","PG","+675"],
-        ["Paraguay","PY","+595"],["Peru","PE","+51"],["Philippines","PH","+63"],["Poland","PL","+48"],
-        ["Portugal","PT","+351"],["Qatar","QA","+974"],["Romania","RO","+40"],["Russia","RU","+7"],
-        ["Rwanda","RW","+250"],["Saint Kitts and Nevis","KN","+1869"],["Saint Lucia","LC","+1758"],
-        ["Saint Vincent and the Grenadines","VC","+1784"],["Samoa","WS","+685"],["San Marino","SM","+378"],
-        ["Sao Tome and Principe","ST","+239"],["Saudi Arabia","SA","+966"],["Senegal","SN","+221"],["Serbia","RS","+381"],
-        ["Seychelles","SC","+248"],["Sierra Leone","SL","+232"],["Singapore","SG","+65"],["Slovakia","SK","+421"],
-        ["Slovenia","SI","+386"],["Solomon Islands","SB","+677"],["Somalia","SO","+252"],["South Africa","ZA","+27"],
-        ["South Korea","KR","+82"],["South Sudan","SS","+211"],["Spain","ES","+34"],["Sri Lanka","LK","+94"],
-        ["Sudan","SD","+249"],["Suriname","SR","+597"],["Sweden","SE","+46"],["Switzerland","CH","+41"],
-        ["Syria","SY","+963"],["Taiwan","TW","+886"],["Tajikistan","TJ","+992"],["Tanzania","TZ","+255"],
-        ["Thailand","TH","+66"],["Timor-Leste","TL","+670"],["Togo","TG","+228"],["Tonga","TO","+676"],
-        ["Trinidad and Tobago","TT","+1868"],["Tunisia","TN","+216"],["Turkey","TR","+90"],["Turkmenistan","TM","+993"],
-        ["Tuvalu","TV","+688"],["Uganda","UG","+256"],["Ukraine","UA","+380"],["United Arab Emirates","AE","+971"],
-        ["United Kingdom","GB","+44"],["United States","US","+1"],["Uruguay","UY","+598"],["Uzbekistan","UZ","+998"],
-        ["Vanuatu","VU","+678"],["Vatican City","VA","+379"],["Venezuela","VE","+58"],["Vietnam","VN","+84"],
-        ["Yemen","YE","+967"],["Zambia","ZM","+260"],["Zimbabwe","ZW","+263"]
-    ].sort(function (a, b) { return b[2].length - a[2].length; });
-
-    function flagEmoji(iso) {
-        return iso.replace(/./g, function (c) { return String.fromCodePoint(127397 + c.charCodeAt(0)); });
-    }
-
-    function detectCountry(value) {
-        var digits = (value || "").trim();
-        if (digits[0] !== "+") return null;
-        for (var i = 0; i < COUNTRIES.length; i++) {
-            if (digits.indexOf(COUNTRIES[i][2]) === 0) return COUNTRIES[i];
-        }
-        return null;
-    }
-
+    // Country-select button (flag + dial code) beside the phone field, shared with
+    // Settings' own identical field - see createPhoneCountryPicker/PHONE_COUNTRIES in
+    // static/pickers.js. hiddenPhoneInput (name="phone_number", the value actually
+    // POSTed - see app.py's register()) is kept as the composed international number;
+    // the visible field only ever holds the local part the picker's dial code doesn't
+    // already cover.
     var phoneInput = document.getElementById("register-phone-input");
-    var phoneHint = document.getElementById("register-phone-country-hint");
-    var phoneFlag = document.getElementById("register-phone-country-flag");
-    var phoneName = document.getElementById("register-phone-country-name");
-    phoneInput.addEventListener("input", function () {
-        var match = detectCountry(phoneInput.value);
-        if (match) {
-            phoneFlag.textContent = flagEmoji(match[1]);
-            phoneName.textContent = match[0] + " (" + match[2] + ")";
-            phoneHint.classList.remove("hidden");
-        } else {
-            phoneHint.classList.add("hidden");
-        }
-    });
+    var hiddenPhoneInput = document.getElementById("register-phone-number-input");
+
+    function updateHiddenPhoneField() {
+        hiddenPhoneInput.value = composePhoneNumber(phoneInput, phoneCountryPicker.getCountry());
+        hiddenPhoneInput.dispatchEvent(new Event("input", { bubbles: true }));
+    }
+    var phoneCountryPicker = createPhoneCountryPicker("register-phone-country-btn", "register-phone-input", updateHiddenPhoneField);
+    phoneInput.addEventListener("input", updateHiddenPhoneField);
+
+    // A saved value re-rendered here (data.get('phone_number', '') above, e.g. after a
+    // failed step-1 submit bounced the whole form back) already carries its dial code -
+    // split it back into {country, rest} so the button and visible field each show the
+    // right half instead of the button defaulting to Serbia while the raw "+381 6X..."
+    // sits in the plain-digits field.
+    var savedPhone = splitStoredPhoneNumber(hiddenPhoneInput.value);
+    phoneCountryPicker.setCountry(savedPhone.country, true);
+    phoneInput.value = savedPhone.rest;
+    updateHiddenPhoneField();
 
     // --- Password length: live red warning the moment it's shorter than 8 characters,
     // cleared the instant it reaches 8 - minlength="8" on the input already blocks
@@ -384,7 +337,11 @@ document.addEventListener("DOMContentLoaded", function () {
 
     var fields = {
         contact_email: { input: document.getElementById("register-contact-email-input"), error: document.getElementById("register-contact-email-error"), success: document.getElementById("register-contact-email-success"), required: true, status: "unknown" },
-        phone_number: { input: document.getElementById("register-phone-input"), error: document.getElementById("register-phone-error"), success: document.getElementById("register-phone-success"), required: false, status: "unknown" },
+        // input: the hidden composed field (name="phone_number"), not the plain-digits
+        // visible one - the availability check (and step1Ready() below) need the full
+        // international number the server actually stores, same value updateHiddenPhoneField
+        // above keeps current on every keystroke/country change.
+        phone_number: { input: document.getElementById("register-phone-number-input"), error: document.getElementById("register-phone-error"), success: document.getElementById("register-phone-success"), required: false, status: "unknown" },
     };
 
     // True once every step-1 field is filled in (where required), not "taken"/mid-check,
