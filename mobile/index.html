@@ -1,5 +1,5 @@
 <!doctype html>
-<html data-bundle-version="08d16c72d654" lang="en">
+<html data-bundle-version="f9a72d63944d" lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
@@ -16,7 +16,7 @@
 <link rel="preload" href="fonts/lora-latin-ext.woff2?v=e8c32fe92ded" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="fonts/familjen-grotesk-latin.woff2?v=e8c32fe92ded" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="fonts/familjen-grotesk-latin-ext.woff2?v=e8c32fe92ded" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="app.css?v=08d16c72d654">
+<link rel="stylesheet" href="app.css?v=f9a72d63944d">
 </head>
 <body>
 
@@ -723,14 +723,16 @@
               </div>
 
               <div class="floating-field floating-field-password">
-                <!-- No autocomplete="new-password" here on purpose - this field itself is
-                     readonly (real typing happens in #mysite-field-modal-input, see the
-                     tap handler further down), but Android's own WebView/OEM password
-                     manager still scans the DOM for that hint and can draw its own eye
-                     icon over an untouched, empty field regardless of our .has-value CSS -
-                     which isn't ours to control. The modal's own input never had this
-                     attribute either, which is why it never showed the issue. -->
-                <input type="password" id="register-password" class="tap-to-edit-field" placeholder=" " required readonly>
+                <!-- type="text" + .password-mask (app.css), not a real type="password",
+                     on purpose - this field itself is readonly (real typing happens in
+                     #mysite-field-modal-input, see the tap handler further down), so it
+                     only ever needs to LOOK masked. Android's own WebView/OEM password
+                     manager scans the DOM for type="password" fields and can draw its own
+                     eye icon over one regardless of whether it's readonly, empty, or ever
+                     focused - which isn't ours to control via CSS. Never being a real
+                     password field avoids that outright. See app.js's syncPasswordVisibility/
+                     isPasswordMasked for how the eye toggle masks/reveals it instead. -->
+                <input type="text" id="register-password" class="tap-to-edit-field password-mask" placeholder=" " required readonly>
                 <label for="register-password" data-i18n="register.password">Password</label>
                 <button type="button" class="password-toggle" aria-label="Show password">
                   <svg class="password-toggle-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
@@ -751,7 +753,7 @@
               </div>
 
               <div class="floating-field floating-field-password">
-                <input type="password" id="register-confirm-password" class="tap-to-edit-field" placeholder=" " required readonly>
+                <input type="text" id="register-confirm-password" class="tap-to-edit-field password-mask" placeholder=" " required readonly>
                 <label for="register-confirm-password" data-i18n="register.confirmPassword">Confirm password</label>
                 <button type="button" class="password-toggle" aria-label="Show password">
                   <svg class="password-toggle-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
@@ -1450,9 +1452,10 @@
         </div>
         <label style="margin-top: 0;" data-i18n="settings.changePassword">Change password</label>
         <div class="floating-field floating-field-password">
-          <!-- Same reasoning as register-password (Sign up step 1) for dropping the
-               autocomplete hint - real typing happens in the modal, not here. -->
-          <input type="password" id="settings-current-password" class="tap-to-edit-field" placeholder=" " readonly>
+          <!-- Same reasoning as register-password (Sign up step 1) for type="text" +
+               .password-mask instead of a real type="password" - real typing happens
+               in the modal, not here. -->
+          <input type="text" id="settings-current-password" class="tap-to-edit-field password-mask" placeholder=" " readonly>
           <label for="settings-current-password" data-i18n="settings.currentPassword">Current password</label>
           <button type="button" class="password-toggle" aria-label="Show password">
             <svg class="password-toggle-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
@@ -1463,7 +1466,7 @@
           </button>
         </div>
         <div class="floating-field floating-field-password">
-          <input type="password" id="settings-new-password" class="tap-to-edit-field" placeholder=" " readonly>
+          <input type="text" id="settings-new-password" class="tap-to-edit-field password-mask" placeholder=" " readonly>
           <label for="settings-new-password" data-i18n="settings.newPassword">New password</label>
           <button type="button" class="password-toggle" aria-label="Show password">
             <svg class="password-toggle-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
@@ -1863,8 +1866,8 @@
   </button>
 </nav>
 
-<script src="i18n.js?v=08d16c72d654"></script>
-<script src="hours-picker.js?v=08d16c72d654"></script>
-<script src="app.js?v=08d16c72d654"></script>
+<script src="i18n.js?v=f9a72d63944d"></script>
+<script src="hours-picker.js?v=f9a72d63944d"></script>
+<script src="app.js?v=f9a72d63944d"></script>
 </body>
 </html>

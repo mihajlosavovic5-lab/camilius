@@ -29,13 +29,28 @@
 // Same breakpoint style.css already uses elsewhere for "mobile-width" treatments.
 const TAP_TO_EDIT_MQ = window.matchMedia("(max-width: 640px)");
 
+// register-password-input/settings-current-password-input/etc go readonly below the
+// tap-to-edit breakpoint (syncTapToEditFields below) with real typing moving into this
+// modal's own input instead - so below that breakpoint they never need to be a real
+// type="password" field at all, just look masked. Android's WebView/OEM password manager
+// scans the DOM for type="password" fields and can draw its own reveal icon over one
+// regardless of whether it's readonly, empty, or ever focused, which our own CSS can't
+// reach since it's the browser's own chrome. .password-mask (style.css)'s -webkit-text-
+// security gets the same dots-instead-of-characters look without ever looking like a
+// password field to Android at all. Above the breakpoint the field IS typed into directly,
+// so it stays a real type="password" there for actual password-manager integration.
+function isPasswordMasked(input) {
+    return input.readOnly ? input.classList.contains("password-mask") : input.type === "password";
+}
+
 // Flips a password input's masked/plain-text state and keeps its eye button's look in
 // sync with it - shared by the in-page .password-toggle listener (base.html) and this
 // modal's own standalone toggle below, and by both directions of mirroring one onto the
 // other (see openFieldEditModal's init and the passwordToggle click listener below), since
-// they all need the exact same input.type + is-visible/aria-label bookkeeping.
+// they all need the exact same masking + is-visible/aria-label bookkeeping.
 function syncPasswordVisibility(input, btn, visible) {
-    input.type = visible ? "text" : "password";
+    if (input.readOnly) input.classList.toggle("password-mask", !visible);
+    else input.type = visible ? "text" : "password";
     btn.classList.toggle("is-visible", visible);
     btn.setAttribute("aria-label", visible ? "Hide password" : "Show password");
 }
@@ -62,19 +77,31 @@ function syncTapToEditFields(root) {
         el.readOnly = TAP_TO_EDIT_MQ.matches;
         // Password fields only: below the breakpoint this field goes readonly and typing
         // happens in the shared modal instead (openFieldEditModal), so there's nothing left
-        // here for a password manager to autofill/generate into. Android's WebView/OEM
-        // password manager can still draw its own eye icon over the readonly field just from
-        // seeing autocomplete="new-password"/"current-password" on it, even while it's
-        // untouched and empty - which our own .has-value CSS can't reach since it's the
-        // browser's own chrome, not part of the page. Stripping the hint while readonly (and
-        // restoring it above the breakpoint, where the field really is typed into directly)
-        // avoids that without losing real desktop autofill.
+        // here for a password manager to autofill/generate into, or reason for it to look
+        // like a password field at all - see isPasswordMasked's own comment for why that
+        // matters (Android's WebView/OEM password manager can draw its own reveal icon over
+        // any type="password" field, readonly or not). Swapped for a real type="password"
+        // (and the autocomplete hint restored) above the breakpoint, where the field really
+        // is typed into directly and a real password manager should see it as one. Always
+        // resets to masked/hidden on the transition either way, same as a freshly opened
+        // field always starts - rather than trying to carry a "revealed" state across a
+        // resize, which is a rare edge case not worth the extra bookkeeping.
         if ("fieldEditPassword" in el.dataset) {
+            const floatingField = el.closest(".floating-field");
+            const btn = floatingField && floatingField.querySelector(".password-toggle");
             if (el.readOnly) {
                 if (el.hasAttribute("autocomplete")) el.dataset.fieldEditAutocomplete = el.getAttribute("autocomplete");
                 el.removeAttribute("autocomplete");
-            } else if (el.dataset.fieldEditAutocomplete) {
-                el.setAttribute("autocomplete", el.dataset.fieldEditAutocomplete);
+                el.type = "text";
+                el.classList.add("password-mask");
+            } else {
+                if (el.dataset.fieldEditAutocomplete) el.setAttribute("autocomplete", el.dataset.fieldEditAutocomplete);
+                el.type = "password";
+                el.classList.remove("password-mask");
+            }
+            if (btn) {
+                btn.classList.remove("is-visible");
+                btn.setAttribute("aria-label", "Show password");
             }
         }
     });
@@ -209,7 +236,7 @@ function ensureFieldEditModal() {
     });
 
     passwordToggle.addEventListener("click", () => {
-        const visible = input.type === "password";
+        const visible = isPasswordMasked(input);
         syncPasswordVisibility(input, passwordToggle, visible);
         // Carries the reveal/hide back onto the readonly in-page field this modal is
         // editing, so closing the modal leaves it showing (or masked) exactly like it was
@@ -285,7 +312,7 @@ function openFieldEditModal(sourceEl) {
         // Opens already showing/hidden to match whatever this exact field's own in-page eye
         // button currently shows, rather than always resetting to masked, since they're the
         // same reveal state seen from two places, not two states.
-        syncPasswordVisibility(input, passwordToggle, sourceEl.type === "text");
+        syncPasswordVisibility(input, passwordToggle, !isPasswordMasked(sourceEl));
         passwordToggle.classList.toggle("has-value", active.value.length > 0);
     } else {
         input.type = isNumeric ? "number" : "text";

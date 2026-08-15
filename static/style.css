@@ -1866,6 +1866,17 @@ body.auth {
 .password-toggle.is-visible { color: var(--primary-ink); }
 .password-toggle.is-visible .password-toggle-slash { opacity: 0; }
 
+/* register-password-input/settings-current-password-input/etc go type="text" + this
+   class instead of a real type="password" once field-edit-modal.js makes them readonly
+   below the tap-to-edit breakpoint (real typing moves into that modal's own input) - see
+   that file's syncPasswordVisibility/isPasswordMasked. Android's WebView/OEM password
+   manager scans the DOM for type="password" fields and can draw its own reveal icon over
+   one regardless of whether it's readonly, empty, or ever focused, which our own CSS
+   can't reach since it's the browser's own chrome. Never looking like a password field
+   avoids that outright; -webkit-text-security gets the same dots-instead-of-characters
+   look without it. Toggled off (plain text shows) while revealed. */
+.password-mask { -webkit-text-security: disc; }
+
 /* "Check" button inline in the web-address field (settings.html My Site card) - same
    "absolutely positioned inside an already position:relative .floating-field" mechanic
    as .password-toggle above, just a short text pill instead of an icon. */

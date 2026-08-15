@@ -732,7 +732,7 @@
         input.addEventListener("input", syncHasValue);
         syncHasValue();
         btn.addEventListener("click", function () {
-            var visible = input.type === "password";
+            var visible = isPasswordMasked(input);
             syncPasswordVisibility(input, btn, visible);
             // If this exact field is (still) open in the tap-to-edit modal (static/
             // field-edit-modal.js), its reveal/hide is really the same state as this

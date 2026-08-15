@@ -770,6 +770,15 @@ input[readonly] { background: var(--background); color: var(--text-muted); }
 .password-toggle.is-visible { color: var(--primary-ink); }
 .password-toggle.is-visible .password-toggle-slash { opacity: 0; }
 
+/* register-password/settings-current-password/etc (readonly shells for the tap-to-edit
+   modal) are type="text", not type="password" (see app.js's syncPasswordVisibility/
+   isPasswordMasked) - real typing happens in the modal, so this only needs to LOOK
+   masked, and never look like a password field to Android's own WebView/OEM password
+   manager, which was drawing its own reveal icon over a plain type="password" shell
+   regardless of whether it had any value. -webkit-text-security gets the same dots-
+   instead-of-characters look without that. Toggled off (plain text shows) while revealed. */
+.password-mask { -webkit-text-security: disc; }
+
 /* Availability status badge inline in the Web address field (My Site tab) - same
    "absolutely positioned inside an already position:relative .floating-field" mechanic
    as .password-toggle above. Narrower reserved space than the old "Check" button/pill

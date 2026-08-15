@@ -2558,12 +2558,27 @@ async function logout(clearChatHistory = true) {
     showScreen("login");
 }
 
+// register-password/settings-current-password/etc (readonly shells for the tap-to-edit
+// modal - see MYSITE_FIELD_MODAL_FIELDS) are never actually typed into directly, so they
+// never needed to be real type="password" fields at all - but they used to be one anyway,
+// just to look masked. Android's WebView/OEM password manager scans the DOM for that
+// (type="password", not focus, not autocomplete) and can draw its own reveal icon over
+// one of these regardless of our own has-value gating, which our CSS can't reach since
+// it's the browser's own chrome, not part of the page. Masking with -webkit-text-security
+// (app.css's .password-mask) instead of a real type="password" gets the same dots-instead-
+// of-characters look without ever looking like a password field to Android at all - the
+// modal's own input (which IS really typed into) keeps using true type="password".
+function isPasswordMasked(input) {
+    return input.readOnly ? input.classList.contains("password-mask") : input.type === "password";
+}
+
 // Flips a password input's masked/plain-text state and keeps its eye button's look in
 // sync with it - shared by the generic .password-toggle listener below and the tap-to-edit
 // modal's own standalone toggle (see openFieldEditModal/its click listener further down),
-// since both need the exact same input.type + is-visible/aria-label bookkeeping.
+// since both need the exact same masking + is-visible/aria-label bookkeeping.
 function syncPasswordVisibility(input, btn, visible) {
-    input.type = visible ? "text" : "password";
+    if (input.readOnly) input.classList.toggle("password-mask", !visible);
+    else input.type = visible ? "text" : "password";
     btn.classList.toggle("is-visible", visible);
     btn.setAttribute("aria-label", visible ? "Hide password" : "Show password");
 }
@@ -2581,7 +2596,7 @@ document.querySelectorAll(".password-toggle").forEach((btn) => {
     input.addEventListener("input", syncHasValue);
     syncHasValue();
     btn.addEventListener("click", () => {
-        const visible = input.type === "password";
+        const visible = isPasswordMasked(input);
         syncPasswordVisibility(input, btn, visible);
         // register-password/settings-current-password/etc are readonly shells for the tap-
         // to-edit modal (see MYSITE_FIELD_MODAL_FIELDS) - if the modal for this exact field
@@ -2600,7 +2615,8 @@ function resetPasswordField(id) {
     const input = el(id);
     if (!input) return;
     input.value = "";
-    input.type = "password";
+    if (input.readOnly) input.classList.add("password-mask");
+    else input.type = "password";
     const btn = input.closest(".floating-field").querySelector(".password-toggle");
     if (btn) {
         btn.classList.remove("has-value", "is-visible");
@@ -6766,7 +6782,7 @@ function openFieldEditModal(sourceEl, titleText, { textarea: showTextarea = fals
     // Password fields only - opens already showing/hidden to match whatever this exact
     // field's own in-place eye button currently shows, rather than always resetting to
     // masked, since they're the same reveal state seen from two places, not two states.
-    if (password) syncPasswordVisibility(input, passwordToggle, sourceEl.type === "text");
+    if (password) syncPasswordVisibility(input, passwordToggle, !isPasswordMasked(sourceEl));
     else input.type = numeric ? "number" : "text";
     const active = showTextarea ? textarea : input;
     // Mirrors the real field's own maxlength (e.g. 200 for the tagline, 2000 for about,
@@ -6921,7 +6937,7 @@ el("mysite-field-modal-copy-btn").addEventListener("click", async (event) => {
 // .floating-field for that one to find.
 el("mysite-field-modal-password-toggle").addEventListener("click", () => {
     const input = el("mysite-field-modal-input");
-    const visible = input.type === "password";
+    const visible = isPasswordMasked(input);
     syncPasswordVisibility(input, el("mysite-field-modal-password-toggle"), visible);
     // Carries the reveal/hide back onto the readonly field this modal is editing, so
     // closing the modal leaves it showing (or masked) exactly like it was left in here -
