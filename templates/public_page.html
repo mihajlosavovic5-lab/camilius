@@ -2159,13 +2159,13 @@
         border-radius: 10px;
         box-shadow: 0 20px 60px rgba(0, 0, 0, .5);
     }
-    .photo-lightbox-close, .photo-lightbox-arrow {
+    .photo-lightbox-arrow {
         /* z-index: 1 (not just position: fixed) - these are flex items of .photo-lightbox
            alongside .photo-lightbox-viewport, and flex items with z-index: auto paint in
            tree order regardless of position, so without this the viewport (declared after
            them in the markup) painted its photo ON TOP of these buttons, silently
-           swallowing every tap/click that landed on the arrows/close button's own visible
-           circle - a real (separate) bug from the swipe-drift one above, found testing it. */
+           swallowing every tap/click that landed on the arrow's own visible circle - a
+           real (separate) bug from the swipe-drift one above, found testing it. */
         position: fixed;
         z-index: 1;
         border: none;
@@ -2178,9 +2178,8 @@
         cursor: pointer;
         transition: background .15s ease, transform .12s ease;
     }
-    .photo-lightbox-close:hover, .photo-lightbox-arrow:hover { background: rgba(255, 255, 255, .22); }
-    .photo-lightbox-close:active, .photo-lightbox-arrow:active { transform: scale(.92); }
-    .photo-lightbox-close { top: 18px; right: 18px; width: 40px; height: 40px; font-size: 16px; }
+    .photo-lightbox-arrow:hover { background: rgba(255, 255, 255, .22); }
+    .photo-lightbox-arrow:active { transform: scale(.92); }
     .photo-lightbox-arrow { top: 50%; margin-top: -22px; width: 44px; height: 44px; font-size: 26px; }
     .photo-lightbox-prev { left: 18px; }
     .photo-lightbox-next { right: 18px; }
@@ -2799,11 +2798,11 @@ document.addEventListener("DOMContentLoaded", function () {
              image file (a bare, unstyled full-res image, opened in a whole new tab), which
              read as the page abruptly dumping the visitor into a "zoomed in" image viewer
              instead of anything designed. This is the same in-page "photo opens over a
-             dimmed backdrop, with a close button and its own prev/next" pattern actual
-             photo galleries use - the click on .photo-slide is now intercepted (see the
-             script below) instead of ever navigating away. -->
+             dimmed backdrop, with its own prev/next" pattern actual photo galleries use -
+             the click on .photo-slide is now intercepted (see the script below) instead of
+             ever navigating away. No separate close button - tapping the dimmed backdrop
+             around the photo closes it (see the script's own backdrop-tap comment). -->
         <div class="photo-lightbox" id="photo-lightbox">
-            <button type="button" class="photo-lightbox-close" id="photo-lightbox-close" aria-label="Close">&#10005;</button>
             {% if gallery_urls|length > 1 %}
             <button type="button" class="photo-lightbox-arrow photo-lightbox-prev" id="photo-lightbox-prev" aria-label="Previous photo">&#8249;</button>
             <button type="button" class="photo-lightbox-arrow photo-lightbox-next" id="photo-lightbox-next" aria-label="Next photo">&#8250;</button>
@@ -4003,7 +4002,6 @@ window.pageOverlay = (function () {
         var lightboxViewport = document.getElementById("photo-lightbox-viewport");
         var lightboxTrack = document.getElementById("photo-lightbox-track");
         var lightboxSlides = lightboxTrack ? Array.prototype.slice.call(lightboxTrack.children) : [];
-        var lightboxClose = document.getElementById("photo-lightbox-close");
         var lightboxPrev = document.getElementById("photo-lightbox-prev");
         var lightboxNext = document.getElementById("photo-lightbox-next");
         if (lightbox && lightboxViewport && lightboxSlides.length) {
@@ -4137,16 +4135,20 @@ window.pageOverlay = (function () {
                 }
                 if (idx !== -1) openLightbox(idx);
             });
-            if (lightboxClose) lightboxClose.addEventListener("click", closeLightbox);
             if (lightboxPrev) lightboxPrev.addEventListener("click", stepLightboxPrev);
             if (lightboxNext) lightboxNext.addEventListener("click", stepLightboxNext);
-            // Backdrop tap (anywhere that isn't the viewport/close/arrow buttons) closes
-            // same as every other overlay's own click-outside pattern on this page - a tap
-            // that lands on the image/track itself no longer bubbles here as a "backdrop"
-            // tap now that the viewport fills the whole lightbox, so this only actually
-            // fires from the thin margin around a portrait photo, same as before.
+            // No dedicated close button - closes on any tap that isn't the photo itself or
+            // an arrow (which already has its own click handler above; excluded here too
+            // so a tap on it doesn't ALSO close on the way this listener bubbles up from
+            // it). That covers the dimmed backdrop AND the letterboxed space around a
+            // photo whose 4:3 frame doesn't fill the full viewport - same "tap outside the
+            // real content to dismiss" pattern as every other overlay's own click-outside
+            // handling on this page, just keyed on what wasn't tapped rather than needing
+            // e.target === lightbox specifically (the viewport/track/slide fill the whole
+            // lightbox, so a plain object-identity check almost never actually matched).
             lightbox.addEventListener("click", function (e) {
-                if (e.target === lightbox) closeLightbox();
+                if (e.target.tagName === "IMG" || e.target.closest(".photo-lightbox-arrow")) return;
+                closeLightbox();
             });
             document.addEventListener("keydown", function (e) {
                 if (!lightboxOpen) return;
