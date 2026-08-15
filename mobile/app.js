@@ -522,6 +522,24 @@ if (capacitorPlugins) {
             return bundles.find((b) => b.version === version) || null;
         };
 
+        // A native bridge call (current()/download()/set()) that never settles - rather
+        // than one that rejects, which the try/catch below already handles fine - would
+        // hang checkForOtaUpdate() forever at that one `await`, since neither `catch` nor
+        // `finally` ever run for a promise that's simply never resolved. That leaves
+        // otaCheckInProgress stuck `true` for the rest of this app session: every later
+        // cold-start/foreground/interval trigger (see the listeners below) would keep
+        // exiting immediately on that guard, silently, with no error surfaced anywhere -
+        // exactly what "OTA update never arrives, across every later attempt too" looks
+        // like from outside. Racing each of those calls against a timeout can't cancel a
+        // genuinely hung native call, but it does let this function give up waiting on it
+        // and reach `finally` regardless, so the guard always clears and the next trigger
+        // gets a real attempt instead of being silently swallowed forever by this one.
+        const OTA_STEP_TIMEOUT_MS = 45000;
+        const withOtaTimeout = (promise, label) => Promise.race([
+            promise,
+            new Promise((_, reject) => setTimeout(() => reject(new Error(`${label} timed out`)), OTA_STEP_TIMEOUT_MS)),
+        ]);
+
         const checkForOtaUpdate = async () => {
             // set() below reloads the WebView outright - doing that while a Google
             // sign-in attempt is in flight would tear down the very screen/state the
@@ -535,7 +553,7 @@ if (capacitorPlugins) {
             otaCheckInProgress = true;
             let step = "fetch-manifest";
             try {
-                const response = await fetch(API_BASE + "/api/mobile-manifest");
+                const response = await withOtaTimeout(fetch(API_BASE + "/api/mobile-manifest"), step);
                 const manifest = await response.json();
                 if (!manifest.available) {
                     return;
@@ -545,7 +563,7 @@ if (capacitorPlugins) {
                 // anything we store ourselves - a self-kept flag drifted from native
                 // reality once before ("applied" recorded while builtin still ran).
                 step = "current";
-                const current = await capacitorPlugins.CapacitorUpdater.current();
+                const current = await withOtaTimeout(capacitorPlugins.CapacitorUpdater.current(), step);
                 const activeVersion = (current && current.bundle) ? current.bundle.version : "unknown";
                 // Gate the "never OTA-updated" case on bundle.id, not bundle.version - the
                 // plugin only guarantees id === "builtin" for that case. version instead
@@ -573,14 +591,14 @@ if (capacitorPlugins) {
                 step = "download";
                 let bundle;
                 try {
-                    bundle = await capacitorPlugins.CapacitorUpdater.download({
+                    bundle = await withOtaTimeout(capacitorPlugins.CapacitorUpdater.download({
                         url: manifest.url,
                         version: manifest.version,
-                    });
+                    }), step);
                 } catch (downloadError) {
                     // Most likely "already downloaded" from a previous session that got
                     // interrupted before set() applied it - reuse the stored copy.
-                    bundle = await findDownloadedBundle(manifest.version);
+                    bundle = await withOtaTimeout(findDownloadedBundle(manifest.version), "download-recover");
                     if (!bundle) throw downloadError;
                 }
 
@@ -604,8 +622,10 @@ if (capacitorPlugins) {
                     return;
                 }
                 step = "set";
-                await capacitorPlugins.CapacitorUpdater.set(bundle);
-                // set() reloads the app immediately - nothing below this line runs.
+                await withOtaTimeout(capacitorPlugins.CapacitorUpdater.set(bundle), step);
+                // set() reloads the app immediately - nothing below this line runs (unless
+                // it timed out above, in which case there's nothing more to do here - the
+                // guard clearing in `finally` below is what actually matters at that point).
             } catch (e) {
                 otaOverlay.classList.add("hidden");
                 reportClientError(`failed at step=${step}: ${e.message}`, e.stack, "ota-update-check");
@@ -618,9 +638,7 @@ if (capacitorPlugins) {
         // Check at cold start and every time the app returns to the foreground - two
         // redundant triggers for the same "reopened" moment, since both are Capacitor/OS
         // lifecycle events that some OEM WebViews are known to skip or delay on a plain
-        // app-switcher resume (no real backgrounding happened at the OS level). Deliberately
-        // no repeating timer while the app stays open - that polled the server continuously
-        // for every open session, which doesn't scale.
+        // app-switcher resume (no real backgrounding happened at the OS level).
         checkForOtaUpdate();
         capacitorPlugins.App.addListener("appStateChange", ({ isActive }) => {
             if (isActive) checkForOtaUpdate();
@@ -628,6 +646,19 @@ if (capacitorPlugins) {
         document.addEventListener("visibilitychange", () => {
             if (document.visibilityState === "visible") checkForOtaUpdate();
         });
+        // Third, low-frequency fallback for a session that's just left open in the
+        // foreground the whole time (or on an OEM WebView where the two listeners above
+        // never fire at all, which does happen on some devices) - the "no repeating timer"
+        // stance this used to take only accounted for the happy path where at least one of
+        // those two always fires; in practice, if neither ever does, the visitor is stuck on
+        // whatever bundle they cold-started with for as long as the app stays open, however
+        // long that is. checkForOtaUpdate() is a single small JSON fetch when there's
+        // nothing new (the common case, every time) - one every 15 minutes per open session
+        // isn't the "polls continuously" load concern the old comment here was guarding
+        // against, and correctness for the visitor matters more than shaving that off.
+        setInterval(() => {
+            if (document.visibilityState === "visible") checkForOtaUpdate();
+        }, 15 * 60 * 1000);
     }
 
     // Native-code changes (new plugin, permissions, icon, splash, anything under
