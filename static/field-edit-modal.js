@@ -37,6 +37,23 @@ const TAP_TO_EDIT_MQ = window.matchMedia("(max-width: 640px)");
 function syncTapToEditFields(root) {
     (root || document).querySelectorAll(".tap-to-edit-field").forEach((el) => {
         el.readOnly = TAP_TO_EDIT_MQ.matches;
+        // Password fields only: below the breakpoint this field goes readonly and typing
+        // happens in the shared modal instead (openFieldEditModal), so there's nothing left
+        // here for a password manager to autofill/generate into. Android's WebView/OEM
+        // password manager can still draw its own eye icon over the readonly field just from
+        // seeing autocomplete="new-password"/"current-password" on it, even while it's
+        // untouched and empty - which our own .has-value CSS can't reach since it's the
+        // browser's own chrome, not part of the page. Stripping the hint while readonly (and
+        // restoring it above the breakpoint, where the field really is typed into directly)
+        // avoids that without losing real desktop autofill.
+        if ("fieldEditPassword" in el.dataset) {
+            if (el.readOnly) {
+                if (el.hasAttribute("autocomplete")) el.dataset.fieldEditAutocomplete = el.getAttribute("autocomplete");
+                el.removeAttribute("autocomplete");
+            } else if (el.dataset.fieldEditAutocomplete) {
+                el.setAttribute("autocomplete", el.dataset.fieldEditAutocomplete);
+            }
+        }
     });
 }
 // Live viewport-width changes (resizing a browser window, rotating a tablet) - re-applies

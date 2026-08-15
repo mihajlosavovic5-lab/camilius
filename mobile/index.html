@@ -1,5 +1,5 @@
 <!doctype html>
-<html data-bundle-version="e4c6ba5b783e" lang="en">
+<html data-bundle-version="c59797653997" lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
@@ -16,7 +16,7 @@
 <link rel="preload" href="fonts/lora-latin-ext.woff2?v=e8c32fe92ded" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="fonts/familjen-grotesk-latin.woff2?v=e8c32fe92ded" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="fonts/familjen-grotesk-latin-ext.woff2?v=e8c32fe92ded" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="app.css?v=e4c6ba5b783e">
+<link rel="stylesheet" href="app.css?v=c59797653997">
 </head>
 <body>
 
@@ -723,7 +723,14 @@
               </div>
 
               <div class="floating-field floating-field-password">
-                <input type="password" id="register-password" class="tap-to-edit-field" placeholder=" " autocomplete="new-password" required readonly>
+                <!-- No autocomplete="new-password" here on purpose - this field itself is
+                     readonly (real typing happens in #mysite-field-modal-input, see the
+                     tap handler further down), but Android's own WebView/OEM password
+                     manager still scans the DOM for that hint and can draw its own eye
+                     icon over an untouched, empty field regardless of our .has-value CSS -
+                     which isn't ours to control. The modal's own input never had this
+                     attribute either, which is why it never showed the issue. -->
+                <input type="password" id="register-password" class="tap-to-edit-field" placeholder=" " required readonly>
                 <label for="register-password" data-i18n="register.password">Password</label>
                 <button type="button" class="password-toggle" aria-label="Show password">
                   <svg class="password-toggle-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
@@ -744,7 +751,7 @@
               </div>
 
               <div class="floating-field floating-field-password">
-                <input type="password" id="register-confirm-password" class="tap-to-edit-field" placeholder=" " autocomplete="new-password" required readonly>
+                <input type="password" id="register-confirm-password" class="tap-to-edit-field" placeholder=" " required readonly>
                 <label for="register-confirm-password" data-i18n="register.confirmPassword">Confirm password</label>
                 <button type="button" class="password-toggle" aria-label="Show password">
                   <svg class="password-toggle-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
@@ -1443,7 +1450,9 @@
         </div>
         <label style="margin-top: 0;" data-i18n="settings.changePassword">Change password</label>
         <div class="floating-field floating-field-password">
-          <input type="password" id="settings-current-password" class="tap-to-edit-field" placeholder=" " autocomplete="current-password" readonly>
+          <!-- Same reasoning as register-password (Sign up step 1) for dropping the
+               autocomplete hint - real typing happens in the modal, not here. -->
+          <input type="password" id="settings-current-password" class="tap-to-edit-field" placeholder=" " readonly>
           <label for="settings-current-password" data-i18n="settings.currentPassword">Current password</label>
           <button type="button" class="password-toggle" aria-label="Show password">
             <svg class="password-toggle-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
@@ -1454,7 +1463,7 @@
           </button>
         </div>
         <div class="floating-field floating-field-password">
-          <input type="password" id="settings-new-password" class="tap-to-edit-field" placeholder=" " autocomplete="new-password" readonly>
+          <input type="password" id="settings-new-password" class="tap-to-edit-field" placeholder=" " readonly>
           <label for="settings-new-password" data-i18n="settings.newPassword">New password</label>
           <button type="button" class="password-toggle" aria-label="Show password">
             <svg class="password-toggle-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
@@ -1854,8 +1863,8 @@
   </button>
 </nav>
 
-<script src="i18n.js?v=e4c6ba5b783e"></script>
-<script src="hours-picker.js?v=e4c6ba5b783e"></script>
-<script src="app.js?v=e4c6ba5b783e"></script>
+<script src="i18n.js?v=c59797653997"></script>
+<script src="hours-picker.js?v=c59797653997"></script>
+<script src="app.js?v=c59797653997"></script>
 </body>
 </html>
