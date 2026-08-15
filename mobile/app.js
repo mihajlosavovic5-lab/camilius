@@ -2558,6 +2558,16 @@ async function logout(clearChatHistory = true) {
     showScreen("login");
 }
 
+// Flips a password input's masked/plain-text state and keeps its eye button's look in
+// sync with it - shared by the generic .password-toggle listener below and the tap-to-edit
+// modal's own standalone toggle (see openFieldEditModal/its click listener further down),
+// since both need the exact same input.type + is-visible/aria-label bookkeeping.
+function syncPasswordVisibility(input, btn, visible) {
+    input.type = visible ? "text" : "password";
+    btn.classList.toggle("is-visible", visible);
+    btn.setAttribute("aria-label", visible ? "Hide password" : "Show password");
+}
+
 // Show/hide password toggle (see .password-toggle in app.css) - wired once for every
 // password field (login, sign up, Profile security fields) instead of per-screen, so
 // any new password field just needs the .floating-field-password wrapper + button.
@@ -2571,10 +2581,15 @@ document.querySelectorAll(".password-toggle").forEach((btn) => {
     input.addEventListener("input", syncHasValue);
     syncHasValue();
     btn.addEventListener("click", () => {
-        const showing = input.type === "text";
-        input.type = showing ? "password" : "text";
-        btn.classList.toggle("is-visible", !showing);
-        btn.setAttribute("aria-label", showing ? "Show password" : "Hide password");
+        const visible = input.type === "password";
+        syncPasswordVisibility(input, btn, visible);
+        // register-password/settings-current-password/etc are readonly shells for the tap-
+        // to-edit modal (see MYSITE_FIELD_MODAL_FIELDS) - if the modal for this exact field
+        // is the one currently open, its own reveal/hide is really the same state as this
+        // button's, not a separate one, so a tap here carries straight into it too.
+        if (mysiteFieldModalTargetEl === input) {
+            syncPasswordVisibility(el("mysite-field-modal-input"), el("mysite-field-modal-password-toggle"), visible);
+        }
     });
 });
 
@@ -6659,10 +6674,13 @@ function openFieldEditModal(sourceEl, titleText, { textarea: showTextarea = fals
     // the web Profile page's equivalent field (static/pickers.js's priceInput). Reset to
     // "text"/no inputmode whenever a different field reuses this same shared modal, so
     // the restriction doesn't leak onto Headline/About/every other field it also serves.
-    input.type = password ? "password" : (numeric ? "number" : "text");
     input.inputMode = numeric ? "decimal" : "";
     if (numeric) { input.min = "0"; input.step = "0.01"; } else { input.removeAttribute("min"); input.removeAttribute("step"); }
-    if (password) passwordToggle.classList.remove("is-visible");
+    // Password fields only - opens already showing/hidden to match whatever this exact
+    // field's own in-place eye button currently shows, rather than always resetting to
+    // masked, since they're the same reveal state seen from two places, not two states.
+    if (password) syncPasswordVisibility(input, passwordToggle, sourceEl.type === "text");
+    else input.type = numeric ? "number" : "text";
     const active = showTextarea ? textarea : input;
     // Mirrors the real field's own maxlength (e.g. 200 for the tagline, 2000 for about,
     // none for most others) so the modal can't be used to type past what the real field -
@@ -6815,11 +6833,16 @@ el("mysite-field-modal-copy-btn").addEventListener("click", async (event) => {
 // listener further up this file, just standalone since this button isn't inside a
 // .floating-field for that one to find.
 el("mysite-field-modal-password-toggle").addEventListener("click", () => {
-    const btn = el("mysite-field-modal-password-toggle");
     const input = el("mysite-field-modal-input");
-    const showing = input.type === "text";
-    input.type = showing ? "password" : "text";
-    btn.classList.toggle("is-visible", !showing);
+    const visible = input.type === "password";
+    syncPasswordVisibility(input, el("mysite-field-modal-password-toggle"), visible);
+    // Carries the reveal/hide back onto the readonly field this modal is editing, so
+    // closing the modal leaves it showing (or masked) exactly like it was left in here -
+    // same reasoning as the generic .password-toggle listener's own mirror of this.
+    if (mysiteFieldModalTargetEl) {
+        const sourceBtn = mysiteFieldModalTargetEl.closest(".floating-field").querySelector(".password-toggle");
+        if (sourceBtn) syncPasswordVisibility(mysiteFieldModalTargetEl, sourceBtn, visible);
+    }
 });
 
 Object.keys(MYSITE_FIELD_MODAL_FIELDS).forEach((fieldId) => {

@@ -732,10 +732,12 @@
         input.addEventListener("input", syncHasValue);
         syncHasValue();
         btn.addEventListener("click", function () {
-            var showing = input.type === "text";
-            input.type = showing ? "password" : "text";
-            btn.classList.toggle("is-visible", !showing);
-            btn.setAttribute("aria-label", showing ? "Show password" : "Hide password");
+            var visible = input.type === "password";
+            syncPasswordVisibility(input, btn, visible);
+            // If this exact field is (still) open in the tap-to-edit modal (static/
+            // field-edit-modal.js), its reveal/hide is really the same state as this
+            // button's, not a separate one, so a tap here carries straight into it too.
+            if (window.mirrorPasswordVisibilityToFieldEditModal) mirrorPasswordVisibilityToFieldEditModal(input, visible);
         });
     });
 </script>

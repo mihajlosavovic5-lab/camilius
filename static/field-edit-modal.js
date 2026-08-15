@@ -29,6 +29,29 @@
 // Same breakpoint style.css already uses elsewhere for "mobile-width" treatments.
 const TAP_TO_EDIT_MQ = window.matchMedia("(max-width: 640px)");
 
+// Flips a password input's masked/plain-text state and keeps its eye button's look in
+// sync with it - shared by the in-page .password-toggle listener (base.html) and this
+// modal's own standalone toggle below, and by both directions of mirroring one onto the
+// other (see openFieldEditModal's init and the passwordToggle click listener below), since
+// they all need the exact same input.type + is-visible/aria-label bookkeeping.
+function syncPasswordVisibility(input, btn, visible) {
+    input.type = visible ? "text" : "password";
+    btn.classList.toggle("is-visible", visible);
+    btn.setAttribute("aria-label", visible ? "Hide password" : "Show password");
+}
+
+// Called from base.html's generic .password-toggle click listener, for every password
+// field on the page, not just ones currently open in this modal - a no-op unless the field
+// being toggled is the exact one this modal is (still) editing. The readonly in-page field
+// and this modal's own input are two views of the same value, so revealing one should
+// reveal both, immediately, not just once the modal happens to close.
+function mirrorPasswordVisibilityToFieldEditModal(sourceInput, visible) {
+    if (!_fieldEditModalEl || _fieldEditModalSourceEl !== sourceInput) return;
+    const modalInput = _fieldEditModalEl.querySelector(".field-edit-modal-input");
+    const modalToggle = _fieldEditModalEl.querySelector(".field-edit-modal-password-toggle");
+    syncPasswordVisibility(modalInput, modalToggle, visible);
+}
+
 // Applies (or removes) the readonly state on every currently-present .tap-to-edit-field
 // under root, matching TAP_TO_EDIT_MQ's current state. Call this again after adding new
 // such elements to the DOM (a fresh htmx swap, a new price/upsell row, ...) - it's not a
@@ -186,9 +209,16 @@ function ensureFieldEditModal() {
     });
 
     passwordToggle.addEventListener("click", () => {
-        const showing = input.type === "text";
-        input.type = showing ? "password" : "text";
-        passwordToggle.classList.toggle("is-visible", !showing);
+        const visible = input.type === "password";
+        syncPasswordVisibility(input, passwordToggle, visible);
+        // Carries the reveal/hide back onto the readonly in-page field this modal is
+        // editing, so closing the modal leaves it showing (or masked) exactly like it was
+        // left in here - same reasoning as base.html's own mirror of this, the other way.
+        if (_fieldEditModalSourceEl) {
+            const floatingField = _fieldEditModalSourceEl.closest(".floating-field");
+            const sourceBtn = floatingField && floatingField.querySelector(".password-toggle");
+            if (sourceBtn) syncPasswordVisibility(_fieldEditModalSourceEl, sourceBtn, visible);
+        }
     });
 
     // Opens its own confirm dialog rather than clearing on the first tap - same reasoning
@@ -238,7 +268,6 @@ function openFieldEditModal(sourceEl) {
     if (sourceEl.maxLength >= 0) active.setAttribute("maxlength", sourceEl.maxLength);
     else active.removeAttribute("maxlength");
 
-    input.type = isPassword ? "password" : isNumeric ? "number" : "text";
     input.inputMode = isNumeric ? "decimal" : "";
     if (isNumeric) {
         input.min = "0";
@@ -253,8 +282,13 @@ function openFieldEditModal(sourceEl) {
     inputWrap.classList.toggle("field-edit-modal-input-wrap-password", isPassword);
     passwordToggle.classList.toggle("hidden", !isPassword);
     if (isPassword) {
-        passwordToggle.classList.remove("is-visible");
+        // Opens already showing/hidden to match whatever this exact field's own in-page eye
+        // button currently shows, rather than always resetting to masked, since they're the
+        // same reveal state seen from two places, not two states.
+        syncPasswordVisibility(input, passwordToggle, sourceEl.type === "text");
         passwordToggle.classList.toggle("has-value", active.value.length > 0);
+    } else {
+        input.type = isNumeric ? "number" : "text";
     }
     deleteBtn.classList.toggle("has-value", active.value.length > 0);
 
