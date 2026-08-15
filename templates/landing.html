@@ -91,14 +91,34 @@
 <div class="content">
     <!-- Hero -->
     <section class="hero lp-hero">
+        <span class="lp-hero-eyebrow lp-enter lp-enter-1" data-i18n="landing.hero.eyebrow">No coding, no designer — live in minutes.</span>
         <h1 class="lp-enter lp-enter-1"><span data-i18n="landing.hero.title1">Describe your business.</span><br><span class="lp-accent" data-i18n="landing.hero.title2">Camilius builds the website.</span></h1>
-        <p class="hero-subtitle lp-enter lp-enter-2"><span data-i18n="landing.hero.subtitle1">It designs, writes, and publishes your site in minutes — no coding, no designer.</span><br><span data-i18n="landing.hero.subtitle2">Every site includes an AI agent that talks to customers and books appointments.</span></p>
+        <p class="hero-subtitle lp-enter lp-enter-2" data-i18n="landing.hero.subtitle1">Every site comes with an AI agent that answers customer questions and books appointments — day or night.</p>
         <div class="hero-actions lp-enter lp-enter-3">
             {% if beta_free_mode %}
-            <a href="{{ url_for('register') }}" class="button lp-shine" style="font-size: 16px; padding: 13px 28px;" data-i18n="landing.hero.ctaFree">Get started for free</a>
+            <a href="{{ url_for('register') }}" class="button lp-shine" data-i18n="landing.hero.ctaFree">Get started for free</a>
             {% else %}
-            <a href="{{ url_for('register') }}" class="button lp-shine" style="font-size: 16px; padding: 13px 28px;" data-i18n="landing.hero.ctaTrial">Try free for 14 days</a>
+            <a href="{{ url_for('register') }}" class="button lp-shine" data-i18n="landing.hero.ctaTrial">Try free for 14 days</a>
             {% endif %}
+            <a href="#lp-examples" class="button button-secondary" data-i18n="landing.hero.ctaSecondary">See it in action</a>
+        </div>
+        {% if beta_free_mode %}
+        <p class="hero-fine-print lp-enter lp-enter-3" data-i18n="landing.hero.finePrintBeta">Free during the beta</p>
+        {% else %}
+        <p class="hero-fine-print lp-enter lp-enter-3"><span data-i18n="landing.pricing.trialInfo">14-day free trial</span> · <span data-i18n="landing.pricing.benefit3">Cancel anytime</span></p>
+        {% endif %}
+        <div class="lp-hero-preview lp-enter lp-enter-4" aria-hidden="true">
+            <p class="lp-hero-preview-prompt" data-i18n="landing.hero.previewPrompt">&ldquo;Cozy coffee shop, open 7am&ndash;6pm, downtown&rdquo;</p>
+            <svg class="lp-hero-preview-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12l7 7 7-7"/></svg>
+            <span class="showcase-window">
+                <span class="showcase-window-bar"><span></span><span></span><span></span></span>
+                <span class="showcase-window-body" style="background:var(--primary-light);">
+                    <span class="showcase-window-hero" style="background:var(--primary);"></span>
+                    <span class="showcase-window-line" style="width:70%; background:var(--primary-ink);"></span>
+                    <span class="showcase-window-line" style="width:45%; background:var(--primary-ink);"></span>
+                    <span class="showcase-window-chip" style="background:var(--gold-dark);"></span>
+                </span>
+            </span>
         </div>
     </section>
 
