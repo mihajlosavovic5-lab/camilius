@@ -1778,7 +1778,7 @@ body.auth {
     color: var(--text); font-size: 21px; line-height: 1; cursor: pointer; flex-shrink: 0;
 }
 .register-back-btn:hover { background: var(--border); }
-.register-wizard-heading { width: 100%; min-width: 0; }
+.register-wizard-heading { width: 100%; min-width: 0; text-align: center; }
 .register-wizard-heading h1 { margin-top: 0; }
 
 .register-step { display: none; }
@@ -1841,7 +1841,7 @@ body.auth {
    JS (updateStepProgress() in register.html) as the active step changes - gives a sense
    of place beyond the dots alone, which only communicate position, not what each step is
    for or how many remain in words. */
-.register-step-progress { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+.register-step-progress { display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 6px; }
 .register-step-icon-badge {
     width: 30px; height: 30px; border-radius: 50%; flex-shrink: 0;
     background: var(--primary-light); color: var(--primary-ink);
