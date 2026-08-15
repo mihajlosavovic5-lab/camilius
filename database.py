@@ -950,6 +950,26 @@ def create_database():
         )
     """)
 
+    # Same per-language cache shape as business_page_translations above, for the
+    # fictional showcase/<slug> demo pages (showcase_data.py) instead of a real business -
+    # keyed on slug (a fixed Python dict key, not a database row) rather than business_id,
+    # since these fixtures have no businesses row to satisfy that column's FK with. See
+    # app.py's showcase_page_translate.
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS showcase_page_translations (
+            id SERIAL PRIMARY KEY,
+            slug TEXT NOT NULL,
+            lang TEXT NOT NULL,
+            tagline TEXT,
+            about TEXT,
+            price_list TEXT,
+            faq TEXT,
+            ui_json TEXT NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+    cursor.execute("CREATE UNIQUE INDEX IF NOT EXISTS showcase_page_translations_slug_lang_idx ON showcase_page_translations (slug, lang)")
+
     # Photos/video a business uploads for its own public page (logo in the header, a
     # gallery of shots of the product/space, one hero video) - see storage.py for the
     # actual Cloudinary upload/delete, this table just links the resulting URL back to
@@ -3133,6 +3153,40 @@ def upsert_page_translation(business_id, lang, tagline, about, price_list, faq, 
                tagline = EXCLUDED.tagline, about = EXCLUDED.about, price_list = EXCLUDED.price_list,
                faq = EXCLUDED.faq, ui_json = EXCLUDED.ui_json, created_at = CURRENT_TIMESTAMP""",
         (business_id, lang, tagline, about, price_list, faq, ui_json),
+    )
+    connection.commit()
+    connection.close()
+
+
+def get_showcase_page_translation(slug, lang):
+    """A previously cached translation of one showcase_data.py fixture page into `lang` -
+    see showcase_page_translations in create_database() and get_page_translation above
+    (same shape, keyed on slug instead of business_id). Returns None on a cache miss (the
+    caller, app.py's showcase_page_translate, then calls OpenAI and saves the result via
+    upsert_showcase_page_translation below)."""
+    connection = connect()
+    cursor = connection.cursor()
+    cursor.execute(
+        "SELECT tagline, about, price_list, faq, ui_json FROM showcase_page_translations WHERE slug = %s AND lang = %s",
+        (slug, lang),
+    )
+    result = cursor.fetchone()
+    connection.close()
+    return result
+
+
+def upsert_showcase_page_translation(slug, lang, tagline, about, price_list, faq, ui_json):
+    """Caches one showcase_data.py fixture page translated into one language, keyed on
+    (slug, lang) - same one-row-per-key spirit as upsert_page_translation above."""
+    connection = connect()
+    cursor = connection.cursor()
+    cursor.execute(
+        """INSERT INTO showcase_page_translations (slug, lang, tagline, about, price_list, faq, ui_json)
+           VALUES (%s, %s, %s, %s, %s, %s, %s)
+           ON CONFLICT (slug, lang) DO UPDATE SET
+               tagline = EXCLUDED.tagline, about = EXCLUDED.about, price_list = EXCLUDED.price_list,
+               faq = EXCLUDED.faq, ui_json = EXCLUDED.ui_json, created_at = CURRENT_TIMESTAMP""",
+        (slug, lang, tagline, about, price_list, faq, ui_json),
     )
     connection.commit()
     connection.close()

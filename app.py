@@ -53,6 +53,7 @@ from database import (
     page_chat_session_messages_today,
     set_page_content_language, get_page_translation, upsert_page_translation,
     get_ui_translation, upsert_ui_translation,
+    get_showcase_page_translation, upsert_showcase_page_translation,
     onboarding_completed, mark_onboarding_completed,
     set_booking_relevant,
     update_business_social_links,
@@ -3404,7 +3405,10 @@ def showcase_page(slug):
         booking_enabled=booking_enabled,
         availability_url=url_for("showcase_availability", slug=slug) if booking_enabled else None,
         initial_availability_days=_showcase_availability_days(fixture) if booking_enabled else None,
-        translate_url="",
+        # Same "x" placeholder trick as _render_public_page's translate_url - see its own
+        # comment - so the language switcher works here exactly like it does on a real
+        # business's page, just against showcase_page_translate below instead.
+        translate_url=url_for("showcase_page_translate", slug=slug, lang="x")[:-1],
         content_language=content_language,
         page_languages=[{"code": code, **translate_page.LANGUAGES[code]} for code in page_languages],
         current_year=datetime.now().year,
@@ -3421,6 +3425,45 @@ def showcase_availability(slug):
     if fixture is None or not fixture["booking_enabled"]:
         abort(404)
     return jsonify(days=_showcase_availability_days(fixture))
+
+
+@app.route("/showcase/<slug>/translate/<lang>")
+@limiter.limit("30 per minute")  # per IP
+@limiter.limit("200 per hour", key_func=lambda: request.view_args.get("slug", ""))  # per showcase page, across all visitors
+def showcase_page_translate(slug, lang):
+    """Same job as public_page_translate above, for a showcase_data.py fixture instead of
+    a real business's page: translates its fixed English tagline/about/price_list/faq
+    (plus PAGE_UI_STRINGS) into `lang` for the header flag switcher, cached forever per
+    (slug, lang) in showcase_page_translations (database.get_showcase_page_translation/
+    upsert_showcase_page_translation) - one real OpenAI call ever per (fixture, language)
+    pair, everyone after is served from that cache, exactly like a real business's page."""
+    if lang not in _TRANSLATE_ALLOWED_LANGS:
+        abort(404)
+    fixture = showcase_data.SHOWCASE_BUSINESSES.get(slug)
+    if fixture is None:
+        abort(404)
+
+    cached = get_showcase_page_translation(slug, lang)
+    if cached is not None:
+        db_tagline, db_about, db_price_list, db_faq, ui_json = cached
+        try:
+            db_ui = json.loads(ui_json)
+        except (TypeError, json.JSONDecodeError):
+            db_ui = None
+        if db_ui is not None and translate_page.translation_is_usable(
+            {"tagline": db_tagline, "about": db_about, "price_list": db_price_list, "faq": db_faq, "ui": db_ui},
+            fixture["tagline"], fixture["about"], fixture["price_list"], fixture["faq"], lang,
+        ):
+            return jsonify(tagline=db_tagline, about=db_about, price_list=db_price_list, faq=db_faq, ui=db_ui)
+
+    try:
+        result = translate_page.translate_page_content(lang, fixture["tagline"], fixture["about"], fixture["price_list"], fixture["faq"])
+    except ValueError as error:
+        log_client_error(None, f"showcase/{slug}/translate/{lang} failed: {error}", "", "showcase_page_translate", "")
+        abort(502)
+
+    upsert_showcase_page_translation(slug, lang, result["tagline"], result["about"], result["price_list"], result["faq"], json.dumps(result["ui"]))
+    return jsonify(tagline=result["tagline"], about=result["about"], price_list=result["price_list"], faq=result["faq"], ui=result["ui"])
 
 
 @app.route("/showcase/<slug>/chat", methods=["POST"])
