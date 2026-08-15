@@ -1196,7 +1196,6 @@ input.tap-to-edit-field, textarea.tap-to-edit-field { cursor: pointer; backgroun
 
 .button-danger-outline { color: var(--danger); border-color: var(--danger-border); }
 .button-danger { background: var(--danger); color: #fff; }
-.button-danger:active { background: var(--danger); opacity: .85; }
 
 /* --- Shared option-picker button (Faza 4) - used for the working-hours time fields
    and the price-list currency field (see createOptionButton()/optionPicker in app.js).
