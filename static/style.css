@@ -3045,26 +3045,6 @@ html { scroll-behavior: smooth; }
     border: 1.5px solid var(--primary);
 }
 
-/* --- Hero product preview: illustrates the H1 literally ("Describe your business." ->
-   "Camilius builds the website.") - a one-line description, an arrow, then a mini
-   .showcase-window (the same CSS-only "browser" mockup the "See it in action" slider
-   uses below, static/style.css:3160+). Colors are Camilius' own tokens, not a specific
-   showcase business' swatch, since this represents the product in the abstract rather
-   than one concrete example. Deliberately NOT a chat-bubble mockup - see the git history
-   note in the hero HTML comment for why. --- */
-.lp-hero-preview {
-    max-width: 300px; margin: 8px auto 0;
-    display: flex; flex-direction: column; align-items: center; gap: 8px;
-}
-.lp-hero-preview-prompt {
-    margin: 0; padding: 8px 16px; max-width: 100%;
-    background: var(--surface); border: 1px solid var(--border); border-radius: 999px;
-    box-shadow: var(--shadow);
-    font-size: 13.5px; font-style: italic; color: var(--text-muted); text-align: center;
-}
-.lp-hero-preview-arrow { width: 16px; height: 16px; color: var(--text-muted); opacity: .55; }
-.lp-hero-preview .showcase-window { width: 100%; box-shadow: var(--shadow-lg); }
-
 /* --- Hero entrance (progressive enhancement - visible by default, JS adds the animation) --- */
 .lp-enter {
     opacity: 1; transform: none;
@@ -3076,7 +3056,6 @@ html { scroll-behavior: smooth; }
 .lp-js .lp-enter-1 { animation-delay: .05s; }
 .lp-js .lp-enter-2 { animation-delay: .16s; }
 .lp-js .lp-enter-3 { animation-delay: .27s; }
-.lp-js .lp-enter-4 { animation-delay: .38s; }
 @keyframes lp-fade-up {
     to { opacity: 1; transform: none; }
 }

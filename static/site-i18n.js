@@ -184,7 +184,6 @@ const TRANSLATIONS = {
         "landing.hero.ctaTrial": "Try free for 14 days",
         "landing.hero.ctaSecondary": "See it in action",
         "landing.hero.finePrintBeta": "Free during the beta",
-        "landing.hero.previewPrompt": "“Cozy coffee shop, open 7am–6pm, downtown”",
         "landing.trust.reviewed": "Every reply is sent automatically, no review needed",
         "landing.trust.drafted": "Drafted in ~60 seconds",
         "landing.slider.sectionTitle": "See it in action",
