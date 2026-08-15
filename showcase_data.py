@@ -29,10 +29,18 @@ different from what the AI itself would produce):
 
 Deliberately absent, same reasoning in every case: social_links (no real accounts to
 link to - a fabricated Instagram/Facebook URL would be a fake link the platform's own
-code produced), address (no geocoded location to point a map at), hero_video_url (no
-uploaded video). Each of these is simply the same "not set" state a real business that
-never filled that field in would have - public_page.html already hides the corresponding
-section in that case, so nothing here needed a special case for it.
+code produced), hero_video_url (no uploaded video). Each of these is simply the same
+"not set" state a real business that never filled that field in would have -
+public_page.html already hides the corresponding section in that case, so nothing here
+needed a special case for it.
+
+address is the one exception: every fixture below carries a plausible-looking street
+address so the Location section (map + caption) renders like it would for a real
+business - an empty showcase page with no map would look unfinished next to a real one.
+None of these addresses are real places tied to these fictional businesses, so - same
+treatment as social_links' fake "#" hrefs - app.py's showcase_page route wires the
+Location card's click-through into the same showcase-only "Only for test" toast in
+public_page.html instead of letting it link out to Google Maps for real.
 """
 
 SHOWCASE_BUSINESSES = {
@@ -43,6 +51,7 @@ SHOWCASE_BUSINESSES = {
         "booking_enabled": True,
         "contact_email": "hello@bellahairstudio.example",
         "phone_number": "+1 555-0142",
+        "address": "142 Elm Street, Portland, USA",
         "about": (
             "# Welcome to Bella\n\n"
             "We're a small, friendly studio focused on cuts and color that actually suit "
@@ -88,6 +97,7 @@ SHOWCASE_BUSINESSES = {
         "booking_enabled": True,
         "contact_email": "front-desk@brightsmiledental.example",
         "phone_number": "+1 555-0198",
+        "address": "88 Maple Avenue, Austin, USA",
         "about": (
             "# Care for the whole family\n\n"
             "BrightSmile has been treating patients of all ages for over a decade, from "
@@ -132,6 +142,7 @@ SHOWCASE_BUSINESSES = {
         "booking_enabled": True,
         "contact_email": "hey@quickfixrepair.example",
         "phone_number": "+1 555-0177",
+        "address": "215 Market Street, Denver, USA",
         "about": (
             "# Most repairs done in under an hour\n\n"
             "We fix phones, tablets and laptops - screens, batteries, charging ports, "
@@ -176,6 +187,7 @@ SHOWCASE_BUSINESSES = {
         "booking_enabled": False,
         "contact_email": "stay@harborviewbnb.example",
         "phone_number": "+1 555-0163",
+        "address": "9 Harbor Lane, Bar Harbor, USA",
         "about": (
             "# A small, quiet stay by the harbor\n\n"
             "Four rooms, each with a view of the water, a proper breakfast included, and "
@@ -219,6 +231,7 @@ SHOWCASE_BUSINESSES = {
         "booking_enabled": True,
         "contact_email": "namaste@flowyogastudio.example",
         "phone_number": "+1 555-0129",
+        "address": "47 Willow Street, Asheville, USA",
         "about": (
             "# Move, breathe, reset\n\n"
             "Small classes, real attention from your instructor, and a schedule built "
@@ -262,6 +275,7 @@ SHOWCASE_BUSINESSES = {
         "booking_enabled": False,
         "contact_email": "hello@mapleandco.example",
         "phone_number": "+1 555-0114",
+        "address": "12 Baker Street, Burlington, USA",
         "about": (
             "# Baked fresh, every single morning\n\n"
             "Sourdough, croissants and seasonal pastries, made from scratch before the "
@@ -307,6 +321,7 @@ SHOWCASE_BUSINESSES = {
         "booking_enabled": True,
         "contact_email": "studio@aperturephoto.example",
         "phone_number": "+1 555-0155",
+        "address": "301 Sunset Boulevard, Savannah, USA",
         "about": (
             "# Photos that feel like the day actually felt\n\n"
             "Wedding and portrait photography with a documentary, unposed style - candid "
@@ -351,6 +366,7 @@ SHOWCASE_BUSINESSES = {
         "booking_enabled": True,
         "contact_email": "service@shiftauto.example",
         "phone_number": "+1 555-0188",
+        "address": "560 Industrial Road, Tulsa, USA",
         "about": (
             "# Straightforward car care\n\n"
             "Oil changes, brakes, diagnostics and general repair - we show you what's "

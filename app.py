@@ -3392,8 +3392,11 @@ def showcase_page(slug):
         ],
         contact_email=fixture["contact_email"],
         phone_number=fixture["phone_number"],
-        address=None,
-        address_lines=("", ""),
+        # Fictional address (showcase_data.py), same "looks real but isn't" treatment as
+        # social_links above - the Location card's click-through is intercepted into the
+        # same "Only for test" toast client-side instead of linking out to Google Maps.
+        address=fixture["address"],
+        address_lines=pages.short_address(fixture["address"]),
         # No hero_cta: these showcase pages skip the hero "Book now" shortcut button;
         # the full booking widget further down the page (gated on booking_enabled
         # alone) still renders normally for the businesses that have it enabled.
