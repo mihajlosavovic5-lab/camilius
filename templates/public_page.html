@@ -1118,6 +1118,15 @@
        that box, and the ::after spacer matches .book-date-btn's own 34px width so the
        icon and spacer bracket the heading symmetrically - centering it on the section,
        not off to whichever side has more room. */
+    /* Positioned (not the plain "section" default of static) so this section joins a
+       later paint bucket than its non-positioned siblings (#prices, #faq, ...) - see
+       CSS2.1 Appendix E. Without this, #book-section's own load-reveal entrance
+       animation (a transform, however brief) makes it establish its own stacking
+       context while still being non-positioned, which keeps it - popover and all -
+       painted underneath whichever section comes after it in the page, however high
+       .book-date-cal's own z-index is set below: that z-index only ever wins fights
+       within #book-section's own subtree, never against a later sibling section. */
+    #book-section { position: relative; z-index: 1; }
     .book-section-head {
         display: flex;
         align-items: center;
