@@ -6766,11 +6766,20 @@ el("mysite-field-modal-backdrop").addEventListener("click", closeMysiteFieldModa
 // where tapped like any normal text field, so it's still possible to edit mid-text.
 // Deferred a tick so it runs after the browser's own mousedown-driven caret placement
 // for that same tap, which would otherwise win and leave the cursor wherever tapped.
+// setSelectionRange alone moves the logical caret but doesn't reliably scroll it into
+// view here: .mysite-field-modal-control is text-align:center (app.css), and centered
+// text confuses the WebView's own "scroll input to reveal the caret" behavior - the
+// caret lands at the end of a long value (e.g. a social link) while the field stays
+// scrolled to show its start, so the caret sits off-screen to the right. Forcing
+// scrollLeft to scrollWidth after placing the caret makes the field actually show its
+// end, same as the input-row's own explicit scroll for the slug field above. A no-op
+// for the textarea control (About) since it wraps instead of scrolling horizontally.
 function mysiteFieldModalCaretToEnd(event) {
     const field = event.currentTarget;
     setTimeout(() => {
         const end = field.value.length;
         field.setSelectionRange(end, end);
+        field.scrollLeft = field.scrollWidth;
     }, 0);
 }
 el("mysite-field-modal-input").addEventListener("focus", mysiteFieldModalCaretToEnd);
