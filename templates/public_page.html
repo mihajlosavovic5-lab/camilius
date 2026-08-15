@@ -1756,8 +1756,8 @@
        front-and-center with its neighbors peeking on each side (same "peek" pattern as
        .photo-slider above), so browsing themes reads as flicking through a deck of
        actual page mockups instead of scanning a wall of small color chips. Own hand-
-       rolled viewport/track/drag (mirrors .photo-slider-viewport's own overflow-x: auto
-       + touchstart/move/end below) rather than reusing that slider's JS, since this one
+       rolled viewport/track/drag (mirrors .photo-slider-viewport's own transform-driven
+       touchstart/move/end below) rather than reusing that slider's JS, since this one
        has no wrap-around (a theme list has no natural "next after the last one" the way
        a photo loop does) and each card carries a live per-theme mockup instead of an
        <img>. --- */
@@ -2053,13 +2053,17 @@
         margin: 0 auto;
         --photo-slide-w: 84; /* percent; peek on each side = (100 - slide-w) / 2 */
     }
-    .photo-slider-viewport {
-        overflow-x: auto;
-        overflow-y: hidden;
-        border-radius: var(--radius);
-        scrollbar-width: none;
-    }
-    .photo-slider-viewport::-webkit-scrollbar { display: none; }
+    /* overflow: clip, not overflow-x: auto - same fix, same reasoning, as
+       .theme-slider-viewport further down this file (see that rule's own comment for
+       the full story): a real native-scrollable viewport gives this page's in-app
+       browser's own momentum/inertial scrolling something to act on, which fights every
+       scrollLeft write the old drag/snap code here made - intermittently, whichever
+       photo a visitor last landed on drifted left of center and stayed there instead of
+       settling back. This carousel now positions .photo-slider-track with a plain
+       JS-driven transform instead (see the script below), and clip - not hidden -
+       removes the scroll port entirely so there's nothing left for any native scroll
+       physics to grab, full stop. */
+    .photo-slider-viewport { overflow: clip; border-radius: var(--radius); }
     .photo-slider-track { display: flex; }
     .photo-slide {
         flex: 0 0 calc(var(--photo-slide-w) * 1%);
@@ -3801,16 +3805,27 @@ window.pageOverlay = (function () {
             slides.forEach(function (slide, idx) { slide.classList.toggle("photo-slide-active", idx === i); });
             dots.forEach(function (dot, idx) { dot.classList.toggle("active", idx === i); });
         }
-        // Scroll position the viewport would need for `el` to sit centered within it -
-        // same center-distance math as landing.html's own scrollCardIntoView, so the
-        // active slide always lands in the middle with a neighbor peeking on each side,
-        // not flush against the viewport's left edge. Independent of offsetParent;
-        // works for a clone exactly the same as a real slide, since both are real track
-        // children.
-        function targetScrollLeft(el) {
-            var elRect = el.getBoundingClientRect();
-            var vpRect = viewport.getBoundingClientRect();
-            return viewport.scrollLeft + (elRect.left + elRect.width / 2) - (vpRect.left + vpRect.width / 2);
+        // Position `el` needs to sit centered in the viewport, built from
+        // offsetLeft/offsetWidth rather than getBoundingClientRect() - same math, same
+        // reasoning, as .theme-slider's own targetOffset further down this page. `el`
+        // and `viewport` share the same offsetParent (.photo-slider, the nearest
+        // position:relative ancestor of both), so their offsetLeft values are directly
+        // comparable; unaffected by any transform on the track itself, unlike a
+        // getBoundingClientRect()-based reading would be.
+        function targetOffset(el) {
+            return (el.offsetLeft - viewport.offsetLeft) + (el.offsetWidth - viewport.clientWidth) / 2;
+        }
+        // The deck's position is a plain JS number + a CSS transform on
+        // .photo-slider-track, not viewport.scrollLeft on a native-scrollable viewport -
+        // see .photo-slider-viewport's own CSS comment above for why (in short: this
+        // in-app browser's native momentum scrolling was fighting every scrollLeft write
+        // below, intermittently leaving a photo drifted off-center with nothing left to
+        // re-settle it). trackOffset is the single source of truth for the deck's
+        // position; setOffset() is the only thing allowed to write it.
+        var trackOffset = 0;
+        function setOffset(x) {
+            trackOffset = x;
+            track.style.transform = "translateX(" + (-x) + "px)";
         }
         // requestAnimationFrame + manual ease-out, not viewport.scrollTo({behavior:
         // "smooth"}) - same reason #book-list's animateBookScrollTo below doesn't use it
@@ -3821,15 +3836,15 @@ window.pageOverlay = (function () {
         var animFrame = null;
         function animateScrollTo(left, duration, onDone) {
             if (animFrame !== null) cancelAnimationFrame(animFrame);
-            if (reduceMotion) { viewport.scrollLeft = left; if (onDone) onDone(); return; }
-            var startLeft = viewport.scrollLeft;
+            if (reduceMotion) { setOffset(left); if (onDone) onDone(); return; }
+            var startLeft = trackOffset;
             var delta = left - startLeft;
             var startTime = null;
             function step(now) {
                 if (startTime === null) startTime = now;
                 var t = Math.min(1, (now - startTime) / duration);
                 var eased = 1 - Math.pow(1 - t, 3);
-                viewport.scrollLeft = startLeft + delta * eased;
+                setOffset(startLeft + delta * eased);
                 if (t < 1) { animFrame = requestAnimationFrame(step); return; }
                 animFrame = null;
                 if (onDone) onDone();
@@ -3838,18 +3853,18 @@ window.pageOverlay = (function () {
         }
         function goTo(i) {
             i = Math.max(0, Math.min(slides.length - 1, i));
-            animateScrollTo(targetScrollLeft(slides[i]), 420);
+            animateScrollTo(targetOffset(slides[i]), 420);
             setActive(i);
         }
         // At either end, step onto the adjacent clone instead of jumping straight to
         // goTo(0)/goTo(last) - see the clone setup above for why. Once that animation
         // lands, instantly (no animation - invisible, since the clone is pixel-identical
-        // to the real photo it stands in for) swap the scroll position over to the real
-        // slide, so `current`/goTo() never has to know clones exist at all.
+        // to the real photo it stands in for) swap the offset over to the real slide, so
+        // `current`/goTo() never has to know clones exist at all.
         function next() {
             if (slides.length > 1 && current === slides.length - 1) {
-                animateScrollTo(targetScrollLeft(track.children[cloneOffset + slides.length]), 420, function () {
-                    viewport.scrollLeft = targetScrollLeft(slides[0]);
+                animateScrollTo(targetOffset(track.children[cloneOffset + slides.length]), 420, function () {
+                    setOffset(targetOffset(slides[0]));
                     setActive(0);
                 });
                 return;
@@ -3858,8 +3873,8 @@ window.pageOverlay = (function () {
         }
         function prev() {
             if (slides.length > 1 && current === 0) {
-                animateScrollTo(targetScrollLeft(track.children[cloneOffset - 1]), 420, function () {
-                    viewport.scrollLeft = targetScrollLeft(slides[slides.length - 1]);
+                animateScrollTo(targetOffset(track.children[cloneOffset - 1]), 420, function () {
+                    setOffset(targetOffset(slides[slides.length - 1]));
                     setActive(slides.length - 1);
                 });
                 return;
@@ -3868,14 +3883,8 @@ window.pageOverlay = (function () {
         }
         if (prevBtn) prevBtn.addEventListener("click", prev);
         if (nextBtn) nextBtn.addEventListener("click", next);
-        // A plain overflow-x container starts scrolled to its very first DOM child,
-        // which - now that cloneSecondLast/cloneLast sit ahead of the real slides in the
-        // track (see the clone setup above) - is one of those two clones, not slide 0.
-        // Without this, the page loaded with slide 0 correctly marked "active" (dot lit,
-        // slide undimmed) while the viewport was actually still showing a dimmed clone
-        // sitting in front of it. No animation here - this is the starting position, not
-        // a navigation.
-        viewport.scrollLeft = targetScrollLeft(slides[0]);
+        // No animation here - this is the starting position, not a navigation.
+        setOffset(targetOffset(slides[0]));
         setActive(0);
 
         // Hand-rolled drag - mirrors #book-list's own touchstart/touchmove/touchend
@@ -3888,19 +3897,22 @@ window.pageOverlay = (function () {
         // (rather than goTo(current +/- 1) directly) so a swipe at either end wraps the
         // same way an arrow/dot click does; a drag that never clears the threshold falls
         // through to goTo(current), snapping back to wherever it actually started.
-        var dragStartX = null, dragStartY = null, dragStartScroll = null, dragAxis = null;
+        var dragStartX = null, dragStartY = null, dragStartOffset = null, dragAxis = null;
         var dragMin = null, dragMax = null;
         viewport.addEventListener("touchstart", function (e) {
             // A still-running animateScrollTo from the previous swipe (e.g. a quick
             // double-flick, or grabbing the slider again before its snap settles) would
-            // otherwise keep overwriting viewport.scrollLeft every frame in a race against
-            // this drag's own writes below - the glitchy stutter that produced. Cancelling
-            // it here means a new touch always takes over cleanly from wherever the slider
-            // actually is at that instant.
+            // otherwise keep overwriting trackOffset every frame in a race against this
+            // drag's own writes below - cancelling it here, then snapping straight to
+            // `current`'s own target (a no-op unless that previous animation was actually
+            // cut short mid-flight), means a new touch always takes over cleanly from a
+            // properly centered position instead of wherever a half-eased animation
+            // happened to leave it.
             if (animFrame !== null) { cancelAnimationFrame(animFrame); animFrame = null; }
+            setOffset(targetOffset(slides[current]));
             dragStartX = e.touches[0].clientX;
             dragStartY = e.touches[0].clientY;
-            dragStartScroll = viewport.scrollLeft;
+            dragStartOffset = trackOffset;
             dragAxis = null;
             // Bounds the drag itself (not just where it snaps to on release) to the
             // immediate neighbor on either side - accounting for the wraparound clones
@@ -3910,10 +3922,10 @@ window.pageOverlay = (function () {
             if (slides.length > 1) {
                 var prevChild = current === 0 ? track.children[cloneOffset - 1] : slides[current - 1];
                 var nextChild = current === slides.length - 1 ? track.children[cloneOffset + slides.length] : slides[current + 1];
-                dragMin = targetScrollLeft(prevChild);
-                dragMax = targetScrollLeft(nextChild);
+                dragMin = targetOffset(prevChild);
+                dragMax = targetOffset(nextChild);
             } else {
-                dragMin = dragMax = dragStartScroll;
+                dragMin = dragMax = dragStartOffset;
             }
         }, { passive: true });
         viewport.addEventListener("touchmove", function (e) {
@@ -3926,12 +3938,12 @@ window.pageOverlay = (function () {
             }
             if (dragAxis === "y") return;
             e.preventDefault();
-            viewport.scrollLeft = Math.max(dragMin, Math.min(dragMax, dragStartScroll - dx));
+            setOffset(Math.max(dragMin, Math.min(dragMax, dragStartOffset - dx)));
         }, { passive: false });
         viewport.addEventListener("touchend", function (e) {
             if (dragStartX === null) return;
             var axis = dragAxis;
-            var scrolled = viewport.scrollLeft - dragStartScroll;
+            var scrolled = trackOffset - dragStartOffset;
             dragStartX = null;
             dragAxis = null;
             if (axis !== null) e.preventDefault();
@@ -3941,6 +3953,20 @@ window.pageOverlay = (function () {
             else if (scrolled < -SWIPE_THRESHOLD) prev();
             else goTo(current);
         }, { passive: false });
+        // touchend's settle logic above only ever runs if touchend actually fires - see
+        // .theme-slider's own touchcancel comment further down this page for why a
+        // touchcancel (the OS/WebView yanking the gesture away mid-drag) is a standard,
+        // spec-legal way for that not to happen here, and why re-centering on `current`
+        // (not interpreting the distance dragged so far as a real swipe) is the right
+        // fallback. Without this, a cancelled gesture left trackOffset frozen wherever
+        // the finger last was - not a photo boundary, not centered on anything - with no
+        // further correction until the slider was grabbed again.
+        viewport.addEventListener("touchcancel", function () {
+            if (dragStartX === null) return;
+            dragStartX = null;
+            dragAxis = null;
+            goTo(current);
+        }, { passive: true });
 
         // Lightbox - tapping a photo used to follow its <a href> straight to the raw
         // image file in a new tab; now it opens over this dimmed in-page overlay instead
@@ -4463,9 +4489,9 @@ window.pageOverlay = (function () {
         });
     }
 
-    // Center-distance math, like .photo-slider's own targetScrollLeft further up this
+    // Center-distance math, like .photo-slider's own targetOffset further up this
     // page - the position `el` needs to sit centered in the viewport, so the active
-    // card lands in the middle with a neighbor peeking on each side - but built from
+    // card lands in the middle with a neighbor peeking on each side, built from
     // offsetLeft/offsetWidth rather than getBoundingClientRect(). Unlike the photo
     // slider (always plainly on-screen), this carousel's very first positioning below
     // runs while .theme-panel still sits behind .hidden's `transform: scale(.95);
@@ -4482,9 +4508,9 @@ window.pageOverlay = (function () {
         return (el.offsetLeft - viewport.offsetLeft) + (el.offsetWidth - viewport.clientWidth) / 2;
     }
     // The deck's position is a plain JS number + a CSS transform on .theme-slider-track,
-    // not viewport.scrollLeft on a native-scrollable element (contrast .photo-slider-
-    // viewport further up this page, which still scrolls natively). Every earlier fix in
-    // this file's history (touchcancel leaving scrollLeft stranded, a cut-short animation
+    // not viewport.scrollLeft on a native-scrollable element - same transform-driven
+    // approach .photo-slider-track further up this page now uses too. Every earlier fix
+    // in this file's history (touchcancel leaving scrollLeft stranded, a cut-short animation
     // settling off-center, a scroll-drift watchdog re-centering a card after native
     // momentum kept nudging scrollLeft well after touchend had already fired) was this
     // same root cause wearing a different hat: the in-app browser this page actually
