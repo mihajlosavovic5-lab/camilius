@@ -2749,9 +2749,17 @@ document.addEventListener("DOMContentLoaded", function () {
             <div class="photo-slider" id="photo-slider">
                 <div class="photo-slider-viewport" id="photo-slider-viewport">
                     <div class="photo-slider-track">
+                        {# No loading="lazy" here (unlike the lightbox copy of these same
+                           images below, which stays lazy since it's hidden until opened) -
+                           these thumbnails are what a visitor actually sees scrolling down
+                           to Photos, and lazy-loading them meant the fetch only started once
+                           the section neared the viewport, so it was still visibly loading in
+                           right as they scrolled to it. Fetching eagerly, in parallel with
+                           the rest of the page, means they're already decoded and cached by
+                           the time a visitor reaches this section instead of popping in. #}
                         {% for url in gallery_urls %}
                         <a class="photo-slide" href="{{ url }}" target="_blank" rel="noopener">
-                            <img src="{{ url }}" alt="{{ business_name }} photo" loading="lazy">
+                            <img src="{{ url }}" alt="{{ business_name }} photo">
                         </a>
                         {% endfor %}
                     </div>
