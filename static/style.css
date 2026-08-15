@@ -933,6 +933,11 @@ body.nav-menu-open .site-lang-select-btn { opacity: .3; pointer-events: none; tr
 .button-google { background: #fff; color: #3c4043; border: 1px solid var(--border); }
 .button-google:hover { background: var(--background); color: #3c4043; box-shadow: 0 4px 10px -6px rgba(43, 32, 19, .18); }
 .button-google-icon { width: 18px; height: 18px; flex-shrink: 0; }
+/* Hidden until login.html's script successfully renders Google Identity Services'
+   own button into it (see that script's own comment) - the plain .button-google link
+   right below it is what shows meanwhile, and what stays showing if that never happens. */
+.google-gis-slot { display: none; }
+.google-gis-slot.visible { display: flex; justify-content: center; }
 /* Help & support's "Email us" box and FAQ items - same look as the mobile app's
    .info-card/.block-label (mobile/app.css), reused here for parity. */
 .info-card {
