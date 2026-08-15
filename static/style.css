@@ -1580,14 +1580,12 @@ body.auth {
    side margins than the tighter desktop-derived defaults the rest of the site uses
    (26px side margins vs 16px, buttons with more vertical padding (13px vs 10px) plus
    their own 18px margin-top between them) - matched here, scoped to .auth-login only.
-   The brand mark/wordmark/tagline themselves stay close to the site's own base size
-   (a touch smaller, even) rather than matching the APK's own bigger 76px logo - reads
-   better against this page's much shorter card (no flexible spacer padding it out the
-   way .login-top-spacer does in the app), where a bigger logo read as oversized. */
+   Brand mark/wordmark/tagline sizes match the APK's own .login-icon/.brand-name/
+   .login-tagline exactly (76px/23px/14.5px). */
 .auth-login .auth-wrapper { padding-left: 24px; padding-right: 24px; }
 .auth-login .auth-brand { margin-bottom: 22px; }
-.auth-login .auth-brand .brand-mark { width: 60px; height: 60px; }
-.auth-login .auth-brand .brand-name { font-size: 20px; }
+.auth-login .auth-brand .brand-mark { width: 76px; height: 76px; }
+.auth-login .auth-brand .brand-name { font-size: 23px; }
 .auth-login .auth-tagline { font-size: 14.5px; }
 .auth-login .auth-choice .button,
 .auth-login .auth-form-wrap .button {
