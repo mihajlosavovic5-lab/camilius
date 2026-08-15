@@ -81,14 +81,16 @@
         <div class="login-phase-stack">
         <div class="auth-choice" id="login-choice">
             {% if google_oauth_configured %}
-            {# Google Identity Services renders its own bottom-sheet-style "Sign in with
-               Google" panel into this slot once its script loads (see the script block
-               below) - hidden until then. The plain link below it is the fallback: full
-               page redirect through accounts.google.com, exactly what this page did
-               before GIS existed, and what still runs if the GIS script fails to load
-               (network block, offline, etc.) or JS is disabled entirely. #}
-            <div id="google-gis-slot" class="google-gis-slot"></div>
-            <a class="button button-google button-full button-pill" id="login-google-fallback-btn" href="{{ url_for('auth_google', intent='login') }}">
+            {# Same button as always, visually - the script block below wires its click to
+               Google Identity Services' One Tap prompt (a card Google itself slides up
+               from the bottom of the screen on mobile web, the closest web equivalent to
+               the Android app's Credential Manager bottom sheet) instead of the plain
+               href navigation. That href is still real and still works on its own - it's
+               what runs if GIS never loaded, and what the prompt itself falls back to if
+               Google reports it couldn't be shown (FedCM unsupported/blocked, one-tap
+               dismissed too recently, etc.) - so nothing here ever leaves this button
+               unable to sign someone in. #}
+            <a class="button button-google button-full button-pill" id="login-google-btn" href="{{ url_for('auth_google', intent='login') }}">
                 {% include "_google_icon.html" %}
                 <span data-i18n="login.continueWithGoogle">Continue with Google</span>
             </a>
@@ -222,17 +224,25 @@
 </script>
 {% if google_oauth_configured %}
 <script>
-    // Progressive enhancement over the plain #login-google-fallback-btn link above (a
-    // full-page redirect through accounts.google.com - see auth_google()'s own comment):
-    // loads Google Identity Services and, only once it's actually rendered a button,
-    // swaps to it. Anything that stops that - the script blocked/offline, an old
-    // browser GIS refuses to run in, JS disabled entirely - just leaves the fallback
-    // link showing and working exactly as it always has, nothing here ever removes or
-    // disables it up front.
+    // Intercepts a click on #login-google-btn to try Google's own One Tap prompt first -
+    // a card Google slides up from the bottom of the screen on mobile web (top-right on
+    // desktop), instead of the plain href's full-page redirect through accounts.google.com.
+    // Three separate things all have to go right for that to actually happen; anything
+    // that doesn't just lets the click fall through to the plain href, unmodified:
+    //   1. The GIS script itself has to load (gisReady below) - network block, offline,
+    //      an ad blocker, etc. leave it false forever, click does a normal navigation.
+    //   2. Once clicked, google.accounts.id.prompt() is what can actually still refuse to
+    //      display anything (FedCM unsupported by this browser, third-party sign-in
+    //      blocked, one-tap dismissed too recently to re-offer) - its own notification
+    //      callback below catches exactly that and falls back to the href navigation from
+    //      inside the click handler, same outcome as if this script had never run.
+    //   3. If it DOES display and a credential comes back, handleCredential posts it to
+    //      the server and navigates on to whatever it says - and if THAT request itself
+    //      fails (offline mid-flow, server error), falls back to the href too.
     (function () {
-        var slot = document.getElementById("google-gis-slot");
-        var fallback = document.getElementById("login-google-fallback-btn");
-        if (!slot || !fallback) return;
+        var button = document.getElementById("login-google-btn");
+        if (!button) return;
+        var gisReady = false;
 
         function handleCredential(response) {
             fetch("{{ url_for('auth_google_token') }}", {
@@ -241,8 +251,8 @@
                 body: JSON.stringify({ credential: response.credential, intent: "login" }),
             })
                 .then(function (r) { return r.json(); })
-                .then(function (data) { window.location.href = data.redirect || fallback.href; })
-                .catch(function () { window.location.href = fallback.href; });
+                .then(function (data) { window.location.href = data.redirect || button.href; })
+                .catch(function () { window.location.href = button.href; });
         }
 
         var script = document.createElement("script");
@@ -255,21 +265,21 @@
                 client_id: {{ google_client_id | tojson }},
                 callback: handleCredential,
             });
-            google.accounts.id.renderButton(slot, {
-                type: "standard",
-                theme: "outline",
-                size: "large",
-                text: "continue_with",
-                shape: "pill",
-                logo_alignment: "left",
-                width: Math.min(fallback.offsetWidth || 320, 400),
-            });
-            slot.classList.add("visible");
-            fallback.style.display = "none";
+            gisReady = true;
         };
-        // No .onerror handling needed - leaving the fallback link as-is (still visible,
-        // still a real href) IS the error handling.
+        // No .onerror handling needed - leaving gisReady false (the click handler below
+        // falls through to the plain href) IS the error handling.
         document.head.appendChild(script);
+
+        button.addEventListener("click", function (event) {
+            if (!gisReady) return; // GIS never loaded - let the plain href navigation happen.
+            event.preventDefault();
+            google.accounts.id.prompt(function (notification) {
+                if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
+                    window.location.href = button.href;
+                }
+            });
+        });
     })();
 </script>
 {% endif %}
