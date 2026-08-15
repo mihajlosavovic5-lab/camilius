@@ -3078,6 +3078,38 @@ def _pretranslate_page_languages_in_background(business_id):
     threading.Thread(target=_pretranslate_page_languages, args=(business_id,), daemon=True).start()
 
 
+# Same pre-warm as _pretranslate_page_languages above, for showcase_data.py's fixtures
+# instead of a real business's saved page - these never go through a save request (their
+# content is fixed in code, not editable), so there's no natural "just saved, warm the
+# cache" trigger to hang this off of. Instead this runs once, in the background, right
+# after the module below kicks it off at import time (server boot) - by the time a real
+# visitor can reach a showcase page at all, every DEFAULT_PAGE_LANGUAGES translation
+# already sits in showcase_page_translations, so switchLanguage() in public_page.html
+# hits its own client-side cache/a warm DB row instead of paying for a live OpenAI call -
+# same "instant, not stalling on a spinner" experience a real business's page already has.
+def _pretranslate_showcase_page_languages():
+    for slug, fixture in showcase_data.SHOWCASE_BUSINESSES.items():
+        # content_language is hardcoded "en" for every fixture (see showcase_page) - same
+        # skip-the-source-language reasoning as _pretranslate_page_languages above.
+        for lang in translate_page.DEFAULT_PAGE_LANGUAGES:
+            if lang == "en":
+                continue
+            if get_showcase_page_translation(slug, lang) is not None:
+                continue  # already cached, from an earlier boot or a real visitor
+            try:
+                result = translate_page.translate_page_content(lang, fixture["tagline"], fixture["about"], fixture["price_list"], fixture["faq"])
+            except ValueError:
+                continue
+            upsert_showcase_page_translation(slug, lang, result["tagline"], result["about"], result["price_list"], result["faq"], json.dumps(result["ui"]))
+
+
+def _pretranslate_showcase_page_languages_in_background():
+    threading.Thread(target=_pretranslate_showcase_page_languages, daemon=True).start()
+
+
+_pretranslate_showcase_page_languages_in_background()
+
+
 # Translates the public page's own content + fixed chrome (see translate_page.py's
 # PAGE_UI_STRINGS) into `lang`, for the header flag switcher's benefit - real OpenAI
 # spend, but capped hard by the cache: only ever the FIRST request for a given
