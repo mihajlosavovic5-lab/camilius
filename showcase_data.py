@@ -37,10 +37,10 @@ needed a special case for it.
 address is the one exception: every fixture below carries a plausible-looking street
 address so the Location section (map + caption) renders like it would for a real
 business - an empty showcase page with no map would look unfinished next to a real one.
-None of these addresses are real places tied to these fictional businesses, so - same
-treatment as social_links' fake "#" hrefs - app.py's showcase_page route wires the
-Location card's click-through into the same showcase-only "Only for test" toast in
-public_page.html instead of letting it link out to Google Maps for real.
+None of these are real addresses tied to these fictional businesses, but unlike
+social_links' fake "#" hrefs, the map link is left working for real - it opens Google
+Maps for the address text, landing near the (real) city each fixture names even though
+the exact street/number is made up.
 """
 
 SHOWCASE_BUSINESSES = {

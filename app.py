@@ -3392,9 +3392,9 @@ def showcase_page(slug):
         ],
         contact_email=fixture["contact_email"],
         phone_number=fixture["phone_number"],
-        # Fictional address (showcase_data.py), same "looks real but isn't" treatment as
-        # social_links above - the Location card's click-through is intercepted into the
-        # same "Only for test" toast client-side instead of linking out to Google Maps.
+        # Fictional address (showcase_data.py) - unlike social_links above, its map link
+        # is left to work for real: it just opens Google Maps for this address text, so
+        # it lands near the fictional street rather than sending a visitor anywhere wrong.
         address=fixture["address"],
         address_lines=pages.short_address(fixture["address"]),
         # No hero_cta: these showcase pages skip the hero "Book now" shortcut button;
