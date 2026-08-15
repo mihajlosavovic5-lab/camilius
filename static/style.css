@@ -132,6 +132,32 @@
     @keyframes clx-page-in {
         from { opacity: 0; transform: translateY(4px); }
     }
+    /* Login <-> Register/Forgot password - overrides the generic crossfade above with the
+       APK's own screen-stack slide (mobile/app.css's .screen/.screen.active transform,
+       same .32s/cubic-bezier(.22,1,.36,1)) whenever base.html's pageswap/pagereveal
+       listener has tagged <html> with one of these. "static" (Login, whichever role it's
+       playing) gets no animation of its own - z-index:0 keeps it as the plain backdrop;
+       "slide" (Register/Forgot password) always animates in/out and sits at z-index:1 so
+       it's the one visibly sliding over/off the static screen instead of being hidden
+       under it (the default view-transition stacking always paints ::view-transition-new
+       on top, which would bury a *departing* slide screen under an *arriving* static
+       Login otherwise). */
+    html.vt-auth-static-old::view-transition-old(root),
+    html.vt-auth-static-new::view-transition-new(root) {
+        animation: none; z-index: 0;
+    }
+    html.vt-auth-slide-old::view-transition-old(root) {
+        animation: clx-auth-slide-out .32s cubic-bezier(.22, 1, .36, 1) both; z-index: 1;
+    }
+    html.vt-auth-slide-new::view-transition-new(root) {
+        animation: clx-auth-slide-in .32s cubic-bezier(.22, 1, .36, 1) both; z-index: 1;
+    }
+    @keyframes clx-auth-slide-out {
+        to { transform: translateX(100%); }
+    }
+    @keyframes clx-auth-slide-in {
+        from { transform: translateX(100%); }
+    }
 }
 
 /* --- Site-wide language picker (fixed top-right on every page, base.html) - a

@@ -16,6 +16,49 @@
             } catch (e) {}
         })();
     </script>
+    <!-- Login <-> Register/Forgot password: a direction-aware slide instead of the
+         generic fade+drift every other navigation gets (style.css's `@view-transition`,
+         further down). Matches the APK's own screen stack (mobile/app.css): Login is the
+         "anchor" screen and never animates itself (.screen-login { transition: none }),
+         while every other screen (Register, Forgot password, ...) always slides
+         (translateX 0<->100%) in front of whichever screen it's covering/revealing.
+
+         Only pagereveal (fired on the document that just became active) matters here,
+         not pageswap (fired on the one about to be replaced) - a cross-document
+         transition's ::view-transition-old(root)/::view-transition-new(root) are BOTH
+         ultimately styled by the incoming document's stylesheet once it takes over
+         (confirmed empirically: classes set on the outgoing document at pageswap time
+         have no effect on either pseudo-element's animation), so there's nothing to gain
+         from also listening on the page being left. window.navigation.activation.from/
+         .entry (which page this navigation is FROM/TO) is what a plain cross-document
+         view transition has no concept of on its own - read directly off the Navigation
+         API rather than event.activation, which is unset on pagereveal in current Chrome
+         despite being populated on pageswap. Registered this early (synchronous, not
+         deferred) since pagereveal can fire before DOMContentLoaded - style.css's own
+         vt-auth-* rules read the classes this sets. Unsupported browsers just never add
+         them and keep the generic fade - pure progressive enhancement, same as the
+         view-transition opt-in itself. -->
+    <script>
+        (function () {
+            if (!("onpagereveal" in window)) return;
+            var AUTH_SLIDE_PAGES = ["/login", "/register", "/forgot-password"];
+            window.addEventListener("pagereveal", function (event) {
+                if (!event.viewTransition) return;
+                var activation = window.navigation && window.navigation.activation;
+                if (!activation || !activation.from || !activation.entry) return;
+                var fromPath, toPath;
+                try {
+                    fromPath = new URL(activation.from.url).pathname;
+                    toPath = new URL(activation.entry.url).pathname;
+                } catch (e) { return; }
+                if (AUTH_SLIDE_PAGES.indexOf(fromPath) === -1 || AUTH_SLIDE_PAGES.indexOf(toPath) === -1) return;
+                document.documentElement.classList.add(
+                    "vt-auth-" + (fromPath === "/login" ? "static" : "slide") + "-old",
+                    "vt-auth-" + (toPath === "/login" ? "static" : "slide") + "-new"
+                );
+            });
+        })();
+    </script>
     <meta charset="UTF-8">
     <!-- maximum-scale=1/user-scalable=no - the diagnostic overlay's numbers turned out
          to be a red herring for an actual browser bug: the gap the report described
