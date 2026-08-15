@@ -300,7 +300,13 @@
     body[data-overlay="theme"] .nav-menu-btn,
     body[data-overlay="theme"] .lang-btn,
     body[data-overlay="theme"] .chat-fab,
-    body[data-overlay="theme"] .sticky-cta-bar {
+    body[data-overlay="theme"] .sticky-cta-bar,
+    body[data-overlay="book"] .top-bar-title,
+    body[data-overlay="book"] .nav-menu-btn,
+    body[data-overlay="book"] .lang-btn,
+    body[data-overlay="book"] .chat-fab,
+    body[data-overlay="book"] .theme-fab,
+    body[data-overlay="book"] .sticky-cta-bar {
         opacity: .35;
         pointer-events: none;
         transition: opacity .3s ease;
@@ -1135,11 +1141,16 @@
     }
     .book-section-head h2 { flex: 1; text-align: center; margin: 0; }
     .book-section-head::after { content: ""; flex: 0 0 auto; width: 34px; }
-    /* Calendar icon + popover - a themed month grid built from scratch (var(--surface)/
-       var(--primary)/etc.) instead of a plain <input type="date">, whose native picker
-       dialog (OS/browser chrome) can't be restyled to match the rest of the page.
-       .book-date-picker is just the positioning anchor for .book-date-cal below it,
-       same relative-parent pattern as .lang-btn/.lang-dropdown above. */
+    /* Calendar icon + centered modal - a themed month grid built from scratch
+       (var(--surface)/var(--primary)/etc.) instead of a plain <input type="date">,
+       whose native picker dialog (OS/browser chrome) can't be restyled to match the
+       rest of the page. .book-date-picker is just the click-outside-to-close
+       boundary now (see #book-date-btn/#book-date-cal in the "book" overlay setup
+       further down) - .book-date-cal itself is fixed/centered, not anchored under
+       this button, so it registers with window.pageOverlay the same way the
+       language dropdown/chat panel/theme panel already do: opening it dims the rest
+       of the page via the shared #nav-menu-backdrop instead of just floating a
+       popover over whichever section happens to sit underneath. */
     .book-date-picker { position: relative; }
     .book-date-btn {
         display: flex; align-items: center; justify-content: center;
@@ -1152,23 +1163,27 @@
     .book-date-btn:active { transform: scale(.92); }
     .book-date-btn.active { border-color: var(--primary); color: var(--primary); }
     .book-date-icon { width: 18px; height: 18px; pointer-events: none; }
-    /* Same fixed-below-the-button popover treatment as .lang-dropdown, just anchored
-       under this button (position: absolute against .book-date-picker's own relative
-       parent) instead of pinned to the viewport's own top-right corner. */
+    /* Fixed + centered in the viewport (not anchored under the button) so it always
+       opens in the same, fully-visible spot regardless of where the button sits on
+       the page - same 953 z-index tier as .lang-dropdown/.chat-panel/.theme-panel,
+       above the shared #nav-menu-backdrop's 950. max-height/overflow-y guard against
+       a short viewport (e.g. landscape mobile) clipping the grid the same way
+       max-width already guards narrow ones. */
     .book-date-cal {
-        position: absolute; top: calc(100% + 8px); left: 0; z-index: 30;
+        position: fixed; top: 50%; left: 50%; z-index: 953;
         width: 264px; max-width: calc(100vw - 40px);
+        max-height: calc(100vh - 40px); overflow-y: auto;
         background: var(--surface); border: 1px solid var(--border); border-radius: calc(var(--radius) * 0.6);
         box-shadow: 0 16px 44px rgba(0, 0, 0, 0.18);
         padding: 12px;
-        opacity: 0; transform: translateY(-6px) scale(.98); pointer-events: none;
+        opacity: 0; transform: translate(-50%, -50%) scale(.96); pointer-events: none;
         transition: opacity .18s ease, transform .18s ease;
         /* Clips .book-date-grid's own slide transform (see the touch handling further
-           down) to this popover's rounded corners instead of it briefly poking out
-           past them mid-swipe. */
-        overflow: hidden;
+           down) to this modal's rounded corners instead of it briefly poking out past
+           them mid-swipe. */
+        overflow-x: hidden;
     }
-    .book-date-cal.open { opacity: 1; transform: none; pointer-events: auto; }
+    .book-date-cal.open { opacity: 1; transform: translate(-50%, -50%) scale(1); pointer-events: auto; }
     .book-date-cal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
     .book-date-cal-title { font-family: var(--heading-font); font-weight: 700; font-size: 0.9rem; color: var(--text); text-transform: capitalize; }
     .book-date-nav {
@@ -2267,6 +2282,34 @@
 <div class="lang-loading-overlay" id="lang-loading-overlay" aria-hidden="true">
     <div class="lang-loading-spinner"></div>
 </div>
+{% if booking_enabled %}
+<!-- Booking date-picker modal - lives up here as a top-level overlay (not nested inside
+     #book-section down in the page) for the same reason #lang-dropdown/#theme-panel do:
+     #book-section has its own load-reveal entrance animation, and an animated ancestor's
+     transform makes it the containing block for any position:fixed descendant, which
+     would center this against #book-section's own box instead of the real viewport.
+     #book-date-btn (see #book-section below) stays where it is and just toggles this via
+     the "book" overlay registered with window.pageOverlay further down. -->
+<div class="book-date-cal" id="book-date-cal" role="dialog" aria-label="Pick a date" aria-modal="true">
+    <div class="book-date-cal-head">
+        <button type="button" class="book-date-nav" id="book-date-prev" aria-label="Previous month">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M15 18l-6-6 6-6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <span class="book-date-cal-title" id="book-date-cal-title"></span>
+        <button type="button" class="book-date-nav" id="book-date-next" aria-label="Next month">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M9 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+    </div>
+    <div class="book-date-weekdays" id="book-date-weekdays"></div>
+    <div class="book-date-viewport" id="book-date-viewport">
+        <div class="book-date-track" id="book-date-track">
+            <div class="book-date-grid" id="book-date-grid-prev"></div>
+            <div class="book-date-grid" id="book-date-grid"></div>
+            <div class="book-date-grid" id="book-date-grid-next"></div>
+        </div>
+    </div>
+</div>
+{% endif %}
 {% if theme_choices %}
 <!-- Owner-only "Change theme" launcher - see this block's own CSS comment above for why
      theme_choices being set at all already guarantees this is the owner's own logged-in
@@ -2701,25 +2744,6 @@
                             <path d="M8 3v4M16 3v4M3 10h18" stroke-linecap="round"/>
                         </svg>
                     </button>
-                    <div class="book-date-cal" id="book-date-cal" role="dialog" aria-label="Pick a date">
-                        <div class="book-date-cal-head">
-                            <button type="button" class="book-date-nav" id="book-date-prev" aria-label="Previous month">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M15 18l-6-6 6-6" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                            </button>
-                            <span class="book-date-cal-title" id="book-date-cal-title"></span>
-                            <button type="button" class="book-date-nav" id="book-date-next" aria-label="Next month">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M9 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                            </button>
-                        </div>
-                        <div class="book-date-weekdays" id="book-date-weekdays"></div>
-                        <div class="book-date-viewport" id="book-date-viewport">
-                            <div class="book-date-track" id="book-date-track">
-                                <div class="book-date-grid" id="book-date-grid-prev"></div>
-                                <div class="book-date-grid" id="book-date-grid"></div>
-                                <div class="book-date-grid" id="book-date-grid-next"></div>
-                            </div>
-                        </div>
-                    </div>
                 </div>
                 <h2 data-i18n="heading_book">Book an appointment</h2>
             </div>
@@ -5416,24 +5440,25 @@ window.pageOverlay = (function () {
         }
 
         function openBookDateCal() {
-            // The popover floats over the section (position: absolute) rather than
-            // pushing it down, and every day card's own slots are always visible now
-            // (see .book-day-slots above) - hide the carousel underneath it for as
-            // long as it's open so nothing bleeds out from behind it.
-            bookListEl.style.visibility = "hidden";
             bookDateViewYear = todayDateObj.getFullYear();
             bookDateViewMonth = todayDateObj.getMonth();
             renderBookDateCal();
             bookDateCal.classList.add("open");
             bookDateBtn.classList.add("active");
             bookDateBtn.setAttribute("aria-expanded", "true");
+            // Registered as its own overlay (see window.pageOverlay's own comment further
+            // up) so opening this dims the rest of the page behind the shared backdrop and
+            // closes whichever other overlay (menu/lang/chat/theme) was open, same as
+            // every one of those already does for each other.
+            window.pageOverlay.set("book");
         }
         function closeBookDateCal() {
             bookDateCal.classList.remove("open");
             bookDateBtn.classList.remove("active");
             bookDateBtn.setAttribute("aria-expanded", "false");
-            bookListEl.style.visibility = "";
+            window.pageOverlay.clear("book");
         }
+        window.pageOverlay.register("book", closeBookDateCal);
 
         bookDateBtn.addEventListener("click", function () {
             if (bookDateCal.classList.contains("open")) closeBookDateCal(); else openBookDateCal();
