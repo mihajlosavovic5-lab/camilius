@@ -3349,7 +3349,23 @@ def showcase_page(slug):
             url_for("static", filename=f"showcase/{slug}/gallery-2.svg"),
         ],
         hero_video_url=None,
-        social_links=[],
+        # Every platform, none with a real profile behind it - unlike
+        # _social_links_for_business() (real businesses), which only shows a platform
+        # once it has somewhere real to send a click (its own URL, or that platform's
+        # homepage as a fallback). These are fictional demo businesses with no real
+        # profile to fall back to, so instead of hiding the icons (making the example
+        # look unfinished next to a real page) or linking out to a generic platform
+        # homepage (which would send a visitor away from the demo for nothing), the
+        # click itself is intercepted client-side - see the showcase-only script by
+        # the "example site" badge further down - and shows an "Only for test" toast
+        # instead of navigating anywhere.
+        social_links=[
+            {"name": "Instagram", "icon": "instagram", "url": "#"},
+            {"name": "Facebook", "icon": "facebook", "url": "#"},
+            {"name": "X", "icon": "x", "url": "#"},
+            {"name": "TikTok", "icon": "tiktok", "url": "#"},
+            {"name": "YouTube", "icon": "youtube", "url": "#"},
+        ],
         contact_email=fixture["contact_email"],
         phone_number=fixture["phone_number"],
         address=None,
