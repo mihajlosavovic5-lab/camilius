@@ -2141,16 +2141,17 @@
         height: 100%;
         display: flex; align-items: center; justify-content: center;
     }
-    /* Fixed width/height (not max-width/max-height) - every photo's own frame is
-       identically sized regardless of that photo's own aspect ratio, same as
-       .photo-slide's fixed aspect-ratio box in the unzoomed slider above. object-fit:
-       contain still keeps the whole photo visible (letterboxed inside its frame rather
-       than cropped) instead of matching .photo-slide's object-fit: cover, since cropping
-       away part of the photo would defeat the point of zooming in to see it. */
+    /* Same 4:3 frame + object-fit: cover as .photo-slide img in the unzoomed slider above
+       (deliberately, not object-fit: contain) - every photo reads as the identical shape
+       zoomed in as it did as a thumbnail, portrait shots included, rather than suddenly
+       letterboxing into a different, taller frame the moment a visitor taps it. The width
+       cap also folds in 86vh*4/3 (not just 92vw/900px) so a short/landscape viewport
+       still shrinks the frame's width - and therefore its aspect-ratio-driven height -
+       enough to fit, instead of aspect-ratio alone overflowing past the viewport. */
     .photo-lightbox-slide img {
-        width: min(92vw, 900px);
-        height: 86vh;
-        object-fit: contain;
+        width: min(92vw, 900px, 114.6vh);
+        aspect-ratio: 4 / 3;
+        object-fit: cover;
         border-radius: 10px;
         box-shadow: 0 20px 60px rgba(0, 0, 0, .5);
     }
