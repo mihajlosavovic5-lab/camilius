@@ -1554,6 +1554,15 @@ body.auth {
     background: none; border: none; box-shadow: none; padding: 0;
 }
 .auth-login .auth-card.auth-card-email-active { padding-top: 0; }
+/* Same reasoning as .auth-login above, applied to Register: the APK's own Create
+   Account screen (mobile/app.css's .register-card { padding: 0 }) has no bounded white
+   card either - its fields float directly on the shared gradient background. Scoped to
+   .auth-register (register.html's own body class) rather than folded into the shared
+   .auth-card rule, which every other non-login auth page (verify email/phone, reset
+   password, etc.) still keeps the plain white card look on. */
+.auth-register .auth-card {
+    background: none; border: none; box-shadow: none; padding: 0;
+}
 /* Centering the whole block (base .auth-wrapper rule above) split the leftover vertical
    space evenly above/below it, so the footer links (Terms/Privacy/Replay intro) floated
    in the middle of the screen with just as much empty space under them as above the
@@ -2403,6 +2412,11 @@ body.auth {
     body.app .support-widget,
     body.app .support-widget-backdrop { display: none; }
 }
+/* The mobile app's own Create Account screen has no floating assistant launcher either
+   (see the .app rule above) - dropped here too, scoped to the register page's own body
+   class (templates/register.html) rather than every pre-login page, which keeps it. */
+body.auth-register .support-widget,
+body.auth-register .support-widget-backdrop { display: none; }
 /* Same transparent-fill + gold-border look as .hours-customize-link (Faza 5's hours
    picker) - a subtle outline instead of a solid amber-filled circle, so the launcher
    sits quietly in the corner instead of pulling the eye on every page. */
