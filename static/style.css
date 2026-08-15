@@ -1622,12 +1622,15 @@ body.auth {
 .auth-login .auth-brand .brand-name { font-size: 23px; }
 .auth-login .auth-tagline { font-size: 14.5px; }
 .auth-login .auth-choice .button,
-.auth-login .auth-form-wrap .button,
-.auth-login .auth-card > .button-primary-outline {
+.auth-login .auth-form-wrap .button {
     padding: 14px 22px; font-size: 17px;
 }
 .auth-login .auth-or-divider { margin: 22px 0 10px; font-size: 16px; }
 .auth-login .auth-divider { font-size: 14.5px; }
+/* Slightly smaller than the Google/email choice buttons above, on request - a deliberate
+   web-only touch (the APK's own Create account button matches the others exactly, see
+   .button in mobile/app.css) rather than a parity fix. */
+.auth-login .auth-card > .button-primary-outline { padding: 12px 20px; font-size: 15.5px; }
 /* No .auth-footer left below to justify the base .auth-wrapper's full 40px bottom
    padding - trimmed so Create account actually sits close to the real bottom edge
    instead of floating above a now-empty gap, same as the APK's own login screen (its
