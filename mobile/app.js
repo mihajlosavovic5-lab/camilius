@@ -1143,98 +1143,6 @@ function createUpsellPicker(rowsContainerId, addButtonId) {
     };
 }
 
-// Address autocomplete (Create Account's own address field) - same api.py
-// /api/address-suggest endpoint (OpenStreetMap Nominatim, see address_lookup.py's own
-// docstring) and debounce/stale-response-guard shape as the web version
-// (static/address-autocomplete.js), just plain fetch(API_BASE + ...) instead of that
-// file's relative fetch() - the mobile app is never same-origin with the API. Profile's
-// own address field (profile-address-input) does NOT use this - it's edited through the
-// shared tap-to-edit modal instead, which grows its own separate copy of this same
-// dropdown behavior (see mysiteFieldModalAddressActive further down) since the modal's
-// one shared input is reused for many other fields this must stay off for.
-function initAddressAutocomplete(input, list) {
-    if (!input || !list) return;
-
-    let debounceTimer = null;
-    let latestQuery = "";
-    // Picking a suggestion sets input.value programmatically, then dispatches a real
-    // "input" event so anything else listening on this field (there is none for
-    // register-address today, but the modal's own copy of this needs it - see below)
-    // still sees the change. Without this guard, that same dispatch would immediately
-    // re-trigger this listener and pop the list right back open a moment later, which is
-    // exactly the "not smooth, snaps back" glitch this once had.
-    let suppressNextFetch = false;
-
-    function hideList() {
-        list.classList.remove("visible");
-        list.classList.add("hidden");
-        list.innerHTML = "";
-    }
-
-    function renderSuggestions(suggestions) {
-        list.innerHTML = "";
-        if (!suggestions.length) {
-            hideList();
-            return;
-        }
-        suggestions.forEach((text) => {
-            const item = document.createElement("button");
-            item.type = "button";
-            item.className = "address-suggest-item";
-            item.textContent = text;
-            item.addEventListener("click", () => {
-                suppressNextFetch = true;
-                input.value = text;
-                input.dispatchEvent(new Event("input", { bubbles: true }));
-                hideList();
-            });
-            list.appendChild(item);
-        });
-        // "hidden" (display: none) comes off first, then "visible" (the actual
-        // opacity/transform transition, see app.css) goes on a frame later - added in
-        // the same tick, the fade would have nothing to animate from since the element
-        // wasn't rendered yet to begin with.
-        list.classList.remove("hidden");
-        requestAnimationFrame(() => list.classList.add("visible"));
-    }
-
-    function fetchSuggestions(query) {
-        latestQuery = query;
-        fetch(API_BASE + "/api/address-suggest?q=" + encodeURIComponent(query))
-            .then((response) => response.json())
-            .then((data) => {
-                if (query !== latestQuery) return; // superseded by a newer keystroke
-                renderSuggestions(data.suggestions || []);
-            })
-            .catch(() => {
-                if (query !== latestQuery) return;
-                hideList();
-            });
-    }
-
-    function scheduleSearch() {
-        if (suppressNextFetch) { suppressNextFetch = false; return; }
-        const query = input.value.trim();
-        if (debounceTimer) clearTimeout(debounceTimer);
-        if (query.length < 3) {
-            latestQuery = query;
-            hideList();
-            return;
-        }
-        debounceTimer = setTimeout(() => fetchSuggestions(query), 300);
-    }
-    // "input" alone missed real keystrokes on some Android keyboards - composing text
-    // (predictive/gesture typing, some IMEs) doesn't always fire it until the word is
-    // committed (a space, autocorrect, or the keyboard's own Done/checkmark button),
-    // which read as "nothing happens until I finish typing and tap Done". "keyup" and
-    // "compositionend" both catch what "input" alone missed; scheduleSearch's own
-    // clearTimeout/setTimeout make firing it more than once per keystroke harmless.
-    input.addEventListener("input", scheduleSearch);
-    input.addEventListener("keyup", scheduleSearch);
-    input.addEventListener("compositionend", scheduleSearch);
-}
-initAddressAutocomplete(el("register-address"), el("register-address-suggestions"));
-
 const registerHoursPicker = createHoursPicker("register-hours-picker");
 const registerPricesPicker = createPricePicker("register-prices-rows", "register-prices-add", "register-price-currency");
 registerPricesPicker.setValue("");
@@ -6650,6 +6558,17 @@ const MYSITE_FIELD_MODAL_FIELDS = {
     "profile-address-input": { control: "input", titleKey: "mysite.website.addressLabel" },
     "book-customer-name": { control: "input", titleKey: "schedule.customerNamePlaceholder" },
     "book-service": { control: "input", titleKey: "schedule.servicePlaceholder" },
+    // Sign up (Create account) step 1 - same tap-to-zoom-in modal as every other field in
+    // this list, rather than typing in place. register-address shares
+    // mysiteFieldModalAddressActive's live-suggestions dropdown with profile-address-input
+    // below (see openFieldEditModal's own toggle of that flag).
+    "register-firstname": { control: "input", titleKey: "register.yourName" },
+    "register-surname": { control: "input", titleKey: "register.yourSurname" },
+    "register-password": { control: "input", titleKey: "register.password", password: true },
+    "register-confirm-password": { control: "input", titleKey: "register.confirmPassword", password: true },
+    "register-contact-email": { control: "input", titleKey: "register.contactEmail" },
+    "register-phone": { control: "input", titleKey: "register.phone" },
+    "register-address": { control: "input", titleKey: "register.address" },
     "settings-name": { control: "input", titleKey: "settings.name" },
     "settings-contact-email": { control: "input", titleKey: "settings.contactEmail" },
     "settings-phone": { control: "input", titleKey: "settings.phone" },
@@ -6714,7 +6633,7 @@ function openFieldEditModal(sourceEl, titleText, { textarea: showTextarea = fals
     // whichever field is open now (see mysiteFieldModalAddressActive's own comment).
     // Always starts hidden/reset here regardless of which field this actually is, same
     // as every other per-field-type reset in this function.
-    mysiteFieldModalAddressActive = sourceEl.id === "profile-address-input";
+    mysiteFieldModalAddressActive = sourceEl.id === "profile-address-input" || sourceEl.id === "register-address";
     hideMysiteFieldModalAddressSuggestions();
     el("mysite-field-modal-slug-prefix").classList.toggle("hidden", !isSlug);
     el("mysite-field-modal-copy-btn").classList.toggle("hidden", !isSlug);
@@ -6923,17 +6842,19 @@ el("profile-address-input").addEventListener("input", () => {
     updateMysiteSaveValidity();
 });
 
-// The shared field-edit modal's own copy of the address-suggestions dropdown above -
-// can't reuse initAddressAutocomplete as-is, since that attaches one permanent listener
-// to one field; #mysite-field-modal-input is reused for many different fields (tagline,
-// phone, socials, ...), so fetching address suggestions has to be gated on whichever
-// field is CURRENTLY open in it, not run unconditionally on every keystroke regardless
-// of field. mysiteFieldModalAddressActive (toggled in openFieldEditModal/
-// closeMysiteFieldModal below) is that gate.
+// The shared field-edit modal's own address-suggestions dropdown - serves both
+// profile-address-input and register-address (Sign up), fetching suggestions gated on
+// whichever field is CURRENTLY open in the modal, not run unconditionally on every
+// keystroke regardless of field, since #mysite-field-modal-input is reused for many other
+// fields too (tagline, phone, socials, ...). mysiteFieldModalAddressActive (toggled in
+// openFieldEditModal/closeMysiteFieldModal below) is that gate.
 let mysiteFieldModalAddressActive = false;
 let mysiteFieldModalAddressDebounce = null;
 let mysiteFieldModalAddressLatestQuery = "";
-let mysiteFieldModalAddressSuppressNext = false; // see initAddressAutocomplete's own comment on the same guard
+// Suppresses the search that picking a suggestion would otherwise immediately re-trigger
+// (it sets the input's value then dispatches "input" to sync back to the source field) -
+// without this, the list would pop right back open a moment after picking an item.
+let mysiteFieldModalAddressSuppressNext = false;
 
 function hideMysiteFieldModalAddressSuggestions() {
     const list = el("mysite-field-modal-address-suggestions");
@@ -6993,8 +6914,9 @@ function scheduleMysiteFieldModalAddressSearch() {
     }
     mysiteFieldModalAddressDebounce = setTimeout(() => fetchMysiteFieldModalAddressSuggestions(query), 300);
 }
-// "input" alone missed real keystrokes on some Android keyboards - see
-// initAddressAutocomplete's own comment on the same fix for the full reasoning; "keyup"
+// "input" alone missed real keystrokes on some Android keyboards - composing text
+// (predictive/gesture typing, some IMEs) doesn't always fire it until the word is
+// committed (a space, autocorrect, or the keyboard's own Done/checkmark button). "keyup"
 // and "compositionend" catch what it missed, harmlessly (scheduleMysiteFieldModalAddressSearch's
 // own clearTimeout/setTimeout absorb firing more than once per keystroke).
 el("mysite-field-modal-input").addEventListener("input", scheduleMysiteFieldModalAddressSearch);

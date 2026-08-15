@@ -394,9 +394,9 @@
         </button>
       </div>
       <textarea id="mysite-field-modal-textarea" class="mysite-field-modal-control hidden" rows="1"></textarea>
-      <!-- Address only (Profile's profile-address-input - see openFieldEditModal's own
-           mysiteFieldModalAddressActive toggle in app.js) - live OSM-backed suggestions
-           while typing, same address-suggest-list/-item as Sign up's own address field. -->
+      <!-- Address fields only (Profile's profile-address-input, Sign up's register-address -
+           see openFieldEditModal's own mysiteFieldModalAddressActive toggle in app.js) -
+           live OSM-backed suggestions while typing. -->
       <div class="address-suggest-list hidden" id="mysite-field-modal-address-suggestions"></div>
     </div>
   </div>
@@ -710,17 +710,17 @@
             <div class="register-steps-track" id="register-steps-track">
             <div class="register-step" id="register-step-1">
               <div class="floating-field">
-                <input type="text" id="register-firstname" placeholder=" " required>
+                <input type="text" id="register-firstname" class="tap-to-edit-field" placeholder=" " required readonly>
                 <label for="register-firstname" data-i18n="register.yourName">Your name</label>
               </div>
 
               <div class="floating-field">
-                <input type="text" id="register-surname" placeholder=" " required>
+                <input type="text" id="register-surname" class="tap-to-edit-field" placeholder=" " required readonly>
                 <label for="register-surname" data-i18n="register.yourSurname">Your surname</label>
               </div>
 
               <div class="floating-field floating-field-password">
-                <input type="password" id="register-password" placeholder=" " autocomplete="new-password" required>
+                <input type="password" id="register-password" class="tap-to-edit-field" placeholder=" " autocomplete="new-password" required readonly>
                 <label for="register-password" data-i18n="register.password">Password</label>
                 <button type="button" class="password-toggle" aria-label="Show password">
                   <svg class="password-toggle-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
@@ -741,7 +741,7 @@
               </div>
 
               <div class="floating-field floating-field-password">
-                <input type="password" id="register-confirm-password" placeholder=" " autocomplete="new-password" required>
+                <input type="password" id="register-confirm-password" class="tap-to-edit-field" placeholder=" " autocomplete="new-password" required readonly>
                 <label for="register-confirm-password" data-i18n="register.confirmPassword">Confirm password</label>
                 <button type="button" class="password-toggle" aria-label="Show password">
                   <svg class="password-toggle-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
@@ -754,7 +754,7 @@
               <p class="field-error hidden" id="register-confirm-password-error"></p>
 
               <div class="floating-field">
-                <input type="email" id="register-contact-email" placeholder=" " autocomplete="email" autocapitalize="off" required>
+                <input type="email" id="register-contact-email" class="tap-to-edit-field" placeholder=" " autocomplete="email" autocapitalize="off" required readonly>
                 <label for="register-contact-email" data-i18n="register.contactEmail">Contact email</label>
               </div>
               <p class="field-error hidden" id="register-contact-email-error"></p>
@@ -766,7 +766,7 @@
                   <span id="register-phone-country-dial">+381</span>
                 </button>
                 <div class="floating-field">
-                  <input type="tel" id="register-phone" placeholder=" " autocomplete="tel">
+                  <input type="tel" id="register-phone" class="tap-to-edit-field" placeholder=" " autocomplete="tel" readonly>
                   <label for="register-phone" data-i18n="register.phone">Phone number (optional)</label>
                 </div>
               </div>
@@ -776,14 +776,16 @@
               <!-- Optional street address (businesses.address) - a starting point for the
                    public page's own Location/map section, filled in for real (and
                    independently editable) once the page itself is created - see
-                   database.py's add_business docstring. Autocomplete suggestions via
-                   app.js's initAddressAutocomplete, same OSM-backed endpoint web's Sign
-                   up/Settings address fields use. -->
+                   database.py's add_business docstring. Same readonly/tap-to-edit-modal
+                   pattern as every other field on this step, so it opens with the same
+                   zoom-in modal transition; that modal grows its own live OSM-backed
+                   suggestions dropdown while this field is the one open in it (see
+                   mysite-field-modal-address-suggestions/mysiteFieldModalAddressActive in
+                   app.js) - same endpoint Settings' own address field uses. -->
               <div class="floating-field">
-                <input type="text" id="register-address" placeholder=" " autocomplete="off" maxlength="200">
+                <input type="text" id="register-address" class="tap-to-edit-field" placeholder=" " autocomplete="off" maxlength="200" readonly>
                 <label for="register-address" data-i18n="register.address">Business address (shown on maps)</label>
               </div>
-              <div class="address-suggest-list hidden" id="register-address-suggestions"></div>
             </div>
 
             <div class="register-step" id="register-step-2">
@@ -975,9 +977,9 @@
           <textarea id="mysite-about-input" rows="1" maxlength="2000" placeholder=" " readonly></textarea>
           <label for="mysite-about-input" data-i18n="mysite.website.aboutLabel">About</label>
         </div>
-        <!-- Address now lives only in Profile > Account (profile-address-input, directly
-             editable with live suggestions there - see app.js's initAddressAutocomplete)
-             rather than duplicated here too. This hidden field is purely the value the
+        <!-- Address now lives only in Profile > Account (profile-address-input, edited
+             through the shared tap-to-edit modal there) rather than duplicated here too.
+             This hidden field is purely the value the
              existing My Site save flow (serializeMysiteForm/triggerMysiteAutosave) already
              reads/writes - profile-address-input's own "input" listener keeps it mirrored,
              see app.js. -->
