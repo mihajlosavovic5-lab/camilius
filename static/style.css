@@ -1589,6 +1589,14 @@ body.auth {
 .auth-register .auth-card {
     background: none; border: none; box-shadow: none; padding: 0;
 }
+/* Base .auth-wrapper centers vertically (justify-content: center), which splits any
+   leftover height evenly above/below the card - on a short step-1 form that left a big
+   dead gap under the step dots/next button, with the whole card sitting lower than it
+   needed to. Top-aligning instead moves the entire card (back button through the step
+   content) up as one block, closer to how the APK's own Create Account screen sits
+   (mobile/app.css's .screen-register .topbar padding-top is a fixed offset from the
+   status bar, not a centered split). */
+.auth-register .auth-wrapper { justify-content: flex-start; padding-top: 24px; }
 /* Two flexible spacers split the wrapper's own leftover vertical height between them,
    same idea as the APK's own .login-top-spacer (flex: 0.9) and .login-spacer (flex: 1)
    pair (mobile/app.css) - a bit more of the free space collects below the brand block
