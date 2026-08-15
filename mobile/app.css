@@ -1197,6 +1197,11 @@ input.tap-to-edit-field, textarea.tap-to-edit-field { cursor: pointer; backgroun
 
 .button-danger-outline { color: var(--danger); border-color: var(--danger-border); }
 .button-danger { background: var(--danger); color: #fff; }
+/* No press-color flash at all (same reasoning as .button-secondary:active/
+   .button-google:active above) - without this, .button:active's amber
+   background: var(--primary-dark) flash (meant for the plain gold primary
+   button) leaked through on press, turning this red button briefly yellow. */
+.button-danger:active { background: var(--danger); }
 
 /* --- Shared option-picker button (Faza 4) - used for the working-hours time fields
    and the price-list currency field (see createOptionButton()/optionPicker in app.js).
