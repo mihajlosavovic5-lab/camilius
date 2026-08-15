@@ -255,6 +255,13 @@ const HOURS_DAY_I18N_KEYS = {
 // dimmed backdrop, opened already scrolled to the current value, instead of a dropdown
 // menu anchored below whichever field opened it.
 let _optionModalEl = null;
+// Scroll lock: same pattern as the language picker (setupLanguagePicker,
+// static/site-i18n.js) and the landing page's hamburger drawer - remembers the scroll
+// position it opened at, pins the body there via position:fixed (see body.option-modal-open
+// in style.css) so the page behind can't scroll while a long list (all 249 phone countries,
+// the 48 half-hour time slots, ...) is open over it, then restores the exact same scroll
+// position on close instead of jumping to the top.
+let _optionModalLockedScrollY = 0;
 function ensureOptionModal() {
     if (_optionModalEl) return _optionModalEl;
     const modal = document.createElement("div");
@@ -275,7 +282,13 @@ function ensureOptionModal() {
     return modal;
 }
 function closeOptionModal() {
-    if (_optionModalEl) _optionModalEl.classList.remove("open");
+    if (!_optionModalEl) return;
+    _optionModalEl.classList.remove("open");
+    document.body.classList.remove("option-modal-open");
+    document.body.style.top = "";
+    // behavior: "instant" overrides the site-wide smooth-scroll so this restore snaps
+    // back immediately instead of visibly animating.
+    window.scrollTo({ top: _optionModalLockedScrollY, left: 0, behavior: "instant" });
 }
 // options: array of either plain strings, {value, label} objects (a plain string is its
 // own label), or {value, html} objects for a richer row than a single centered text label
@@ -314,6 +327,9 @@ function openOptionModal(options, activeValue, onSelect, title, subtitle) {
         list.appendChild(btn);
     });
 
+    _optionModalLockedScrollY = window.scrollY || document.documentElement.scrollTop;
+    document.body.style.top = (-_optionModalLockedScrollY) + "px";
+    document.body.classList.add("option-modal-open");
     modal.classList.add("open");
     // Marking/scrolling needs a layout pass first (list.innerHTML was just rebuilt
     // above), hence the rAF - same reasoning as mobile's own markActiveOption() call.

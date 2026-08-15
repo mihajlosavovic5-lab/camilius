@@ -251,6 +251,11 @@ body.landing .site-lang-select-btn:hover { transform: translateY(-50%) scale(1.0
    real scroll position on close. Needed site-wide (not just landing) since the
    flag/dropdown is rendered on every page via base.html. */
 body.site-lang-open { position: fixed; left: 0; right: 0; width: 100%; overflow: hidden; }
+/* Same scroll-lock pattern as body.site-lang-open above - see openOptionModal/
+   closeOptionModal (static/pickers.js) for the matching body.style.top handling. Covers
+   every field that opens the shared #option-modal (working hours, price currency, phone
+   country, Schedule/reminder duration pickers, ...), not just one specific field. */
+body.option-modal-open { position: fixed; left: 0; right: 0; width: 100%; overflow: hidden; }
 .site-lang-modal-sheet {
     /* top must track --install-banner-h the same way .site-lang-select-btn does -
        otherwise, whenever the install banner is showing, the button sits lower on
