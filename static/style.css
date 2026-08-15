@@ -1098,7 +1098,15 @@ input[readonly].tap-to-edit-field:hover, textarea[readonly].tap-to-edit-field:ho
    on Sign up - see .auth-card .floating-field input above), so the input has real
    headroom above its own text/floating-label, not a hard squeeze. */
 .phone-input-row { display: flex; align-items: flex-start; gap: 8px; margin-top: 16px; }
-.phone-input-row .floating-field { flex: 1; min-width: 0; margin-top: 0; }
+/* .phone-input-row.phone-input-row (not just .phone-input-row) purely for specificity -
+   Sign up's version of this row sits inside .register-field-col, whose own
+   ".register-field-col .floating-field { margin-top: 16px; }" (below, in the register.html
+   section) is an equally-specific two-class selector that happens to come later in this
+   file, so on a plain specificity tie it was winning and re-adding a top margin to just
+   the field here - not the button beside it - pushing the two visibly out of alignment.
+   Doubling the class is a bigger, order-independent tie-breaker instead of a fragile "stay
+   above it in the file" ordering dependency. */
+.phone-input-row.phone-input-row .floating-field { flex: 1; min-width: 0; margin-top: 0; }
 .phone-input-row .floating-field input { height: 54px; }
 .phone-country-btn {
     display: flex; align-items: center; justify-content: center; gap: 6px;
