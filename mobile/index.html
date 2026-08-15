@@ -1,5 +1,5 @@
 <!doctype html>
-<html data-bundle-version="cb6f2dece508" lang="en">
+<html data-bundle-version="9567cf14c12f" lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
@@ -16,7 +16,7 @@
 <link rel="preload" href="fonts/lora-latin-ext.woff2?v=e8c32fe92ded" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="fonts/familjen-grotesk-latin.woff2?v=e8c32fe92ded" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="fonts/familjen-grotesk-latin-ext.woff2?v=e8c32fe92ded" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="app.css?v=cb6f2dece508">
+<link rel="stylesheet" href="app.css?v=9567cf14c12f">
 </head>
 <body>
 
@@ -320,7 +320,7 @@
       <label for="duration-modal-input" data-i18n="schedule.customMinutesPlaceholder">Minutes</label>
     </div>
     <div id="duration-modal-error" class="alert alert-error hidden"></div>
-    <button type="button" class="button button-full" id="duration-modal-confirm" data-i18n="schedule.setDuration">Set</button>
+    <button type="button" class="button button-full button-tap-scale" id="duration-modal-confirm" data-i18n="schedule.setDuration">Set</button>
     <button type="button" class="row-action-btn row-action-cancel" id="duration-modal-cancel" data-i18n="inbox.cancel">Cancel</button>
   </div>
 </div>
@@ -333,8 +333,8 @@
   <div class="lang-modal-sheet confirm-modal-sheet">
     <p class="confirm-modal-message" data-i18n="settings.logoutConfirm">Are you sure you want to log out?</p>
     <div class="confirm-modal-actions">
-      <button type="button" class="button button-secondary" id="logout-confirm-cancel" data-i18n="settings.cancel">Cancel</button>
-      <button type="button" class="button button-danger" id="logout-confirm-confirm" data-i18n="settings.logout">Log out</button>
+      <button type="button" class="button button-secondary button-tap-scale" id="logout-confirm-cancel" data-i18n="settings.cancel">Cancel</button>
+      <button type="button" class="button button-danger button-tap-scale" id="logout-confirm-confirm" data-i18n="settings.logout">Log out</button>
     </div>
   </div>
 </div>
@@ -411,8 +411,8 @@
   <div class="lang-modal-sheet confirm-modal-sheet">
     <p class="confirm-modal-message" data-i18n="mysite.fieldModal.deleteConfirm">Are you sure you want to delete this text?</p>
     <div class="confirm-modal-actions">
-      <button type="button" class="button button-secondary" id="mysite-field-delete-confirm-cancel" data-i18n="mysite.fieldModal.cancel">Cancel</button>
-      <button type="button" class="button button-danger" id="mysite-field-delete-confirm-confirm" data-i18n="mysite.fieldModal.delete">Delete</button>
+      <button type="button" class="button button-secondary button-tap-scale" id="mysite-field-delete-confirm-cancel" data-i18n="mysite.fieldModal.cancel">Cancel</button>
+      <button type="button" class="button button-danger button-tap-scale" id="mysite-field-delete-confirm-confirm" data-i18n="mysite.fieldModal.delete">Delete</button>
     </div>
   </div>
 </div>
@@ -541,7 +541,7 @@
         </div>
         <h1 data-i18n="onboarding.slide5.title">Books appointments too</h1>
         <p data-i18n="onboarding.slide5.body">Checks your calendar, books the slot, and notifies you instantly.</p>
-        <button class="button onboarding-continue" data-i18n="onboarding.getStarted">Get started</button>
+        <button class="button onboarding-continue button-tap-scale" data-i18n="onboarding.getStarted">Get started</button>
       </div>
     </div>
     <div class="onboarding-dots" id="onboarding-dots">
@@ -619,7 +619,7 @@
               </svg>
             </button>
           </div>
-          <button class="button button-full button-pill" type="submit" id="login-submit" data-i18n="login.submit">Log in</button>
+          <button class="button button-full button-pill button-tap-scale" type="submit" id="login-submit" data-i18n="login.submit">Log in</button>
         </form>
 
         <button type="button" id="login-forgot-link" class="link-btn login-forgot" data-i18n="login.forgot">Forgot password?</button>
@@ -650,9 +650,9 @@
             <input type="email" id="forgot-identifier" placeholder=" " autocomplete="email" autocapitalize="off" required>
             <label for="forgot-identifier" data-i18n="forgot.identifierLabel">Email</label>
           </div>
-          <button class="button button-full button-pill" type="submit" id="forgot-submit" data-i18n="forgot.submit">Send reset link</button>
+          <button class="button button-full button-pill button-tap-scale" type="submit" id="forgot-submit" data-i18n="forgot.submit">Send reset link</button>
         </form>
-        <button type="button" class="button button-secondary button-full button-pill button-primary-outline" id="forgot-show-phone" style="margin-top: 12px;" data-i18n="forgot.findByPhone">Find by mobile number</button>
+        <button type="button" class="button button-secondary button-full button-pill button-primary-outline button-tap-scale" id="forgot-show-phone" style="margin-top: 12px;" data-i18n="forgot.findByPhone">Find by mobile number</button>
       </div>
 
       <div id="forgot-phone-mode" class="hidden">
@@ -668,9 +668,9 @@
               <label for="forgot-phone" data-i18n="forgot.phoneLabel">Phone number</label>
             </div>
           </div>
-          <button class="button button-full button-pill" type="submit" id="forgot-phone-submit" data-i18n="forgot.phoneSubmit">Find account</button>
+          <button class="button button-full button-pill button-tap-scale" type="submit" id="forgot-phone-submit" data-i18n="forgot.phoneSubmit">Find account</button>
         </form>
-        <button type="button" class="button button-secondary button-full button-pill button-primary-outline" id="forgot-show-identifier" style="margin-top: 12px;" data-i18n="forgot.backToIdentifier">Use email instead</button>
+        <button type="button" class="button button-secondary button-full button-pill button-primary-outline button-tap-scale" id="forgot-show-identifier" style="margin-top: 12px;" data-i18n="forgot.backToIdentifier">Use email instead</button>
       </div>
     </div>
   </section>
@@ -878,7 +878,7 @@
           <button type="button" class="register-next-btn register-next-btn-dim" id="register-next-btn" aria-label="Next">›</button>
         </div>
 
-        <button class="button button-full button-pill hidden" type="submit" id="register-submit">
+        <button class="button button-full button-pill hidden button-tap-scale" type="submit" id="register-submit">
           <span class="btn-spinner hidden" id="register-submit-spinner" aria-hidden="true"></span>
           <span id="register-submit-label" data-i18n="register.submit">Create account</span>
         </button>
@@ -910,10 +910,10 @@
           <input type="text" id="verify-pending-code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" pattern="[0-9]{6}" placeholder=" ">
           <label for="verify-pending-code" data-i18n="verifyPending.codePlaceholder">Verification code</label>
         </div>
-        <button class="button button-full button-pill" type="submit" id="verify-pending-submit" data-i18n="verifyPending.verify">Verify</button>
+        <button class="button button-full button-pill button-tap-scale" type="submit" id="verify-pending-submit" data-i18n="verifyPending.verify">Verify</button>
       </form>
 
-      <button type="button" class="button button-secondary button-full button-pill button-primary-outline" id="verify-pending-resend" data-i18n="verifyPending.resend">Resend code</button>
+      <button type="button" class="button button-secondary button-full button-pill button-primary-outline button-tap-scale" id="verify-pending-resend" data-i18n="verifyPending.resend">Resend code</button>
       <button type="button" class="link-btn" id="verify-pending-back" data-i18n="forgot.backToLogin">Back to login</button>
     </div>
   </section>
@@ -1124,7 +1124,7 @@
 
       <div id="donation-strip" class="donation-strip hidden">
         <span class="donation-strip-text">&#9749; <span data-i18n="inbox.donate.text">Enjoying Camilius? A voluntary donation is always appreciated.</span></span>
-        <a id="donation-strip-link" href="#" target="_blank" rel="noopener" class="button button-secondary button-pill donation-strip-btn" data-i18n="inbox.donate.button">Donate</a>
+        <a id="donation-strip-link" href="#" target="_blank" rel="noopener" class="button button-secondary button-pill donation-strip-btn button-tap-scale" data-i18n="inbox.donate.button">Donate</a>
       </div>
 
       <div class="search-row">
@@ -1151,7 +1151,7 @@
       <div id="inbox-error" class="empty hidden">
         <div class="empty-icon">⚠️</div>
         <p class="empty-title" id="inbox-error-message">Couldn't load your inbox.</p>
-        <button class="button" id="inbox-retry" style="margin-top: 4px;" data-i18n="inbox.retry">Try again</button>
+        <button class="button button-tap-scale" id="inbox-retry" style="margin-top: 4px;" data-i18n="inbox.retry">Try again</button>
       </div>
     </div>
   </section>
@@ -1176,7 +1176,7 @@
       <div id="detail-pending-block">
         <div class="block-label" data-i18n="detail.suggestedReply">Suggested reply — edit before sending</div>
         <textarea id="detail-reply" rows="8"></textarea>
-        <button class="button button-full" id="detail-send" data-i18n="detail.send">Send reply</button>
+        <button class="button button-full button-tap-scale" id="detail-send" data-i18n="detail.send">Send reply</button>
       </div>
 
       <div id="detail-sent-block" class="hidden">
@@ -1194,7 +1194,7 @@
       <div class="empty-icon">✨</div>
       <p class="empty-title" data-i18n="schedule.locked.title">Schedule is a Pro plan feature</p>
       <p data-i18n="schedule.locked.body">View and manage a day/week calendar, and let the AI book, remind, and reschedule appointments straight from a chat conversation on your page.</p>
-      <button type="button" class="button" id="schedule-upgrade-btn" data-i18n="schedule.upgradeCta">Upgrade to Pro</button>
+      <button type="button" class="button button-tap-scale" id="schedule-upgrade-btn" data-i18n="schedule.upgradeCta">Upgrade to Pro</button>
     </div>
 
     <!-- Only ever visible for the rare case the app-start prefetch (see enterApp() in
@@ -1260,7 +1260,7 @@
     <div id="schedule-error" class="empty hidden">
       <div class="empty-icon">⚠️</div>
       <p class="empty-title" id="schedule-error-message" data-i18n="schedule.errorTitle">Couldn't load your schedule.</p>
-      <button type="button" class="button" id="schedule-retry-btn" data-i18n="inbox.retry">Try again</button>
+      <button type="button" class="button button-tap-scale" id="schedule-retry-btn" data-i18n="inbox.retry">Try again</button>
     </div>
   </section>
 
@@ -1322,7 +1322,7 @@
             <label for="settings-phone-verify-code" data-i18n="verifyPending.codePlaceholder">Verification code</label>
           </div>
           <p class="field-error hidden" id="settings-phone-verify-code-error"></p>
-          <button type="button" class="button button-secondary" id="settings-phone-verify-code-submit" data-i18n="verifyPending.verify">Verify</button>
+          <button type="button" class="button button-secondary button-tap-scale" id="settings-phone-verify-code-submit" data-i18n="verifyPending.verify">Verify</button>
         </div>
 
         <!-- The only place the business_pages.address field is shown now (My Site's own
@@ -1578,7 +1578,7 @@
         </ul>
       </div>
 
-      <button type="button" class="button button-full button-pill button-danger" id="delete-warning-continue" data-i18n="deleteWizard.continue">Continue</button>
+      <button type="button" class="button button-full button-pill button-danger button-tap-scale" id="delete-warning-continue" data-i18n="deleteWizard.continue">Continue</button>
     </div>
   </section>
 
@@ -1611,7 +1611,7 @@
         <label for="delete-reason-details" data-i18n="deleteWizard.step2.detailsPlaceholder">Tell us more...</label>
       </div>
 
-      <button type="button" class="button button-full button-pill button-danger" id="delete-reason-continue" data-i18n="deleteWizard.continue">Continue</button>
+      <button type="button" class="button button-full button-pill button-danger button-tap-scale" id="delete-reason-continue" data-i18n="deleteWizard.continue">Continue</button>
     </div>
   </section>
 
@@ -1647,7 +1647,7 @@
         <span data-i18n="deleteWizard.step3.confirmCheckbox">I understand this will permanently delete my account and all of my data. This cannot be undone.</span>
       </label>
 
-      <button type="button" class="button button-full button-pill button-danger" id="delete-confirm-submit" disabled data-i18n="deleteWizard.step3.submit">Delete my account</button>
+      <button type="button" class="button button-full button-pill button-danger button-tap-scale" id="delete-confirm-submit" disabled data-i18n="deleteWizard.step3.submit">Delete my account</button>
     </div>
   </section>
 
@@ -1663,8 +1663,8 @@
         <span id="help-email-text">support@ai-auto-reply-mail.com</span>
       </div>
 
-      <button type="button" class="button button-full" id="help-email-btn" data-i18n="help.emailButton">Send us an email</button>
-      <button type="button" class="button button-secondary button-full" id="help-copy-btn" style="margin-top:12px;" data-i18n="help.copyButton">Copy email address</button>
+      <button type="button" class="button button-full button-tap-scale" id="help-email-btn" data-i18n="help.emailButton">Send us an email</button>
+      <button type="button" class="button button-secondary button-full button-tap-scale" id="help-copy-btn" style="margin-top:12px;" data-i18n="help.copyButton">Copy email address</button>
       <div id="help-copy-confirmation" class="alert alert-success hidden" style="margin-top:14px;" data-i18n="help.copied">Copied to clipboard.</div>
 
       <div class="block-label" style="margin-top:28px;" data-i18n="help.faqTitle">Common questions</div>
@@ -1816,7 +1816,7 @@
       <div id="subscription-trialing" class="hidden">
         <div class="alert alert-warning" style="margin: 0 0 14px;" data-i18n="subscription.trialBadge">14-day Free Trial Active</div>
         <p data-i18n="subscription.trialBody">Your trial is active - no charge until it ends. Cancel any time from your plan.</p>
-        <button type="button" class="button button-full" id="subscription-choose-plan-btn" data-i18n="subscription.choosePlan">Choose a plan</button>
+        <button type="button" class="button button-full button-tap-scale" id="subscription-choose-plan-btn" data-i18n="subscription.choosePlan">Choose a plan</button>
       </div>
 
       <div id="subscription-active" class="hidden">
@@ -1826,7 +1826,7 @@
 
       <div id="subscription-needs-plan" class="hidden">
         <p id="subscription-needs-plan-body" data-i18n="subscription.needsPlanBody">Your trial has ended - choose a plan to keep replying automatically.</p>
-        <button type="button" class="button button-full" id="subscription-choose-plan-btn-2" data-i18n="subscription.choosePlan">Choose a plan</button>
+        <button type="button" class="button button-full button-tap-scale" id="subscription-choose-plan-btn-2" data-i18n="subscription.choosePlan">Choose a plan</button>
       </div>
     </div>
   </section>
@@ -1849,8 +1849,8 @@
   </button>
 </nav>
 
-<script src="i18n.js?v=cb6f2dece508"></script>
-<script src="hours-picker.js?v=cb6f2dece508"></script>
-<script src="app.js?v=cb6f2dece508"></script>
+<script src="i18n.js?v=9567cf14c12f"></script>
+<script src="hours-picker.js?v=9567cf14c12f"></script>
+<script src="app.js?v=9567cf14c12f"></script>
 </body>
 </html>
