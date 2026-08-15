@@ -487,7 +487,16 @@ html { scrollbar-gutter: stable; }
    draggable strip of blank page past the real content, with its own scroll thumb at
    the bottom. Any element that DOES need its own horizontal scroll (wide tables, code
    blocks, etc.) sets overflow-x on its own inner wrapper, so this doesn't affect those. */
-html, body { overflow-x: hidden; max-width: 100%; }
+/* overflow-x: hidden on body alone (not just html) turns body into its own scroll
+   container - which, combined with body's own padding-top (reserves space for the
+   install banner, see below) and .navbar's position: sticky top offset (also
+   var(--install-banner-h)), makes Chromium double-count that offset: the sticky
+   navbar (and the brand centered inside it) renders pushed down by an extra
+   banner-height, landing on top of the page's own heading below it. html alone
+   already stops the page from panning/scrolling horizontally (the real scrolling
+   element), so body doesn't need its own redundant copy of the rule. */
+html { overflow-x: hidden; }
+html, body { max-width: 100%; }
 
 body {
     margin: 0;
