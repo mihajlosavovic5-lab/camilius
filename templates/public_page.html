@@ -2748,7 +2748,13 @@ document.addEventListener("DOMContentLoaded", function () {
            actual swipe/drag for free; the script block below only adds
            arrows/dots/keeping them in sync with real scroll. #}
         {% if gallery_urls %}
-        <section id="photos" class="load-reveal" style="animation-delay:265ms">
+        {# No load-reveal here (unlike every other section on this page) - the photos
+           are already fully loaded by the time this section paints (see .photo-slide
+           img's own no-loading="lazy" comment above), so fading/sliding it in on every
+           page load, same as the sections around it, read as the photos still loading
+           in even though they're already there - this section just appears solid and
+           immediately, "like a flag already raised". #}
+        <section id="photos">
             <h2 data-i18n="heading_photos">Photos</h2>
             <div class="photo-slider" id="photo-slider">
                 <div class="photo-slider-viewport" id="photo-slider-viewport">
