@@ -1,4 +1,4 @@
-"""Continue with Google" - covers the shared account-lookup logic (_google_login_existing),
+"""Continue with Google" - covers the shared account-lookup logic (google_oauth.login_existing),
 the web redirect/callback routes, the mobile start/callback/status bridge, and the
 register()/api_register() google_link_token handoff. A Google identity nobody's seen
 before is never turned into an account directly - it's handed to the normal sign-up form
@@ -521,3 +521,109 @@ def test_auth_google_done_no_outcome_renders_bare_page(client, monkeypatch):
     html = response.get_data(as_text=True)
     assert "mobile-install-banner" not in html
     assert "auth-brand" not in html
+
+
+# --- Mobile native bottom sheet (Credential Manager): /api/google-login/verify-id-token ---
+#
+# The Android app's Credential Manager flow hands the app an ID token directly (no browser
+# tab, no polling) - google_oauth.verify_id_token is monkeypatched here exactly like
+# fetch_user is above, standing in for the real call to Google's tokeninfo endpoint.
+
+def test_mobile_manifest_exposes_google_web_client_id(client, monkeypatch):
+    """mobile/app.js's ensureGoogleSocialLoginInitialized() reads this to initialize the
+    native Credential Manager plugin - see api_mobile_manifest's own comment on why
+    piggybacking it on this endpoint (rather than GOOGLE_CLIENT_ID being a secret) is fine."""
+    _configure_google(monkeypatch)
+    data = client.get("/api/mobile-manifest").get_json()
+    assert data["google_web_client_id"] == "test-client-id"
+
+
+def test_mobile_manifest_google_web_client_id_absent_when_not_configured(client, monkeypatch):
+    monkeypatch.delenv("GOOGLE_CLIENT_ID", raising=False)
+    monkeypatch.delenv("GOOGLE_CLIENT_SECRET", raising=False)
+    data = client.get("/api/mobile-manifest").get_json()
+    assert not data["google_web_client_id"]
+
+
+def test_verify_id_token_404s_when_not_configured(client, monkeypatch):
+    monkeypatch.delenv("GOOGLE_CLIENT_ID", raising=False)
+    monkeypatch.delenv("GOOGLE_CLIENT_SECRET", raising=False)
+    response = client.post("/api/google-login/verify-id-token", json={"id_token": "x"})
+    assert response.status_code == 404
+
+
+def test_verify_id_token_missing_token_is_error(client, monkeypatch):
+    _configure_google(monkeypatch)
+    response = client.post("/api/google-login/verify-id-token", json={})
+    assert response.get_json()["status"] == "error"
+
+
+def test_verify_id_token_invalid_token_is_error(client, monkeypatch):
+    _configure_google(monkeypatch)
+    monkeypatch.setattr(app_module.google_oauth, "verify_id_token", lambda id_token: None)
+    response = client.post("/api/google-login/verify-id-token", json={"id_token": "bad"})
+    assert response.get_json()["status"] == "error"
+
+
+def test_verify_id_token_new_identity_is_needs_signup(client, monkeypatch, unique_email):
+    _configure_google(monkeypatch)
+    sub = _unique_sub()
+    monkeypatch.setattr(app_module.google_oauth, "verify_id_token", lambda id_token: _fake_profile(sub, unique_email, name="Jane's Salon"))
+    response = client.post("/api/google-login/verify-id-token", json={"id_token": "tok", "intent": "register"})
+    data = response.get_json()
+    assert data["status"] == "needs_signup"
+    assert data["google_name"] == "Jane's Salon"
+    assert data["google_email"] == unique_email
+    assert data["google_link_token"]
+
+
+def test_verify_id_token_new_identity_with_login_intent_is_no_account(client, monkeypatch, unique_email):
+    _configure_google(monkeypatch)
+    sub = _unique_sub()
+    monkeypatch.setattr(app_module.google_oauth, "verify_id_token", lambda id_token: _fake_profile(sub, unique_email))
+    response = client.post("/api/google-login/verify-id-token", json={"id_token": "tok", "intent": "login"})
+    assert response.get_json()["status"] == "no_account"
+    assert database.business_by_contact_email(unique_email) is None
+
+
+def test_verify_id_token_existing_account_is_done(client, monkeypatch, unique_email):
+    from conftest import register_business
+
+    register_business(client, unique_email)
+
+    _configure_google(monkeypatch)
+    sub = _unique_sub()
+    monkeypatch.setattr(app_module.google_oauth, "verify_id_token", lambda id_token: _fake_profile(sub, unique_email))
+    response = client.post("/api/google-login/verify-id-token", json={"id_token": "tok"})
+    data = response.get_json()
+    assert data["status"] == "done"
+    assert data["token"]
+    assert data["business_id"]
+
+
+def test_verify_id_token_link_token_works_with_register(client, monkeypatch, unique_email):
+    """The google_link_token this endpoint hands back for a brand-new identity is the same
+    make_link_token() output the web/polling flows produce - api_register accepts it
+    exactly the same way."""
+    _configure_google(monkeypatch)
+    sub = _unique_sub()
+    monkeypatch.setattr(app_module.google_oauth, "verify_id_token", lambda id_token: _fake_profile(sub, unique_email))
+    start = client.post("/api/google-login/verify-id-token", json={"id_token": "tok"}).get_json()
+
+    response = client.post("/api/register", json={
+        "name": "Jane's Salon",
+        "password": "TestPassword123",
+        "contact_email": unique_email,
+        "working_hours": "Mon-Fri 09:00-18:00",
+        "price_list": "Cut: 100",
+        "faq": "",
+        "accept_terms": True,
+        "google_link_token": start["google_link_token"],
+    })
+    assert response.status_code == 200
+    data = response.get_json()
+    assert data["token"]
+
+    business = database.business_by_contact_email(unique_email)
+    assert business[11] is True
+    assert business[21] == sub

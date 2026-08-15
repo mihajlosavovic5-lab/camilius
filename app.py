@@ -27,7 +27,6 @@ from database import (
     raw_conversation_rows,
     business_by_phone_number,
     contact_email_taken, phone_number_taken,
-    business_by_google_id, link_google_account,
     create_oauth_login_session, complete_oauth_login_session, fail_oauth_login_session,
     complete_oauth_login_session_needs_signup, oauth_login_session_exists, oauth_login_session_intent,
     fail_oauth_login_session_no_account,
@@ -482,41 +481,6 @@ def inject_nav_pro_access():
     return {"nav_pro_access": BETA_FREE_MODE or has_pro_access(business_id)}
 
 
-def _google_login_existing(google_user):
-    """Looks up (and links, on the first match) the existing business this Google identity
-    belongs to - never creates one. Returns the business row, or None if this Google
-    account has never been seen here before. The caller (auth_google_callback below) sends
-    that case to the ordinary sign-up form instead, pre-filled with whatever Google handed
-    over - "Continue with Google" is a shortcut INTO the normal flow for a first-time
-    visitor, not a way to skip filling in the rest of the account (password,
-    business details) that a manual sign-up would ask for anyway.
-
-    Two cases, in order:
-    1. This Google account has signed in here before (google_id already linked) - just
-       log it in.
-    2. First time signing in with Google, but its email already belongs to an existing
-       account (password-based, or from an earlier signup that never got confirmed) -
-       link the two rather than sending it through sign-up again. link_google_account
-       also marks that account's email verified, since Google just proved it either way.
-    """
-    google_id = google_user.get("sub")
-    email = (google_user.get("email") or "").strip().lower()
-    if not google_id:
-        return None
-
-    business = business_by_google_id(google_id)
-    if business:
-        return business
-
-    if email:
-        existing = business_by_contact_email(email)
-        if existing:
-            link_google_account(existing[0], google_id)
-            return business_by_id(existing[0])
-
-    return None
-
-
 @app.route("/auth/google")
 @limiter.limit("20 per 15 minutes")
 def auth_google():
@@ -587,7 +551,7 @@ def auth_google_callback():
     if not google_id:
         return fail("Google sign-in failed - please try again.")
 
-    business = _google_login_existing(google_user)
+    business = google_oauth.login_existing(google_user)
 
     if business is None:
         # Never seen this Google identity before. Clicked from the Login screen
@@ -602,7 +566,7 @@ def auth_google_callback():
 
         # Otherwise (Create Account screen) - hand its name/email to the sign-up form as a
         # starting point rather than creating an account outright (see
-        # _google_login_existing's own docstring). google_link_token carries google_id
+        # google_oauth.login_existing's own docstring). google_link_token carries google_id
         # through so register()/api_register() can link it - and skip the usual email
         # confirmation step, since Google already proved this address - IF the sign-up is
         # actually completed with that same email; see google_oauth.verify_link_token.
