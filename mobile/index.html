@@ -1,5 +1,5 @@
 <!doctype html>
-<html data-bundle-version="9888312ca22a" lang="en">
+<html data-bundle-version="c899f66d547a" lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
@@ -16,7 +16,7 @@
 <link rel="preload" href="fonts/lora-latin-ext.woff2?v=e8c32fe92ded" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="fonts/familjen-grotesk-latin.woff2?v=e8c32fe92ded" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="fonts/familjen-grotesk-latin-ext.woff2?v=e8c32fe92ded" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="app.css?v=9888312ca22a">
+<link rel="stylesheet" href="app.css?v=c899f66d547a">
 </head>
 <body>
 
@@ -320,7 +320,7 @@
       <label for="duration-modal-input" data-i18n="schedule.customMinutesPlaceholder">Minutes</label>
     </div>
     <div id="duration-modal-error" class="alert alert-error hidden"></div>
-    <button type="button" class="button button-full button-tap-scale" id="duration-modal-confirm" data-i18n="schedule.setDuration">Set</button>
+    <button type="button" class="button button-secondary button-primary-outline button-full button-tap-scale" id="duration-modal-confirm" data-i18n="schedule.setDuration">Set</button>
     <button type="button" class="row-action-btn row-action-cancel" id="duration-modal-cancel" data-i18n="inbox.cancel">Cancel</button>
   </div>
 </div>
@@ -541,7 +541,7 @@
         </div>
         <h1 data-i18n="onboarding.slide5.title">Books appointments too</h1>
         <p data-i18n="onboarding.slide5.body">Checks your calendar, books the slot, and notifies you instantly.</p>
-        <button class="button onboarding-continue button-tap-scale" data-i18n="onboarding.getStarted">Get started</button>
+        <button class="button button-secondary button-primary-outline onboarding-continue button-tap-scale" data-i18n="onboarding.getStarted">Get started</button>
       </div>
     </div>
     <div class="onboarding-dots" id="onboarding-dots">
@@ -619,7 +619,7 @@
               </svg>
             </button>
           </div>
-          <button class="button button-full button-pill button-tap-scale" type="submit" id="login-submit" data-i18n="login.submit">Log in</button>
+          <button class="button button-secondary button-primary-outline button-full button-pill button-tap-scale" type="submit" id="login-submit" data-i18n="login.submit">Log in</button>
         </form>
 
         <button type="button" id="login-forgot-link" class="link-btn login-forgot" data-i18n="login.forgot">Forgot password?</button>
@@ -650,7 +650,7 @@
             <input type="email" id="forgot-identifier" placeholder=" " autocomplete="email" autocapitalize="off" required>
             <label for="forgot-identifier" data-i18n="forgot.identifierLabel">Email</label>
           </div>
-          <button class="button button-full button-pill button-tap-scale" type="submit" id="forgot-submit" data-i18n="forgot.submit">Send reset link</button>
+          <button class="button button-secondary button-primary-outline button-full button-pill button-tap-scale" type="submit" id="forgot-submit" data-i18n="forgot.submit">Send reset link</button>
         </form>
         <button type="button" class="button button-secondary button-full button-pill button-primary-outline button-tap-scale" id="forgot-show-phone" style="margin-top: 12px;" data-i18n="forgot.findByPhone">Find by mobile number</button>
       </div>
@@ -668,7 +668,7 @@
               <label for="forgot-phone" data-i18n="forgot.phoneLabel">Phone number</label>
             </div>
           </div>
-          <button class="button button-full button-pill button-tap-scale" type="submit" id="forgot-phone-submit" data-i18n="forgot.phoneSubmit">Find account</button>
+          <button class="button button-secondary button-primary-outline button-full button-pill button-tap-scale" type="submit" id="forgot-phone-submit" data-i18n="forgot.phoneSubmit">Find account</button>
         </form>
         <button type="button" class="button button-secondary button-full button-pill button-primary-outline button-tap-scale" id="forgot-show-identifier" style="margin-top: 12px;" data-i18n="forgot.backToIdentifier">Use email instead</button>
       </div>
@@ -878,7 +878,7 @@
           <button type="button" class="register-next-btn register-next-btn-dim" id="register-next-btn" aria-label="Next">›</button>
         </div>
 
-        <button class="button button-full button-pill hidden button-tap-scale" type="submit" id="register-submit">
+        <button class="button button-secondary button-primary-outline button-full button-pill hidden button-tap-scale" type="submit" id="register-submit">
           <span class="btn-spinner hidden" id="register-submit-spinner" aria-hidden="true"></span>
           <span id="register-submit-label" data-i18n="register.submit">Create account</span>
         </button>
@@ -910,7 +910,7 @@
           <input type="text" id="verify-pending-code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" pattern="[0-9]{6}" placeholder=" ">
           <label for="verify-pending-code" data-i18n="verifyPending.codePlaceholder">Verification code</label>
         </div>
-        <button class="button button-full button-pill button-tap-scale" type="submit" id="verify-pending-submit" data-i18n="verifyPending.verify">Verify</button>
+        <button class="button button-secondary button-primary-outline button-full button-pill button-tap-scale" type="submit" id="verify-pending-submit" data-i18n="verifyPending.verify">Verify</button>
       </form>
 
       <button type="button" class="button button-secondary button-full button-pill button-primary-outline button-tap-scale" id="verify-pending-resend" data-i18n="verifyPending.resend">Resend code</button>
@@ -1151,7 +1151,7 @@
       <div id="inbox-error" class="empty hidden">
         <div class="empty-icon">⚠️</div>
         <p class="empty-title" id="inbox-error-message">Couldn't load your inbox.</p>
-        <button class="button button-tap-scale" id="inbox-retry" style="margin-top: 4px;" data-i18n="inbox.retry">Try again</button>
+        <button class="button button-secondary button-primary-outline button-tap-scale" id="inbox-retry" style="margin-top: 4px;" data-i18n="inbox.retry">Try again</button>
       </div>
     </div>
   </section>
@@ -1176,7 +1176,7 @@
       <div id="detail-pending-block">
         <div class="block-label" data-i18n="detail.suggestedReply">Suggested reply — edit before sending</div>
         <textarea id="detail-reply" rows="8"></textarea>
-        <button class="button button-full button-tap-scale" id="detail-send" data-i18n="detail.send">Send reply</button>
+        <button class="button button-secondary button-primary-outline button-full button-tap-scale" id="detail-send" data-i18n="detail.send">Send reply</button>
       </div>
 
       <div id="detail-sent-block" class="hidden">
@@ -1194,7 +1194,7 @@
       <div class="empty-icon">✨</div>
       <p class="empty-title" data-i18n="schedule.locked.title">Schedule is a Pro plan feature</p>
       <p data-i18n="schedule.locked.body">View and manage a day/week calendar, and let the AI book, remind, and reschedule appointments straight from a chat conversation on your page.</p>
-      <button type="button" class="button button-tap-scale" id="schedule-upgrade-btn" data-i18n="schedule.upgradeCta">Upgrade to Pro</button>
+      <button type="button" class="button button-secondary button-primary-outline button-tap-scale" id="schedule-upgrade-btn" data-i18n="schedule.upgradeCta">Upgrade to Pro</button>
     </div>
 
     <!-- Only ever visible for the rare case the app-start prefetch (see enterApp() in
@@ -1260,7 +1260,7 @@
     <div id="schedule-error" class="empty hidden">
       <div class="empty-icon">⚠️</div>
       <p class="empty-title" id="schedule-error-message" data-i18n="schedule.errorTitle">Couldn't load your schedule.</p>
-      <button type="button" class="button button-tap-scale" id="schedule-retry-btn" data-i18n="inbox.retry">Try again</button>
+      <button type="button" class="button button-secondary button-primary-outline button-tap-scale" id="schedule-retry-btn" data-i18n="inbox.retry">Try again</button>
     </div>
   </section>
 
@@ -1663,7 +1663,7 @@
         <span id="help-email-text">support@ai-auto-reply-mail.com</span>
       </div>
 
-      <button type="button" class="button button-full button-tap-scale" id="help-email-btn" data-i18n="help.emailButton">Send us an email</button>
+      <button type="button" class="button button-secondary button-primary-outline button-full button-tap-scale" id="help-email-btn" data-i18n="help.emailButton">Send us an email</button>
       <button type="button" class="button button-secondary button-full button-tap-scale" id="help-copy-btn" style="margin-top:12px;" data-i18n="help.copyButton">Copy email address</button>
       <div id="help-copy-confirmation" class="alert alert-success hidden" style="margin-top:14px;" data-i18n="help.copied">Copied to clipboard.</div>
 
@@ -1816,7 +1816,7 @@
       <div id="subscription-trialing" class="hidden">
         <div class="alert alert-warning" style="margin: 0 0 14px;" data-i18n="subscription.trialBadge">14-day Free Trial Active</div>
         <p data-i18n="subscription.trialBody">Your trial is active - no charge until it ends. Cancel any time from your plan.</p>
-        <button type="button" class="button button-full button-tap-scale" id="subscription-choose-plan-btn" data-i18n="subscription.choosePlan">Choose a plan</button>
+        <button type="button" class="button button-secondary button-primary-outline button-full button-tap-scale" id="subscription-choose-plan-btn" data-i18n="subscription.choosePlan">Choose a plan</button>
       </div>
 
       <div id="subscription-active" class="hidden">
@@ -1826,7 +1826,7 @@
 
       <div id="subscription-needs-plan" class="hidden">
         <p id="subscription-needs-plan-body" data-i18n="subscription.needsPlanBody">Your trial has ended - choose a plan to keep replying automatically.</p>
-        <button type="button" class="button button-full button-tap-scale" id="subscription-choose-plan-btn-2" data-i18n="subscription.choosePlan">Choose a plan</button>
+        <button type="button" class="button button-secondary button-primary-outline button-full button-tap-scale" id="subscription-choose-plan-btn-2" data-i18n="subscription.choosePlan">Choose a plan</button>
       </div>
     </div>
   </section>
@@ -1849,8 +1849,8 @@
   </button>
 </nav>
 
-<script src="i18n.js?v=9888312ca22a"></script>
-<script src="hours-picker.js?v=9888312ca22a"></script>
-<script src="app.js?v=9888312ca22a"></script>
+<script src="i18n.js?v=c899f66d547a"></script>
+<script src="hours-picker.js?v=c899f66d547a"></script>
+<script src="app.js?v=c899f66d547a"></script>
 </body>
 </html>

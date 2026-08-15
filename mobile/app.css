@@ -3218,14 +3218,6 @@ input.tap-to-edit-field, textarea.tap-to-edit-field { cursor: pointer; backgroun
    bare scale() - same "re-state the base transform" fix as .lp-menu-btn/#lp-corner-brand
    (static/style.css) - so this button doesn't jump left on press and snap back on release. */
 .onboarding-continue.button-tap-scale:active { transform: translateX(-50%) scale(.96); }
-/* A soft light sweep across the final CTA, loafing on a long interval so it reads as
-   a subtle premium finish rather than a nagging animation. */
-.onboarding-continue::after {
-    content: ""; position: absolute; top: 0; bottom: 0; left: -60%; width: 40%;
-    background: linear-gradient(115deg, transparent, rgba(255, 255, 255, .35), transparent);
-    animation: onboarding-cta-sheen 3.2s ease-in-out 1.2s infinite;
-}
-@keyframes onboarding-cta-sheen { 0%, 30% { left: -60%; } 60%, 100% { left: 130%; } }
 .onboarding-skip-wrap { position: absolute; top: calc(16px + var(--safe-top)); right: 16px; z-index: 5; }
 .onboarding-skip-btn { background: none; border: none; color: var(--text-muted); font-size: 15px; cursor: pointer; padding: 8px; }
 .onboarding-dots { display: flex; justify-content: center; gap: 8px; padding-bottom: calc(30px + var(--safe-bottom)); flex-shrink: 0; }
@@ -3240,7 +3232,6 @@ input.tap-to-edit-field, textarea.tap-to-edit-field { cursor: pointer; backgroun
     .onboarding-badge-pop,
     .onboarding-badge-pulse,
     .onboarding-orbit-dot,
-    .onboarding-continue::after,
     .ota-update-spinner,
     .tab-reveal-item {
         animation: none !important;
