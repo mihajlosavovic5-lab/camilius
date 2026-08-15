@@ -162,6 +162,10 @@ def register_business_web(client, email, **overrides):
         "price_list": "Haircut: 20 EUR",
         "faq": "",
         "accept_terms": "on",
+        # Matches the real form's "New bookings" checkbox, which is checked by
+        # default (see templates/register.html) - a real browser submission
+        # includes it unless the visitor explicitly unchecked it.
+        "new_booking_notifications_enabled": "on",
     }
     form.update(overrides)
     response = web_post(client, "/register", form)

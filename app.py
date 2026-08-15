@@ -752,12 +752,28 @@ def register():
                 # start a real, card-backed Paddle trial. Until Paddle is configured this
                 # is unchanged from before: every account starts 'trialing' immediately.
                 initial_status="none" if paddle_billing.is_configured() else "trialing",
+                # The registration wizard's own "New bookings" toggle (step 3, same field
+                # the mobile app's Create Account wizard asks for) - whatever the user
+                # picked there is the account's starting value, changeable later from
+                # Settings > Notifications either way.
+                new_booking_notifications_enabled=bool(request.form.get("new_booking_notifications_enabled")),
                 google_id=google_id,
                 email_verified=bool(google_id),
                 address=(request.form.get("address") or "").strip() or None,
             )
         except UniqueViolation:
             return render_template("register.html", error="That contact email or phone number is already taken.", data=request.form)
+
+        # Social media links (step 3, same optional five fields as the mobile app's own
+        # wizard - see api.py's api_register) - a separate UPDATE rather than another
+        # add_business() kwarg, same reasoning as api_register's own comment on this.
+        # Only bothers at all if at least one was actually filled in.
+        if any(request.form.get(k) for k in ("social_instagram_url", "social_facebook_url", "social_x_url", "social_tiktok_url", "social_youtube_url")):
+            update_business_social_links(
+                new_id,
+                request.form.get("social_instagram_url"), request.form.get("social_facebook_url"), request.form.get("social_x_url"),
+                request.form.get("social_tiktok_url"), request.form.get("social_youtube_url"),
+            )
 
         log_event("register_completed", business_id=new_id)
 
