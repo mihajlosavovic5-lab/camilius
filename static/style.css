@@ -1287,14 +1287,37 @@ input[readonly].tap-to-edit-field:hover, textarea[readonly].tap-to-edit-field:ho
     opacity: 0; transition: opacity .2s ease;
 }
 .field-edit-modal.open .field-edit-modal-backdrop { opacity: 1; }
+/* background: var(--primary-light) (the warm cream/amber tint, not plain white) - same
+   choice as the mobile app's own .mysite-field-modal-sheet, so the sheet reads as part of
+   the site's own warm theme instead of a plain generic white popup. */
 .field-edit-modal-sheet {
-    position: relative; background: var(--surface); border-radius: var(--radius); box-shadow: var(--shadow-lg);
+    position: relative; background: var(--primary-light); border-radius: var(--radius); box-shadow: var(--shadow-lg);
     padding: 22px 20px; max-width: 360px; width: 100%;
     transform: translateY(6px) scale(.96); opacity: 0;
     transition: transform .2s cubic-bezier(.22,.9,.32,1.2), opacity .16s ease;
 }
 .field-edit-modal.open .field-edit-modal-sheet { transform: translateY(0) scale(1); opacity: 1; }
-.field-edit-modal-title { margin: 0 0 14px; text-align: center; font-size: 15.5px; font-weight: 700; color: var(--text); }
+/* Same white-fill/black-ring treatment as .page-title-outlined above (itself ported from
+   the mobile app's own page titles) and mobile's own .mysite-field-modal-sheet
+   .book-modal-title - plain dark text would look inconsistent against the cream sheet
+   background right above, and plain white alone would wash out against it without the
+   ring. --title-text/--title-outline are white-on-black in light mode, the theme's own
+   gold-on-black ring in dark mode - see their own dark-mode definitions further up - so
+   both themes read as the same treatment the app uses. Smaller-radius ring than
+   .page-title-outlined's (that one's sized for a 28px page title; this one runs at 15.5px). */
+.field-edit-modal-title {
+    margin: 0 0 14px; text-align: center; font-size: 15.5px; font-weight: 700;
+    color: var(--title-text);
+    text-shadow:
+        0.8px 0 0.4px var(--title-outline),
+        -0.8px 0 0.4px var(--title-outline),
+        0 0.8px 0.4px var(--title-outline),
+        0 -0.8px 0.4px var(--title-outline),
+        0.6px 0.6px 0.4px var(--title-outline),
+        -0.6px 0.6px 0.4px var(--title-outline),
+        0.6px -0.6px 0.4px var(--title-outline),
+        -0.6px -0.6px 0.4px var(--title-outline);
+}
 /* position: relative anchors both the password toggle and (address fields only) the
    address-suggestions popover, same as .floating-field does for the plain in-page
    fields - .address-suggest-list's own CSS above already assumes exactly this ancestor. */
@@ -1308,7 +1331,7 @@ input[readonly].tap-to-edit-field:hover, textarea[readonly].tap-to-edit-field:ho
 .field-edit-modal-sheet .field-edit-modal-control {
     display: block; width: 100%; box-sizing: border-box; text-align: center;
     padding: 12px 14px; border: 1px solid var(--border); border-radius: var(--radius);
-    font-family: inherit; font-size: 16px; color: var(--text); background: var(--background);
+    font-family: inherit; font-size: 16px; color: var(--text); background: var(--surface);
     transition: border-color .15s, box-shadow .15s;
 }
 .field-edit-modal-sheet .field-edit-modal-control:hover { border-color: var(--primary-ink); }
