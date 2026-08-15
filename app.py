@@ -200,8 +200,9 @@ STATIC_VERSIONS = {
     "hours-picker.js": _static_file_version("hours-picker.js"),
     "pickers.js": _static_file_version("pickers.js"),
     "address-autocomplete.js": _static_file_version("address-autocomplete.js"),
+    "field-edit-modal.js": _static_file_version("field-edit-modal.js"),
 }
-_FOREVER_CACHE_STATIC_PATHS = {"/static/style.css", "/static/htmx.min.js", "/static/site-i18n.js", "/static/hours-picker.js", "/static/pickers.js", "/static/address-autocomplete.js"}
+_FOREVER_CACHE_STATIC_PATHS = {"/static/style.css", "/static/htmx.min.js", "/static/site-i18n.js", "/static/hours-picker.js", "/static/pickers.js", "/static/address-autocomplete.js", "/static/field-edit-modal.js"}
 _MODERATE_CACHE_STATIC_PATHS = {
     "/static/manifest.json",
     "/static/icon-192.png",

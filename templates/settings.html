@@ -79,12 +79,12 @@
             </div>
 
             <div class="floating-field" style="margin-top: 0;">
-                <input type="text" id="settings-name-input" name="name" value="{{ business.name }}" placeholder=" " required>
+                <input type="text" id="settings-name-input" class="tap-to-edit-field" name="name" value="{{ business.name }}" placeholder=" " required>
                 <label for="settings-name-input" data-i18n="settings.businessName">Your name</label>
             </div>
 
             <div class="floating-field">
-                <input type="email" id="settings-contact-email-input" name="contact_email" value="{{ business.contact_email }}" placeholder=" " required>
+                <input type="email" id="settings-contact-email-input" class="tap-to-edit-field" name="contact_email" value="{{ business.contact_email }}" placeholder=" " required>
                 <label for="settings-contact-email-input" data-i18n="settings.contactEmail">Contact email</label>
             </div>
             {% if business.pending_contact_email %}
@@ -108,7 +108,7 @@
                  (register.html), for one consistent phone-input treatment across the
                  site rather than two different ones. -->
             <div class="floating-field">
-                <input type="tel" id="settings-phone-input" name="phone_number" value="{{ business.phone_number }}" placeholder=" " autocomplete="tel">
+                <input type="tel" id="settings-phone-input" class="tap-to-edit-field" name="phone_number" value="{{ business.phone_number }}" placeholder=" " autocomplete="tel">
                 <label for="settings-phone-input" data-i18n="settings.phone">Phone number</label>
             </div>
             <p class="phone-country-hint hidden" id="settings-phone-country-hint"><span class="flag" id="settings-phone-country-flag"></span><span id="settings-phone-country-name"></span></p>
@@ -121,10 +121,12 @@
                  identical field on the Home/My Site tab, instead of only inside a page-editor
                  card. -->
             <div class="floating-field">
-                <input type="text" id="settings-page-address-input" name="address" form="settings-page-form" value="{{ (page.address if page else business.address) or '' }}" placeholder=" " maxlength="200">
+                <input type="text" id="settings-page-address-input" class="tap-to-edit-field" name="address" form="settings-page-form" value="{{ (page.address if page else business.address) or '' }}" placeholder=" " maxlength="200" data-field-edit-address>
                 <!-- Autocomplete dropdown (address_lookup.py's /api/address-suggest, same OSM
                      Nominatim source as Sign up's own address field) - see static/pickers.js's
-                     initAddressAutocomplete for the shared behavior both this and Sign up use. -->
+                     initAddressAutocomplete for the shared behavior both this and Sign up use.
+                     Below the mobile breakpoint (static/field-edit-modal.js) this moves into
+                     the shared tap-to-edit modal instead, same as every other field here. -->
                 <div class="address-suggest-list hidden" id="settings-page-address-suggestions"></div>
                 <label for="settings-page-address-input">Address (shown on your page's map)</label>
             </div>
@@ -158,23 +160,23 @@
                 <p class="profile-section-title" data-i18n="social.heading">Social media</p>
             </div>
             <div class="floating-field" style="margin-top: 0;">
-                <input type="text" id="settings-instagram-input" name="social_instagram_url" value="{{ business.social_instagram_url }}" placeholder=" " autocapitalize="off" autocorrect="off">
+                <input type="text" id="settings-instagram-input" class="tap-to-edit-field" name="social_instagram_url" value="{{ business.social_instagram_url }}" placeholder=" " autocapitalize="off" autocorrect="off">
                 <label for="settings-instagram-input" data-i18n="social.instagram">Instagram</label>
             </div>
             <div class="floating-field">
-                <input type="text" id="settings-facebook-input" name="social_facebook_url" value="{{ business.social_facebook_url }}" placeholder=" " autocapitalize="off" autocorrect="off">
+                <input type="text" id="settings-facebook-input" class="tap-to-edit-field" name="social_facebook_url" value="{{ business.social_facebook_url }}" placeholder=" " autocapitalize="off" autocorrect="off">
                 <label for="settings-facebook-input" data-i18n="social.facebook">Facebook</label>
             </div>
             <div class="floating-field">
-                <input type="text" id="settings-x-input" name="social_x_url" value="{{ business.social_x_url }}" placeholder=" " autocapitalize="off" autocorrect="off">
+                <input type="text" id="settings-x-input" class="tap-to-edit-field" name="social_x_url" value="{{ business.social_x_url }}" placeholder=" " autocapitalize="off" autocorrect="off">
                 <label for="settings-x-input" data-i18n="social.x">X</label>
             </div>
             <div class="floating-field">
-                <input type="text" id="settings-tiktok-input" name="social_tiktok_url" value="{{ business.social_tiktok_url }}" placeholder=" " autocapitalize="off" autocorrect="off">
+                <input type="text" id="settings-tiktok-input" class="tap-to-edit-field" name="social_tiktok_url" value="{{ business.social_tiktok_url }}" placeholder=" " autocapitalize="off" autocorrect="off">
                 <label for="settings-tiktok-input" data-i18n="social.tiktok">TikTok</label>
             </div>
             <div class="floating-field">
-                <input type="text" id="settings-youtube-input" name="social_youtube_url" value="{{ business.social_youtube_url }}" placeholder=" " autocapitalize="off" autocorrect="off">
+                <input type="text" id="settings-youtube-input" class="tap-to-edit-field" name="social_youtube_url" value="{{ business.social_youtube_url }}" placeholder=" " autocapitalize="off" autocorrect="off">
                 <label for="settings-youtube-input" data-i18n="social.youtube">YouTube</label>
             </div>
         </div>
@@ -214,12 +216,12 @@
             </div>
             <label style="margin-top: 0;" data-i18n="settings.changePassword">Change password</label>
             <div class="floating-field floating-field-password">
-                <input type="password" id="settings-current-password-input" name="current_password" placeholder=" " autocomplete="current-password">
+                <input type="password" id="settings-current-password-input" class="tap-to-edit-field" name="current_password" placeholder=" " autocomplete="current-password" data-field-edit-password>
                 <label for="settings-current-password-input" data-i18n="settings.currentPassword">Current password</label>
                 {% include "_password_toggle.html" %}
             </div>
             <div class="floating-field floating-field-password">
-                <input type="password" id="settings-new-password-input" name="new_password" placeholder=" " autocomplete="new-password">
+                <input type="password" id="settings-new-password-input" class="tap-to-edit-field" name="new_password" placeholder=" " autocomplete="new-password" data-field-edit-password>
                 <label for="settings-new-password-input" data-i18n="settings.newPassword">New password</label>
                 {% include "_password_toggle.html" %}
             </div>
@@ -312,12 +314,12 @@
         </div>
 
         <div class="floating-field">
-            <input type="text" id="settings-page-tagline-input" name="tagline" value="{{ page.tagline if page else '' }}" placeholder=" " maxlength="200">
+            <input type="text" id="settings-page-tagline-input" class="tap-to-edit-field" name="tagline" value="{{ page.tagline if page else '' }}" placeholder=" " maxlength="200">
             <label for="settings-page-tagline-input">Tagline (one short line)</label>
         </div>
 
         <div class="floating-field floating-field-textarea">
-            <textarea name="about" id="settings-page-about-input" placeholder=" " maxlength="2000">{{ page.about if page else '' }}</textarea>
+            <textarea name="about" id="settings-page-about-input" class="tap-to-edit-field" placeholder=" " maxlength="2000" data-field-edit-textarea>{{ page.about if page else '' }}</textarea>
             <label for="settings-page-about-input">About (a few sentences)</label>
         </div>
         <p class="note">Optional formatting: a blank line starts a new paragraph, "# Heading" for a section heading, "- item" (repeated) for a bullet list, "**bold**" / "*italic*" for emphasis, "&gt; text" for a highlighted line, "-- text" for a right-aligned signature at the end.</p>
@@ -441,8 +443,18 @@ function initSettingsPickers() {
     safeInit(initSaveSuccessOverlay);
     safeInit(initSettingsPasswordValidation);
     safeInit(initScrollPreservation);
-    safeInit(() => initAddressAutocomplete(document.getElementById("settings-page-address-input"), document.getElementById("settings-page-address-suggestions")));
+    // isActive: !TAP_TO_EDIT_MQ.matches - see register.html's own identical guard on its
+    // address field for why this is needed once settings-page-address-input can also be
+    // edited through the shared field-edit modal (static/field-edit-modal.js) below the
+    // mobile breakpoint.
+    safeInit(() => initAddressAutocomplete(document.getElementById("settings-page-address-input"), document.getElementById("settings-page-address-suggestions"), () => !TAP_TO_EDIT_MQ.matches));
     safeInit(initSettingsPhoneCountryHint);
+    // Every picker above (including the two just registered a moment ago) can add new
+    // .tap-to-edit-field elements (price/upsell rows) or swap in a whole fresh body via
+    // htmx - re-applies the current readonly state (narrow viewports only) to whatever's
+    // now in the DOM. field-edit-modal.js's own top-level call only ever runs once, at the
+    // very first page load, so every later run of this whole function needs its own call.
+    safeInit(() => syncTapToEditFields(document));
     // Runs last, once every picker above (including the collapseToSimple() call, which can
     // shorten Working hours a lot) has already settled the page's final height - restoring
     // any earlier than that would just get overwritten by the layout still shifting under

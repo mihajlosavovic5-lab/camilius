@@ -33,18 +33,18 @@
                     {% set _name_parts = data.get('name', '').split(' ', 1) %}
                     <div class="register-field-row">
                         <div class="floating-field">
-                            <input type="text" id="register-firstname-input" value="{{ _name_parts[0] }}" placeholder=" " required>
+                            <input type="text" id="register-firstname-input" class="tap-to-edit-field" value="{{ _name_parts[0] }}" placeholder=" " required>
                             <label for="register-firstname-input" data-i18n="register.yourName">Your name</label>
                         </div>
 
                         <div class="floating-field">
-                            <input type="text" id="register-surname-input" value="{{ _name_parts[1] if _name_parts|length > 1 else '' }}" placeholder=" " required>
+                            <input type="text" id="register-surname-input" class="tap-to-edit-field" value="{{ _name_parts[1] if _name_parts|length > 1 else '' }}" placeholder=" " required>
                             <label for="register-surname-input" data-i18n="register.yourSurname">Your surname</label>
                         </div>
                     </div>
 
                     <div class="floating-field floating-field-password">
-                        <input type="password" id="register-password-input" name="password" placeholder=" " autocomplete="new-password" minlength="8" required>
+                        <input type="password" id="register-password-input" class="tap-to-edit-field" name="password" placeholder=" " autocomplete="new-password" minlength="8" required data-field-edit-password>
                         <label for="register-password-input" data-i18n="register.password">Password</label>
                         {% include "_password_toggle.html" %}
                     </div>
@@ -59,7 +59,7 @@
                     </div>
 
                     <div class="floating-field floating-field-password">
-                        <input type="password" id="register-confirm-password-input" name="confirm_password" placeholder=" " autocomplete="new-password" required>
+                        <input type="password" id="register-confirm-password-input" class="tap-to-edit-field" name="confirm_password" placeholder=" " autocomplete="new-password" required data-field-edit-password>
                         <label for="register-confirm-password-input" data-i18n="register.confirmPassword">Confirm password</label>
                         {% include "_password_toggle.html" %}
                     </div>
@@ -68,7 +68,7 @@
                     <div class="register-field-row">
                         <div class="register-field-col">
                             <div class="floating-field">
-                                <input type="email" id="register-contact-email-input" name="contact_email" value="{{ data.get('contact_email', '') }}" placeholder=" " required>
+                                <input type="email" id="register-contact-email-input" class="tap-to-edit-field" name="contact_email" value="{{ data.get('contact_email', '') }}" placeholder=" " required>
                                 <label for="register-contact-email-input" data-i18n="register.contactEmail">Contact email</label>
                             </div>
                             <p class="field-error hidden" id="register-contact-email-error"></p>
@@ -77,7 +77,7 @@
 
                         <div class="register-field-col">
                             <div class="floating-field">
-                                <input type="tel" id="register-phone-input" name="phone_number" value="{{ data.get('phone_number', '') }}" placeholder=" ">
+                                <input type="tel" id="register-phone-input" class="tap-to-edit-field" name="phone_number" value="{{ data.get('phone_number', '') }}" placeholder=" ">
                                 <label for="register-phone-input" data-i18n="register.phone">Phone number (optional)</label>
                             </div>
                             <p class="phone-country-hint hidden" id="register-phone-country-hint"><span class="flag" id="register-phone-country-flag"></span><span id="register-phone-country-name"></span></p>
@@ -91,9 +91,11 @@
                          independently editable) once the page itself is created - see
                          database.py's add_business docstring. Autocomplete suggestions via
                          static/address-autocomplete.js, same OpenStreetMap-backed endpoint
-                         as Settings' own address field. -->
+                         as Settings' own address field - below the mobile breakpoint (see
+                         static/field-edit-modal.js) that dropdown moves into the shared
+                         tap-to-edit modal instead, same as every other field on this step. -->
                     <div class="floating-field">
-                        <input type="text" id="register-address-input" name="address" value="{{ data.get('address', '') }}" placeholder=" " maxlength="200" autocomplete="off">
+                        <input type="text" id="register-address-input" class="tap-to-edit-field" name="address" value="{{ data.get('address', '') }}" placeholder=" " maxlength="200" autocomplete="off" data-field-edit-address>
                         <label for="register-address-input" data-i18n="register.address">Business address (shown on maps)</label>
                         <div class="address-suggest-list hidden" id="register-address-suggestions"></div>
                     </div>
@@ -140,23 +142,23 @@
                          always editable later from Settings. -->
                     <label data-i18n="social.heading">Social media</label>
                     <div class="floating-field">
-                        <input type="text" id="register-instagram-input" name="social_instagram_url" value="{{ data.get('social_instagram_url', '') }}" placeholder=" " autocapitalize="off" autocorrect="off">
+                        <input type="text" id="register-instagram-input" class="tap-to-edit-field" name="social_instagram_url" value="{{ data.get('social_instagram_url', '') }}" placeholder=" " autocapitalize="off" autocorrect="off">
                         <label for="register-instagram-input" data-i18n="social.instagram">Instagram</label>
                     </div>
                     <div class="floating-field">
-                        <input type="text" id="register-facebook-input" name="social_facebook_url" value="{{ data.get('social_facebook_url', '') }}" placeholder=" " autocapitalize="off" autocorrect="off">
+                        <input type="text" id="register-facebook-input" class="tap-to-edit-field" name="social_facebook_url" value="{{ data.get('social_facebook_url', '') }}" placeholder=" " autocapitalize="off" autocorrect="off">
                         <label for="register-facebook-input" data-i18n="social.facebook">Facebook</label>
                     </div>
                     <div class="floating-field">
-                        <input type="text" id="register-x-input" name="social_x_url" value="{{ data.get('social_x_url', '') }}" placeholder=" " autocapitalize="off" autocorrect="off">
+                        <input type="text" id="register-x-input" class="tap-to-edit-field" name="social_x_url" value="{{ data.get('social_x_url', '') }}" placeholder=" " autocapitalize="off" autocorrect="off">
                         <label for="register-x-input" data-i18n="social.x">X</label>
                     </div>
                     <div class="floating-field">
-                        <input type="text" id="register-tiktok-input" name="social_tiktok_url" value="{{ data.get('social_tiktok_url', '') }}" placeholder=" " autocapitalize="off" autocorrect="off">
+                        <input type="text" id="register-tiktok-input" class="tap-to-edit-field" name="social_tiktok_url" value="{{ data.get('social_tiktok_url', '') }}" placeholder=" " autocapitalize="off" autocorrect="off">
                         <label for="register-tiktok-input" data-i18n="social.tiktok">TikTok</label>
                     </div>
                     <div class="floating-field">
-                        <input type="text" id="register-youtube-input" name="social_youtube_url" value="{{ data.get('social_youtube_url', '') }}" placeholder=" " autocapitalize="off" autocorrect="off">
+                        <input type="text" id="register-youtube-input" class="tap-to-edit-field" name="social_youtube_url" value="{{ data.get('social_youtube_url', '') }}" placeholder=" " autocapitalize="off" autocorrect="off">
                         <label for="register-youtube-input" data-i18n="social.youtube">YouTube</label>
                     </div>
 
@@ -206,7 +208,13 @@
 document.addEventListener("DOMContentLoaded", function () {
     var registerHoursPicker = createHoursPicker("register-hours-picker-mount", "register-working-hours");
     var registerPricesPicker = createPricePicker("register-price-picker-mount", "register-price-add", "register-price-currency", "register-price-list");
-    initAddressAutocomplete(document.getElementById("register-address-input"), document.getElementById("register-address-suggestions"));
+    // isActive: !TAP_TO_EDIT_MQ.matches - below the mobile breakpoint, register-address-input
+    // is readonly and edited through the shared field-edit modal instead (static/
+    // field-edit-modal.js), which grows its own copy of this exact dropdown. Without this
+    // guard, the modal syncing a typed/picked value back onto this real field (a dispatched
+    // "input" event) would also re-trigger THIS listener, popping this original dropdown
+    // open behind/underneath the readonly field at the same time as the modal's own copy.
+    initAddressAutocomplete(document.getElementById("register-address-input"), document.getElementById("register-address-suggestions"), function () { return !TAP_TO_EDIT_MQ.matches; });
 
     // Every ITU calling code, longest-prefix-first, so a live "+1876..." doesn't get
     // mis-detected as the shorter "+1" (US/Canada) - same list/approach as the mobile

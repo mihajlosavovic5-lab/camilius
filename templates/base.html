@@ -264,6 +264,14 @@
          never reloaded" reasoning as pickers.js just above; used by register.html and
          settings.html. -->
     <script src="{{ url_for('static', filename='address-autocomplete.js') }}?v={{ static_versions['address-autocomplete.js'] }}" defer></script>
+    <!-- Tap-to-zoom field-edit modal (static/field-edit-modal.js), narrow viewports only -
+         mirrors the mobile app's own shared #mysite-field-modal. Loaded after
+         address-autocomplete.js/pickers.js/site-i18n.js (needs initAddressAutocomplete/t()
+         already defined - defer scripts still run in source order) and, same "load once
+         here, never reloaded" reasoning as those, applies itself to every .tap-to-edit-field
+         on any page via one delegated listener rather than needing to be initialized per
+         page. -->
+    <script src="{{ url_for('static', filename='field-edit-modal.js') }}?v={{ static_versions['field-edit-modal.js'] }}" defer></script>
     <!-- Smart install banner init (Faza 5; the banner's own markup is in <body>, right
          where it renders - see #mobile-install-banner below). Lives here in <head>, not
          next to that markup, for the same reason as pickers.js above: a hx-boosted tab switch swaps <body>, and a

@@ -7,11 +7,17 @@
 // under Nominatim's roughly-1-request/second fair-use ceiling and to avoid a results
 // list that's rewriting itself out from under a still-typing visitor.
 //
-// One function shared by every field (register.html, settings.html) rather than a copy
-// per page - each just calls initAddressAutocomplete(input, list) once with its own two
-// elements.
-function initAddressAutocomplete(input, list) {
+// One function shared by every field (register.html, settings.html, and the shared
+// tap-to-edit field modal on narrow viewports - static/field-edit-modal.js) rather than a
+// copy per page - each just calls initAddressAutocomplete(input, list) once with its own
+// two elements. isActive is only needed by the field-edit modal, whose one shared input is
+// reused for many different fields (name, phone, address, ...) - it gates suggestion
+// fetches to only when the modal is CURRENTLY open for an address field, so typing a phone
+// number into that same shared input doesn't also trigger an address search. Defaults to
+// always-on for the plain in-page fields, which each have their own dedicated input.
+function initAddressAutocomplete(input, list, isActive) {
     if (!input || !list) return;
+    if (!isActive) isActive = function () { return true; };
 
     let debounceTimer = null;
     // Guards against a slow earlier response landing after a faster later one and
@@ -56,7 +62,9 @@ function initAddressAutocomplete(input, list) {
         fetch("/api/address-suggest?q=" + encodeURIComponent(query))
             .then((response) => response.json())
             .then((data) => {
-                if (query !== latestQuery) return; // superseded by a newer keystroke
+                // Superseded by a newer keystroke, or (shared modal only) the field this
+                // was fetched for isn't the one open anymore by the time it lands.
+                if (query !== latestQuery || !isActive()) return;
                 renderSuggestions(data.suggestions || []);
             })
             .catch(() => {
@@ -66,6 +74,7 @@ function initAddressAutocomplete(input, list) {
     }
 
     function scheduleSearch() {
+        if (!isActive()) return;
         const query = input.value.trim();
         if (debounceTimer) clearTimeout(debounceTimer);
         if (query.length < 3) {

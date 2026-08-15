@@ -259,7 +259,14 @@ function createPricePicker(mountId, addButtonId, currencySelectId, hiddenFieldId
         serviceInput.placeholder = t("pickers.servicePlaceholder");
         serviceInput.setAttribute("data-i18n-placeholder", "pickers.servicePlaceholder");
         serviceInput.value = service || "";
-        serviceInput.className = "price-service-input";
+        serviceInput.className = "price-service-input tap-to-edit-field";
+        serviceInput.dataset.fieldEditTitleI18n = "pickers.servicePlaceholder";
+        // Set directly (not left to a later syncTapToEditFields(document) sweep) since a
+        // row created here - on page load, or later from "+ Add service" - has no other
+        // guaranteed re-sync point that would ever catch it otherwise (see
+        // static/field-edit-modal.js's own comment on why fields need their readonly
+        // state set at creation time, not just once for the page as a whole).
+        serviceInput.readOnly = TAP_TO_EDIT_MQ.matches;
 
         const priceWrap = document.createElement("div");
         priceWrap.className = "price-amount-wrap";
@@ -279,7 +286,10 @@ function createPricePicker(mountId, addButtonId, currencySelectId, hiddenFieldId
         priceInput.placeholder = t("pickers.pricePlaceholder");
         priceInput.setAttribute("data-i18n-placeholder", "pickers.pricePlaceholder");
         priceInput.value = price || "";
-        priceInput.className = "price-amount-input";
+        priceInput.className = "price-amount-input tap-to-edit-field";
+        priceInput.dataset.fieldEditTitleI18n = "pickers.pricePlaceholder";
+        priceInput.dataset.fieldEditNumeric = "";
+        priceInput.readOnly = TAP_TO_EDIT_MQ.matches;
 
         // Shows the currently selected currency inside the field itself (kept in sync by
         // sync() above, whenever the currency dropdown changes) - the code already gets
@@ -407,8 +417,15 @@ function createUpsellPicker(mountId, addButtonId, hiddenFieldId, priceListHidden
         inputA.placeholder = t("pickers.servicePlaceholder");
         inputA.setAttribute("data-i18n-placeholder", "pickers.servicePlaceholder");
         inputA.value = serviceA || "";
-        inputA.className = "upsell-service-a";
+        inputA.className = "upsell-service-a tap-to-edit-field";
         inputA.setAttribute("list", datalistId);
+        inputA.dataset.fieldEditTitleI18n = "pickers.servicePlaceholder";
+        // Carries the same <datalist> into the shared field-edit modal (field-edit-modal.js
+        // reads this back off the source element when it opens) so the autocomplete-against-
+        // the-price-list behavior this field has isn't lost once it's edited through there
+        // instead of in place.
+        inputA.dataset.fieldEditList = datalistId;
+        inputA.readOnly = TAP_TO_EDIT_MQ.matches;
 
         const arrow = document.createElement("span");
         arrow.className = "upsell-arrow";
@@ -419,8 +436,11 @@ function createUpsellPicker(mountId, addButtonId, hiddenFieldId, priceListHidden
         inputB.placeholder = t("pickers.addonPlaceholder");
         inputB.setAttribute("data-i18n-placeholder", "pickers.addonPlaceholder");
         inputB.value = serviceB || "";
-        inputB.className = "upsell-service-b";
+        inputB.className = "upsell-service-b tap-to-edit-field";
         inputB.setAttribute("list", datalistId);
+        inputB.dataset.fieldEditTitleI18n = "pickers.addonPlaceholder";
+        inputB.dataset.fieldEditList = datalistId;
+        inputB.readOnly = TAP_TO_EDIT_MQ.matches;
 
         const removeBtn = document.createElement("button");
         removeBtn.type = "button";

@@ -969,6 +969,20 @@ input::placeholder, textarea::placeholder { color: var(--text-muted); opacity: 1
 textarea { min-height: 90px; resize: vertical; line-height: 1.4; padding-top: 8px; }
 input[readonly] { background: var(--background); color: var(--text-muted); }
 input[readonly]:hover { border-color: var(--border); }
+/* Overrides the generic input[readonly] rule above (meant for genuinely inert
+   informational fields) for readonly fields that are actually the tap-to-open-the-shared-
+   editor-modal kind (see static/field-edit-modal.js, narrow viewports only) - these still
+   read as normal, fully-colored editable-looking fields, since only the interaction
+   (tap opens a modal instead of focusing in place) changed, not their look. Written as
+   input[readonly].tap-to-edit-field (not just the bare class) so its specificity ties the
+   plain input[readonly] rule above instead of losing to it. Same idea as mobile/app.css's
+   own .tap-to-edit-field override of its input[readonly] rule. */
+input[readonly].tap-to-edit-field, textarea[readonly].tap-to-edit-field {
+    background: var(--surface); color: var(--text); cursor: pointer;
+}
+input[readonly].tap-to-edit-field:hover, textarea[readonly].tap-to-edit-field:hover {
+    border-color: var(--primary-ink);
+}
 .note { color: var(--text-muted); font-size: 14px; margin: 5px 0 0; }
 .form-actions { margin-top: 24px; }
 .hidden { display: none !important; }
@@ -1245,6 +1259,78 @@ input[readonly]:hover { border-color: var(--border); }
 }
 .option-modal-option:hover, .option-modal-option:focus-visible { background: var(--background); }
 .option-modal-option.active { color: var(--primary-ink); font-weight: 700; background: var(--primary-light); }
+
+/* --- Field-edit modal (static/field-edit-modal.js) --- */
+/* Narrow-viewport-only tap-to-zoom text editor, ported from the mobile app's own shared
+   #mysite-field-modal (mobile/app.css/app.js's openFieldEditModal): fields marked
+   .tap-to-edit-field become readonly below the site's mobile breakpoint (matches
+   TAP_TO_EDIT_MQ in field-edit-modal.js) and tapping one opens this one shared centered
+   sheet - title + a big input/textarea - instead of typing in place on a cramped phone
+   field. Left fully untouched above that breakpoint: desktop already has the room and the
+   keyboard for comfortable in-place editing, where a popup on every click would just be
+   friction. Same overlay/backdrop/scale-in choreography as .option-modal/.confirm-modal
+   above, sized like .confirm-modal-card instead of the narrower option list. Deliberately
+   NOT given .option-modal-sheet's own overflow-y: auto - unlike that modal (an
+   unbounded-length option list), everything this one can show already caps its own height
+   (the textarea's own max-height/overflow-y below), so the sheet itself never needs to
+   scroll - giving it one anyway would clip the address-suggestions popover the moment it
+   grew past the sheet's own auto-height box, since an absolutely-positioned child like
+   that doesn't count toward that height to begin with. */
+.field-edit-modal {
+    position: fixed; inset: 0; z-index: 1060;
+    display: flex; align-items: center; justify-content: center; padding: 20px;
+    visibility: hidden; pointer-events: none;
+}
+.field-edit-modal.open { visibility: visible; pointer-events: auto; }
+.field-edit-modal-backdrop {
+    position: absolute; inset: 0; background: rgba(20,15,8,.42);
+    opacity: 0; transition: opacity .2s ease;
+}
+.field-edit-modal.open .field-edit-modal-backdrop { opacity: 1; }
+.field-edit-modal-sheet {
+    position: relative; background: var(--surface); border-radius: var(--radius); box-shadow: var(--shadow-lg);
+    padding: 22px 20px; max-width: 360px; width: 100%;
+    transform: translateY(6px) scale(.96); opacity: 0;
+    transition: transform .2s cubic-bezier(.22,.9,.32,1.2), opacity .16s ease;
+}
+.field-edit-modal.open .field-edit-modal-sheet { transform: translateY(0) scale(1); opacity: 1; }
+.field-edit-modal-title { margin: 0 0 14px; text-align: center; font-size: 15.5px; font-weight: 700; color: var(--text); }
+/* position: relative anchors both the password toggle and (address fields only) the
+   address-suggestions popover, same as .floating-field does for the plain in-page
+   fields - .address-suggest-list's own CSS above already assumes exactly this ancestor. */
+.field-edit-modal-input-wrap { position: relative; }
+/* Scoped under .field-edit-modal-sheet (not just the bare .field-edit-modal-control class)
+   purely for specificity - the modal's <input> keeps matching the generic
+   input[type="text"]/input[type="password"] rules far above (same element, same attribute)
+   for as long as it's open, and a bare single-class selector here loses that tie-break to
+   those attribute selectors, which would otherwise still win on padding/background/
+   border-radius/hover/focus. */
+.field-edit-modal-sheet .field-edit-modal-control {
+    display: block; width: 100%; box-sizing: border-box; text-align: center;
+    padding: 12px 14px; border: 1px solid var(--border); border-radius: var(--radius);
+    font-family: inherit; font-size: 16px; color: var(--text); background: var(--background);
+    transition: border-color .15s, box-shadow .15s;
+}
+.field-edit-modal-sheet .field-edit-modal-control:hover { border-color: var(--primary-ink); }
+.field-edit-modal-sheet .field-edit-modal-control:focus {
+    outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(214, 148, 16, .18);
+}
+.field-edit-modal-textarea { text-align: left; min-height: 110px; max-height: 45vh; overflow-y: auto; resize: none; }
+/* Applied by openFieldEditModal (field-edit-modal.js) instead of a :has() selector -
+   broader support than relying on :has(), matching mobile/app.css's own reasoning for its
+   equivalent .mysite-field-modal-input-row-password rule. Same .field-edit-modal-sheet
+   scoping-for-specificity reasoning as the rule above. */
+.field-edit-modal-sheet .field-edit-modal-input-wrap-password .field-edit-modal-control { padding-right: 44px; }
+.field-edit-modal-password-toggle {
+    position: absolute; top: 0; right: 2px; height: 100%; width: 40px;
+    display: none; align-items: center; justify-content: center;
+    background: none; border: none; padding: 0; margin: 0; cursor: pointer;
+    color: var(--text-muted);
+}
+.field-edit-modal-password-toggle.has-value { display: flex; }
+.field-edit-modal-password-toggle:hover, .field-edit-modal-password-toggle:focus-visible { color: var(--primary-ink); }
+.field-edit-modal-password-toggle.is-visible { color: var(--primary-ink); }
+.field-edit-modal-password-toggle.is-visible .password-toggle-slash { opacity: 0; }
 
 /* --- Badges (status) --- */
 .badge {

@@ -35,8 +35,8 @@
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         <input type="hidden" name="date" value="{{ selected_date.isoformat() }}">
                         <input type="hidden" name="time" value="{{ row.time }}">
-                        <input type="text" name="customer_name" data-i18n-placeholder="schedule.customerNamePlaceholder" placeholder="Customer name" required>
-                        <input type="text" name="service" data-i18n-placeholder="schedule.servicePlaceholder" placeholder="Service (optional)">
+                        <input type="text" name="customer_name" class="tap-to-edit-field" data-field-edit-title-i18n="schedule.customerNamePlaceholder" data-i18n-placeholder="schedule.customerNamePlaceholder" placeholder="Customer name" required>
+                        <input type="text" name="service" class="tap-to-edit-field" data-field-edit-title-i18n="schedule.servicePlaceholder" data-i18n-placeholder="schedule.servicePlaceholder" placeholder="Service (optional)">
                         <div class="duration-dd">
                             <input type="hidden" name="duration" class="duration-dd-value" value="{{ slot_minutes }}">
                             <button type="button" class="schedule-slot-duration-select duration-dd-trigger" aria-haspopup="listbox" aria-expanded="false">{{ slot_minutes }} min</button>
@@ -331,5 +331,21 @@
         });
     });
 })();
+
+// Applies the shared tap-to-edit-field readonly state (narrow viewports only - see
+// static/field-edit-modal.js) to this page's Customer name/Service fields. Deferred
+// behind DOMContentLoaded on a genuine fresh page load - unlike everything in the IIFE
+// above (which only wires listeners for later, once a user actually interacts), this
+// calls straight into field-edit-modal.js itself, which is loaded with `defer` in <head>
+// and so isn't guaranteed to exist yet on a page whose very first load happens to be this
+// one (e.g. a bookmark, or the post-login redirect). A boosted swap's own re-run of this
+// script always has document.readyState already "complete" by then (that script tag only
+// runs after field-edit-modal.js loaded once, on whichever page loaded first), so it's
+// safe to call immediately in that case.
+if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", function () { syncTapToEditFields(document); });
+} else {
+    syncTapToEditFields(document);
+}
 </script>
 {% endblock %}
