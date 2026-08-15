@@ -331,6 +331,7 @@ if (capacitorPlugins) {
     }
 
     capacitorPlugins.App.addListener("backButton", ({ canGoBack }) => {
+      try {
         if (closeTopmostOverlay()) {
             // handled - a popup/sheet/lightbox was open and just got closed
         } else if (screens.detail.classList.contains("active")) {
@@ -362,6 +363,13 @@ if (capacitorPlugins) {
             showScreen("deleteWarning");
         } else if (screens.deleteConfirm.classList.contains("active")) {
             showScreen("deleteReason");
+        } else if (screens.inbox.classList.contains("active")) {
+            // Reachable without ever going through the Home tab button - a tapped push
+            // notification jumps straight here via setActiveTab("inbox") (see the
+            // pushNotificationActionPerformed listener above), which isn't one of the 4
+            // .tab-btn screens, so back previously fell all the way through to the
+            // canGoBack/exitApp branch below instead of landing back on a real tab.
+            setActiveTab("mysite");
         } else if (canGoBack) {
             history.back();
         } else if (Date.now() - lastExitBackPressAt < EXIT_BACK_PRESS_WINDOW_MS) {
@@ -377,6 +385,17 @@ if (capacitorPlugins) {
             lastExitBackPressAt = Date.now();
             showToast(t("nav.exitConfirm") || "Tap back again to exit", true);
         }
+      } catch (e) {
+        // A bug in any branch above previously meant the whole hardware back press
+        // just silently did nothing - no navigation, no toast, no crash log entry to
+        // even show it happened. Reporting it here (same channel as every other
+        // reportClientError call, visible at /admin/client-errors) turns a "back button
+        // doesn't work, no idea why" report into an actual stack trace next time, and
+        // still leaves the visitor able to get out via history.back()/exitApp instead
+        // of the press being eaten entirely.
+        reportClientError(e.message, e.stack, "backButton-listener");
+        if (canGoBack) history.back(); else capacitorPlugins.App.exitApp();
+      }
     });
 
 
