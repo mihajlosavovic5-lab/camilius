@@ -81,7 +81,14 @@
         <div class="login-phase-stack">
         <div class="auth-choice" id="login-choice">
             {% if google_oauth_configured %}
-            <a class="button button-google button-full button-pill" href="{{ url_for('auth_google', intent='login') }}">
+            {# Google Identity Services renders its own bottom-sheet-style "Sign in with
+               Google" panel into this slot once its script loads (see the script block
+               below) - hidden until then. The plain link below it is the fallback: full
+               page redirect through accounts.google.com, exactly what this page did
+               before GIS existed, and what still runs if the GIS script fails to load
+               (network block, offline, etc.) or JS is disabled entirely. #}
+            <div id="google-gis-slot" class="google-gis-slot"></div>
+            <a class="button button-google button-full button-pill" id="login-google-fallback-btn" href="{{ url_for('auth_google', intent='login') }}">
                 {% include "_google_icon.html" %}
                 <span data-i18n="login.continueWithGoogle">Continue with Google</span>
             </a>
@@ -213,4 +220,57 @@
         });
     })();
 </script>
+{% if google_oauth_configured %}
+<script>
+    // Progressive enhancement over the plain #login-google-fallback-btn link above (a
+    // full-page redirect through accounts.google.com - see auth_google()'s own comment):
+    // loads Google Identity Services and, only once it's actually rendered a button,
+    // swaps to it. Anything that stops that - the script blocked/offline, an old
+    // browser GIS refuses to run in, JS disabled entirely - just leaves the fallback
+    // link showing and working exactly as it always has, nothing here ever removes or
+    // disables it up front.
+    (function () {
+        var slot = document.getElementById("google-gis-slot");
+        var fallback = document.getElementById("login-google-fallback-btn");
+        if (!slot || !fallback) return;
+
+        function handleCredential(response) {
+            fetch("{{ url_for('auth_google_token') }}", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ credential: response.credential, intent: "login" }),
+            })
+                .then(function (r) { return r.json(); })
+                .then(function (data) { window.location.href = data.redirect || fallback.href; })
+                .catch(function () { window.location.href = fallback.href; });
+        }
+
+        var script = document.createElement("script");
+        script.src = "https://accounts.google.com/gsi/client";
+        script.async = true;
+        script.defer = true;
+        script.onload = function () {
+            if (!window.google || !google.accounts || !google.accounts.id) return;
+            google.accounts.id.initialize({
+                client_id: {{ google_client_id | tojson }},
+                callback: handleCredential,
+            });
+            google.accounts.id.renderButton(slot, {
+                type: "standard",
+                theme: "outline",
+                size: "large",
+                text: "continue_with",
+                shape: "pill",
+                logo_alignment: "left",
+                width: Math.min(fallback.offsetWidth || 320, 400),
+            });
+            slot.classList.add("visible");
+            fallback.style.display = "none";
+        };
+        // No .onerror handling needed - leaving the fallback link as-is (still visible,
+        // still a real href) IS the error handling.
+        document.head.appendChild(script);
+    })();
+</script>
+{% endif %}
 {% endblock %}

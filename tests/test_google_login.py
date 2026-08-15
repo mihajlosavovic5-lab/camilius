@@ -627,3 +627,120 @@ def test_verify_id_token_link_token_works_with_register(client, monkeypatch, uni
     business = database.business_by_contact_email(unique_email)
     assert business[11] is True
     assert business[21] == sub
+
+
+# --- Web native bottom sheet (Google Identity Services): /auth/google/token ---
+#
+# login.html's GIS script posts the credential Google hands it client-side here - no
+# browser redirect, no session["oauth_state"] round trip. google_oauth.verify_id_token is
+# monkeypatched here exactly like fetch_user/verify_id_token are above, standing in for
+# the real call to Google's tokeninfo endpoint.
+
+def test_login_page_renders_gis_script_when_configured(client, monkeypatch):
+    _configure_google(monkeypatch)
+    html = client.get("/login").get_data(as_text=True)
+    assert "accounts.google.com/gsi/client" in html
+    assert "google-gis-slot" in html
+    assert "test-client-id" in html
+
+
+def test_login_page_omits_gis_script_when_not_configured(client, monkeypatch):
+    monkeypatch.delenv("GOOGLE_CLIENT_ID", raising=False)
+    monkeypatch.delenv("GOOGLE_CLIENT_SECRET", raising=False)
+    html = client.get("/login").get_data(as_text=True)
+    assert "accounts.google.com/gsi/client" not in html
+
+
+def test_auth_google_token_404s_when_not_configured(client, monkeypatch):
+    monkeypatch.delenv("GOOGLE_CLIENT_ID", raising=False)
+    monkeypatch.delenv("GOOGLE_CLIENT_SECRET", raising=False)
+    response = client.post("/auth/google/token", json={"credential": "x"})
+    assert response.status_code == 404
+
+
+def test_auth_google_token_missing_credential_redirects_to_login_with_error(client, monkeypatch):
+    _configure_google(monkeypatch)
+    response = client.post("/auth/google/token", json={})
+    data = response.get_json()
+    assert "/login" in data["redirect"]
+    assert "error=" in data["redirect"]
+
+
+def test_auth_google_token_invalid_credential_redirects_to_login_with_error(client, monkeypatch):
+    _configure_google(monkeypatch)
+    monkeypatch.setattr(app_module.google_oauth, "verify_id_token", lambda credential: None)
+    response = client.post("/auth/google/token", json={"credential": "bad"})
+    data = response.get_json()
+    assert "/login" in data["redirect"]
+    assert "error=" in data["redirect"]
+
+
+def test_auth_google_token_new_identity_with_login_intent_redirects_to_login_with_no_account_error(client, monkeypatch, unique_email):
+    """Web's GIS button only ever sends intent="login" (see login.html's own script) -
+    a brand-new Google identity must get the same "no account" error as the plain
+    redirect flow's own login-intent case, never a silent hand-off to sign-up."""
+    _configure_google(monkeypatch)
+    sub = _unique_sub()
+    monkeypatch.setattr(app_module.google_oauth, "verify_id_token", lambda credential: _fake_profile(sub, unique_email))
+    response = client.post("/auth/google/token", json={"credential": "tok", "intent": "login"})
+    data = response.get_json()
+    assert "/register" not in data["redirect"]
+    assert "/login" in data["redirect"]
+
+    login_page = client.get(data["redirect"])
+    html = login_page.get_data(as_text=True)
+    assert "No Camilius account" in html or "no account" in html.lower()
+    assert database.business_by_contact_email(unique_email) is None
+
+
+def test_auth_google_token_new_identity_with_register_intent_redirects_to_register_prefilled(client, monkeypatch, unique_email):
+    """Not reachable from login.html today (it never sends intent="register"), but the
+    endpoint supports it the same way api_google_login_verify_id_token does - covered
+    here so the behavior doesn't silently regress if a Register-screen button is ever
+    wired up to this same endpoint."""
+    _configure_google(monkeypatch)
+    sub = _unique_sub()
+    monkeypatch.setattr(app_module.google_oauth, "verify_id_token", lambda credential: _fake_profile(sub, unique_email, name="Jane's Salon"))
+    response = client.post("/auth/google/token", json={"credential": "tok", "intent": "register"})
+    data = response.get_json()
+    assert "/register" in data["redirect"]
+    assert "google_link_token=" in data["redirect"]
+
+    with client.session_transaction() as sess:
+        assert sess.get("business_id") is None
+    assert database.business_by_contact_email(unique_email) is None
+
+
+def test_auth_google_token_existing_account_logs_in(client, monkeypatch, unique_email):
+    from conftest import register_business
+
+    register_business(client, unique_email)
+
+    _configure_google(monkeypatch)
+    sub = _unique_sub()
+    monkeypatch.setattr(app_module.google_oauth, "verify_id_token", lambda credential: _fake_profile(sub, unique_email))
+    response = client.post("/auth/google/token", json={"credential": "tok", "intent": "login"})
+    data = response.get_json()
+    assert data["redirect"].endswith(app_module.url_for("home"))
+
+    with client.session_transaction() as sess:
+        assert sess.get("business_id") is not None
+
+
+def test_auth_google_token_reuses_existing_google_link(client, monkeypatch, unique_email):
+    """A Google identity already linked (via the plain redirect flow, or a previous GIS
+    sign-in) logs in the same way on a later GIS attempt - no re-linking needed."""
+    from conftest import register_business
+
+    register_business(client, unique_email)
+
+    _configure_google(monkeypatch)
+    sub = _unique_sub()
+    monkeypatch.setattr(app_module.google_oauth, "fetch_user", lambda code, redirect_uri: _fake_profile(sub, unique_email))
+    state = _start_web_google_auth_login(client)
+    client.get(f"/auth/google/callback?code=abc&state={state}")  # links google_id to the account
+
+    monkeypatch.setattr(app_module.google_oauth, "verify_id_token", lambda credential: _fake_profile(sub, unique_email))
+    response = client.post("/auth/google/token", json={"credential": "tok", "intent": "login"})
+    data = response.get_json()
+    assert data["redirect"].endswith(app_module.url_for("home"))

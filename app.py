@@ -167,9 +167,14 @@ def inject_donation_link():
 # GOOGLE_CLIENT_ID/GOOGLE_CLIENT_SECRET (see google_oauth.is_configured()) hides it
 # entirely rather than showing a button that would 404, same "ship inert until
 # configured" pattern as donation_link/BETA_FREE_MODE above and Paddle/Stripe elsewhere.
+#
+# google_client_id isn't a secret (Google client IDs are meant to be public - it's
+# already embedded in google_oauth.authorization_url()'s redirect URL that every plain
+# "Continue with Google" click sends the browser) - login.html's own script tag needs it
+# to call google.accounts.id.initialize() for the Google Identity Services button.
 @app.context_processor
 def inject_google_oauth_configured():
-    return {"google_oauth_configured": google_oauth.is_configured()}
+    return {"google_oauth_configured": google_oauth.is_configured(), "google_client_id": os.getenv("GOOGLE_CLIENT_ID")}
 
 
 # --- Static asset caching (perf) ---
@@ -351,7 +356,14 @@ PRIMARY_HOSTS = {PRIMARY_APP_HOST, "localhost", "127.0.0.1"}
 # supposed to be framed by someone else's page.
 _CSP_TEMPLATE = (
     "default-src 'self'; "
-    "script-src 'self' 'unsafe-inline' https://cdn.paddle.com; "
+    # https://accounts.google.com: login.html's Google Identity Services button (the
+    # "Continue with Google" bottom-sheet-style flow) loads its script from there, and
+    # GIS itself needs to open its own iframe (the rendered button) and make its own
+    # network calls back to Google for the credential exchange - same three-directive
+    # shape as the Paddle checkout overlay's own allowance right below (script-src +
+    # connect-src + frame-src, one real origin covering all of a third-party widget's
+    # own script/network/iframe needs, not just the initial script load).
+    "script-src 'self' 'unsafe-inline' https://cdn.paddle.com https://accounts.google.com; "
     "style-src 'self' 'unsafe-inline'; "
     "img-src 'self' data: https:; "
     # ipapi.co: best-effort IP geolocation the language picker uses to guess a first-time
@@ -363,13 +375,13 @@ _CSP_TEMPLATE = (
     # own origin already IS this host; a page served from a business's custom domain
     # needs it listed explicitly or the browser blocks the fetch before CORS even enters
     # the picture (see public_page_chat/_availability's own CORS handling for that half).
-    f"connect-src 'self' https://*.paddle.com https://ipapi.co https://{PRIMARY_APP_HOST}; "
+    f"connect-src 'self' https://*.paddle.com https://ipapi.co https://accounts.google.com https://{PRIMARY_APP_HOST}; "
     # https://www.google.com: the public page's #location section (see public_page.html)
     # embeds a Google Maps iframe - without this it silently renders as a broken-image
     # icon in a real browser (frame-src blocks the frame navigation itself, same class of
     # bug the onboarding-preview note above already describes), never a visible CSP error
     # a business owner would think to check for.
-    "frame-src 'self' https://*.paddle.com https://www.google.com; "
+    "frame-src 'self' https://*.paddle.com https://www.google.com https://accounts.google.com; "
     "frame-ancestors {frame_ancestors}; "
     "base-uri 'self'; "
     "object-src 'none'"
@@ -501,6 +513,60 @@ def auth_google():
     session["oauth_intent"] = "login" if request.args.get("intent") == "login" else "register"
     redirect_uri = url_for("auth_google_callback", _external=True)
     return redirect(google_oauth.authorization_url(redirect_uri, state))
+
+
+# Web counterpart to api.py's api_google_login_verify_id_token (mobile's Credential
+# Manager bridge) - login.html's own script posts the credential Google Identity
+# Services hands it client-side here (see that script for the google.accounts.id.
+# initialize()/renderButton() setup), instead of the full-page redirect through
+# accounts.google.com that auth_google() above does. Always intent="login" for now -
+# GIS is only wired up on the Login screen (see auth_google()'s own comment: Create
+# Account has never had a "Continue with Google" button on the web, only on mobile),
+# so there's nothing yet that would ever send "register" here.
+#
+# Sets the Flask session cookie directly and hands back a JSON `redirect` URL for the
+# page's own script to navigate to, rather than doing the redirect itself - there's no
+# request to redirect on the server side, this endpoint's only caller is a fetch() from
+# already-loaded JS, so it can't offer more than a target URL.
+@app.route("/auth/google/token", methods=["POST"])
+@csrf.exempt  # no session/CSRF token of ours yet - Google's own signed credential is the check instead, same reasoning as the Stripe/Paddle webhooks above
+@limiter.limit("20 per 15 minutes")
+def auth_google_token():
+    if not google_oauth.is_configured():
+        abort(404)
+
+    data = request.get_json(silent=True) or {}
+    credential = data.get("credential", "")
+    intent = "login" if data.get("intent") == "login" else "register"
+
+    def fail(message):
+        return jsonify(redirect=url_for("login", error=message))
+
+    if not credential:
+        return fail("Google sign-in failed - please try again.")
+
+    google_user = google_oauth.verify_id_token(credential)
+    if google_user is None:
+        return fail("Google sign-in failed - please try again.")
+    google_id = google_user.get("sub")
+    if not google_id:
+        return fail("Google sign-in failed - please try again.")
+
+    business = google_oauth.login_existing(google_user)
+
+    if business is None:
+        # Never seen this Google identity before - same login-vs-register split as
+        # auth_google_callback below (see google_oauth.login_existing's docstring).
+        if intent == "login":
+            return fail("No Camilius account is linked to that Google account. Please register first.")
+        name = google_user.get("name") or ""
+        email = (google_user.get("email") or "").strip().lower()
+        link_token = google_oauth.make_link_token(google_id, email)
+        return jsonify(redirect=url_for("register", google_name=name, google_email=email, google_link_token=link_token))
+
+    session["business_id"] = business[0]
+    session["business_name"] = business[1]
+    return jsonify(redirect=url_for("home"))
 
 
 @app.route("/auth/google/callback")
