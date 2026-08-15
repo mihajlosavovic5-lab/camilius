@@ -3213,6 +3213,11 @@ input.tap-to-edit-field, textarea.tap-to-edit-field { cursor: pointer; backgroun
     position: absolute; left: 50%; bottom: 44px; transform: translateX(-50%);
     margin-top: 0; padding: 12px 32px; overflow: hidden;
 }
+/* .button-tap-scale's own :active (added alongside .onboarding-continue in index.html)
+   would otherwise replace this button's translateX(-50%) centering outright with its
+   bare scale() - same "re-state the base transform" fix as .lp-menu-btn/#lp-corner-brand
+   (static/style.css) - so this button doesn't jump left on press and snap back on release. */
+.onboarding-continue.button-tap-scale:active { transform: translateX(-50%) scale(.96); }
 /* A soft light sweep across the final CTA, loafing on a long interval so it reads as
    a subtle premium finish rather than a nagging animation. */
 .onboarding-continue::after {
