@@ -6,6 +6,14 @@
     "CapacitorUpdater": {
       "autoUpdate": false
     },
+    "SocialLogin": {
+      "providers": {
+        "google": true,
+        "facebook": false,
+        "apple": false,
+        "twitter": false
+      }
+    },
     "StatusBar": {
       "overlaysWebView": false,
       "style": "LIGHT",

@@ -760,7 +760,7 @@ def create_database():
         )
     """)
     # A Google identity nobody's seen before doesn't get an account created on the spot
-    # (see app.py's auth_google_callback/_google_login_existing) - it's handed to the
+    # (see app.py's auth_google_callback / google_oauth.login_existing) - it's handed to the
     # sign-up form as a name/email starting point instead, status='needs_signup' rather
     # than 'done'. google_link_token is google_oauth.make_link_token()'s output, carried
     # through so the mobile app can resubmit it with the sign-up form exactly like the web
@@ -1618,7 +1618,7 @@ def fail_oauth_login_session_no_account(state):
 
 
 def complete_oauth_login_session_needs_signup(state, name, email, link_token):
-    """A Google identity nobody's seen before (see app.py's _google_login_existing) -
+    """A Google identity nobody's seen before (see google_oauth.login_existing) -
     instead of 'done' with a live token, this hands the mobile app a name/email starting
     point and a google_link_token to resubmit with the sign-up form, exactly like the web
     flow's own redirect to /register?google_name=...&google_link_token=... does."""

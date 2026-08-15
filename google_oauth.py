@@ -16,9 +16,12 @@ from urllib.parse import urlencode
 import requests
 from itsdangerous import URLSafeTimedSerializer, BadSignature, SignatureExpired
 
+from database import business_by_google_id, business_by_contact_email, business_by_id, link_google_account
+
 AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth"
 TOKEN_URL = "https://oauth2.googleapis.com/token"
 USERINFO_URL = "https://www.googleapis.com/oauth2/v3/userinfo"
+TOKENINFO_URL = "https://oauth2.googleapis.com/tokeninfo"
 
 
 def is_configured():
@@ -71,8 +74,67 @@ def fetch_user(code, redirect_uri):
         return None
 
 
-# A brand-new Google identity (no existing account matches it - see app.py's
-# _google_login_existing) doesn't get an account created on the spot anymore - it's handed
+def verify_id_token(id_token):
+    """Verifies an ID token minted natively on-device (Android Credential Manager, see
+    api.py's api_google_login_verify_id_token) - the counterpart to fetch_user() for the
+    code-exchange flow, same "trust Google's own endpoint over TLS" approach. Google's
+    tokeninfo endpoint validates the JWT's signature and expiry itself; the `aud` check
+    below is still ours to make, since tokeninfo validates a token minted for some *other*
+    app just as well - skipping it would let any app's Google ID token sign into this one.
+    Returns None on any failure, same convention as fetch_user()."""
+    try:
+        response = requests.get(TOKENINFO_URL, params={"id_token": id_token}, timeout=10)
+        response.raise_for_status()
+        payload = response.json()
+        if payload.get("aud") != os.environ["GOOGLE_CLIENT_ID"]:
+            return None
+        # tokeninfo returns this as the string "true"/"false" (unlike userinfo's real
+        # boolean) - normalized here so callers can treat both fetch_user() and this the
+        # same way.
+        payload["email_verified"] = payload.get("email_verified") == "true"
+        return payload
+    except (requests.RequestException, KeyError, ValueError):
+        return None
+
+
+def login_existing(google_user):
+    """Looks up (and links, on the first match) the existing business this Google identity
+    belongs to - never creates one. Returns the business row, or None if this Google
+    account has never been seen here before. Callers (app.py's auth_google_callback,
+    api.py's api_google_login_verify_id_token) send that case to the ordinary sign-up form
+    instead, pre-filled with whatever Google handed over - "Continue with Google" is a
+    shortcut INTO the normal flow for a first-time visitor, not a way to skip filling in the
+    rest of the account (password, business details) that a manual sign-up would ask for
+    anyway.
+
+    Two cases, in order:
+    1. This Google account has signed in here before (google_id already linked) - just
+       log it in.
+    2. First time signing in with Google, but its email already belongs to an existing
+       account (password-based, or from an earlier signup that never got confirmed) -
+       link the two rather than sending it through sign-up again. link_google_account
+       also marks that account's email verified, since Google just proved it either way.
+    """
+    google_id = google_user.get("sub")
+    email = (google_user.get("email") or "").strip().lower()
+    if not google_id:
+        return None
+
+    business = business_by_google_id(google_id)
+    if business:
+        return business
+
+    if email:
+        existing = business_by_contact_email(email)
+        if existing:
+            link_google_account(existing[0], google_id)
+            return business_by_id(existing[0])
+
+    return None
+
+
+# A brand-new Google identity (no existing account matches it - see login_existing above)
+# doesn't get an account created on the spot anymore - it's handed
 # to the normal sign-up form as a name/email starting point, same as if the visitor had
 # typed them in by hand, and the account is only actually created once they finish that
 # form themselves (password, business details, terms). This short-lived signed

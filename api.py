@@ -434,6 +434,52 @@ def api_google_login_status():
     return jsonify(**result)
 
 
+# "Continue with Google" (mobile, native bottom sheet). Android's Credential Manager hands
+# the app an ID token directly - no browser tab, no redirect, so unlike
+# api_google_login_start/status above there's nothing to poll: this settles the whole
+# attempt in one request/response, in the exact same status/field shape
+# oauth_login_session_status produces, so mobile/app.js's existing "done"/"needs_signup"/
+# "no_account"/"error" handling (checkGoogleLoginStatusOnce) applies to this response
+# unchanged. Kept alongside (not instead of) google-login/start+status - those stay exactly
+# as they were, as the fallback for app installs older than this endpoint, and for any
+# device where the native plugin isn't available.
+@api.route("/google-login/verify-id-token", methods=["POST"])
+@limiter.limit("10 per 15 minutes")
+def api_google_login_verify_id_token():
+    if not google_oauth.is_configured():
+        return jsonify(error="Google sign-in isn't available."), 404
+
+    data = request.get_json(silent=True) or {}
+    id_token = data.get("id_token", "")
+    # Same fallback/meaning as api_google_login_start's own intent handling.
+    intent = "login" if data.get("intent") == "login" else "register"
+
+    if not id_token:
+        return jsonify(status="error")
+
+    google_user = google_oauth.verify_id_token(id_token)
+    if google_user is None:
+        return jsonify(status="error")
+    google_id = google_user.get("sub")
+    if not google_id:
+        return jsonify(status="error")
+
+    business = google_oauth.login_existing(google_user)
+
+    if business is None:
+        # Never seen this Google identity before - same login-vs-register split as
+        # app.py's auth_google_callback (see google_oauth.login_existing's docstring).
+        if intent == "login":
+            return jsonify(status="no_account")
+
+        name = google_user.get("name") or ""
+        email = (google_user.get("email") or "").strip().lower()
+        link_token = google_oauth.make_link_token(google_id, email)
+        return jsonify(status="needs_signup", google_name=name, google_email=email, google_link_token=link_token)
+
+    return jsonify(status="done", token=make_token(business[0]), business_id=business[0], business_name=business[1])
+
+
 # Lets the app's "check your email" screen (shown after registration, or after a login
 # attempt against an unconfirmed account) trigger a resend without the user re-typing
 # their password - business_id alone is enough since this only ever resends to the email
@@ -1697,14 +1743,22 @@ _MOBILE_BUNDLE_VERSION_PATH = os.path.join(os.path.dirname(__file__), "static", 
 
 @api.route("/mobile-manifest")
 def api_mobile_manifest():
+    # Not a secret - Google client IDs are meant to be public (this exact value is already
+    # embedded in google_oauth.authorization_url()'s redirect URL, which every "Continue
+    # with Google" attempt already sends the device in plain sight). Piggybacked on this
+    # endpoint - not because this is otherwise about Google, but because it's the one thing
+    # mobile/app.js already unconditionally fetches at cold start, so SocialLogin.initialize()
+    # has it ready before the visitor ever taps the button.
+    google_web_client_id = os.getenv("GOOGLE_CLIENT_ID")
     if not os.path.exists(_MOBILE_BUNDLE_PATH) or not os.path.exists(_MOBILE_BUNDLE_VERSION_PATH):
-        return jsonify(available=False)
+        return jsonify(available=False, google_web_client_id=google_web_client_id)
     with open(_MOBILE_BUNDLE_VERSION_PATH, "r") as f:
         version = f.read().strip()
     return jsonify(
         available=True,
         version=version,
         url=f"{request.url_root}static/mobile-bundle.zip",
+        google_web_client_id=google_web_client_id,
     )
 
 
