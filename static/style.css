@@ -1097,6 +1097,7 @@ input[readonly]:hover { border-color: var(--border); }
 .alert-success { background: var(--success-bg); border-color: var(--success-border); color: #166534; }
 .alert-warning { background: var(--warning-bg); border-color: var(--warning-border); color: var(--warning); }
 .alert-icon { flex-shrink: 0; font-size: 17px; line-height: 1.4; }
+.delete-wizard-warning { justify-content: center; text-align: center; }
 
 /* --- Save success overlay --- */
 /* Centered full-screen celebration for a successful "Save changes" submit (currently

@@ -1472,6 +1472,7 @@ input.tap-to-edit-field, textarea.tap-to-edit-field { cursor: pointer; backgroun
 .alert-error { background: var(--danger-bg); border-color: var(--danger-border); color: #991b1b; }
 .alert-success { background: var(--success-bg); border-color: var(--success-border); color: #166534; }
 .alert-warning { background: var(--warning-bg); border-color: var(--warning-border); color: var(--warning); margin: 0 18px 14px; }
+.delete-wizard-warning { text-align: center; }
 
 /* --- Donation strip --- */
 /* Slim, low-key row - not an alert/warning color, just a quiet ask that sits in the
