@@ -3315,6 +3315,11 @@ def _landing_showcase_examples():
 # same gallery-N.<ext> naming here keeps the two paths visually indistinguishable.
 _SHOWCASE_REAL_GALLERY_COUNT = {
     "bella-hair-studio": 10,
+    "aperture-photography": 10,
+    "brightsmile-dental": 10,
+    "maple-and-co-bakery": 10,
+    "quickfix-phone-repair": 9,
+    "shift-auto-service": 9,
 }
 
 
