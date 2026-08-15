@@ -1195,7 +1195,6 @@ input.tap-to-edit-field, textarea.tap-to-edit-field { cursor: pointer; backgroun
 .theme-option.active { background: var(--surface); color: var(--text); box-shadow: 0 1px 3px rgba(43,32,19,.12); }
 
 .button-danger-outline { color: var(--danger); border-color: var(--danger-border); }
-.button-danger-outline:active { background: var(--danger-bg); }
 .button-danger { background: var(--danger); color: #fff; }
 .button-danger:active { background: var(--danger); opacity: .85; }
 
