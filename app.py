@@ -3320,6 +3320,8 @@ _SHOWCASE_REAL_GALLERY_COUNT = {
     "maple-and-co-bakery": 10,
     "quickfix-phone-repair": 9,
     "shift-auto-service": 9,
+    "flow-yoga-studio": 10,
+    "harbor-view-bnb": 9,
 }
 
 
