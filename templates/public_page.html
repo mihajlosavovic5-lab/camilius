@@ -1173,7 +1173,12 @@
         position: fixed; top: 50%; left: 50%; z-index: 953;
         width: 264px; max-width: calc(100vw - 40px);
         max-height: calc(100vh - 40px); overflow-y: auto;
-        background: var(--surface); border: 1px solid var(--border); border-radius: calc(var(--radius) * 0.6);
+        /* Themed border (var(--primary), not the plain var(--border) every other card
+           on this page uses) so this modal reads as the one thing on screen actively
+           asking for a tap while everything behind it is dimmed - same primary-colored
+           treatment .book-date-btn.active/.book-date-cal-title already give this exact
+           feature elsewhere on the page. */
+        background: var(--surface); border: 1.5px solid var(--primary); border-radius: calc(var(--radius) * 0.6);
         box-shadow: 0 16px 44px rgba(0, 0, 0, 0.18);
         padding: 12px;
         opacity: 0; transform: translate(-50%, -50%) scale(.96); pointer-events: none;
