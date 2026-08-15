@@ -2388,7 +2388,16 @@ input.tap-to-edit-field, textarea.tap-to-edit-field { cursor: pointer; backgroun
    bigger than it - both trimmed down to the same smaller value (not just the bigger
    one pulled down to the smaller one's old size) so the title sits in a tighter, even
    frame top and bottom instead of one gap shrinking while the other grows. */
-.mysite-field-modal-sheet { background: var(--primary-light); padding-top: 12px; }
+/* overflow-y: visible overrides .book-modal-sheet's own auto - that clips anything an
+   absolutely-positioned child (like #mysite-field-modal-address-suggestions below) draws
+   past the sheet's own auto-height box, since an out-of-flow descendant doesn't grow that
+   box the way normal-flow content would; the suggestions popover was invisible until the
+   sheet itself got scrolled to reveal it. Safe to drop here specifically (unlike on the
+   base .book-modal-sheet, which the multi-field booking form also uses and can genuinely
+   run past its own max-height) - every control this modal can show caps its own height
+   already (#mysite-field-modal-textarea's own max-height/overflow-y, the slug row's own
+   overflow-x), so the sheet itself never actually needs to scroll. */
+.mysite-field-modal-sheet { background: var(--primary-light); padding-top: 12px; overflow-y: visible; }
 /* Same white-with-outline idea as the five screen-root page titles above
    (.screen-mysite .topbar-title h1 etc.) - this modal's title (Web address/Headline/
    About) sits on the same warm cream .mysite-field-modal-sheet background, so plain
