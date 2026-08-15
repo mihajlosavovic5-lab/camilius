@@ -38,6 +38,12 @@
             <a href="{{ play_store_url }}" target="_blank" rel="noopener" class="lp-menu-mobile-only" data-i18n="download.cta">Download for Android</a>
         </nav>
     </div>
+    {# Flexible gap above the brand block - same idea as the APK's own .login-top-spacer
+       (mobile/app.css, flex: 0.9), which keeps the logo from sitting flush against the
+       status bar. .auth-card below already grows to fill the wrapper's own leftover
+       height (see .auth-login .auth-card in style.css); this claims a share of that same
+       free space for the top instead of leaving it all to the card. #}
+    <div class="auth-top-spacer"></div>
     <div class="auth-brand">
         <span class="brand">
             <span class="brand-mark">C</span>
