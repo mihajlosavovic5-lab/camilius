@@ -1088,18 +1088,21 @@ input[readonly].tap-to-edit-field:hover, textarea[readonly].tap-to-edit-field:ho
    carries the usual 16px .floating-field top margin (cancelled on the field below so it
    isn't double-spaced) so the button and input line up on the same baseline instead of
    the button sitting lower if it carried that margin individually.
-   Grid, not flex, for the row: a <button> flex item didn't reliably stretch to match the
-   (taller, floating-label-padded) input's height across browsers even with the parent's
-   default align-items: stretch - the button kept rendering at its own shorter intrinsic
-   height instead. Grid's own default align-items: stretch does this consistently, so the
-   button's box actually matches the field's height like the app's version does, with the
-   button's own align-items: center (below) centering the flag/dial content inside that
-   taller box instead of leaving it pinned to the top. */
-.phone-input-row { display: grid; grid-template-columns: auto 1fr; gap: 8px; margin-top: 16px; }
-.phone-input-row .floating-field { min-width: 0; margin-top: 0; }
+   Neither a flex row's default stretch nor a grid row's own version of it reliably
+   stretched the <button> to match the field's real rendered height in practice (tried
+   both, still visibly mismatched/misaligned) - measuring and JS-setting it afterward
+   didn't land cleanly either (timing against web font/layout settling). Sidesteps all of
+   that: both boxes get the exact same literal height declared in CSS, so there's nothing
+   left to stretch, measure, or race - they can't help but match. 54px comfortably covers
+   the tallest floating-field variant in use here (.auth-card's own wider vertical padding
+   on Sign up - see .auth-card .floating-field input above), so the input has real
+   headroom above its own text/floating-label, not a hard squeeze. */
+.phone-input-row { display: flex; align-items: flex-start; gap: 8px; margin-top: 16px; }
+.phone-input-row .floating-field { flex: 1; min-width: 0; margin-top: 0; }
+.phone-input-row .floating-field input { height: 54px; }
 .phone-country-btn {
     display: flex; align-items: center; justify-content: center; gap: 6px;
-    padding: 0 10px; border: 1px solid var(--border); border-radius: 9px;
+    height: 54px; padding: 0 10px; border: 1px solid var(--border); border-radius: 9px;
     background: var(--surface); font-family: inherit; font-size: 16px; color: var(--text); cursor: pointer;
     transition: border-color .15s;
 }
