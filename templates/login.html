@@ -116,12 +116,6 @@
         <div class="auth-divider"><span data-i18n="login.noAccount">New to Camilius?</span></div>
         <a class="button button-secondary button-full button-pill button-primary-outline" href="{{ url_for('register') }}" data-i18n="login.registerLink">Create account</a>
     </div>
-
-    <p class="auth-footer">
-        <a href="{{ url_for('terms') }}" data-i18n="common.termsOfService">Terms of Service</a> &middot;
-        <a href="{{ url_for('privacy') }}" data-i18n="common.privacyPolicy">Privacy Policy</a> &middot;
-        <a href="{{ url_for('intro') }}" data-i18n="login.replayIntro" onclick="try { localStorage.removeItem('introSeen'); } catch (e) {}">Replay intro</a>
-    </p>
 </div>
 {% if account_deleted %}
 <div class="confirm-modal open" id="account-deleted-modal" role="alertdialog" aria-modal="true" aria-describedby="account-deleted-modal-message">
