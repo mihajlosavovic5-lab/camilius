@@ -2817,16 +2817,7 @@ body.lp-menu-open { position: fixed; left: 0; right: 0; width: 100%; overflow: h
 #lp-corner-brand {
     position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
     background: none; border: none; padding: 0; font: inherit; cursor: pointer;
-    transition: transform .15s ease;
 }
-/* Same hover-pop/press-in zoom as .lp-menu-btn/.site-lang-select-btn above -
-   the logo is a real scroll-to-top button (see landing.html) but had no tap
-   feedback at all, so a click read as a no-op. Both states re-state the base
-   translate(-50%, -50%) centering alongside their own scale(). */
-@media (hover: hover) and (pointer: fine) {
-    #lp-corner-brand:hover { transform: translate(-50%, -50%) scale(1.08); }
-}
-#lp-corner-brand:active { transform: translate(-50%, -50%) scale(.92); }
 /* Same dim+disable treatment as body.lp-menu-open .site-lang-select-btn above -
    without this the centered brand mark stayed fully visible/untouched while the drawer
    opened over everything else, reading as a separate element floating above the
