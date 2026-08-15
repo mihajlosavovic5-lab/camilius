@@ -466,8 +466,9 @@ button { font-family: inherit; -webkit-appearance: none; appearance: none; }
     background: none; border: none; padding: 0; margin: 0; cursor: pointer;
     font-family: inherit; font-size: inherit; font-weight: 700;
     color: var(--text-muted); text-decoration: none;
+    transition: transform .12s ease;
 }
-.link-btn:active { opacity: .7; }
+.link-btn:active { transform: scale(.94); }
 /* Terms/Privacy links inlined into the register checkbox row's own sentence - same
    "I accept the [Terms of Service] and [Privacy Policy]" phrasing as the web register
    page (templates/register.html), instead of two separate buttons below the checkbox.
@@ -2267,8 +2268,9 @@ input.tap-to-edit-field, textarea.tap-to-edit-field { cursor: pointer; backgroun
 .schedule-slot-cancel {
     flex-shrink: 0; background: none; border: none; color: var(--danger); font-family: inherit;
     font-size: 13.5px; font-weight: 600; padding: 6px 4px; cursor: pointer;
+    transition: transform .12s ease;
 }
-.schedule-slot-cancel:active { opacity: .6; }
+.schedule-slot-cancel:active { transform: scale(.9); }
 
 /* Week view - a full-width stacked column of day cards, one per row, matching the
    website's own phone layout (see static/style.css's .schedule-week-grid, which
@@ -2410,8 +2412,9 @@ input.tap-to-edit-field, textarea.tap-to-edit-field { cursor: pointer; backgroun
     border: 2px solid var(--surface); background: var(--danger); color: #fff; font-size: 15px;
     line-height: 1; display: flex; align-items: center; justify-content: center; padding: 0;
     box-shadow: 0 2px 6px rgba(0,0,0,.2); z-index: 1;
+    transition: transform .12s ease;
 }
-.mysite-field-modal-delete-btn:active { opacity: .85; }
+.mysite-field-modal-delete-btn:active { transform: scale(.88); }
 .mysite-field-modal-body { position: relative; margin-top: 12px; }
 .mysite-field-modal-control { width: 100%; text-align: center; }
 /* Web address only (openMysiteFieldModal in app.js adds -slug and un-hides the copy
