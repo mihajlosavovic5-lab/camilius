@@ -152,6 +152,11 @@
 }
 .site-lang-select-btn:hover { transform: scale(1.08); }
 .site-lang-select-btn.active .site-lang-chevron { transform: rotate(180deg); }
+/* The mobile app's own Create Account screen has no language picker (only its Login
+   screen does) - hidden here to match, scoped to the register page's own body class
+   (see templates/register.html) rather than removed from base.html, which every other
+   page still needs it on. */
+body.auth-register .site-lang-select-btn { display: none; }
 /* Landing page's #lp-header stays position:fixed at every viewport width
    (unlike .navbar elsewhere, which only pins itself below 640px, see the
    max-width:640px .navbar rule further down) - so on the landing page the

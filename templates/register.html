@@ -1,17 +1,9 @@
 {% extends "base.html" %}
 {% block title %}Register - Camilius{% endblock %}
-{% block body_class %}auth{% endblock %}
+{% block body_class %}auth auth-register{% endblock %}
 
 {% block content %}
 <div class="auth-wrapper">
-    <div class="auth-brand">
-        <span class="brand">
-            <span class="brand-mark">C</span>
-            <span class="brand-name">Camilius</span>
-        </span>
-        <p class="auth-tagline" data-i18n="register.tagline">You can change all of these fields later in settings.</p>
-    </div>
-
     <div class="auth-card auth-card-wide">
         <div class="register-wizard-top">
             <button type="button" class="register-back-btn" id="register-back-btn" aria-label="Back">&lsaquo;</button>
@@ -21,6 +13,7 @@
                     <span class="register-step-progress-text" id="register-step-progress-text"></span>
                 </div>
                 <h1 data-i18n="register.title">Register your business</h1>
+                <p class="auth-subtitle" data-i18n="register.subtitle">You can change all of these fields later in settings.</p>
             </div>
         </div>
 
