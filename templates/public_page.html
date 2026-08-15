@@ -2124,16 +2124,20 @@
         transition: opacity .2s ease;
     }
     .photo-lightbox.visible { opacity: 1; pointer-events: auto; }
-    /* Same hand-rolled overflow-x scroller + touch-drag as .photo-slider-viewport above
-       (see its own comment for why native scroll-snap can't be trusted here) - one slide
-       per photo, sized to fill the viewport, so a swipe scrolls between full-size photos
-       the same way it already scrolls between the thumbnails in the section itself. */
+    /* Same transform-driven track as .photo-slider-viewport above, NOT a natively
+       scrollable viewport (overflow: clip, not overflow-x: auto) - see that rule's own
+       comment for the full story: a real scrollable viewport gives this page's in-app
+       browser's own momentum/inertial scrolling something to act on, which fights every
+       position write a hand-rolled drag/snap makes, intermittently leaving a photo
+       drifted off-center (or, here, straddling two photos) with nothing left to re-settle
+       it. One slide per photo, sized to fill the viewport, so a swipe still moves between
+       full-size photos the same way it already moves between the thumbnails in the
+       section itself - just via .photo-lightbox-track's own transform now, like that
+       slider, rather than scrollLeft. */
     .photo-lightbox-viewport {
         width: 100%; height: 100%;
-        overflow-x: auto; overflow-y: hidden;
-        scrollbar-width: none;
+        overflow: clip;
     }
-    .photo-lightbox-viewport::-webkit-scrollbar { display: none; }
     .photo-lightbox-track { display: flex; height: 100%; }
     .photo-lightbox-slide {
         flex: 0 0 100%;
@@ -2156,7 +2160,14 @@
         box-shadow: 0 20px 60px rgba(0, 0, 0, .5);
     }
     .photo-lightbox-close, .photo-lightbox-arrow {
+        /* z-index: 1 (not just position: fixed) - these are flex items of .photo-lightbox
+           alongside .photo-lightbox-viewport, and flex items with z-index: auto paint in
+           tree order regardless of position, so without this the viewport (declared after
+           them in the markup) painted its photo ON TOP of these buttons, silently
+           swallowing every tap/click that landed on the arrows/close button's own visible
+           circle - a real (separate) bug from the swipe-drift one above, found testing it. */
         position: fixed;
+        z-index: 1;
         border: none;
         border-radius: 50%;
         background: rgba(255, 255, 255, .12);
@@ -3983,9 +3994,9 @@ window.pageOverlay = (function () {
         // page-behind-it scroll lock/dismiss-on-backdrop-tap the same way it already does
         // for the nav drawer/language dropdown/chat/theme panels - this just supplies its
         // own opaque backdrop on top of that shared one and its own close button/keyboard
-        // handling. Its own real overflow-x track (one slide per photo, see
+        // handling. Its own real transform-driven track (one slide per photo, see
         // .photo-lightbox-viewport's own CSS comment) rather than a single swapped <img> -
-        // arrows/keyboard still work, but a visitor can now swipe/scroll between full-size
+        // arrows/keyboard still work, but a visitor can now swipe/drag between full-size
         // photos the same way they already can in the section itself, including the same
         // clone-based infinite wrap past either end (see the clone setup above for why).
         var lightbox = document.getElementById("photo-lightbox");
@@ -4021,26 +4032,41 @@ window.pageOverlay = (function () {
                 lightboxCloneOffset = 2;
             }
 
-            function lightboxTargetScrollLeft(el) {
-                return el.getBoundingClientRect().left - lightboxViewport.getBoundingClientRect().left + lightboxViewport.scrollLeft;
+            // Same offsetLeft-based math as the section slider's own targetOffset - el and
+            // lightboxViewport share the same offsetParent (.photo-lightbox, position:
+            // fixed, the nearest positioned ancestor of both), so this stays correct
+            // regardless of lightboxTrack's own transform. See .photo-lightbox-viewport's
+            // own CSS comment for why this moved off scrollLeft (which the old version read
+            // via getBoundingClientRect()) entirely, not just why the math changed shape.
+            function lightboxTargetOffset(el) {
+                return (el.offsetLeft - lightboxViewport.offsetLeft) + (el.offsetWidth - lightboxViewport.clientWidth) / 2;
+            }
+            // trackOffset is the single source of truth for the deck's position - see
+            // .photo-slider-track's own setOffset comment for why this is a plain JS
+            // number + CSS transform now, not lightboxViewport.scrollLeft on a natively
+            // scrollable viewport.
+            var lightboxTrackOffset = 0;
+            function setLightboxOffset(x) {
+                lightboxTrackOffset = x;
+                lightboxTrack.style.transform = "translateX(" + (-x) + "px)";
             }
             // Same manual ease-out as the section slider's own animateScrollTo (see its
             // comment for why not scrollTo({behavior:"smooth"})), duplicated rather than
-            // shared since this one animates a different viewport/index - onDone added so
+            // shared since this one animates a different track/index - onDone added so
             // stepLightboxNext/Prev below can swap a clone back to the real slide it stands
             // in for, same as the section slider's own next()/prev().
             var lightboxAnimFrame = null;
-            function animateLightboxScrollTo(left, duration, onDone) {
+            function animateLightboxOffset(left, duration, onDone) {
                 if (lightboxAnimFrame !== null) cancelAnimationFrame(lightboxAnimFrame);
-                if (reduceMotion) { lightboxViewport.scrollLeft = left; if (onDone) onDone(); return; }
-                var startLeft = lightboxViewport.scrollLeft;
+                if (reduceMotion) { setLightboxOffset(left); if (onDone) onDone(); return; }
+                var startLeft = lightboxTrackOffset;
                 var delta = left - startLeft;
                 var startTime = null;
                 function step(now) {
                     if (startTime === null) startTime = now;
                     var t = Math.min(1, (now - startTime) / duration);
                     var eased = 1 - Math.pow(1 - t, 3);
-                    lightboxViewport.scrollLeft = startLeft + delta * eased;
+                    setLightboxOffset(startLeft + delta * eased);
                     if (t < 1) { lightboxAnimFrame = requestAnimationFrame(step); return; }
                     lightboxAnimFrame = null;
                     if (onDone) onDone();
@@ -4053,17 +4079,17 @@ window.pageOverlay = (function () {
             }
             function goToLightboxSlide(i) {
                 i = Math.max(0, Math.min(lightboxSlides.length - 1, i));
-                animateLightboxScrollTo(lightboxTargetScrollLeft(lightboxSlides[i]), 320);
+                animateLightboxOffset(lightboxTargetOffset(lightboxSlides[i]), 320);
                 setLightboxActive(i);
             }
             // Mirrors the section slider's own next()/prev() line for line: at either end,
             // step onto the adjacent clone instead of jumping straight across every photo in
-            // between, then once that lands, instantly swap the scroll position over to the
+            // between, then once that lands, instantly swap the track position over to the
             // real slide so lightboxIndex/goToLightboxSlide never has to know clones exist.
             function stepLightboxNext() {
                 if (lightboxSlides.length > 1 && lightboxIndex === lightboxSlides.length - 1) {
-                    animateLightboxScrollTo(lightboxTargetScrollLeft(lightboxTrack.children[lightboxCloneOffset + lightboxSlides.length]), 320, function () {
-                        lightboxViewport.scrollLeft = lightboxTargetScrollLeft(lightboxSlides[0]);
+                    animateLightboxOffset(lightboxTargetOffset(lightboxTrack.children[lightboxCloneOffset + lightboxSlides.length]), 320, function () {
+                        setLightboxOffset(lightboxTargetOffset(lightboxSlides[0]));
                         setLightboxActive(0);
                     });
                     return;
@@ -4072,8 +4098,8 @@ window.pageOverlay = (function () {
             }
             function stepLightboxPrev() {
                 if (lightboxSlides.length > 1 && lightboxIndex === 0) {
-                    animateLightboxScrollTo(lightboxTargetScrollLeft(lightboxTrack.children[lightboxCloneOffset - 1]), 320, function () {
-                        lightboxViewport.scrollLeft = lightboxTargetScrollLeft(lightboxSlides[lightboxSlides.length - 1]);
+                    animateLightboxOffset(lightboxTargetOffset(lightboxTrack.children[lightboxCloneOffset - 1]), 320, function () {
+                        setLightboxOffset(lightboxTargetOffset(lightboxSlides[lightboxSlides.length - 1]));
                         setLightboxActive(lightboxSlides.length - 1);
                     });
                     return;
@@ -4082,7 +4108,7 @@ window.pageOverlay = (function () {
             }
             function openLightbox(i) {
                 lightboxIndex = (i + lightboxSlides.length) % lightboxSlides.length;
-                lightboxViewport.scrollLeft = lightboxTargetScrollLeft(lightboxSlides[lightboxIndex]); // no animation - this is the starting position, not a navigation
+                setLightboxOffset(lightboxTargetOffset(lightboxSlides[lightboxIndex])); // no animation - this is the starting position, not a navigation
                 goTo(lightboxIndex);
                 lightboxOpen = true;
                 lightbox.classList.add("visible");
@@ -4128,18 +4154,19 @@ window.pageOverlay = (function () {
                 else if (e.key === "ArrowRight") stepLightboxNext();
                 else if (e.key === "ArrowLeft") stepLightboxPrev();
             });
-            // Hand-rolled drag - same touchstart/touchmove/touchend shape as the section
-            // slider's own (see its comment for the reasoning behind the 10px/1.3-ratio
-            // axis lock and the 18px flick threshold, and the in-flight-animation
-            // cancellation on touchstart), duplicated rather than shared since it drags a
-            // different viewport/index than the section slider does.
-            var lbDragStartX = null, lbDragStartY = null, lbDragStartScroll = null, lbDragAxis = null;
+            // Hand-rolled drag - same touchstart/touchmove/touchend(/touchcancel) shape as
+            // the section slider's own (see its comment for the reasoning behind the
+            // 10px/1.3-ratio axis lock and the 18px flick threshold, and the in-flight-
+            // animation cancellation on touchstart), duplicated rather than shared since it
+            // drags a different track/index than the section slider does.
+            var lbDragStartX = null, lbDragStartY = null, lbDragStartOffset = null, lbDragAxis = null;
             var lbDragMin = null, lbDragMax = null;
             lightboxViewport.addEventListener("touchstart", function (e) {
                 if (lightboxAnimFrame !== null) { cancelAnimationFrame(lightboxAnimFrame); lightboxAnimFrame = null; }
+                setLightboxOffset(lightboxTargetOffset(lightboxSlides[lightboxIndex]));
                 lbDragStartX = e.touches[0].clientX;
                 lbDragStartY = e.touches[0].clientY;
-                lbDragStartScroll = lightboxViewport.scrollLeft;
+                lbDragStartOffset = lightboxTrackOffset;
                 lbDragAxis = null;
                 // Same drag-bounding as the section slider above - clamps to the
                 // immediate neighbor (through the wraparound clones at either end) so a
@@ -4147,10 +4174,10 @@ window.pageOverlay = (function () {
                 if (lightboxSlides.length > 1) {
                     var lbPrevChild = lightboxIndex === 0 ? lightboxTrack.children[lightboxCloneOffset - 1] : lightboxSlides[lightboxIndex - 1];
                     var lbNextChild = lightboxIndex === lightboxSlides.length - 1 ? lightboxTrack.children[lightboxCloneOffset + lightboxSlides.length] : lightboxSlides[lightboxIndex + 1];
-                    lbDragMin = lightboxTargetScrollLeft(lbPrevChild);
-                    lbDragMax = lightboxTargetScrollLeft(lbNextChild);
+                    lbDragMin = lightboxTargetOffset(lbPrevChild);
+                    lbDragMax = lightboxTargetOffset(lbNextChild);
                 } else {
-                    lbDragMin = lbDragMax = lbDragStartScroll;
+                    lbDragMin = lbDragMax = lbDragStartOffset;
                 }
             }, { passive: true });
             lightboxViewport.addEventListener("touchmove", function (e) {
@@ -4163,12 +4190,12 @@ window.pageOverlay = (function () {
                 }
                 if (lbDragAxis === "y") return;
                 e.preventDefault();
-                lightboxViewport.scrollLeft = Math.max(lbDragMin, Math.min(lbDragMax, lbDragStartScroll - dx));
+                setLightboxOffset(Math.max(lbDragMin, Math.min(lbDragMax, lbDragStartOffset - dx)));
             }, { passive: false });
             lightboxViewport.addEventListener("touchend", function (e) {
                 if (lbDragStartX === null) return;
                 var axis = lbDragAxis;
-                var scrolled = lightboxViewport.scrollLeft - lbDragStartScroll;
+                var scrolled = lightboxTrackOffset - lbDragStartOffset;
                 lbDragStartX = null;
                 lbDragAxis = null;
                 if (axis !== null) e.preventDefault();
@@ -4178,6 +4205,18 @@ window.pageOverlay = (function () {
                 else if (scrolled < -SWIPE_THRESHOLD) stepLightboxPrev();
                 else goToLightboxSlide(lightboxIndex);
             }, { passive: false });
+            // Same fallback as the section slider's own touchcancel (see its comment) - a
+            // touchcancel (the OS/WebView yanking the gesture away mid-drag) never fires
+            // touchend, so without this the track was left frozen wherever the finger last
+            // was - not a photo boundary, not centered on anything - straddling two photos
+            // exactly like this bug's own report described, with no further correction
+            // until the lightbox was dragged again.
+            lightboxViewport.addEventListener("touchcancel", function () {
+                if (lbDragStartX === null) return;
+                lbDragStartX = null;
+                lbDragAxis = null;
+                goToLightboxSlide(lightboxIndex);
+            }, { passive: true });
         }
     })();
 
