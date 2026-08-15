@@ -72,6 +72,54 @@ function closeFieldEditModal() {
     _fieldEditModalAddressActive = false;
 }
 
+// Lazily built the first time the delete badge is actually clicked, same reasoning as
+// ensureFieldEditModal itself - most fields on a given page are never cleared through
+// this, so there's no reason to pay for building it on every page load. One singleton
+// instance whose Delete button always runs whatever's currently in
+// _fieldEditDeleteConfirmOnConfirm (set fresh on every open, below) rather than a
+// callback baked in at build time - the confirm dialog itself is only ever built once,
+// but what "confirm" does needs to stay current across every later open.
+let _fieldEditDeleteConfirmEl = null;
+let _fieldEditDeleteConfirmOnConfirm = null;
+function ensureFieldEditDeleteConfirm() {
+    if (_fieldEditDeleteConfirmEl) return _fieldEditDeleteConfirmEl;
+    const modal = document.createElement("div");
+    modal.className = "confirm-modal";
+    modal.setAttribute("role", "alertdialog");
+    modal.setAttribute("aria-modal", "true");
+    modal.innerHTML =
+        '<div class="confirm-modal-backdrop"></div>' +
+        '<div class="confirm-modal-card">' +
+        '<p class="confirm-modal-message"></p>' +
+        '<div class="confirm-modal-actions">' +
+        '<button type="button" class="button button-secondary"></button>' +
+        '<button type="button" class="button button-danger"></button>' +
+        "</div>" +
+        "</div>";
+    document.body.appendChild(modal);
+
+    modal.querySelector(".confirm-modal-message").textContent = t("fieldEditModal.deleteConfirm");
+    const cancelBtn = modal.querySelector(".button-secondary");
+    const confirmBtn = modal.querySelector(".button-danger");
+    cancelBtn.textContent = t("fieldEditModal.cancel");
+    confirmBtn.textContent = t("fieldEditModal.delete");
+
+    function close() { modal.classList.remove("open"); }
+    modal.querySelector(".confirm-modal-backdrop").addEventListener("click", close);
+    cancelBtn.addEventListener("click", close);
+    confirmBtn.addEventListener("click", () => {
+        close();
+        if (_fieldEditDeleteConfirmOnConfirm) _fieldEditDeleteConfirmOnConfirm();
+    });
+
+    _fieldEditDeleteConfirmEl = modal;
+    return modal;
+}
+function openFieldEditDeleteConfirm(onConfirm) {
+    _fieldEditDeleteConfirmOnConfirm = onConfirm;
+    ensureFieldEditDeleteConfirm().classList.add("open");
+}
+
 function ensureFieldEditModal() {
     if (_fieldEditModalEl) return _fieldEditModalEl;
     const modal = document.createElement("div");
@@ -81,6 +129,7 @@ function ensureFieldEditModal() {
         '<div class="field-edit-modal-sheet">' +
         '<p class="field-edit-modal-title"></p>' +
         '<div class="field-edit-modal-input-wrap" id="field-edit-modal-input-wrap">' +
+        '<button type="button" class="field-edit-modal-delete-btn" aria-label="Clear">&times;</button>' +
         '<input type="text" class="field-edit-modal-control field-edit-modal-input" autocapitalize="off" autocorrect="off">' +
         '<textarea class="field-edit-modal-control field-edit-modal-textarea hidden" rows="4"></textarea>' +
         '<button type="button" class="field-edit-modal-password-toggle hidden" aria-label="Show password">' +
@@ -98,6 +147,7 @@ function ensureFieldEditModal() {
     const input = modal.querySelector(".field-edit-modal-input");
     const textarea = modal.querySelector(".field-edit-modal-textarea");
     const passwordToggle = modal.querySelector(".field-edit-modal-password-toggle");
+    const deleteBtn = modal.querySelector(".field-edit-modal-delete-btn");
     const addressList = modal.querySelector("#field-edit-modal-address-suggestions");
 
     function syncBack() {
@@ -108,6 +158,7 @@ function ensureFieldEditModal() {
         if (!passwordToggle.classList.contains("hidden")) {
             passwordToggle.classList.toggle("has-value", control.value.length > 0);
         }
+        deleteBtn.classList.toggle("has-value", control.value.length > 0);
     }
     input.addEventListener("input", syncBack);
     textarea.addEventListener("input", syncBack);
@@ -121,6 +172,17 @@ function ensureFieldEditModal() {
         const showing = input.type === "text";
         input.type = showing ? "password" : "text";
         passwordToggle.classList.toggle("is-visible", !showing);
+    });
+
+    // Opens its own confirm dialog rather than clearing on the first tap - same reasoning
+    // as the mobile app's own delete badge: an About paragraph or similar can be a lot to
+    // lose to one misplaced tap.
+    deleteBtn.addEventListener("click", () => {
+        openFieldEditDeleteConfirm(() => {
+            const control = fieldEditModalActiveControl(modal);
+            control.value = "";
+            control.dispatchEvent(new Event("input", { bubbles: true }));
+        });
     });
 
     // Address fields only - same shared dropdown/fetch logic as the plain in-page address
@@ -138,6 +200,7 @@ function openFieldEditModal(sourceEl) {
     const textarea = modal.querySelector(".field-edit-modal-textarea");
     const inputWrap = modal.querySelector("#field-edit-modal-input-wrap");
     const passwordToggle = modal.querySelector(".field-edit-modal-password-toggle");
+    const deleteBtn = modal.querySelector(".field-edit-modal-delete-btn");
     const addressList = modal.querySelector("#field-edit-modal-address-suggestions");
     const titleEl = modal.querySelector(".field-edit-modal-title");
 
@@ -176,6 +239,7 @@ function openFieldEditModal(sourceEl) {
         passwordToggle.classList.remove("is-visible");
         passwordToggle.classList.toggle("has-value", active.value.length > 0);
     }
+    deleteBtn.classList.toggle("has-value", active.value.length > 0);
 
     _fieldEditModalAddressActive = isAddress;
     addressList.classList.add("hidden");

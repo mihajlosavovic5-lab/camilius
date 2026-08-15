@@ -1318,10 +1318,26 @@ input[readonly].tap-to-edit-field:hover, textarea[readonly].tap-to-edit-field:ho
         0.6px -0.6px 0.4px var(--title-outline),
         -0.6px -0.6px 0.4px var(--title-outline);
 }
-/* position: relative anchors both the password toggle and (address fields only) the
-   address-suggestions popover, same as .floating-field does for the plain in-page
-   fields - .address-suggest-list's own CSS above already assumes exactly this ancestor. */
+/* position: relative anchors the password toggle, the delete/clear badge, and (address
+   fields only) the address-suggestions popover, same as .floating-field does for the plain
+   in-page fields - .address-suggest-list's own CSS above already assumes exactly this
+   ancestor. */
 .field-edit-modal-input-wrap { position: relative; }
+/* Small round clear badge pinned to the white input/textarea box's own top-right corner -
+   same look/position as the mobile app's own .mysite-field-modal-delete-btn. Only shown
+   once there's something to clear (toggled in field-edit-modal.js, same has-value idea as
+   the password toggle below). Opens its own confirm dialog rather than clearing on the
+   first tap - same reasoning as the app: an About paragraph or similar can be a lot to
+   lose to one misplaced tap. */
+.field-edit-modal-delete-btn {
+    position: absolute; top: -10px; right: -6px; width: 26px; height: 26px; border-radius: 50%;
+    border: 2px solid var(--surface); background: var(--danger); color: #fff; font-size: 15px;
+    line-height: 1; display: none; align-items: center; justify-content: center; padding: 0;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, .2); z-index: 1; cursor: pointer;
+    transition: transform .12s ease;
+}
+.field-edit-modal-delete-btn.has-value { display: flex; }
+.field-edit-modal-delete-btn:active { transform: scale(.88); }
 /* Scoped under .field-edit-modal-sheet (not just the bare .field-edit-modal-control class)
    purely for specificity - the modal's <input> keeps matching the generic
    input[type="text"]/input[type="password"] rules far above (same element, same attribute)
