@@ -198,6 +198,29 @@ function createPhoneCountryPicker(btnId, inputId, onChange) {
         btn.textContent = `${countryFlagEmoji(current.code)} ${current.dial}`;
     }
 
+    // Explicit height match rather than trusting the row's own CSS grid stretch (see
+    // .phone-input-row in style.css) - that's the "should just work" answer, but measured
+    // in a real browser it wasn't reliably stretching the <button> to the (taller,
+    // floating-label-padded) field's height, leaving the button visibly shorter than the
+    // app's identical layout. Measuring and setting an explicit pixel height instead
+    // guarantees the match regardless of any browser/engine quirk with a <button> as a
+    // stretched grid/flex item. Re-synced via ResizeObserver (not just once on load) since
+    // the field's own height can still shift after that - the web font finishing its
+    // (font-display: optional, so this is rare but possible) load, a page zoom, viewport/
+    // orientation change, or this same shared input being reused by the field's own
+    // tap-to-edit-field modal on narrow viewports.
+    const floatingField = input.closest(".floating-field") || input;
+    function syncHeight() {
+        const h = floatingField.offsetHeight;
+        if (h) btn.style.height = `${h}px`;
+    }
+    if (window.ResizeObserver) {
+        new ResizeObserver(syncHeight).observe(floatingField);
+    } else {
+        window.addEventListener("resize", syncHeight);
+    }
+    syncHeight();
+
     function setCountry(country, silent) {
         current = country;
         render();
