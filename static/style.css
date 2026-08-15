@@ -1571,17 +1571,29 @@ body.auth {
    screen fills toward the bottom (see .login-spacer in mobile/app.css), even though the
    APK has no equivalent footer of its own to compare directly. */
 .auth-login .auth-wrapper { justify-content: flex-end; }
-/* The APK's own login screen (mobile/app.css) runs noticeably bigger/looser than the
-   web version did: a 76px logo (vs 64px here), a 23px wordmark (vs 21px), 26px side
-   margins (vs 16px), and buttons with more vertical padding (13px vs 10px) plus their
-   own 18px margin-top between them. Matched (and in places nudged a bit past, since
-   "increase" was the actual ask) rather than left at the tighter desktop-derived sizes
-   the rest of the site uses - scoped to .auth-login only, everywhere else keeps them. */
+/* .auth-card itself grows to fill whatever's left of the wrapper's own height (brand
+   block above and footer below keep their natural size) - gives .auth-divider's
+   margin-top: auto below (further down this file) real free space to push against, the
+   same way the APK's .login-spacer (a flex:1 spacer sitting right where this margin
+   applies - mobile/app.css) soaks up whatever's left of the screen. Without this the
+   card only ever grows to fit its own content, so "New to Camilius?"/Create account
+   could never actually reach the bottom edge on a screen taller than the form itself. */
+.auth-login .auth-card {
+    display: flex; flex-direction: column; flex: 1; min-height: 0;
+}
+/* The APK's own login screen (mobile/app.css) has more generous vertical padding and
+   side margins than the tighter desktop-derived defaults the rest of the site uses
+   (26px side margins vs 16px, buttons with more vertical padding (13px vs 10px) plus
+   their own 18px margin-top between them) - matched here, scoped to .auth-login only.
+   The brand mark/wordmark/tagline themselves stay close to the site's own base size
+   (a touch smaller, even) rather than matching the APK's own bigger 76px logo - reads
+   better against this page's much shorter card (no flexible spacer padding it out the
+   way .login-top-spacer does in the app), where a bigger logo read as oversized. */
 .auth-login .auth-wrapper { padding-left: 24px; padding-right: 24px; }
-.auth-login .auth-brand { margin-bottom: 32px; }
-.auth-login .auth-brand .brand-mark { width: 76px; height: 76px; }
-.auth-login .auth-brand .brand-name { font-size: 24px; }
-.auth-login .auth-tagline { font-size: 16.5px; }
+.auth-login .auth-brand { margin-bottom: 22px; }
+.auth-login .auth-brand .brand-mark { width: 60px; height: 60px; }
+.auth-login .auth-brand .brand-name { font-size: 20px; }
+.auth-login .auth-tagline { font-size: 14.5px; }
 .auth-login .auth-choice .button,
 .auth-login .auth-form-wrap .button,
 .auth-login .auth-card > .button-primary-outline {
@@ -1671,13 +1683,17 @@ body.auth {
    APK) replacing a plain text link for the register CTA. On the APK this divider sits
    below .login-spacer (mobile/app.css - a flex:1 spacer that soaks up whatever's left
    of the full screen height), which reads as a noticeably bigger gap above it than its
-   own 14px padding-top alone suggests. The web card has no equivalent flexible spacer
-   to fill (it's sized to its content, not the screen), so that extra breathing room is
-   added here directly as margin-top instead. */
+   own 14px padding-top alone suggests. */
 .auth-divider {
     text-align: center; font-size: 13.5px; font-weight: 600; color: var(--text-muted);
     margin: 40px 0 10px; padding-top: 14px; border-top: 1px solid var(--border);
 }
+/* .auth-login .auth-card is now a flex column that grows to fill the wrapper's own
+   leftover height (see above) - margin-top: auto claims all of that free space for
+   itself, pushing this (and the Create account button after it) all the way to the
+   bottom of the card, the same real flexible gap .login-spacer gives the APK instead of
+   the plain page's own static approximation above. */
+.auth-login .auth-divider { margin-top: auto; }
 /* The "or" between "Continue with Google" and "Continue with email" - a bigger, bolder
    word flanked by short lines on each side, rather than .auth-divider's single line above
    plain small text (which reads fine for a caption like "Don't have an account?", but felt
