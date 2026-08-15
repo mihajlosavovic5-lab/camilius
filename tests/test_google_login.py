@@ -640,7 +640,7 @@ def test_login_page_renders_gis_script_when_configured(client, monkeypatch):
     _configure_google(monkeypatch)
     html = client.get("/login").get_data(as_text=True)
     assert "accounts.google.com/gsi/client" in html
-    assert "google-gis-slot" in html
+    assert "login-google-btn" in html
     assert "test-client-id" in html
 
 
