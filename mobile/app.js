@@ -6104,7 +6104,14 @@ document.querySelectorAll(".theme-option").forEach((btn) => {
     btn.addEventListener("click", () => setTheme(btn.dataset.themeChoice));
 });
 
-el("settings-app-version").textContent = `Camilius · v${APP_VERSION}`;
+// Written into both Settings > Profile (#settings-app-version) and the Login screen
+// (#login-build-version, index.html) - the latter so "did this device actually get the
+// latest OTA push" is checkable without needing to log in first.
+const BUILD_VERSION_TARGET_IDS = ["settings-app-version", "login-build-version"];
+BUILD_VERSION_TARGET_IDS.forEach((id) => {
+    const target = el(id);
+    if (target) target.textContent = `Camilius · v${APP_VERSION}`;
+});
 // The native APK version above never changes between OTA pushes (see build_mobile_bundle.py) -
 // appending the actual active bundle hash too gives a way to confirm from the device
 // itself whether a given OTA update actually landed, without needing server-side logs.
@@ -6112,7 +6119,10 @@ if (capacitorPlugins && capacitorPlugins.CapacitorUpdater) {
     capacitorPlugins.CapacitorUpdater.current()
         .then((current) => {
             const bundleVersion = (current && current.bundle && current.bundle.version) || "builtin";
-            el("settings-app-version").textContent += ` · ${bundleVersion.slice(0, 12)}`;
+            BUILD_VERSION_TARGET_IDS.forEach((id) => {
+                const target = el(id);
+                if (target) target.textContent += ` · ${bundleVersion.slice(0, 12)}`;
+            });
         })
         .catch(() => {});
 }
