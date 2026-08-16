@@ -540,6 +540,17 @@ if (capacitorPlugins) {
             new Promise((_, reject) => setTimeout(() => reject(new Error(`${label} timed out`)), OTA_STEP_TIMEOUT_MS)),
         ]);
 
+        // Every checkForOtaUpdate() outcome (not just failures - reportClientError already
+        // covers those, but only where server-side logs can be read) gets a one-line trace
+        // written to on-device storage, timestamped, overwriting the previous one - the
+        // Settings screen (see BUILD_VERSION_TARGET_IDS further down) reads this back and
+        // shows it next to the bundle version, so "why hasn't this device updated" is
+        // answerable by looking at the device itself instead of guessing blind. Fire-and-
+        // forget: never lets a storage hiccup take down the actual update flow.
+        const recordOtaDebug = (text) => {
+            storageSet("ota-debug", `${new Date().toISOString()} ${text}`).catch(() => {});
+        };
+
         const checkForOtaUpdate = async () => {
             // set() below reloads the WebView outright - doing that while a Google
             // sign-in attempt is in flight would tear down the very screen/state the
@@ -549,13 +560,17 @@ if (capacitorPlugins) {
             // checkGoogleLoginStatusOnce calls checkForOtaUpdateFn again once the
             // attempt settles, so the update still lands, just not mid-attempt.
             if (activeGoogleLoginAttempt) return;
-            if (otaCheckInProgress) return;
+            if (otaCheckInProgress) {
+                recordOtaDebug("skipped: already in progress (previous check may be stuck)");
+                return;
+            }
             otaCheckInProgress = true;
             let step = "fetch-manifest";
             try {
                 const response = await withOtaTimeout(fetch(API_BASE + "/api/mobile-manifest"), step);
                 const manifest = await response.json();
                 if (!manifest.available) {
+                    recordOtaDebug("manifest unavailable");
                     return;
                 }
 
@@ -582,8 +597,10 @@ if (capacitorPlugins) {
                         ? document.documentElement.dataset.bundleVersion || activeVersion
                         : activeVersion;
                 if (effectiveActiveVersion === manifest.version) {
+                    recordOtaDebug(`up to date at ${manifest.version} (id=${activeBundleId})`);
                     return;
                 }
+                recordOtaDebug(`update found: ${effectiveActiveVersion} (id=${activeBundleId}) -> ${manifest.version}, downloading`);
 
                 setOtaProgress(0);
                 otaOverlay.classList.remove("hidden");
@@ -619,15 +636,24 @@ if (capacitorPlugins) {
                 // pollGoogleLogin), and that next pass applies this same cached bundle.
                 if (activeGoogleLoginAttempt) {
                     otaOverlay.classList.add("hidden");
+                    recordOtaDebug(`downloaded ${manifest.version}, deferred (google login in flight)`);
                     return;
                 }
                 step = "set";
+                // Written BEFORE set(), not after - set() reloads the WebView immediately
+                // on success, and if the native rollback watchdog reverts this right back
+                // (see notifyAppReady's own comment above) the next check's "up to date"/
+                // "update found" trace overwriting this one is itself the tell: seeing this
+                // exact line stick means set() was reached and returned, only for the
+                // active bundle to still read as the old one on the next check afterward.
+                recordOtaDebug(`downloaded ${manifest.version}, calling set()`);
                 await withOtaTimeout(capacitorPlugins.CapacitorUpdater.set(bundle), step);
                 // set() reloads the app immediately - nothing below this line runs (unless
                 // it timed out above, in which case there's nothing more to do here - the
                 // guard clearing in `finally` below is what actually matters at that point).
             } catch (e) {
                 otaOverlay.classList.add("hidden");
+                recordOtaDebug(`FAILED at step=${step}: ${e.message}`);
                 reportClientError(`failed at step=${step}: ${e.message}`, e.stack, "ota-update-check");
             } finally {
                 otaCheckInProgress = false;
@@ -6126,6 +6152,15 @@ if (capacitorPlugins && capacitorPlugins.CapacitorUpdater) {
         })
         .catch(() => {});
 }
+// Settings only (see #settings-ota-debug's own comment in index.html) - the login screen
+// stays plain, this line is verbose (a version hash, or a failed step + raw error text).
+storageGet("ota-debug").then((debug) => {
+    if (!debug) return;
+    const target = el("settings-ota-debug");
+    if (!target) return;
+    target.textContent = debug;
+    target.classList.remove("hidden");
+}).catch(() => {});
 
 // --- My Site tab (Faza 15) - website overview + the business-info tools (description,
 // voice) that only ever lived once, during the web onboarding wizard, with no mobile
