@@ -1122,6 +1122,13 @@ input.tap-to-edit-field, textarea.tap-to-edit-field { cursor: pointer; backgroun
 }
 @keyframes btn-spinner-spin { to { transform: rotate(360deg); } }
 .btn-loading { pointer-events: none; opacity: .85; }
+/* Overrides the generic .hidden{display:none!important} utility (higher specificity,
+   via the extra #login-google-spinner, wins the !important-vs-!important tie-break) -
+   this spinner needs to keep reserving its flex slot even while "hidden", not collapse
+   out of the layout, so the centered icon+label group next to it sits at the exact same
+   spot whether the spinner is showing or not. Toggling visibility (not display) is what
+   actually hides it. */
+#login-google-spinner.hidden { display: inline-block !important; visibility: hidden; }
 
 .register-steps-viewport {
     overflow: hidden; transition: height .22s ease;
