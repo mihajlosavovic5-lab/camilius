@@ -2999,6 +2999,9 @@ async function startGoogleLogin(button, errorBox, intent) {
     errorBox.classList.add("hidden");
     clearTimeout(errorBox._autoHideTimer);
     button.disabled = true;
+    button.classList.add("btn-loading");
+    const spinner = button.querySelector(".btn-spinner");
+    if (spinner) spinner.classList.remove("hidden");
     try {
         if (capacitorPlugins && capacitorPlugins.SocialLogin) {
             await startGoogleLoginNative(errorBox, intent);
@@ -3029,6 +3032,8 @@ async function startGoogleLogin(button, errorBox, intent) {
         showErrorBox(errorBox, err.message || t("login.googleError"));
     } finally {
         button.disabled = false;
+        button.classList.remove("btn-loading");
+        if (spinner) spinner.classList.add("hidden");
     }
 }
 
