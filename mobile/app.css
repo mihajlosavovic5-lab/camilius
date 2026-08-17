@@ -1118,7 +1118,7 @@ input.tap-to-edit-field, textarea.tap-to-edit-field { cursor: pointer; backgroun
 .btn-spinner {
     width: 15px; height: 15px; border-radius: 50%; flex-shrink: 0;
     border: 2px solid currentColor; border-right-color: transparent; opacity: .85;
-    animation: btn-spinner-spin .6s linear infinite;
+    animation: btn-spinner-spin .9s linear infinite;
 }
 @keyframes btn-spinner-spin { to { transform: rotate(360deg); } }
 .btn-loading { pointer-events: none; opacity: .85; }
