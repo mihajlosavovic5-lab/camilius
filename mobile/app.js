@@ -27,34 +27,6 @@ const FORGOT_PASSWORD_RESEND_COOLDOWN_SECONDS = 60;
 
 const el = (id) => document.getElementById(id);
 
-// Feeds app.css's .button-secondary/.button-google/.button-danger press-tint ripple
-// (the ::before under ".button-secondary.button-tap-scale::before" etc.) the exact point
-// the visitor's finger landed, as --tap-x/--tap-y custom properties that ::before's
-// transform-origin reads - without this every press would tint from the button's dead
-// center regardless of where it was actually touched, which is exactly the "looks the
-// same no matter where I put my finger" flatness the ripple exists to fix. Delegated on
-// document rather than bound per-button so it covers buttons that don't exist yet at
-// load time too (price/upsell "+ Add..." rows added later by createPricePicker/
-// createUpsellPicker, for instance) with no extra wiring anywhere else.
-const TAP_RIPPLE_SELECTOR = ".button-secondary.button-tap-scale, .button-google.button-tap-scale, .button-danger.button-tap-scale";
-const setTapRippleOrigin = (event) => {
-    const btn = event.target.closest && event.target.closest(TAP_RIPPLE_SELECTOR);
-    if (!btn) return;
-    const rect = btn.getBoundingClientRect();
-    if (!rect.width || !rect.height) return;
-    const point = event.touches ? event.touches[0] : event;
-    const x = ((point.clientX - rect.left) / rect.width) * 100;
-    const y = ((point.clientY - rect.top) / rect.height) * 100;
-    btn.style.setProperty("--tap-x", `${x}%`);
-    btn.style.setProperty("--tap-y", `${y}%`);
-};
-// Both listeners target the same elements on a touch device (a real touchstart plus its
-// synthetic follow-up mousedown) - harmless, since the second call just overwrites the
-// custom properties with the same coordinates a moment later, well before :active's own
-// transition starts reading them.
-document.addEventListener("touchstart", setTapRippleOrigin, { passive: true });
-document.addEventListener("mousedown", setTapRippleOrigin);
-
 // Disables `btn` and counts down "Try again in Ns" for `seconds` seconds, then restores
 // its original data-i18n label - shared by every button that sends a code/link to email
 // (forgot password, resend verification, phone verification). Any countdown already

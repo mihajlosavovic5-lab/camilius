@@ -912,26 +912,14 @@ input.tap-to-edit-field, textarea.tap-to-edit-field { cursor: pointer; backgroun
     display: flex; align-items: center; justify-content: center; gap: 8px;
     padding: 13px 20px; border: none; border-radius: 11px; cursor: pointer;
     font-size: 16.5px; font-weight: 600; background: var(--primary); color: #fff; margin-top: 18px;
-    transition: background-color .2s ease;
-    /* Positioning context + clip for .button-secondary/.button-google/.button-danger's
-       ::before press-tint below, so it's anchored to (and clipped to the rounded shape
-       of) this exact button rather than escaping into whatever is laid out around it.
-       .onboarding-continue later in this file sets its own position: absolute at equal
-       (single-class) specificity and appears after this rule, so it still wins there -
-       see that rule's own comment.
-       isolation: isolate makes this button its OWN stacking context, so the ::before's
-       z-index: -1 (below) only has to beat this button's own background - not fall
-       behind the button entirely and disappear under whatever sits behind it on the
-       page. Without this, the ripple painted OVER the icon/label instead of under it:
-       flex items (the Google icon, the label span/bare text) paint at the same
-       "positioned descendant" stack level as an absolutely-positioned ::before, and
-       DOM order alone doesn't reliably put a bare z-index:auto pseudo-element behind
-       them - a negative z-index inside an isolated context is what actually guarantees
-       it, regardless of whether the button's content happens to be a wrapped span, a
-       raw text node, or an <svg>. */
-    position: relative;
-    overflow: hidden;
-    isolation: isolate;
+    /* Fast, not the slower .2s this used to be - a frame-by-frame comparison against
+       ChatGPT's own "Continue with Google" (the reference this whole press-tint idea
+       is chasing) at 60fps showed its press tint reaching full, completely FLAT/uniform
+       coverage in about 2-3 frames (~50ms) with no visible gradient, vignette, or
+       growing-from-the-touch-point animation at all - a position-tracked radial-gradient
+       ripple (tried here previously) was chasing an effect that isn't actually there.
+       Plain background-color, snapped fast in both directions, is the accurate match. */
+    transition: background-color .08s ease;
 }
 .button:active { background: var(--primary-dark); }
 .button:disabled { background: #cabfa4; }
@@ -943,10 +931,10 @@ input.tap-to-edit-field, textarea.tap-to-edit-field { cursor: pointer; backgroun
    the instant it doesn't. */
 .button-tap-scale { transition: transform .12s ease; }
 .button-tap-scale:active { transform: scale(0.96); }
-/* Every Google/secondary/danger button drops the zoom again right here - the press-tint
-   ripple below (its ::before, growing from the actual touch point - see setTapRippleOrigin
-   in app.js) is the only "this is live" cue for these now; stacking a scale on top of it
-   read as too much. Listed by color-family class rather than .button-tap-scale alone so
+/* Every Google/secondary/danger button drops the zoom again right here - the fast flat
+   press tint below (.button-secondary:active/.button-google:active/.button-danger:active)
+   is the only "this is live" cue for these now; stacking a scale on top of it read as too
+   much. Listed by color-family class rather than .button-tap-scale alone so
    .price-add-btn ("+ Add service"/"+ Add pair" - button-secondary but not .button, see its
    own rule below) gets the same treatment as every other button in this family instead of
    being the one left zooming. Each selector here is exactly as specific as its own
@@ -965,9 +953,11 @@ input.tap-to-edit-field, textarea.tap-to-edit-field { cursor: pointer; backgroun
 /* .button:active's gold press flash is meant for solid primary-colored buttons - on any
    plain .button-secondary (Log out, Create account, Continue with email, Cancel, ...
    already just cream/outlined) it looked like the button was momentarily turning into a
-   primary action instead of just registering the tap. Cancel it back to the resting
-   background - the ::before ripple below is this button's actual press feedback now. */
-.button-secondary:active { background: var(--surface); }
+   primary action instead of just registering the tap. A flat, fast switch to
+   --surface-press (not --primary-dark, and not a no-op back to --surface either - see
+   .button's own comment for why this is fast/flat rather than a slower position-tracked
+   ripple) is this button's actual press feedback now. */
+.button-secondary:active { background: var(--surface-press); }
 .button-secondary { background: var(--surface); color: var(--text); border: 1px solid var(--border); }
 .button-primary-outline { color: var(--primary); border-color: var(--primary); }
 .button-pill { border-radius: 999px; }
@@ -977,53 +967,11 @@ input.tap-to-edit-field, textarea.tap-to-edit-field { cursor: pointer; backgroun
 .button-google { background: #fff; color: #3c4043; border: 1px solid var(--border); }
 /* No press-color flash at all (matches .button-secondary:active above) - the ::before
    ripple below is this button's actual press feedback now. */
-.button-google:active { background: #fff; }
-/* Press-tint ripple, shared shape for all three color families (Google/secondary/danger) -
-   grows from the exact spot the visitor's finger landed (--tap-x/--tap-y, written by
-   setTapRippleOrigin in app.js on every touchstart/mousedown, defaulting to dead center
-   before any tap has happened yet) rather than uniformly across the whole button, so a
-   press visibly "starts" where the finger actually is instead of reading as a flat color
-   swap. scale(0) collapses the (already button-sized, via inset:0) box down to that single
-   point; growing it to scale(1) on :active is exactly enough to cover the button again -
-   no need to overshoot past 1.
-   A soft radial-gradient fill (solid core fading to transparent well before the box's own
-   edge), not a flat color, is what actually makes the growth read as a gentle glow rather
-   than a hard-edged wipe sliding across the button - a solid-fill box scaling up has a
-   crisp straight edge at every instant of the animation, however short the transition;
-   fading the color out before the gradient reaches the box boundary means there's never a
-   sharp line to see, at any point mid-growth or at rest.
-   Split into two transitions (fast in, slow-but-masked-by-opacity out) rather than one
-   shared duration: :active's own opacity/transform pair below is quicker, so the reveal
-   itself still feels immediate; the base rule's is opacity-fast/transform-slow, so on
-   release the tint visibly fades out in place before the (much slower) scale-back-to-a-
-   point has moved far enough to be noticeable - a released press reads as an even fade,
-   not as un-drawing itself back toward the touch point.
-   z-index: -1 (inside the button's own isolated stacking context - see .button's own
-   comment) keeps this UNDER the icon/label instead of painting over them - a plain
-   z-index: auto here rendered on top of the button's real content. */
-.button-secondary.button-tap-scale::before,
-.button-google.button-tap-scale::before,
-.button-danger.button-tap-scale::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    z-index: -1;
-    opacity: 0;
-    transform: scale(0);
-    transform-origin: var(--tap-x, 50%) var(--tap-y, 50%);
-    transition: opacity .3s ease, transform .65s ease;
-    pointer-events: none;
-}
-.button-secondary.button-tap-scale::before { background: radial-gradient(circle, var(--surface-press) 0%, var(--surface-press) 55%, transparent 82%); }
-.button-google.button-tap-scale::before { background: radial-gradient(circle, #e8eaed 0%, #e8eaed 55%, transparent 82%); }
-.button-danger.button-tap-scale::before { background: radial-gradient(circle, var(--danger-dark) 0%, var(--danger-dark) 55%, transparent 82%); }
-.button-secondary.button-tap-scale:active::before,
-.button-google.button-tap-scale:active::before,
-.button-danger.button-tap-scale:active::before {
-    opacity: 1;
-    transform: scale(1);
-    transition: opacity .18s ease, transform .34s ease;
-}
+/* Press tint matches Google's own documented pressed/focus state for this button (a
+   light neutral gray over the white rest state, not --primary-dark's amber) - fast/flat
+   via .button's own background-color transition, same reasoning as
+   .button-secondary:active above. */
+.button-google:active { background: #e8eaed; }
 /* The actual "darkens right after I tap it" culprit wasn't :active at all - it's
    startGoogleLogin() (app.js) setting button.disabled=true for the brief moment the
    /api/google-login/start request is in flight (double-tap guard), which without this
@@ -1298,10 +1246,9 @@ input.tap-to-edit-field, textarea.tap-to-edit-field { cursor: pointer; backgroun
 .button-danger { background: var(--danger); color: #fff; }
 /* Without this, .button:active's amber background: var(--primary-dark) flash (meant for
    the plain gold primary button) leaked through on press, turning this red button briefly
-   yellow. Cancel it back to the resting background - the ::before ripple (see
-   .button-secondary.button-tap-scale::before above) is this button's actual press
-   feedback now, same as .button-secondary/.button-google. */
-.button-danger:active { background: var(--danger); }
+   yellow. Darken towards --danger-dark instead - fast/flat, same reasoning as
+   .button-secondary:active/.button-google:active above, just within the red family. */
+.button-danger:active { background: var(--danger-dark); }
 
 /* --- Shared option-picker button (Faza 4) - used for the working-hours time fields
    and the price-list currency field (see createOptionButton()/optionPicker in app.js).
@@ -1494,16 +1441,10 @@ input.tap-to-edit-field, textarea.tap-to-edit-field { cursor: pointer; backgroun
    page" (#mysite-view-page-btn) comes from the shared .button-secondary/.button-
    primary-outline/.button-tap-scale classes added alongside this one in index.html,
    not duplicated here, so the two stay pixel-identical (including their :active
-   behavior) automatically instead of two hand-matched copies drifting apart later.
-   Unlike #mysite-view-page-btn this one isn't also a .button, so it needs its own
-   position: relative + overflow: hidden + isolation: isolate - the same anchor/clip/
-   stacking .button's own rule gives every other button-secondary.button-tap-scale for
-   its ::before press-tint ripple (see that rule's own comment for why isolation matters -
-   without it the ripple painted over this button's label instead of under it). */
+   behavior) automatically instead of two hand-matched copies drifting apart later. */
 .price-add-btn {
     display: block; width: 100%; padding: 11px; margin-top: 4px; border-radius: 11px;
     font-family: inherit; font-size: 15px; font-weight: 600; cursor: pointer;
-    position: relative; overflow: hidden; isolation: isolate;
 }
 
 /* --- Price list currency (Faza 4) - one dropdown applies to the whole list, shown
