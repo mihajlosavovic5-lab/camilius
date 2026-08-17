@@ -627,13 +627,17 @@
         </form>
 
         <button type="button" id="login-forgot-link" class="link-btn login-forgot" data-i18n="login.forgot">Forgot password?</button>
+
+        <!-- Moved here (out of .login-choice above) on request - "Create account" now only
+             shows up once "Continue with email" has been picked, at the bottom of that
+             form, instead of being visible on the very first screen too. -->
+        <div class="login-signup-divider"><span data-i18n="login.newHere">New to Camilius?</span></div>
+        <button type="button" id="login-signup-link" class="button button-secondary button-full button-pill button-primary-outline button-tap-scale" data-i18n="login.signup">Create account</button>
       </div>
       </div>
 
       <div class="login-spacer"></div>
 
-      <div class="login-signup-divider"><span data-i18n="login.newHere">New to Camilius?</span></div>
-      <button type="button" id="login-signup-link" class="button button-secondary button-full button-pill button-primary-outline button-tap-scale" data-i18n="login.signup">Create account</button>
       <!-- Same build/bundle version app.js already writes into Settings > Profile
            (#settings-app-version) - repeated here too since that one needs to already be
            logged in to reach, which defeats the point of a quick "did this device

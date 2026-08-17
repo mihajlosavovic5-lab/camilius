@@ -39,10 +39,11 @@ def _start_web_google_auth(client):
 
 
 def _start_web_google_auth_login(client):
-    """Same as _start_web_google_auth above, but as if the visitor clicked "Continue with
-    Google" on the Login screen (login.html passes ?intent=login) rather than Create
-    Account - the case where a brand-new Google identity must get an error, not a hand-off
-    to sign-up."""
+    """Same as _start_web_google_auth above, but with the legacy ?intent=login query param -
+    login.html no longer sends this itself (a brand-new Google identity from the Login
+    screen is now handed to sign-up prefilled, same as Create Account - see auth_google()'s
+    own comment), but the route still honors it for any caller that does, so this covers
+    that fallback path directly rather than through the template."""
     start = client.get("/auth/google?intent=login")
     return start.headers["Location"].split("state=")[1].split("&")[0]
 
@@ -68,6 +69,28 @@ def test_login_page_shows_google_button_when_configured(client, monkeypatch):
     _configure_google(monkeypatch)
     html = client.get("/login").get_data(as_text=True)
     assert "/auth/google" in html
+
+
+def test_login_page_google_button_sends_no_login_intent(client, monkeypatch):
+    """login.html's Google button (plain href and GIS script alike) must not send
+    ?intent=login/"login" anymore - a brand-new Google identity from the Login screen is
+    now handed to sign-up prefilled instead of shown a "no account" error, same as the
+    mobile app's own login-google-btn (mobile/app.js)."""
+    _configure_google(monkeypatch)
+    html = client.get("/login").get_data(as_text=True)
+    assert "intent=login" not in html
+    assert 'intent: "login"' not in html
+
+
+def test_login_page_create_account_button_moved_into_email_form(client, monkeypatch):
+    """"Create account" must only render inside the email-form panel (revealed by
+    "Continue with email"), not in the initial Google/email choice screen above it."""
+    _configure_google(monkeypatch)
+    html = client.get("/login").get_data(as_text=True)
+    choice_start = html.index('id="login-choice"')
+    form_wrap_start = html.index('id="login-form-wrap"')
+    register_link_pos = html.index('data-i18n="login.registerLink"')
+    assert choice_start < form_wrap_start < register_link_pos
 
 
 # --- Web flow: CSRF / state handling ---
@@ -116,9 +139,10 @@ def test_auth_google_callback_new_identity_redirects_to_register_prefilled(clien
 
 
 def test_auth_google_callback_new_identity_with_login_intent_shows_error_not_signup(client, monkeypatch, unique_email):
-    """Clicked "Continue with Google" on the Login screen, but no account is linked to
-    that Google identity - must send the visitor back to /login with an error, never hand
-    them to the sign-up form or create an account outright."""
+    """Legacy ?intent=login behavior (see _start_web_google_auth_login) - no account
+    linked to that Google identity sends the visitor back to /login with an error rather
+    than a hand-off to sign-up or creating an account outright. Nothing in the UI sends
+    this intent anymore, but the route still supports it."""
     _configure_google(monkeypatch)
     state = _start_web_google_auth_login(client)
     sub = _unique_sub()
@@ -680,9 +704,9 @@ def test_auth_google_token_invalid_credential_redirects_to_login_with_error(clie
 
 
 def test_auth_google_token_new_identity_with_login_intent_redirects_to_login_with_no_account_error(client, monkeypatch, unique_email):
-    """Web's GIS button only ever sends intent="login" (see login.html's own script) -
-    a brand-new Google identity must get the same "no account" error as the plain
-    redirect flow's own login-intent case, never a silent hand-off to sign-up."""
+    """Legacy ?intent=login behavior, same as the plain redirect flow's own login-intent
+    test above - login.html's GIS script no longer sends this itself (see its own script
+    block), but the endpoint still honors it if sent directly."""
     _configure_google(monkeypatch)
     sub = _unique_sub()
     monkeypatch.setattr(app_module.google_oauth, "verify_id_token", lambda credential: _fake_profile(sub, unique_email))
@@ -698,10 +722,9 @@ def test_auth_google_token_new_identity_with_login_intent_redirects_to_login_wit
 
 
 def test_auth_google_token_new_identity_with_register_intent_redirects_to_register_prefilled(client, monkeypatch, unique_email):
-    """Not reachable from login.html today (it never sends intent="register"), but the
-    endpoint supports it the same way api_google_login_verify_id_token does - covered
-    here so the behavior doesn't silently regress if a Register-screen button is ever
-    wired up to this same endpoint."""
+    """This is exactly what login.html's GIS script sends today (see its own script
+    block) - a brand-new Google identity is handed to the sign-up form prefilled instead
+    of an error, same as the plain redirect flow (auth_google_callback)."""
     _configure_google(monkeypatch)
     sub = _unique_sub()
     monkeypatch.setattr(app_module.google_oauth, "verify_id_token", lambda credential: _fake_profile(sub, unique_email, name="Jane's Salon"))

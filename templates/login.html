@@ -89,8 +89,13 @@
                what runs if GIS never loaded, and what the prompt itself falls back to if
                Google reports it couldn't be shown (FedCM unsupported/blocked, one-tap
                dismissed too recently, etc.) - so nothing here ever leaves this button
-               unable to sign someone in. #}
-            <a class="button button-google button-full button-pill" id="login-google-btn" href="{{ url_for('auth_google', intent='login') }}">
+               unable to sign someone in.
+
+               No intent='login' here (unlike before) - a Google identity with no matching
+               account should hand the visitor straight to Create Account with their
+               name/email prefilled, same as the mobile app's own login-google-btn
+               (mobile/app.js), instead of bouncing them off with a "no account" error. #}
+            <a class="button button-google button-full button-pill" id="login-google-btn" href="{{ url_for('auth_google') }}">
                 {% include "_google_icon.html" %}
                 <span data-i18n="login.continueWithGoogle">Continue with Google</span>
             </a>
@@ -119,11 +124,14 @@
             </form>
 
             <a class="link-btn" href="{{ url_for('forgot_password') }}" data-i18n="login.forgotLink">Forgot your password?</a>
-        </div>
-        </div>
 
-        <div class="auth-divider"><span data-i18n="login.noAccount">New to Camilius?</span></div>
-        <a class="button button-secondary button-full button-pill button-primary-outline" href="{{ url_for('register') }}" data-i18n="login.registerLink">Create account</a>
+            {# Moved here (out of the choice screen above) on request - "Create account" now
+               only shows up once "Continue with email" has been picked, at the bottom of
+               that form, instead of being visible on the very first screen too. #}
+            <div class="auth-divider"><span data-i18n="login.noAccount">New to Camilius?</span></div>
+            <a class="button button-secondary button-full button-pill button-primary-outline" href="{{ url_for('register') }}" data-i18n="login.registerLink">Create account</a>
+        </div>
+        </div>
     </div>
 </div>
 {% if account_deleted %}
@@ -248,7 +256,7 @@
             fetch("{{ url_for('auth_google_token') }}", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ credential: response.credential, intent: "login" }),
+                body: JSON.stringify({ credential: response.credential, intent: "register" }),
             })
                 .then(function (r) { return r.json(); })
                 .then(function (data) { window.location.href = data.redirect || button.href; })

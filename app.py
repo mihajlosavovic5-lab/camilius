@@ -502,10 +502,12 @@ def auth_google():
     round-trip through. CSRF is checked here the ordinary web way: `state` is stashed in
     Flask's own session cookie and compared back in auth_google_callback below.
 
-    `?intent=login` (set by login.html's button only) is stashed alongside it - it's how
-    auth_google_callback tells "Continue with Google" clicked on the Login screen apart
-    from Create Account, so a brand-new identity from Login gets an error instead of being
-    handed off to the sign-up form."""
+    `?intent=login` is accepted but no longer set by anything - login.html's button used
+    to send it so a brand-new identity from the Login screen got an error instead of being
+    handed off to sign-up, but that's no longer what either the web or mobile app does (see
+    auth_google_callback's own comment): a Google identity with no matching account is
+    always handed to the sign-up form prefilled, from Login or Create Account alike. Kept
+    accepted here only for backward compatibility with anything still sending it."""
     if not google_oauth.is_configured():
         abort(404)
     state = secrets.token_urlsafe(24)
@@ -519,10 +521,11 @@ def auth_google():
 # Manager bridge) - login.html's own script posts the credential Google Identity
 # Services hands it client-side here (see that script for the google.accounts.id.
 # initialize()/renderButton() setup), instead of the full-page redirect through
-# accounts.google.com that auth_google() above does. Always intent="login" for now -
-# GIS is only wired up on the Login screen (see auth_google()'s own comment: Create
-# Account has never had a "Continue with Google" button on the web, only on mobile),
-# so there's nothing yet that would ever send "register" here.
+# accounts.google.com that auth_google() above does. Always intent="register" - GIS is
+# only wired up on the Login screen (Create Account has never had a "Continue with
+# Google" button on the web, only on mobile), and a brand-new Google identity from there
+# should be handed to the sign-up form prefilled rather than shown a "no account" error
+# (see auth_google()'s own comment).
 #
 # Sets the Flask session cookie directly and hands back a JSON `redirect` URL for the
 # page's own script to navigate to, rather than doing the redirect itself - there's no

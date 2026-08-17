@@ -20,6 +20,12 @@
         {% if error %}
             <div class="alert alert-error"><span class="alert-icon">&#9888;&#65039;</span><span>{{ error }}</span></div>
         {% endif %}
+        {% if data.get('google_link_token') %}
+            {# Landed here via "Continue with Google" on the Login page (see
+               app.py's auth_google_callback) - name/email above are already prefilled
+               from the Google account, this just explains why the form isn't blank. #}
+            <div class="alert alert-success"><span class="alert-icon">&#10003;</span><span data-i18n="register.googlePrefillNotice">We pulled some details from your Google account - check them and finish signing up below.</span></div>
+        {% endif %}
         <div class="alert alert-error hidden" id="register-error"></div>
 
         <form method="POST" id="register-form">
