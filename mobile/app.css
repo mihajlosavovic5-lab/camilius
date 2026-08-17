@@ -123,6 +123,7 @@
     --primary-ink: #9a6a08;
     --background: #fdfcfa;
     --surface: #ffffff;
+    --surface-press: #ececec;
     --border: #ece6da;
     --text: #2b2013;
     --text-muted: #7a6c52;
@@ -133,6 +134,7 @@
     --warning-bg: #fbf1df;
     --warning-border: #f0d9a8;
     --danger: #b3341f;
+    --danger-dark: #942c1a;
     --danger-bg: #f9e8e2;
     --danger-border: #eec6ba;
     /* Deeper-than-plain --border tier, used only where a control needs to read as
@@ -910,16 +912,19 @@ input.tap-to-edit-field, textarea.tap-to-edit-field { cursor: pointer; backgroun
     display: flex; align-items: center; justify-content: center; gap: 8px;
     padding: 13px 20px; border: none; border-radius: 11px; cursor: pointer;
     font-size: 16.5px; font-weight: 600; background: var(--primary); color: #fff; margin-top: 18px;
+    transition: background-color .2s ease;
 }
 .button:active { background: var(--primary-dark); }
 .button:disabled { background: #cabfa4; }
 .button-full { width: 100%; }
 /* Subtle scale-down-and-back tap feedback (Login screen's Google/email/Create account
-   buttons - see mobile/index.html) - no color change at all (see .button-secondary:active/
-   .button-google:active/:disabled above, which deliberately stay flat), just a light
-   press-in that springs back once released. transition (not a keyframe animation) is
-   enough here: the same rule drives both directions - scaling down the instant :active
-   applies, and back to 1 the instant it doesn't. */
+   buttons and every other .button-pill using this class - see mobile/index.html). The
+   press tint itself (.button-secondary:active/.button-google:active/.button-danger:active
+   below) fades smoothly rather than snapping via .button's own background-color transition -
+   together the two make a held-down button visibly "come alive" instead of reading static.
+   transition (not a keyframe animation) is enough here: the same rule drives both
+   directions - scaling down the instant :active applies, and back to 1 the instant it
+   doesn't. */
 .button-tap-scale { transition: transform .12s ease; }
 .button-tap-scale:active { transform: scale(0.96); }
 /* Confirmation pulse for taps that kick off an async action (e.g. "View page" fetching
@@ -932,10 +937,10 @@ input.tap-to-edit-field, textarea.tap-to-edit-field { cursor: pointer; backgroun
 /* .button:active's gold press flash is meant for solid primary-colored buttons - on any
    plain .button-secondary (Log out, Create account, Continue with email, Cancel, ...
    already just cream/outlined) it looked like the button was momentarily turning into a
-   primary action instead of just registering the tap. Cancel it back to the resting
-   background for every .button-secondary at once, not just Log out - same reasoning as
-   the website's own .button-secondary:hover (static/style.css). */
-.button-secondary:active { background: var(--surface); }
+   primary action instead of just registering the tap. Use a neutral press tint instead
+   (a touch darker than --surface, not --primary-dark) so holding the button down still
+   gives a clear "this is live" cue, fading via .button-tap-scale's transition above. */
+.button-secondary:active { background: var(--surface-press); }
 .button-secondary { background: var(--surface); color: var(--text); border: 1px solid var(--border); }
 .button-primary-outline { color: var(--primary); border-color: var(--primary); }
 .button-pill { border-radius: 999px; }
@@ -943,10 +948,11 @@ input.tap-to-edit-field, textarea.tap-to-edit-field { cursor: pointer; backgroun
    branding guidelines, same reasoning/colors as the website's .button-google
    (static/style.css) - the multi-color "G" mark itself is the only branding color. */
 .button-google { background: #fff; color: #3c4043; border: 1px solid var(--border); }
-/* No press-color flash at all (matches .button-secondary:active above) - overrides
-   .button:active's amber flash with the SAME white the button already rests at, rather
-   than swapping in a different (if subtler) tint on tap. */
-.button-google:active { background: #fff; }
+/* Press tint matches Google's own documented pressed/focus state for this button
+   (a light neutral gray over the white rest state, not --primary-dark's amber - see
+   .button-secondary:active above for the same reasoning). Fades in/out via
+   .button-tap-scale's background-color transition rather than snapping. */
+.button-google:active { background: #e8eaed; }
 /* The actual "darkens right after I tap it" culprit wasn't :active at all - it's
    startGoogleLogin() (app.js) setting button.disabled=true for the brief moment the
    /api/google-login/start request is in flight (double-tap guard), which without this
@@ -1219,11 +1225,11 @@ input.tap-to-edit-field, textarea.tap-to-edit-field { cursor: pointer; backgroun
 
 .button-danger-outline { color: var(--danger); border-color: var(--danger-border); }
 .button-danger { background: var(--danger); color: #fff; }
-/* No press-color flash at all (same reasoning as .button-secondary:active/
-   .button-google:active above) - without this, .button:active's amber
-   background: var(--primary-dark) flash (meant for the plain gold primary
-   button) leaked through on press, turning this red button briefly yellow. */
-.button-danger:active { background: var(--danger); }
+/* Without this, .button:active's amber background: var(--primary-dark) flash (meant for
+   the plain gold primary button) leaked through on press, turning this red button briefly
+   yellow. Darken towards --danger-dark instead - same "gently come alive" press tint as
+   .button-secondary:active/.button-google:active above, just within the red family. */
+.button-danger:active { background: var(--danger-dark); }
 
 /* --- Shared option-picker button (Faza 4) - used for the working-hours time fields
    and the price-list currency field (see createOptionButton()/optionPicker in app.js).
@@ -2611,6 +2617,7 @@ input.tap-to-edit-field, textarea.tap-to-edit-field { cursor: pointer; backgroun
         --primary-ink: #f2b93f;
         --background: #110f0d;
         --surface: #1c1a16;
+        --surface-press: #29261f;
         --border: #302c26;
         --text: #f2ece0;
         --text-muted: #a89a80;
@@ -2621,6 +2628,7 @@ input.tap-to-edit-field, textarea.tap-to-edit-field { cursor: pointer; backgroun
         --warning-bg: #2e2413;
         --warning-border: #4a3a1e;
         --danger: #e0796a;
+        --danger-dark: #e8927f;
         --danger-bg: #2e1a16;
         --danger-border: #4a2b24;
         --border-strong: #52483c;
@@ -2641,6 +2649,7 @@ input.tap-to-edit-field, textarea.tap-to-edit-field { cursor: pointer; backgroun
     --primary-ink: #f2b93f;
     --background: #110f0d;
     --surface: #1c1a16;
+    --surface-press: #29261f;
     --border: #302c26;
     --text: #f2ece0;
     --text-muted: #a89a80;
@@ -2651,6 +2660,7 @@ input.tap-to-edit-field, textarea.tap-to-edit-field { cursor: pointer; backgroun
     --warning-bg: #2e2413;
     --warning-border: #4a3a1e;
     --danger: #e0796a;
+    --danger-dark: #e8927f;
     --danger-bg: #2e1a16;
     --danger-border: #4a2b24;
     --border-strong: #52483c;
@@ -2668,6 +2678,7 @@ input.tap-to-edit-field, textarea.tap-to-edit-field { cursor: pointer; backgroun
     --primary-ink: #9a6a08;
     --background: #fdfcfa;
     --surface: #ffffff;
+    --surface-press: #ececec;
     --border: #ece6da;
     --text: #2b2013;
     --text-muted: #7a6c52;
@@ -2678,6 +2689,7 @@ input.tap-to-edit-field, textarea.tap-to-edit-field { cursor: pointer; backgroun
     --warning-bg: #fbf1df;
     --warning-border: #f0d9a8;
     --danger: #b3341f;
+    --danger-dark: #942c1a;
     --danger-bg: #f9e8e2;
     --danger-border: #eec6ba;
     --border-strong: #d9c49b;
