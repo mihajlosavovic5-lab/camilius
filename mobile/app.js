@@ -2846,11 +2846,16 @@ function applyGoogleLoginResult(data, errorBox) {
         // as a fallback in case that ever changes, rather than assuming this status can no
         // longer come back.
         showErrorBox(errorBox, t("login.googleNoAccount"));
+    } else if (data.status === "cancelled" || data.status === "expired") {
+        // 'cancelled' (visitor backed out of Google's consent screen - denied, hit back,
+        // closed the tab) or 'expired' (closed the tab without finishing, or just sat on
+        // the consent screen past GOOGLE_LOGIN_POLL_TIMEOUT_MS) - the visitor simply didn't
+        // go through with it, not a failure, so nothing to explain; quietly land back on
+        // the plain Login screen exactly like pollGoogleLogin's own timeout does.
     } else {
-        // 'error' (Google denied/cancelled, or something failed server-side) or 'expired'
-        // (visitor closed the tab without finishing, or just sat on the consent screen
-        // past GOOGLE_LOGIN_POLL_TIMEOUT_MS) - same "explain and let them retry"
-        // treatment either way, nothing more specific to say.
+        // 'error' - something actually failed server-side (denied token exchange, no
+        // Google account resolvable, etc.) - this is the only case left that's worth
+        // explaining and inviting a retry for.
         showErrorBox(errorBox, t("login.googleError"));
     }
 }
@@ -2967,10 +2972,10 @@ async function startGoogleLoginNative(errorBox, intent) {
             options: { style: "bottom" },
         });
     } catch (err) {
-        // Visitor dismissed the bottom sheet, no Google account on the device, etc. -
-        // same "explain and let them retry" treatment as every other cancelled/failed
-        // Google sign-in (see applyGoogleLoginResult's own 'error' branch).
-        showErrorBox(errorBox, t("login.googleError"));
+        // Visitor dismissed the bottom sheet - by far the most common reason this
+        // rejects - so treat it the same as the browser-tab flow's 'cancelled' status
+        // (see applyGoogleLoginResult): not a failure, nothing to explain, just quietly
+        // let them tap the button again if they meant to.
         return;
     }
 

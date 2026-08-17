@@ -474,7 +474,11 @@ def test_mobile_google_login_status_unknown_state_is_expired(client):
     assert response.get_json()["status"] == "expired"
 
 
-def test_mobile_google_login_callback_records_error_on_denied_consent(client, monkeypatch):
+def test_mobile_google_login_callback_records_cancelled_on_denied_consent(client, monkeypatch):
+    # Denying/backing out of Google's own consent screen isn't a failure - it's recorded as
+    # its own 'cancelled' status (not 'error') so the app can quietly return to the login
+    # screen instead of showing a "something went wrong" error (see app.py's
+    # auth_google_callback and mobile/app.js's applyGoogleLoginResult).
     _configure_google(monkeypatch)
     start = client.post("/api/google-login/start").get_json()
     state = start["state"]
@@ -485,7 +489,7 @@ def test_mobile_google_login_callback_records_error_on_denied_consent(client, mo
     assert client.get(response.headers["Location"]).status_code == 200
 
     status = client.get(f"/api/google-login/status?state={state}").get_json()
-    assert status["status"] == "error"
+    assert status["status"] == "cancelled"
 
 
 # --- /auth/google/done (Android App Link bridge fallback rendering) ---
