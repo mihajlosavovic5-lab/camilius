@@ -29,7 +29,7 @@ from database import (
     contact_email_taken, phone_number_taken,
     create_oauth_login_session, complete_oauth_login_session, fail_oauth_login_session,
     complete_oauth_login_session_needs_signup, oauth_login_session_exists, oauth_login_session_intent,
-    fail_oauth_login_session_no_account,
+    fail_oauth_login_session_no_account, cancel_oauth_login_session,
     archived_conversations_for_business, trashed_conversations_for_business,
     archive_conversation, unarchive_conversation, soft_delete_conversation, restore_conversation,
     get_slot_duration, set_slot_duration, create_appointment, get_appointment, cancel_appointment,
@@ -591,6 +591,15 @@ def auth_google_callback():
             return redirect(url_for("auth_google_done", state=state, outcome="error"))
         return redirect(url_for("login", message=message))
 
+    def cancel():
+        # The visitor backed out of Google's consent screen (denied, hit back, closed it)
+        # rather than the sign-in actually failing - not an error, so nothing to show;
+        # quietly land back where they started instead of fail()'s "try again" messaging.
+        if is_mobile:
+            cancel_oauth_login_session(state)
+            return redirect(url_for("auth_google_done", state=state, outcome="error"))
+        return redirect(url_for("login"))
+
     # Which screen "Continue with Google" was clicked on - Login or Create Account (see
     # auth_google()'s and api_google_login_start()'s own comments on where this came from).
     # Only matters below, once we know whether an existing account was actually found.
@@ -607,7 +616,7 @@ def auth_google_callback():
             return fail("Google sign-in failed - please try again.")
 
     if request.args.get("error") or "code" not in request.args:
-        return fail("Google sign-in was cancelled.")
+        return cancel()
 
     redirect_uri = url_for("auth_google_callback", _external=True)
     google_user = google_oauth.fetch_user(request.args["code"], redirect_uri)

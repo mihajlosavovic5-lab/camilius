@@ -1605,6 +1605,19 @@ def fail_oauth_login_session(state):
     connection.close()
 
 
+def cancel_oauth_login_session(state):
+    """The visitor backed out of Google's consent screen (denied, hit back, closed it)
+    rather than the sign-in itself failing - kept as its own status, separate from
+    fail_oauth_login_session's 'error', so mobile/app.js's applyGoogleLoginResult can
+    quietly return to the login screen instead of showing a 'something went wrong' error
+    for someone who simply changed their mind."""
+    connection = connect()
+    cursor = connection.cursor()
+    cursor.execute("UPDATE oauth_login_sessions SET status = 'cancelled' WHERE state = %s", (state,))
+    connection.commit()
+    connection.close()
+
+
 def fail_oauth_login_session_no_account(state):
     """A Google identity nobody's seen before, but this attempt started from the Login
     screen (intent='login') rather than Create Account - unlike complete_oauth_login_session_needs_signup
@@ -1659,9 +1672,10 @@ def oauth_login_session_intent(state):
 
 def oauth_login_session_status(state):
     """Polled by the mobile app (see api.py's api_google_login_status). A 'done'/'error'/
-    'needs_signup'/'no_account' result is single-use - deleted here the moment it's picked
-    up - since the token (or google_link_token) inside it is a live credential that should
-    exist in exactly one place afterward (the row, or the app that fetched it - never both)."""
+    'needs_signup'/'no_account'/'cancelled' result is single-use - deleted here the moment
+    it's picked up - since the token (or google_link_token) inside it is a live credential
+    that should exist in exactly one place afterward (the row, or the app that fetched it -
+    never both)."""
     connection = connect()
     cursor = connection.cursor()
     _cleanup_stale_oauth_login_sessions(cursor)
@@ -1671,7 +1685,7 @@ def oauth_login_session_status(state):
         (state,),
     )
     row = cursor.fetchone()
-    if row is not None and row[0] in ("done", "error", "needs_signup", "no_account"):
+    if row is not None and row[0] in ("done", "error", "needs_signup", "no_account", "cancelled"):
         cursor.execute("DELETE FROM oauth_login_sessions WHERE state = %s", (state,))
     connection.commit()
     connection.close()
