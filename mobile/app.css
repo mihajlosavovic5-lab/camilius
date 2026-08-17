@@ -954,6 +954,13 @@ input.tap-to-edit-field, textarea.tap-to-edit-field { cursor: pointer; backgroun
    the website's own .button-secondary:hover (static/style.css). The scale above is this
    button's actual press feedback now, not a color change. */
 .button-secondary:active { background: var(--surface); }
+/* Same "darkens right after I tap it" bug as .button-google:disabled below, just never
+   caught here until a real submit was actually watched (not just a quick :active press) -
+   #login-submit (and every other .button-secondary submit button: Register, Forgot
+   password, Verify, Delete account...) sets disabled=true while its request is in
+   flight, which without this fell through to .button:disabled's muted tan-gray instead
+   of staying the plain white/cream it rests at. */
+.button-secondary:disabled { background: var(--surface); }
 .button-secondary { background: var(--surface); color: var(--text); border: 1px solid var(--border); }
 .button-primary-outline { color: var(--primary); border-color: var(--primary); }
 .button-pill { border-radius: 999px; }
@@ -1242,6 +1249,12 @@ input.tap-to-edit-field, textarea.tap-to-edit-field { cursor: pointer; backgroun
    background: var(--primary-dark) flash (meant for the plain gold primary
    button) leaked through on press, turning this red button briefly yellow. */
 .button-danger:active { background: var(--danger); }
+/* Same "darkens right after I tap it" bug as .button-google:disabled/
+   .button-secondary:disabled above - #delete-confirm-submit sets disabled=true both by
+   default (until its confirmation text is typed, see index.html) and while its own
+   request is in flight, which without this fell through to .button:disabled's muted
+   tan-gray instead of staying red. */
+.button-danger:disabled { background: var(--danger); }
 
 /* --- Shared option-picker button (Faza 4) - used for the working-hours time fields
    and the price-list currency field (see createOptionButton()/optionPicker in app.js).
