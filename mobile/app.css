@@ -985,12 +985,19 @@ input.tap-to-edit-field, textarea.tap-to-edit-field { cursor: pointer; backgroun
    press visibly "starts" where the finger actually is instead of reading as a flat color
    swap. scale(0) collapses the (already button-sized, via inset:0) box down to that single
    point; growing it to scale(1) on :active is exactly enough to cover the button again -
-   no need to overshoot past 1. Split into two transitions (fast in, slow-but-masked-by-
-   opacity out) rather than one shared duration: :active's own opacity/transform pair
-   below is quick, so the reveal itself feels immediate; the base rule's is opacity-fast/
-   transform-slow, so on release the tint visibly fades out in place before the (much
-   slower) scale-back-to-a-point has moved far enough to be noticeable - a released press
-   reads as an even fade, not as un-drawing itself back toward the touch point.
+   no need to overshoot past 1.
+   A soft radial-gradient fill (solid core fading to transparent well before the box's own
+   edge), not a flat color, is what actually makes the growth read as a gentle glow rather
+   than a hard-edged wipe sliding across the button - a solid-fill box scaling up has a
+   crisp straight edge at every instant of the animation, however short the transition;
+   fading the color out before the gradient reaches the box boundary means there's never a
+   sharp line to see, at any point mid-growth or at rest.
+   Split into two transitions (fast in, slow-but-masked-by-opacity out) rather than one
+   shared duration: :active's own opacity/transform pair below is quicker, so the reveal
+   itself still feels immediate; the base rule's is opacity-fast/transform-slow, so on
+   release the tint visibly fades out in place before the (much slower) scale-back-to-a-
+   point has moved far enough to be noticeable - a released press reads as an even fade,
+   not as un-drawing itself back toward the touch point.
    z-index: -1 (inside the button's own isolated stacking context - see .button's own
    comment) keeps this UNDER the icon/label instead of painting over them - a plain
    z-index: auto here rendered on top of the button's real content. */
@@ -1004,18 +1011,18 @@ input.tap-to-edit-field, textarea.tap-to-edit-field { cursor: pointer; backgroun
     opacity: 0;
     transform: scale(0);
     transform-origin: var(--tap-x, 50%) var(--tap-y, 50%);
-    transition: opacity .25s ease, transform .6s ease;
+    transition: opacity .3s ease, transform .65s ease;
     pointer-events: none;
 }
-.button-secondary.button-tap-scale::before { background: var(--surface-press); }
-.button-google.button-tap-scale::before { background: #e8eaed; }
-.button-danger.button-tap-scale::before { background: var(--danger-dark); }
+.button-secondary.button-tap-scale::before { background: radial-gradient(circle, var(--surface-press) 0%, var(--surface-press) 55%, transparent 82%); }
+.button-google.button-tap-scale::before { background: radial-gradient(circle, #e8eaed 0%, #e8eaed 55%, transparent 82%); }
+.button-danger.button-tap-scale::before { background: radial-gradient(circle, var(--danger-dark) 0%, var(--danger-dark) 55%, transparent 82%); }
 .button-secondary.button-tap-scale:active::before,
 .button-google.button-tap-scale:active::before,
 .button-danger.button-tap-scale:active::before {
     opacity: 1;
     transform: scale(1);
-    transition: opacity .12s ease, transform .22s ease;
+    transition: opacity .18s ease, transform .34s ease;
 }
 /* The actual "darkens right after I tap it" culprit wasn't :active at all - it's
    startGoogleLogin() (app.js) setting button.disabled=true for the brief moment the
