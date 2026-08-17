@@ -921,11 +921,24 @@ input.tap-to-edit-field, textarea.tap-to-edit-field { cursor: pointer; backgroun
    (a flat swap, a position-tracked ripple, a feathered gradient) all got reverted - the
    scale alone, a bit stronger than a typical subtle press (0.93, not the barely-there
    0.96 this started at), is the actual "this is live" cue for the whole family now.
-   transition (not a keyframe animation) is enough here: the same rule drives both
-   directions - scaling down the instant :active applies, and back to 1 the instant it
-   doesn't. */
+   transition (not a keyframe animation) is what drives a genuinely HELD press - the same
+   rule covers both directions, scaling down the instant :active applies and back to 1 the
+   instant it doesn't. A quick tap barely shows this at all though (touchend fires almost
+   immediately, long before the transition has time to actually paint the scaled-down
+   frame) - see .button-tap-pulse below for how that case is covered instead. */
 .button-tap-scale { transition: transform .12s ease; }
 .button-tap-scale:active { transform: scale(0.93); }
+/* Guarantees the zoom above actually plays out in full on a quick tap, not just a held
+   press - JS re-triggers this class on every click of a .button-tap-scale element (see
+   the document-level "click" listener in app.js) so the same scale-down-and-back runs on
+   a fixed timer regardless of how briefly touchstart/touchend were apart. Same trick as
+   .button-confirm-pulse below, just scaling down instead of up (matching :active's own
+   direction here rather than a growth pulse) and restricted to .button-tap-scale specifically
+   so a non-tap-scale .button click doesn't start zooming. .onboarding-continue overrides
+   this with its own keyframes just below for the same translateX(-50%)-preserving reason
+   its :active rule does (see that rule's comment). */
+.button-tap-pulse { animation: button-tap-pulse .2s ease; }
+@keyframes button-tap-pulse { 0% { transform: scale(1); } 40% { transform: scale(.93); } 100% { transform: scale(1); } }
 /* Confirmation pulse for taps that kick off an async action (e.g. "View page" fetching
    the preview link) - :active alone barely shows since touchend fires almost immediately,
    long before the request resolves. JS re-triggers this class on every click (see
@@ -3267,6 +3280,15 @@ input.tap-to-edit-field, textarea.tap-to-edit-field { cursor: pointer; backgroun
    bare scale() - same "re-state the base transform" fix as .lp-menu-btn/#lp-corner-brand
    (static/style.css) - so this button doesn't jump left on press and snap back on release. */
 .onboarding-continue.button-tap-scale:active { transform: translateX(-50%) scale(.93); }
+/* Same fix, same reason, for the click-triggered .button-tap-pulse (app.css) - its bare
+   keyframes would otherwise blow away this button's translateX(-50%) centering too, just
+   like the :active rule above. */
+.onboarding-continue.button-tap-pulse { animation: onboarding-continue-tap-pulse .2s ease; }
+@keyframes onboarding-continue-tap-pulse {
+    0% { transform: translateX(-50%) scale(1); }
+    40% { transform: translateX(-50%) scale(.93); }
+    100% { transform: translateX(-50%) scale(1); }
+}
 .onboarding-skip-wrap { position: absolute; top: calc(16px + var(--safe-top)); right: 16px; z-index: 5; }
 .onboarding-skip-btn { background: none; border: none; color: var(--text-muted); font-size: 15px; cursor: pointer; padding: 8px; }
 .onboarding-dots { display: flex; justify-content: center; gap: 8px; padding-bottom: calc(30px + var(--safe-bottom)); flex-shrink: 0; }

@@ -27,6 +27,25 @@ const FORGOT_PASSWORD_RESEND_COOLDOWN_SECONDS = 60;
 
 const el = (id) => document.getElementById(id);
 
+// .button-tap-scale's own :active { transform: scale(.93) } (app.css) barely shows on a
+// quick tap - touchend fires almost immediately after touchstart, long before the
+// transition has time to actually paint the scaled-down frame, so the zoom only ever
+// reads as visible on a genuine held press. Re-triggering a fixed-duration CSS animation
+// on every click (same "confirmation pulse" trick already used for #mysite-view-page-btn,
+// see .button-confirm-pulse in app.css) plays the full scale-down-and-back regardless of
+// how briefly the button was actually pressed. Delegated on document rather than bound
+// per-button so newly rendered buttons (price/upsell "+ Add..." rows, etc.) are covered
+// automatically. .button-tap-pulse's own animation takes precedence over :active's
+// transition on the same property while it runs, so this doesn't fight the held-press
+// case - it just also covers the quick-tap case that transition alone couldn't.
+document.addEventListener("click", (event) => {
+    const btn = event.target.closest && event.target.closest(".button-tap-scale");
+    if (!btn) return;
+    btn.classList.remove("button-tap-pulse");
+    void btn.offsetWidth; // restart the animation even on back-to-back taps
+    btn.classList.add("button-tap-pulse");
+});
+
 // Disables `btn` and counts down "Try again in Ns" for `seconds` seconds, then restores
 // its original data-i18n label - shared by every button that sends a code/link to email
 // (forgot password, resend verification, phone verification). Any countdown already
