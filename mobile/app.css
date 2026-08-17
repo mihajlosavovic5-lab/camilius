@@ -953,11 +953,20 @@ input.tap-to-edit-field, textarea.tap-to-edit-field { cursor: pointer; backgroun
 /* .button:active's gold press flash is meant for solid primary-colored buttons - on any
    plain .button-secondary (Log out, Create account, Continue with email, Cancel, ...
    already just cream/outlined) it looked like the button was momentarily turning into a
-   primary action instead of just registering the tap. A flat, fast switch to
-   --surface-press (not --primary-dark, and not a no-op back to --surface either - see
-   .button's own comment for why this is fast/flat rather than a slower position-tracked
-   ripple) is this button's actual press feedback now. */
-.button-secondary:active { background: var(--surface-press); }
+   primary action instead of just registering the tap. A fast switch to --surface-press
+   (not --primary-dark, and not a no-op back to --surface either - see .button's own
+   comment for why this is fast rather than a slower position-tracked ripple) is this
+   button's actual press feedback now.
+   A gradient, not a flat color: a pixel-level comparison against ChatGPT's own press tint
+   (the reference this whole feature is chasing) found its tint isn't a hard-edged
+   rectangle - it fades to transparent over roughly the first/last 20-25% of the button's
+   width, flat only in the middle, so the rounded end-caps stay a soft white rather than
+   getting clipped by a flat color running right up to the border. A plain solid
+   background here reproduced the right color and the right timing but still read as
+   "basic" next to that soft edge. Percentage stops (not fixed px) so this scales with
+   whatever width the button actually is, from the full-width login buttons down to
+   .price-add-btn's small "+ Add service" pills. */
+.button-secondary:active { background: linear-gradient(to right, transparent, var(--surface-press) 22%, var(--surface-press) 78%, transparent); }
 .button-secondary { background: var(--surface); color: var(--text); border: 1px solid var(--border); }
 .button-primary-outline { color: var(--primary); border-color: var(--primary); }
 .button-pill { border-radius: 999px; }
@@ -965,13 +974,11 @@ input.tap-to-edit-field, textarea.tap-to-edit-field { cursor: pointer; backgroun
    branding guidelines, same reasoning/colors as the website's .button-google
    (static/style.css) - the multi-color "G" mark itself is the only branding color. */
 .button-google { background: #fff; color: #3c4043; border: 1px solid var(--border); }
-/* No press-color flash at all (matches .button-secondary:active above) - the ::before
-   ripple below is this button's actual press feedback now. */
 /* Press tint matches Google's own documented pressed/focus state for this button (a
-   light neutral gray over the white rest state, not --primary-dark's amber) - fast/flat
-   via .button's own background-color transition, same reasoning as
-   .button-secondary:active above. */
-.button-google:active { background: #e8eaed; }
+   light neutral gray over the white rest state, not --primary-dark's amber) - fast, via
+   .button's own background-color transition, and feathered at the ends, same reasoning
+   as .button-secondary:active above. */
+.button-google:active { background: linear-gradient(to right, transparent, #e8eaed 22%, #e8eaed 78%, transparent); }
 /* The actual "darkens right after I tap it" culprit wasn't :active at all - it's
    startGoogleLogin() (app.js) setting button.disabled=true for the brief moment the
    /api/google-login/start request is in flight (double-tap guard), which without this
@@ -1246,9 +1253,10 @@ input.tap-to-edit-field, textarea.tap-to-edit-field { cursor: pointer; backgroun
 .button-danger { background: var(--danger); color: #fff; }
 /* Without this, .button:active's amber background: var(--primary-dark) flash (meant for
    the plain gold primary button) leaked through on press, turning this red button briefly
-   yellow. Darken towards --danger-dark instead - fast/flat, same reasoning as
-   .button-secondary:active/.button-google:active above, just within the red family. */
-.button-danger:active { background: var(--danger-dark); }
+   yellow. Darken towards --danger-dark instead - fast and feathered at the ends, same
+   reasoning as .button-secondary:active/.button-google:active above, just within the red
+   family. */
+.button-danger:active { background: linear-gradient(to right, transparent, var(--danger-dark) 22%, var(--danger-dark) 78%, transparent); }
 
 /* --- Shared option-picker button (Faza 4) - used for the working-hours time fields
    and the price-list currency field (see createOptionButton()/optionPicker in app.js).
