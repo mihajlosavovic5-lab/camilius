@@ -917,16 +917,21 @@ input.tap-to-edit-field, textarea.tap-to-edit-field { cursor: pointer; backgroun
 .button:active { background: var(--primary-dark); }
 .button:disabled { background: #cabfa4; }
 .button-full { width: 100%; }
-/* Subtle scale-down-and-back tap feedback (Login screen's Google/email/Create account
-   buttons and every other .button-pill using this class - see mobile/index.html). The
-   press tint itself (.button-secondary:active/.button-google:active/.button-danger:active
-   below) fades smoothly rather than snapping via .button's own background-color transition -
-   together the two make a held-down button visibly "come alive" instead of reading static.
-   transition (not a keyframe animation) is enough here: the same rule drives both
-   directions - scaling down the instant :active applies, and back to 1 the instant it
-   doesn't. */
+/* Subtle scale-down-and-back tap feedback, used by non-.button elements that want the
+   zoom alone (the mysite chat launcher FAB, the schedule "Today" pill - see
+   mobile/index.html). transition (not a keyframe animation) is enough here: the same
+   rule drives both directions - scaling down the instant :active applies, and back to 1
+   the instant it doesn't. */
 .button-tap-scale { transition: transform .12s ease; }
 .button-tap-scale:active { transform: scale(0.96); }
+/* Every actual .button (Google/secondary/danger/primary) drops the zoom again right
+   here - the press tint below (.button-secondary:active/.button-google:active/
+   .button-danger:active, faded via .button's own background-color transition) is the
+   only "this is live" cue for these now; stacking a scale on top of it read as too much.
+   .button.button-tap-scale is more specific than the bare .button-tap-scale rule above,
+   so this cleanly cancels just the scale for the button family without touching the
+   FAB/pill elements that still want it. */
+.button.button-tap-scale:active { transform: none; }
 /* Confirmation pulse for taps that kick off an async action (e.g. "View page" fetching
    the preview link) - :active alone barely shows since touchend fires almost immediately,
    long before the request resolves. JS re-triggers this class on every click (see
@@ -3269,11 +3274,12 @@ input.tap-to-edit-field, textarea.tap-to-edit-field { cursor: pointer; backgroun
     position: absolute; left: 50%; bottom: 44px; transform: translateX(-50%);
     margin-top: 0; padding: 12px 32px; overflow: hidden;
 }
-/* .button-tap-scale's own :active (added alongside .onboarding-continue in index.html)
-   would otherwise replace this button's translateX(-50%) centering outright with its
-   bare scale() - same "re-state the base transform" fix as .lp-menu-btn/#lp-corner-brand
-   (static/style.css) - so this button doesn't jump left on press and snap back on release. */
-.onboarding-continue.button-tap-scale:active { transform: translateX(-50%) scale(.96); }
+/* .button.button-tap-scale:active above cancels the zoom for this button (it's a
+   .button-secondary/.button-primary-outline like the rest of that family) but its bare
+   `transform: none` would still blow away this button's own translateX(-50%) centering -
+   same "re-state the base transform" fix as .lp-menu-btn/#lp-corner-brand (static/style.css) -
+   so this button doesn't jump left on press and snap back on release. */
+.onboarding-continue.button-tap-scale:active { transform: translateX(-50%); }
 .onboarding-skip-wrap { position: absolute; top: calc(16px + var(--safe-top)); right: 16px; z-index: 5; }
 .onboarding-skip-btn { background: none; border: none; color: var(--text-muted); font-size: 15px; cursor: pointer; padding: 8px; }
 .onboarding-dots { display: flex; justify-content: center; gap: 8px; padding-bottom: calc(30px + var(--safe-bottom)); flex-shrink: 0; }
