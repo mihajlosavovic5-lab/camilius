@@ -918,9 +918,20 @@ input.tap-to-edit-field, textarea.tap-to-edit-field { cursor: pointer; backgroun
        of) this exact button rather than escaping into whatever is laid out around it.
        .onboarding-continue later in this file sets its own position: absolute at equal
        (single-class) specificity and appears after this rule, so it still wins there -
-       see that rule's own comment. */
+       see that rule's own comment.
+       isolation: isolate makes this button its OWN stacking context, so the ::before's
+       z-index: -1 (below) only has to beat this button's own background - not fall
+       behind the button entirely and disappear under whatever sits behind it on the
+       page. Without this, the ripple painted OVER the icon/label instead of under it:
+       flex items (the Google icon, the label span/bare text) paint at the same
+       "positioned descendant" stack level as an absolutely-positioned ::before, and
+       DOM order alone doesn't reliably put a bare z-index:auto pseudo-element behind
+       them - a negative z-index inside an isolated context is what actually guarantees
+       it, regardless of whether the button's content happens to be a wrapped span, a
+       raw text node, or an <svg>. */
     position: relative;
     overflow: hidden;
+    isolation: isolate;
 }
 .button:active { background: var(--primary-dark); }
 .button:disabled { background: #cabfa4; }
@@ -979,13 +990,17 @@ input.tap-to-edit-field, textarea.tap-to-edit-field { cursor: pointer; backgroun
    below is quick, so the reveal itself feels immediate; the base rule's is opacity-fast/
    transform-slow, so on release the tint visibly fades out in place before the (much
    slower) scale-back-to-a-point has moved far enough to be noticeable - a released press
-   reads as an even fade, not as un-drawing itself back toward the touch point. */
+   reads as an even fade, not as un-drawing itself back toward the touch point.
+   z-index: -1 (inside the button's own isolated stacking context - see .button's own
+   comment) keeps this UNDER the icon/label instead of painting over them - a plain
+   z-index: auto here rendered on top of the button's real content. */
 .button-secondary.button-tap-scale::before,
 .button-google.button-tap-scale::before,
 .button-danger.button-tap-scale::before {
     content: "";
     position: absolute;
     inset: 0;
+    z-index: -1;
     opacity: 0;
     transform: scale(0);
     transform-origin: var(--tap-x, 50%) var(--tap-y, 50%);
@@ -1474,12 +1489,14 @@ input.tap-to-edit-field, textarea.tap-to-edit-field { cursor: pointer; backgroun
    not duplicated here, so the two stay pixel-identical (including their :active
    behavior) automatically instead of two hand-matched copies drifting apart later.
    Unlike #mysite-view-page-btn this one isn't also a .button, so it needs its own
-   position: relative + overflow: hidden - the same anchor/clip .button's own rule gives
-   every other button-secondary.button-tap-scale for its ::before press-tint ripple. */
+   position: relative + overflow: hidden + isolation: isolate - the same anchor/clip/
+   stacking .button's own rule gives every other button-secondary.button-tap-scale for
+   its ::before press-tint ripple (see that rule's own comment for why isolation matters -
+   without it the ripple painted over this button's label instead of under it). */
 .price-add-btn {
     display: block; width: 100%; padding: 11px; margin-top: 4px; border-radius: 11px;
     font-family: inherit; font-size: 15px; font-weight: 600; cursor: pointer;
-    position: relative; overflow: hidden;
+    position: relative; overflow: hidden; isolation: isolate;
 }
 
 /* --- Price list currency (Faza 4) - one dropdown applies to the whole list, shown
