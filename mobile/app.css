@@ -1039,7 +1039,13 @@ input.tap-to-edit-field, textarea.tap-to-edit-field { cursor: pointer; backgroun
 /* "Continue with Google" (Login + Create account) - neutral white per Google's own
    branding guidelines, same reasoning/colors as the website's .button-google
    (static/style.css) - the multi-color "G" mark itself is the only branding color. */
-.button-google { background: #fff; color: #3c4043; border: 1px solid var(--border); }
+/* Grid instead of .button's own flex row - a plain centered flex group drifts right of
+   the button's true center (the icon's width+gap only gets subtracted on the left), which
+   reads as the label being off-center. The 3rd column is a spacer the same width as the
+   icon - normally empty, but it's also exactly where #login-google-spinner (index.html)
+   lands during the request, so the label (column 2) stays put on both counts and lands on
+   the button's actual midpoint either way. */
+.button-google { background: #fff; color: #3c4043; border: 1px solid var(--border); display: grid; grid-template-columns: 18px 1fr 18px; }
 /* No press-color flash at all (matches .button-secondary:active above) - overrides
    .button:active's amber flash with the SAME white the button already rests at, rather
    than swapping in a different (if subtler) tint on tap. */
@@ -1050,7 +1056,8 @@ input.tap-to-edit-field, textarea.tap-to-edit-field { cursor: pointer; backgroun
    fell through to .button:disabled's muted tan-gray. Same "stay exactly as it rests"
    treatment as :active above. */
 .button-google:disabled { background: #fff; }
-.button-google-icon { width: 18px; height: 18px; flex-shrink: 0; }
+.button-google-icon { width: 18px; height: 18px; }
+.button-google-label { text-align: center; }
 /* Same "short caption breaks up a lone floating button" idea as .login-signup-divider
    above, reused here between the Google button and the email/password form. */
 /* Bigger, bolder "or" flanked by short lines on each side, instead of a plain small
