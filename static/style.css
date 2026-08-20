@@ -1787,13 +1787,39 @@ body.auth {
    side margins than the tighter desktop-derived defaults the rest of the site uses
    (26px side margins vs 16px, buttons with more vertical padding (13px vs 10px) plus
    their own 18px margin-top between them) - matched here, scoped to .auth-login only.
-   Brand mark/wordmark/tagline sizes match the APK's own .login-icon/.brand-name/
-   .login-tagline exactly (76px/23px/14.5px). */
+   Wordmark/tagline sizes match the APK's own .brand-name/.login-tagline exactly
+   (23px/14.5px); the icon itself is the .login-mascot below instead of a plain badge. */
 .auth-login .auth-wrapper { padding-left: 24px; padding-right: 24px; }
 .auth-login .auth-brand { margin-bottom: 22px; }
-.auth-login .auth-brand .brand-mark { width: 76px; height: 76px; }
 .auth-login .auth-brand .brand-name { font-size: 23px; }
 .auth-login .auth-tagline { font-size: 14.5px; }
+/* The floating hero icon replacing the small brand-mark badge on this page only - see
+   the comment in login.html. Sizes/animation mirror the APK's own .login-mascot
+   (mobile/app.css) at a scale that suits the web card's narrower column rather than a
+   full phone screen. */
+.login-mascot-wrap { position: relative; display: inline-flex; margin-bottom: 4px; }
+.login-mascot {
+    width: 96px; height: 96px; border-radius: 26%;
+    box-shadow: 0 14px 26px rgba(43,32,19,.2);
+    animation: login-mascot-float 3.2s ease-in-out infinite;
+}
+.login-mascot-spark {
+    position: absolute; fill: var(--primary); transform-box: fill-box; transform-origin: center;
+    animation: login-mascot-twinkle 1.8s ease-in-out infinite;
+}
+.login-mascot-spark-1 { width: 20px; height: 20px; top: -8px; right: -10px; }
+.login-mascot-spark-2 { width: 11px; height: 11px; top: 6px; right: -16px; animation-delay: .5s; }
+@keyframes login-mascot-float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-8px); }
+}
+@keyframes login-mascot-twinkle {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: .5; transform: scale(.8); }
+}
+@media (prefers-reduced-motion: reduce) {
+    .login-mascot, .login-mascot-spark { animation: none; }
+}
 .auth-login .auth-choice .button,
 .auth-login .auth-form-wrap .button {
     padding: 14px 22px; font-size: 17px;
@@ -1839,14 +1865,15 @@ body.auth {
    one class on #login-wrapper (toggled by #login-email-input's focus/blur handlers
    below), transitioning every affected property together for one smooth motion instead
    of several separate snaps. */
-.auth-brand .brand-mark { transition: width .3s cubic-bezier(.22,.9,.32,1.05), height .3s cubic-bezier(.22,.9,.32,1.05); }
+.login-mascot { transition: width .3s cubic-bezier(.22,.9,.32,1.05), height .3s cubic-bezier(.22,.9,.32,1.05); }
 .auth-brand { transition: margin .3s ease; }
 .auth-tagline { transition: font-size .3s ease, margin .3s ease; }
 #login-google-btn, .auth-or-divider {
     transition: opacity .28s ease, max-height .3s ease, margin .3s ease, transform .28s ease;
     max-height: 120px; overflow: hidden;
 }
-#login-wrapper.auth-wrapper-email-focus .auth-brand .brand-mark { width: 40px; height: 40px; }
+#login-wrapper.auth-wrapper-email-focus .login-mascot { width: 40px; height: 40px; }
+#login-wrapper.auth-wrapper-email-focus .login-mascot-spark { display: none; }
 #login-wrapper.auth-wrapper-email-focus .auth-brand { margin-bottom: 8px; }
 #login-wrapper.auth-wrapper-email-focus .auth-tagline { font-size: 12px; margin-top: 2px; }
 #login-wrapper.auth-wrapper-email-focus #login-google-btn,
