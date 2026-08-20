@@ -1,5 +1,5 @@
 <!doctype html>
-<html data-bundle-version="fc1e23cb6a24" lang="en">
+<html data-bundle-version="60f25a3dae82" lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
@@ -16,7 +16,7 @@
 <link rel="preload" href="fonts/lora-latin-ext.woff2?v=e8c32fe92ded" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="fonts/familjen-grotesk-latin.woff2?v=e8c32fe92ded" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="fonts/familjen-grotesk-latin-ext.woff2?v=e8c32fe92ded" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="app.css?v=fc1e23cb6a24">
+<link rel="stylesheet" href="app.css?v=60f25a3dae82">
 </head>
 <body>
 
@@ -561,7 +561,11 @@
     <div class="login-wrap" id="login-wrap">
       <div class="login-lang-row">
         <button type="button" id="lang-select-btn" class="lang-select-btn">
-          <span class="lang-select-label" data-i18n="lang.pickerTitle">Choose language</span>
+          <!-- Static brand mark, not the translated "Choose language" label - the button
+               still opens the same language picker (wired by id in i18n.js's
+               setupLanguagePicker(), independent of this text) but reads as the screen's
+               small top header now, same spot Claude's own login screen puts its wordmark. -->
+          <span class="lang-select-label">Camilius</span>
         </button>
       </div>
 
@@ -637,6 +641,18 @@
         <button type="button" id="login-signup-link" class="button button-secondary button-full button-pill button-primary-outline button-tap-scale" data-i18n="login.signup">Create account</button>
       </div>
       </div>
+
+      <!-- Same Terms/Privacy screens the register consent checkbox already opens (see
+           #register-view-terms/#register-view-privacy above and their showLegalScreen()
+           wiring in app.js) - reused here as a passive disclaimer rather than a checkbox,
+           same idea as Claude's own login screen. Sits outside .login-phase-stack so it
+           shows in both the choice and email-form phases. -->
+      <p class="login-legal-disclaimer">
+        <span data-i18n="login.legalPrefix">By continuing, you agree to our</span>
+        <button type="button" class="link-btn link-btn-inline" id="login-view-terms" data-i18n="register.viewTerms">Terms of Service</button>
+        <span data-i18n="register.acceptAnd">and</span>
+        <button type="button" class="link-btn link-btn-inline" id="login-view-privacy" data-i18n="register.viewPrivacy">Privacy Policy</button>.
+      </p>
 
       <div class="login-spacer"></div>
 
@@ -1879,8 +1895,8 @@
   </button>
 </nav>
 
-<script src="i18n.js?v=fc1e23cb6a24"></script>
-<script src="hours-picker.js?v=fc1e23cb6a24"></script>
-<script src="app.js?v=fc1e23cb6a24"></script>
+<script src="i18n.js?v=60f25a3dae82"></script>
+<script src="hours-picker.js?v=60f25a3dae82"></script>
+<script src="app.js?v=60f25a3dae82"></script>
 </body>
 </html>

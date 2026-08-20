@@ -55,6 +55,7 @@ const TRANSLATIONS = {
         "login.googleNoAccount": "No account found for that Google account. Please register first.",
         "login.googleNeedsSignup": "You don't have an account yet - finish creating one below.",
         "login.newHere": "New to Camilius?",
+        "login.legalPrefix": "By continuing, you agree to our",
 
         "register.title": "Create account",
         "register.headline": "Register your business",
@@ -477,6 +478,7 @@ const TRANSLATIONS = {
         "login.googleNoAccount": "Ne postoji nalog povezan sa tim Google nalogom. Molimo registrujte se prvo.",
         "login.googleNeedsSignup": "Nemate nalog - dovršite registraciju ispod.",
         "login.newHere": "Novi ste na Camilius-u?",
+        "login.legalPrefix": "Nastavkom prihvatate naše",
 
         "register.title": "Napravi nalog",
         "register.headline": "Registrujte svoj biznis",
@@ -894,6 +896,7 @@ const TRANSLATIONS = {
         "login.googleNoAccount": "No se encontró ninguna cuenta para esa cuenta de Google. Regístrate primero.",
         "login.googleNeedsSignup": "Aún no tienes una cuenta: termina de crear una a continuación.",
         "login.newHere": "¿Nuevo en Camilius?",
+        "login.legalPrefix": "Al continuar, aceptas nuestros",
 
         "register.title": "Crear cuenta",
         "register.headline": "Registra tu negocio",
@@ -1248,6 +1251,7 @@ const TRANSLATIONS = {
         "login.googleNoAccount": "Nenhuma conta encontrada para essa conta do Google. Registre-se primeiro.",
         "login.googleNeedsSignup": "Você ainda não tem uma conta - termine de criar uma abaixo.",
         "login.newHere": "Novo no Camilius?",
+        "login.legalPrefix": "Ao continuar, você aceita nossos",
 
         "register.title": "Criar conta",
         "register.headline": "Cadastre seu negócio",
@@ -1602,6 +1606,7 @@ const TRANSLATIONS = {
         "login.googleNoAccount": "Aucun compte trouvé pour ce compte Google. Veuillez d'abord vous inscrire.",
         "login.googleNeedsSignup": "Vous n'avez pas encore de compte : terminez d'en créer un ci-dessous.",
         "login.newHere": "Nouveau sur Camilius ?",
+        "login.legalPrefix": "En continuant, vous acceptez nos",
 
         "register.title": "Créer un compte",
         "register.headline": "Inscrivez votre entreprise",
@@ -1956,6 +1961,7 @@ const TRANSLATIONS = {
         "login.googleNoAccount": "Für dieses Google-Konto wurde kein Konto gefunden. Bitte registriere dich zuerst.",
         "login.googleNeedsSignup": "Du hast noch kein Konto - schließe die Erstellung unten ab.",
         "login.newHere": "Neu bei Camilius?",
+        "login.legalPrefix": "Mit der Fortsetzung akzeptierst du unsere",
 
         "register.title": "Konto erstellen",
         "register.headline": "Registriere dein Unternehmen",
@@ -2310,6 +2316,7 @@ const TRANSLATIONS = {
         "login.googleNoAccount": "Nessun account trovato per questo account Google. Registrati prima.",
         "login.googleNeedsSignup": "Non hai ancora un account: completa la creazione qui sotto.",
         "login.newHere": "Nuovo su Camilius?",
+        "login.legalPrefix": "Continuando, accetti i nostri",
 
         "register.title": "Crea account",
         "register.headline": "Registra la tua attività",
@@ -2664,6 +2671,7 @@ const TRANSLATIONS = {
         "login.googleNoAccount": "Учетная запись для этого Google-аккаунта не найдена. Сначала зарегистрируйтесь.",
         "login.googleNeedsSignup": "У вас еще нет аккаунта - завершите его создание ниже.",
         "login.newHere": "Впервые в Camilius?",
+        "login.legalPrefix": "Продолжая, вы принимаете наши",
 
         "register.title": "Создать аккаунт",
         "register.headline": "Зарегистрируйте свой бизнес",
@@ -3018,6 +3026,7 @@ const TRANSLATIONS = {
         "login.googleNoAccount": "未找到与该 Google 账户关联的账户,请先注册。",
         "login.googleNeedsSignup": "您还没有账户 - 请在下方完成创建。",
         "login.newHere": "第一次使用 Camilius？",
+        "login.legalPrefix": "继续即表示您同意我们的",
 
         "register.title": "创建账户",
         "register.headline": "注册您的商家",
@@ -3372,6 +3381,7 @@ const TRANSLATIONS = {
         "login.googleNoAccount": "Bu Google hesabı için bir hesap bulunamadı. Lütfen önce kayıt olun.",
         "login.googleNeedsSignup": "Henüz bir hesabın yok - aşağıdan oluşturmayı tamamla.",
         "login.newHere": "Camilius'ta yeni misiniz?",
+        "login.legalPrefix": "Devam ederek kabul edersiniz:",
 
         "register.title": "Hesap oluştur",
         "register.headline": "İşletmenizi kaydedin",

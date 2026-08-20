@@ -3500,6 +3500,8 @@ function showLegalScreen(name, returnTo) {
 }
 el("register-view-terms").addEventListener("click", () => showLegalScreen("terms", "register"));
 el("register-view-privacy").addEventListener("click", () => showLegalScreen("privacy", "register"));
+el("login-view-terms").addEventListener("click", () => showLegalScreen("terms", "login"));
+el("login-view-privacy").addEventListener("click", () => showLegalScreen("privacy", "login"));
 el("terms-back").addEventListener("click", () => showScreen(legalReturnTo));
 el("privacy-back").addEventListener("click", () => showScreen(legalReturnTo));
 

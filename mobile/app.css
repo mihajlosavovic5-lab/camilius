@@ -431,21 +431,27 @@ button { font-family: inherit; -webkit-appearance: none; appearance: none; }
    kept just the scale, which is enough to register as "yes, that tapped" without a
    halo appearing around it. */
 .lang-select-btn:active { transform: scale(.96); }
-.lang-select-label { white-space: nowrap; }
-/* Flexible spacers above/below the form cluster. Weighted toward the top spacer so the
-   cluster sits lower on the screen rather than reading as centered. */
-.login-top-spacer { flex: 1.85; min-height: 8px; }
-/* Pushes the CTA buttons (and the email/password form, same slot) down toward the
-   bottom of the screen independently of the brand block above - see .login-spacer
-   below, which now only holds a small clearance before the footer. */
-.login-mid-spacer { flex: 0.55; min-height: 16px; }
+/* Reads as the screen's small top wordmark now (see the button's own comment in
+   index.html) rather than a "choose language" chip label - same serif/weight as the
+   big .brand-name below, just smaller, so it's recognizably the same logotype. */
+.lang-select-label { white-space: nowrap; font-family: var(--font-serif); font-weight: 700; font-size: 17px; color: var(--text); }
+/* Flexible spacers above/below the form cluster. Weighted heavily toward the mid
+   spacer (brand -> buttons) rather than the top one, so most of the screen's free
+   space collects between the tagline and the CTA buttons - buttons end up near the
+   bottom of the screen instead of the cluster reading as vertically centered. */
+.login-top-spacer { flex: 1; min-height: 8px; }
+.login-mid-spacer { flex: 3; min-height: 16px; }
 .login-brand { display: flex; flex-direction: column; align-items: center; gap: 10px; margin: 0 0 30px; }
-.login-icon { width: 76px; height: 76px; border-radius: 22%; box-shadow: 0 10px 26px rgba(43,32,19,.16); }
+.login-icon { width: 100px; height: 100px; border-radius: 22%; box-shadow: 0 10px 26px rgba(43,32,19,.16); }
 .login-wordmark { margin: 0; }
 /* Small brand-colored flourish under the wordmark - another plain-vs-original cue. */
 .login-accent { display: block; width: 34px; height: 3px; border-radius: 99px; background: var(--primary); }
-.login-tagline { margin: 0; font-size: 14.5px; color: var(--text-muted); text-align: center; }
-.login-spacer { flex: 0.15; min-height: 20px; }
+.login-tagline { margin: 0; font-size: 19px; color: var(--text-muted); text-align: center; }
+/* Passive "by continuing you agree..." notice, same Terms/Privacy screens the register
+   consent checkbox opens (see index.html's own comment above it) - small and muted like
+   the build-version footer below it, not competing with the actual CTAs above. */
+.login-legal-disclaimer { text-align: center; font-size: 12.5px; line-height: 1.5; color: var(--text-muted); margin: 0; padding: 0 8px; }
+.login-spacer { flex: 0.2; min-height: 20px; }
 /* Choice <-> email-form swap slides like the app's own screen-to-screen navigation
    (see .screen.active above) instead of an instant cut: both panels share one grid cell
    (grid stacking) and slide past each other on .login-wrap-form-phase, driven purely by
