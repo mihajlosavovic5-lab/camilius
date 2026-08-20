@@ -1,12 +1,6 @@
 {% extends "base.html" %}
 {% block title %}Log in - Camilius{% endblock %}
 {% block body_class %}auth auth-login{% endblock %}
-{# interactive-widget=resizes-content - see mobile/index.html's own copy of this same
-   override for the full reasoning (same underlying browser behavior on mobile web as in
-   the packaged app's WebView). Scoped to this page only (not base.html's shared default)
-   since it changes how every other page on the site would react to an on-screen keyboard
-   too, which is outside what this page's own focus-mode compacting needs. #}
-{% block viewport %}<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, interactive-widget=resizes-content">{% endblock %}
 
 {% block content %}
 <div class="auth-wrapper" id="login-wrapper">

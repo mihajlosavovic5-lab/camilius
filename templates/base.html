@@ -68,7 +68,7 @@
          (mobile/index.html's own viewport tag) so the web version can't be pinched
          into that same "correctly laid out, but zoomed away from filling the screen"
          state at all. -->
-    {% block viewport %}<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">{% endblock %}
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
     <title>{% block title %}Camilius{% endblock %}</title>
     <meta name="description" content="{% block description %}Camilius is an AI that builds your business a website - complete with an AI chat agent that answers customers and books appointments automatically, based on your working hours, price list, and FAQ.{% endblock %}">
     <link rel="canonical" href="{{ request.base_url }}">
