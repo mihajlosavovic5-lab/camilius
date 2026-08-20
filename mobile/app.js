@@ -6063,7 +6063,26 @@ if (window.visualViewport) {
             if (window.visualViewport.height < restingHeight - 40) return;
             const active = document.activeElement;
             const isTextField = active && (active.tagName === "INPUT" || active.tagName === "TEXTAREA");
-            if (isTextField) active.blur();
+            if (!isTextField) return;
+            // The Login email field's own blur listener (see setLoginEmailFocusMode()'s
+            // call sites) waits an EXTRA 80ms past its own blur event before reverting the
+            // compact layout - there, to swallow a same-field blur+refocus blip (autofill's
+            // suggestion strip, or the keyboard doing the same on some devices). That
+            // reasoning doesn't apply to a blur WE'RE forcing right here: this timer has
+            // already waited 150ms and re-confirmed the keyboard is genuinely gone, so
+            // there's nothing left to debounce against - stacking that other 80ms on top
+            // only added a second, needless beat of the mascot/tagline/Google button
+            // visibly just sitting there, focused caret gone, keyboard already closed,
+            // before they finally started animating back. Reverting directly cuts that
+            // wait to zero; active.blur() right after still fires the normal blur event
+            // (for anything else listening) and its now-redundant 80ms timer, which is a
+            // harmless no-op once the layout's already back (see syncLoginSpacers' own
+            // "already matching" early-return).
+            if (active === el("login-email-input")) {
+                if (loginEmailBlurTimer) { clearTimeout(loginEmailBlurTimer); loginEmailBlurTimer = null; }
+                setLoginEmailFocusMode(false);
+            }
+            active.blur();
         }, 150);
     });
 }
