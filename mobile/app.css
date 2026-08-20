@@ -462,24 +462,43 @@ button { font-family: inherit; -webkit-appearance: none; appearance: none; }
     display: flex; flex-direction: column; align-items: center; gap: 10px; margin: 0 0 30px;
     transition: margin .32s ease;
 }
-/* The app's own icon - the hero visual on this screen. height:auto keeps it square as
-   width shrinks in focus mode below (icon-512.png is already 1:1). box-shadow (not the
-   old SVG illustration's drop-shadow filter) since this is a solid square image, not
-   transparent line art. */
+/* Wraps the icon so the sparkles below can position themselves relative to it. */
+.login-mascot-wrap { position: relative; display: inline-block; }
+/* The app's own icon, sized well above the 100px badge it used to be - it's the actual
+   hero visual on this screen now, not a small badge. box-shadow (not the old SVG's
+   drop-shadow filter) since this is a solid square image, not transparent line art.
+   height:auto keeps it square as width shrinks in focus mode below (icon-512.png is
+   already 1:1). */
 .login-mascot {
-    width: 116px; height: auto; border-radius: 26%;
+    width: 156px; height: auto; border-radius: 26%;
     box-shadow: 0 12px 22px rgba(43,32,19,.22);
     animation: login-mascot-float 3.2s ease-in-out infinite;
     transition: width .32s cubic-bezier(.22,.9,.32,1.05);
 }
-/* Gentle bob for the icon - "it's alive" without being distracting. Paused for anyone
-   who's asked the OS for less motion. */
+/* Small twinkling sparkles riding beside the icon - absolutely positioned within
+   .login-mascot-wrap rather than baked into one SVG's viewBox (as the old illustration
+   had them), so the icon image and the decorative sparkles can be swapped/sized
+   independently. transform-box:fill-box makes each one's twinkle scale() pivot around
+   its own center instead of the whole <svg>'s top-left corner. */
+.login-mascot-spark {
+    position: absolute; fill: var(--primary); transform-box: fill-box; transform-origin: center;
+    animation: login-mascot-twinkle 1.8s ease-in-out infinite;
+}
+.login-mascot-spark-1 { width: 26px; height: 26px; top: -10px; right: -12px; }
+.login-mascot-spark-2 { width: 13px; height: 13px; top: 8px; right: -22px; animation-delay: .5s; }
+/* Gentle bob for the whole illustration and a soft twinkle on the AI sparkle - "it's
+   alive" without being distracting. Both paused for anyone who's asked the OS for less
+   motion. */
 @keyframes login-mascot-float {
     0%, 100% { transform: translateY(0); }
     50% { transform: translateY(-8px); }
 }
+@keyframes login-mascot-twinkle {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: .5; transform: scale(.8); }
+}
 @media (prefers-reduced-motion: reduce) {
-    .login-mascot { animation: none; }
+    .login-mascot, .login-mascot-spark { animation: none; }
 }
 /* Clips around .login-tagline's own scale-down in focus mode below instead of the
    tagline itself carrying a max-height - transform doesn't shrink the box an element
@@ -510,6 +529,10 @@ button { font-family: inherit; -webkit-appearance: none; appearance: none; }
    transform can't trigger that snap - the wrap is always computed at the real (22px)
    size, so it's always the same 2 lines, just visually scaled. */
 .login-wrap-email-focus .login-mascot { width: 64px; }
+/* The sparkles are sized/positioned for the full 156px icon - at the shrunk 64px size
+   they'd read as oversized debris stuck to the corner rather than a deliberate accent,
+   so they just drop out instead of trying to scale down in step. */
+.login-wrap-email-focus .login-mascot-spark { display: none; }
 .login-wrap-email-focus .login-brand { margin-bottom: 14px; }
 /* 50px covers a 2-line tagline (~68px unscaled) at this same 0.6591 scale (~45px) plus
    its own margin, with a little room to spare - same "never clip the real content,
