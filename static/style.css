@@ -1779,9 +1779,10 @@ body.auth {
    div (see login.html); .auth-card is the second spacer, sized to grow (flex: 1) with
    its own margin-top: auto further down pushing "New to Camilius?"/Create account to
    the very bottom of whatever space the card ends up with. */
-.auth-top-spacer { flex: 0.7; min-height: 20px; }
+.auth-top-spacer { flex: 0.7; min-height: 20px; transition: flex-grow .3s ease; }
 .auth-login .auth-card {
     display: flex; flex-direction: column; flex: 1; min-height: 0;
+    transition: flex-grow .3s ease;
 }
 /* The APK's own login screen (mobile/app.css) has more generous vertical padding and
    side margins than the tighter desktop-derived defaults the rest of the site uses
@@ -1847,12 +1848,24 @@ body.auth {
     max-height: 120px; overflow: hidden;
 }
 #login-wrapper.auth-wrapper-email-focus .auth-brand .brand-mark { width: 40px; height: 40px; }
-#login-wrapper.auth-wrapper-email-focus .auth-brand { margin-bottom: 8px; }
+/* Flush against the card below instead of the idle 8px gap - the mascot/tagline block
+   should end up touching the email field's own top edge, not just closer to it. */
+#login-wrapper.auth-wrapper-email-focus .auth-brand { margin-bottom: 0; }
 #login-wrapper.auth-wrapper-email-focus .auth-tagline { font-size: 12px; margin-top: 2px; }
 #login-wrapper.auth-wrapper-email-focus #login-google-btn,
 #login-wrapper.auth-wrapper-email-focus .auth-or-divider {
     opacity: 0; max-height: 0; margin: 0; transform: scale(.94); pointer-events: none;
 }
+/* Without this pair, .auth-top-spacer and .auth-card (both flex-grow items) would just
+   keep splitting whatever height the shrunk brand block frees up between them in their
+   usual ~0.7:1 ratio - some of it landing above the brand (fine), the rest padded into
+   .auth-card below the now-compact choice content (not fine: that's exactly what reads
+   as the whole cluster staying centered on screen instead of sinking toward the field).
+   Zeroing .auth-card's own grow share and handing 100% of the leftover to
+   .auth-top-spacer instead moves all of that freed space above the cluster, so the
+   brand+field group sinks down as one block rather than drifting toward mid-screen. */
+#login-wrapper.auth-wrapper-email-focus .auth-top-spacer { flex-grow: 1; }
+#login-wrapper.auth-wrapper-email-focus .auth-card { flex-grow: 0; flex-basis: auto; }
 /* No .auth-footer left below to justify the base .auth-wrapper's full 40px bottom
    padding. */
 .auth-login .auth-wrapper { padding-bottom: 18px; }

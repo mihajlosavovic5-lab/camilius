@@ -3165,7 +3165,7 @@ function cloneLoginWrapForMeasurement(loginWrap) {
     // Strips any inline flex-basis/flex-grow this same function left on the spacers from
     // a previous (possibly interrupted) call - cloneNode copies inline style along with
     // everything else, and a leftover override here would corrupt this measurement.
-    clone.querySelectorAll(".login-top-spacer, .login-mid-spacer").forEach((node) => node.removeAttribute("style"));
+    clone.querySelectorAll(".login-top-spacer, .login-mid-spacer, .login-spacer").forEach((node) => node.removeAttribute("style"));
     const rect = loginWrap.getBoundingClientRect();
     clone.style.position = "absolute";
     clone.style.visibility = "hidden";
@@ -3198,9 +3198,10 @@ function cloneLoginWrapForMeasurement(loginWrap) {
 }
 
 let loginSpacerAnimFrame = null;
-// .login-top-spacer/.login-mid-spacer are classes, not ids (el() wouldn't find them) -
-// and .login-top-spacer's class name alone isn't unique across the whole document (the
-// Verify-pending screen reuses it), so every lookup here is scoped to #login-wrap.
+// .login-top-spacer/.login-mid-spacer/.login-spacer are classes, not ids (el() wouldn't
+// find them) - and .login-top-spacer's class name alone isn't unique across the whole
+// document (the Verify-pending screen reuses it), so every lookup here is scoped to
+// #login-wrap.
 //
 // Once this settles, the spacers stay PINNED at that pixel size (flex-grow/flex-shrink
 // locked to 0) rather than being handed back to their normal, viewport-responsive CSS
@@ -3220,6 +3221,7 @@ function syncLoginSpacers(applyChange) {
     const spacers = [
         loginWrap.querySelector(".login-top-spacer"),
         loginWrap.querySelector(".login-mid-spacer"),
+        loginWrap.querySelector(".login-spacer"),
     ];
     // Captures whatever height is actually on screen right now - still the frozen,
     // mid-transition pixel value if an earlier call's own animation hasn't finished yet,
@@ -3244,19 +3246,25 @@ function syncLoginSpacers(applyChange) {
     const lastHeights = [
         clone.querySelector(".login-top-spacer").getBoundingClientRect().height,
         clone.querySelector(".login-mid-spacer").getBoundingClientRect().height,
+        clone.querySelector(".login-spacer").getBoundingClientRect().height,
     ];
     clone.remove();
 
     // Already matching (e.g. this fired for a real resize while idle, or a change too
     // small to move the rounded pixel heights) - skip the whole freeze/thaw dance below,
     // which would otherwise flash the transition:none frame for no visible reason.
-    if (Math.abs(firstHeights[0] - lastHeights[0]) < 0.5 && Math.abs(firstHeights[1] - lastHeights[1]) < 0.5) return;
+    if (
+        Math.abs(firstHeights[0] - lastHeights[0]) < 0.5 &&
+        Math.abs(firstHeights[1] - lastHeights[1]) < 0.5 &&
+        Math.abs(firstHeights[2] - lastHeights[2]) < 0.5
+    ) return;
 
-    // flex-basis, not height - .login-top-spacer/.login-mid-spacer's own flex-basis is
-    // 0% (the single-number form of the "flex: 1.4"/"flex: 1" shorthand in app.css), so
-    // with flex-grow/flex-shrink pinned to 0 below, that 0% basis - not a plain height -
-    // is what actually determines their size; setting height alone left them collapsed
-    // to their min-height floor instead of the intended pixel value.
+    // flex-basis, not height - .login-top-spacer/.login-mid-spacer/.login-spacer's own
+    // flex-basis is 0% (the single-number form of the "flex: 1.4"/"flex: 1"/"flex: 0.2"
+    // shorthand in app.css), so with flex-grow/flex-shrink pinned to 0 below, that 0%
+    // basis - not a plain height - is what actually determines their size; setting
+    // height alone left them collapsed to their min-height floor instead of the
+    // intended pixel value.
     spacers.forEach((node, i) => {
         node.style.transition = "none";
         node.style.flexGrow = "0";
