@@ -456,7 +456,7 @@ button { font-family: inherit; -webkit-appearance: none; appearance: none; }
    spacer (brand -> buttons) rather than the top one, so most of the screen's free
    space collects between the tagline and the CTA buttons - buttons end up near the
    bottom of the screen instead of the cluster reading as vertically centered. */
-.login-top-spacer { flex: 1; min-height: 8px; }
+.login-top-spacer { flex: 1.4; min-height: 8px; }
 .login-mid-spacer { flex: 1; min-height: 16px; }
 .login-brand { display: flex; flex-direction: column; align-items: center; gap: 10px; margin: 0 0 30px; }
 /* Replaces the old plain app-icon square (see the <svg> itself in index.html for what
@@ -479,27 +479,33 @@ button { font-family: inherit; -webkit-appearance: none; appearance: none; }
 .login-legal-disclaimer { text-align: center; font-size: 12.5px; line-height: 1.5; color: var(--text-muted); margin: 14px 0 0; padding: 0 8px; }
 .login-spacer { flex: 0.2; min-height: 20px; }
 /* Choice <-> email-form swap slides like the app's own screen-to-screen navigation
-   (see .screen.active above) instead of an instant cut: both panels share one grid cell
-   (grid stacking) and slide past each other on .login-wrap-form-phase, driven purely by
-   that one class rather than each panel's own hidden state. Grid stacking also means the
-   stack's height is always sized to the taller panel (the form) regardless of which one's
-   actually showing - the shorter choice screen no longer leaves a gap for .login-top-spacer/
-   .login-spacer above to fill, so unlike the old hidden-toggle approach, .login-top-spacer/
-   .login-mid-spacer's own sizes don't jump between phases. No position:relative here
-   deliberately - .login-email-back-btn lives outside this stack entirely (see index.html)
-   precisely so it never ends up a descendant of a transformed panel.
-   align-items:end bottom-aligns each panel within that shared (taller-panel-sized) row,
-   rather than the default top-align - the shorter choice panel would otherwise sit flush
-   with the row's top, leaving a big dead gap below its own last button/disclaimer (inside
-   the row but below the visible content) before .login-spacer/the footer even start. This
-   is a deliberate trade: the two phases' buttons now land at the same height relative to
-   the *bottom* (footer) instead of relative to the brand icon above - the brand-to-buttons
-   gap now differs a bit per phase instead of being identical, in exchange for the CTAs
-   actually sitting near the bottom of the screen on both. */
-.login-phase-stack { display: grid; align-items: end; }
+   (see .screen.active above) instead of an instant cut: both panels are stacked on top
+   of each other (position:absolute, bottom-anchored) and slide past each other on
+   .login-wrap-form-phase, driven purely by that one class rather than each panel's own
+   hidden state.
+   This used to be a CSS grid instead (both panels sharing one grid cell), which forces
+   the row - and everything below it - to always be sized to the taller panel (the form)
+   even while the shorter 2-button choice panel is the one showing. That reserved a huge
+   fixed block that .login-top-spacer/.login-mid-spacer above had to share the screen
+   with, capping how far down the mascot/tagline could ever be pushed regardless of their
+   flex ratio - no matter how the pool was split between them, the total available space
+   above the buttons was fixed by that oversized reservation. Absolute positioning instead
+   means the container has no intrinsic height of its own from its children at all -
+   app.js's syncLoginPhaseStackHeight() (see the two-phase login section there) sets its
+   height explicitly to match whichever panel is actually showing, transitioning smoothly
+   between the two sizes, so a short choice view actually leaves the rest of the screen
+   free instead of reserving room for the form it isn't showing.
+   bottom:0 on both panels keeps them bottom-anchored within that (now correctly sized)
+   box, same reasoning .login-phase-stack's old align-items:end had: the two phases' CTAs
+   land at the same height relative to the bottom of their own box either way. No
+   position:relative on the stack itself needed for that (bottom:0 resolves against the
+   nearest positioned ancestor, i.e. this element, since it's already position:relative
+   below) - .login-email-back-btn still lives outside this stack entirely (see index.html)
+   precisely so it never ends up a descendant of a transformed panel. */
+.login-phase-stack { position: relative; transition: height .26s cubic-bezier(.22,.9,.32,1.05); }
 .login-phase-stack > .login-choice,
 .login-phase-stack > .login-email-form {
-    grid-area: 1 / 1;
+    position: absolute; left: 0; right: 0; bottom: 0;
     transition: transform .26s cubic-bezier(.22,.9,.32,1.05), opacity .2s ease;
 }
 .login-wrap:not(.login-wrap-form-phase) .login-email-form {

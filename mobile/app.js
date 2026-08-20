@@ -3085,11 +3085,23 @@ if (capacitorPlugins && capacitorPlugins.App) {
 
 // --- Two-phase login (Google/email choice -> revealed email+password form) ---
 
+// #login-phase-stack's two panels are position:absolute (see .login-phase-stack in
+// app.css for why - so a short panel doesn't force the screen to reserve room for the
+// taller one), which leaves the stack itself with no intrinsic height of its own. Called
+// on every phase change (and once at startup below) to explicitly size it to whichever
+// panel is actually showing; the height *change* itself animates via that rule's own
+// CSS transition, same easing as the panels' own slide.
+function syncLoginPhaseStackHeight() {
+    const formPhase = el("login-wrap").classList.contains("login-wrap-form-phase");
+    const active = el(formPhase ? "login-email-form" : "login-choice");
+    el("login-phase-stack").style.height = active.offsetHeight + "px";
+}
+
 function resetLoginPhase() {
     // See .login-wrap-form-phase in app.css - this one class alone drives which panel
-    // (choice/form) is on/off screen and its own back-btn fade, with the grid-stacked
-    // layout keeping the surrounding block at a constant height either way.
+    // (choice/form) is on/off screen and its own back-btn fade.
     el("login-wrap").classList.remove("login-wrap-form-phase");
+    syncLoginPhaseStackHeight();
     // Every fresh arrival at Login starts with a clean slate, not whatever error a
     // previous attempt left behind (see hideLoginError()'s own comment).
     hideLoginError();
@@ -3098,8 +3110,13 @@ function resetLoginPhase() {
 el("login-email-btn").addEventListener("click", () => {
     hideLoginError();
     el("login-wrap").classList.add("login-wrap-form-phase");
+    syncLoginPhaseStackHeight();
 });
 el("login-email-back-btn").addEventListener("click", resetLoginPhase);
+// Sets the initial height for the default (choice) phase - without this the stack would
+// render at 0 height (and everything below it would collapse up) until the first phase
+// change ever calls syncLoginPhaseStackHeight() above.
+syncLoginPhaseStackHeight();
 
 // --- Forgot password (its own native screen, pushed on top of Login - no browser
 // involved at all, unlike the old flow which opened the website's page in a browser tab) ---
