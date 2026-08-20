@@ -3101,20 +3101,41 @@ function resetLoginPhase() {
     // See .login-wrap-form-phase in app.css - this one class alone drives which panel
     // (choice/form) is on/off screen and its own back-btn fade.
     el("login-wrap").classList.remove("login-wrap-form-phase");
+    // Also collapses "Continue with email"'s own inline morph back to the plain button
+    // (see resetEmailInlineField() further down) - a fresh arrival at Login shouldn't
+    // still have that field open from a previous visit.
+    resetEmailInlineField();
     syncLoginPhaseStackHeight();
     // Every fresh arrival at Login starts with a clean slate, not whatever error a
     // previous attempt left behind (see hideLoginError()'s own comment).
     hideLoginError();
 }
 
+// The old full email+password phase (login-wrap-form-phase) no longer opens from this
+// button - "Continue with email" instead morphs itself in place into a bare email
+// input, same as claude.ai's own login screen. Visual only for now: nothing below is
+// wired to a backend yet, so there's deliberately no submit/enter handling on the input.
+function resetEmailInlineField() {
+    el("login-email-btn").classList.remove("hidden");
+    el("login-email-inline").classList.add("hidden");
+    el("login-google-btn").classList.remove("button-google-dim");
+}
+
 el("login-email-btn").addEventListener("click", () => {
-    // Intentionally a no-op for now - the email form (and the "Create account" button
-    // at its bottom) is on hold pending a decision, not removed. Flip this back on by
-    // restoring the three lines below once that's settled.
-    return;
-    hideLoginError();
-    el("login-wrap").classList.add("login-wrap-form-phase");
+    el("login-email-btn").classList.add("hidden");
+    el("login-email-inline").classList.remove("hidden");
+    el("login-google-btn").classList.add("button-google-dim");
+    el("login-email-inline").focus();
     syncLoginPhaseStackHeight();
+});
+// Reverts back to the plain button if the visitor taps away without typing anything -
+// otherwise there'd be no way back to the choice screen (the input itself does nothing
+// yet, see above).
+el("login-email-inline").addEventListener("blur", () => {
+    if (el("login-email-inline").value.trim() === "") {
+        resetEmailInlineField();
+        syncLoginPhaseStackHeight();
+    }
 });
 el("login-email-back-btn").addEventListener("click", resetLoginPhase);
 // Sets the initial height for the default (choice) phase - without this the stack would

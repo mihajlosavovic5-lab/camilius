@@ -1,5 +1,5 @@
 <!doctype html>
-<html data-bundle-version="5976aa700074" lang="en">
+<html data-bundle-version="667ee4747728" lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
@@ -16,7 +16,7 @@
 <link rel="preload" href="fonts/lora-latin-ext.woff2?v=e8c32fe92ded" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="fonts/familjen-grotesk-latin.woff2?v=e8c32fe92ded" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="fonts/familjen-grotesk-latin-ext.woff2?v=e8c32fe92ded" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="app.css?v=5976aa700074">
+<link rel="stylesheet" href="app.css?v=667ee4747728">
 </head>
 <body>
 
@@ -630,6 +630,10 @@
         </button>
         <div class="login-google-divider" data-i18n="login.orDivider">or</div>
         <button type="button" id="login-email-btn" class="button button-secondary button-full button-pill button-tap-scale" data-i18n="login.continueWithEmail">Continue with email</button>
+        <!-- Tapping the button above morphs it in place into this bare email input instead
+             of pushing into the old email+password phase below - visual only for now, see
+             the click handler in app.js: nothing here is wired to a backend yet. -->
+        <input type="email" id="login-email-inline" class="button-full button-pill login-email-inline-input hidden" data-i18n-placeholder="login.emailPlaceholder" placeholder="Enter your email" autocomplete="email" autocapitalize="off" autocorrect="off">
 
         <!-- Lives inside each phase's own panel (this one and .login-email-form's below),
              not as a single shared block after .login-phase-stack - that block used to sit
@@ -1919,8 +1923,8 @@
   </button>
 </nav>
 
-<script src="i18n.js?v=5976aa700074"></script>
-<script src="hours-picker.js?v=5976aa700074"></script>
-<script src="app.js?v=5976aa700074"></script>
+<script src="i18n.js?v=667ee4747728"></script>
+<script src="hours-picker.js?v=667ee4747728"></script>
+<script src="app.js?v=667ee4747728"></script>
 </body>
 </html>

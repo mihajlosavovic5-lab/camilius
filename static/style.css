@@ -1804,6 +1804,16 @@ body.auth {
    web-only touch (the APK's own Create account button matches the others exactly, see
    .button in mobile/app.css) rather than a parity fix. */
 .auth-login .auth-card .button-primary-outline { padding: 12px 20px; font-size: 15.5px; }
+/* "Continue with email"'s visual-only inline morph (see login.html's own click handler
+   comment) - a bare pill input takes the button's exact slot in .auth-choice, sized to
+   match .auth-login .auth-choice .button just above so swapping the two doesn't shift
+   the layout. Border/focus glow otherwise come from the generic input[type="email"]
+   rules further up this file - same amber highlight every other field on the site uses. */
+.auth-email-inline-input { border-radius: 999px; text-align: center; }
+.auth-login .auth-choice .auth-email-inline-input { padding: 14px 22px; font-size: 17px; }
+/* Dims "Continue with Google" while the email field above is active, same cue as the
+   reference login screen this was modeled on. */
+.auth-google-btn-dim { opacity: .45; pointer-events: none; }
 /* No .auth-footer left below to justify the base .auth-wrapper's full 40px bottom
    padding. */
 .auth-login .auth-wrapper { padding-bottom: 18px; }

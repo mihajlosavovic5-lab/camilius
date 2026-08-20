@@ -1036,6 +1036,15 @@ input.tap-to-edit-field, textarea.tap-to-edit-field { cursor: pointer; backgroun
 .button-secondary { background: var(--surface); color: var(--text); border: 1px solid var(--border); }
 .button-primary-outline { color: var(--primary); border-color: var(--primary); }
 .button-pill { border-radius: 999px; }
+/* "Continue with email"'s visual-only inline morph (see index.html/app.js) - a bare
+   pill input takes the button's exact slot in .login-choice, so it needs the same
+   margin-top the .button it swaps with already carries (see .button above) to keep the
+   stack's spacing identical either way. Border/focus glow otherwise come from the
+   generic input[type="email"] rules further up this file. */
+.login-email-inline-input { margin-top: 18px; text-align: center; }
+/* Dims "Continue with Google" while the email field above is active, same cue as the
+   reference login screen this was modeled on. */
+.button-google-dim { opacity: .45; pointer-events: none; }
 /* "Continue with Google" (Login + Create account) - neutral white per Google's own
    branding guidelines, same reasoning/colors as the website's .button-google
    (static/style.css) - the multi-color "G" mark itself is the only branding color. */
