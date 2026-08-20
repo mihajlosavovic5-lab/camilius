@@ -6056,8 +6056,27 @@ if (window.visualViewport) {
     window.visualViewport.addEventListener("resize", () => {
         const height = window.visualViewport.height;
         if (height > restingHeight) restingHeight = height;
-        if (keyboardCloseBlurTimer) { clearTimeout(keyboardCloseBlurTimer); keyboardCloseBlurTimer = null; }
-        if (height < restingHeight - 40) return;
+        if (height < restingHeight - 40) {
+            // Still short of resting - cancels a timer an EARLIER event in this same
+            // close started, if the height has now dropped back out of the "close
+            // enough" band (the actual mid-open blip this whole debounce exists for).
+            if (keyboardCloseBlurTimer) { clearTimeout(keyboardCloseBlurTimer); keyboardCloseBlurTimer = null; }
+            return;
+        }
+        // Already counting down from the FIRST event that crossed into the "close
+        // enough" band - later events landing in that same band (interactive-widget=
+        // resizes-content, unlike the old visual-only pan, drives a genuine layout
+        // reflow that can report several of these in quick succession as the keyboard's
+        // own close animation settles its last few pixels) no longer each restart the
+        // clock. They used to: every one of those extra events cleared and re-armed
+        // this timer from scratch, so a jittery tail of them could push the actual wait
+        // well past the intended 150ms - which is what read as "elements wait almost a
+        // second" even after the field's own blur listener stopped adding its own extra
+        // 80ms on top. The 150ms is still what actually confirms a genuine close (the
+        // re-check inside the timeout below reads the CURRENT height, not any particular
+        // event's), so skipping the restart here doesn't weaken that - it only stops
+        // artificially extending it.
+        if (keyboardCloseBlurTimer) return;
         keyboardCloseBlurTimer = setTimeout(() => {
             keyboardCloseBlurTimer = null;
             if (window.visualViewport.height < restingHeight - 40) return;
