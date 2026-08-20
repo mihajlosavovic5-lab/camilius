@@ -440,7 +440,7 @@ button { font-family: inherit; -webkit-appearance: none; appearance: none; }
    space collects between the tagline and the CTA buttons - buttons end up near the
    bottom of the screen instead of the cluster reading as vertically centered. */
 .login-top-spacer { flex: 1; min-height: 8px; }
-.login-mid-spacer { flex: 6; min-height: 16px; }
+.login-mid-spacer { flex: 3; min-height: 16px; }
 .login-brand { display: flex; flex-direction: column; align-items: center; gap: 10px; margin: 0 0 30px; }
 .login-icon { width: 100px; height: 100px; border-radius: 22%; box-shadow: 0 10px 26px rgba(43,32,19,.16); }
 .login-wordmark { margin: 0; }
@@ -460,12 +460,19 @@ button { font-family: inherit; -webkit-appearance: none; appearance: none; }
    that one class rather than each panel's own hidden state. Grid stacking also means the
    stack's height is always sized to the taller panel (the form) regardless of which one's
    actually showing - the shorter choice screen no longer leaves a gap for .login-top-spacer/
-   .login-spacer above to fill, so unlike the old hidden-toggle approach, the brand icon and
-   the choice/form fields now land at the exact same height in both phases with the spacers
-   left at one constant ratio (no more per-phase override needed here). No position:relative
-   here deliberately - .login-email-back-btn lives outside this stack entirely (see
-   index.html) precisely so it never ends up a descendant of a transformed panel. */
-.login-phase-stack { display: grid; }
+   .login-spacer above to fill, so unlike the old hidden-toggle approach, .login-top-spacer/
+   .login-mid-spacer's own sizes don't jump between phases. No position:relative here
+   deliberately - .login-email-back-btn lives outside this stack entirely (see index.html)
+   precisely so it never ends up a descendant of a transformed panel.
+   align-items:end bottom-aligns each panel within that shared (taller-panel-sized) row,
+   rather than the default top-align - the shorter choice panel would otherwise sit flush
+   with the row's top, leaving a big dead gap below its own last button/disclaimer (inside
+   the row but below the visible content) before .login-spacer/the footer even start. This
+   is a deliberate trade: the two phases' buttons now land at the same height relative to
+   the *bottom* (footer) instead of relative to the brand icon above - the brand-to-buttons
+   gap now differs a bit per phase instead of being identical, in exchange for the CTAs
+   actually sitting near the bottom of the screen on both. */
+.login-phase-stack { display: grid; align-items: end; }
 .login-phase-stack > .login-choice,
 .login-phase-stack > .login-email-form {
     grid-area: 1 / 1;
