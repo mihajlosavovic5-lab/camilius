@@ -459,11 +459,18 @@ button { font-family: inherit; -webkit-appearance: none; appearance: none; }
 .login-top-spacer { flex: 1; min-height: 8px; }
 .login-mid-spacer { flex: 3; min-height: 16px; }
 .login-brand { display: flex; flex-direction: column; align-items: center; gap: 10px; margin: 0 0 30px; }
-.login-icon { width: 100px; height: 100px; border-radius: 22%; box-shadow: 0 10px 26px rgba(43,32,19,.16); }
-.login-wordmark { margin: 0; }
-/* Small brand-colored flourish under the wordmark - another plain-vs-original cue. */
+/* Replaces the old plain app-icon square (see the <svg> itself in index.html for what
+   it depicts) - sized well above the 100px icon it replaces since it's now the actual
+   hero visual, not a small badge. filter (not box-shadow, which only shadows the
+   element's own box - this has transparent background between the line strokes)
+   softens it off the page the same way the old icon's box-shadow did. */
+.login-mascot { width: 168px; height: auto; filter: drop-shadow(0 10px 18px rgba(43,32,19,.18)); }
+.login-mascot-line { fill: none; stroke: var(--text); stroke-width: 5; stroke-linecap: round; stroke-linejoin: round; }
+.login-mascot-accent { fill: var(--primary-light); stroke: var(--primary); stroke-width: 4; }
+.login-mascot-spark { fill: var(--primary); }
+/* Small brand-colored flourish under the mascot - another plain-vs-original cue. */
 .login-accent { display: block; width: 34px; height: 3px; border-radius: 99px; background: var(--primary); }
-.login-tagline { margin: 0; font-size: 19px; color: var(--text-muted); text-align: center; }
+.login-tagline { margin: 6px 0 0; font-size: 22px; color: var(--text-muted); text-align: center; }
 /* Passive "by continuing you agree..." notice, same Terms/Privacy screens the register
    consent checkbox opens (see index.html's own comment above it) - small and muted like
    the build-version footer below it, not competing with the actual CTAs above. Exists
