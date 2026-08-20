@@ -3131,8 +3131,130 @@ function resetLoginPhase() {
 // mascot/tagline and collapses "Continue with Google" out of the way (see
 // .login-wrap-email-focus in app.css) so the field stays in view above the keyboard
 // instead of getting pushed under it - nothing here is wired to a backend yet.
+// .login-top-spacer/.login-mid-spacer's own resting height comes from a flex-grow RATIO
+// (app.css) - accurate for a static layout, but animating that ratio while the siblings
+// it shares space with (mascot, tagline, "Continue with Google") are ALSO simultaneously
+// resizing means it's dividing a shrinking/growing pie at the same time its own share of
+// that pie is changing. Measured on an actual device (and reproduced here by sampling
+// the rendered heights through the transition), that showed up as the spacer visibly
+// growing past its resting height and recoiling back - the icon+tagline block moving in
+// two distinct steps instead of one - rather than settling smoothly.
+//
+// Building the target height (a throwaway, invisible clone of #login-wrap with the
+// target class already applied - see cloneLoginWrapForMeasurement()) rather than reading
+// the real, currently-transitioning element gets around a second, less obvious trap: a
+// synchronous read of the REAL spacer right after toggling the class doesn't return the
+// end target either - a CSS transition's used value for layout starts at ~0% progress
+// the instant it's toggled, so that read is still close to the OLD height, not the new
+// one. The clone has no prior state to transition from, so its layout reflects the
+// target instantly.
+function cloneLoginWrapForMeasurement(loginWrap) {
+    const clone = loginWrap.cloneNode(true);
+    // Only the wrapper's own id, not every descendant's - #login-google-btn's own
+    // focus-mode collapse (app.css) is written against its id, and stripping ids from
+    // the whole clone (as an earlier version of this did) silently broke that CSS rule
+    // for the clone, making it measure the button as still fully expanded. Duplicate
+    // descendant ids are momentary and never observed - the clone is inserted, read, and
+    // removed synchronously, with no other code running in between to be confused by them.
+    clone.removeAttribute("id");
+    // Strips any inline flex-basis/flex-grow this same function left on the spacers from
+    // a previous (possibly interrupted) call - cloneNode copies inline style along with
+    // everything else, and a leftover override here would corrupt this measurement.
+    clone.querySelectorAll(".login-top-spacer, .login-mid-spacer").forEach((node) => node.removeAttribute("style"));
+    const rect = loginWrap.getBoundingClientRect();
+    clone.style.position = "absolute";
+    clone.style.visibility = "hidden";
+    clone.style.pointerEvents = "none";
+    clone.style.top = "0";
+    clone.style.left = "0";
+    clone.style.width = rect.width + "px";
+    clone.style.height = rect.height + "px";
+    // Has to happen before anything below reads a rect off any node inside the clone -
+    // a detached node (not yet in the document) has no layout at all, so every
+    // getBoundingClientRect() call on it or its descendants would just return zeros.
+    loginWrap.parentNode.insertBefore(clone, loginWrap.nextSibling);
+    // #login-phase-stack's own inline height (set by the ResizeObservers above) is
+    // ALSO copied by cloneNode - and since those observers are async, the real one may
+    // not have caught up to the class change yet, leaving the clone's copy still sized
+    // for the OLD (pre-toggle) panel. .login-choice/.login-email-form underneath it,
+    // being freshly cloned with no transition to chase, DO already reflect the target
+    // instantly - re-deriving the stack's height from whichever of those is now active
+    // (same logic as syncLoginPhaseStackHeight()) fixes it up before anything measures
+    // this clone's spacers, which would otherwise see stale, too-small phase-stack
+    // height as extra "leftover" room and overshoot into it.
+    const clonePhaseStack = clone.querySelector(".login-phase-stack");
+    if (clonePhaseStack) {
+        const cloneActivePanel = clone.querySelector(
+            clone.classList.contains("login-wrap-form-phase") ? ".login-email-form" : ".login-choice"
+        );
+        clonePhaseStack.style.height = cloneActivePanel.getBoundingClientRect().height + "px";
+    }
+    return clone;
+}
+
+let loginSpacerAnimFrame = null;
+let loginSpacerCleanupTimer = null;
 function setLoginEmailFocusMode(active) {
-    el("login-wrap").classList.toggle("login-wrap-email-focus", active);
+    if (loginSpacerAnimFrame) { cancelAnimationFrame(loginSpacerAnimFrame); loginSpacerAnimFrame = null; }
+    if (loginSpacerCleanupTimer) { clearTimeout(loginSpacerCleanupTimer); loginSpacerCleanupTimer = null; }
+    // .login-top-spacer/.login-mid-spacer are classes, not ids (el() wouldn't find them)
+    // - and .login-top-spacer's class name alone isn't unique across the whole document
+    // (the Verify-pending screen reuses it), so this is scoped to #login-wrap specifically.
+    const loginWrap = el("login-wrap");
+    const spacers = [
+        loginWrap.querySelector(".login-top-spacer"),
+        loginWrap.querySelector(".login-mid-spacer"),
+    ];
+    // Undoes any inline override a previous (interrupted) call left behind, so both the
+    // "First" reading just below and this function's own clone (which copies whatever
+    // inline style is currently on the real spacers) reflect pure CSS-driven sizes.
+    spacers.forEach((node) => node.removeAttribute("style"));
+    const firstHeights = spacers.map((node) => node.getBoundingClientRect().height);
+
+    loginWrap.classList.toggle("login-wrap-email-focus", active);
+
+    const clone = cloneLoginWrapForMeasurement(loginWrap);
+    const lastHeights = [
+        clone.querySelector(".login-top-spacer").getBoundingClientRect().height,
+        clone.querySelector(".login-mid-spacer").getBoundingClientRect().height,
+    ];
+    clone.remove();
+
+    // flex-basis, not height - .login-top-spacer/.login-mid-spacer's own flex-basis is
+    // 0% (the single-number form of the "flex: 1.4"/"flex: 1" shorthand in app.css), so
+    // with flex-grow/flex-shrink pinned to 0 below, that 0% basis - not a plain height -
+    // is what actually determines their size; setting height alone left them collapsed
+    // to their min-height floor instead of the intended pixel value.
+    spacers.forEach((node, i) => {
+        node.style.transition = "none";
+        node.style.flexGrow = "0";
+        node.style.flexShrink = "0";
+        node.style.flexBasis = firstHeights[i] + "px";
+    });
+    // Forces the browser to actually paint that frozen ("First") state before the
+    // rAF below swaps in "Last" - without this the two style writes could get batched
+    // into the same frame and skip straight to Last with no visible transition at all,
+    // same idea as the classic "reflow to restart a CSS animation" trick.
+    void spacers[0].offsetHeight;
+    loginSpacerAnimFrame = requestAnimationFrame(() => {
+        loginSpacerAnimFrame = null;
+        spacers.forEach((node, i) => {
+            node.style.transition = "flex-basis .32s ease";
+            node.style.flexBasis = lastHeights[i] + "px";
+        });
+    });
+    // Hands control back to plain CSS flex-grow once the transition settles, so these
+    // stay responsive to the actual viewport at rest (e.g. after a device rotation)
+    // instead of staying pinned to whatever pixel height they last animated to.
+    loginSpacerCleanupTimer = setTimeout(() => {
+        loginSpacerCleanupTimer = null;
+        spacers.forEach((node) => {
+            node.style.transition = "";
+            node.style.flexGrow = "";
+            node.style.flexShrink = "";
+            node.style.flexBasis = "";
+        });
+    }, 350);
 }
 let loginEmailBlurTimer = null;
 el("login-email-input").addEventListener("focus", () => {
