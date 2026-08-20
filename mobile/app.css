@@ -490,10 +490,6 @@ button { font-family: inherit; -webkit-appearance: none; appearance: none; }
     text-align: center; font-size: 13.5px; font-weight: 600; color: var(--text-muted);
     margin: 0 0 10px; padding-top: 14px; border-top: 1px solid var(--border);
 }
-/* Build/bundle version footer - see index.html's own comment on #login-build-version for
-   why it's repeated here rather than just in Settings. Small and out of the way; it's a
-   debug/support aid, not something an ordinary visitor has any reason to read. */
-.login-build-version { text-align: center; font-size: 11px; color: var(--text-muted); opacity: .6; margin: 14px 0 0; }
 .link-btn {
     background: none; border: none; padding: 0; margin: 0; cursor: pointer;
     font-family: inherit; font-size: inherit; font-weight: 700;

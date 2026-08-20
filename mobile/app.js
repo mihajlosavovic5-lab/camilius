@@ -6137,10 +6137,7 @@ document.querySelectorAll(".theme-option").forEach((btn) => {
     btn.addEventListener("click", () => setTheme(btn.dataset.themeChoice));
 });
 
-// Written into both Settings > Profile (#settings-app-version) and the Login screen
-// (#login-build-version, index.html) - the latter so "did this device actually get the
-// latest OTA push" is checkable without needing to log in first.
-const BUILD_VERSION_TARGET_IDS = ["settings-app-version", "login-build-version"];
+const BUILD_VERSION_TARGET_IDS = ["settings-app-version"];
 BUILD_VERSION_TARGET_IDS.forEach((id) => {
     const target = el(id);
     if (target) target.textContent = `Camilius · v${APP_VERSION}`;
