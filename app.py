@@ -28,7 +28,7 @@ from database import (
     business_by_phone_number,
     contact_email_taken, phone_number_taken,
     create_oauth_login_session, complete_oauth_login_session, fail_oauth_login_session,
-    complete_oauth_login_session_needs_signup, oauth_login_session_exists, oauth_login_session_intent,
+    oauth_login_session_exists, oauth_login_session_intent,
     fail_oauth_login_session_no_account, cancel_oauth_login_session,
     archived_conversations_for_business, trashed_conversations_for_business,
     archive_conversation, unarchive_conversation, soft_delete_conversation, restore_conversation,
@@ -504,9 +504,9 @@ def auth_google():
 
     `?intent=login` is accepted but no longer set by anything - login.html's button used
     to send it so a brand-new identity from the Login screen got an error instead of being
-    handed off to sign-up, but that's no longer what either the web or mobile app does (see
-    auth_google_callback's own comment): a Google identity with no matching account is
-    always handed to the sign-up form prefilled, from Login or Create Account alike. Kept
+    signed up on the spot, but that's no longer what either the web or mobile app does (see
+    auth_google_callback's own comment): a Google identity with no matching account gets
+    an account created for it immediately, from Login or Create Account alike. Kept
     accepted here only for backward compatibility with anything still sending it."""
     if not google_oauth.is_configured():
         abort(404)
@@ -524,8 +524,8 @@ def auth_google():
 # accounts.google.com that auth_google() above does. Always intent="register" - GIS is
 # only wired up on the Login screen (Create Account has never had a "Continue with
 # Google" button on the web, only on mobile), and a brand-new Google identity from there
-# should be handed to the sign-up form prefilled rather than shown a "no account" error
-# (see auth_google()'s own comment).
+# gets an account created for it on the spot rather than shown a "no account" error (see
+# auth_google()'s own comment).
 #
 # Sets the Flask session cookie directly and hands back a JSON `redirect` URL for the
 # page's own script to navigate to, rather than doing the redirect itself - there's no
@@ -562,10 +562,11 @@ def auth_google_token():
         # auth_google_callback below (see google_oauth.login_existing's docstring).
         if intent == "login":
             return fail("No Camilius account is linked to that Google account. Please register first.")
-        name = google_user.get("name") or ""
-        email = (google_user.get("email") or "").strip().lower()
-        link_token = google_oauth.make_link_token(google_id, email)
-        return jsonify(redirect=url_for("register", google_name=name, google_email=email, google_link_token=link_token))
+        # Create Account screen's own flow - create the account on the spot instead of
+        # handing off to the sign-up form (see google_oauth.create_account's docstring).
+        business = google_oauth.create_account(google_user)
+        if business is None:
+            return fail("Google sign-in failed - please try again.")
 
     session["business_id"] = business[0]
     session["business_name"] = business[1]
@@ -642,19 +643,11 @@ def auth_google_callback():
                 return redirect(url_for("auth_google_done", state=state, outcome="no_account"))
             return redirect(url_for("login", error="No Camilius account is linked to that Google account. Please register first."))
 
-        # Otherwise (Create Account screen) - hand its name/email to the sign-up form as a
-        # starting point rather than creating an account outright (see
-        # google_oauth.login_existing's own docstring). google_link_token carries google_id
-        # through so register()/api_register() can link it - and skip the usual email
-        # confirmation step, since Google already proved this address - IF the sign-up is
-        # actually completed with that same email; see google_oauth.verify_link_token.
-        name = google_user.get("name") or ""
-        email = (google_user.get("email") or "").strip().lower()
-        link_token = google_oauth.make_link_token(google_id, email)
-        if is_mobile:
-            complete_oauth_login_session_needs_signup(state, name, email, link_token)
-            return redirect(url_for("auth_google_done", state=state, outcome="needs_signup"))
-        return redirect(url_for("register", google_name=name, google_email=email, google_link_token=link_token))
+        # Otherwise (Create Account screen) - create the account on the spot instead of
+        # handing off to the sign-up form (see google_oauth.create_account's docstring).
+        business = google_oauth.create_account(google_user)
+        if business is None:
+            return fail("Google sign-in failed - please try again.")
 
     if is_mobile:
         token = make_token(business[0])

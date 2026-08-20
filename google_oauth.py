@@ -11,12 +11,17 @@ with Google" button and registers the /auth/google routes when this is configure
 unconfigured deploy behaves exactly as it did before this feature existed.
 """
 import os
+import secrets
 from urllib.parse import urlencode
 
 import requests
 from itsdangerous import URLSafeTimedSerializer, BadSignature, SignatureExpired
 
-from database import business_by_google_id, business_by_contact_email, business_by_id, link_google_account
+import paddle_billing
+from database import (
+    business_by_google_id, business_by_contact_email, business_by_id, link_google_account,
+    add_business, log_event, UniqueViolation,
+)
 
 AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth"
 TOKEN_URL = "https://oauth2.googleapis.com/token"
@@ -101,11 +106,9 @@ def login_existing(google_user):
     """Looks up (and links, on the first match) the existing business this Google identity
     belongs to - never creates one. Returns the business row, or None if this Google
     account has never been seen here before. Callers (app.py's auth_google_callback,
-    api.py's api_google_login_verify_id_token) send that case to the ordinary sign-up form
-    instead, pre-filled with whatever Google handed over - "Continue with Google" is a
-    shortcut INTO the normal flow for a first-time visitor, not a way to skip filling in the
-    rest of the account (password, business details) that a manual sign-up would ask for
-    anyway.
+    api.py's api_google_login_verify_id_token) hand that case to create_account() below
+    instead, for a register-intent attempt - a login-intent attempt (explicitly "log me
+    into an existing account") still just fails.
 
     Two cases, in order:
     1. This Google account has signed in here before (google_id already linked) - just
@@ -133,15 +136,59 @@ def login_existing(google_user):
     return None
 
 
-# A brand-new Google identity (no existing account matches it - see login_existing above)
-# doesn't get an account created on the spot anymore - it's handed
-# to the normal sign-up form as a name/email starting point, same as if the visitor had
-# typed them in by hand, and the account is only actually created once they finish that
-# form themselves (password, business details, terms). This short-lived signed
-# token is how google_id survives that round trip without trusting a client-supplied value
-# outright: register()/api_register() re-verify it, and only link the account to Google
-# (skipping email confirmation - Google already proved it) if the token is still valid AND
-# its embedded email matches whatever contact_email the form was actually submitted with.
+def create_account(google_user):
+    """Creates a brand-new account directly from a Google identity login_existing() above
+    found no match for, instead of handing it off to the sign-up form - "Continue with
+    Google" now behaves the same way it does everywhere else: one tap either logs in or
+    signs up, whichever applies, with nothing in between. Business details (working
+    hours, price list, FAQ) are already optional at sign-up - fillable later from
+    Settings/the mandatory "build your website" onboarding wizard, see app.py's
+    onboarding_required - so nothing here needs typing in by hand before the account can
+    exist at all: name/email come straight from Google, the password is a random value
+    the visitor will never need (Google is how they'll sign back in - "Forgot password"
+    still works if they ever want to set a real one), and email_verified=True since
+    Google already proved the address.
+
+    Returns the new business row. On the very rare race where someone else's sign-up (or
+    a duplicate concurrent Google attempt) claims the same email between
+    login_existing()'s lookup and this call, links this Google identity to whatever
+    business_by_contact_email() finds instead - same outcome as login_existing's own
+    "existing email" case - or None if even that can't find a row."""
+    google_id = google_user.get("sub")
+    email = (google_user.get("email") or "").strip().lower()
+    name = (google_user.get("name") or "").strip() or (email.split("@")[0] if email else "")
+
+    try:
+        new_id = add_business(
+            name=name,
+            password=secrets.token_urlsafe(32),
+            contact_email=email,
+            working_hours="",
+            price_list="",
+            faq="",
+            initial_status="none" if paddle_billing.is_configured() else "trialing",
+            google_id=google_id,
+            email_verified=True,
+        )
+    except UniqueViolation:
+        existing = business_by_contact_email(email)
+        if not existing:
+            return None
+        link_google_account(existing[0], google_id)
+        return business_by_id(existing[0])
+
+    log_event("register_completed", business_id=new_id)
+    return business_by_id(new_id)
+
+
+# Still used by register()/api_register() (see their own comments) as a fallback for
+# whatever older mobile app installs still send a google_link_token - create_account()
+# above is now the primary path for a brand-new Google identity, so nothing here mints a
+# fresh one anymore, but a token minted before this account already exists must keep
+# working exactly as before: it's how google_id survives the sign-up form's round trip
+# without trusting a client-supplied value outright, re-verified server-side and only
+# honored if the token is still valid AND its embedded email matches whatever
+# contact_email the form was actually submitted with.
 LINK_TOKEN_MAX_AGE = 60 * 10  # 10 minutes - plenty to finish filling in the rest of the form
 
 

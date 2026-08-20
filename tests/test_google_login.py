@@ -1,9 +1,10 @@
 """Continue with Google" - covers the shared account-lookup logic (google_oauth.login_existing),
-the web redirect/callback routes, the mobile start/callback/status bridge, and the
-register()/api_register() google_link_token handoff. A Google identity nobody's seen
-before is never turned into an account directly - it's handed to the normal sign-up form
-as a name/email starting point (see app.py's auth_google_callback), and only becomes a
-real, Google-linked account once that form is actually submitted.
+account creation (google_oauth.create_account), the web redirect/callback routes, the
+mobile start/callback/status bridge, and the register()/api_register()
+google_link_token handoff kept as a fallback for older app installs. A Google identity
+nobody's seen before (register intent) gets an account created for it on the spot - see
+google_oauth.create_account - and is logged straight in, exactly like an existing
+account would be; a login-intent attempt with no matching account still just fails.
 
 Real network calls to Google are never made - google_oauth.fetch_user is monkeypatched
 everywhere a callback needs a profile, exactly like _stub_send_email stands in for Resend
@@ -114,7 +115,7 @@ def test_auth_google_callback_rejects_state_mismatch(client, monkeypatch):
 
 # --- Web flow: a Google identity never seen before ---
 
-def test_auth_google_callback_new_identity_redirects_to_register_prefilled(client, monkeypatch, unique_email):
+def test_auth_google_callback_new_identity_creates_account_and_logs_in(client, monkeypatch, unique_email):
     _configure_google(monkeypatch)
     state = _start_web_google_auth(client)
     sub = _unique_sub()
@@ -123,19 +124,16 @@ def test_auth_google_callback_new_identity_redirects_to_register_prefilled(clien
     response = client.get(f"/auth/google/callback?code=abc&state={state}")
     assert response.status_code == 302
     location = response.headers["Location"]
-    assert location.startswith("/register") or "/register" in location
-    assert "google_link_token=" in location
+    assert "/register" not in location
+    assert location.endswith("/") or "home" in location
 
-    # No account created, nobody logged in yet - it's purely a prefilled starting point.
+    business = database.business_by_contact_email(unique_email)
+    assert business is not None
+    assert business[11] is True  # email_verified - Google already proved it
+    assert business[21] == sub  # google_id linked
+
     with client.session_transaction() as sess:
-        assert sess.get("business_id") is None
-    assert database.business_by_contact_email(unique_email) is None
-
-    # Following the redirect shows the sign-up form with name/email pre-filled.
-    register_page = client.get(location)
-    html = register_page.get_data(as_text=True)
-    assert "Jane&#39;s Salon" in html or "Jane's Salon" in html
-    assert unique_email in html
+        assert sess.get("business_id") == business[0]
 
 
 def test_auth_google_callback_new_identity_with_login_intent_shows_error_not_signup(client, monkeypatch, unique_email):
@@ -185,12 +183,13 @@ def test_auth_google_callback_existing_account_with_login_intent_still_logs_in(c
 
 
 def test_register_with_valid_google_link_token_creates_verified_linked_account(client, monkeypatch, unique_email):
+    """create_account() is now the primary path for a brand-new Google identity, but
+    register()/api_register() must keep honoring a google_link_token minted directly
+    (google_oauth.make_link_token) as a fallback for older app installs that still send
+    one - see google_oauth.py's own comment above LINK_TOKEN_MAX_AGE."""
     _configure_google(monkeypatch)
-    state = _start_web_google_auth(client)
     sub = _unique_sub()
-    monkeypatch.setattr(app_module.google_oauth, "fetch_user", lambda code, redirect_uri: _fake_profile(sub, unique_email))
-    redirect_response = client.get(f"/auth/google/callback?code=abc&state={state}")
-    link_token = redirect_response.headers["Location"].split("google_link_token=")[1].split("&")[0]
+    link_token = app_module.google_oauth.make_link_token(sub, unique_email)
 
     from conftest import _csrf_token_from_html
     csrf = _csrf_token_from_html(client.get("/register").get_data(as_text=True))
@@ -223,13 +222,12 @@ def test_register_with_valid_google_link_token_creates_verified_linked_account(c
 
 def test_register_with_mismatched_email_ignores_google_link_token(client, monkeypatch, unique_email):
     """Visitor changed the pre-filled email before submitting - the token was issued for a
-    different address, so it must NOT silently attach to whatever they typed instead."""
+    different address, so it must NOT silently attach to whatever they typed instead.
+    Same fallback path as the test above - the token is minted directly rather than via
+    the callback, which no longer hands one out for a brand-new identity."""
     _configure_google(monkeypatch)
-    state = _start_web_google_auth(client)
     sub = _unique_sub()
-    monkeypatch.setattr(app_module.google_oauth, "fetch_user", lambda code, redirect_uri: _fake_profile(sub, f"google-{unique_email}"))
-    redirect_response = client.get(f"/auth/google/callback?code=abc&state={state}")
-    link_token = redirect_response.headers["Location"].split("google_link_token=")[1].split("&")[0]
+    link_token = app_module.google_oauth.make_link_token(sub, f"google-{unique_email}")
 
     from conftest import _csrf_token_from_html
     csrf = _csrf_token_from_html(client.get("/register").get_data(as_text=True))
@@ -284,30 +282,14 @@ def test_auth_google_callback_links_existing_account_by_email(client, monkeypatc
 
 
 def test_auth_google_callback_reuses_existing_google_link(client, monkeypatch, unique_email):
-    """Same Google account signs in a second time, after already completing sign-up once -
-    should log straight in, not redirect to register again."""
+    """Same Google account signs in a second time, after already being created by a first
+    attempt - should log straight into that same account, not create a second one."""
     _configure_google(monkeypatch)
     sub = _unique_sub()
     monkeypatch.setattr(app_module.google_oauth, "fetch_user", lambda code, redirect_uri: _fake_profile(sub, unique_email))
 
     state1 = _start_web_google_auth(client)
-    first_redirect = client.get(f"/auth/google/callback?code=abc&state={state1}")
-    link_token = first_redirect.headers["Location"].split("google_link_token=")[1].split("&")[0]
-
-    from conftest import _csrf_token_from_html
-    csrf = _csrf_token_from_html(client.get("/register").get_data(as_text=True))
-    client.post("/register", data={
-        "csrf_token": csrf,
-        "google_link_token": link_token,
-        "name": "Jane's Salon",
-        "password": "TestPassword123",
-        "confirm_password": "TestPassword123",
-        "contact_email": unique_email,
-        "working_hours": "Mon-Fri 09:00-18:00",
-        "price_list": "Cut: 100",
-        "faq": "",
-        "accept_terms": "on",
-    })
+    client.get(f"/auth/google/callback?code=abc&state={state1}")
     with client.session_transaction() as sess:
         first_business_id = sess["business_id"]
         sess.clear()
@@ -339,7 +321,7 @@ def test_mobile_google_login_start_404s_when_not_configured(client, monkeypatch)
     assert response.status_code == 404
 
 
-def test_mobile_google_login_new_identity_status_is_needs_signup(client, monkeypatch, unique_email):
+def test_mobile_google_login_new_identity_status_is_done(client, monkeypatch, unique_email):
     _configure_google(monkeypatch)
     start = client.post("/api/google-login/start").get_json()
     state = start["state"]
@@ -358,11 +340,13 @@ def test_mobile_google_login_new_identity_status_is_needs_signup(client, monkeyp
     assert client.get(callback.headers["Location"]).status_code == 200
 
     status = client.get(f"/api/google-login/status?state={state}").get_json()
-    assert status["status"] == "needs_signup"
-    assert status["google_name"] == "Jane's Salon"
-    assert status["google_email"] == unique_email
-    assert status["google_link_token"]
-    assert not status["token"]  # not logged in - no account exists yet
+    assert status["status"] == "done"
+    assert status["token"]  # logged straight in - account created on the spot
+
+    business = database.business_by_contact_email(unique_email)
+    assert business is not None
+    assert business[11] is True  # email_verified
+    assert business[21] == sub  # google_id linked
 
     # Single-use - a second poll finds nothing left.
     status_again = client.get(f"/api/google-login/status?state={state}").get_json()
@@ -413,13 +397,12 @@ def test_mobile_google_login_existing_account_with_login_intent_status_is_done(c
 
 
 def test_mobile_api_register_with_valid_google_link_token_returns_token_directly(client, monkeypatch, unique_email):
+    """create_account() is now the primary path for a brand-new Google identity (see the
+    mobile bridge tests above), but api_register must keep honoring a google_link_token
+    minted directly as a fallback for older app installs that still send one."""
     _configure_google(monkeypatch)
-    start = client.post("/api/google-login/start").get_json()
     sub = _unique_sub()
-    monkeypatch.setattr(app_module.google_oauth, "fetch_user", lambda code, redirect_uri: _fake_profile(sub, unique_email))
-    client.get(f"/auth/google/callback?code=abc&state={start['state']}")
-    status = client.get(f"/api/google-login/status?state={start['state']}").get_json()
-    link_token = status["google_link_token"]
+    link_token = app_module.google_oauth.make_link_token(sub, unique_email)
 
     response = client.post("/api/register", json={
         "name": "Jane's Salon",
@@ -593,16 +576,19 @@ def test_verify_id_token_invalid_token_is_error(client, monkeypatch):
     assert response.get_json()["status"] == "error"
 
 
-def test_verify_id_token_new_identity_is_needs_signup(client, monkeypatch, unique_email):
+def test_verify_id_token_new_identity_is_done(client, monkeypatch, unique_email):
     _configure_google(monkeypatch)
     sub = _unique_sub()
     monkeypatch.setattr(app_module.google_oauth, "verify_id_token", lambda id_token: _fake_profile(sub, unique_email, name="Jane's Salon"))
     response = client.post("/api/google-login/verify-id-token", json={"id_token": "tok", "intent": "register"})
     data = response.get_json()
-    assert data["status"] == "needs_signup"
-    assert data["google_name"] == "Jane's Salon"
-    assert data["google_email"] == unique_email
-    assert data["google_link_token"]
+    assert data["status"] == "done"
+    assert data["token"]
+
+    business = database.business_by_contact_email(unique_email)
+    assert business is not None
+    assert business[11] is True  # email_verified
+    assert business[21] == sub  # google_id linked
 
 
 def test_verify_id_token_new_identity_with_login_intent_is_no_account(client, monkeypatch, unique_email):
@@ -630,13 +616,13 @@ def test_verify_id_token_existing_account_is_done(client, monkeypatch, unique_em
 
 
 def test_verify_id_token_link_token_works_with_register(client, monkeypatch, unique_email):
-    """The google_link_token this endpoint hands back for a brand-new identity is the same
-    make_link_token() output the web/polling flows produce - api_register accepts it
-    exactly the same way."""
+    """create_account() is now the primary path for a brand-new Google identity (see the
+    test above), but api_register must keep honoring a google_link_token minted directly
+    (google_oauth.make_link_token) as a fallback for older app installs that still send
+    one."""
     _configure_google(monkeypatch)
     sub = _unique_sub()
-    monkeypatch.setattr(app_module.google_oauth, "verify_id_token", lambda id_token: _fake_profile(sub, unique_email))
-    start = client.post("/api/google-login/verify-id-token", json={"id_token": "tok"}).get_json()
+    link_token = app_module.google_oauth.make_link_token(sub, unique_email)
 
     response = client.post("/api/register", json={
         "name": "Jane's Salon",
@@ -646,7 +632,7 @@ def test_verify_id_token_link_token_works_with_register(client, monkeypatch, uni
         "price_list": "Cut: 100",
         "faq": "",
         "accept_terms": True,
-        "google_link_token": start["google_link_token"],
+        "google_link_token": link_token,
     })
     assert response.status_code == 200
     data = response.get_json()
@@ -721,21 +707,25 @@ def test_auth_google_token_new_identity_with_login_intent_redirects_to_login_wit
     assert database.business_by_contact_email(unique_email) is None
 
 
-def test_auth_google_token_new_identity_with_register_intent_redirects_to_register_prefilled(client, monkeypatch, unique_email):
+def test_auth_google_token_new_identity_with_register_intent_creates_account_and_logs_in(client, monkeypatch, unique_email):
     """This is exactly what login.html's GIS script sends today (see its own script
-    block) - a brand-new Google identity is handed to the sign-up form prefilled instead
-    of an error, same as the plain redirect flow (auth_google_callback)."""
+    block) - a brand-new Google identity gets an account created for it and is logged
+    straight in, same as the plain redirect flow (auth_google_callback)."""
     _configure_google(monkeypatch)
     sub = _unique_sub()
     monkeypatch.setattr(app_module.google_oauth, "verify_id_token", lambda credential: _fake_profile(sub, unique_email, name="Jane's Salon"))
     response = client.post("/auth/google/token", json={"credential": "tok", "intent": "register"})
     data = response.get_json()
-    assert "/register" in data["redirect"]
-    assert "google_link_token=" in data["redirect"]
+    assert "/register" not in data["redirect"]
+    assert data["redirect"].endswith(app_module.url_for("home"))
+
+    business = database.business_by_contact_email(unique_email)
+    assert business is not None
+    assert business[11] is True  # email_verified
+    assert business[21] == sub  # google_id linked
 
     with client.session_transaction() as sess:
-        assert sess.get("business_id") is None
-    assert database.business_by_contact_email(unique_email) is None
+        assert sess.get("business_id") == business[0]
 
 
 def test_auth_google_token_existing_account_logs_in(client, monkeypatch, unique_email):

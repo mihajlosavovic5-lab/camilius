@@ -472,10 +472,11 @@ def api_google_login_verify_id_token():
         if intent == "login":
             return jsonify(status="no_account")
 
-        name = google_user.get("name") or ""
-        email = (google_user.get("email") or "").strip().lower()
-        link_token = google_oauth.make_link_token(google_id, email)
-        return jsonify(status="needs_signup", google_name=name, google_email=email, google_link_token=link_token)
+        # Create Account screen's own flow - create the account on the spot instead of
+        # handing off to the sign-up form (see google_oauth.create_account's docstring).
+        business = google_oauth.create_account(google_user)
+        if business is None:
+            return jsonify(status="error")
 
     return jsonify(status="done", token=make_token(business[0]), business_id=business[0], business_name=business[1])
 
