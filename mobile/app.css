@@ -434,7 +434,7 @@ button { font-family: inherit; -webkit-appearance: none; appearance: none; }
 .lang-select-label { white-space: nowrap; }
 /* Flexible spacers above/below the form cluster. Weighted toward the top spacer so the
    cluster sits lower on the screen rather than reading as centered. */
-.login-top-spacer { flex: 1.3; min-height: 8px; }
+.login-top-spacer { flex: 1.85; min-height: 8px; }
 /* Pushes the CTA buttons (and the email/password form, same slot) down toward the
    bottom of the screen independently of the brand block above - see .login-spacer
    below, which now only holds a small clearance before the footer. */
