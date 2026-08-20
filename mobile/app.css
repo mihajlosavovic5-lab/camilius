@@ -536,25 +536,21 @@ button { font-family: inherit; -webkit-appearance: none; appearance: none; }
    don't try to hug it exactly" reasoning as the unscaled 100px above. */
 .login-wrap-email-focus .login-tagline-wrap { max-height: 50px; }
 .login-wrap-email-focus .login-tagline { transform: scale(0.6591); margin-top: 2px; }
-/* Claims essentially all the leftover space above the shrunk mascot/tagline (see
-   .login-mid-spacer/.login-spacer right below, both pinned to ~0 while focused) instead
-   of the small 0.15 share it used to get - that used to leave .login-spacer's own
-   untouched 0.2 share splitting the leftover between top and bottom, which read as the
-   whole compact cluster staying vertically centered on screen instead of sinking down
-   to meet the field. Now all of it collects here, above the cluster, so the mascot/
-   tagline/input group sits low, right against the keyboard, instead of floating mid-
-   screen. */
-.login-wrap-email-focus .login-top-spacer { flex-grow: 1; }
-/* Down to nothing (not just a smaller share) - the field needs to end up flush against
-   the shrunk tagline, same tight coupling as the reference login screen, not "smaller
-   gap but still a gap". */
-.login-wrap-email-focus .login-mid-spacer { flex-grow: 0; min-height: 0; }
-/* Also pinned to nothing while focused (unlike its normal 0.2 share/20px floor) - left
-   alone, that share would keep competing with .login-top-spacer above for the leftover
-   space, splitting it across both ends of the cluster and pulling the mascot/tagline
-   back up toward center. Zeroing it means .login-top-spacer above is the only flexible
-   spacer left, so every bit of leftover room collects there instead. */
-.login-wrap-email-focus .login-spacer { flex-grow: 0; min-height: 0; }
+/* Bumped from 0.15 - at that share, .login-spacer's own fixed 0.2 (below the field,
+   never touched by focus mode) claimed nearly as much of the leftover room as this one,
+   splitting it close to evenly above/below the compact cluster and leaving it reading
+   as still centered on screen instead of settling next to the field. A much bigger share
+   here means most of the leftover collects above the cluster instead, so it sinks down
+   next to the field. Purely a number change - still the same two spacers
+   (.login-top-spacer/.login-mid-spacer) the JS below measures and animates, so the
+   settle/re-settle timing already tuned for keyboard open/close is untouched. */
+.login-wrap-email-focus .login-top-spacer { flex-grow: 3; }
+/* Down to (near) nothing, not just a smaller share - the field needs to end up right
+   under the shrunk tagline, same tight coupling as the reference login screen, not
+   "smaller gap but still a gap" (flex-grow alone can still hand this a big chunk of
+   whatever vertical space the keyboard left, since it's the only other flexible spacer
+   still competing with .login-top-spacer/.login-spacer for it). */
+.login-wrap-email-focus .login-mid-spacer { flex-grow: 0; min-height: 6px; }
 /* Passive "by continuing you agree..." notice, same Terms/Privacy screens the register
    consent checkbox opens (see index.html's own comment above it) - small and muted like
    the build-version footer below it, not competing with the actual CTAs above. Exists
