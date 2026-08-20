@@ -475,11 +475,6 @@ button { font-family: inherit; -webkit-appearance: none; appearance: none; }
     text-align: center; font-size: 13.5px; font-weight: 600; color: var(--text-muted);
     margin: 0 0 10px; padding-top: 14px; border-top: 1px solid var(--border);
 }
-/* Much smaller and centered instead of full-width - at .button's default size this
-   read as a second CTA competing with Log in above it, instead of the low-emphasis
-   secondary action it actually is. ID selector so it wins over .button-full/.button's
-   own width/padding/font-size regardless of stylesheet order. */
-#login-signup-link { width: fit-content; margin: 18px auto 0; padding: 9px 24px; font-size: 14px; }
 /* Build/bundle version footer - see index.html's own comment on #login-build-version for
    why it's repeated here rather than just in Settings. Small and out of the way; it's a
    debug/support aid, not something an ordinary visitor has any reason to read. */
