@@ -1200,13 +1200,15 @@ input.tap-to-edit-field, textarea.tap-to-edit-field { cursor: pointer; backgroun
 }
 @keyframes btn-spinner-spin { to { transform: rotate(360deg); } }
 .btn-loading { pointer-events: none; opacity: .85; }
-/* Overrides the generic .hidden{display:none!important} utility (higher specificity,
-   via the extra #login-google-spinner, wins the !important-vs-!important tie-break) -
-   this spinner needs to keep reserving its flex slot even while "hidden", not collapse
-   out of the layout, so the centered icon+label group next to it sits at the exact same
-   spot whether the spinner is showing or not. Toggling visibility (not display) is what
-   actually hides it. */
-#login-google-spinner.hidden { display: inline-block !important; visibility: hidden; }
+/* #login-google-spinner used to keep reserving its flex slot even while "hidden" (an
+   override of the generic .hidden{display:none!important} utility), so the resting
+   icon+label group would sit at the exact same spot once the real spinner appeared - but
+   that meant the group was actually centered against an invisible spinner-width sliver it
+   doesn't have on the website's own Google button (no spinner there at all), landing it
+   left of the button's true midpoint at rest. Letting .hidden apply normally instead (the
+   spinner fully leaves the layout until shown) matches the website's resting layout
+   exactly; the group re-centering by a few px the moment the real spinner appears during
+   the request is the traded-off cost. */
 
 .register-steps-viewport {
     overflow: hidden; transition: height .22s ease;
