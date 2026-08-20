@@ -419,9 +419,8 @@ button { font-family: inherit; -webkit-appearance: none; appearance: none; }
 }
 .login-lang-row { display: flex; justify-content: center; flex-shrink: 0; }
 .lang-select-btn {
-    display: flex; align-items: center; gap: 5px; cursor: pointer;
-    background: var(--primary); border: 1px solid var(--primary-dark); border-radius: 999px;
-    padding: 10px 22px; transition: transform .12s ease;
+    display: flex; align-items: center; gap: 5px; background: none; border: none; cursor: pointer;
+    padding: 10px 8px; border-radius: 8px; transition: transform .12s ease;
 }
 /* Used to stay highlighted (.active, JS-managed) for as long as the picker modal was
    open - a static box sitting there for the whole duration instead of a tap
@@ -432,11 +431,27 @@ button { font-family: inherit; -webkit-appearance: none; appearance: none; }
    halo appearing around it. */
 .lang-select-btn:active { transform: scale(.96); }
 /* Reads as the screen's small top wordmark now (see the button's own comment in
-   index.html) rather than a "choose language" chip label - white text on the bordered
-   primary-color pill above, now the only "Camilius" wordmark on this screen since
-   .login-brand's own copy was dropped (bigger icon + tagline speak for the brand there
-   instead). */
-.lang-select-label { white-space: nowrap; font-family: var(--font-serif); font-weight: 700; font-size: 20px; color: #fff; }
+   index.html) rather than a "choose language" chip label - now the only "Camilius"
+   wordmark on this screen since .login-brand's own copy was dropped (bigger icon +
+   tagline speak for the brand there instead). Same white-fill/black-ring outline
+   treatment as every screen's own page title (Home, Settings, ... - see
+   .screen-mysite .topbar-title h1 and its own comment above for why this exact
+   8-shadow-copy technique instead of -webkit-text-stroke), reusing the same
+   --title-text/--title-outline vars so it also matches their dark-mode swap
+   (gold-on-black) instead of hardcoding the light-mode colors here. */
+.lang-select-label {
+    white-space: nowrap; font-family: var(--font-heading); font-weight: 700; font-size: 28px;
+    color: var(--title-text);
+    text-shadow:
+        1.3px 0 0.6px var(--title-outline),
+        -1.3px 0 0.6px var(--title-outline),
+        0 1.3px 0.6px var(--title-outline),
+        0 -1.3px 0.6px var(--title-outline),
+        0.9px 0.9px 0.6px var(--title-outline),
+        -0.9px 0.9px 0.6px var(--title-outline),
+        0.9px -0.9px 0.6px var(--title-outline),
+        -0.9px -0.9px 0.6px var(--title-outline);
+}
 /* Flexible spacers above/below the form cluster. Weighted heavily toward the mid
    spacer (brand -> buttons) rather than the top one, so most of the screen's free
    space collects between the tagline and the CTA buttons - buttons end up near the
