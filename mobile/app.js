@@ -3381,17 +3381,24 @@ syncLoginPhaseStackHeight();
 // startup - requestIdleCallback where available, falling back to a plain timeout.
 (window.requestIdleCallback || ((fn) => setTimeout(fn, 200)))(() => warmLoginSpacerHeightCache(el("login-wrap")));
 
-// A real viewport resize (rotation, or the keyboard itself if the platform resizes the
-// layout viewport rather than just the visual one) can invalidate the sizes the cache
-// above was built from - dropped immediately so no focus/blur in between ever animates
-// toward a stale target (syncLoginSpacers' own width/height check would catch this too,
-// but dropping it here is cheaper than measuring a stale-vs-fresh mismatch every time).
-// Re-primed a debounced beat later, off the critical path exactly like the initial call
-// above, so a blur that follows a resize (closing the keyboard right after opening it,
-// the most common case) still gets to skip the clone instead of paying for it again.
+// A real viewport resize (rotation, or the keyboard itself now that interactive-widget=
+// resizes-content - see index.html's own comment - makes the layout viewport track it)
+// can invalidate the sizes the cache above was built from. syncLoginSpacers' own width/
+// height check already guards against ever animating toward a stale target, so this
+// doesn't need to (and used to) also eagerly null the cache the instant a resize fires -
+// that raced the login screen's own back-press revert, which by design fires within
+// ~150ms of the keyboard confirming closed (see the visualViewport listener below):
+// resizes-content reports that same close as a whole burst of "resize" events (the
+// layout genuinely reflowing frame by frame, not one clean jump), each of which nulled
+// the cache all over again, so it was still empty - forcing the slow per-call clone -
+// right as that revert asked for it, a small but visible hitch at the exact moment the
+// animation was supposed to start smoothly. By the time that revert actually fires, the
+// viewport is back to the same resting size the cache was built from in the first place,
+// so there's nothing stale to protect against yet - only debouncing the re-warm (still
+// useful for a genuine rotation, or focusing again at a size the cache doesn't cover)
+// lets a same-size close find the cache exactly as it left it.
 let loginSpacerCacheResizeTimer = null;
 window.addEventListener("resize", () => {
-    loginSpacerHeightCache = null;
     if (loginSpacerCacheResizeTimer) clearTimeout(loginSpacerCacheResizeTimer);
     loginSpacerCacheResizeTimer = setTimeout(() => {
         loginSpacerCacheResizeTimer = null;
