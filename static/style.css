@@ -930,8 +930,14 @@ body.nav-menu-open .site-lang-select-btn { opacity: .3; pointer-events: none; tr
    own branding guidelines (a colored/amber button implies Google endorses this app's
    brand, which the guidelines specifically ask apps not to do) - the color instead comes
    entirely from the multi-color "G" mark itself (_google_icon.html). */
-.button-google { background: #fff; color: #3c4043; border: 1px solid var(--border); }
+/* Grid with two empty, equal-width (1fr) outer columns, rather than trusting .button's
+   own flex justify-content:center to land the icon+label group on the button's true
+   midpoint - the icon+label pair (.button-google-group) goes in the middle column, which
+   the two matching 1fr tracks pin to center by construction, not by relying on the flex
+   line's content width balancing out on its own. */
+.button-google { background: #fff; color: #3c4043; border: 1px solid var(--border); display: grid; grid-template-columns: 1fr auto 1fr; }
 .button-google:hover { background: var(--background); color: #3c4043; box-shadow: 0 4px 10px -6px rgba(43, 32, 19, .18); }
+.button-google-group { grid-column: 2; display: inline-flex; align-items: center; gap: 8px; }
 .button-google-icon { width: 18px; height: 18px; flex-shrink: 0; }
 /* Help & support's "Email us" box and FAQ items - same look as the mobile app's
    .info-card/.block-label (mobile/app.css), reused here for parity. */
