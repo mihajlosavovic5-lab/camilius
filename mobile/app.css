@@ -149,6 +149,10 @@
        an already-dark background. */
     --title-text: #fff;
     --title-outline: rgba(0, 0, 0, .7);
+    /* Neutral gray for the login mascot's line art (see .login-mascot-line) - deliberately
+       NOT --text, which is a warm near-black/brown here, since a flat gray reads as more
+       "product illustration" and less like it's trying to match the warm palette. */
+    --mascot-line: #6b6b6b;
     --radius: 14px;
     --tabbar-h: 58px;
     --safe-top: env(safe-area-inset-top, 0px);
@@ -462,30 +466,27 @@ button { font-family: inherit; -webkit-appearance: none; appearance: none; }
     display: flex; flex-direction: column; align-items: center; gap: 10px; margin: 0 0 30px;
     transition: margin .32s ease;
 }
-/* Wraps the icon so the sparkles below can position themselves relative to it. */
-.login-mascot-wrap { position: relative; display: inline-block; }
-/* The app's own icon, sized well above the 100px badge it used to be - it's the actual
-   hero visual on this screen now, not a small badge. box-shadow (not the old SVG's
-   drop-shadow filter) since this is a solid square image, not transparent line art.
-   height:auto keeps it square as width shrinks in focus mode below (icon-512.png is
-   already 1:1). */
+/* Replaces the old plain app-icon square (see the <svg> itself in index.html for what
+   it depicts) - sized well above the 100px icon it replaces since it's now the actual
+   hero visual, not a small badge. filter (not box-shadow, which only shadows the
+   element's own box - this has transparent background between the line strokes)
+   softens it off the page the same way the old icon's box-shadow did. */
 .login-mascot {
-    width: 156px; height: auto; border-radius: 26%;
-    box-shadow: 0 12px 22px rgba(43,32,19,.22);
+    width: 188px; height: auto; filter: drop-shadow(0 10px 18px rgba(43,32,19,.18));
     animation: login-mascot-float 3.2s ease-in-out infinite;
     transition: width .32s cubic-bezier(.22,.9,.32,1.05);
 }
-/* Small twinkling sparkles riding beside the icon - absolutely positioned within
-   .login-mascot-wrap rather than baked into one SVG's viewBox (as the old illustration
-   had them), so the icon image and the decorative sparkles can be swapped/sized
-   independently. transform-box:fill-box makes each one's twinkle scale() pivot around
-   its own center instead of the whole <svg>'s top-left corner. */
+/* Neutral gray (--mascot-line) rather than --text - reads as a plain product
+   illustration instead of trying to match the site's own warm brown/gold palette. */
+.login-mascot-line { fill: none; stroke: var(--mascot-line); stroke-width: 5; stroke-linecap: round; stroke-linejoin: round; }
+.login-mascot-accent { fill: var(--primary-light); stroke: var(--primary); stroke-width: 4; }
+/* transform-box:fill-box makes the twinkle's scale() pivot around each shape's own
+   center instead of the whole <svg>'s top-left corner (the default for SVG transforms),
+   which would otherwise visibly drift the star/dots sideways as they shrink/grow. */
 .login-mascot-spark {
-    position: absolute; fill: var(--primary); transform-box: fill-box; transform-origin: center;
+    fill: var(--primary); transform-box: fill-box; transform-origin: center;
     animation: login-mascot-twinkle 1.8s ease-in-out infinite;
 }
-.login-mascot-spark-1 { width: 26px; height: 26px; top: -10px; right: -12px; }
-.login-mascot-spark-2 { width: 13px; height: 13px; top: 8px; right: -22px; animation-delay: .5s; }
 /* Gentle bob for the whole illustration and a soft twinkle on the AI sparkle - "it's
    alive" without being distracting. Both paused for anyone who's asked the OS for less
    motion. */
@@ -529,10 +530,6 @@ button { font-family: inherit; -webkit-appearance: none; appearance: none; }
    transform can't trigger that snap - the wrap is always computed at the real (22px)
    size, so it's always the same 2 lines, just visually scaled. */
 .login-wrap-email-focus .login-mascot { width: 64px; }
-/* The sparkles are sized/positioned for the full 156px icon - at the shrunk 64px size
-   they'd read as oversized debris stuck to the corner rather than a deliberate accent,
-   so they just drop out instead of trying to scale down in step. */
-.login-wrap-email-focus .login-mascot-spark { display: none; }
 .login-wrap-email-focus .login-brand { margin-bottom: 14px; }
 /* 50px covers a 2-line tagline (~68px unscaled) at this same 0.6591 scale (~45px) plus
    its own margin, with a little room to spare - same "never clip the real content,
@@ -2844,6 +2841,7 @@ input.tap-to-edit-field, textarea.tap-to-edit-field { cursor: pointer; backgroun
         --shadow: 0 2px 6px rgba(0, 0, 0, .3), 0 1px 2px rgba(0, 0, 0, .25);
         --title-text: #f2b93f;
         --title-outline: rgba(0, 0, 0, .65);
+        --mascot-line: #a3a3a3;
     }
     .avatar, .inbox-avatar { background: rgba(232, 164, 22, .18); }
     input[type="text"], input[type="password"], input[type="email"], input[type="tel"], input[type="number"], textarea { color-scheme: dark; }
@@ -2874,6 +2872,7 @@ input.tap-to-edit-field, textarea.tap-to-edit-field { cursor: pointer; backgroun
     --shadow: 0 2px 6px rgba(0, 0, 0, .3), 0 1px 2px rgba(0, 0, 0, .25);
     --title-text: #f2b93f;
     --title-outline: rgba(0, 0, 0, .65);
+    --mascot-line: #a3a3a3;
     color-scheme: dark;
 }
 :root[data-theme="dark"] .avatar, :root[data-theme="dark"] .inbox-avatar { background: rgba(232, 164, 22, .18); }
@@ -2901,6 +2900,7 @@ input.tap-to-edit-field, textarea.tap-to-edit-field { cursor: pointer; backgroun
     --shadow: 0 2px 6px rgba(38, 32, 20, .05), 0 1px 2px rgba(38, 32, 20, .04);
     --title-text: #fff;
     --title-outline: rgba(0, 0, 0, .7);
+    --mascot-line: #6b6b6b;
     color-scheme: light;
 }
 
