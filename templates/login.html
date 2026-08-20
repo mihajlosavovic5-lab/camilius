@@ -103,13 +103,12 @@
             </a>
             <div class="auth-or-divider"><span data-i18n="login.orDivider">or</span></div>
             {% endif %}
-            {# Clicking this morphs it in place into the bare email input just below (see
-               .auth-email-inline-input) instead of sliding to the old full email+password
-               panel - visual only for now, see the click handler further down: nothing is
-               wired to a backend yet, so typing an email and pressing enter/away currently
-               does nothing. #}
-            <button type="button" class="button button-secondary button-full button-pill" id="login-email-btn" data-i18n="login.continueWithEmail">Continue with email</button>
-            <input type="email" class="auth-email-inline-input hidden" id="login-email-inline" data-i18n-placeholder="login.emailPlaceholder" placeholder="Enter your email" autocomplete="email" autocapitalize="off" autocorrect="off">
+            {# A bare email input from the start (not a "Continue with email" button that
+               reveals one) - same as claude.ai's own login screen. Visual only for now,
+               see the focus handler further down: nothing is wired to a backend yet, so
+               typing an email and pressing enter currently does nothing - it just dims
+               "Continue with Google" while focused. #}
+            <input type="email" class="auth-email-inline-input" id="login-email-input" data-i18n-placeholder="login.emailPlaceholder" placeholder="Enter your email" autocomplete="email" autocapitalize="off" autocorrect="off">
         </div>
 
         <div class="auth-form-wrap" id="login-form-wrap">
@@ -190,30 +189,19 @@
         var backBtn = document.getElementById("login-back-btn");
         var menuBtn = document.getElementById("login-menu-btn");
         // The old full email+password panel (card/backBtn/menuBtn above) no longer opens
-        // from this button - it's still what auth-card-email-active shows on a real
-        // server-rendered login error/message (see .auth-card's class on this page), just
-        // not reachable through a fresh click here anymore. Instead, "Continue with email"
-        // morphs itself in place into a bare email input - same as claude.ai's own login -
-        // visual only for now: nothing below is wired to a backend yet, so there's
-        // deliberately no submit/enter handling on the input.
-        var emailBtn = document.getElementById("login-email-btn");
-        var emailInline = document.getElementById("login-email-inline");
+        // from a click on the email field - it's still what auth-card-email-active shows
+        // on a real server-rendered login error/message (see .auth-card's class on this
+        // page), just not reachable from #login-email-input anymore. That field is a bare
+        // input from the start (see its own comment in the markup above) - focusing it
+        // just dims "Continue with Google", same as claude.ai's own login screen; nothing
+        // below is wired to a backend yet.
+        var emailInput = document.getElementById("login-email-input");
         var googleBtn = document.getElementById("login-google-btn");
-        emailBtn.addEventListener("click", function () {
-            emailBtn.classList.add("hidden");
-            emailInline.classList.remove("hidden");
+        emailInput.addEventListener("focus", function () {
             if (googleBtn) googleBtn.classList.add("auth-google-btn-dim");
-            emailInline.focus();
         });
-        // Reverts back to the plain button if the visitor taps away without typing
-        // anything - otherwise there'd be no way back to the choice screen (the input
-        // itself does nothing yet, see above).
-        emailInline.addEventListener("blur", function () {
-            if (emailInline.value.trim() === "") {
-                emailInline.classList.add("hidden");
-                emailBtn.classList.remove("hidden");
-                if (googleBtn) googleBtn.classList.remove("auth-google-btn-dim");
-            }
+        emailInput.addEventListener("blur", function () {
+            if (googleBtn) googleBtn.classList.remove("auth-google-btn-dim");
         });
         backBtn.addEventListener("click", function () {
             card.classList.remove("auth-card-email-active");

@@ -1036,12 +1036,11 @@ input.tap-to-edit-field, textarea.tap-to-edit-field { cursor: pointer; backgroun
 .button-secondary { background: var(--surface); color: var(--text); border: 1px solid var(--border); }
 .button-primary-outline { color: var(--primary); border-color: var(--primary); }
 .button-pill { border-radius: 999px; }
-/* "Continue with email"'s visual-only inline morph (see index.html/app.js) - a bare
-   pill input takes the button's exact slot in .login-choice, so it needs the same
-   margin-top the .button it swaps with already carries (see .button above) to keep the
-   stack's spacing identical either way. Border/focus glow otherwise come from the
-   generic input[type="email"] rules further up this file. */
-.login-email-inline-input { margin-top: 18px; text-align: center; }
+/* The bare email input on Login's choice screen (see index.html/app.js) - sits where a
+   "Continue with email" button would, so it needs the same margin-top a .button in this
+   stack already carries (see .button above) to keep the spacing consistent. Border/focus
+   glow otherwise come from the generic input[type="email"] rules further up this file. */
+.login-email-input { margin-top: 18px; text-align: center; }
 /* Dims "Continue with Google" while the email field above is active, same cue as the
    reference login screen this was modeled on. */
 .button-google-dim { opacity: .45; pointer-events: none; }
@@ -1079,9 +1078,11 @@ input.tap-to-edit-field, textarea.tap-to-edit-field { cursor: pointer; backgroun
 .login-google-divider::before, .login-google-divider::after {
     content: ""; flex: 1; height: 1px; background: var(--border);
 }
-/* Returns from the revealed email/password form (see #login-email-btn/
-   #login-email-back-btn in app.js) back to the Google/email choice screen - reuses
-   .back-btn's plain 34px circle look, pinned to the screen's actual top-left corner
+/* Returns from the full email/password form (see #login-email-back-btn in app.js) back
+   to the Google/email choice screen - that form isn't reachable from the choice screen
+   itself anymore (see #login-email-input's own comment in index.html), so this button
+   currently has no way to be shown; kept rather than deleted, same as the form itself.
+   Reuses .back-btn's plain 34px circle look, pinned to the screen's actual top-left corner
    (inset by the same padding as .login-wrap itself, not flush against the edge) rather
    than sitting in-flow above the form, matching the .topbar back-btn convention used
    everywhere else in the app. .login-wrap is already position:relative. Its own small
