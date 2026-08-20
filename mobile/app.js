@@ -3153,7 +3153,11 @@ function resetLoginPhase() {
 // the instant it's toggled, so that read is still close to the OLD height, not the new
 // one. The clone has no prior state to transition from, so its layout reflects the
 // target instantly.
-function cloneLoginWrapForMeasurement(loginWrap) {
+// focusedOverride lets a caller measure the "login-wrap-email-focus" state WITHOUT first
+// toggling that class on the real, on-screen loginWrap (see warmLoginSpacerHeightCache()
+// below) - left undefined, the clone just inherits whatever's already on loginWrap, same
+// as before, for the existing focus/blur call site which toggles the real node itself.
+function cloneLoginWrapForMeasurement(loginWrap, focusedOverride) {
     const clone = loginWrap.cloneNode(true);
     // Only the wrapper's own id, not every descendant's - #login-google-btn's own
     // focus-mode collapse (app.css) is written against its id, and stripping ids from
@@ -3166,6 +3170,7 @@ function cloneLoginWrapForMeasurement(loginWrap) {
     // a previous (possibly interrupted) call - cloneNode copies inline style along with
     // everything else, and a leftover override here would corrupt this measurement.
     clone.querySelectorAll(".login-top-spacer, .login-mid-spacer").forEach((node) => node.removeAttribute("style"));
+    if (focusedOverride !== undefined) clone.classList.toggle("login-wrap-email-focus", focusedOverride);
     const rect = loginWrap.getBoundingClientRect();
     clone.style.position = "absolute";
     clone.style.visibility = "hidden";
@@ -3214,6 +3219,55 @@ let loginSpacerAnimFrame = null;
 // itself snapped to whatever the CSS rule now computed for the already-changed viewport.
 // Only the next syncLoginSpacers() call (i.e. the next focus/blur) re-measures and moves
 // these again.
+//
+// "Last" below used to always come from a fresh cloneLoginWrapForMeasurement() call, done
+// synchronously inside this function - cloneNode(true) of the whole #login-wrap subtree,
+// inserted, measured, removed. Timed on a throttled (6x, roughly a low/mid-range Android
+// phone) run of this exact page, that alone took ~30ms of uninterrupted main-thread work,
+// and it was landing at the worst possible moment: right on focus/blur, the same instant
+// the on-screen keyboard starts its own animation. The keyboard itself isn't blocked by
+// that (it's handled off the page's main thread), so it opens/closes on schedule - but
+// nothing on the page can paint until that ~30ms block finishes, which is exactly what
+// read as a delay before this transition (and the plain CSS ones on the mascot/tagline/
+// Google button, gated behind the same synchronous block) visibly started, even though
+// the transition itself, once it does start, was already smooth.
+//
+// loginSpacerHeightCache sidesteps that by doing the same clone-based measurement ahead of
+// time - see warmLoginSpacerHeightCache() below - for BOTH the focused and unfocused
+// target states, while nothing is waiting on the result, so a focus/blur landing after
+// that has already run can skip the clone entirely and read the answer straight out of
+// this cache instead. Keyed on #login-wrap's own rect so a stale cache (a real resize
+// since it was built) is detected and this function falls straight back to the original
+// clone-per-call path - exactly today's behavior - rather than ever animating toward a
+// wrong target.
+let loginSpacerHeightCache = null; // { width, height, focused: [a,b], unfocused: [a,b] }
+
+function readLoginSpacerHeights(node) {
+    return [
+        node.querySelector(".login-top-spacer").getBoundingClientRect().height,
+        node.querySelector(".login-mid-spacer").getBoundingClientRect().height,
+    ];
+}
+
+// Computes and caches both target states at once - called with nothing else waiting on
+// it (see its own call sites below) so this ~30ms (see loginSpacerHeightCache's own
+// comment) never lands in front of an actual focus/blur. Measures via two throwaway
+// clones (cloneLoginWrapForMeasurement's focusedOverride param) rather than toggling
+// #login-wrap's own class - that node is live and on-screen, and flipping its class back
+// and forth here would risk a real, visible flash of "focus mode" for whichever state
+// isn't the one it's actually in right now.
+function warmLoginSpacerHeightCache(loginWrap) {
+    const rect = loginWrap.getBoundingClientRect();
+    if (!rect.width || !rect.height) return; // not laid out yet - nothing to measure
+    const focusedClone = cloneLoginWrapForMeasurement(loginWrap, true);
+    const focused = readLoginSpacerHeights(focusedClone);
+    focusedClone.remove();
+    const unfocusedClone = cloneLoginWrapForMeasurement(loginWrap, false);
+    const unfocused = readLoginSpacerHeights(unfocusedClone);
+    unfocusedClone.remove();
+    loginSpacerHeightCache = { width: rect.width, height: rect.height, focused, unfocused };
+}
+
 function syncLoginSpacers(applyChange) {
     if (loginSpacerAnimFrame) { cancelAnimationFrame(loginSpacerAnimFrame); loginSpacerAnimFrame = null; }
     const loginWrap = el("login-wrap");
@@ -3240,12 +3294,18 @@ function syncLoginSpacers(applyChange) {
     spacers.forEach((node) => node.removeAttribute("style"));
     if (applyChange) applyChange();
 
-    const clone = cloneLoginWrapForMeasurement(loginWrap);
-    const lastHeights = [
-        clone.querySelector(".login-top-spacer").getBoundingClientRect().height,
-        clone.querySelector(".login-mid-spacer").getBoundingClientRect().height,
-    ];
-    clone.remove();
+    const wrapRect = loginWrap.getBoundingClientRect();
+    const cache = loginSpacerHeightCache;
+    const cacheFresh = cache
+        && Math.abs(cache.width - wrapRect.width) < 0.5 && Math.abs(cache.height - wrapRect.height) < 0.5;
+    let lastHeights;
+    if (cacheFresh) {
+        lastHeights = loginWrap.classList.contains("login-wrap-email-focus") ? cache.focused : cache.unfocused;
+    } else {
+        const clone = cloneLoginWrapForMeasurement(loginWrap);
+        lastHeights = readLoginSpacerHeights(clone);
+        clone.remove();
+    }
 
     // Already matching (e.g. this fired for a real resize while idle, or a change too
     // small to move the rounded pixel heights) - skip the whole freeze/thaw dance below,
@@ -3311,6 +3371,33 @@ el("login-email-back-btn").addEventListener("click", resetLoginPhase);
 // before the ResizeObservers above get their own first (async, not-until-next-paint)
 // callback.
 syncLoginPhaseStackHeight();
+
+// Primes loginSpacerHeightCache (see its own comment above syncLoginSpacers) well ahead of
+// the first real focus/blur - #login-wrap already has its real, viewport-driven layout
+// size at this point regardless of whether the Login screen is the one currently showing
+// (.screen positions itself with transform, which doesn't affect layout size), so there's
+// no need to wait for showScreen("login"). Deferred one idle tick purely so this genuinely
+// non-urgent work never competes with anything that IS on the critical path during page
+// startup - requestIdleCallback where available, falling back to a plain timeout.
+(window.requestIdleCallback || ((fn) => setTimeout(fn, 200)))(() => warmLoginSpacerHeightCache(el("login-wrap")));
+
+// A real viewport resize (rotation, or the keyboard itself if the platform resizes the
+// layout viewport rather than just the visual one) can invalidate the sizes the cache
+// above was built from - dropped immediately so no focus/blur in between ever animates
+// toward a stale target (syncLoginSpacers' own width/height check would catch this too,
+// but dropping it here is cheaper than measuring a stale-vs-fresh mismatch every time).
+// Re-primed a debounced beat later, off the critical path exactly like the initial call
+// above, so a blur that follows a resize (closing the keyboard right after opening it,
+// the most common case) still gets to skip the clone instead of paying for it again.
+let loginSpacerCacheResizeTimer = null;
+window.addEventListener("resize", () => {
+    loginSpacerHeightCache = null;
+    if (loginSpacerCacheResizeTimer) clearTimeout(loginSpacerCacheResizeTimer);
+    loginSpacerCacheResizeTimer = setTimeout(() => {
+        loginSpacerCacheResizeTimer = null;
+        warmLoginSpacerHeightCache(el("login-wrap"));
+    }, 200);
+});
 
 // --- Forgot password (its own native screen, pushed on top of Login - no browser
 // involved at all, unlike the old flow which opened the website's page in a browser tab) ---
