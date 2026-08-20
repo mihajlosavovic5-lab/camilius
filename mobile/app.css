@@ -149,6 +149,10 @@
        an already-dark background. */
     --title-text: #fff;
     --title-outline: rgba(0, 0, 0, .7);
+    /* Neutral gray for the login mascot's line art (see .login-mascot-line) - deliberately
+       NOT --text, which is a warm near-black/brown here, since a flat gray reads as more
+       "product illustration" and less like it's trying to match the warm palette. */
+    --mascot-line: #6b6b6b;
     --radius: 14px;
     --tabbar-h: 58px;
     --safe-top: env(safe-area-inset-top, 0px);
@@ -464,12 +468,35 @@ button { font-family: inherit; -webkit-appearance: none; appearance: none; }
    hero visual, not a small badge. filter (not box-shadow, which only shadows the
    element's own box - this has transparent background between the line strokes)
    softens it off the page the same way the old icon's box-shadow did. */
-.login-mascot { width: 168px; height: auto; filter: drop-shadow(0 10px 18px rgba(43,32,19,.18)); }
-.login-mascot-line { fill: none; stroke: var(--text); stroke-width: 5; stroke-linecap: round; stroke-linejoin: round; }
+.login-mascot {
+    width: 188px; height: auto; filter: drop-shadow(0 10px 18px rgba(43,32,19,.18));
+    animation: login-mascot-float 3.2s ease-in-out infinite;
+}
+/* Neutral gray (--mascot-line) rather than --text - reads as a plain product
+   illustration instead of trying to match the site's own warm brown/gold palette. */
+.login-mascot-line { fill: none; stroke: var(--mascot-line); stroke-width: 5; stroke-linecap: round; stroke-linejoin: round; }
 .login-mascot-accent { fill: var(--primary-light); stroke: var(--primary); stroke-width: 4; }
-.login-mascot-spark { fill: var(--primary); }
-/* Small brand-colored flourish under the mascot - another plain-vs-original cue. */
-.login-accent { display: block; width: 34px; height: 3px; border-radius: 99px; background: var(--primary); }
+/* transform-box:fill-box makes the twinkle's scale() pivot around each shape's own
+   center instead of the whole <svg>'s top-left corner (the default for SVG transforms),
+   which would otherwise visibly drift the star/dots sideways as they shrink/grow. */
+.login-mascot-spark {
+    fill: var(--primary); transform-box: fill-box; transform-origin: center;
+    animation: login-mascot-twinkle 1.8s ease-in-out infinite;
+}
+/* Gentle bob for the whole illustration and a soft twinkle on the AI sparkle - "it's
+   alive" without being distracting. Both paused for anyone who's asked the OS for less
+   motion. */
+@keyframes login-mascot-float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-8px); }
+}
+@keyframes login-mascot-twinkle {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: .5; transform: scale(.8); }
+}
+@media (prefers-reduced-motion: reduce) {
+    .login-mascot, .login-mascot-spark { animation: none; }
+}
 .login-tagline { margin: 6px 0 0; font-size: 22px; color: var(--text-muted); text-align: center; }
 /* Passive "by continuing you agree..." notice, same Terms/Privacy screens the register
    consent checkbox opens (see index.html's own comment above it) - small and muted like
@@ -2710,6 +2737,7 @@ input.tap-to-edit-field, textarea.tap-to-edit-field { cursor: pointer; backgroun
         --shadow: 0 2px 6px rgba(0, 0, 0, .3), 0 1px 2px rgba(0, 0, 0, .25);
         --title-text: #f2b93f;
         --title-outline: rgba(0, 0, 0, .65);
+        --mascot-line: #a3a3a3;
     }
     .avatar, .inbox-avatar { background: rgba(232, 164, 22, .18); }
     input[type="text"], input[type="password"], input[type="email"], input[type="tel"], input[type="number"], textarea { color-scheme: dark; }
@@ -2740,6 +2768,7 @@ input.tap-to-edit-field, textarea.tap-to-edit-field { cursor: pointer; backgroun
     --shadow: 0 2px 6px rgba(0, 0, 0, .3), 0 1px 2px rgba(0, 0, 0, .25);
     --title-text: #f2b93f;
     --title-outline: rgba(0, 0, 0, .65);
+    --mascot-line: #a3a3a3;
     color-scheme: dark;
 }
 :root[data-theme="dark"] .avatar, :root[data-theme="dark"] .inbox-avatar { background: rgba(232, 164, 22, .18); }
@@ -2767,6 +2796,7 @@ input.tap-to-edit-field, textarea.tap-to-edit-field { cursor: pointer; backgroun
     --shadow: 0 2px 6px rgba(38, 32, 20, .05), 0 1px 2px rgba(38, 32, 20, .04);
     --title-text: #fff;
     --title-outline: rgba(0, 0, 0, .7);
+    --mascot-line: #6b6b6b;
     color-scheme: light;
 }
 
