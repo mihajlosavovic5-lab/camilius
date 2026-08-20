@@ -97,7 +97,7 @@
                (mobile/app.js), instead of bouncing them off with a "no account" error. #}
             <a class="button button-google button-full button-pill" id="login-google-btn" href="{{ url_for('auth_google') }}">
                 {% include "_google_icon.html" %}
-                <span class="button-google-label" data-i18n="login.continueWithGoogle">Continue with Google</span>
+                <span data-i18n="login.continueWithGoogle">Continue with Google</span>
             </a>
             <div class="auth-or-divider"><span data-i18n="login.orDivider">or</span></div>
             {% endif %}
