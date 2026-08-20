@@ -1,5 +1,5 @@
 <!doctype html>
-<html data-bundle-version="478e1f800074" lang="en">
+<html data-bundle-version="b45c27b17d96" lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
@@ -16,7 +16,7 @@
 <link rel="preload" href="fonts/lora-latin-ext.woff2?v=e8c32fe92ded" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="fonts/familjen-grotesk-latin.woff2?v=e8c32fe92ded" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="fonts/familjen-grotesk-latin-ext.woff2?v=e8c32fe92ded" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="app.css?v=478e1f800074">
+<link rel="stylesheet" href="app.css?v=b45c27b17d96">
 </head>
 <body>
 
@@ -632,8 +632,13 @@
         <!-- A bare email input from the start (not a "Continue with email" button that
              reveals one) - same as claude.ai's own login screen. Visual only for now, see
              the focus handler in app.js: nothing here is wired to a backend yet, it just
-             dims "Continue with Google" while this is focused. -->
-        <input type="email" id="login-email-input" class="button-full button-pill login-email-input" data-i18n-placeholder="login.emailPlaceholder" placeholder="Enter your email" autocomplete="email" autocapitalize="off" autocorrect="off">
+             dims "Continue with Google" while this is focused. The send button beside it
+             is pure CSS (:not(:placeholder-shown) in app.css) - shows itself once there's
+             any text, no JS needed - and isn't wired to anything either yet. -->
+        <div class="login-email-input-wrap">
+          <input type="email" id="login-email-input" class="button-full button-pill login-email-input" data-i18n-placeholder="login.emailPlaceholder" placeholder="Enter your email" autocomplete="email" autocapitalize="off" autocorrect="off">
+          <button type="button" class="login-email-send-btn" id="login-email-send-btn" aria-label="Continue" tabindex="-1">&rsaquo;</button>
+        </div>
 
         <!-- Lives inside each phase's own panel (this one and .login-email-form's below),
              not as a single shared block after .login-phase-stack - that block used to sit
@@ -1923,8 +1928,8 @@
   </button>
 </nav>
 
-<script src="i18n.js?v=478e1f800074"></script>
-<script src="hours-picker.js?v=478e1f800074"></script>
-<script src="app.js?v=478e1f800074"></script>
+<script src="i18n.js?v=b45c27b17d96"></script>
+<script src="hours-picker.js?v=b45c27b17d96"></script>
+<script src="app.js?v=b45c27b17d96"></script>
 </body>
 </html>

@@ -107,8 +107,13 @@
                reveals one) - same as claude.ai's own login screen. Visual only for now,
                see the focus handler further down: nothing is wired to a backend yet, so
                typing an email and pressing enter currently does nothing - it just dims
-               "Continue with Google" while focused. #}
-            <input type="email" class="auth-email-inline-input" id="login-email-input" data-i18n-placeholder="login.emailPlaceholder" placeholder="Enter your email" autocomplete="email" autocapitalize="off" autocorrect="off">
+               "Continue with Google" while focused. The send button beside it is pure CSS
+               (:not(:placeholder-shown) in style.css) - shows itself once there's any
+               text, no JS needed - and isn't wired to anything either yet. #}
+            <div class="auth-email-input-wrap">
+                <input type="email" class="auth-email-inline-input" id="login-email-input" data-i18n-placeholder="login.emailPlaceholder" placeholder="Enter your email" autocomplete="email" autocapitalize="off" autocorrect="off">
+                <button type="button" class="auth-email-send-btn" id="login-email-send-btn" aria-label="Continue" tabindex="-1">&rsaquo;</button>
+            </div>
         </div>
 
         <div class="auth-form-wrap" id="login-form-wrap">

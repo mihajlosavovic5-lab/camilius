@@ -1036,11 +1036,30 @@ input.tap-to-edit-field, textarea.tap-to-edit-field { cursor: pointer; backgroun
 .button-secondary { background: var(--surface); color: var(--text); border: 1px solid var(--border); }
 .button-primary-outline { color: var(--primary); border-color: var(--primary); }
 .button-pill { border-radius: 999px; }
-/* The bare email input on Login's choice screen (see index.html/app.js) - sits where a
-   "Continue with email" button would, so it needs the same margin-top a .button in this
-   stack already carries (see .button above) to keep the spacing consistent. Border/focus
-   glow otherwise come from the generic input[type="email"] rules further up this file. */
-.login-email-input { margin-top: 18px; text-align: center; }
+/* The bare email input on Login's choice screen (see index.html/app.js) - the wrap sits
+   where a "Continue with email" button would, so it needs the same margin-top a .button
+   in this stack already carries (see .button above) to keep the spacing consistent.
+   Centered while showing the placeholder (nothing typed yet); left-aligned with room for
+   the send button once there's real text - see the :not(:placeholder-shown) override
+   below, no JS involved in either switch. Border/focus glow come from the generic
+   input[type="email"] rules further up this file. */
+.login-email-input-wrap { position: relative; margin-top: 18px; }
+.login-email-input { text-align: center; }
+.login-email-input:not(:placeholder-shown) { text-align: left; padding-right: 54px; }
+/* Send button beside the email input - shows itself purely via the :not(:placeholder-shown)
+   sibling rule below the moment there's any text, no "input" listener needed. Visual only
+   for now, like the field itself - nothing is wired to it yet. */
+.login-email-send-btn {
+    position: absolute; top: 50%; right: 6px; transform: translateY(-50%) scale(.6);
+    width: 36px; height: 36px; border-radius: 50%; border: none;
+    background: var(--primary); color: #fff; font-size: 21px; line-height: 1; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    opacity: 0; pointer-events: none;
+    transition: opacity .15s ease, transform .15s ease;
+}
+.login-email-input:not(:placeholder-shown) ~ .login-email-send-btn {
+    opacity: 1; transform: translateY(-50%) scale(1); pointer-events: auto;
+}
 /* Dims "Continue with Google" while the email field above is active, same cue as the
    reference login screen this was modeled on. */
 .button-google-dim { opacity: .45; pointer-events: none; }
