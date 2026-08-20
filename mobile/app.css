@@ -540,10 +540,10 @@ button { font-family: inherit; -webkit-appearance: none; appearance: none; }
    longer fit, instead of staying two lines throughout at a smoothly changing size.
    transform can't trigger that snap - the wrap is always computed at the real (22px)
    size, so it's always the same 2 lines, just visually scaled. */
-/* 100px (up from an earlier, much smaller 64px) - readable at a glance beats "as small
-   as it can possibly be" now that .login-top-spacer below actually sinks the whole
-   cluster down against the field instead of leaving it floating mid-screen; shrinking it
-   that hard read as an overcorrection once the block is sitting right where it should. */
+/* 100px (up from an earlier, much smaller 64px), sized against the reference login
+   screen's own mascot (roughly a fifth of its screen width there too) - readable at a
+   glance beats "as small as it can possibly be" now that the field stays comfortably
+   above the keyboard either way. */
 .login-wrap-email-focus .login-mascot { width: 100px; }
 .login-wrap-email-focus .login-brand { margin-bottom: 14px; }
 /* 64px covers a 2-line tagline (~68px unscaled) at this same 0.78 scale (~53px) plus its
@@ -552,15 +552,20 @@ button { font-family: inherit; -webkit-appearance: none; appearance: none; }
    aggressive, "readable over minimal" call as the mascot's own width just above). */
 .login-wrap-email-focus .login-tagline-wrap { max-height: 64px; }
 .login-wrap-email-focus .login-tagline { transform: scale(0.78); margin-top: 2px; }
-/* Up from a bare 0.15 - at that share, .login-spacer's own fixed 0.2 (below the field,
-   never touched by focus mode) claimed MORE of the leftover room than this one did,
-   so the extra space collected below everything instead of above the cluster, reading
-   as the mascot/tagline still floating mid-screen between the header and the field
-   rather than settling snug against it, same reference-login-screen look the field's own
-   focus mode is going for. A much bigger share here (5x .login-spacer's own 0.2, instead
-   of less than it) means nearly all the leftover space collects above the cluster,
-   sinking it down to sit right against the field. */
-.login-wrap-email-focus .login-top-spacer { flex-grow: 1; }
+/* This spacer sits ABOVE the mascot, so growing IT grows the gap between the header and
+   the mascot, pushing the whole cluster further DOWN the screen - not the same thing as
+   "closer to the field" (that's .login-mid-spacer below, already pinned to near-zero).
+   A first attempt at fixing the cluster reading as centered between the header and the
+   field (see this rule's own git history) swung this too far the other way - flex-grow:1
+   against .login-spacer's own fixed 0.2 (5:1) pushed the cluster almost all the way down
+   to the field, cramped right against the keyboard with barely any breathing room below
+   the legal text. Measured off the reference login screen's own proportions instead
+   (its gap between header and mascot vs. its gap between the legal text and the
+   keyboard came out to roughly 2.4:1): flex-grow:0.5 against .login-spacer's 0.2 is that
+   same ~2.4:1 ratio, landing the cluster closer to the header than to the field - a
+   real, deliberate gap above it, not the field-hugging crowded look 1 produced, and not
+   the near-even split 0.15 read as "centered" either. */
+.login-wrap-email-focus .login-top-spacer { flex-grow: 0.5; }
 /* Down to (near) nothing, not just a smaller share - the field needs to end up right
    under the shrunk tagline, same tight coupling as the reference login screen, not
    "smaller gap but still a gap" (flex-grow alone can still hand this a big chunk of
