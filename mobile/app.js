@@ -3500,8 +3500,10 @@ function showLegalScreen(name, returnTo) {
 }
 el("register-view-terms").addEventListener("click", () => showLegalScreen("terms", "register"));
 el("register-view-privacy").addEventListener("click", () => showLegalScreen("privacy", "register"));
-el("login-view-terms").addEventListener("click", () => showLegalScreen("terms", "login"));
-el("login-view-privacy").addEventListener("click", () => showLegalScreen("privacy", "login"));
+// Two instances now (one in .login-choice, one in .login-email-form - see their shared
+// comment in index.html), so these are classes rather than ids, wired to every match.
+document.querySelectorAll(".login-legal-terms-link").forEach((btn) => btn.addEventListener("click", () => showLegalScreen("terms", "login")));
+document.querySelectorAll(".login-legal-privacy-link").forEach((btn) => btn.addEventListener("click", () => showLegalScreen("privacy", "login")));
 el("terms-back").addEventListener("click", () => showScreen(legalReturnTo));
 el("privacy-back").addEventListener("click", () => showScreen(legalReturnTo));
 

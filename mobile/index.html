@@ -1,5 +1,5 @@
 <!doctype html>
-<html data-bundle-version="60f25a3dae82" lang="en">
+<html data-bundle-version="c13fdedc5c2c" lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
@@ -16,7 +16,7 @@
 <link rel="preload" href="fonts/lora-latin-ext.woff2?v=e8c32fe92ded" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="fonts/familjen-grotesk-latin.woff2?v=e8c32fe92ded" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="fonts/familjen-grotesk-latin-ext.woff2?v=e8c32fe92ded" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="app.css?v=60f25a3dae82">
+<link rel="stylesheet" href="app.css?v=c13fdedc5c2c">
 </head>
 <body>
 
@@ -610,6 +610,20 @@
         </button>
         <div class="login-google-divider" data-i18n="login.orDivider">or</div>
         <button type="button" id="login-email-btn" class="button button-secondary button-full button-pill button-tap-scale" data-i18n="login.continueWithEmail">Continue with email</button>
+
+        <!-- Lives inside each phase's own panel (this one and .login-email-form's below),
+             not as a single shared block after .login-phase-stack - that block used to sit
+             after the *grid row's* height, which .login-phase-stack always sizes to the
+             taller email-form panel (see that class's own comment), so on this shorter
+             choice panel it rendered with a big dead gap above it instead of sitting right
+             under these two buttons. Duplicated instead of shared; see the terms/privacy
+             buttons' shared classes (not ids, since this now exists twice) in app.js. -->
+        <p class="login-legal-disclaimer">
+          <span data-i18n="login.legalPrefix">By continuing, you agree to our</span>
+          <button type="button" class="link-btn link-btn-inline login-legal-terms-link" data-i18n="register.viewTerms">Terms of Service</button>
+          <span data-i18n="register.acceptAnd">and</span>
+          <button type="button" class="link-btn link-btn-inline login-legal-privacy-link" data-i18n="register.viewPrivacy">Privacy Policy</button>.
+        </p>
       </div>
 
       <div class="login-email-form" id="login-email-form">
@@ -639,20 +653,17 @@
              form, instead of being visible on the very first screen too. -->
         <div class="login-signup-divider"><span data-i18n="login.newHere">New to Camilius?</span></div>
         <button type="button" id="login-signup-link" class="button button-secondary button-full button-pill button-primary-outline button-tap-scale" data-i18n="login.signup">Create account</button>
-      </div>
-      </div>
 
-      <!-- Same Terms/Privacy screens the register consent checkbox already opens (see
-           #register-view-terms/#register-view-privacy above and their showLegalScreen()
-           wiring in app.js) - reused here as a passive disclaimer rather than a checkbox,
-           same idea as Claude's own login screen. Sits outside .login-phase-stack so it
-           shows in both the choice and email-form phases. -->
-      <p class="login-legal-disclaimer">
-        <span data-i18n="login.legalPrefix">By continuing, you agree to our</span>
-        <button type="button" class="link-btn link-btn-inline" id="login-view-terms" data-i18n="register.viewTerms">Terms of Service</button>
-        <span data-i18n="register.acceptAnd">and</span>
-        <button type="button" class="link-btn link-btn-inline" id="login-view-privacy" data-i18n="register.viewPrivacy">Privacy Policy</button>.
-      </p>
+        <!-- Second instance of the same disclaimer - see the comment on .login-choice's
+             copy above for why this isn't a single shared block after .login-phase-stack. -->
+        <p class="login-legal-disclaimer">
+          <span data-i18n="login.legalPrefix">By continuing, you agree to our</span>
+          <button type="button" class="link-btn link-btn-inline login-legal-terms-link" data-i18n="register.viewTerms">Terms of Service</button>
+          <span data-i18n="register.acceptAnd">and</span>
+          <button type="button" class="link-btn link-btn-inline login-legal-privacy-link" data-i18n="register.viewPrivacy">Privacy Policy</button>.
+        </p>
+      </div>
+      </div>
 
       <div class="login-spacer"></div>
 
@@ -1895,8 +1906,8 @@
   </button>
 </nav>
 
-<script src="i18n.js?v=60f25a3dae82"></script>
-<script src="hours-picker.js?v=60f25a3dae82"></script>
-<script src="app.js?v=60f25a3dae82"></script>
+<script src="i18n.js?v=c13fdedc5c2c"></script>
+<script src="hours-picker.js?v=c13fdedc5c2c"></script>
+<script src="app.js?v=c13fdedc5c2c"></script>
 </body>
 </html>
