@@ -1817,11 +1817,14 @@ body.auth {
 .auth-email-inline-input:not(:placeholder-shown) { text-align: left; padding-right: 54px; }
 /* Send button beside the email input - shows itself purely via the :not(:placeholder-shown)
    sibling rule below the moment there's any text, no "input" listener needed. Visual only
-   for now, like the field itself - nothing is wired to it yet. */
+   for now, like the field itself - nothing is wired to it yet. Outlined (amber border,
+   surface fill) rather than solid-filled, same look as .button-primary-outline elsewhere
+   on this page - a filled circle read as too heavy/loud next to the plain-bordered field
+   it sits inside. */
 .auth-email-send-btn {
     position: absolute; top: 50%; right: 6px; transform: translateY(-50%) scale(.6);
-    width: 34px; height: 34px; border-radius: 50%; border: none;
-    background: var(--primary); color: #fff; font-size: 20px; line-height: 1; cursor: pointer;
+    width: 34px; height: 34px; border-radius: 50%; border: 1.5px solid var(--primary);
+    background: var(--surface); color: var(--primary); font-size: 20px; line-height: 1; cursor: pointer;
     display: flex; align-items: center; justify-content: center;
     opacity: 0; pointer-events: none;
     transition: opacity .15s ease, transform .15s ease;
