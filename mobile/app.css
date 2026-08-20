@@ -539,12 +539,18 @@ button { font-family: inherit; -webkit-appearance: none; appearance: none; }
 /* Bumped from 0.15 - at that share, .login-spacer's own fixed 0.2 (below the field,
    never touched by focus mode) claimed nearly as much of the leftover room as this one,
    splitting it close to evenly above/below the compact cluster and leaving it reading
-   as still centered on screen instead of settling next to the field. A much bigger share
-   here means most of the leftover collects above the cluster instead, so it sinks down
-   next to the field. Purely a number change - still the same two spacers
-   (.login-top-spacer/.login-mid-spacer) the JS below measures and animates, so the
-   settle/re-settle timing already tuned for keyboard open/close is untouched. */
-.login-wrap-email-focus .login-top-spacer { flex-grow: 3; }
+   as still centered on screen instead of settling next to the field. A bigger share
+   here means more of the leftover collects above the cluster instead, so it settles
+   lower, closer to the field. Kept modest (not a much larger number) now that the
+   viewport meta's own interactive-widget=resizes-content (see index.html) makes this
+   percentage apply against the REAL, already keyboard-reduced viewport height instead
+   of the full, keyboard-closed one the WebView previously reported while silently
+   panning the difference away underneath - going bigger here would once again just
+   push the cluster toward/past the keyboard's own edge. Purely a number change - still
+   the same two spacers (.login-top-spacer/.login-mid-spacer) the JS below measures and
+   animates, so the settle/re-settle timing already tuned for keyboard open/close is
+   untouched. */
+.login-wrap-email-focus .login-top-spacer { flex-grow: 1; }
 /* Down to (near) nothing, not just a smaller share - the field needs to end up right
    under the shrunk tagline, same tight coupling as the reference login screen, not
    "smaller gap but still a gap" (flex-grow alone can still hand this a big chunk of

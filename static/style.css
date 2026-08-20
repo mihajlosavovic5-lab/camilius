@@ -1852,10 +1852,13 @@ body.auth {
    still claims the rest, so at 0.7 the leftover freed up by the brand shrinking above
    kept splitting close to evenly between the space above the brand and the empty room
    left inside the card below the choice content, reading as the whole cluster staying
-   centered instead of settling down next to the field. A much bigger share here means
-   most of that leftover collects above the brand instead, sinking brand+field down as
-   one block. */
-#login-wrapper.auth-wrapper-email-focus .auth-top-spacer { flex-grow: 3; }
+   centered instead of settling down next to the field. A bigger share here means more
+   of that leftover collects above the brand instead, sinking brand+field down as one
+   block. Kept modest (not a much larger number) now that the viewport meta's own
+   interactive-widget=resizes-content (see login.html's own {% block viewport %}) makes
+   this percentage apply against the REAL, already keyboard-reduced viewport height on
+   mobile web instead of the full one a panning browser used to report. */
+#login-wrapper.auth-wrapper-email-focus .auth-top-spacer { flex-grow: 1; }
 #login-wrapper.auth-wrapper-email-focus .auth-tagline { font-size: 12px; margin-top: 2px; }
 #login-wrapper.auth-wrapper-email-focus #login-google-btn,
 #login-wrapper.auth-wrapper-email-focus .auth-or-divider {

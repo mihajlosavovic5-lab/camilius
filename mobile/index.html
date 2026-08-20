@@ -1,8 +1,21 @@
 <!doctype html>
-<html data-bundle-version="ba46afcc9ff1" lang="en">
+<html data-bundle-version="3102fc29928c" lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<!-- interactive-widget=resizes-content - without it, the default (resizes-visual) leaves
+     the layout viewport at its full, keyboard-closed height and instead has the
+     WebView auto-PAN the whole page (fixed-position content included - #app's own
+     position:fixed doesn't opt out of this, since visual-viewport panning shifts what
+     part of the fixed layout is currently visible, not the layout itself) up just far
+     enough to keep the focused field above the keyboard. That's what was dragging
+     #login-wrap's own top (.login-lang-row's "Camilius" wordmark) out of view on focus
+     and back on blur, independently of and on top of setLoginEmailFocusMode()'s own
+     compacting - two separate motions fighting each other, not one. This makes the
+     layout viewport itself shrink to the keyboard-reduced size instead, so
+     window.visualViewport (already what every keyboard-aware listener in app.js reads)
+     and the actual on-screen layout finally agree, and the WebView never needs to pan.
+     Ignored (falling back to today's behavior) on anything old enough not to know it. -->
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no, interactive-widget=resizes-content">
 <title>Camilius</title>
 <!-- Preloaded ahead of app.css's own @font-face rules so these start fetching the
      moment parsing reaches <head>, instead of waiting on the CSS to be parsed first -
@@ -16,7 +29,7 @@
 <link rel="preload" href="fonts/lora-latin-ext.woff2?v=e8c32fe92ded" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="fonts/familjen-grotesk-latin.woff2?v=e8c32fe92ded" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="fonts/familjen-grotesk-latin-ext.woff2?v=e8c32fe92ded" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="app.css?v=ba46afcc9ff1">
+<link rel="stylesheet" href="app.css?v=3102fc29928c">
 </head>
 <body>
 
@@ -1935,8 +1948,8 @@
   </button>
 </nav>
 
-<script src="i18n.js?v=ba46afcc9ff1"></script>
-<script src="hours-picker.js?v=ba46afcc9ff1"></script>
-<script src="app.js?v=ba46afcc9ff1"></script>
+<script src="i18n.js?v=3102fc29928c"></script>
+<script src="hours-picker.js?v=3102fc29928c"></script>
+<script src="app.js?v=3102fc29928c"></script>
 </body>
 </html>
