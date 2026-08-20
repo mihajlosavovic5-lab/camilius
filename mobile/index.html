@@ -1,5 +1,5 @@
 <!doctype html>
-<html data-bundle-version="d4c49fc0b727" lang="en">
+<html data-bundle-version="715307ca8258" lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
@@ -16,7 +16,7 @@
 <link rel="preload" href="fonts/lora-latin-ext.woff2?v=e8c32fe92ded" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="fonts/familjen-grotesk-latin.woff2?v=e8c32fe92ded" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="fonts/familjen-grotesk-latin-ext.woff2?v=e8c32fe92ded" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="app.css?v=d4c49fc0b727">
+<link rel="stylesheet" href="app.css?v=715307ca8258">
 </head>
 <body>
 
@@ -593,7 +593,14 @@
           <circle class="login-mascot-spark" cx="213" cy="60" r="3.2"/>
           <circle class="login-mascot-spark" cx="205" cy="18" r="2.4"/>
         </svg>
-        <p class="login-tagline" data-i18n="login.tagline">The AI that builds your website.</p>
+        <!-- Wrapped so the "focus mode" shrink (app.css) can clip around a scaled-down
+             .login-tagline instead of shrinking its font-size directly - see that rule's
+             own comment for why (this text wraps to 2 lines at full size in most
+             languages; animating font-size instead crossed the 1-line/2-line wrap
+             threshold mid-transition, snapping the layout instead of just resizing it). -->
+        <div class="login-tagline-wrap">
+          <p class="login-tagline" data-i18n="login.tagline">The AI that builds your website.</p>
+        </div>
       </div>
 
       <div id="login-error" class="alert alert-error hidden"></div>
@@ -1928,8 +1935,8 @@
   </button>
 </nav>
 
-<script src="i18n.js?v=d4c49fc0b727"></script>
-<script src="hours-picker.js?v=d4c49fc0b727"></script>
-<script src="app.js?v=d4c49fc0b727"></script>
+<script src="i18n.js?v=715307ca8258"></script>
+<script src="hours-picker.js?v=715307ca8258"></script>
+<script src="app.js?v=715307ca8258"></script>
 </body>
 </html>

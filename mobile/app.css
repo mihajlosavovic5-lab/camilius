@@ -501,20 +501,41 @@ button { font-family: inherit; -webkit-appearance: none; appearance: none; }
 @media (prefers-reduced-motion: reduce) {
     .login-mascot, .login-mascot-spark { animation: none; }
 }
+/* Clips around .login-tagline's own scale-down in focus mode below instead of the
+   tagline itself carrying a max-height - transform doesn't shrink the box an element
+   occupies for layout purposes (only how it paints), so something has to reclaim the
+   freed space, and it can't be the scaled element's own box. 100px comfortably covers
+   even a 3-line translation at the full 22px size (2 lines is already ~68px, at 1.55
+   line-height) with room to spare - this only needs to never clip the idle state, not
+   hug it tightly. */
+.login-tagline-wrap { overflow: hidden; transition: max-height .32s ease; max-height: 100px; }
 .login-tagline {
     margin: 6px 0 0; font-size: 22px; color: var(--text-muted); text-align: center;
-    transition: font-size .32s ease, margin .32s ease;
+    transform-origin: top center;
+    transition: transform .32s ease, margin .32s ease;
 }
 /* "Focus mode" for the email field (see setLoginEmailFocusMode() in app.js) - shrinks
    the mascot/tagline above and collapses "Continue with Google" + its divider out of the
    way while the field is focused, so the field stays in view above the keyboard instead
    of getting pushed under it, same compacting move claude.ai's own login screen does.
    Driven by one class on #login-wrap; the properties actually being animated (width,
-   font-size, margin, flex-grow, max-height, opacity) each carry their own transition on
-   their base rule above/below so this class swap is the only thing JS has to do. */
+   transform, flex-grow, max-height, opacity) each carry their own transition on their
+   base rule above/below so this class swap is the only thing JS has to do.
+
+   The tagline scales down (transform) rather than shrinking font-size - this text wraps
+   to 2 lines at its full size in most languages, and animating font-size instead crossed
+   the 1-line/2-line wrap threshold partway through the transition: for a beat it was
+   still one (growing/shrinking, ever-wider) line before snapping to two once it no
+   longer fit, instead of staying two lines throughout at a smoothly changing size.
+   transform can't trigger that snap - the wrap is always computed at the real (22px)
+   size, so it's always the same 2 lines, just visually scaled. */
 .login-wrap-email-focus .login-mascot { width: 64px; }
 .login-wrap-email-focus .login-brand { margin-bottom: 14px; }
-.login-wrap-email-focus .login-tagline { font-size: 14.5px; margin-top: 2px; }
+/* 50px covers a 2-line tagline (~68px unscaled) at this same 0.6591 scale (~45px) plus
+   its own margin, with a little room to spare - same "never clip the real content,
+   don't try to hug it exactly" reasoning as the unscaled 100px above. */
+.login-wrap-email-focus .login-tagline-wrap { max-height: 50px; }
+.login-wrap-email-focus .login-tagline { transform: scale(0.6591); margin-top: 2px; }
 .login-wrap-email-focus .login-top-spacer { flex-grow: 0.15; }
 /* Down to (near) nothing, not just a smaller share - the field needs to end up right
    under the shrunk tagline, same tight coupling as the reference login screen, not
