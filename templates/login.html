@@ -3,7 +3,7 @@
 {% block body_class %}auth auth-login{% endblock %}
 
 {% block content %}
-<div class="auth-wrapper">
+<div class="auth-wrapper" id="login-wrapper">
     {# Lives outside .auth-card entirely (unlike before) - now that the card has no visible
        background/border of its own (Faza 9: matching the APK's cardless login screen, see
        .auth-card below), the back button reads as belonging to the whole screen, pinned to
@@ -198,15 +198,16 @@
         // on a real server-rendered login error/message (see .auth-card's class on this
         // page), just not reachable from #login-email-input anymore. That field is a bare
         // input from the start (see its own comment in the markup above) - focusing it
-        // just dims "Continue with Google", same as claude.ai's own login screen; nothing
-        // below is wired to a backend yet.
+        // shrinks the brand mark/tagline and collapses "Continue with Google" out of the
+        // way (see #login-wrapper.auth-wrapper-email-focus in style.css), same as
+        // claude.ai's own login screen; nothing below is wired to a backend yet.
         var emailInput = document.getElementById("login-email-input");
-        var googleBtn = document.getElementById("login-google-btn");
+        var loginWrapper = document.getElementById("login-wrapper");
         emailInput.addEventListener("focus", function () {
-            if (googleBtn) googleBtn.classList.add("auth-google-btn-dim");
+            loginWrapper.classList.add("auth-wrapper-email-focus");
         });
         emailInput.addEventListener("blur", function () {
-            if (googleBtn) googleBtn.classList.remove("auth-google-btn-dim");
+            loginWrapper.classList.remove("auth-wrapper-email-focus");
         });
         backBtn.addEventListener("click", function () {
             card.classList.remove("auth-card-email-active");

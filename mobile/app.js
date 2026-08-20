@@ -3101,10 +3101,10 @@ function resetLoginPhase() {
     // See .login-wrap-form-phase in app.css - this one class alone drives which panel
     // (choice/form) is on/off screen and its own back-btn fade.
     el("login-wrap").classList.remove("login-wrap-form-phase");
-    // A fresh arrival at Login shouldn't still show the email field as dimming Google
-    // from a previous visit's focus that never got a matching blur (e.g. navigating
-    // away mid-focus).
-    el("login-google-btn").classList.remove("button-google-dim");
+    // A fresh arrival at Login shouldn't still be in the email field's compact "focus
+    // mode" (see setLoginEmailFocusMode() below) from a previous visit that never got a
+    // matching blur (e.g. navigating away mid-focus).
+    el("login-wrap").classList.remove("login-wrap-email-focus");
     syncLoginPhaseStackHeight();
     // Every fresh arrival at Login starts with a clean slate, not whatever error a
     // previous attempt left behind (see hideLoginError()'s own comment).
@@ -3113,14 +3113,19 @@ function resetLoginPhase() {
 
 // The old full email+password phase (login-wrap-form-phase) no longer opens from the
 // email field - #login-email-input is a bare input from the start (see its own comment
-// in index.html), same as claude.ai's own login screen. Focusing it just dims "Continue
-// with Google"; nothing here is wired to a backend yet.
-el("login-email-input").addEventListener("focus", () => {
-    el("login-google-btn").classList.add("button-google-dim");
-});
-el("login-email-input").addEventListener("blur", () => {
-    el("login-google-btn").classList.remove("button-google-dim");
-});
+// in index.html), same as claude.ai's own login screen. Focusing it shrinks the
+// mascot/tagline and collapses "Continue with Google" out of the way (see
+// .login-wrap-email-focus in app.css) so the field stays in view above the keyboard
+// instead of getting pushed under it - nothing here is wired to a backend yet.
+function setLoginEmailFocusMode(active) {
+    el("login-wrap").classList.toggle("login-wrap-email-focus", active);
+    // .login-choice (google button + divider + this field) just changed height as part
+    // of that same class - resizes .login-phase-stack to match, same as every other
+    // phase change in this file (see syncLoginPhaseStackHeight()'s own comment).
+    syncLoginPhaseStackHeight();
+}
+el("login-email-input").addEventListener("focus", () => setLoginEmailFocusMode(true));
+el("login-email-input").addEventListener("blur", () => setLoginEmailFocusMode(false));
 el("login-email-back-btn").addEventListener("click", resetLoginPhase);
 // Sets the initial height for the default (choice) phase - without this the stack would
 // render at 0 height (and everything below it would collapse up) until the first phase

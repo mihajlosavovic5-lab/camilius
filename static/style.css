@@ -1832,9 +1832,27 @@ body.auth {
 .auth-email-inline-input:not(:placeholder-shown) ~ .auth-email-send-btn {
     opacity: 1; transform: translateY(-50%) scale(1); pointer-events: auto;
 }
-/* Dims "Continue with Google" while the email field above is active, same cue as the
-   reference login screen this was modeled on. */
-.auth-google-btn-dim { opacity: .45; pointer-events: none; }
+/* "Focus mode" for the email field - shrinks the brand mark/tagline and collapses
+   "Continue with Google" + its divider out of the way while the field is focused, same
+   compacting move claude.ai's own login screen does to keep the field in view above a
+   mobile keyboard; kept here on desktop too for visual parity with the app. Driven by
+   one class on #login-wrapper (toggled by #login-email-input's focus/blur handlers
+   below), transitioning every affected property together for one smooth motion instead
+   of several separate snaps. */
+.auth-brand .brand-mark { transition: width .3s cubic-bezier(.22,.9,.32,1.05), height .3s cubic-bezier(.22,.9,.32,1.05); }
+.auth-brand { transition: margin .3s ease; }
+.auth-tagline { transition: font-size .3s ease, margin .3s ease; }
+#login-google-btn, .auth-or-divider {
+    transition: opacity .28s ease, max-height .3s ease, margin .3s ease, transform .28s ease;
+    max-height: 120px; overflow: hidden;
+}
+#login-wrapper.auth-wrapper-email-focus .auth-brand .brand-mark { width: 40px; height: 40px; }
+#login-wrapper.auth-wrapper-email-focus .auth-brand { margin-bottom: 8px; }
+#login-wrapper.auth-wrapper-email-focus .auth-tagline { font-size: 12px; margin-top: 2px; }
+#login-wrapper.auth-wrapper-email-focus #login-google-btn,
+#login-wrapper.auth-wrapper-email-focus .auth-or-divider {
+    opacity: 0; max-height: 0; margin: 0; transform: scale(.94); pointer-events: none;
+}
 /* No .auth-footer left below to justify the base .auth-wrapper's full 40px bottom
    padding. */
 .auth-login .auth-wrapper { padding-bottom: 18px; }

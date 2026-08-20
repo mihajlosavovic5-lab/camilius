@@ -460,9 +460,12 @@ button { font-family: inherit; -webkit-appearance: none; appearance: none; }
    spacer (brand -> buttons) rather than the top one, so most of the screen's free
    space collects between the tagline and the CTA buttons - buttons end up near the
    bottom of the screen instead of the cluster reading as vertically centered. */
-.login-top-spacer { flex: 1.4; min-height: 8px; }
-.login-mid-spacer { flex: 1; min-height: 16px; }
-.login-brand { display: flex; flex-direction: column; align-items: center; gap: 10px; margin: 0 0 30px; }
+.login-top-spacer { flex: 1.4; min-height: 8px; transition: flex-grow .32s ease; }
+.login-mid-spacer { flex: 1; min-height: 16px; transition: flex-grow .32s ease; }
+.login-brand {
+    display: flex; flex-direction: column; align-items: center; gap: 10px; margin: 0 0 30px;
+    transition: margin .32s ease;
+}
 /* Replaces the old plain app-icon square (see the <svg> itself in index.html for what
    it depicts) - sized well above the 100px icon it replaces since it's now the actual
    hero visual, not a small badge. filter (not box-shadow, which only shadows the
@@ -471,6 +474,7 @@ button { font-family: inherit; -webkit-appearance: none; appearance: none; }
 .login-mascot {
     width: 188px; height: auto; filter: drop-shadow(0 10px 18px rgba(43,32,19,.18));
     animation: login-mascot-float 3.2s ease-in-out infinite;
+    transition: width .32s cubic-bezier(.22,.9,.32,1.05);
 }
 /* Neutral gray (--mascot-line) rather than --text - reads as a plain product
    illustration instead of trying to match the site's own warm brown/gold palette. */
@@ -497,7 +501,22 @@ button { font-family: inherit; -webkit-appearance: none; appearance: none; }
 @media (prefers-reduced-motion: reduce) {
     .login-mascot, .login-mascot-spark { animation: none; }
 }
-.login-tagline { margin: 6px 0 0; font-size: 22px; color: var(--text-muted); text-align: center; }
+.login-tagline {
+    margin: 6px 0 0; font-size: 22px; color: var(--text-muted); text-align: center;
+    transition: font-size .32s ease, margin .32s ease;
+}
+/* "Focus mode" for the email field (see setLoginEmailFocusMode() in app.js) - shrinks
+   the mascot/tagline above and collapses "Continue with Google" + its divider out of the
+   way while the field is focused, so the field stays in view above the keyboard instead
+   of getting pushed under it, same compacting move claude.ai's own login screen does.
+   Driven by one class on #login-wrap; the properties actually being animated (width,
+   font-size, margin, flex-grow, max-height, opacity) each carry their own transition on
+   their base rule above/below so this class swap is the only thing JS has to do. */
+.login-wrap-email-focus .login-mascot { width: 64px; }
+.login-wrap-email-focus .login-brand { margin-bottom: 14px; }
+.login-wrap-email-focus .login-tagline { font-size: 14.5px; margin-top: 2px; }
+.login-wrap-email-focus .login-top-spacer { flex-grow: 0.15; }
+.login-wrap-email-focus .login-mid-spacer { flex-grow: 0.15; }
 /* Passive "by continuing you agree..." notice, same Terms/Privacy screens the register
    consent checkbox opens (see index.html's own comment above it) - small and muted like
    the build-version footer below it, not competing with the actual CTAs above. Exists
@@ -1063,9 +1082,17 @@ input.tap-to-edit-field, textarea.tap-to-edit-field { cursor: pointer; backgroun
 .login-email-input:not(:placeholder-shown) ~ .login-email-send-btn {
     opacity: 1; transform: translateY(-50%) scale(1); pointer-events: auto;
 }
-/* Dims "Continue with Google" while the email field above is active, same cue as the
-   reference login screen this was modeled on. */
-.button-google-dim { opacity: .45; pointer-events: none; }
+/* Collapses "Continue with Google" out of the way in the email field's "focus mode" (see
+   .login-wrap-email-focus's own comment near .login-tagline above) instead of just
+   dimming it - max-height/overflow so the space it frees up actually closes up rather
+   than leaving a dead gap, transform for a little extra motion beyond the plain fade. */
+#login-google-btn {
+    max-height: 120px; overflow: hidden;
+    transition: opacity .28s ease, max-height .32s ease, margin .32s ease, transform .28s ease;
+}
+.login-wrap-email-focus #login-google-btn {
+    opacity: 0; max-height: 0; margin-top: 0; transform: scale(.94); pointer-events: none;
+}
 /* "Continue with Google" (Login + Create account) - neutral white per Google's own
    branding guidelines, same reasoning/colors as the website's .button-google
    (static/style.css) - the multi-color "G" mark itself is the only branding color. */
@@ -1096,10 +1123,15 @@ input.tap-to-edit-field, textarea.tap-to-edit-field { cursor: pointer; backgroun
     display: flex; align-items: center; gap: 12px;
     font-size: 15px; font-weight: 700; color: var(--text-muted);
     margin: 16px 0 8px;
+    max-height: 60px; overflow: hidden;
+    transition: opacity .28s ease, max-height .32s ease, margin .32s ease;
 }
 .login-google-divider::before, .login-google-divider::after {
     content: ""; flex: 1; height: 1px; background: var(--border);
 }
+/* Collapses along with "Continue with Google" above in the email field's "focus mode" -
+   see that button's own comment. */
+.login-wrap-email-focus .login-google-divider { opacity: 0; max-height: 0; margin: 0; pointer-events: none; }
 /* Returns from the full email/password form (see #login-email-back-btn in app.js) back
    to the Google/email choice screen - that form isn't reachable from the choice screen
    itself anymore (see #login-email-input's own comment in index.html), so this button
