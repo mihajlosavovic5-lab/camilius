@@ -461,7 +461,7 @@ button { font-family: inherit; -webkit-appearance: none; appearance: none; }
    space collects between the tagline and the CTA buttons - buttons end up near the
    bottom of the screen instead of the cluster reading as vertically centered. */
 .login-top-spacer { flex: 1.4; min-height: 8px; transition: flex-grow .32s ease; }
-.login-mid-spacer { flex: 1; min-height: 16px; transition: flex-grow .32s ease; }
+.login-mid-spacer { flex: 1; min-height: 16px; transition: flex-grow .32s ease, min-height .32s ease; }
 .login-brand {
     display: flex; flex-direction: column; align-items: center; gap: 10px; margin: 0 0 30px;
     transition: margin .32s ease;
@@ -516,7 +516,12 @@ button { font-family: inherit; -webkit-appearance: none; appearance: none; }
 .login-wrap-email-focus .login-brand { margin-bottom: 14px; }
 .login-wrap-email-focus .login-tagline { font-size: 14.5px; margin-top: 2px; }
 .login-wrap-email-focus .login-top-spacer { flex-grow: 0.15; }
-.login-wrap-email-focus .login-mid-spacer { flex-grow: 0.15; }
+/* Down to (near) nothing, not just a smaller share - the field needs to end up right
+   under the shrunk tagline, same tight coupling as the reference login screen, not
+   "smaller gap but still a gap" (flex-grow alone can still hand this a big chunk of
+   whatever vertical space the keyboard left, since it's the only other flexible spacer
+   still competing with .login-top-spacer/.login-spacer for it). */
+.login-wrap-email-focus .login-mid-spacer { flex-grow: 0; min-height: 6px; }
 /* Passive "by continuing you agree..." notice, same Terms/Privacy screens the register
    consent checkbox opens (see index.html's own comment above it) - small and muted like
    the build-version footer below it, not competing with the actual CTAs above. Exists

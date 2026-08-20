@@ -3121,11 +3121,23 @@ function setLoginEmailFocusMode(active) {
     el("login-wrap").classList.toggle("login-wrap-email-focus", active);
     // .login-choice (google button + divider + this field) just changed height as part
     // of that same class - resizes .login-phase-stack to match, same as every other
-    // phase change in this file (see syncLoginPhaseStackHeight()'s own comment).
+    // phase change in this file (see syncLoginPhaseStackHeight()'s own comment). This
+    // call alone only catches the height .login-choice already has RIGHT NOW, before
+    // #login-google-btn's own max-height transition (app.css) has actually played out -
+    // the transitionend listener below re-syncs once that settles, which is what makes
+    // the field actually end up snug against the shrunk tagline instead of leaving a
+    // stale gap the size of the button's old (pre-collapse) height.
     syncLoginPhaseStackHeight();
 }
 el("login-email-input").addEventListener("focus", () => setLoginEmailFocusMode(true));
 el("login-email-input").addEventListener("blur", () => setLoginEmailFocusMode(false));
+// #login-google-btn and .login-google-divider (app.css) both animate max-height over the
+// same .32s, so the button alone finishing is a reliable stand-in for "the collapse (or
+// its reverse, on blur) is done" - re-measuring only then, instead of continuously,
+// keeps this to one extra call per focus/blur rather than a rAF polling loop.
+el("login-google-btn").addEventListener("transitionend", (event) => {
+    if (event.propertyName === "max-height") syncLoginPhaseStackHeight();
+});
 el("login-email-back-btn").addEventListener("click", resetLoginPhase);
 // Sets the initial height for the default (choice) phase - without this the stack would
 // render at 0 height (and everything below it would collapse up) until the first phase
