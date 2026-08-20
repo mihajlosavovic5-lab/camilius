@@ -440,7 +440,7 @@ button { font-family: inherit; -webkit-appearance: none; appearance: none; }
    space collects between the tagline and the CTA buttons - buttons end up near the
    bottom of the screen instead of the cluster reading as vertically centered. */
 .login-top-spacer { flex: 1; min-height: 8px; }
-.login-mid-spacer { flex: 3; min-height: 16px; }
+.login-mid-spacer { flex: 6; min-height: 16px; }
 .login-brand { display: flex; flex-direction: column; align-items: center; gap: 10px; margin: 0 0 30px; }
 .login-icon { width: 100px; height: 100px; border-radius: 22%; box-shadow: 0 10px 26px rgba(43,32,19,.16); }
 .login-wordmark { margin: 0; }
