@@ -3087,15 +3087,30 @@ if (capacitorPlugins && capacitorPlugins.App) {
 
 // #login-phase-stack's two panels are position:absolute (see .login-phase-stack in
 // app.css for why - so a short panel doesn't force the screen to reserve room for the
-// taller one), which leaves the stack itself with no intrinsic height of its own. Called
-// on every phase change (and once at startup below) to explicitly size it to whichever
-// panel is actually showing; the height *change* itself animates via that rule's own
-// CSS transition, same easing as the panels' own slide.
+// taller one), which leaves the stack itself with no intrinsic height of its own.
 function syncLoginPhaseStackHeight() {
     const formPhase = el("login-wrap").classList.contains("login-wrap-form-phase");
     const active = el(formPhase ? "login-email-form" : "login-choice");
     el("login-phase-stack").style.height = active.offsetHeight + "px";
 }
+// Keeps the line above correct through every frame of an *animated* height change, not
+// just at the couple of moments app.js itself changes a class - the email field's
+// "focus mode" below shrinks/collapses several of #login-choice's own children (each on
+// its own CSS transition, app.css), so #login-choice's height keeps changing for as long
+// as those run. A single syncLoginPhaseStackHeight() call right when the class toggles
+// only captured the height at that instant (still the old, pre-collapse one, since the
+// transitions hadn't played yet) - the phase-stack sat oversized, reserving dead space,
+// until the next unrelated call happened to catch up. ResizeObserver instead fires on
+// every layout change to either panel, so this now tracks the real height continuously
+// and needs no other call site to remember to re-sync. (One side effect: the still-
+// unreachable choice<->form swap this was originally built for - see
+// .login-wrap-form-phase - no longer gets its own eased height transition, since that
+// would fight ResizeObserver's own frequent updates during the email-focus animation;
+// it still resizes correctly, just as an instant snap instead of a smooth grow/shrink.
+// Not currently visible from anywhere in the app, so not worth the added complexity of
+// telling the two apart.)
+new ResizeObserver(syncLoginPhaseStackHeight).observe(el("login-choice"));
+new ResizeObserver(syncLoginPhaseStackHeight).observe(el("login-email-form"));
 
 function resetLoginPhase() {
     // See .login-wrap-form-phase in app.css - this one class alone drives which panel
@@ -3105,7 +3120,6 @@ function resetLoginPhase() {
     // mode" (see setLoginEmailFocusMode() below) from a previous visit that never got a
     // matching blur (e.g. navigating away mid-focus).
     el("login-wrap").classList.remove("login-wrap-email-focus");
-    syncLoginPhaseStackHeight();
     // Every fresh arrival at Login starts with a clean slate, not whatever error a
     // previous attempt left behind (see hideLoginError()'s own comment).
     hideLoginError();
@@ -3119,29 +3133,31 @@ function resetLoginPhase() {
 // instead of getting pushed under it - nothing here is wired to a backend yet.
 function setLoginEmailFocusMode(active) {
     el("login-wrap").classList.toggle("login-wrap-email-focus", active);
-    // .login-choice (google button + divider + this field) just changed height as part
-    // of that same class - resizes .login-phase-stack to match, same as every other
-    // phase change in this file (see syncLoginPhaseStackHeight()'s own comment). This
-    // call alone only catches the height .login-choice already has RIGHT NOW, before
-    // #login-google-btn's own max-height transition (app.css) has actually played out -
-    // the transitionend listener below re-syncs once that settles, which is what makes
-    // the field actually end up snug against the shrunk tagline instead of leaving a
-    // stale gap the size of the button's old (pre-collapse) height.
-    syncLoginPhaseStackHeight();
 }
-el("login-email-input").addEventListener("focus", () => setLoginEmailFocusMode(true));
-el("login-email-input").addEventListener("blur", () => setLoginEmailFocusMode(false));
-// #login-google-btn and .login-google-divider (app.css) both animate max-height over the
-// same .32s, so the button alone finishing is a reliable stand-in for "the collapse (or
-// its reverse, on blur) is done" - re-measuring only then, instead of continuously,
-// keeps this to one extra call per focus/blur rather than a rAF polling loop.
-el("login-google-btn").addEventListener("transitionend", (event) => {
-    if (event.propertyName === "max-height") syncLoginPhaseStackHeight();
+let loginEmailBlurTimer = null;
+el("login-email-input").addEventListener("focus", () => {
+    // Cancels a pending revert from a blur that's about to turn out spurious - see the
+    // blur handler's own comment.
+    if (loginEmailBlurTimer) { clearTimeout(loginEmailBlurTimer); loginEmailBlurTimer = null; }
+    setLoginEmailFocusMode(true);
+});
+el("login-email-input").addEventListener("blur", () => {
+    // A real on-screen keyboard opening/closing (or its own autofill suggestion strip)
+    // can fire a blur immediately followed by a refocus of this same field, rather than
+    // actually moving focus elsewhere - collapsing back to normal and immediately
+    // re-triggering the compact layout for that read as the whole screen flickering.
+    // Waiting a beat before actually reverting, cancelled above if a refocus lands
+    // inside it, absorbs that without changing how a genuine blur (tapping away) looks.
+    loginEmailBlurTimer = setTimeout(() => {
+        loginEmailBlurTimer = null;
+        setLoginEmailFocusMode(false);
+    }, 80);
 });
 el("login-email-back-btn").addEventListener("click", resetLoginPhase);
 // Sets the initial height for the default (choice) phase - without this the stack would
-// render at 0 height (and everything below it would collapse up) until the first phase
-// change ever calls syncLoginPhaseStackHeight() above.
+// render at 0 height (and everything below it would collapse up) for the brief moment
+// before the ResizeObservers above get their own first (async, not-until-next-paint)
+// callback.
 syncLoginPhaseStackHeight();
 
 // --- Forgot password (its own native screen, pushed on top of Login - no browser

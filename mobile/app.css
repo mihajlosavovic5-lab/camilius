@@ -553,7 +553,13 @@ button { font-family: inherit; -webkit-appearance: none; appearance: none; }
    nearest positioned ancestor, i.e. this element, since it's already position:relative
    below) - .login-email-back-btn still lives outside this stack entirely (see index.html)
    precisely so it never ends up a descendant of a transformed panel. */
-.login-phase-stack { position: relative; transition: height .26s cubic-bezier(.22,.9,.32,1.05); }
+/* No height transition of its own (unlike before) - its JS-driven height (see
+   syncLoginPhaseStackHeight()/the ResizeObservers in app.js) now updates on every frame
+   of the email field's "focus mode" collapse animation below, not just once at the
+   start and end of it; adding this rule's own separate .26s easing on top of updates
+   that frequent fought them rather than complementing them, showing up as a laggy
+   rubber-band trail behind the actual (already-smooth) content instead of tracking it. */
+.login-phase-stack { position: relative; }
 .login-phase-stack > .login-choice,
 .login-phase-stack > .login-email-form {
     position: absolute; left: 0; right: 0; bottom: 0;
