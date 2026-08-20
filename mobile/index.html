@@ -1,8 +1,23 @@
 <!doctype html>
-<html data-bundle-version="59de2da2c23f" lang="en">
+<html data-bundle-version="f7a900fa62ef" lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<!-- interactive-widget=resizes-content - without it (the default, resizes-visual), the
+     layout viewport stays at its full, keyboard-closed height and the WebView instead
+     auto-PANS the whole page (fixed-position content included - #app's own
+     position:fixed doesn't opt out of this, since visual-viewport panning shifts what
+     part of the fixed layout is currently visible, not the layout itself) up just far
+     enough to keep the focused field above the keyboard, then snaps that pan back the
+     INSTANT the keyboard disappears - not animated at all, unlike every transition this
+     file's own CSS drives. That's the jerk on the way back down after a back-press
+     closes the keyboard: the pan reverts in one un-animatable frame, an instant before
+     setLoginEmailFocusMode()'s own (properly smooth) revert even starts. This makes the
+     layout viewport itself shrink to the keyboard-reduced size instead, so
+     window.visualViewport - already what every keyboard-aware listener in app.js reads -
+     matches the real on-screen layout and the WebView never needs to pan in the first
+     place. Ignored (falling back to today's panning behavior) on anything old enough not
+     to know it. -->
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no, interactive-widget=resizes-content">
 <title>Camilius</title>
 <!-- Preloaded ahead of app.css's own @font-face rules so these start fetching the
      moment parsing reaches <head>, instead of waiting on the CSS to be parsed first -
@@ -16,7 +31,7 @@
 <link rel="preload" href="fonts/lora-latin-ext.woff2?v=e8c32fe92ded" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="fonts/familjen-grotesk-latin.woff2?v=e8c32fe92ded" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="fonts/familjen-grotesk-latin-ext.woff2?v=e8c32fe92ded" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="app.css?v=59de2da2c23f">
+<link rel="stylesheet" href="app.css?v=f7a900fa62ef">
 </head>
 <body>
 
@@ -1935,8 +1950,8 @@
   </button>
 </nav>
 
-<script src="i18n.js?v=59de2da2c23f"></script>
-<script src="hours-picker.js?v=59de2da2c23f"></script>
-<script src="app.js?v=59de2da2c23f"></script>
+<script src="i18n.js?v=f7a900fa62ef"></script>
+<script src="hours-picker.js?v=f7a900fa62ef"></script>
+<script src="app.js?v=f7a900fa62ef"></script>
 </body>
 </html>
