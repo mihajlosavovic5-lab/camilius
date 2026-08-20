@@ -5922,14 +5922,32 @@ if (window.visualViewport) {
 // resize brings the height back most of the way to it, whatever's currently focused gets
 // blurred. Ordinary typing (switching between two fields while the keyboard stays open)
 // never fires this: the height barely moves, nowhere near restingHeight.
+// Debounced rather than acting on the very first resize event that's close to
+// restingHeight - a keyboard that's still opening (not closing) can report a transient
+// visualViewport height this close to resting too, since the height doesn't always
+// shrink perfectly monotonically while it animates in on every WebView/IME combination.
+// Taken at face value, that blurred the field mid-open on some devices - not just closing
+// the keyboard back down again immediately after, but reverting whatever compact "focus
+// mode" layout (see setLoginEmailFocusMode()) the field's own focus had just triggered,
+// which then replayed a second time once the field re-focused and the keyboard actually
+// opened - the block visibly moving in two steps instead of one. Waiting a beat and
+// re-checking the CURRENT height (not the one from the event that scheduled the check)
+// filters that out: a genuine close stays near resting, a mid-open blip doesn't.
 if (window.visualViewport) {
     let restingHeight = window.visualViewport.height;
+    let keyboardCloseBlurTimer = null;
     window.visualViewport.addEventListener("resize", () => {
         const height = window.visualViewport.height;
         if (height > restingHeight) restingHeight = height;
-        const active = document.activeElement;
-        const isTextField = active && (active.tagName === "INPUT" || active.tagName === "TEXTAREA");
-        if (isTextField && height >= restingHeight - 40) active.blur();
+        if (keyboardCloseBlurTimer) { clearTimeout(keyboardCloseBlurTimer); keyboardCloseBlurTimer = null; }
+        if (height < restingHeight - 40) return;
+        keyboardCloseBlurTimer = setTimeout(() => {
+            keyboardCloseBlurTimer = null;
+            if (window.visualViewport.height < restingHeight - 40) return;
+            const active = document.activeElement;
+            const isTextField = active && (active.tagName === "INPUT" || active.tagName === "TEXTAREA");
+            if (isTextField) active.blur();
+        }, 150);
     });
 }
 
