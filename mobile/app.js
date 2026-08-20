@@ -3120,6 +3120,11 @@ function resetLoginPhase() {
     // mode" (see setLoginEmailFocusMode() below) from a previous visit that never got a
     // matching blur (e.g. navigating away mid-focus).
     el("login-wrap").classList.remove("login-wrap-email-focus");
+    // Also releases any pixel size syncLoginSpacers() left pinned on the spacers from
+    // that previous visit (see its own comment on why it no longer auto-releases that on
+    // its own) - a fresh arrival should just show the plain, idle CSS-driven layout.
+    document.querySelectorAll("#login-wrap .login-top-spacer, #login-wrap .login-mid-spacer")
+        .forEach((node) => node.removeAttribute("style"));
     // Every fresh arrival at Login starts with a clean slate, not whatever error a
     // previous attempt left behind (see hideLoginError()'s own comment).
     hideLoginError();
@@ -3193,27 +3198,24 @@ function cloneLoginWrapForMeasurement(loginWrap) {
 }
 
 let loginSpacerAnimFrame = null;
-let loginSpacerCleanupTimer = null;
 // .login-top-spacer/.login-mid-spacer are classes, not ids (el() wouldn't find them) -
 // and .login-top-spacer's class name alone isn't unique across the whole document (the
 // Verify-pending screen reuses it), so every lookup here is scoped to #login-wrap.
 //
-// Re-measures and re-FLIPs the spacers against whatever #login-wrap's real height is
-// RIGHT NOW, rather than only right when the focus class toggles. #login-wrap's own
-// height comes from outside it (flex:1 inside .screen-login, itself pinned to the actual
-// WebView surface) - a real on-screen keyboard resizes that surface on its OWN timeline,
-// separate from and not necessarily finished by the time this class's own ~320ms
-// transition completes. Computing the spacers' target once against whatever height
-// existed at focus time meant that once the keyboard's own resize did catch up, hand-off
-// back to plain CSS flex-grow (or the keyboard resize event itself, before this function
-// existed) suddenly recalculated against the new, shorter height - a second, distinct
-// upward shift after the first one had already settled. The ResizeObserver below calls
-// this again whenever #login-wrap's own box actually changes size, so it keeps chasing
-// the keyboard's real resize with fresh, accurate FLIPs instead of settling once and
-// getting yanked a second time when the keyboard finishes catching up.
+// Once this settles, the spacers stay PINNED at that pixel size (flex-grow/flex-shrink
+// locked to 0) rather than being handed back to their normal, viewport-responsive CSS
+// flex-grow rule - deliberately, so nothing here moves again on its own afterward, even
+// if the keyboard goes on resizing the real viewport once this has already settled. Two
+// earlier versions both did try to keep tracking that: one watched #login-wrap with a
+// ResizeObserver and re-FLIPped on every genuine height change, which read as a slow
+// second climb tacked onto the end of the real motion; even after removing that, simply
+// handing control back to CSS flex-grow (unconditionally, once) after a fixed delay hit
+// the same problem if a real resize happened to land inside that window - the hand-off
+// itself snapped to whatever the CSS rule now computed for the already-changed viewport.
+// Only the next syncLoginSpacers() call (i.e. the next focus/blur) re-measures and moves
+// these again.
 function syncLoginSpacers(applyChange) {
     if (loginSpacerAnimFrame) { cancelAnimationFrame(loginSpacerAnimFrame); loginSpacerAnimFrame = null; }
-    if (loginSpacerCleanupTimer) { clearTimeout(loginSpacerCleanupTimer); loginSpacerCleanupTimer = null; }
     const loginWrap = el("login-wrap");
     const spacers = [
         loginWrap.querySelector(".login-top-spacer"),
@@ -3273,30 +3275,9 @@ function syncLoginSpacers(applyChange) {
             node.style.flexBasis = lastHeights[i] + "px";
         });
     });
-    // Hands control back to plain CSS flex-grow once the transition settles, so these
-    // stay responsive to the actual viewport at rest (e.g. after a device rotation)
-    // instead of staying pinned to whatever pixel height they last animated to. If the
-    // keyboard is still resizing the viewport at that point, the ResizeObserver below
-    // has already scheduled (or will schedule) another syncLoginSpacers() call of its
-    // own to pick that back up.
-    loginSpacerCleanupTimer = setTimeout(() => {
-        loginSpacerCleanupTimer = null;
-        spacers.forEach((node) => {
-            node.style.transition = "";
-            node.style.flexGrow = "";
-            node.style.flexShrink = "";
-            node.style.flexBasis = "";
-        });
-    }, 350);
+    // Deliberately no hand-back to plain CSS flex-grow once this settles - see this
+    // function's own top comment.
 }
-// Only #login-wrap's own box size can trigger this (its children's flex-basis, which
-// syncLoginSpacers() itself writes, redistributes space WITHIN it without changing its
-// own outer size, which is set by its parent) - so this only ever fires for a genuine
-// external resize (keyboard, orientation change, ...), never as feedback from the
-// function it calls. Wrapped in an arrow function rather than passed directly - a bare
-// ResizeObserver callback receives (entries, observer), and syncLoginSpacers would
-// otherwise see that entries array as its own applyChange argument and try to call it.
-new ResizeObserver(() => syncLoginSpacers()).observe(el("login-wrap"));
 
 function setLoginEmailFocusMode(active) {
     // The class toggle is passed in as syncLoginSpacers' own applyChange callback rather
