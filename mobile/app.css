@@ -415,7 +415,18 @@ button { font-family: inherit; -webkit-appearance: none; appearance: none; }
 }
 .login-wrap {
     position: relative; z-index: 1;
-    flex: 1; display: flex; flex-direction: column;
+    /* min-height:0 overrides the flex item default (min-height:auto), which otherwise
+       refuses to let a flex item shrink below its own content's natural min-content
+       size - #screen-login's own overflow:hidden was quietly clipping the difference
+       whenever that content (unfocused: a 188px mascot plus everything else) didn't fit
+       the keyboard-shrunk viewport, but every getBoundingClientRect() taken on this
+       element - including the ones app.js's own clone-based measurement and spacer FLIP
+       animation build their "how much room is actually left" math from - kept reporting
+       that too-tall, pre-clip size instead of the real, available one. Went unnoticed
+       until interactive-widget=resizes-content (index.html) made the layout viewport -
+       and so #login-wrap's real allotted height - actually shrink for the keyboard in
+       the first place; before that this never had a smaller box to disagree with. */
+    flex: 1; min-height: 0; display: flex; flex-direction: column;
     padding: calc(22px + var(--safe-top)) 26px calc(28px + var(--safe-bottom));
     /* Same late-arriving-inset glide as .topbar above, for whichever screen the visitor
        lands on straight from a cold start when there's no saved session yet. */
@@ -529,14 +540,27 @@ button { font-family: inherit; -webkit-appearance: none; appearance: none; }
    longer fit, instead of staying two lines throughout at a smoothly changing size.
    transform can't trigger that snap - the wrap is always computed at the real (22px)
    size, so it's always the same 2 lines, just visually scaled. */
-.login-wrap-email-focus .login-mascot { width: 64px; }
+/* 100px (up from an earlier, much smaller 64px) - readable at a glance beats "as small
+   as it can possibly be" now that .login-top-spacer below actually sinks the whole
+   cluster down against the field instead of leaving it floating mid-screen; shrinking it
+   that hard read as an overcorrection once the block is sitting right where it should. */
+.login-wrap-email-focus .login-mascot { width: 100px; }
 .login-wrap-email-focus .login-brand { margin-bottom: 14px; }
-/* 50px covers a 2-line tagline (~68px unscaled) at this same 0.6591 scale (~45px) plus
-   its own margin, with a little room to spare - same "never clip the real content,
-   don't try to hug it exactly" reasoning as the unscaled 100px above. */
-.login-wrap-email-focus .login-tagline-wrap { max-height: 50px; }
-.login-wrap-email-focus .login-tagline { transform: scale(0.6591); margin-top: 2px; }
-.login-wrap-email-focus .login-top-spacer { flex-grow: 0.15; }
+/* 64px covers a 2-line tagline (~68px unscaled) at this same 0.78 scale (~53px) plus its
+   own margin, with a little room to spare - same "never clip the real content, don't try
+   to hug it exactly" reasoning as the unscaled 100px above (and the same, less
+   aggressive, "readable over minimal" call as the mascot's own width just above). */
+.login-wrap-email-focus .login-tagline-wrap { max-height: 64px; }
+.login-wrap-email-focus .login-tagline { transform: scale(0.78); margin-top: 2px; }
+/* Up from a bare 0.15 - at that share, .login-spacer's own fixed 0.2 (below the field,
+   never touched by focus mode) claimed MORE of the leftover room than this one did,
+   so the extra space collected below everything instead of above the cluster, reading
+   as the mascot/tagline still floating mid-screen between the header and the field
+   rather than settling snug against it, same reference-login-screen look the field's own
+   focus mode is going for. A much bigger share here (5x .login-spacer's own 0.2, instead
+   of less than it) means nearly all the leftover space collects above the cluster,
+   sinking it down to sit right against the field. */
+.login-wrap-email-focus .login-top-spacer { flex-grow: 1; }
 /* Down to (near) nothing, not just a smaller share - the field needs to end up right
    under the shrunk tagline, same tight coupling as the reference login screen, not
    "smaller gap but still a gap" (flex-grow alone can still hand this a big chunk of
