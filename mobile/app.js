@@ -6036,16 +6036,42 @@ if (window.visualViewport) {
 
 // Android's hardware/gesture back closes the on-screen keyboard through the WebView's
 // own key handling (see MainActivity.dispatchKeyEvent()'s comment on that) WITHOUT
-// blurring whatever input/textarea was showing it - unlike tapping away to somewhere
-// non-editable, which blurs the field synchronously (on mousedown, before the keyboard
-// even starts closing) as an ordinary side effect of focus moving elsewhere. Back leaves
-// the field focused with no keyboard behind it, so its caret is left blinking in empty
-// space until something else happens to steal focus. restingHeight tracks the tallest
-// visualViewport height seen so far - the resting, keyboard-closed height, since a
-// keyboard opening only ever shrinks that number, never sets a new max - and whenever a
-// resize brings the height back most of the way to it, whatever's currently focused gets
-// blurred. Ordinary typing (switching between two fields while the keyboard stays open)
-// never fires this: the height barely moves, nowhere near restingHeight.
+// ever notifying app.js it happened - confirmed there, on real devices, across several
+// attempts: for as long as a focused field is showing the keyboard, the WebView claims
+// BACK for itself before either the DOM's own key events or Capacitor's "backButton" JS
+// event ever see it. @capacitor/keyboard's keyboardWillHide is the one signal that isn't
+// blocked by that - it's Android's own IME-visibility callback firing the instant the
+// system starts hiding the keyboard, regardless of what triggered that (back press
+// included), the same way "focus" already tells this code the instant the keyboard
+// starts SHOWING. Reverting straight from it - no confirm-and-wait needed, since this
+// isn't an inferred signal that could be a false alarm - is what makes the close revert
+// finally as immediate as the open one always was, instead of only catching up to the
+// keyboard a beat after the fact.
+if (capacitorPlugins && capacitorPlugins.Keyboard) {
+    capacitorPlugins.Keyboard.addListener("keyboardWillHide", () => {
+        const active = document.activeElement;
+        if (active === el("login-email-input")) {
+            if (loginEmailBlurTimer) { clearTimeout(loginEmailBlurTimer); loginEmailBlurTimer = null; }
+            setLoginEmailFocusMode(false);
+        }
+        // Same reasoning as the visualViewport fallback below on why this still runs
+        // even when the field above wasn't the login one - see restingHeight's own
+        // comment on the caret being left blinking with no keyboard behind it.
+        const isTextField = active && (active.tagName === "INPUT" || active.tagName === "TEXTAREA");
+        if (isTextField) active.blur();
+    });
+}
+
+// Fallback for anything keyboardWillHide above doesn't catch (older WebViews without
+// the plugin's native listener wired up, or the rare case its event just doesn't fire) -
+// inferred from visualViewport instead of a direct signal, so unlike the block above,
+// this one DOES need to confirm what it's seeing before acting on it. restingHeight
+// tracks the tallest visualViewport height seen so far - the resting, keyboard-closed
+// height, since a keyboard opening only ever shrinks that number, never sets a new max -
+// and whenever a resize brings the height back most of the way to it, whatever's
+// currently focused gets blurred. Ordinary typing (switching between two fields while
+// the keyboard stays open) never fires this: the height barely moves, nowhere near
+// restingHeight.
 // Debounced rather than acting on the very first resize event that's close to
 // restingHeight - a keyboard that's still opening (not closing) can report a transient
 // visualViewport height this close to resting too, since the height doesn't always
