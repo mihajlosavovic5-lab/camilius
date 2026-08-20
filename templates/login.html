@@ -46,20 +46,11 @@
     <div class="auth-top-spacer"></div>
     <div class="auth-brand">
         <span class="brand">
-            {# The app's own icon as a big floating hero visual, replacing the small
-               brand-mark badge every other auth page still uses - same treatment as the
-               APK's own login screen (mobile/index.html's .login-mascot-wrap), so the two
-               logins read as one design instead of the web one looking like a smaller,
-               static afterthought. #}
-            <span class="login-mascot-wrap">
-                <img class="login-mascot" src="{{ url_for('static', filename='icon-512.png') }}" alt="" aria-hidden="true">
-                <svg class="login-mascot-spark login-mascot-spark-1" viewBox="0 0 24 24" aria-hidden="true">
-                    <path d="M12 1 L14.4 9.6 L23 12 L14.4 14.4 L12 23 L9.6 14.4 L1 12 L9.6 9.6 Z"/>
-                </svg>
-                <svg class="login-mascot-spark login-mascot-spark-2" viewBox="0 0 24 24" aria-hidden="true">
-                    <circle cx="12" cy="12" r="5"/>
-                </svg>
-            </span>
+            {# The app's own icon as a floating hero visual, replacing the small brand-mark
+               badge every other auth page still uses - same treatment as the APK's own
+               login screen (mobile/index.html's .login-mascot), so the two logins read as
+               one design instead of the web one looking like a smaller, static afterthought. #}
+            <img class="login-mascot" src="{{ url_for('static', filename='icon-512.png') }}" alt="" aria-hidden="true">
             <span class="brand-name">Camilius</span>
         </span>
         <span class="auth-accent"></span>
