@@ -3108,6 +3108,10 @@ function resetLoginPhase() {
 }
 
 el("login-email-btn").addEventListener("click", () => {
+    // Intentionally a no-op for now - the email form (and the "Create account" button
+    // at its bottom) is on hold pending a decision, not removed. Flip this back on by
+    // restoring the three lines below once that's settled.
+    return;
     hideLoginError();
     el("login-wrap").classList.add("login-wrap-form-phase");
     syncLoginPhaseStackHeight();

@@ -184,6 +184,10 @@
         var backBtn = document.getElementById("login-back-btn");
         var menuBtn = document.getElementById("login-menu-btn");
         document.getElementById("login-email-btn").addEventListener("click", function () {
+            // Intentionally a no-op for now - the email form (and the "Create account"
+            // link at its bottom) is on hold pending a decision, not removed. Flip this
+            // back on by restoring the three lines below once that's settled.
+            return;
             card.classList.add("auth-card-email-active");
             backBtn.classList.add("auth-card-email-active");
             menuBtn.classList.add("login-menu-btn-hidden");
