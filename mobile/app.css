@@ -435,11 +435,21 @@ button { font-family: inherit; -webkit-appearance: none; appearance: none; }
        progress (the mascot, the two spacers, the tagline, the Google button/divider, the
        email field's own top margin - see --login-focus-progress's own comment in app.js).
        Defined once and referenced everywhere via var(), rather than repeating the literal
-       .22s on each of those rules, specifically so it's IMPOSSIBLE for any one of them to
-       drift out of sync with the others by an editor tweaking one rule's duration and
+       duration on each of those rules, specifically so it's IMPOSSIBLE for any one of them
+       to drift out of sync with the others by an editor tweaking one rule's duration and
        missing a sibling - see that same comment for what happens when they don't match
-       (the earlier, non-progress-driven version of this bug). */
-    --login-focus-anim-dur: .22s;
+       (the earlier, non-progress-driven version of this bug).
+       .32s, up from an earlier .22s - the shorter value technically DID transition (every
+       property here landing on the same instant, same duration, is what actually fixed
+       the "settles before/after everything else" bug this whole approach exists for), but
+       against a keyboard-open animation that reads as noticeably longer than .22s on a
+       real device, a component finishing its own motion that much faster than the rest of
+       the visible action still reads as "a separate quick blip" rather than genuinely
+       part of the same continuous motion - reported specifically about the Google button
+       fading out "through its own wave" rather than snapping. Longer gives every one of
+       these properties room to visibly ease across the SAME span of time the keyboard's
+       own animation occupies, instead of finishing well ahead of it. */
+    --login-focus-anim-dur: .32s;
 }
 .login-lang-row { display: flex; justify-content: center; flex-shrink: 0; }
 .lang-select-btn {
