@@ -545,7 +545,12 @@ button { font-family: inherit; -webkit-appearance: none; appearance: none; }
    glance beats "as small as it can possibly be" now that the field stays comfortably
    above the keyboard either way. */
 .login-wrap-email-focus .login-mascot { width: 100px; }
-.login-wrap-email-focus .login-brand { margin-bottom: 14px; }
+/* Down from 14px - user-requested tightening: the tagline should sit almost flush
+   against the field, not leave a visible gap under it. Not 0 - a sliver of breathing
+   room between the tagline's own descenders and .login-mid-spacer's 6px below still
+   reads as "close" rather than "touching", which is what "almost touching" actually
+   asked for, not literal contact. */
+.login-wrap-email-focus .login-brand { margin-bottom: 4px; }
 /* 34px covers a single line (~34px unscaled at 1.55 line-height) at this same 0.78 scale
    (~27px) plus its own margin, with a little room to spare - same "never clip the real
    content, don't try to hug it exactly" reasoning as the unscaled 100px above. Halved
@@ -1145,7 +1150,13 @@ input.tap-to-edit-field, textarea.tap-to-edit-field { cursor: pointer; backgroun
    the send button once there's real text - see the :not(:placeholder-shown) override
    below, no JS involved in either switch. Border/focus glow come from the generic
    input[type="email"] rules further up this file. */
-.login-email-input-wrap { position: relative; margin-top: 18px; }
+.login-email-input-wrap { position: relative; margin-top: 18px; transition: margin-top .32s ease; }
+/* Collapses along with "Continue with Google" and its divider above in focus mode - this
+   18px only exists to match the .button margin-top it visually stands in for in the
+   normal (Google button + divider both showing) layout; once those are gone the field
+   should sit right under the tagline instead of still leaving a button-sized gap for a
+   button that isn't there. */
+.login-wrap-email-focus .login-email-input-wrap { margin-top: 0; }
 .login-email-input { text-align: center; }
 .login-email-input:not(:placeholder-shown) { text-align: left; padding-right: 54px; }
 /* Send button beside the email input - shows itself purely via the :not(:placeholder-shown)
