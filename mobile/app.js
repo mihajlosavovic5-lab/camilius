@@ -3281,6 +3281,20 @@ function makeProgressChaser(timeConstantMs) {
     return {
         setTarget(newTarget) { target = newTarget; },
         get settled() { return current === target; },
+        // Called whenever the shared rAF loop is about to restart from idle (see
+        // ensureLoginFocusLoopRunning below) - without this, advance()'s `lastTime` is
+        // left holding whatever real timestamp the loop last ticked at, which can be
+        // arbitrarily long ago (the page's initial idle-progress=1 priming call, or
+        // simply however long it's been since the visitor's PREVIOUS focus/blur
+        // settled). advance()'s very first call after restarting would then compute dt
+        // against that stale timestamp instead of "time since this new animation
+        // actually began" - a multi-second dt collapses `k` to ~1, jumping current
+        // straight to target in that one frame, i.e. exactly the instant snap this
+        // chaser exists to avoid. Resetting lastTime to null here makes that first call
+        // re-prime (see the `lastTime === null` branch below) instead of stepping on a
+        // bogus dt, so every fresh animation - not just the very first one on the page -
+        // starts its glide from a real zero.
+        resetClock() { lastTime = null; },
         advance(now) {
             if (lastTime === null) { lastTime = now; return current; }
             const dt = now - lastTime;
@@ -3324,13 +3338,29 @@ function stepLoginFocusChasers(now) {
         ? null
         : requestAnimationFrame(stepLoginFocusChasers);
 }
+// Centralized so a restart-from-idle resets BOTH chasers' clocks exactly once,
+// regardless of which of the two setters below happens to be called first - each
+// only sees `!loginFocusRAF` (and so would try to reset+restart) on whichever call
+// actually finds the loop idle; the other call immediately after would otherwise see
+// the loop already running (started by the first) and skip its own reset entirely,
+// leaving ITS chaser's clock stale for this restart. Resetting is only correct to do
+// here, on the actual idle->active edge - a chaser that's already mid-animation this
+// frame has a fresh, real lastTime from its last rAF tick, not a stale one, and
+// resetting that would (harmlessly but pointlessly) re-prime it, costing one frame
+// of stall on every subsequent per-property update instead of just the first.
+function ensureLoginFocusLoopRunning() {
+    if (loginFocusRAF) return;
+    loginFocusChaser.resetClock();
+    loginFocusBtnChaser.resetClock();
+    loginFocusRAF = requestAnimationFrame(stepLoginFocusChasers);
+}
 function setLoginFocusProgress(target) {
     loginFocusChaser.setTarget(target);
-    if (!loginFocusRAF) loginFocusRAF = requestAnimationFrame(stepLoginFocusChasers);
+    ensureLoginFocusLoopRunning();
 }
 function setLoginFocusBtnProgress(target) {
     loginFocusBtnChaser.setTarget(target);
-    if (!loginFocusRAF) loginFocusRAF = requestAnimationFrame(stepLoginFocusChasers);
+    ensureLoginFocusLoopRunning();
 }
 function applyLoginFocusHeight(height) {
     if (loginWrapRestingHeight === null || height > loginWrapRestingHeight) loginWrapRestingHeight = height;
