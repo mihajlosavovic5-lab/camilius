@@ -3429,15 +3429,26 @@ new ResizeObserver((entries) => applyLoginFocusHeight(entries[0].contentRect.hei
 // (app.css) describes, just extended to the one part of this cluster that couldn't
 // previously read --login-focus-progress directly without still fighting its own
 // siblings over the same free-space pool.
-// Grow ratios: .5 + progress*.9 for the top spacer (top of screen -> brand), progress
-// for the mid spacer (brand -> buttons), .2*progress for the bottom spacer (buttons ->
-// legal text) - matches this cluster's original, pre-flex-grow-saga design intent (see
-// the top-level comment above .login-top-spacer in app.css): weighted toward the top so
-// most of the idle free space collects above the mascot, and ALL of it lands there at
-// full focus specifically, since the other two both reach a literal 0 ratio at progress
-// 0 while the top spacer's own ratio (uniquely) never does - the field needs to end up
-// right under the shrunk tagline with nothing left over below it, not "a smaller gap but
-// still a gap" from a bottom spacer holding onto a leftover floor share.
+// Grow ratios: .5 + progress*.9 for the top spacer (top of screen -> brand), .3*progress
+// for the mid spacer (brand -> buttons), .8*progress for the bottom spacer (buttons ->
+// legal text). At full focus (progress 0), mid and bottom both still reach a literal 0
+// ratio while the top spacer's own ratio (uniquely) never does, same as always - the
+// field needs to end up right under the shrunk tagline with nothing left over below it,
+// not "a smaller gap but still a gap" from a bottom spacer holding onto a leftover floor
+// share; nothing about the FOCUSED layout changes here.
+//
+// At idle (progress 1) the mid/bottom weights are what moved, on user request: the
+// original design (mid 1, bottom .2 - matching this cluster's pre-flex-grow-saga design
+// intent, see the top-level comment above .login-top-spacer in app.css) put almost all
+// the idle free space in the gap directly above the mascot and almost none below the
+// legal text, which read as the button block sitting flush against the bottom of the
+// screen. Swapping most of that weight from bottom to top would have pushed the mascot
+// noticeably higher up too (less requested - the mascot's own idle position should stay
+// where it's always been); giving the bottom spacer a much bigger idle share instead (.2
+// -> .8) while leaving the top spacer's own ratio untouched keeps the mascot at its
+// original position and pulls the button block up off the bottom edge, at the direct
+// expense of the middle gap (1 -> .3) between the tagline and the buttons, which shrinks
+// to make room.
 // A previous version of this ratcheted each spacer's raw computed height so none of the
 // three could grow while the keyboard was opening (or shrink while closing), specifically
 // to stop .login-top-spacer from momentarily dipping smaller than its true final value
@@ -3515,7 +3526,7 @@ function syncLoginSpacers() {
             + parseFloat(childStyle.marginTop) + parseFloat(childStyle.marginBottom);
     }
     const topFloor = 8, midFloor = 6 + progress * 10, spacerFloor = 6 + progress * 14;
-    const topGrow = 0.5 + progress * 0.9, midGrow = progress, spacerGrow = 0.2 * progress;
+    const topGrow = 0.5 + progress * 0.9, midGrow = progress * 0.3, spacerGrow = progress * 0.8;
     const totalGrow = topGrow + midGrow + spacerGrow;
     const pool = Math.max(0, contentHeight - fixedHeight - topFloor - midFloor - spacerFloor);
     const topExtra = totalGrow > 0 ? pool * topGrow / totalGrow : 0;
