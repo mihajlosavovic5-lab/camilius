@@ -3193,8 +3193,39 @@ function applyLoginFocusHeight(height) {
         ? 1
         : Math.min(1, Math.max(0, (height - focusedFloor) / (loginWrapRestingHeight - focusedFloor)));
     wrap.style.setProperty("--login-focus-progress", progress.toFixed(4));
+    updateLoginDebugBadge(height);
 }
 new ResizeObserver((entries) => applyLoginFocusHeight(entries[0].contentRect.height)).observe(el("login-wrap"));
+
+// TEMPORARY - see index.html's own comment on #login-debug-badge. Dumps every number the
+// keyboard-focus gap investigation needs directly on screen, refreshed on every real
+// #login-wrap resize (so a screenshot taken any time mid-keyboard-animation still shows
+// live, current numbers, not a stale first-frame snapshot).
+function updateLoginDebugBadge(wrapHeight) {
+    const badge = el("login-debug-badge");
+    if (!badge) return;
+    const wrap = el("login-wrap");
+    const spacer = document.querySelector(".login-spacer");
+    const legal = wrap.querySelector(".login-legal-disclaimer");
+    const wrapRect = wrap.getBoundingClientRect();
+    const spacerRect = spacer ? spacer.getBoundingClientRect() : null;
+    const legalRect = legal ? legal.getBoundingClientRect() : null;
+    const vv = window.visualViewport;
+    badge.textContent =
+        `progress=${getComputedStyle(wrap).getPropertyValue("--login-focus-progress").trim()}\n` +
+        `wrapH(observed)=${Math.round(wrapHeight)} wrapH(rect)=${Math.round(wrapRect.height)}\n` +
+        `wrapBottom=${Math.round(wrapRect.bottom)}\n` +
+        `restingH=${loginWrapRestingHeight ? Math.round(loginWrapRestingHeight) : "?"}\n` +
+        `vvHeight=${vv ? Math.round(vv.height) : "?"} winH=${window.innerHeight}\n` +
+        `spacerH=${spacerRect ? Math.round(spacerRect.height) : "?"}\n` +
+        `legalBottom=${legalRect ? Math.round(legalRect.bottom) : "?"}\n` +
+        `gap(wrapBottom-legalBottom)=${legalRect ? Math.round(wrapRect.bottom - legalRect.bottom) : "?"}\n` +
+        `focusClass=${wrap.classList.contains("login-wrap-email-focus")}`;
+}
+if (window.visualViewport) {
+    window.visualViewport.addEventListener("resize", () => updateLoginDebugBadge(el("login-wrap").getBoundingClientRect().height));
+}
+el("login-email-input").addEventListener("focus", () => setTimeout(() => updateLoginDebugBadge(el("login-wrap").getBoundingClientRect().height), 500));
 
 function resetLoginPhase() {
     // See .login-wrap-form-phase in app.css - this one class alone drives which panel
