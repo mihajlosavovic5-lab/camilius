@@ -6192,18 +6192,23 @@ if (capacitorPlugins && capacitorPlugins.Keyboard) {
         keyboardWillHideTimer = setTimeout(() => {
             keyboardWillHideTimer = null;
             // The autofill false-alarm this debounce exists for (see this listener's own
-            // top comment) is a RACE against the debounce window: on-device recordings
-            // confirmed 600ms covers most of what the autofill lookup takes, but not all
-            // of it - when the real keyboardWillShow lands even a little past this timer,
-            // the revert below fires anyway, then keyboardWillShow (above) reopens the
-            // compact layout moments later, reading as a visible bounce - up, then a
-            // sudden jump further, then a fast snap back - instead of one smooth motion.
-            // No fixed debounce closes that race, since the lookup it's timed against has
-            // no upper bound. Checking the actual viewport height does: a false alarm
-            // never shrinks it in the first place, so the keyboard is still visibly open
-            // right here. Skipping the revert in that case doesn't strand it open forever
-            // either - the visualViewport fallback below independently catches a real
-            // close once the height actually confirms it, no keyboardWillHide required.
+            // top comment) is a RACE against the debounce window: a FIFTH on-device
+            // recording (600ms debounce, the fallback bug below, both already shipped)
+            // frame-timed the actual gap between this false alarm's keyboardWillHide and
+            // its own keyboardWillShow at ~750-850ms - past 600ms, so the revert below
+            // fired anyway, then keyboardWillShow (above) reopened the compact layout
+            // moments later, reading as a visible bounce - up, then a sudden jump
+            // further, then a fast snap back - instead of one smooth motion. Widened to
+            // 1000ms for real headroom over that measured gap rather than another narrow
+            // shave. No fixed debounce closes this race with certainty, since the lookup
+            // it's timed against has no documented upper bound - checking the actual
+            // viewport height narrows it further: a false alarm that never actually closes
+            // the keyboard (as opposed to this one, which did - see the fallback below's
+            // own comment on why THAT was the bigger bug in this same recording) never
+            // shrinks it in the first place, so skipping the revert here is still correct
+            // for that case too, and doesn't strand it open forever either - the
+            // visualViewport fallback below (now only live when this block ISN'T) still
+            // independently catches a real close once the height confirms it.
             if (window.visualViewport && window.visualViewport.height < restingHeight - 40) return;
             const active = document.activeElement;
             if (active === el("login-email-input")) {
@@ -6215,7 +6220,7 @@ if (capacitorPlugins && capacitorPlugins.Keyboard) {
             // comment on the caret being left blinking with no keyboard behind it.
             const isTextField = active && (active.tagName === "INPUT" || active.tagName === "TEXTAREA");
             if (isTextField) active.blur();
-        }, 600);
+        }, 1000);
     });
     capacitorPlugins.Keyboard.addListener("keyboardWillShow", () => {
         if (keyboardWillHideTimer) { clearTimeout(keyboardWillHideTimer); keyboardWillHideTimer = null; }
@@ -6246,7 +6251,23 @@ if (capacitorPlugins && capacitorPlugins.Keyboard) {
 // opened - the block visibly moving in two steps instead of one. Waiting a beat and
 // re-checking the CURRENT height (not the one from the event that scheduled the check)
 // filters that out: a genuine close stays near resting, a mid-open blip doesn't.
-if (window.visualViewport) {
+//
+// Only installed when the block above ISN'T also live (no capacitorPlugins.Keyboard) -
+// a FIFTH on-device recording of the login email autofill false alarm (see
+// keyboardWillHide's own comment above) found this listener's mere 150ms debounce was
+// the actual bug, not just the 600ms one: on a device with BOTH the Keyboard plugin
+// AND visualViewport (the normal case, not the "older WebView" one this was written
+// for), the keyboard genuinely, visibly closes for the whole autofill lookup - so this
+// listener's own height re-check above sees a perfectly genuine "back to resting"
+// reading too, same as a real close, and had nothing to tell the two apart with. At
+// 150ms it fired and reverted the layout LONG before the 600ms keyboardWillHide timer
+// ever got a chance to - the bounce this whole file's history has been chasing was
+// this listener winning that race every time, not the other debounce being too short.
+// Gating this off whenever the plugin's own (informed, false-alarm-aware) handling is
+// already live removes the race entirely rather than re-tuning either number again;
+// the plugin-absent case above ("older WebView... or the rare case its event just
+// doesn't fire") is exactly what this still covers.
+if (window.visualViewport && !(capacitorPlugins && capacitorPlugins.Keyboard)) {
     let keyboardCloseBlurTimer = null;
     window.visualViewport.addEventListener("resize", () => {
         const height = window.visualViewport.height;
