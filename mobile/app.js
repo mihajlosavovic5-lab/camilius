@@ -6109,7 +6109,7 @@ if (window.visualViewport) {
 // included), the same way "focus" already tells this code the instant the keyboard
 // starts SHOWING.
 //
-// Debounced (100ms, cancelled by a keyboardWillShow landing inside it) rather than
+// Debounced (600ms, cancelled by a keyboardWillShow landing inside it) rather than
 // reverting straight from keyboardWillHide unconditionally - on real devices, the email
 // autofill suggestion strip (visible above the keyboard once Android has a saved address
 // to offer) can make the IME emit a keyboardWillHide/keyboardWillShow pair of its own
@@ -6121,24 +6121,26 @@ if (window.visualViewport) {
 // after the revert already started), then the field regaining real focus and the whole
 // open/collapse cycle replaying a second time - reverting on every keyboardWillHide
 // unconditionally, including this false one, is what caused that. A genuine close (back
-// press, tapping away) has no keyboardWillShow following within 100ms, so this still
-// reverts just as fast as before for that case - same "debounce, cancel on reversal"
-// shape as this field's own blur handler above and the visualViewport fallback below.
+// press, tapping away) has no keyboardWillShow following within the debounce, so this
+// still reverts for that case, same "debounce, cancel on reversal" shape as this field's
+// own blur handler above and the visualViewport fallback below - just not styled as
+// "instant" any more (see this same comment's own note further down on why that's the
+// right trade now).
 //
-// That debounce only helps a hide/show pair that lands INSIDE the same 100ms window -
-// a second on-device recording (after the fix above already shipped) showed the false
-// alarm's own keyboardWillShow can land much later than that, since it's gated behind
-// the autofill service actually finishing its lookup, not the strip's own open/close
-// animation. Past the 100ms mark this timer has already committed: the layout reverted
-// and active.blur() above already fired, for real - the field genuinely isn't focused
-// any more, and nothing was re-collapsing the layout once Android's autofill flow did
-// eventually refocus it, since that refocus happens at the native/WebView level and
-// doesn't reliably dispatch the plain DOM "focus" event #login-email-input's own
-// listener depends on. That read as the exact same open/collapse/open replay this
-// debounce was built to prevent, just with a longer gap in the middle: the compact
-// layout snapping open, snapping shut for that false alarm, then snapping back open a
-// second time once the real keyboard finally arrived - visibly "bouncing" rather than
-// opening once and staying put.
+// That debounce only helps a hide/show pair that lands INSIDE the same window - a second
+// on-device recording (after the fix above already shipped, back when this was still
+// 100ms) showed the false alarm's own keyboardWillShow can land much later than that,
+// since it's gated behind the autofill service actually finishing its lookup, not the
+// strip's own open/close animation. Past the debounce this timer had already committed:
+// the layout reverted and active.blur() above already fired, for real - the field
+// genuinely wasn't focused any more, and nothing was re-collapsing the layout once
+// Android's autofill flow did eventually refocus it, since that refocus happens at the
+// native/WebView level and doesn't reliably dispatch the plain DOM "focus" event
+// #login-email-input's own listener depends on. That read as the exact same open/
+// collapse/open replay this debounce was built to prevent, just with a longer gap in the
+// middle: the compact layout snapping open, snapping shut for that false alarm, then
+// snapping back open a second time once the real keyboard finally arrived - visibly
+// "bouncing" rather than opening once and staying put.
 // keyboardWillShow is Android's own confirmation the keyboard (and whatever refocused
 // the field to get here) is genuinely on its way back, independent of how it got there -
 // so unlike the cancel-within-the-debounce-window case above, this re-applies the
@@ -6147,6 +6149,22 @@ if (window.visualViewport) {
 // already landed by this point on every device this was reproduced on), the same way a
 // plain "focus" event already does, rather than only ever cancelling a same-window
 // revert and leaving anything after it unhandled.
+//
+// That keyboardWillShow-side recovery (above) stops the layout from getting stuck open,
+// but a THIRD on-device recording (100ms debounce + the recovery above, both already
+// shipped) showed it doesn't stop the glitch from being visible in the first place: the
+// false alarm's keyboardWillShow was still landing well past 100ms, so the layout still
+// visibly snapped open for that whole gap before this code caught up and snapped it back
+// closed - a single pop instead of the earlier double one, but still a pop, not the
+// smooth "keyboard opens, everything glides up once" motion a real close-free session
+// should read as. 100ms was sized for the strip's own open/close animation; the actual
+// gap is however long the autofill lookup itself takes, which measured well under a
+// second on-device but with no hard ceiling. 600ms comfortably covers what's been
+// reproduced so far while still reverting well inside what reads as "instant" for a
+// genuine close (back press, tapping away) - and even if some future device's autofill
+// lookup ever ran past that, the keyboardWillShow-side recovery above still catches it,
+// same as it does today; this is about not TRIGGERING the visible pop in the first
+// place, not the only thing standing between a false alarm and a stuck layout.
 let keyboardWillHideTimer = null;
 if (capacitorPlugins && capacitorPlugins.Keyboard) {
     capacitorPlugins.Keyboard.addListener("keyboardWillHide", () => {
@@ -6163,7 +6181,7 @@ if (capacitorPlugins && capacitorPlugins.Keyboard) {
             // comment on the caret being left blinking with no keyboard behind it.
             const isTextField = active && (active.tagName === "INPUT" || active.tagName === "TEXTAREA");
             if (isTextField) active.blur();
-        }, 100);
+        }, 600);
     });
     capacitorPlugins.Keyboard.addListener("keyboardWillShow", () => {
         if (keyboardWillHideTimer) { clearTimeout(keyboardWillHideTimer); keyboardWillHideTimer = null; }
