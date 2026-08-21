@@ -28,8 +28,22 @@
         android:enableOnBackInvokedCallback="false"
         android:theme="@style/AppTheme">
 
+        <!-- windowSoftInputMode="adjustResize" - missing entirely before (Capacitor's own
+             generated manifest sets this by default), which left the Activity window never
+             actually resizing for the on-screen keyboard: the system just panned the
+             WebView's fixed-size content instead, the exact "resizes-visual" fallback
+             mobile/index.html's own viewport-meta comment describes. Without a genuinely
+             shrunk window, the layout viewport #login-wrap measures (mobile/app.js's
+             applyLoginFocusHeight) never changed on keyboard open, so the login-focus-progress
+             custom property stayed pinned at 1 (idle) and the whole email-focus collapse (mascot/tagline/
+             spacers) never engaged - confirmed by reproducing the resize in a headless
+             test: the same CSS/JS collapses correctly the instant the layout viewport is
+             actually shrunk, it just never was on-device. adjustResize is what makes the
+             window shrink in the first place, letting interactive-widget=resizes-content
+             (and everything built on top of it) do what it was already written for. -->
         <activity
             android:configChanges="orientation|keyboardHidden|keyboard|screenSize|locale|smallestScreenSize|screenLayout|uiMode|navigation|density"
+            android:windowSoftInputMode="adjustResize"
             android:name=".MainActivity"
             android:label="@string/title_activity_main"
             android:theme="@style/AppTheme.NoActionBarLaunch"
