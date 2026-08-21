@@ -3112,24 +3112,46 @@ function syncLoginPhaseStackHeight() {
 new ResizeObserver(syncLoginPhaseStackHeight).observe(el("login-choice"));
 new ResizeObserver(syncLoginPhaseStackHeight).observe(el("login-email-form"));
 
-// Mirrors --login-wrap-h (app.css) to #login-wrap's own real, live-resizing height, so
-// .login-mascot can size itself as a continuous function of it (see that rule's own
-// comment) instead of jumping between two fixed px targets on a fixed-duration CSS
-// transition of its own. That fixed-duration approach visibly decoupled from the
-// keyboard: .login-top-spacer/.login-mid-spacer's own flex-grow (also app.css) already
-// tracks #login-wrap's real height every frame, for as long as the keyboard's own
-// close/open animation actually takes - which varies by device and isn't the same as
-// this rule's own .32s guess - so the mascot's width transition (previously on its own
-// independent clock) routinely finished well before or after the spacers actually did:
-// on-device, that read as the mascot fully growing back to size while still sitting near
-// its compact position, then visibly sliding the rest of the way once the real keyboard
-// resize caught up - two distinct, sharp movements instead of one. Tying width to this
-// same live height (like the spacers already are) removes the second clock entirely -
-// same reasoning, applied to whichever child needs to track the keyboard, not just these
-// two spacers.
-new ResizeObserver((entries) => {
-    el("login-wrap").style.setProperty("--login-wrap-h", entries[0].contentRect.height + "px");
-}).observe(el("login-wrap"));
+// Mirrors #login-wrap's own real, live-resizing height to --login-wrap-h, AND a
+// normalized "how open is the keyboard" fraction to --login-focus-progress (0 = fully
+// compact/focused, 1 = fully idle/unfocused) - both app.css custom properties. Anything
+// in here that needs to resize in step with the keyboard (.login-mascot's own width, the
+// "Continue with Google" button/divider/email-field-margin's own reveal below) derives
+// straight from one of these instead of running its own fixed-duration CSS transition
+// between two px targets on the .login-wrap-email-focus class toggle.
+//
+// That fixed-duration approach is what caused the exact bug this replaced: on a real
+// close, .login-top-spacer/.login-mid-spacer's own flex-grow (app.css) already tracks
+// #login-wrap's real height every frame for as long as the keyboard's own close
+// animation actually takes (which varies by device, and isn't the same as any fixed CSS
+// duration) - because a flex-grow ratio's RESULTING pixel size is recomputed by the
+// browser every frame against whatever the container's current height is, regardless of
+// whether the ratio itself is still transitioning. A plain width/max-height/margin value
+// animated by its own fixed-duration transition has no such live recompute once THAT
+// transition ends - it just goes inert at its target, however wrong that still is
+// relative to a keyboard resize that isn't done yet. On-device that's what read as the
+// Google button popping in already fully sized and pushing the mascot/tagline cluster
+// the rest of the way up a beat after it looked like it had already settled - the
+// button's own fixed .32s had already finished and gone inert while the container (and
+// so #login-top-spacer's own live share of it) kept right on changing underneath it.
+// Deriving every such size from this SAME live fraction, recomputed every real resize
+// frame, removes the independent clock these all used to run on - there's nothing left
+// to finish "early" or "late" relative to each other, because they're all reading the
+// same number at the same instant.
+//
+// The .28/100/88 numbers mirror .login-mascot's own clamp(100px, 28% of height, 188px)
+// exactly (88 = 188-100) so this reaches exactly 0 right where that clamp reaches
+// exactly 100px (fully focused) and exactly 1 right where it reaches exactly 188px
+// (fully idle) on an ordinary phone - same reasoning as that clamp's own comment on why
+// 28% clamps cleanly at both ends instead of needing this file to separately know each
+// device's real focused/resting height up front.
+function updateLoginFocusVars(height) {
+    const wrap = el("login-wrap");
+    wrap.style.setProperty("--login-wrap-h", height + "px");
+    const progress = Math.min(1, Math.max(0, (height * 0.28 - 100) / 88));
+    wrap.style.setProperty("--login-focus-progress", progress.toFixed(4));
+}
+new ResizeObserver((entries) => updateLoginFocusVars(entries[0].contentRect.height)).observe(el("login-wrap"));
 
 function resetLoginPhase() {
     // See .login-wrap-form-phase in app.css - this one class alone drives which panel
