@@ -3112,6 +3112,25 @@ function syncLoginPhaseStackHeight() {
 new ResizeObserver(syncLoginPhaseStackHeight).observe(el("login-choice"));
 new ResizeObserver(syncLoginPhaseStackHeight).observe(el("login-email-form"));
 
+// Mirrors --login-wrap-h (app.css) to #login-wrap's own real, live-resizing height, so
+// .login-mascot can size itself as a continuous function of it (see that rule's own
+// comment) instead of jumping between two fixed px targets on a fixed-duration CSS
+// transition of its own. That fixed-duration approach visibly decoupled from the
+// keyboard: .login-top-spacer/.login-mid-spacer's own flex-grow (also app.css) already
+// tracks #login-wrap's real height every frame, for as long as the keyboard's own
+// close/open animation actually takes - which varies by device and isn't the same as
+// this rule's own .32s guess - so the mascot's width transition (previously on its own
+// independent clock) routinely finished well before or after the spacers actually did:
+// on-device, that read as the mascot fully growing back to size while still sitting near
+// its compact position, then visibly sliding the rest of the way once the real keyboard
+// resize caught up - two distinct, sharp movements instead of one. Tying width to this
+// same live height (like the spacers already are) removes the second clock entirely -
+// same reasoning, applied to whichever child needs to track the keyboard, not just these
+// two spacers.
+new ResizeObserver((entries) => {
+    el("login-wrap").style.setProperty("--login-wrap-h", entries[0].contentRect.height + "px");
+}).observe(el("login-wrap"));
+
 function resetLoginPhase() {
     // See .login-wrap-form-phase in app.css - this one class alone drives which panel
     // (choice/form) is on/off screen and its own back-btn fade.

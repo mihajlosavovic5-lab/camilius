@@ -490,10 +490,29 @@ button { font-family: inherit; -webkit-appearance: none; appearance: none; }
    hero visual, not a small badge. filter (not box-shadow, which only shadows the
    element's own box - this has transparent background between the line strokes)
    softens it off the page the same way the old icon's box-shadow did. */
+/* Sized as a continuous function of --login-wrap-h (set by a ResizeObserver in app.js,
+   tracking #login-wrap's own real, live-resizing height) rather than jumping between two
+   fixed px targets (100/188) on .login-wrap-email-focus - see app.js's own comment on
+   why: a fixed-duration transition between two constants runs on its OWN clock, which
+   has no reason to finish at the same moment the keyboard's own open/close animation
+   actually does (that varies by device), so it visibly decoupled from the real motion -
+   read as growing/shrinking fully, THEN sliding the rest of the way once the keyboard
+   genuinely caught up, two distinct movements instead of one. This can't decouple the
+   same way: there's no separate clock to race, just the width recomputing every real
+   layout frame against the keyboard's actual current progress, exactly like
+   .login-top-spacer/.login-mid-spacer's own flex-grow already does above.
+   28% clamped to [100,188]px: chosen so ordinary phones' resting (keyboard-closed) height
+   clamps at the 188px ceiling and their focused (keyboard-open) height clamps at the
+   100px floor - the same two target sizes as before at both extremes - while shorter
+   screens that never reach 188px worth of headroom get a proportionally smaller resting
+   size instead of one that risks overflowing them, which reads as reasonable rather than
+   "wrong". transition here only smooths interactive-widget=resizes-content's own bursty,
+   stepped resize events (see app.js), not a fallback animation of its own. */
 .login-mascot {
-    width: 188px; height: auto; filter: drop-shadow(0 10px 18px rgba(43,32,19,.18));
+    width: clamp(100px, calc(var(--login-wrap-h, 700px) * .28), 188px);
+    height: auto; filter: drop-shadow(0 10px 18px rgba(43,32,19,.18));
     animation: login-mascot-float 3.2s ease-in-out infinite;
-    transition: width .32s cubic-bezier(.22,.9,.32,1.05);
+    transition: width .18s ease-out;
 }
 /* Neutral gray (--mascot-line) rather than --text - reads as a plain product
    illustration instead of trying to match the site's own warm brown/gold palette. */
@@ -552,11 +571,6 @@ button { font-family: inherit; -webkit-appearance: none; appearance: none; }
     white-space: nowrap; transform: scale(.78); transform-origin: top center;
     opacity: 0; pointer-events: none;
 }
-/* 100px (up from an earlier, much smaller 64px), sized against the reference login
-   screen's own mascot (roughly a fifth of its screen width there too) - readable at a
-   glance beats "as small as it can possibly be" now that the field stays comfortably
-   above the keyboard either way. */
-.login-wrap-email-focus .login-mascot { width: 100px; }
 /* Down from 14px - user-requested tightening: the tagline should sit almost flush
    against the field, not leave a visible gap under it. Not 0 - a sliver of breathing
    room between the tagline's own descenders and .login-mid-spacer's 6px below still
