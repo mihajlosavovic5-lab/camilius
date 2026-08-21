@@ -1222,19 +1222,11 @@ input.tap-to-edit-field, textarea.tap-to-edit-field { cursor: pointer; backgroun
    the send button once there's real text - see the :not(:placeholder-shown) override
    below, no JS involved in either switch. Border/focus glow come from the generic
    input[type="email"] rules further up this file. */
-/* Collapses along with "Continue with Google" and its divider below in focus mode - this
-   18px only exists to match the .button margin-top it visually stands in for in the
-   normal (Google button + divider both showing) layout; once those are gone the field
-   should sit right under the tagline instead of still leaving a button-sized gap for a
-   button that isn't there. calc()'d from --login-focus-progress (app.js), like the
-   button/divider's own margins right below, on the same shared --login-focus-anim-dur
-   (.login-wrap, above) they transition on too - so this always finishes moving at the
-   exact same moment they finish collapsing/expanding, instead of settling before or
-   after them (see that variable's own comment for why they all share one duration). */
-.login-email-input-wrap {
-    position: relative; margin-top: calc(var(--login-focus-progress, 1) * 18px);
-    transition: margin-top var(--login-focus-anim-dur) ease;
-}
+/* No longer collapses along with "Continue with Google"/its divider above for focus mode
+   - see that button's own comment for why none of these animate anymore. Plain, constant
+   18px margin-top now that there's no collapsing button above this to compensate for -
+   the field just keeps its normal resting position, same as everything below it. */
+.login-email-input-wrap { position: relative; margin-top: 18px; }
 .login-email-input { text-align: center; }
 .login-email-input:not(:placeholder-shown) { text-align: left; padding-right: 54px; }
 /* Send button beside the email input - shows itself purely via the :not(:placeholder-shown)
@@ -1254,46 +1246,23 @@ input.tap-to-edit-field, textarea.tap-to-edit-field { cursor: pointer; backgroun
 .login-email-input:not(:placeholder-shown) ~ .login-email-send-btn {
     opacity: 1; transform: translateY(-50%) scale(1); pointer-events: auto;
 }
-/* Collapses "Continue with Google" out of the way in the email field's "focus mode" (see
-   .login-wrap-email-focus's own comment near .login-tagline above) instead of just
-   dimming it - max-height/overflow so the space it frees up actually closes up rather
-   than leaving a dead gap, transform for a little extra motion beyond the plain fade.
-   Every animated value here is calc()'d from --login-focus-progress (app.js) rather than
-   toggled between two constants on a fixed-duration transition - see that variable's own
-   comment for the bug that caused: a fixed-duration transition goes inert at its own
-   target the moment it ends, whether or not the keyboard's real close/open animation is
-   actually done yet, which is what let this button visibly finish (already fully sized,
-   fully opaque) and sit there while the still-live spacers/mascot above kept right on
-   moving underneath it - reading as this button "belatedly" shoving them the rest of the
-   way into place a beat later, instead of the whole cluster settling as one motion.
-   120px max-height ceiling (well above the button's own real height) is a deliberate
-   generous cap, not a target - matches .login-tagline-wrap's own "never clip, don't hug
-   it tightly" reasoning above, so this doesn't need to know the button's exact real
-   height (which varies by locale/text length) to avoid ever clipping it once progress
-   reaches 1. padding-top/bottom (0 at progress 0, .button's own 13px at progress 1) still
-   need their own explicit calc, not just max-height - see this rule's own git history:
-   even with the global box-sizing:border-box (this file's own reset, near the top), a
-   padding value bigger than the box's own max-height still forces the rendered box to at
-   least that padding's total, so max-height alone bottoming out at 0 only ever collapsed
-   this down to ~26px (padding-top + padding-bottom), never the true 0 the layout below
-   (.login-mid-spacer pinned to near-nothing) assumes it reaches.
-   Every one of these transitions on --login-focus-anim-dur (.login-wrap, above) - the
-   SAME shared duration every other property in this cluster also uses, same reasoning as
-   .login-mascot's own comment above: --login-focus-progress updates instantly (app.js),
-   so a matching duration here is what actually keeps this landing on the exact same
-   frame as the spacers/mascot/tagline around it, instead of settling before or after them. */
-#login-google-btn {
-    max-height: calc(var(--login-focus-progress, 1) * 120px);
-    overflow: hidden;
-    opacity: var(--login-focus-progress, 1);
-    margin-top: calc(var(--login-focus-progress, 1) * 18px);
-    padding-top: calc(var(--login-focus-progress, 1) * 13px);
-    padding-bottom: calc(var(--login-focus-progress, 1) * 13px);
-    transform: scale(calc(.94 + var(--login-focus-progress, 1) * .06));
-    transition: opacity var(--login-focus-anim-dur) ease, max-height var(--login-focus-anim-dur) ease,
-        margin-top var(--login-focus-anim-dur) ease, transform var(--login-focus-anim-dur) ease,
-        padding-top var(--login-focus-anim-dur) ease, padding-bottom var(--login-focus-anim-dur) ease;
-}
+/* Used to actively collapse "Continue with Google" out of the way in the email field's
+   "focus mode" (max-height/opacity/padding/margin/transform, all animated together off
+   --login-focus-progress) - dropped in favor of matching the reference login screen's
+   own actual behavior instead: it doesn't shrink or fade this button out of the way at
+   all. It just leaves it exactly where it normally sits and lets the keyboard's own
+   resize genuinely run out of room for it - #login-choice (this button's own plain,
+   non-flex parent - see index.html) simply runs past #login-wrap's own now-shorter
+   bottom edge, and #screen-login's own overflow:hidden clips whatever doesn't fit, the
+   same as the keyboard visually sliding up over it would. Nothing extra needed to make
+   that overflow happen instead of squashing this down to fit: unlike
+   .login-top-spacer/.login-mid-spacer above (real flex items, sharing #login-wrap's own
+   flex column, which is why THEY need flex-grow/min-height to stay out of each other's
+   way), this button and everything else inside #login-choice are laid out in plain block
+   flow, which was never going to shrink to fit its container in the first place -
+   .login-phase-stack (#login-choice's own flex-shrink:0 ancestor, app.css above) was
+   already relied on to hold its JS-set height regardless of #login-wrap's own shrinking
+   for exactly this reason, well before this rule stopped animating. */
 .login-wrap-email-focus #login-google-btn { pointer-events: none; }
 /* "Continue with Google" (Login + Create account) - neutral white per Google's own
    branding guidelines, same reasoning/colors as the website's .button-google
@@ -1321,20 +1290,13 @@ input.tap-to-edit-field, textarea.tap-to-edit-field { cursor: pointer; backgroun
 /* Bigger, bolder "or" flanked by short lines on each side, instead of a plain small
    caption - reads more like a real divider between two equally-weighted buttons (Google/
    email) than a throwaway label. Same treatment as the website's .auth-or-divider. */
-/* Collapses along with "Continue with Google" above in the email field's "focus mode",
-   same calc()'d-from-progress reasoning (and same shared --login-focus-anim-dur, see
-   .login-wrap above) as that button's own rule just above - so it always finishes
-   collapsing/expanding on the exact same frame as the button, moving as one unit. */
+/* Collapses along with "Continue with Google" above in the email field's "focus mode" -
+   used to; doesn't shrink or fade anymore either, see #login-google-btn's own comment
+   for why (this is inside the same plain, non-flex #login-choice it is). */
 .login-google-divider {
     display: flex; align-items: center; gap: 12px;
     font-size: 15px; font-weight: 700; color: var(--text-muted);
-    margin-top: calc(var(--login-focus-progress, 1) * 16px);
-    margin-bottom: calc(var(--login-focus-progress, 1) * 8px);
-    max-height: calc(var(--login-focus-progress, 1) * 60px);
-    overflow: hidden;
-    opacity: var(--login-focus-progress, 1);
-    transition: opacity var(--login-focus-anim-dur) ease, max-height var(--login-focus-anim-dur) ease,
-        margin-top var(--login-focus-anim-dur) ease, margin-bottom var(--login-focus-anim-dur) ease;
+    margin: 16px 0 8px;
 }
 .login-google-divider::before, .login-google-divider::after {
     content: ""; flex: 1; height: 1px; background: var(--border);
