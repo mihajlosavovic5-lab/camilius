@@ -3210,32 +3210,30 @@ function updateLoginDebugBadge(wrapHeight) {
     const wrapRect = wrap.getBoundingClientRect();
     const spacerRect = spacer ? spacer.getBoundingClientRect() : null;
     const legalRect = legal ? legal.getBoundingClientRect() : null;
-    const vv = window.visualViewport;
     const wrapStyle = getComputedStyle(wrap);
-    const rootStyle = getComputedStyle(document.documentElement);
     const phaseStack = el("login-phase-stack");
     const choice = el("login-choice");
+    const midSpacer = document.querySelector(".login-mid-spacer");
     const googleBtn = el("login-google-btn");
     const googleDivider = document.querySelector(".login-google-divider");
     const phaseStackRect = phaseStack.getBoundingClientRect();
     const choiceRect = choice.getBoundingClientRect();
+    const midSpacerRect = midSpacer ? midSpacer.getBoundingClientRect() : null;
     const googleBtnRect = googleBtn.getBoundingClientRect();
     const googleBtnStyle = getComputedStyle(googleBtn);
     const dividerStyle = googleDivider ? getComputedStyle(googleDivider) : null;
     badge.textContent =
         `progress=${wrapStyle.getPropertyValue("--login-focus-progress").trim()}\n` +
-        `wrapH(observed)=${Math.round(wrapHeight)} wrapH(rect)=${Math.round(wrapRect.height)}\n` +
-        `wrapBottom=${Math.round(wrapRect.bottom)}\n` +
-        `restingH=${loginWrapRestingHeight ? Math.round(loginWrapRestingHeight) : "?"}\n` +
-        `vvHeight=${vv ? Math.round(vv.height) : "?"} winH=${window.innerHeight}\n` +
-        `spacerH=${spacerRect ? Math.round(spacerRect.height) : "?"}\n` +
+        `wrapTop=${Math.round(wrapRect.top)} wrapBottom=${Math.round(wrapRect.bottom)} wrapH=${Math.round(wrapRect.height)}\n` +
+        `spacerTop=${spacerRect ? Math.round(spacerRect.top) : "?"} spacerBottom=${spacerRect ? Math.round(spacerRect.bottom) : "?"} spacerH=${spacerRect ? Math.round(spacerRect.height) : "?"}\n` +
+        `midSpacerTop=${midSpacerRect ? Math.round(midSpacerRect.top) : "?"} midSpacerBottom=${midSpacerRect ? Math.round(midSpacerRect.bottom) : "?"} midSpacerH=${midSpacerRect ? Math.round(midSpacerRect.height) : "?"}\n` +
         `legalBottom=${legalRect ? Math.round(legalRect.bottom) : "?"}\n` +
         `gap(wrapBottom-legalBottom)=${legalRect ? Math.round(wrapRect.bottom - legalRect.bottom) : "?"}\n` +
+        `gap(spacerTop-phaseStackBottom)=${spacerRect ? Math.round(spacerRect.top - phaseStackRect.bottom) : "?"}\n` +
         `computedPaddingBottom=${wrapStyle.paddingBottom}\n` +
-        `raw --safe-bottom=${rootStyle.getPropertyValue("--safe-bottom").trim() || "(unset)"}\n` +
         `phaseStack.style.height=${phaseStack.style.height}\n` +
-        `phaseStackBottom=${Math.round(phaseStackRect.bottom)}\n` +
-        `choiceBottom=${Math.round(choiceRect.bottom)}\n` +
+        `phaseStackTop=${Math.round(phaseStackRect.top)} phaseStackBottom=${Math.round(phaseStackRect.bottom)}\n` +
+        `choiceTop=${Math.round(choiceRect.top)} choiceBottom=${Math.round(choiceRect.bottom)} choiceH=${Math.round(choiceRect.height)}\n` +
         `googleBtn h=${Math.round(googleBtnRect.height)} maxH=${googleBtnStyle.maxHeight} op=${googleBtnStyle.opacity}\n` +
         `googleDivider maxH=${dividerStyle ? dividerStyle.maxHeight : "?"}\n` +
         `focusClass=${wrap.classList.contains("login-wrap-email-focus")}`;
