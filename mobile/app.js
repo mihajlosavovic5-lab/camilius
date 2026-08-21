@@ -3312,20 +3312,21 @@ function makeProgressChaser(timeConstantMs) {
 // above), so this time-constant IS effectively the whole visible glide for the open
 // direction, not just a jump-smoother - every property in this cluster reads off the
 // SAME live value on the SAME frame (no independent per-property clock), so there's
-// nothing else contributing motion. 150ms settles in a genuinely deliberate ~350-450ms
-// (2-3 time-constants), slower/more noticeable than the 90ms this replaced (still user-
-// requested slower, not a snap-vs-glide fix this time) while staying inside the real
-// device headroom LOGIN_FOCUS_FOCUSED_FRACTION's own comment describes (progress reaches
-// its target at 68% of the keyboard's real travel, before the keyboard's own ~250-300ms
-// animation is fully done, so the cluster still has a beat of that real motion left to
-// finish alongside instead of visibly trailing it).
-const loginFocusChaser = makeProgressChaser(150);
+// nothing else contributing motion. 250ms settles in ~625-750ms (2.5-3 time-constants) -
+// user-requested slower twice over now (30ms -> 90ms -> 150ms -> this), past the point
+// where the glide still finishes inside the keyboard's own ~250-300ms real travel (see
+// LOGIN_FOCUS_FOCUSED_FRACTION's own comment for that budget) - the cluster now
+// deliberately keeps drifting into place for a couple hundred ms after the keyboard
+// itself has physically finished, which is the tradeoff a glide this slow means, not a
+// bug: there's no longer a shorter, real-device-driven animation underneath for this to
+// merely smooth over, this pace IS the whole show now.
+const loginFocusChaser = makeProgressChaser(250);
 // --login-focus-btn-progress: the Google button/divider/email-margin cluster's own
 // deliberately faster pace (same ~1.8:1 ratio to loginFocusChaser as before) so this
 // cluster keeps visibly clearing out of the way ahead of the slower mascot/spacer motion
 // instead of both moving in lockstep - see loginFocusChaser's own comment for why a
 // longer constant here reads as a slower, more deliberate glide.
-const loginFocusBtnChaser = makeProgressChaser(85);
+const loginFocusBtnChaser = makeProgressChaser(140);
 let loginFocusRAF = null;
 function stepLoginFocusChasers(now) {
     const wrap = el("login-wrap");
