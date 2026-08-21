@@ -546,12 +546,22 @@ button { font-family: inherit; -webkit-appearance: none; appearance: none; }
    above the keyboard either way. */
 .login-wrap-email-focus .login-mascot { width: 100px; }
 .login-wrap-email-focus .login-brand { margin-bottom: 14px; }
-/* 64px covers a 2-line tagline (~68px unscaled) at this same 0.78 scale (~53px) plus its
-   own margin, with a little room to spare - same "never clip the real content, don't try
-   to hug it exactly" reasoning as the unscaled 100px above (and the same, less
-   aggressive, "readable over minimal" call as the mascot's own width just above). */
-.login-wrap-email-focus .login-tagline-wrap { max-height: 64px; }
-.login-wrap-email-focus .login-tagline { transform: scale(0.78); margin-top: 2px; }
+/* 34px covers a single line (~34px unscaled at 1.55 line-height) at this same 0.78 scale
+   (~27px) plus its own margin, with a little room to spare - same "never clip the real
+   content, don't try to hug it exactly" reasoning as the unscaled 100px above. Halved
+   from an earlier 64px (sized for 2 lines) now that focus mode forces a single line (see
+   white-space:nowrap below) - the field sitting right under the tagline instead of a big
+   gap below it depends on this shrinking along with the line count, not just staying
+   loose enough to still fit the old 2-line height. */
+.login-wrap-email-focus .login-tagline-wrap { max-height: 34px; }
+/* white-space:nowrap - focus mode reads as a tighter, single-line version of this text
+   (matching the reference login screen) rather than the plain 2-line wrap it uses at
+   rest, same idea as claude.ai's own login screen. Relies on the scale below (already
+   needed regardless, to fit the shrunk vertical space) to also bring an unwrapped line's
+   real width back down to fit - overflow:hidden on the wrap above clips anything a much
+   longer translation doesn't leave room for either way, same graceful-degradation
+   tradeoff every fixed-size UI text makes. */
+.login-wrap-email-focus .login-tagline { transform: scale(0.78); margin-top: 2px; white-space: nowrap; }
 /* This spacer sits ABOVE the mascot, so growing IT grows the gap between the header and
    the mascot, pushing the whole cluster further DOWN the screen - not the same thing as
    "closer to the field" (that's .login-mid-spacer below, already pinned to near-zero).
@@ -1161,10 +1171,21 @@ input.tap-to-edit-field, textarea.tap-to-edit-field { cursor: pointer; backgroun
    than leaving a dead gap, transform for a little extra motion beyond the plain fade. */
 #login-google-btn {
     max-height: 120px; overflow: hidden;
-    transition: opacity .28s ease, max-height .32s ease, margin .32s ease, transform .28s ease;
+    transition: opacity .28s ease, max-height .32s ease, margin .32s ease, transform .28s ease,
+        padding-top .32s ease, padding-bottom .32s ease;
 }
+/* padding-top/bottom to 0, not just max-height - .button's own 13px top+bottom padding
+   (app.css) doesn't shrink away on its own just because max-height does: even with the
+   global box-sizing:border-box (this file's own reset, near the top), a padding value
+   that's bigger than the box's own max-height still forces the rendered box to at least
+   that padding's total, so max-height:0 alone only ever collapsed this down to ~26px
+   (padding-top + padding-bottom), never the true 0 the layout below (.login-mid-spacer
+   pinned to near-nothing) assumes it reaches - the gap that leftover 26px opened up
+   between the tagline and the email field only became obvious once everything around it
+   got tight enough to actually be flush otherwise. */
 .login-wrap-email-focus #login-google-btn {
-    opacity: 0; max-height: 0; margin-top: 0; transform: scale(.94); pointer-events: none;
+    opacity: 0; max-height: 0; margin-top: 0; padding-top: 0; padding-bottom: 0;
+    transform: scale(.94); pointer-events: none;
 }
 /* "Continue with Google" (Login + Create account) - neutral white per Google's own
    branding guidelines, same reasoning/colors as the website's .button-google
