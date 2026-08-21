@@ -528,31 +528,33 @@ button { font-family: inherit; -webkit-appearance: none; appearance: none; }
    hero visual, not a small badge. filter (not box-shadow, which only shadows the
    element's own box - this has transparent background between the line strokes)
    softens it off the page the same way the old icon's box-shadow did. */
-/* Sized as a continuous function of --login-wrap-h (set instantly, straight off a
-   ResizeObserver, by app.js - see its own comment there) rather than jumping between two
-   fixed px targets (100/188) on .login-wrap-email-focus: a fixed-duration transition
+/* Sized as a continuous function of --login-focus-progress (set instantly, straight off
+   a ResizeObserver, by app.js - see its own comment there) rather than jumping between
+   two fixed px targets (100/188) on .login-wrap-email-focus: a fixed-duration transition
    between two constants runs on its OWN clock, which has no reason to finish at the same
    moment the keyboard's own open/close animation actually does (that varies by device),
    so it visibly decoupled from the real motion - read as growing/shrinking fully, THEN
    sliding the rest of the way once the keyboard genuinely caught up, two distinct
    movements instead of one.
-   28% clamped to [100,188]px: chosen so ordinary phones' resting (keyboard-closed) height
-   clamps at the 188px ceiling and their focused (keyboard-open) height clamps at the
-   100px floor - the same two target sizes as before at both extremes - while shorter
-   screens that never reach 188px worth of headroom get a proportionally smaller resting
-   size instead of one that risks overflowing them, which reads as reasonable rather than
-   "wrong".
+   100px + progress*88px reaches exactly 100px when progress is exactly 0 (fully focused)
+   and exactly 188px when progress is exactly 1 (fully idle) - this used to read straight
+   off --login-wrap-h through its own fixed clamp(100px, 28% of height, 188px) instead,
+   which assumed a specific relationship between a phone's real focused/resting heights
+   that didn't hold on every device (see --login-focus-progress's own comment in app.js
+   for the ghost-button bug that caused, on a device where it didn't); progress is already
+   self-calibrated to THIS device's own real resting height there, so every property
+   reading it - this one included - inherits that instead of guessing its own.
    transition here uses --login-focus-anim-dur (.login-wrap, above), the SAME duration
    every other property in this cluster (the two spacers' flex-grow, the tagline/button/
    divider's own reveal) also transitions on, rather than each one picking its own -
-   that's what actually keeps them all landing together: since --login-wrap-h/
-   --login-focus-progress update INSTANTLY (see app.js), every one of these transitions
-   starts on the exact same frame; giving them the exact same duration is what then also
-   guarantees they all finish on the exact same frame; a mismatched duration here would
-   reopen the same "one settles early, one settles late" gap this whole approach exists
-   to close, just from a different cause than the original one it replaced. */
+   that's what actually keeps them all landing together: since --login-focus-progress
+   updates INSTANTLY (see app.js), every one of these transitions starts on the exact same
+   frame; giving them the exact same duration is what then also guarantees they all finish
+   on the exact same frame; a mismatched duration here would reopen the same "one settles
+   early, one settles late" gap this whole approach exists to close, just from a different
+   cause than the original one it replaced. */
 .login-mascot {
-    width: clamp(100px, calc(var(--login-wrap-h, 700px) * .28), 188px);
+    width: calc(100px + var(--login-focus-progress, 1) * 88px);
     height: auto; filter: drop-shadow(0 10px 18px rgba(43,32,19,.18));
     animation: login-mascot-float 3.2s ease-in-out infinite;
     transition: width var(--login-focus-anim-dur) ease;

@@ -3112,13 +3112,13 @@ function syncLoginPhaseStackHeight() {
 new ResizeObserver(syncLoginPhaseStackHeight).observe(el("login-choice"));
 new ResizeObserver(syncLoginPhaseStackHeight).observe(el("login-email-form"));
 
-// Mirrors #login-wrap's own real, live-resizing height to --login-wrap-h, AND a
-// normalized "how open is the keyboard" fraction to --login-focus-progress (0 = fully
-// compact/focused, 1 = fully idle/unfocused) - both app.css custom properties. Anything
-// in here that needs to resize in step with the keyboard (.login-mascot's own width, the
-// "Continue with Google" button/divider/email-field-margin's own reveal below) derives
-// straight from one of these instead of running its own fixed-duration CSS transition
-// between two px targets on the .login-wrap-email-focus class toggle.
+// Mirrors #login-wrap's own real, live-resizing height into a normalized "how open is
+// the keyboard" fraction, --login-focus-progress (0 = fully compact/focused, 1 = fully
+// idle/unfocused) - an app.css custom property. Anything in here that needs to resize in
+// step with the keyboard (.login-mascot's own width, the "Continue with Google" button/
+// divider/email-field-margin's own reveal below) derives straight from it instead of
+// running its own fixed-duration CSS transition between two px targets on the
+// .login-wrap-email-focus class toggle.
 //
 // That fixed-duration approach is what caused the exact bug this replaced: on a real
 // close, .login-top-spacer/.login-mid-spacer's own flex-grow (app.css) already tracks
@@ -3139,13 +3139,28 @@ new ResizeObserver(syncLoginPhaseStackHeight).observe(el("login-email-form"));
 // to finish "early" or "late" relative to each other, because they're all reading the
 // same number at the same instant.
 //
-// The .28/100/88 numbers mirror .login-mascot's own clamp(100px, 28% of height, 188px)
-// exactly (88 = 188-100) so this reaches exactly 0 right where that clamp reaches
-// exactly 100px (fully focused) and exactly 1 right where it reaches exactly 188px
-// (fully idle) on an ordinary phone - same reasoning as that clamp's own comment on why
-// 28% clamps cleanly at both ends instead of needing this file to separately know each
-// device's real focused/resting height up front.
-//
+// progress is a fraction of #login-wrap's own OBSERVED resting height (the tallest real
+// height ever measured for it - a keyboard opening only ever shrinks that, the same
+// "tallest seen so far" logic restingHeight below already uses for the visualViewport)
+// rather than of any fixed absolute px thresholds - those used to be hardcoded (0 at
+// height 357px, 1 at height 671px, chosen from this file's own on-device testing at the
+// time), and on a later device whose keyboard left the login screen noticeably taller
+// than THAT testing assumed - a smaller keyboard, a bigger screen, a different nav-bar
+// height eating into the same math - height never actually dropped below those fixed
+// thresholds, so progress never reached true 0. The mascot/spacer/tagline (all sized off
+// progress too) still read as "collapsed enough" at whatever partial progress that left,
+// but the Google button/divider's own opacity (see their own rule in app.css) doesn't
+// have that same slack - anything above literal 0 renders as a faint, persistently
+// visible ghost of a supposedly-hidden button, which is what was actually reported.
+// LOGIN_FOCUS_FOCUSED_FRACTION (0.68) means "at or below 68% of this device's own real
+// resting height counts as fully focused" - self-calibrating to whatever THIS device's
+// screen/keyboard/nav-bar combination actually leaves, rather than assuming one. Biased
+// high (a real keyboard leaves noticeably less than 68% of the resting height on every
+// device tested) so the collapse finishes with real margin to spare rather than exactly
+// at the edge - reaching fully-collapsed a little before the keyboard's own animation
+// is 100% done is far less noticeable than the ghost this replaces.
+const LOGIN_FOCUS_FOCUSED_FRACTION = 0.68;
+let loginWrapRestingHeight = null;
 // Set straight from the ResizeObserver below, not glided/animated in JS first - an
 // earlier version of this DID drive both custom properties through a
 // glideModalCenterSheet-style constant-speed rAF loop (see that function's own comment
@@ -3169,8 +3184,14 @@ new ResizeObserver(syncLoginPhaseStackHeight).observe(el("login-email-form"));
 // others (see .login-mascot's own comment on why they all use one shared value here).
 function applyLoginFocusHeight(height) {
     const wrap = el("login-wrap");
-    wrap.style.setProperty("--login-wrap-h", height + "px");
-    const progress = Math.min(1, Math.max(0, (height * 0.28 - 100) / 88));
+    if (loginWrapRestingHeight === null || height > loginWrapRestingHeight) loginWrapRestingHeight = height;
+    const focusedFloor = loginWrapRestingHeight * LOGIN_FOCUS_FOCUSED_FRACTION;
+    // focusedFloor >= restingHeight would divide by zero/negative (only possible on the
+    // very first measurement, before there's any real range to fall within yet) - nothing
+    // to fade out from at that point anyway, so just report "fully idle".
+    const progress = focusedFloor >= loginWrapRestingHeight
+        ? 1
+        : Math.min(1, Math.max(0, (height - focusedFloor) / (loginWrapRestingHeight - focusedFloor)));
     wrap.style.setProperty("--login-focus-progress", progress.toFixed(4));
 }
 new ResizeObserver((entries) => applyLoginFocusHeight(entries[0].contentRect.height)).observe(el("login-wrap"));
