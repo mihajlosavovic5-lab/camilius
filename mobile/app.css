@@ -431,6 +431,15 @@ button { font-family: inherit; -webkit-appearance: none; appearance: none; }
     /* Same late-arriving-inset glide as .topbar above, for whichever screen the visitor
        lands on straight from a cold start when there's no saved session yet. */
     transition: padding-top .2s ease;
+    /* Shared transition-duration for every descendant that resizes off --login-focus-
+       progress (the mascot, the two spacers, the tagline, the Google button/divider, the
+       email field's own top margin - see --login-focus-progress's own comment in app.js).
+       Defined once and referenced everywhere via var(), rather than repeating the literal
+       .22s on each of those rules, specifically so it's IMPOSSIBLE for any one of them to
+       drift out of sync with the others by an editor tweaking one rule's duration and
+       missing a sibling - see that same comment for what happens when they don't match
+       (the earlier, non-progress-driven version of this bug). */
+    --login-focus-anim-dur: .22s;
 }
 .login-lang-row { display: flex; justify-content: center; flex-shrink: 0; }
 .lang-select-btn {
@@ -497,12 +506,12 @@ button { font-family: inherit; -webkit-appearance: none; appearance: none; }
    same instant, so there's nothing left to still be moving. */
 .login-top-spacer {
     flex-grow: calc(.5 + var(--login-focus-progress, 1) * .9); flex-shrink: 1; flex-basis: 0%;
-    min-height: 8px; transition: flex-grow .15s ease;
+    min-height: 8px; transition: flex-grow var(--login-focus-anim-dur) ease;
 }
 .login-mid-spacer {
     flex-grow: var(--login-focus-progress, 1); flex-shrink: 1; flex-basis: 0%;
     min-height: calc(6px + var(--login-focus-progress, 1) * 10px);
-    transition: flex-grow .15s ease, min-height .15s ease;
+    transition: flex-grow var(--login-focus-anim-dur) ease, min-height var(--login-focus-anim-dur) ease;
 }
 /* margin-bottom is calc()'d from --login-focus-progress (set in app.js) rather than
    toggled between two fixed values on a fixed-duration transition - see that variable's
@@ -512,36 +521,41 @@ button { font-family: inherit; -webkit-appearance: none; appearance: none; }
 .login-brand {
     display: flex; flex-direction: column; align-items: center; gap: 10px;
     margin: 0 0 calc(4px + var(--login-focus-progress, 1) * 26px);
-    transition: margin-bottom .15s ease;
+    transition: margin-bottom var(--login-focus-anim-dur) ease;
 }
 /* Replaces the old plain app-icon square (see the <svg> itself in index.html for what
    it depicts) - sized well above the 100px icon it replaces since it's now the actual
    hero visual, not a small badge. filter (not box-shadow, which only shadows the
    element's own box - this has transparent background between the line strokes)
    softens it off the page the same way the old icon's box-shadow did. */
-/* Sized as a continuous function of --login-wrap-h (set by a ResizeObserver in app.js,
-   tracking #login-wrap's own real, live-resizing height) rather than jumping between two
-   fixed px targets (100/188) on .login-wrap-email-focus - see app.js's own comment on
-   why: a fixed-duration transition between two constants runs on its OWN clock, which
-   has no reason to finish at the same moment the keyboard's own open/close animation
-   actually does (that varies by device), so it visibly decoupled from the real motion -
-   read as growing/shrinking fully, THEN sliding the rest of the way once the keyboard
-   genuinely caught up, two distinct movements instead of one. This can't decouple the
-   same way: there's no separate clock to race, just the width recomputing every real
-   layout frame against the keyboard's actual current progress, exactly like
-   .login-top-spacer/.login-mid-spacer's own flex-grow already does above.
+/* Sized as a continuous function of --login-wrap-h (set instantly, straight off a
+   ResizeObserver, by app.js - see its own comment there) rather than jumping between two
+   fixed px targets (100/188) on .login-wrap-email-focus: a fixed-duration transition
+   between two constants runs on its OWN clock, which has no reason to finish at the same
+   moment the keyboard's own open/close animation actually does (that varies by device),
+   so it visibly decoupled from the real motion - read as growing/shrinking fully, THEN
+   sliding the rest of the way once the keyboard genuinely caught up, two distinct
+   movements instead of one.
    28% clamped to [100,188]px: chosen so ordinary phones' resting (keyboard-closed) height
    clamps at the 188px ceiling and their focused (keyboard-open) height clamps at the
    100px floor - the same two target sizes as before at both extremes - while shorter
    screens that never reach 188px worth of headroom get a proportionally smaller resting
    size instead of one that risks overflowing them, which reads as reasonable rather than
-   "wrong". transition here only smooths interactive-widget=resizes-content's own bursty,
-   stepped resize events (see app.js), not a fallback animation of its own. */
+   "wrong".
+   transition here uses --login-focus-anim-dur (.login-wrap, above), the SAME duration
+   every other property in this cluster (the two spacers' flex-grow, the tagline/button/
+   divider's own reveal) also transitions on, rather than each one picking its own -
+   that's what actually keeps them all landing together: since --login-wrap-h/
+   --login-focus-progress update INSTANTLY (see app.js), every one of these transitions
+   starts on the exact same frame; giving them the exact same duration is what then also
+   guarantees they all finish on the exact same frame; a mismatched duration here would
+   reopen the same "one settles early, one settles late" gap this whole approach exists
+   to close, just from a different cause than the original one it replaced. */
 .login-mascot {
     width: clamp(100px, calc(var(--login-wrap-h, 700px) * .28), 188px);
     height: auto; filter: drop-shadow(0 10px 18px rgba(43,32,19,.18));
     animation: login-mascot-float 3.2s ease-in-out infinite;
-    transition: width .18s ease-out;
+    transition: width var(--login-focus-anim-dur) ease;
 }
 /* Neutral gray (--mascot-line) rather than --text - reads as a plain product
    illustration instead of trying to match the site's own warm brown/gold palette. */
@@ -582,7 +596,7 @@ button { font-family: inherit; -webkit-appearance: none; appearance: none; }
 .login-tagline-wrap {
     position: relative; overflow: hidden;
     max-height: calc(34px + var(--login-focus-progress, 1) * 66px);
-    transition: max-height .15s ease;
+    transition: max-height var(--login-focus-anim-dur) ease;
 }
 .login-tagline {
     margin: 6px 0 0; font-size: 22px; color: var(--text-muted); text-align: center;
@@ -1201,14 +1215,13 @@ input.tap-to-edit-field, textarea.tap-to-edit-field { cursor: pointer; backgroun
    normal (Google button + divider both showing) layout; once those are gone the field
    should sit right under the tagline instead of still leaving a button-sized gap for a
    button that isn't there. calc()'d from --login-focus-progress (app.js), like the
-   button/divider's own margins right below, rather than toggled on a fixed-duration
-   transition of its own - see --login-focus-progress's own comment for why: a fixed
-   transition goes inert at its target whether or not the keyboard's real resize is done,
-   which used to let this settle before the button/divider actually finished collapsing
-   or expanding, out of step with them instead of moving as one block. */
+   button/divider's own margins right below, on the same shared --login-focus-anim-dur
+   (.login-wrap, above) they transition on too - so this always finishes moving at the
+   exact same moment they finish collapsing/expanding, instead of settling before or
+   after them (see that variable's own comment for why they all share one duration). */
 .login-email-input-wrap {
     position: relative; margin-top: calc(var(--login-focus-progress, 1) * 18px);
-    transition: margin-top .15s ease;
+    transition: margin-top var(--login-focus-anim-dur) ease;
 }
 .login-email-input { text-align: center; }
 .login-email-input:not(:placeholder-shown) { text-align: left; padding-right: 54px; }
@@ -1251,7 +1264,12 @@ input.tap-to-edit-field, textarea.tap-to-edit-field { cursor: pointer; backgroun
    padding value bigger than the box's own max-height still forces the rendered box to at
    least that padding's total, so max-height alone bottoming out at 0 only ever collapsed
    this down to ~26px (padding-top + padding-bottom), never the true 0 the layout below
-   (.login-mid-spacer pinned to near-nothing) assumes it reaches. */
+   (.login-mid-spacer pinned to near-nothing) assumes it reaches.
+   Every one of these transitions on --login-focus-anim-dur (.login-wrap, above) - the
+   SAME shared duration every other property in this cluster also uses, same reasoning as
+   .login-mascot's own comment above: --login-focus-progress updates instantly (app.js),
+   so a matching duration here is what actually keeps this landing on the exact same
+   frame as the spacers/mascot/tagline around it, instead of settling before or after them. */
 #login-google-btn {
     max-height: calc(var(--login-focus-progress, 1) * 120px);
     overflow: hidden;
@@ -1260,8 +1278,9 @@ input.tap-to-edit-field, textarea.tap-to-edit-field { cursor: pointer; backgroun
     padding-top: calc(var(--login-focus-progress, 1) * 13px);
     padding-bottom: calc(var(--login-focus-progress, 1) * 13px);
     transform: scale(calc(.94 + var(--login-focus-progress, 1) * .06));
-    transition: opacity .15s ease, max-height .15s ease, margin-top .15s ease, transform .15s ease,
-        padding-top .15s ease, padding-bottom .15s ease;
+    transition: opacity var(--login-focus-anim-dur) ease, max-height var(--login-focus-anim-dur) ease,
+        margin-top var(--login-focus-anim-dur) ease, transform var(--login-focus-anim-dur) ease,
+        padding-top var(--login-focus-anim-dur) ease, padding-bottom var(--login-focus-anim-dur) ease;
 }
 .login-wrap-email-focus #login-google-btn { pointer-events: none; }
 /* "Continue with Google" (Login + Create account) - neutral white per Google's own
@@ -1291,10 +1310,9 @@ input.tap-to-edit-field, textarea.tap-to-edit-field { cursor: pointer; backgroun
    caption - reads more like a real divider between two equally-weighted buttons (Google/
    email) than a throwaway label. Same treatment as the website's .auth-or-divider. */
 /* Collapses along with "Continue with Google" above in the email field's "focus mode",
-   same calc()'d-from-progress reasoning (and same reason for it) as that button's own
-   rule just above - this used to run on its own separate fixed-duration transition too,
-   which is exactly what could leave it out of step with the button even though they're
-   meant to move as one unit. */
+   same calc()'d-from-progress reasoning (and same shared --login-focus-anim-dur, see
+   .login-wrap above) as that button's own rule just above - so it always finishes
+   collapsing/expanding on the exact same frame as the button, moving as one unit. */
 .login-google-divider {
     display: flex; align-items: center; gap: 12px;
     font-size: 15px; font-weight: 700; color: var(--text-muted);
@@ -1303,7 +1321,8 @@ input.tap-to-edit-field, textarea.tap-to-edit-field { cursor: pointer; backgroun
     max-height: calc(var(--login-focus-progress, 1) * 60px);
     overflow: hidden;
     opacity: var(--login-focus-progress, 1);
-    transition: opacity .15s ease, max-height .15s ease, margin-top .15s ease, margin-bottom .15s ease;
+    transition: opacity var(--login-focus-anim-dur) ease, max-height var(--login-focus-anim-dur) ease,
+        margin-top var(--login-focus-anim-dur) ease, margin-bottom var(--login-focus-anim-dur) ease;
 }
 .login-google-divider::before, .login-google-divider::after {
     content: ""; flex: 1; height: 1px; background: var(--border);

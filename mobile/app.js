@@ -3145,13 +3145,35 @@ new ResizeObserver(syncLoginPhaseStackHeight).observe(el("login-email-form"));
 // (fully idle) on an ordinary phone - same reasoning as that clamp's own comment on why
 // 28% clamps cleanly at both ends instead of needing this file to separately know each
 // device's real focused/resting height up front.
-function updateLoginFocusVars(height) {
+//
+// Set straight from the ResizeObserver below, not glided/animated in JS first - an
+// earlier version of this DID drive both custom properties through a
+// glideModalCenterSheet-style constant-speed rAF loop (see that function's own comment
+// further down this file for the WebView quirk it was built for: "some WebViews only
+// report the real visualViewport height in one or two discrete jumps rather than
+// continuously"), specifically to smooth exactly that kind of jump on the keyboard-OPEN
+// side. On-device that traded one glitch for a different one: .login-top-spacer's own
+// flex-grow (below) is resolved by the browser's live flex layout against #login-wrap's
+// REAL, current height, which - unlike the glide - updates instantly the moment the
+// browser itself reports a jump. For as long as the glide's own artificially-slowed
+// height was still easing toward that same jump's target, the spacer was computing its
+// share from an ALREADY-current real container crossed with STILL-STALE sibling sizes
+// (the mascot/tagline/button, all reading the glide's lagging value) - an inconsistent
+// combination that showed up as a real, reproducible (if brief) jump of its own,
+// confirmed headlessly by sampling mid-glide. Plain CSS transitions (see .login-mascot,
+// .login-top-spacer, etc. below) don't have that problem: they animate the RENDERED
+// value of each property, so flex layout only ever sees currently-consistent numbers,
+// whether the underlying jump was one smooth burst or one sudden snap - the only thing
+// that needs to be true is that every property sharing this cluster is transitioning at
+// the SAME duration, so none of them can still finish "early" or "late" relative to the
+// others (see .login-mascot's own comment on why they all use one shared value here).
+function applyLoginFocusHeight(height) {
     const wrap = el("login-wrap");
     wrap.style.setProperty("--login-wrap-h", height + "px");
     const progress = Math.min(1, Math.max(0, (height * 0.28 - 100) / 88));
     wrap.style.setProperty("--login-focus-progress", progress.toFixed(4));
 }
-new ResizeObserver((entries) => updateLoginFocusVars(entries[0].contentRect.height)).observe(el("login-wrap"));
+new ResizeObserver((entries) => applyLoginFocusHeight(entries[0].contentRect.height)).observe(el("login-wrap"));
 
 function resetLoginPhase() {
     // See .login-wrap-form-phase in app.css - this one class alone drives which panel
