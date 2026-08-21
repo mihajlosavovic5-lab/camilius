@@ -3190,8 +3190,57 @@ let loginWrapRestingHeight = null;
 // that needs to be true is that every property sharing this cluster is transitioning at
 // the SAME duration, so none of them can still finish "early" or "late" relative to the
 // others (see .login-mascot's own comment on why they all use one shared value here).
+// Routes every --login-focus-progress update through a short, monotonic JS glide instead
+// of writing the ResizeObserver's raw value straight to the custom property. On-device
+// testing (screen recording) found the two directions read very differently even though
+// they share the exact same CSS transition below: closing reports #login-wrap's real
+// height in many small steps as the keyboard genuinely animates out, which already looks
+// smooth since each step barely moves the CSS transition's own target - but opening on
+// some devices/WebViews reports it in only one or two big jumps (the IME's own insets
+// landing in fewer, bigger batches going in than coming out), which starves that same CSS
+// transition of the many-small-retargets pattern that's what actually made the close
+// direction look eased rather than snapped. Worse, when the open direction's second jump
+// (if any) lands MORE open than the first - the WebView briefly under-reporting the real
+// resting-with-keyboard height before correcting up a frame or two later - the raw
+// height/progress the old code wrote straight to the custom property moved non-
+// monotonically (focus jumped further closed than the real final state, then relaxed back
+// out), which is what actually read as the mascot/spacer cluster overshooting upward past
+// its own fixed position before settling back down onto it.
+// Gliding progress itself here, one level before any of that, fixes both: every update -
+// jump or not - now arrives at the CSS transition below as part of the same continuous
+// many-small-steps stream the close direction already produced natively, so open reads
+// exactly as eased as close does. And since the glide always re-anchors its "from" at
+// whatever value it's CURRENTLY at (not the previous target) and eases toward the new
+// target with a strictly monotonic ease-out (never past "to", by construction), a later
+// correction just bends the curve toward the truer number instead of snapping there and
+// back - there's no target this can overshoot, so the up-then-settle artifact can't
+// reoccur regardless of how the underlying resize signal itself jumps around.
+let loginFocusGlideRAF = null;
+let loginFocusGlideFrom = 1;
+let loginFocusGlideTo = 1;
+let loginFocusGlideStartTime = 0;
+let loginFocusGlideCurrent = 1;
+// Short relative to --login-focus-anim-dur (.32s, app.css) - this only needs to smooth out
+// the raw signal's own jumps/discretization before handing it to that slower, already-
+// tuned per-property transition, not to be the primary perceived duration itself (making
+// it as long as .32s would stack two full eases back to back and read as sluggish).
+const LOGIN_FOCUS_GLIDE_MS = 120;
+function stepLoginFocusGlide(now) {
+    const t = Math.min(1, (now - loginFocusGlideStartTime) / LOGIN_FOCUS_GLIDE_MS);
+    const eased = 1 - Math.pow(1 - t, 3);
+    loginFocusGlideCurrent = loginFocusGlideFrom + (loginFocusGlideTo - loginFocusGlideFrom) * eased;
+    el("login-wrap").style.setProperty("--login-focus-progress", loginFocusGlideCurrent.toFixed(4));
+    syncLoginSpacers();
+    loginFocusGlideRAF = t < 1 ? requestAnimationFrame(stepLoginFocusGlide) : null;
+}
+function setLoginFocusProgress(target) {
+    if (target === loginFocusGlideTo && loginFocusGlideRAF) return;
+    loginFocusGlideFrom = loginFocusGlideRAF ? loginFocusGlideCurrent : loginFocusGlideTo;
+    loginFocusGlideTo = target;
+    loginFocusGlideStartTime = performance.now();
+    if (!loginFocusGlideRAF) loginFocusGlideRAF = requestAnimationFrame(stepLoginFocusGlide);
+}
 function applyLoginFocusHeight(height) {
-    const wrap = el("login-wrap");
     if (loginWrapRestingHeight === null || height > loginWrapRestingHeight) loginWrapRestingHeight = height;
     const focusedFloor = loginWrapRestingHeight * LOGIN_FOCUS_FOCUSED_FRACTION;
     // focusedFloor >= restingHeight would divide by zero/negative (only possible on the
@@ -3200,8 +3249,7 @@ function applyLoginFocusHeight(height) {
     const progress = focusedFloor >= loginWrapRestingHeight
         ? 1
         : Math.min(1, Math.max(0, (height - focusedFloor) / (loginWrapRestingHeight - focusedFloor)));
-    wrap.style.setProperty("--login-focus-progress", progress.toFixed(4));
-    syncLoginSpacers();
+    setLoginFocusProgress(progress);
 }
 new ResizeObserver((entries) => applyLoginFocusHeight(entries[0].contentRect.height)).observe(el("login-wrap"));
 
