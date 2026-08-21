@@ -554,8 +554,25 @@ button { font-family: inherit; -webkit-appearance: none; appearance: none; }
    fix, same reasoning, as .login-spacer's own --login-spacer-grow below: calc()
    resolving to a bare <number> isn't reliably honored for flex-grow specifically on at
    least one real WebView. Fallback (1.4) matches the idle value of the JS formula
-   (.5 + progress*.9 at progress 1) for the one frame before app.js's first
-   ResizeObserver callback lands. */
+   (1.4 * progress at progress 1) for the one frame before app.js's first ResizeObserver
+   callback lands.
+   User-reported regression from the very first version of this fix: 1.4 * progress was
+   originally .5 + progress*.9 instead (matching this spacer's own pre-margin-bottom:auto
+   formula, several commits back) - nonzero even at progress 0 (full keyboard focus), on
+   the theory that SOME spacer needs to keep claiming space right up to full focus or the
+   leftover pool shows up as unclaimed dead space at the bottom (after the legal text,
+   above the keyboard) instead, since flex's default packing is top-first. On-device that
+   theory cost more than it fixed: full focus is exactly the state .login-mid-spacer/
+   .login-spacer already correctly zero out at (see their own progress-scaled flex-grow),
+   and reported/confirmed screenshot showed this spacer's own nonzero .5 floor claiming
+   that same leftover pool ABOVE the mascot wasn't actually preventing a gap opening up
+   at the bottom anyway - it just added its own visible gap up top too, or the pool simply
+   wasn't there to claim in the first place on a real keyboard-shrunk viewport. Reaching
+   literal 0 at progress 0, same as its two siblings, is what genuinely matched the
+   already-correct pre-regression focus behavior (this spacer measured pinned at its own
+   8px floor there under the old, broken margin-bottom:auto version too - just for the
+   wrong reason, no live flex-grow at all - and nobody had reported a focus-mode gap
+   against THAT version). */
 .login-top-spacer {
     flex-grow: var(--login-top-spacer-grow, 1.4); flex-shrink: 1; flex-basis: 0%; min-height: 8px;
     transition: flex-grow var(--login-focus-anim-dur) ease;
@@ -688,18 +705,17 @@ button { font-family: inherit; -webkit-appearance: none; appearance: none; }
 /* .login-top-spacer sits ABOVE the mascot, so growing IT grows the gap between the
    header and the mascot, pushing the whole cluster further DOWN the screen - not the
    same thing as "closer to the field" (that's .login-mid-spacer below, near-zero at full
-   focus). At full focus (its own flex-grow formula above reaches 0.5 there) that's still
-   a bigger share than .login-spacer below ever reaches (0.2 at idle, shrinking from
-   there as focus deepens - see that rule's own comment), so most of whatever room the
-   keyboard leaves collects above the mascot rather than below the legal text: the
-   cluster sits low, hugging the field/keyboard end of the screen, not centered and not
-   floating with a header-sized gap on both sides.
-   .login-mid-spacer's own formula reaching exactly 0 there (not just a smaller share) is
-   also deliberate, not incidental - the field needs to end up right under the shrunk
-   tagline, same tight coupling as the reference login screen, not "smaller gap but still
-   a gap" (flex-grow alone can still hand this a big chunk of whatever vertical space the
-   keyboard left, since it's the only other flexible spacer still competing with
-   .login-top-spacer/.login-spacer for it). */
+   focus). At idle its own flex-grow formula (1.4 * progress, app.js) reaches a bigger
+   share than .login-spacer below ever does (0.2 at idle), so most of the screen's free
+   space collects above the mascot rather than below the legal text there: the cluster
+   reads as centered instead of floating flush against the top with the buttons pushed
+   down near the bottom.
+   All three spacers - this one, .login-mid-spacer, .login-spacer - reach exactly 0 at
+   full focus, not just a smaller share (see --login-top-spacer-grow's own comment in
+   app.js for why this one used to stop short of 0 there, and what that cost). At that
+   point the field needs to end up right under the shrunk tagline, same tight coupling as
+   the reference login screen - not "smaller gap but still a gap" from a spacer still
+   holding onto a leftover floor share. */
 /* Passive "by continuing you agree..." notice, same Terms/Privacy screens the register
    consent checkbox opens (see index.html's own comment above it) - small and muted like
    the build-version footer below it, not competing with the actual CTAs above. Exists

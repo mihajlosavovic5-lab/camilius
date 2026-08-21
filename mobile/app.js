@@ -3199,7 +3199,13 @@ function applyLoginFocusHeight(height) {
     // which is what flex-grow needs) this works around. .login-top-spacer's own
     // --login-top-spacer-grow (see its own comment in app.css) needs the same treatment.
     wrap.style.setProperty("--login-spacer-grow", (0.2 * progress).toFixed(4));
-    wrap.style.setProperty("--login-top-spacer-grow", (0.5 + progress * 0.9).toFixed(4));
+    // 1.4 * progress, not .5 + progress*.9 (this spacer's own former, pre-margin-auto
+    // formula) - see this rule's own comment in app.css for why a floor that stayed
+    // nonzero at progress 0 (full keyboard focus) turned out to reopen a gap at the
+    // bottom of the focused layout instead of preventing one. Reaching literal 0 there,
+    // same as --login-spacer-grow above and .login-mid-spacer's own flex-grow, is what
+    // actually matched the known-good focus-mode behavior.
+    wrap.style.setProperty("--login-top-spacer-grow", (1.4 * progress).toFixed(4));
 }
 new ResizeObserver((entries) => applyLoginFocusHeight(entries[0].contentRect.height)).observe(el("login-wrap"));
 
