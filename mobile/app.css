@@ -427,10 +427,20 @@ button { font-family: inherit; -webkit-appearance: none; appearance: none; }
        and so #login-wrap's real allotted height - actually shrink for the keyboard in
        the first place; before that this never had a smaller box to disagree with. */
     flex: 1; min-height: 0; display: flex; flex-direction: column;
-    padding: calc(22px + var(--safe-top)) 26px calc(28px + var(--safe-bottom));
+    /* --safe-bottom (env(safe-area-inset-bottom) - the gesture-nav exclusion zone) is
+       scaled by --login-focus-progress here, not left as a flat addend like every other
+       screen's own bottom padding - confirmed via an on-screen debug readout that this
+       was the ACTUAL remaining gap between the legal text and the keyboard, not
+       .login-spacer (which was already correctly collapsing to its own 6px min-height):
+       env(safe-area-inset-bottom) reports the device's physical gesture-bar height
+       regardless of whether the keyboard is open, so at full focus this kept reserving
+       room for a gesture bar that the keyboard was already covering - dead space with
+       nothing left to protect. Reaches its full value again at progress 1 (idle, keyboard
+       closed) where the gesture bar is genuinely back on screen and still needs it. */
+    padding: calc(22px + var(--safe-top)) 26px calc(28px + var(--safe-bottom) * var(--login-focus-progress, 1));
     /* Same late-arriving-inset glide as .topbar above, for whichever screen the visitor
        lands on straight from a cold start when there's no saved session yet. */
-    transition: padding-top .2s ease;
+    transition: padding-top .2s ease, padding-bottom var(--login-focus-anim-dur) ease;
     /* Shared transition-duration for every descendant that resizes off --login-focus-
        progress (the mascot, the two spacers, the tagline, the Google button/divider, the
        email field's own top margin - see --login-focus-progress's own comment in app.js).
