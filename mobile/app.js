@@ -3211,31 +3211,16 @@ function updateLoginDebugBadge(wrapHeight) {
     const spacerRect = spacer ? spacer.getBoundingClientRect() : null;
     const legalRect = legal ? legal.getBoundingClientRect() : null;
     const wrapStyle = getComputedStyle(wrap);
-    const phaseStack = el("login-phase-stack");
-    const choice = el("login-choice");
-    const midSpacer = document.querySelector(".login-mid-spacer");
-    const googleBtn = el("login-google-btn");
-    const googleDivider = document.querySelector(".login-google-divider");
-    const phaseStackRect = phaseStack.getBoundingClientRect();
-    const choiceRect = choice.getBoundingClientRect();
-    const midSpacerRect = midSpacer ? midSpacer.getBoundingClientRect() : null;
-    const googleBtnRect = googleBtn.getBoundingClientRect();
-    const googleBtnStyle = getComputedStyle(googleBtn);
-    const dividerStyle = googleDivider ? getComputedStyle(googleDivider) : null;
+    const childrenDump = Array.from(wrap.children).map((c) => {
+        const r = c.getBoundingClientRect();
+        return `${c.className || c.tagName}: top=${Math.round(r.top)} bot=${Math.round(r.bottom)} h=${Math.round(r.height)}`;
+    }).join("\n");
     badge.textContent =
         `progress=${wrapStyle.getPropertyValue("--login-focus-progress").trim()}\n` +
         `wrapTop=${Math.round(wrapRect.top)} wrapBottom=${Math.round(wrapRect.bottom)} wrapH=${Math.round(wrapRect.height)}\n` +
-        `spacerTop=${spacerRect ? Math.round(spacerRect.top) : "?"} spacerBottom=${spacerRect ? Math.round(spacerRect.bottom) : "?"} spacerH=${spacerRect ? Math.round(spacerRect.height) : "?"}\n` +
-        `midSpacerTop=${midSpacerRect ? Math.round(midSpacerRect.top) : "?"} midSpacerBottom=${midSpacerRect ? Math.round(midSpacerRect.bottom) : "?"} midSpacerH=${midSpacerRect ? Math.round(midSpacerRect.height) : "?"}\n` +
-        `legalBottom=${legalRect ? Math.round(legalRect.bottom) : "?"}\n` +
-        `gap(wrapBottom-legalBottom)=${legalRect ? Math.round(wrapRect.bottom - legalRect.bottom) : "?"}\n` +
-        `gap(spacerTop-phaseStackBottom)=${spacerRect ? Math.round(spacerRect.top - phaseStackRect.bottom) : "?"}\n` +
-        `computedPaddingBottom=${wrapStyle.paddingBottom}\n` +
-        `phaseStack.style.height=${phaseStack.style.height}\n` +
-        `phaseStackTop=${Math.round(phaseStackRect.top)} phaseStackBottom=${Math.round(phaseStackRect.bottom)}\n` +
-        `choiceTop=${Math.round(choiceRect.top)} choiceBottom=${Math.round(choiceRect.bottom)} choiceH=${Math.round(choiceRect.height)}\n` +
-        `googleBtn h=${Math.round(googleBtnRect.height)} maxH=${googleBtnStyle.maxHeight} op=${googleBtnStyle.opacity}\n` +
-        `googleDivider maxH=${dividerStyle ? dividerStyle.maxHeight : "?"}\n` +
+        `paddingTop=${wrapStyle.paddingTop} paddingBottom=${wrapStyle.paddingBottom}\n` +
+        `childCount=${wrap.children.length}\n` +
+        `${childrenDump}\n` +
         `focusClass=${wrap.classList.contains("login-wrap-email-focus")}`;
 }
 if (window.visualViewport) {
