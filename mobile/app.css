@@ -450,6 +450,21 @@ button { font-family: inherit; -webkit-appearance: none; appearance: none; }
        these properties room to visibly ease across the SAME span of time the keyboard's
        own animation occupies, instead of finishing well ahead of it. */
     --login-focus-anim-dur: .32s;
+    /* Deliberately SHORTER than --login-focus-anim-dur above, and used only by
+       #login-google-btn/.login-google-divider's own opacity/max-height/margin/padding -
+       user-requested: the button should visibly get out of the way quickly, not ease out
+       at the same leisurely pace as the mascot/spacer/tagline's own wave. This is a
+       different situation from the mismatched durations --login-focus-anim-dur's own
+       comment above describes fixing: that bug was properties racing each other AFTER
+       they'd already gone quiet, one already inert and the other still live-tracking the
+       keyboard's own real (variable, unpredictable) resize - a gap that only widens the
+       longer it runs. Here both durations are fixed, known, and start on the same frame
+       (both keyed off the same instantly-updating --login-focus-progress - see app.js) -
+       the button always finishes first, by a fixed, bounded amount, blending into the
+       front of the mascot/spacer's still-visibly-ongoing motion rather than surfacing
+       once everything else already looks settled, which is what actually read as a
+       separate, late "second movement" before. */
+    --login-focus-btn-anim-dur: .15s;
 }
 .login-lang-row { display: flex; justify-content: center; flex-shrink: 0; }
 .lang-select-btn {
@@ -1226,14 +1241,15 @@ input.tap-to-edit-field, textarea.tap-to-edit-field { cursor: pointer; backgroun
    18px only exists to match the .button margin-top it visually stands in for in the
    normal (Google button + divider both showing) layout; once those are gone the field
    should sit right under the tagline instead of still leaving a button-sized gap for a
-   button that isn't there. calc()'d from --login-focus-progress (app.js), like the
-   button/divider's own margins right below, on the same shared --login-focus-anim-dur
-   (.login-wrap, above) they transition on too - so this always finishes moving at the
-   exact same moment they finish collapsing/expanding, instead of settling before or
-   after them (see that variable's own comment for why they all share one duration). */
+   button that isn't there. calc()'d from --login-focus-progress (app.js), on
+   --login-focus-btn-anim-dur (.login-wrap, above) - the SAME faster duration the button/
+   divider's own margins right below transition on, not the slower shared one the mascot/
+   spacers/tagline use - so this keeps closing the gap in step with the button actually
+   vanishing, instead of the button disappearing quickly while a stale gap where it used
+   to be lingers for a beat, still easing shut on its own slower schedule. */
 .login-email-input-wrap {
     position: relative; margin-top: calc(var(--login-focus-progress, 1) * 18px);
-    transition: margin-top var(--login-focus-anim-dur) ease;
+    transition: margin-top var(--login-focus-btn-anim-dur) ease;
 }
 .login-email-input { text-align: center; }
 .login-email-input:not(:placeholder-shown) { text-align: left; padding-right: 54px; }
@@ -1290,11 +1306,13 @@ input.tap-to-edit-field, textarea.tap-to-edit-field { cursor: pointer; backgroun
    least that padding's total, so max-height alone bottoming out at 0 only ever collapsed
    this down to ~26px (padding-top + padding-bottom), never the true 0 the layout below
    (.login-mid-spacer pinned to near-nothing) assumes it reaches.
-   Every one of these transitions on --login-focus-anim-dur (.login-wrap, above) - the
-   SAME shared duration every other property in this cluster also uses, same reasoning as
-   .login-mascot's own comment above: --login-focus-progress updates instantly (app.js),
-   so a matching duration here is what actually keeps this landing on the exact same
-   frame as the spacers/mascot/tagline around it, instead of settling before or after them. */
+   Every one of these transitions on --login-focus-btn-anim-dur (.login-wrap, above) -
+   NOT --login-focus-anim-dur, the slower duration the mascot/spacers/tagline share -
+   user-requested: this button should visibly clear out of the way quickly, not ease out
+   at their same leisurely pace. See --login-focus-btn-anim-dur's own comment for why
+   deliberately running faster than the rest of this cluster is safe here (both durations
+   are still fixed and start on the same frame, unlike the earlier bug this general
+   approach exists to fix). */
 #login-google-btn {
     max-height: calc(var(--login-focus-progress, 1) * 120px);
     overflow: hidden;
@@ -1302,9 +1320,9 @@ input.tap-to-edit-field, textarea.tap-to-edit-field { cursor: pointer; backgroun
     margin-top: calc(var(--login-focus-progress, 1) * 18px);
     padding-top: calc(var(--login-focus-progress, 1) * 13px);
     padding-bottom: calc(var(--login-focus-progress, 1) * 13px);
-    transition: opacity var(--login-focus-anim-dur) ease, max-height var(--login-focus-anim-dur) ease,
-        margin-top var(--login-focus-anim-dur) ease,
-        padding-top var(--login-focus-anim-dur) ease, padding-bottom var(--login-focus-anim-dur) ease;
+    transition: opacity var(--login-focus-btn-anim-dur) ease, max-height var(--login-focus-btn-anim-dur) ease,
+        margin-top var(--login-focus-btn-anim-dur) ease,
+        padding-top var(--login-focus-btn-anim-dur) ease, padding-bottom var(--login-focus-btn-anim-dur) ease;
 }
 .login-wrap-email-focus #login-google-btn { pointer-events: none; }
 /* "Continue with Google" (Login + Create account) - neutral white per Google's own
@@ -1334,7 +1352,7 @@ input.tap-to-edit-field, textarea.tap-to-edit-field { cursor: pointer; backgroun
    caption - reads more like a real divider between two equally-weighted buttons (Google/
    email) than a throwaway label. Same treatment as the website's .auth-or-divider. */
 /* Collapses along with "Continue with Google" above in the email field's "focus mode",
-   same calc()'d-from-progress reasoning (and same shared --login-focus-anim-dur, see
+   same calc()'d-from-progress reasoning (and same faster --login-focus-btn-anim-dur, see
    .login-wrap above) as that button's own rule just above - so it always finishes
    collapsing/expanding on the exact same frame as the button, moving as one unit. */
 .login-google-divider {
@@ -1345,8 +1363,8 @@ input.tap-to-edit-field, textarea.tap-to-edit-field { cursor: pointer; backgroun
     max-height: calc(var(--login-focus-progress, 1) * 60px);
     overflow: hidden;
     opacity: var(--login-focus-progress, 1);
-    transition: opacity var(--login-focus-anim-dur) ease, max-height var(--login-focus-anim-dur) ease,
-        margin-top var(--login-focus-anim-dur) ease, margin-bottom var(--login-focus-anim-dur) ease;
+    transition: opacity var(--login-focus-btn-anim-dur) ease, max-height var(--login-focus-btn-anim-dur) ease,
+        margin-top var(--login-focus-btn-anim-dur) ease, margin-bottom var(--login-focus-btn-anim-dur) ease;
 }
 .login-google-divider::before, .login-google-divider::after {
     content: ""; flex: 1; height: 1px; background: var(--border);
