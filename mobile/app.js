@@ -3292,17 +3292,32 @@ function makeProgressChaser(timeConstantMs) {
         },
     };
 }
-// --login-focus-progress: the mascot/spacer/tagline/brand cluster's own slower pace (was
-// --login-focus-anim-dur, app.css, .32s - 90ms time-constant reaches ~95% of the way there
-// in about that same span, without the fixed-duration-retrigger issue described above).
-const loginFocusChaser = makeProgressChaser(90);
+// --login-focus-progress: the mascot/spacer/tagline/brand cluster's own pace. Deliberately
+// short (30ms - the chaser only needs to smooth over a single-frame jump in the raw resize
+// signal, not to BE the visible animation) rather than the old --login-focus-anim-dur's
+// .32s: a longer time-constant here doesn't just make the motion itself gentler, it also
+// means the chaser is still visibly converging for that much longer AFTER #login-wrap's
+// real resize has already stopped (every property downstream, including
+// .login-phase-stack's own JS-measured height further up, keeps recalculating for as long
+// as this keeps moving) - confirmed on a real device as a real, visible gap opening up
+// between the legal text and the keyboard for a few hundred ms after the keyboard itself
+// had already finished opening, before the still-catching-up cluster finally settled onto
+// it. 30ms converges to within a fraction of a px in well under 150ms, short enough that
+// the tail is over before the keyboard's own real animation is, which is what actually
+// keeps that gap from opening in the first place. This isn't the ONLY thing keeping the
+// motion from reading as a snap even at this short a time-constant, though - every
+// property in this cluster still reads off the SAME live value on the SAME frame (no
+// independent per-property clock, see above), which is what does most of that work; the
+// chaser's own job shrinks to "absorb a single raw jump," not "be the whole animation."
+const loginFocusChaser = makeProgressChaser(30);
 // --login-focus-btn-progress: the Google button/divider/email-margin cluster's own
-// deliberately faster pace (was --login-focus-btn-anim-dur, app.css, .15s - same
-// reasoning, proportionally shorter time-constant). Both chasers are driven off the exact
-// same raw progress value (applyLoginFocusHeight below) - the only difference is how
-// quickly each one chases it, which is what keeps the button visibly clearing out of the
-// way ahead of the slower mascot/spacer motion instead of both moving in lockstep.
-const loginFocusBtnChaser = makeProgressChaser(45);
+// deliberately faster pace (was --login-focus-btn-anim-dur, .15s vs the mascot cluster's
+// .32s) - same reasoning as above, proportionally shorter time-constant so this cluster
+// keeps visibly clearing out of the way ahead of the slower mascot/spacer motion instead
+// of both moving in lockstep, just without the long real-device settle tail a bigger
+// number here would reopen (see loginFocusChaser's own comment for why that tail is the
+// actual bug, not a cosmetic nicety).
+const loginFocusBtnChaser = makeProgressChaser(15);
 let loginFocusRAF = null;
 function stepLoginFocusChasers(now) {
     const wrap = el("login-wrap");
@@ -3376,46 +3391,26 @@ new ResizeObserver((entries) => applyLoginFocusHeight(entries[0].contentRect.hei
 // 0 while the top spacer's own ratio (uniquely) never does - the field needs to end up
 // right under the shrunk tagline with nothing left over below it, not "a smaller gap but
 // still a gap" from a bottom spacer holding onto a leftover floor share.
-// Ratchets each spacer's raw computed height against the direction #login-wrap's real
-// content height is currently moving, so none of the three can ever grow while the
-// keyboard is opening (content height shrinking) or shrink while it's closing (content
-// height growing) - confirmed headlessly, with every remaining timing/lag issue already
-// ruled out (a hand-driven, perfectly synchronous progress+height sweep, zero glide, zero
-// CSS transition anywhere in this cluster), that .login-top-spacer's own raw formula
-// below is genuinely NON-monotonic in practice: its grow-SHARE (topGrow/totalGrow) rises
-// only gradually as progress falls, but the absolute POOL it's a share of doesn't shrink
-// at a matching rate, because the sibling sizes making up "fixedHeight" (mascot/tagline/
-// button cluster) shrink at their OWN, independently-tuned rates rather than in proportion
-// to the container - on a real device (whose keyboard always ends up shrinking the
-// container well past the point --login-focus-progress itself already clamped to 0, see
-// LOGIN_FOCUS_FOCUSED_FRACTION's own comment) that mismatch is large enough to swing the
-// pool up substantially mid-transition before it comes back down, which is exactly the
-// "cluster rises too far, then visibly settles back down onto its own fixed position" bug
-// this exists to close. Redesigning the pool/share formula itself to remove that mismatch
-// outright would mean re-deriving a lot of already-hard-won, heavily-tuned behavior (see
-// this function's own two-earlier-broken-designs history right above) for a result no
-// more correct than just refusing to let the RENDERED height move opposite to the
-// direction the container itself is actually moving in - which is what this does, applied
-// uniformly to all three spacers rather than singled out to whichever one this round of
-// testing happened to catch, since the same mismatch can in principle touch any of them.
-// Resets itself for free on a genuine direction reversal (open now closing, or vice versa)
-// - Math.min/Math.max against the OTHER direction's leftover bound just adopts wherever
-// this spacer's raw formula already says it should be for the new direction and starts
-// ratcheting again from there, no explicit reset needed.
-const loginSpacerRatchetBounds = { top: null, mid: null, spacer: null };
-let loginSpacerRatchetLastContentHeight = null;
-let loginSpacerRatchetLastProgress = null;
-let loginSpacerRatchetDirection = 0;
-function ratchetSpacerHeight(key, rawHeight, direction) {
-    const prevBound = loginSpacerRatchetBounds[key];
-    const bound = prevBound === null || direction === 0
-        ? rawHeight
-        : direction < 0
-            ? Math.min(prevBound, rawHeight)
-            : Math.max(prevBound, rawHeight);
-    loginSpacerRatchetBounds[key] = bound;
-    return bound;
-}
+// A previous version of this ratcheted each spacer's raw computed height so none of the
+// three could grow while the keyboard was opening (or shrink while closing), specifically
+// to stop .login-top-spacer from momentarily dipping smaller than its true final value
+// then visibly growing back onto it. That traded one visible bug for a worse one: this
+// pool/share formula's correct, INTENDED shape really does have top-spacer settle at its
+// LARGEST share right at full focus (progress 0 is the only point where it alone gets the
+// whole pool - see the grow-ratio comment above), so a mid-transition dip lower than that
+// final value isn't necessarily wrong, it's often just this formula's own natural curve.
+// Clamping every spacer to never regrow past its own lowest point locked all three well
+// below what the live pool/share math said they should be for the rest of the gesture -
+// and since nothing else in this flex column fills unclaimed space, that shortfall didn't
+// just look wrong, it left genuine unclaimed height sitting as a real, visible gap between
+// the legal text and the keyboard for as long as the field stayed focused - confirmed on a
+// real device, and the opposite of what "elements should sit right up against the
+// keyboard" means. Reads the raw formula directly again; the real fix for the original
+// "rises too far, then settles back down" complaint is the rest of this cluster no longer
+// running on independent per-property CSS clocks (see --login-focus-progress's own comment
+// in app.js) plus the short, real-device-tuned chaser time-constant above, which is what
+// actually keeps this formula's own natural curve from reading as two separate movements
+// instead of one continuous one.
 function syncLoginSpacers() {
     const wrap = el("login-wrap");
     const topSpacer = wrap.querySelector(".login-top-spacer");
@@ -3448,53 +3443,9 @@ function syncLoginSpacers() {
     const topExtra = totalGrow > 0 ? pool * topGrow / totalGrow : 0;
     const midExtra = totalGrow > 0 ? pool * midGrow / totalGrow : 0;
     const spacerExtra = totalGrow > 0 ? pool * spacerGrow / totalGrow : 0;
-    // Direction comes from whichever of the two live inputs is actually still moving:
-    // #login-wrap's real content height for as long as the container itself is still
-    // resizing, falling back to --login-focus-progress once the container stops but
-    // progress (still gliding, see setLoginFocusProgress above) hasn't caught up yet -
-    // exactly the gap that let the ratchet's own bound go stale and the mascot/spacer
-    // cluster keep drifting for another beat after the container had already settled.
-    // Content height takes priority when both are moving since it's the more direct
-    // signal (progress is itself derived from it, one step removed); a small dead zone on
-    // each avoids flip-flopping the direction on sub-pixel/sub-progress float noise
-    // between two calls that weren't a real reversal at all.
-    //
-    // "Unchanged" (both read 0) LATCHES the last real direction rather than resetting to
-    // unconstrained - load-bearing, not a nicety: syncLoginPhaseStackHeight's own
-    // ResizeObserver (further up) calls this function a second time per frame whenever the
-    // button cluster resizes, and that second call always sees the SAME content
-    // height/progress the first call this frame already saw (neither one moved between
-    // them) even though #login-phase-stack's real height - and so fixedHeight/pool/rawHeight
-    // below - genuinely did just change. Confirmed headlessly: resetting direction to 0
-    // (unconstrained) on that second call let its own, briefly-larger rawHeight overwrite
-    // the first call's already-correctly-clamped bound every single frame, so the ratchet
-    // was passing every OTHER call straight through unclamped - a real, reproducible sawtooth
-    // that still let the cluster climb well past its own bound before an actual reversal
-    // caught it. Latching means a direction, once established, keeps constraining every
-    // call - including same-frame duplicates with nothing new to report - until content
-    // height or progress actually moves the other way.
-    const contentHeightDirection = loginSpacerRatchetLastContentHeight === null
-        ? 0
-        : contentHeight < loginSpacerRatchetLastContentHeight - 0.5
-            ? -1
-            : contentHeight > loginSpacerRatchetLastContentHeight + 0.5
-                ? 1
-                : 0;
-    const progressDirection = loginSpacerRatchetLastProgress === null
-        ? 0
-        : progress < loginSpacerRatchetLastProgress - 0.0005
-            ? -1
-            : progress > loginSpacerRatchetLastProgress + 0.0005
-                ? 1
-                : 0;
-    const freshDirection = contentHeightDirection !== 0 ? contentHeightDirection : progressDirection;
-    const direction = freshDirection !== 0 ? freshDirection : loginSpacerRatchetDirection;
-    loginSpacerRatchetDirection = direction;
-    loginSpacerRatchetLastContentHeight = contentHeight;
-    loginSpacerRatchetLastProgress = progress;
-    topSpacer.style.height = ratchetSpacerHeight("top", topFloor + topExtra, direction) + "px";
-    midSpacer.style.height = ratchetSpacerHeight("mid", midFloor + midExtra, direction) + "px";
-    spacer.style.height = ratchetSpacerHeight("spacer", spacerFloor + spacerExtra, direction) + "px";
+    topSpacer.style.height = (topFloor + topExtra) + "px";
+    midSpacer.style.height = (midFloor + midExtra) + "px";
+    spacer.style.height = (spacerFloor + spacerExtra) + "px";
 }
 // #login-wrap's own ResizeObserver (below) is what drives most of these recalculations,
 // but it only fires while #login-wrap's OWN outer size is still changing - which stops
