@@ -661,13 +661,12 @@ button { font-family: inherit; -webkit-appearance: none; appearance: none; }
 /* .login-top-spacer sits ABOVE the mascot, so growing IT grows the gap between the
    header and the mascot, pushing the whole cluster further DOWN the screen - not the
    same thing as "closer to the field" (that's .login-mid-spacer below, near-zero at full
-   focus). At full focus (its own flex-grow formula above reaches 0.5 there) that's
-   measured off the reference login screen's own proportions (its gap between header and
-   mascot vs. its gap between the legal text and the keyboard came out to roughly 2.4:1):
-   0.5 against .login-spacer's own fixed 0.2 is that same ~2.4:1 ratio, landing the
-   cluster closer to the header than to the field - a real, deliberate gap above it, not
-   a field-hugging crowded look, and not a near-even "centered" split either (both tried
-   and rejected - see this rule's own git history).
+   focus). At full focus (its own flex-grow formula above reaches 0.5 there) that's still
+   a bigger share than .login-spacer below ever reaches (0.2 at idle, shrinking from
+   there as focus deepens - see that rule's own comment), so most of whatever room the
+   keyboard leaves collects above the mascot rather than below the legal text: the
+   cluster sits low, hugging the field/keyboard end of the screen, not centered and not
+   floating with a header-sized gap on both sides.
    .login-mid-spacer's own formula reaching exactly 0 there (not just a smaller share) is
    also deliberate, not incidental - the field needs to end up right under the shrunk
    tagline, same tight coupling as the reference login screen, not "smaller gap but still
@@ -680,7 +679,19 @@ button { font-family: inherit; -webkit-appearance: none; appearance: none; }
    once inside each phase panel (see index.html) so it always sits right under that
    panel's own last button instead of under the taller of the two. */
 .login-legal-disclaimer { text-align: center; font-size: 12.5px; line-height: 1.5; color: var(--text-muted); margin: 14px 0 0; padding: 0 8px; }
-.login-spacer { flex: 0.2; min-height: 20px; }
+/* User-requested: focusing the email field used to leave a big dead gap between the
+   legal text and the keyboard, because this spacer's flex-grow stayed fixed at 0.2 no
+   matter how compact everything above it got - only .login-top-spacer/.login-mid-spacer
+   shrank with focus, so the freed-up room they gave back to the flex pool kept landing
+   here anyway. Scaling this one off --login-focus-progress too (down to 0 at full focus,
+   same pattern as the other two) means that room now goes to .login-top-spacer instead
+   (the only spacer still claiming a real share at progress 0), sinking the whole cluster
+   until the legal text sits right above the keyboard instead of floating above a gap. */
+.login-spacer {
+    flex-grow: calc(0.2 * var(--login-focus-progress, 1)); flex-shrink: 1; flex-basis: 0%;
+    min-height: calc(6px + var(--login-focus-progress, 1) * 14px);
+    transition: flex-grow var(--login-focus-anim-dur) ease, min-height var(--login-focus-anim-dur) ease;
+}
 /* Choice <-> email-form swap slides like the app's own screen-to-screen navigation
    (see .screen.active above) instead of an instant cut: both panels are stacked on top
    of each other (position:absolute, bottom-anchored) and slide past each other on
