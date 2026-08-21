@@ -3275,12 +3275,13 @@ let loginWrapRestingHeight = null;
 // inputs it reads). Stepping both chasers first, writing both custom properties, and only
 // THEN calling syncLoginSpacers() once removes that gap entirely - every call reads a
 // pair that was always advanced together.
-function makeProgressChaser(timeConstantMs) {
-    let current = 1, target = 1, lastTime = null;
+function makeProgressChaser(timeConstantMs, initial = 1) {
+    let current = initial, target = initial, lastTime = null;
     const SETTLE_EPSILON = 0.0005;
     return {
         setTarget(newTarget) { target = newTarget; },
         get settled() { return current === target; },
+        get current() { return current; },
         // Called whenever the shared rAF loop is about to restart from idle (see
         // ensureLoginFocusLoopRunning below) - without this, advance()'s `lastTime` is
         // left holding whatever real timestamp the loop last ticked at, which can be
@@ -3320,7 +3321,12 @@ function makeProgressChaser(timeConstantMs) {
 // same moment the keyboard itself does, rather than opening the "still catching up a few
 // hundred ms after the keyboard already stopped" gap the original 30ms was chosen to
 // avoid.
-const loginFocusChaser = makeProgressChaser(90);
+// Named (rather than the 90 below staying a bare literal) so loginFocusHeightChaser
+// further down - which has to stay on this EXACT same pace, not just a similar one, see
+// its own and syncLoginSpacers' comments - can share it instead of risking the two
+// drifting apart the next time this gets tuned.
+const LOGIN_FOCUS_PROGRESS_TIME_CONSTANT_MS = 90;
+const loginFocusChaser = makeProgressChaser(LOGIN_FOCUS_PROGRESS_TIME_CONSTANT_MS);
 // --login-focus-btn-progress: the Google button/divider/email-margin cluster's own
 // deliberately faster pace (proportionally shorter time-constant, same 2:1 ratio as
 // before) so this cluster keeps visibly clearing out of the way ahead of the slower
@@ -3333,25 +3339,29 @@ function stepLoginFocusChasers(now) {
     const wrap = el("login-wrap");
     wrap.style.setProperty("--login-focus-progress", loginFocusChaser.advance(now).toFixed(4));
     wrap.style.setProperty("--login-focus-btn-progress", loginFocusBtnChaser.advance(now).toFixed(4));
+    // Only exists once the first real height has ever landed (see its own comment) -
+    // nothing to advance before that, and syncLoginSpacers' own fallback covers the gap.
+    if (loginFocusHeightChaser) loginFocusHeightChaser.advance(now);
     syncLoginSpacers();
-    loginFocusRAF = (loginFocusChaser.settled && loginFocusBtnChaser.settled)
+    loginFocusRAF = (loginFocusChaser.settled && loginFocusBtnChaser.settled && (!loginFocusHeightChaser || loginFocusHeightChaser.settled))
         ? null
         : requestAnimationFrame(stepLoginFocusChasers);
 }
-// Centralized so a restart-from-idle resets BOTH chasers' clocks exactly once,
-// regardless of which of the two setters below happens to be called first - each
-// only sees `!loginFocusRAF` (and so would try to reset+restart) on whichever call
-// actually finds the loop idle; the other call immediately after would otherwise see
-// the loop already running (started by the first) and skip its own reset entirely,
-// leaving ITS chaser's clock stale for this restart. Resetting is only correct to do
-// here, on the actual idle->active edge - a chaser that's already mid-animation this
-// frame has a fresh, real lastTime from its last rAF tick, not a stale one, and
-// resetting that would (harmlessly but pointlessly) re-prime it, costing one frame
-// of stall on every subsequent per-property update instead of just the first.
+// Centralized so a restart-from-idle resets every chaser's clock exactly once,
+// regardless of which of the setters below happens to be called first - each only sees
+// `!loginFocusRAF` (and so would try to reset+restart) on whichever call actually finds
+// the loop idle; a later call immediately after would otherwise see the loop already
+// running (started by the first) and skip its own reset entirely, leaving ITS chaser's
+// clock stale for this restart. Resetting is only correct to do here, on the actual
+// idle->active edge - a chaser that's already mid-animation this frame has a fresh, real
+// lastTime from its last rAF tick, not a stale one, and resetting that would (harmlessly
+// but pointlessly) re-prime it, costing one frame of stall on every subsequent
+// per-property update instead of just the first.
 function ensureLoginFocusLoopRunning() {
     if (loginFocusRAF) return;
     loginFocusChaser.resetClock();
     loginFocusBtnChaser.resetClock();
+    if (loginFocusHeightChaser) loginFocusHeightChaser.resetClock();
     loginFocusRAF = requestAnimationFrame(stepLoginFocusChasers);
 }
 function setLoginFocusProgress(target) {
@@ -3362,8 +3372,19 @@ function setLoginFocusBtnProgress(target) {
     loginFocusBtnChaser.setTarget(target);
     ensureLoginFocusLoopRunning();
 }
+// Chases #login-wrap's own raw real height (in px, not a 0-1 fraction) at the SAME pace
+// as loginFocusChaser - see syncLoginSpacers' own comment for why contentHeight needs to
+// stay on the same clock as fixedHeight there. Lazily created below on the first real
+// ResizeObserver measurement so it starts primed at the actual initial height (matching
+// how loginWrapRestingHeight itself is first set) instead of gliding in from a placeholder.
+let loginFocusHeightChaser = null;
 function applyLoginFocusHeight(height) {
     if (loginWrapRestingHeight === null || height > loginWrapRestingHeight) loginWrapRestingHeight = height;
+    if (loginFocusHeightChaser === null) {
+        loginFocusHeightChaser = makeProgressChaser(LOGIN_FOCUS_PROGRESS_TIME_CONSTANT_MS, height);
+    } else {
+        loginFocusHeightChaser.setTarget(height);
+    }
     const focusedFloor = loginWrapRestingHeight * LOGIN_FOCUS_FOCUSED_FRACTION;
     // focusedFloor >= restingHeight would divide by zero/negative (only possible on the
     // very first measurement, before there's any real range to fall within yet) - nothing
@@ -3446,11 +3467,22 @@ new ResizeObserver((entries) => applyLoginFocusHeight(entries[0].contentRect.hei
 // collapses toward 0 for that whole beat, pinning every spacer at its bare floor - which
 // is exactly the "flies up near the top, then settles back down" bounce reported on a real
 // device: not two separate movements, but one real-height jump and one progress-paced
-// glide getting fed into the same formula out of step with each other. Deriving
-// contentHeight from progress instead (below) - the exact inverse of applyLoginFocusHeight's
-// own height-to-progress mapping - keeps it on the SAME clock as fixedHeight regardless of
-// how the chaser is tuned, so there's no longer a real-height-vs-progress race for this
-// pool to be caught in the middle of.
+// glide getting fed into the same formula out of step with each other.
+//
+// A first attempt derived contentHeight algebraically from --login-focus-progress itself
+// (the inverse of applyLoginFocusHeight's own height-to-progress mapping) - same clock as
+// fixedHeight, so it fixed the bounce, but it also broke the SETTLED endpoint: once the
+// real height drops far enough that progress clamps to its floor of 0 (LOGIN_FOCUS_FOCUSED_
+// FRACTION is only a THRESHOLD - "at or below 68% counts as focused" - real devices land
+// noticeably below it), the inverse can only ever recover that 68% figure, not the real,
+// smaller focused height - so once fully settled, the spacers were sized for a content
+// height bigger than what's actually there, visibly shifting every field from where it
+// used to land. loginFocusHeightChaser (declared with applyLoginFocusHeight above) fixes
+// both at once: it's a genuine low-pass chase of the REAL height target, at the exact same
+// time-constant as loginFocusChaser, so it stays in step with fixedHeight THROUGHOUT the
+// glide like the algebraic version did, but converges to the real, exact, unclamped height
+// once settled instead of an approximation - same value the old raw clientHeight read at
+// settle time, just arriving there on the same pace as everything else along the way.
 function syncLoginSpacers() {
     const wrap = el("login-wrap");
     const topSpacer = wrap.querySelector(".login-top-spacer");
@@ -3468,19 +3500,12 @@ function syncLoginSpacers() {
     const rawProgress = parseFloat(wrapStyle.getPropertyValue("--login-focus-progress"));
     const progress = Number.isNaN(rawProgress) ? 1 : rawProgress;
     const paddingTop = parseFloat(wrapStyle.paddingTop), paddingBottom = parseFloat(wrapStyle.paddingBottom);
-    // See this function's own comment above for why this reads off progress (the same
-    // clock fixedHeight below is on) instead of the wrap's raw live clientHeight - falls
-    // back to the real live height before the first real measurement ever lands
-    // (loginWrapRestingHeight still null) or in the degenerate case applyLoginFocusHeight's
-    // own comment already covers (focusedFloor >= restingHeight - nothing to interpolate
-    // between), matching what progress itself falls back to in those same cases.
-    const focusedFloor = loginWrapRestingHeight === null ? null : loginWrapRestingHeight * LOGIN_FOCUS_FOCUSED_FRACTION;
-    const impliedOuterHeight = (focusedFloor === null || focusedFloor >= loginWrapRestingHeight)
-        ? null
-        : focusedFloor + progress * (loginWrapRestingHeight - focusedFloor);
-    const contentHeight = impliedOuterHeight === null
-        ? wrap.clientHeight - paddingTop - paddingBottom
-        : impliedOuterHeight - paddingTop - paddingBottom;
+    // See this function's own comment above for why this reads off loginFocusHeightChaser
+    // (the same clock fixedHeight below is on) instead of the wrap's raw live clientHeight -
+    // falls back to the real live height before the first real measurement ever lands and
+    // that chaser exists (applyLoginFocusHeight creates it lazily on the first one).
+    const contentHeight = (loginFocusHeightChaser ? loginFocusHeightChaser.current : wrap.clientHeight)
+        - paddingTop - paddingBottom;
     let fixedHeight = 0;
     for (const child of wrap.children) {
         if (child === topSpacer || child === midSpacer || child === spacer) continue;
