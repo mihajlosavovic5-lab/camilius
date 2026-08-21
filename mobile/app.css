@@ -520,34 +520,38 @@ button { font-family: inherit; -webkit-appearance: none; appearance: none; }
 @media (prefers-reduced-motion: reduce) {
     .login-mascot, .login-mascot-spark { animation: none; }
 }
-/* Clips around .login-tagline's own scale-down in focus mode below instead of the
-   tagline itself carrying a max-height - transform doesn't shrink the box an element
-   occupies for layout purposes (only how it paints), so something has to reclaim the
-   freed space, and it can't be the scaled element's own box. 100px comfortably covers
-   even a 3-line translation at the full 22px size (2 lines is already ~68px, at 1.55
-   line-height) with room to spare - this only needs to never clip the idle state, not
-   hug it tightly. */
-.login-tagline-wrap { overflow: hidden; transition: max-height .32s ease; max-height: 100px; }
+/* Clips around .login-tagline/.login-tagline-compact's own opacity crossfade in focus
+   mode below instead of either carrying its own max-height directly - see .login-tagline
+   below for why this needs position:relative. 100px comfortably covers even a 3-line
+   translation at the full 22px size (2 lines is already ~68px, at 1.55 line-height) with
+   room to spare - this only needs to never clip the idle state, not hug it tightly. */
+.login-tagline-wrap { position: relative; overflow: hidden; transition: max-height .32s ease; max-height: 100px; }
 .login-tagline {
     margin: 6px 0 0; font-size: 22px; color: var(--text-muted); text-align: center;
-    transform-origin: top center;
-    transition: transform .32s ease, margin .32s ease;
+    transition: opacity .28s ease;
 }
-/* "Focus mode" for the email field (see setLoginEmailFocusMode() in app.js) - shrinks
-   the mascot/tagline above and collapses "Continue with Google" + its divider out of the
-   way while the field is focused, so the field stays in view above the keyboard instead
-   of getting pushed under it, same compacting move claude.ai's own login screen does.
-   Driven by one class on #login-wrap; the properties actually being animated (width,
-   transform, flex-grow, max-height, opacity) each carry their own transition on their
-   base rule above/below so this class swap is the only thing JS has to do.
+/* Focus mode (see .login-wrap-email-focus below) wants the tagline to read as a tight
+   single line, matching the reference login screen - but this text wraps to 2 lines at
+   its full size in most languages, and there's no way to smoothly animate INTO a
+   single-line layout: shrinking font-size crosses the 1-line/2-line wrap threshold
+   mid-transition (a beat as one ever-narrower line before snapping to two once it no
+   longer fits), and toggling white-space itself doesn't even try to animate - it isn't an
+   animatable CSS property, so it flips the instant the class changes, before any
+   accompanying transform has moved at all. Both read as the exact same kind of glitch: a
+   hard, instant reflow snap sitting in the middle of an otherwise smooth transition.
 
-   The tagline scales down (transform) rather than shrinking font-size - this text wraps
-   to 2 lines at its full size in most languages, and animating font-size instead crossed
-   the 1-line/2-line wrap threshold partway through the transition: for a beat it was
-   still one (growing/shrinking, ever-wider) line before snapping to two once it no
-   longer fit, instead of staying two lines throughout at a smoothly changing size.
-   transform can't trigger that snap - the wrap is always computed at the real (22px)
-   size, so it's always the same 2 lines, just visually scaled. */
+   This sidesteps that by never reflowing the SAME text at all - .login-tagline-compact
+   right below is a second, separate copy of the identical string (same data-i18n key,
+   see index.html), permanently white-space:nowrap and pre-scaled down, stacked exactly on
+   top of this one (position:absolute inside the now position:relative wrap above) from
+   the very start. Going into focus mode only ever crossfades opacity between the two -
+   this one out, the compact one in - which IS smoothly animatable, because neither copy's
+   own layout (its wrap count, its size) ever changes while that happens. */
+.login-tagline-compact {
+    position: absolute; top: 0; left: 0; right: 0;
+    white-space: nowrap; transform: scale(.78); transform-origin: top center;
+    opacity: 0; pointer-events: none;
+}
 /* 100px (up from an earlier, much smaller 64px), sized against the reference login
    screen's own mascot (roughly a fifth of its screen width there too) - readable at a
    glance beats "as small as it can possibly be" now that the field stays comfortably
@@ -559,22 +563,15 @@ button { font-family: inherit; -webkit-appearance: none; appearance: none; }
    reads as "close" rather than "touching", which is what "almost touching" actually
    asked for, not literal contact. */
 .login-wrap-email-focus .login-brand { margin-bottom: 4px; }
-/* ~54px covers 2 lines (~68px unscaled at 1.55 line-height, per the comment on the
-   unscaled 100px above) at this same 0.78 scale, plus its own margin, with a little room
-   to spare - same "never clip the real content, don't try to hug it exactly" reasoning as
-   the unscaled 100px above.
-   This used to be 34px (a single line's worth) alongside white-space:nowrap below,
-   forcing the tagline down to one line in focus mode. white-space isn't itself an
-   animatable CSS property - toggling it applies at the very instant the class changes,
-   not smoothly over this rule's own transition - so the wrap count collapsed from 2
-   lines to 1 in a single frame, before the transform scale-down had animated at all: a
-   hard, instant snap sitting in the middle of an otherwise smooth transition. Staying at
-   2 lines (like the reference login screen actually does - it doesn't force a single
-   line either) removes the snap entirely, since nothing discrete has to flip anymore -
-   the same reasoning that already ruled out animating font-size instead of transform,
-   just applied to white-space too. */
-.login-wrap-email-focus .login-tagline-wrap { max-height: 54px; }
-.login-wrap-email-focus .login-tagline { transform: scale(0.78); margin-top: 2px; }
+/* 34px covers a single line (~34px unscaled at 1.55 line-height) at the compact copy's
+   own 0.78 scale (~27px) plus a little margin, with room to spare - same "never clip the
+   real content, don't try to hug it exactly" reasoning as the unscaled 100px above. Only
+   .login-tagline-compact needs to actually fit in here once focus mode fades the plain,
+   still-2-line .login-tagline above out - that one gets clipped by this same shrink, but
+   it's already invisible by the time it visibly would be. */
+.login-wrap-email-focus .login-tagline-wrap { max-height: 34px; }
+.login-wrap-email-focus .login-tagline:not(.login-tagline-compact) { opacity: 0; }
+.login-wrap-email-focus .login-tagline-compact { opacity: 1; }
 /* This spacer sits ABOVE the mascot, so growing IT grows the gap between the header and
    the mascot, pushing the whole cluster further DOWN the screen - not the same thing as
    "closer to the field" (that's .login-mid-spacer below, already pinned to near-zero).
