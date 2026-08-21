@@ -3431,12 +3431,26 @@ new ResizeObserver((entries) => applyLoginFocusHeight(entries[0].contentRect.hei
 // just look wrong, it left genuine unclaimed height sitting as a real, visible gap between
 // the legal text and the keyboard for as long as the field stayed focused - confirmed on a
 // real device, and the opposite of what "elements should sit right up against the
-// keyboard" means. Reads the raw formula directly again; the real fix for the original
-// "rises too far, then settles back down" complaint is the rest of this cluster no longer
-// running on independent per-property CSS clocks (see --login-focus-progress's own comment
-// in app.js) plus the short, real-device-tuned chaser time-constant above, which is what
-// actually keeps this formula's own natural curve from reading as two separate movements
-// instead of one continuous one.
+// keyboard" means. Reads the raw formula directly again.
+//
+// contentHeight itself (below) used to just be the wrap's own live, real clientHeight -
+// correct back when the chaser above was tuned SHORT enough (30ms) to track a real
+// keyboard resize almost as fast as the device reports it, keeping contentHeight (real,
+// device-paced) and fixedHeight (progress-paced, a few lines down) close enough in step
+// that this pool math never saw them disagree by much. Once the chaser was deliberately
+// slowed down on request (now well past that budget - see loginFocusChaser's own comment),
+// that stopped being true: a real device that reports the open-direction resize in one big
+// jump drops the live clientHeight to its final small value in one step, while fixedHeight
+// - still gliding through progress at our own slower pace - keeps reporting yesterday's
+// larger mascot/tagline sizes for a beat. `pool` (contentHeight - fixedHeight - floors)
+// collapses toward 0 for that whole beat, pinning every spacer at its bare floor - which
+// is exactly the "flies up near the top, then settles back down" bounce reported on a real
+// device: not two separate movements, but one real-height jump and one progress-paced
+// glide getting fed into the same formula out of step with each other. Deriving
+// contentHeight from progress instead (below) - the exact inverse of applyLoginFocusHeight's
+// own height-to-progress mapping - keeps it on the SAME clock as fixedHeight regardless of
+// how the chaser is tuned, so there's no longer a real-height-vs-progress race for this
+// pool to be caught in the middle of.
 function syncLoginSpacers() {
     const wrap = el("login-wrap");
     const topSpacer = wrap.querySelector(".login-top-spacer");
@@ -3453,7 +3467,20 @@ function syncLoginSpacers() {
     // other var(--login-focus-progress, 1) in app.css does: nothing's written it yet.
     const rawProgress = parseFloat(wrapStyle.getPropertyValue("--login-focus-progress"));
     const progress = Number.isNaN(rawProgress) ? 1 : rawProgress;
-    const contentHeight = wrap.clientHeight - parseFloat(wrapStyle.paddingTop) - parseFloat(wrapStyle.paddingBottom);
+    const paddingTop = parseFloat(wrapStyle.paddingTop), paddingBottom = parseFloat(wrapStyle.paddingBottom);
+    // See this function's own comment above for why this reads off progress (the same
+    // clock fixedHeight below is on) instead of the wrap's raw live clientHeight - falls
+    // back to the real live height before the first real measurement ever lands
+    // (loginWrapRestingHeight still null) or in the degenerate case applyLoginFocusHeight's
+    // own comment already covers (focusedFloor >= restingHeight - nothing to interpolate
+    // between), matching what progress itself falls back to in those same cases.
+    const focusedFloor = loginWrapRestingHeight === null ? null : loginWrapRestingHeight * LOGIN_FOCUS_FOCUSED_FRACTION;
+    const impliedOuterHeight = (focusedFloor === null || focusedFloor >= loginWrapRestingHeight)
+        ? null
+        : focusedFloor + progress * (loginWrapRestingHeight - focusedFloor);
+    const contentHeight = impliedOuterHeight === null
+        ? wrap.clientHeight - paddingTop - paddingBottom
+        : impliedOuterHeight - paddingTop - paddingBottom;
     let fixedHeight = 0;
     for (const child of wrap.children) {
         if (child === topSpacer || child === midSpacer || child === spacer) continue;
