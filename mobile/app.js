@@ -3309,25 +3309,23 @@ function makeProgressChaser(timeConstantMs) {
 // --login-focus-progress: the mascot/spacer/tagline/brand cluster's own pace. On-device,
 // opening the keyboard reports #login-wrap's real height change in one or two big jumps
 // (closing reports it in many small steps instead - see makeProgressChaser's own comment
-// above) - at the old 30ms time-constant that single jump converged in well under 150ms,
-// which is fast enough to still read as an instant snap at normal video/eye sampling
-// rates instead of a visible glide, even though every property in this cluster keeps
-// reading off the SAME live value on the SAME frame (no independent per-property clock -
-// that part of the smoothness is unaffected by this constant). 90ms keeps that same
-// single-clock guarantee but stretches the glide itself to a genuinely perceptible ~250ms
-// (2-3 time-constants to settle), comfortably inside a real keyboard's own ~250-300ms
-// open/close animation - short enough that the cluster still finishes at essentially the
-// same moment the keyboard itself does, rather than opening the "still catching up a few
-// hundred ms after the keyboard already stopped" gap the original 30ms was chosen to
-// avoid.
-const loginFocusChaser = makeProgressChaser(90);
+// above), so this time-constant IS effectively the whole visible glide for the open
+// direction, not just a jump-smoother - every property in this cluster reads off the
+// SAME live value on the SAME frame (no independent per-property clock), so there's
+// nothing else contributing motion. 150ms settles in a genuinely deliberate ~350-450ms
+// (2-3 time-constants), slower/more noticeable than the 90ms this replaced (still user-
+// requested slower, not a snap-vs-glide fix this time) while staying inside the real
+// device headroom LOGIN_FOCUS_FOCUSED_FRACTION's own comment describes (progress reaches
+// its target at 68% of the keyboard's real travel, before the keyboard's own ~250-300ms
+// animation is fully done, so the cluster still has a beat of that real motion left to
+// finish alongside instead of visibly trailing it).
+const loginFocusChaser = makeProgressChaser(150);
 // --login-focus-btn-progress: the Google button/divider/email-margin cluster's own
-// deliberately faster pace (proportionally shorter time-constant, same 2:1 ratio as
-// before) so this cluster keeps visibly clearing out of the way ahead of the slower
-// mascot/spacer motion instead of both moving in lockstep - see loginFocusChaser's own
-// comment for why a longer, still-bounded constant reads as a glide rather than a snap
-// without reopening the real-device settle-tail gap.
-const loginFocusBtnChaser = makeProgressChaser(50);
+// deliberately faster pace (same ~1.8:1 ratio to loginFocusChaser as before) so this
+// cluster keeps visibly clearing out of the way ahead of the slower mascot/spacer motion
+// instead of both moving in lockstep - see loginFocusChaser's own comment for why a
+// longer constant here reads as a slower, more deliberate glide.
+const loginFocusBtnChaser = makeProgressChaser(85);
 let loginFocusRAF = null;
 function stepLoginFocusChasers(now) {
     const wrap = el("login-wrap");
