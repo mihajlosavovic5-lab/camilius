@@ -6191,24 +6191,19 @@ if (capacitorPlugins && capacitorPlugins.Keyboard) {
         if (keyboardWillHideTimer) clearTimeout(keyboardWillHideTimer);
         keyboardWillHideTimer = setTimeout(() => {
             keyboardWillHideTimer = null;
-            // The autofill false-alarm this debounce exists for (see this listener's own
-            // top comment) is a RACE against the debounce window: a FIFTH on-device
-            // recording (600ms debounce, the fallback bug below, both already shipped)
-            // frame-timed the actual gap between this false alarm's keyboardWillHide and
-            // its own keyboardWillShow at ~750-850ms - past 600ms, so the revert below
-            // fired anyway, then keyboardWillShow (above) reopened the compact layout
-            // moments later, reading as a visible bounce - up, then a sudden jump
-            // further, then a fast snap back - instead of one smooth motion. Widened to
-            // 1000ms for real headroom over that measured gap rather than another narrow
-            // shave. No fixed debounce closes this race with certainty, since the lookup
-            // it's timed against has no documented upper bound - checking the actual
-            // viewport height narrows it further: a false alarm that never actually closes
-            // the keyboard (as opposed to this one, which did - see the fallback below's
-            // own comment on why THAT was the bigger bug in this same recording) never
-            // shrinks it in the first place, so skipping the revert here is still correct
-            // for that case too, and doesn't strand it open forever either - the
-            // visualViewport fallback below (now only live when this block ISN'T) still
-            // independently catches a real close once the height confirms it.
+            // Briefly widened to 1000ms (a fifth recording measured the autofill false
+            // alarm's own keyboardWillHide-to-keyboardWillShow gap at ~750-850ms, past the
+            // 600ms this had before) - a SIXTH recording showed that traded one visible bug
+            // for a worse one: the fallback below was the actual double-fire cause (see its
+            // own comment), so widening this did nothing for the bounce, and a GENUINE
+            // close (keyboard visibly gone, nothing following) now sat fully idle for up
+            // to a second - layout still compact, focus ring still showing, before finally
+            // reverting - reading as the screen hanging/stuck rather than reacting. Back to
+            // 600ms: the number the team had already confirmed reads as instant for a
+            // genuine close, and with the fallback race below actually fixed, there's no
+            // evidence this one still needs to cover the autofill gap by itself - the
+            // keyboardWillShow recovery above still corrects it on the rare device where
+            // 600ms isn't quite enough, same safety net as before any of this.
             if (window.visualViewport && window.visualViewport.height < restingHeight - 40) return;
             const active = document.activeElement;
             if (active === el("login-email-input")) {
@@ -6220,7 +6215,7 @@ if (capacitorPlugins && capacitorPlugins.Keyboard) {
             // comment on the caret being left blinking with no keyboard behind it.
             const isTextField = active && (active.tagName === "INPUT" || active.tagName === "TEXTAREA");
             if (isTextField) active.blur();
-        }, 1000);
+        }, 600);
     });
     capacitorPlugins.Keyboard.addListener("keyboardWillShow", () => {
         if (keyboardWillHideTimer) { clearTimeout(keyboardWillHideTimer); keyboardWillHideTimer = null; }
