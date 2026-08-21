@@ -6165,12 +6165,46 @@ if (window.visualViewport) {
 // lookup ever ran past that, the keyboardWillShow-side recovery above still catches it,
 // same as it does today; this is about not TRIGGERING the visible pop in the first
 // place, not the only thing standing between a false alarm and a stuck layout.
+// A FOURTH on-device recording (600ms debounce, still shipped as-is above) showed even
+// that wasn't a hard enough ceiling: on a slower autofill lookup the real keyboardWillShow
+// still landed after 600ms, so the pop this debounce exists to prevent stayed visible -
+// up, then a further jump as the revert fired, then a fast snap back once
+// keyboardWillShow finally caught up. No fixed debounce can close that race, since the
+// lookup it's timed against has no upper bound. The revert below is now additionally
+// gated on the actual viewport height (see restingHeight just below) rather than relying
+// on elapsed time alone - a false alarm never shrinks it, so checking it directly catches
+// what no debounce length ever could.
+// Tallest visualViewport height seen so far - the resting, keyboard-closed height,
+// since a keyboard opening only ever shrinks that number, never sets a new max. Shared
+// by keyboardWillHide's own debounce below (to confirm a hide is real before reverting
+// anything) and the plain-resize fallback further down (see that block's own comment) -
+// tracked once, here, rather than twice.
+let restingHeight = window.visualViewport ? window.visualViewport.height : null;
+if (window.visualViewport) {
+    window.visualViewport.addEventListener("resize", () => {
+        if (window.visualViewport.height > restingHeight) restingHeight = window.visualViewport.height;
+    });
+}
 let keyboardWillHideTimer = null;
 if (capacitorPlugins && capacitorPlugins.Keyboard) {
     capacitorPlugins.Keyboard.addListener("keyboardWillHide", () => {
         if (keyboardWillHideTimer) clearTimeout(keyboardWillHideTimer);
         keyboardWillHideTimer = setTimeout(() => {
             keyboardWillHideTimer = null;
+            // The autofill false-alarm this debounce exists for (see this listener's own
+            // top comment) is a RACE against the debounce window: on-device recordings
+            // confirmed 600ms covers most of what the autofill lookup takes, but not all
+            // of it - when the real keyboardWillShow lands even a little past this timer,
+            // the revert below fires anyway, then keyboardWillShow (above) reopens the
+            // compact layout moments later, reading as a visible bounce - up, then a
+            // sudden jump further, then a fast snap back - instead of one smooth motion.
+            // No fixed debounce closes that race, since the lookup it's timed against has
+            // no upper bound. Checking the actual viewport height does: a false alarm
+            // never shrinks it in the first place, so the keyboard is still visibly open
+            // right here. Skipping the revert in that case doesn't strand it open forever
+            // either - the visualViewport fallback below independently catches a real
+            // close once the height actually confirms it, no keyboardWillHide required.
+            if (window.visualViewport && window.visualViewport.height < restingHeight - 40) return;
             const active = document.activeElement;
             if (active === el("login-email-input")) {
                 if (loginEmailBlurTimer) { clearTimeout(loginEmailBlurTimer); loginEmailBlurTimer = null; }
@@ -6196,12 +6230,11 @@ if (capacitorPlugins && capacitorPlugins.Keyboard) {
 // the plugin's native listener wired up, or the rare case its event just doesn't fire) -
 // inferred from visualViewport instead of a direct signal, so unlike the block above,
 // this one DOES need to confirm what it's seeing before acting on it. restingHeight
-// tracks the tallest visualViewport height seen so far - the resting, keyboard-closed
-// height, since a keyboard opening only ever shrinks that number, never sets a new max -
-// and whenever a resize brings the height back most of the way to it, whatever's
-// currently focused gets blurred. Ordinary typing (switching between two fields while
-// the keyboard stays open) never fires this: the height barely moves, nowhere near
-// restingHeight.
+// (tracked above, shared with keyboardWillHide's own debounce) is the resting, keyboard-
+// closed height, and whenever a resize brings the height back most of the way to it,
+// whatever's currently focused gets blurred. Ordinary typing (switching between two
+// fields while the keyboard stays open) never fires this: the height barely moves,
+// nowhere near restingHeight.
 // Debounced rather than acting on the very first resize event that's close to
 // restingHeight - a keyboard that's still opening (not closing) can report a transient
 // visualViewport height this close to resting too, since the height doesn't always
@@ -6214,11 +6247,9 @@ if (capacitorPlugins && capacitorPlugins.Keyboard) {
 // re-checking the CURRENT height (not the one from the event that scheduled the check)
 // filters that out: a genuine close stays near resting, a mid-open blip doesn't.
 if (window.visualViewport) {
-    let restingHeight = window.visualViewport.height;
     let keyboardCloseBlurTimer = null;
     window.visualViewport.addEventListener("resize", () => {
         const height = window.visualViewport.height;
-        if (height > restingHeight) restingHeight = height;
         if (height < restingHeight - 40) {
             // Still short of resting - cancels a timer an EARLIER event in this same
             // close started, if the height has now dropped back out of the "close
