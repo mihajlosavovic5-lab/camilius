@@ -539,8 +539,20 @@ button { font-family: inherit; -webkit-appearance: none; appearance: none; }
    number as everything else removes that last independent clock - once progress reaches
    1, every input to this spacer's own share is already at its own final value in the
    same instant, so there's nothing left to still be moving. */
+/* flex-grow reads --login-top-spacer-grow (a plain number, precomputed and set directly
+   by app.js's applyLoginFocusHeight) rather than calc(.5 + var(--login-focus-progress) *
+   .9) here - calc() resolving to a bare <number> (as flex-grow requires, unlike a
+   <length> like the min-height below) isn't reliably supported across WebView builds:
+   on one real device this whole declaration was silently dropped as invalid, leaving
+   flex-grow at its initial value of 0 - the ONE spacer meant to soak up nearly all the
+   keyboard-focused layout's free space instead did nothing, and that free space then
+   sat as unexplained dead space at the very bottom of #login-wrap (after every other
+   child, before its padding-bottom) instead of anywhere flex-grow would normally put it.
+   A plain var() substitution for flex-grow (no calc(), no arithmetic) doesn't touch that
+   code path at all, so it can't hit the same failure - the fallback (1.4) is this
+   formula's own value at progress 1 (idle), same as before this existed. */
 .login-top-spacer {
-    flex-grow: calc(.5 + var(--login-focus-progress, 1) * .9); flex-shrink: 1; flex-basis: 0%;
+    flex-grow: var(--login-top-spacer-grow, 1.4); flex-shrink: 1; flex-basis: 0%;
     min-height: 8px; transition: flex-grow var(--login-focus-anim-dur) ease;
 }
 .login-mid-spacer {
@@ -697,8 +709,13 @@ button { font-family: inherit; -webkit-appearance: none; appearance: none; }
    same pattern as the other two) means that room now goes to .login-top-spacer instead
    (the only spacer still claiming a real share at progress 0), sinking the whole cluster
    until the legal text sits right above the keyboard instead of floating above a gap. */
+/* flex-grow reads --login-spacer-grow (plain number, app.js) rather than
+   calc(0.2 * var(--login-focus-progress, 1)) - same reasoning as
+   .login-top-spacer's own flex-grow above: calc() resolving to a bare <number> isn't
+   reliably supported for flex-grow specifically. Fallback (0.2) matches this formula's
+   own value at progress 1 (idle). */
 .login-spacer {
-    flex-grow: calc(0.2 * var(--login-focus-progress, 1)); flex-shrink: 1; flex-basis: 0%;
+    flex-grow: var(--login-spacer-grow, 0.2); flex-shrink: 1; flex-basis: 0%;
     min-height: calc(6px + var(--login-focus-progress, 1) * 14px);
     transition: flex-grow var(--login-focus-anim-dur) ease, min-height var(--login-focus-anim-dur) ease;
 }
