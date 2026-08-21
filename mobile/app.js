@@ -3196,8 +3196,10 @@ function applyLoginFocusHeight(height) {
     // Precomputed here, as a plain number, rather than left for .login-spacer's own CSS
     // to calc() from --login-focus-progress directly - see that rule's own comment in
     // app.css for the WebView bug (calc() not reliably resolving to a bare <number>,
-    // which is what flex-grow needs) this works around.
+    // which is what flex-grow needs) this works around. .login-top-spacer's own
+    // --login-top-spacer-grow (see its own comment in app.css) needs the same treatment.
     wrap.style.setProperty("--login-spacer-grow", (0.2 * progress).toFixed(4));
+    wrap.style.setProperty("--login-top-spacer-grow", (0.5 + progress * 0.9).toFixed(4));
 }
 new ResizeObserver((entries) => applyLoginFocusHeight(entries[0].contentRect.height)).observe(el("login-wrap"));
 
