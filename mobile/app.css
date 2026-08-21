@@ -541,18 +541,25 @@ button { font-family: inherit; -webkit-appearance: none; appearance: none; }
    same instant, so there's nothing left to still be moving. */
 /* No flex-grow at all - on at least one real device, flex-grow's free-space distribution
    just wasn't honored for this spacer (confirmed: getComputedStyle faithfully reported
-   the correct resolved flex-grow number, but the actual rendered height didn't match it -
-   a plain var() substitution instead of calc() didn't fix it either, so this isn't the
-   same "calc() can't resolve to a bare <number>" issue .login-spacer's own comment below
-   describes - something deeper in this WebView's flex-grow distribution itself). Sized
-   by plain height instead (app.js's syncLoginTopSpacerHeight - same JS-computed-explicit-
-   height technique #login-phase-stack already uses successfully), which every progress-
-   driven <length> in this whole cluster (mascot width, tagline max-height, this rule's
-   own old min-height) has proven reliable on this exact device throughout this
-   investigation - height and min-height have never been the unreliable part. */
+   the correct resolved flex-grow number, but the actual rendered height didn't match it).
+   A first fix (app.js computing an explicit px height from the OTHER siblings' live
+   getBoundingClientRect() sizes, mirroring #login-phase-stack's own JS-height technique)
+   traded that bug for a worse one: mascot/tagline/the Google button are ALL still mid-
+   transition toward their own new targets at the exact instant that JS runs (it fires
+   the moment --login-focus-progress changes, before the browser has had a single frame
+   to actually repaint them), so it kept computing this spacer's height from their STALE,
+   pre-shrink sizes - undershooting badly right at the start of a keyboard OPEN (reading
+   them still large, when they're headed small) and read as the whole cluster getting
+   thrown up to the top before catching back down, not one smooth wave (closing looked
+   fine - overshooting large at the start of a close reads as continued growth, not a
+   jump). margin-bottom:auto sidesteps that whole class of bug: it's not a value app.js
+   computes and hands to a transition at discrete moments, it's the flex layout engine's
+   own live computation, re-evaluated by the browser on every single rendered frame
+   against whatever the OTHER items' actual current (mid-transition or not) sizes are -
+   there's no snapshot to go stale. flex-basis:8px is now just this item's own floor
+   (equivalent to the old min-height), since flex-grow no longer does anything here. */
 .login-top-spacer {
-    flex-grow: 0; flex-shrink: 0; flex-basis: auto;
-    min-height: 8px; transition: height var(--login-focus-anim-dur) ease;
+    flex-grow: 0; flex-shrink: 0; flex-basis: 8px; margin-bottom: auto;
 }
 .login-mid-spacer {
     flex-grow: var(--login-focus-progress, 1); flex-shrink: 1; flex-basis: 0%;
