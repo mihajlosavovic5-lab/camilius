@@ -3120,11 +3120,6 @@ function resetLoginPhase() {
     // mode" (see setLoginEmailFocusMode() below) from a previous visit that never got a
     // matching blur (e.g. navigating away mid-focus).
     el("login-wrap").classList.remove("login-wrap-email-focus");
-    // Also releases any pixel size syncLoginSpacers() left pinned on the spacers from
-    // that previous visit (see its own comment on why it no longer auto-releases that on
-    // its own) - a fresh arrival should just show the plain, idle CSS-driven layout.
-    document.querySelectorAll("#login-wrap .login-top-spacer, #login-wrap .login-mid-spacer")
-        .forEach((node) => node.removeAttribute("style"));
     // Every fresh arrival at Login starts with a clean slate, not whatever error a
     // previous attempt left behind (see hideLoginError()'s own comment).
     hideLoginError();
@@ -3136,281 +3131,37 @@ function resetLoginPhase() {
 // mascot/tagline and collapses "Continue with Google" out of the way (see
 // .login-wrap-email-focus in app.css) so the field stays in view above the keyboard
 // instead of getting pushed under it - nothing here is wired to a backend yet.
-// .login-top-spacer/.login-mid-spacer's own resting height comes from a flex-grow RATIO
-// (app.css) - accurate for a static layout, but animating that ratio while the siblings
-// it shares space with (mascot, tagline, "Continue with Google") are ALSO simultaneously
-// resizing means it's dividing a shrinking/growing pie at the same time its own share of
-// that pie is changing. Measured on an actual device (and reproduced here by sampling
-// the rendered heights through the transition), that showed up as the spacer visibly
-// growing past its resting height and recoiling back - the icon+tagline block moving in
-// two distinct steps instead of one - rather than settling smoothly.
 //
-// Building the target height (a throwaway, invisible clone of #login-wrap with the
-// target class already applied - see cloneLoginWrapForMeasurement()) rather than reading
-// the real, currently-transitioning element gets around a second, less obvious trap: a
-// synchronous read of the REAL spacer right after toggling the class doesn't return the
-// end target either - a CSS transition's used value for layout starts at ~0% progress
-// the instant it's toggled, so that read is still close to the OLD height, not the new
-// one. The clone has no prior state to transition from, so its layout reflects the
-// target instantly.
-// focusedOverride lets a caller measure the "login-wrap-email-focus" state WITHOUT first
-// toggling that class on the real, on-screen loginWrap (see warmLoginSpacerHeightCache()
-// below) - left undefined, the clone just inherits whatever's already on loginWrap, same
-// as before, for the existing focus/blur call site which toggles the real node itself.
-function cloneLoginWrapForMeasurement(loginWrap, focusedOverride) {
-    const clone = loginWrap.cloneNode(true);
-    // Only the wrapper's own id, not every descendant's - #login-google-btn's own
-    // focus-mode collapse (app.css) is written against its id, and stripping ids from
-    // the whole clone (as an earlier version of this did) silently broke that CSS rule
-    // for the clone, making it measure the button as still fully expanded. Duplicate
-    // descendant ids are momentary and never observed - the clone is inserted, read, and
-    // removed synchronously, with no other code running in between to be confused by them.
-    clone.removeAttribute("id");
-    // Strips any inline flex-basis/flex-grow this same function left on the spacers from
-    // a previous (possibly interrupted) call - cloneNode copies inline style along with
-    // everything else, and a leftover override here would corrupt this measurement.
-    clone.querySelectorAll(".login-top-spacer, .login-mid-spacer").forEach((node) => node.removeAttribute("style"));
-    if (focusedOverride !== undefined) clone.classList.toggle("login-wrap-email-focus", focusedOverride);
-    const rect = loginWrap.getBoundingClientRect();
-    clone.style.position = "absolute";
-    clone.style.visibility = "hidden";
-    clone.style.pointerEvents = "none";
-    clone.style.top = "0";
-    clone.style.left = "0";
-    clone.style.width = rect.width + "px";
-    clone.style.height = rect.height + "px";
-    // Has to happen before anything below reads a rect off any node inside the clone -
-    // a detached node (not yet in the document) has no layout at all, so every
-    // getBoundingClientRect() call on it or its descendants would just return zeros.
-    loginWrap.parentNode.insertBefore(clone, loginWrap.nextSibling);
-    // #login-phase-stack's own inline height (set by the ResizeObservers above) is
-    // ALSO copied by cloneNode - and since those observers are async, the real one may
-    // not have caught up to the class change yet, leaving the clone's copy still sized
-    // for the OLD (pre-toggle) panel. .login-choice/.login-email-form underneath it,
-    // being freshly cloned with no transition to chase, DO already reflect the target
-    // instantly - re-deriving the stack's height from whichever of those is now active
-    // (same logic as syncLoginPhaseStackHeight()) fixes it up before anything measures
-    // this clone's spacers, which would otherwise see stale, too-small phase-stack
-    // height as extra "leftover" room and overshoot into it.
-    const clonePhaseStack = clone.querySelector(".login-phase-stack");
-    if (clonePhaseStack) {
-        const cloneActivePanel = clone.querySelector(
-            clone.classList.contains("login-wrap-form-phase") ? ".login-email-form" : ".login-choice"
-        );
-        clonePhaseStack.style.height = cloneActivePanel.getBoundingClientRect().height + "px";
-    }
-    return clone;
-}
-
-let loginSpacerAnimFrame = null;
-// .login-top-spacer/.login-mid-spacer are classes, not ids (el() wouldn't find them) -
-// and .login-top-spacer's class name alone isn't unique across the whole document (the
-// Verify-pending screen reuses it), so every lookup here is scoped to #login-wrap.
+// This used to also do a JS-measured px-pinned FLIP animation of .login-top-spacer/
+// .login-mid-spacer (clone #login-wrap off-screen, measure its target height, freeze the
+// real spacers at their current pixel size, then transition to the measured target) to
+// work around flex-grow's own share-of-a-shrinking-pie behavior. The real bug that
+// technique kept chasing (several commits, see git log) was that its very first
+// measurement, taken synchronously on focus, necessarily ran BEFORE the keyboard's own
+// resize had landed (interactive-widget=resizes-content still has to actually resize the
+// layout viewport - see index.html's own comment - that isn't instant), so it pinned the
+// spacers to a target computed against the wrong, not-yet-shrunk viewport. Everything
+// after that (a cache, a debounced one-shot resync once the real resize settled) was
+// there purely to patch over that one wrong initial guess, and still left the wrong guess
+// visibly on screen for however long the resync's own debounce took to fire.
 //
-// Once this settles, the spacers stay PINNED at that pixel size (flex-grow/flex-shrink
-// locked to 0) rather than being handed back to their normal, viewport-responsive CSS
-// flex-grow rule - deliberately, so nothing here moves again on its own afterward, even
-// if the keyboard goes on resizing the real viewport once this has already settled. Two
-// earlier versions both did try to keep tracking that: one watched #login-wrap with a
-// ResizeObserver and re-FLIPped on every genuine height change, which read as a slow
-// second climb tacked onto the end of the real motion; even after removing that, simply
-// handing control back to CSS flex-grow (unconditionally, once) after a fixed delay hit
-// the same problem if a real resize happened to land inside that window - the hand-off
-// itself snapped to whatever the CSS rule now computed for the already-changed viewport.
-// Only the next syncLoginSpacers() call (i.e. the next focus/blur) re-measures and moves
-// these again.
-//
-// "Last" below used to always come from a fresh cloneLoginWrapForMeasurement() call, done
-// synchronously inside this function - cloneNode(true) of the whole #login-wrap subtree,
-// inserted, measured, removed. Timed on a throttled (6x, roughly a low/mid-range Android
-// phone) run of this exact page, that alone took ~30ms of uninterrupted main-thread work,
-// and it was landing at the worst possible moment: right on focus/blur, the same instant
-// the on-screen keyboard starts its own animation. The keyboard itself isn't blocked by
-// that (it's handled off the page's main thread), so it opens/closes on schedule - but
-// nothing on the page can paint until that ~30ms block finishes, which is exactly what
-// read as a delay before this transition (and the plain CSS ones on the mascot/tagline/
-// Google button, gated behind the same synchronous block) visibly started, even though
-// the transition itself, once it does start, was already smooth.
-//
-// loginSpacerHeightCache sidesteps that by doing the same clone-based measurement ahead of
-// time - see warmLoginSpacerHeightCache() below - for BOTH the focused and unfocused
-// target states, while nothing is waiting on the result, so a focus/blur landing after
-// that has already run can skip the clone entirely and read the answer straight out of
-// this cache instead. Keyed on #login-wrap's own rect so a stale cache (a real resize
-// since it was built) is detected and this function falls straight back to the original
-// clone-per-call path - exactly today's behavior - rather than ever animating toward a
-// wrong target.
-let loginSpacerHeightCache = null; // { width, height, focused: [a,b], unfocused: [a,b] }
-
-function readLoginSpacerHeights(node) {
-    return [
-        node.querySelector(".login-top-spacer").getBoundingClientRect().height,
-        node.querySelector(".login-mid-spacer").getBoundingClientRect().height,
-    ];
-}
-
-// Computes and caches both target states at once - called with nothing else waiting on
-// it (see its own call sites below) so this ~30ms (see loginSpacerHeightCache's own
-// comment) never lands in front of an actual focus/blur. Measures via two throwaway
-// clones (cloneLoginWrapForMeasurement's focusedOverride param) rather than toggling
-// #login-wrap's own class - that node is live and on-screen, and flipping its class back
-// and forth here would risk a real, visible flash of "focus mode" for whichever state
-// isn't the one it's actually in right now.
-function warmLoginSpacerHeightCache(loginWrap) {
-    const rect = loginWrap.getBoundingClientRect();
-    if (!rect.width || !rect.height) return; // not laid out yet - nothing to measure
-    const focusedClone = cloneLoginWrapForMeasurement(loginWrap, true);
-    const focused = readLoginSpacerHeights(focusedClone);
-    focusedClone.remove();
-    const unfocusedClone = cloneLoginWrapForMeasurement(loginWrap, false);
-    const unfocused = readLoginSpacerHeights(unfocusedClone);
-    unfocusedClone.remove();
-    loginSpacerHeightCache = { width: rect.width, height: rect.height, focused, unfocused };
-}
-
-function syncLoginSpacers(applyChange) {
-    if (loginSpacerAnimFrame) { cancelAnimationFrame(loginSpacerAnimFrame); loginSpacerAnimFrame = null; }
-    const loginWrap = el("login-wrap");
-    const spacers = [
-        loginWrap.querySelector(".login-top-spacer"),
-        loginWrap.querySelector(".login-mid-spacer"),
-    ];
-    // Captures whatever height is actually on screen right now - still the frozen,
-    // mid-transition pixel value if an earlier call's own animation hasn't finished yet,
-    // or the plain CSS-driven one otherwise - as this call's own "First". This has to
-    // happen BEFORE both stripping the inline style below AND running `applyChange`
-    // (setLoginEmailFocusMode's own class toggle, when this was called for that rather
-    // than a bare resize): reading after either would derive "First" from whatever
-    // flex-grow suddenly computes post-change instead of from what was actually visible
-    // a moment ago, snapping the display to that right here (synchronously, before this
-    // function's own freeze/thaw even starts) instead of smoothly animating on from it -
-    // which is exactly what made a mid-flight interruption (a real keyboard resize
-    // landing while the focus/blur toggle's own transition was still running) look like
-    // an instant jump instead of the second, corrective FLIP blending in.
-    const firstHeights = spacers.map((node) => node.getBoundingClientRect().height);
-    // Undoes any inline override a previous (interrupted) call left behind, so this
-    // function's own clone (which copies whatever inline style is currently on the real
-    // spacers) reflects pure CSS-driven sizes for "Last" below.
-    spacers.forEach((node) => node.removeAttribute("style"));
-    if (applyChange) applyChange();
-
-    const wrapRect = loginWrap.getBoundingClientRect();
-    const cache = loginSpacerHeightCache;
-    const cacheFresh = cache
-        && Math.abs(cache.width - wrapRect.width) < 0.5 && Math.abs(cache.height - wrapRect.height) < 0.5;
-    let lastHeights;
-    if (cacheFresh) {
-        lastHeights = loginWrap.classList.contains("login-wrap-email-focus") ? cache.focused : cache.unfocused;
-    } else {
-        const clone = cloneLoginWrapForMeasurement(loginWrap);
-        lastHeights = readLoginSpacerHeights(clone);
-        clone.remove();
-    }
-
-    // Already matching (e.g. this fired for a real resize while idle, or a change too
-    // small to move the rounded pixel heights) - skip the whole freeze/thaw dance below,
-    // which would otherwise flash the transition:none frame for no visible reason.
-    if (Math.abs(firstHeights[0] - lastHeights[0]) < 0.5 && Math.abs(firstHeights[1] - lastHeights[1]) < 0.5) return;
-
-    // flex-basis, not height - .login-top-spacer/.login-mid-spacer's own flex-basis is
-    // 0% (the single-number form of the "flex: 1.4"/"flex: 1" shorthand in app.css), so
-    // with flex-grow/flex-shrink pinned to 0 below, that 0% basis - not a plain height -
-    // is what actually determines their size; setting height alone left them collapsed
-    // to their min-height floor instead of the intended pixel value.
-    spacers.forEach((node, i) => {
-        node.style.transition = "none";
-        node.style.flexGrow = "0";
-        node.style.flexShrink = "0";
-        node.style.flexBasis = firstHeights[i] + "px";
-    });
-    // Forces the browser to actually paint that frozen ("First") state before the
-    // rAF below swaps in "Last" - without this the two style writes could get batched
-    // into the same frame and skip straight to Last with no visible transition at all,
-    // same idea as the classic "reflow to restart a CSS animation" trick.
-    void spacers[0].offsetHeight;
-    loginSpacerAnimFrame = requestAnimationFrame(() => {
-        loginSpacerAnimFrame = null;
-        spacers.forEach((node, i) => {
-            node.style.transition = "flex-basis .32s ease";
-            node.style.flexBasis = lastHeights[i] + "px";
-        });
-    });
-    // Deliberately no hand-back to plain CSS flex-grow once this settles - see this
-    // function's own top comment.
-}
-
+// .login-top-spacer/.login-mid-spacer now just carry `transition: flex-grow` (app.css)
+// instead - the class toggle below is the ONLY thing that changes, and flexbox itself
+// recomputes each spacer's actual pixel share every single rendered frame against
+// whatever the container's real height is AT THAT FRAME, keyboard still animating or not.
+// There's nothing to measure ahead of time and nothing that can go stale, because nothing
+// is ever pinned to a snapshot in the first place - the browser's own layout engine tracks
+// the live, still-resizing container the same way it already does for every other flex
+// layout on the page.
 function setLoginEmailFocusMode(active) {
-    // The class toggle is passed in as syncLoginSpacers' own applyChange callback rather
-    // than done here beforehand, so it runs at the right point in that function's own
-    // measure-First / change / measure-Last sequence - see that function's own comment
-    // on why the ordering matters.
-    syncLoginSpacers(() => el("login-wrap").classList.toggle("login-wrap-email-focus", active));
+    el("login-wrap").classList.toggle("login-wrap-email-focus", active);
 }
 let loginEmailBlurTimer = null;
-// Focus fires - and this reacts - synchronously with the tap, before Android's own
-// keyboard-open resize has actually landed (interactive-widget=resizes-content, see
-// index.html, means that resize is real and still has to happen, not instant). So the
-// very first syncLoginSpacers() call this triggers necessarily measures against
-// whatever #login-wrap's size still was A MOMENT AGO, not the keyboard-shrunk size it's
-// about to become - on a real device that mismeasurement pinned .login-top-spacer to
-// several times its correct size, and since #login-phase-stack (the email field's own
-// box) has no flex-shrink:0 of its own (see that rule's own fix in app.css) to protect
-// it, the oversized spacer left too little real room for it, squeezing the field's box
-// down far enough that its bottom-anchored content - the field itself, sized to its own
-// natural height - rode up out of it and painted over the tagline above.
-// oneShotLoginFocusResync re-measures once the keyboard's real resize actually lands,
-// correcting that initial guess against the genuine, now-settled viewport - same
-// "measure current state" logic as any other syncLoginSpacers() call, just re-run once
-// more instead of trusted blindly the first time. Deliberately only once (not a standing
-// ResizeObserver re-flipping on every subsequent change): an earlier version of that
-// idea watched for every genuine height change and read as a slow second climb tacked
-// onto the end of the already-finished motion (see restingHeight's own comment on a
-// related case).
-//
-// Debounced (200ms of no further resize events, same window as the cache re-warm's own
-// debounce below and for the same reason) rather than acting on the very FIRST resize
-// event - interactive-widget=resizes-content reports the keyboard's own opening
-// animation as a whole BURST of resize events on several WebViews (the layout genuinely
-// reflowing frame by frame - see this same reasoning already documented below for the
-// close side), not one clean jump. Reproduced headlessly with a gradual multi-step
-// viewport shrink standing in for that burst: reacting to the first event caught the
-// viewport only ~15% of the way through the shrink, well short of its resting height -
-// and since the spacers stay pinned once set (see syncLoginSpacers' own comment on why),
-// that wrong, still-mid-shrink target stuck permanently instead of the real one, measured
-// pinning .login-top-spacer to ~6x its correct size. That read as the compact cluster
-// visibly lurching to a far-too-low resting spot right as the keyboard finished opening,
-// not settling smoothly - the "bump" this fixes. Waiting for the burst to actually go
-// quiet still fires early enough, same reasoning as before, to blend into the tail of the
-// keyboard's own opening animation and this code's own .32s transition rather than
-// visibly restarting either.
-let loginFocusResyncListener = null;
-let loginFocusResyncTimer = null;
-function armOneShotLoginFocusResync() {
-    disarmOneShotLoginFocusResync();
-    const vv = window.visualViewport;
-    const target = vv || window;
-    loginFocusResyncListener = () => {
-        if (loginFocusResyncTimer) clearTimeout(loginFocusResyncTimer);
-        loginFocusResyncTimer = setTimeout(() => {
-            loginFocusResyncTimer = null;
-            disarmOneShotLoginFocusResync();
-            if (document.activeElement === el("login-email-input")) setLoginEmailFocusMode(true);
-        }, 200);
-    };
-    target.addEventListener("resize", loginFocusResyncListener);
-}
-function disarmOneShotLoginFocusResync() {
-    if (loginFocusResyncTimer) { clearTimeout(loginFocusResyncTimer); loginFocusResyncTimer = null; }
-    if (!loginFocusResyncListener) return;
-    (window.visualViewport || window).removeEventListener("resize", loginFocusResyncListener);
-    loginFocusResyncListener = null;
-}
 el("login-email-input").addEventListener("focus", () => {
     // Cancels a pending revert from a blur that's about to turn out spurious - see the
     // blur handler's own comment.
     if (loginEmailBlurTimer) { clearTimeout(loginEmailBlurTimer); loginEmailBlurTimer = null; }
     setLoginEmailFocusMode(true);
-    armOneShotLoginFocusResync();
 });
 el("login-email-input").addEventListener("blur", () => {
     // A real on-screen keyboard opening/closing (or its own autofill suggestion strip)
@@ -3423,11 +3174,6 @@ el("login-email-input").addEventListener("blur", () => {
         loginEmailBlurTimer = null;
         setLoginEmailFocusMode(false);
     }, 80);
-    // A resize landing after this blur (e.g. the keyboard finishing its own close
-    // animation) has nothing left to correct - armOneShotLoginFocusResync's own listener
-    // already no-ops on it (activeElement check), this just stops it from lingering
-    // attached until some unrelated later resize.
-    disarmOneShotLoginFocusResync();
 });
 el("login-email-back-btn").addEventListener("click", resetLoginPhase);
 // Sets the initial height for the default (choice) phase - without this the stack would
@@ -3435,40 +3181,6 @@ el("login-email-back-btn").addEventListener("click", resetLoginPhase);
 // before the ResizeObservers above get their own first (async, not-until-next-paint)
 // callback.
 syncLoginPhaseStackHeight();
-
-// Primes loginSpacerHeightCache (see its own comment above syncLoginSpacers) well ahead of
-// the first real focus/blur - #login-wrap already has its real, viewport-driven layout
-// size at this point regardless of whether the Login screen is the one currently showing
-// (.screen positions itself with transform, which doesn't affect layout size), so there's
-// no need to wait for showScreen("login"). Deferred one idle tick purely so this genuinely
-// non-urgent work never competes with anything that IS on the critical path during page
-// startup - requestIdleCallback where available, falling back to a plain timeout.
-(window.requestIdleCallback || ((fn) => setTimeout(fn, 200)))(() => warmLoginSpacerHeightCache(el("login-wrap")));
-
-// A real viewport resize (rotation, or the keyboard itself now that interactive-widget=
-// resizes-content - see index.html's own comment - makes the layout viewport track it)
-// can invalidate the sizes the cache above was built from. syncLoginSpacers' own width/
-// height check already guards against ever animating toward a stale target, so this
-// doesn't need to (and used to) also eagerly null the cache the instant a resize fires -
-// that raced the login screen's own back-press revert, which by design fires within
-// ~150ms of the keyboard confirming closed (see the visualViewport listener below):
-// resizes-content reports that same close as a whole burst of "resize" events (the
-// layout genuinely reflowing frame by frame, not one clean jump), each of which nulled
-// the cache all over again, so it was still empty - forcing the slow per-call clone -
-// right as that revert asked for it, a small but visible hitch at the exact moment the
-// animation was supposed to start smoothly. By the time that revert actually fires, the
-// viewport is back to the same resting size the cache was built from in the first place,
-// so there's nothing stale to protect against yet - only debouncing the re-warm (still
-// useful for a genuine rotation, or focusing again at a size the cache doesn't cover)
-// lets a same-size close find the cache exactly as it left it.
-let loginSpacerCacheResizeTimer = null;
-window.addEventListener("resize", () => {
-    if (loginSpacerCacheResizeTimer) clearTimeout(loginSpacerCacheResizeTimer);
-    loginSpacerCacheResizeTimer = setTimeout(() => {
-        loginSpacerCacheResizeTimer = null;
-        warmLoginSpacerHeightCache(el("login-wrap"));
-    }, 200);
-});
 
 // --- Forgot password (its own native screen, pushed on top of Login - no browser
 // involved at all, unlike the old flow which opened the website's page in a browser tab) ---
@@ -6221,7 +5933,6 @@ if (capacitorPlugins && capacitorPlugins.Keyboard) {
         if (keyboardWillHideTimer) { clearTimeout(keyboardWillHideTimer); keyboardWillHideTimer = null; }
         if (document.activeElement === el("login-email-input")) {
             setLoginEmailFocusMode(true);
-            armOneShotLoginFocusResync();
         }
     });
 }
@@ -6289,8 +6000,8 @@ if (window.visualViewport) {
             // before they finally started animating back. Reverting directly cuts that
             // wait to zero; active.blur() right after still fires the normal blur event
             // (for anything else listening) and its now-redundant 80ms timer, which is a
-            // harmless no-op once the layout's already back (see syncLoginSpacers' own
-            // "already matching" early-return).
+            // harmless no-op once the layout's already back - toggling the same class to
+            // the same state a second time is a no-op (see setLoginEmailFocusMode()).
             if (active === el("login-email-input")) {
                 if (loginEmailBlurTimer) { clearTimeout(loginEmailBlurTimer); loginEmailBlurTimer = null; }
                 setLoginEmailFocusMode(false);
