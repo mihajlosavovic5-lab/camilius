@@ -609,7 +609,19 @@ button { font-family: inherit; -webkit-appearance: none; appearance: none; }
    start and end of it; adding this rule's own separate .26s easing on top of updates
    that frequent fought them rather than complementing them, showing up as a laggy
    rubber-band trail behind the actual (already-smooth) content instead of tracking it. */
-.login-phase-stack { position: relative; }
+/* flex-shrink:0 - this is a flex item (.login-wrap, its parent, is display:flex) with
+   position:absolute children (see this rule's own comment above), so it has NO intrinsic
+   content height of its own to resist shrinking with - only its own JS-driven inline
+   height (syncLoginPhaseStackHeight()/app.js) gives it one, and without this, flexbox's
+   default flex-shrink:1 could still squash it below that the moment the surrounding
+   spacers ask for more room than the container actually has (a real bug found on-device:
+   a mismeasured .login-top-spacer left too little room, and this box got compressed
+   down to a sliver - its bottom-anchored .login-choice content, sized to its own real
+   height regardless, rode up out of that sliver and painted over the tagline above it
+   instead of scrolling out of view or clipping cleanly). Pinning this to its real,
+   explicitly-set height is what the JS is already trying to guarantee; this just stops
+   flexbox from overriding that guarantee when something else miscalculates. */
+.login-phase-stack { position: relative; flex-shrink: 0; }
 .login-phase-stack > .login-choice,
 .login-phase-stack > .login-email-form {
     position: absolute; left: 0; right: 0; bottom: 0;

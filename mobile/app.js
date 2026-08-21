@@ -3347,11 +3347,50 @@ function setLoginEmailFocusMode(active) {
     syncLoginSpacers(() => el("login-wrap").classList.toggle("login-wrap-email-focus", active));
 }
 let loginEmailBlurTimer = null;
+// Focus fires - and this reacts - synchronously with the tap, before Android's own
+// keyboard-open resize has actually landed (interactive-widget=resizes-content, see
+// index.html, means that resize is real and still has to happen, not instant). So the
+// very first syncLoginSpacers() call this triggers necessarily measures against
+// whatever #login-wrap's size still was A MOMENT AGO, not the keyboard-shrunk size it's
+// about to become - on a real device that mismeasurement pinned .login-top-spacer to
+// several times its correct size, and since #login-phase-stack (the email field's own
+// box) has no flex-shrink:0 of its own (see that rule's own fix in app.css) to protect
+// it, the oversized spacer left too little real room for it, squeezing the field's box
+// down far enough that its bottom-anchored content - the field itself, sized to its own
+// natural height - rode up out of it and painted over the tagline above.
+// oneShotLoginFocusResync re-measures once the keyboard's real resize actually lands,
+// correcting that initial guess against the genuine, now-settled viewport - same
+// "measure current state" logic as any other syncLoginSpacers() call, just re-run once
+// more instead of trusted blindly the first time. Deliberately only once (not a standing
+// ResizeObserver re-flipping on every subsequent change): an earlier version of that
+// idea watched for every genuine height change and read as a slow second climb tacked
+// onto the end of the already-finished motion (see restingHeight's own comment on a
+// related case). This fires early enough - typically while the keyboard's own opening
+// animation, and this code's own .32s transition, are both still in flight - that
+// syncLoginSpacers' mid-flight interruption handling (see its own comment on that)
+// blends the correction into the same motion instead of visibly restarting it.
+let loginFocusResyncListener = null;
+function armOneShotLoginFocusResync() {
+    disarmOneShotLoginFocusResync();
+    const vv = window.visualViewport;
+    const target = vv || window;
+    loginFocusResyncListener = () => {
+        disarmOneShotLoginFocusResync();
+        if (document.activeElement === el("login-email-input")) setLoginEmailFocusMode(true);
+    };
+    target.addEventListener("resize", loginFocusResyncListener);
+}
+function disarmOneShotLoginFocusResync() {
+    if (!loginFocusResyncListener) return;
+    (window.visualViewport || window).removeEventListener("resize", loginFocusResyncListener);
+    loginFocusResyncListener = null;
+}
 el("login-email-input").addEventListener("focus", () => {
     // Cancels a pending revert from a blur that's about to turn out spurious - see the
     // blur handler's own comment.
     if (loginEmailBlurTimer) { clearTimeout(loginEmailBlurTimer); loginEmailBlurTimer = null; }
     setLoginEmailFocusMode(true);
+    armOneShotLoginFocusResync();
 });
 el("login-email-input").addEventListener("blur", () => {
     // A real on-screen keyboard opening/closing (or its own autofill suggestion strip)
@@ -3364,6 +3403,11 @@ el("login-email-input").addEventListener("blur", () => {
         loginEmailBlurTimer = null;
         setLoginEmailFocusMode(false);
     }, 80);
+    // A resize landing after this blur (e.g. the keyboard finishing its own close
+    // animation) has nothing left to correct - armOneShotLoginFocusResync's own listener
+    // already no-ops on it (activeElement check), this just stops it from lingering
+    // attached until some unrelated later resize.
+    disarmOneShotLoginFocusResync();
 });
 el("login-email-back-btn").addEventListener("click", resetLoginPhase);
 // Sets the initial height for the default (choice) phase - without this the stack would
