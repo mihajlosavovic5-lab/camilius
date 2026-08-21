@@ -3365,22 +3365,42 @@ let loginEmailBlurTimer = null;
 // ResizeObserver re-flipping on every subsequent change): an earlier version of that
 // idea watched for every genuine height change and read as a slow second climb tacked
 // onto the end of the already-finished motion (see restingHeight's own comment on a
-// related case). This fires early enough - typically while the keyboard's own opening
-// animation, and this code's own .32s transition, are both still in flight - that
-// syncLoginSpacers' mid-flight interruption handling (see its own comment on that)
-// blends the correction into the same motion instead of visibly restarting it.
+// related case).
+//
+// Debounced (200ms of no further resize events, same window as the cache re-warm's own
+// debounce below and for the same reason) rather than acting on the very FIRST resize
+// event - interactive-widget=resizes-content reports the keyboard's own opening
+// animation as a whole BURST of resize events on several WebViews (the layout genuinely
+// reflowing frame by frame - see this same reasoning already documented below for the
+// close side), not one clean jump. Reproduced headlessly with a gradual multi-step
+// viewport shrink standing in for that burst: reacting to the first event caught the
+// viewport only ~15% of the way through the shrink, well short of its resting height -
+// and since the spacers stay pinned once set (see syncLoginSpacers' own comment on why),
+// that wrong, still-mid-shrink target stuck permanently instead of the real one, measured
+// pinning .login-top-spacer to ~6x its correct size. That read as the compact cluster
+// visibly lurching to a far-too-low resting spot right as the keyboard finished opening,
+// not settling smoothly - the "bump" this fixes. Waiting for the burst to actually go
+// quiet still fires early enough, same reasoning as before, to blend into the tail of the
+// keyboard's own opening animation and this code's own .32s transition rather than
+// visibly restarting either.
 let loginFocusResyncListener = null;
+let loginFocusResyncTimer = null;
 function armOneShotLoginFocusResync() {
     disarmOneShotLoginFocusResync();
     const vv = window.visualViewport;
     const target = vv || window;
     loginFocusResyncListener = () => {
-        disarmOneShotLoginFocusResync();
-        if (document.activeElement === el("login-email-input")) setLoginEmailFocusMode(true);
+        if (loginFocusResyncTimer) clearTimeout(loginFocusResyncTimer);
+        loginFocusResyncTimer = setTimeout(() => {
+            loginFocusResyncTimer = null;
+            disarmOneShotLoginFocusResync();
+            if (document.activeElement === el("login-email-input")) setLoginEmailFocusMode(true);
+        }, 200);
     };
     target.addEventListener("resize", loginFocusResyncListener);
 }
 function disarmOneShotLoginFocusResync() {
+    if (loginFocusResyncTimer) { clearTimeout(loginFocusResyncTimer); loginFocusResyncTimer = null; }
     if (!loginFocusResyncListener) return;
     (window.visualViewport || window).removeEventListener("resize", loginFocusResyncListener);
     loginFocusResyncListener = null;
