@@ -3211,8 +3211,10 @@ function updateLoginDebugBadge(wrapHeight) {
     const spacerRect = spacer ? spacer.getBoundingClientRect() : null;
     const legalRect = legal ? legal.getBoundingClientRect() : null;
     const vv = window.visualViewport;
+    const wrapStyle = getComputedStyle(wrap);
+    const rootStyle = getComputedStyle(document.documentElement);
     badge.textContent =
-        `progress=${getComputedStyle(wrap).getPropertyValue("--login-focus-progress").trim()}\n` +
+        `progress=${wrapStyle.getPropertyValue("--login-focus-progress").trim()}\n` +
         `wrapH(observed)=${Math.round(wrapHeight)} wrapH(rect)=${Math.round(wrapRect.height)}\n` +
         `wrapBottom=${Math.round(wrapRect.bottom)}\n` +
         `restingH=${loginWrapRestingHeight ? Math.round(loginWrapRestingHeight) : "?"}\n` +
@@ -3220,6 +3222,9 @@ function updateLoginDebugBadge(wrapHeight) {
         `spacerH=${spacerRect ? Math.round(spacerRect.height) : "?"}\n` +
         `legalBottom=${legalRect ? Math.round(legalRect.bottom) : "?"}\n` +
         `gap(wrapBottom-legalBottom)=${legalRect ? Math.round(wrapRect.bottom - legalRect.bottom) : "?"}\n` +
+        `computedPaddingBottom=${wrapStyle.paddingBottom}\n` +
+        `raw --safe-bottom=${rootStyle.getPropertyValue("--safe-bottom").trim() || "(unset)"}\n` +
+        `wrap --safe-bottom=${wrapStyle.getPropertyValue("--safe-bottom").trim() || "(unset)"}\n` +
         `focusClass=${wrap.classList.contains("login-wrap-email-focus")}`;
 }
 if (window.visualViewport) {
