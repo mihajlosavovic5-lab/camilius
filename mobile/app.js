@@ -3213,6 +3213,15 @@ function updateLoginDebugBadge(wrapHeight) {
     const vv = window.visualViewport;
     const wrapStyle = getComputedStyle(wrap);
     const rootStyle = getComputedStyle(document.documentElement);
+    const phaseStack = el("login-phase-stack");
+    const choice = el("login-choice");
+    const googleBtn = el("login-google-btn");
+    const googleDivider = document.querySelector(".login-google-divider");
+    const phaseStackRect = phaseStack.getBoundingClientRect();
+    const choiceRect = choice.getBoundingClientRect();
+    const googleBtnRect = googleBtn.getBoundingClientRect();
+    const googleBtnStyle = getComputedStyle(googleBtn);
+    const dividerStyle = googleDivider ? getComputedStyle(googleDivider) : null;
     badge.textContent =
         `progress=${wrapStyle.getPropertyValue("--login-focus-progress").trim()}\n` +
         `wrapH(observed)=${Math.round(wrapHeight)} wrapH(rect)=${Math.round(wrapRect.height)}\n` +
@@ -3224,7 +3233,11 @@ function updateLoginDebugBadge(wrapHeight) {
         `gap(wrapBottom-legalBottom)=${legalRect ? Math.round(wrapRect.bottom - legalRect.bottom) : "?"}\n` +
         `computedPaddingBottom=${wrapStyle.paddingBottom}\n` +
         `raw --safe-bottom=${rootStyle.getPropertyValue("--safe-bottom").trim() || "(unset)"}\n` +
-        `wrap --safe-bottom=${wrapStyle.getPropertyValue("--safe-bottom").trim() || "(unset)"}\n` +
+        `phaseStack.style.height=${phaseStack.style.height}\n` +
+        `phaseStackBottom=${Math.round(phaseStackRect.bottom)}\n` +
+        `choiceBottom=${Math.round(choiceRect.bottom)}\n` +
+        `googleBtn h=${Math.round(googleBtnRect.height)} maxH=${googleBtnStyle.maxHeight} op=${googleBtnStyle.opacity}\n` +
+        `googleDivider maxH=${dividerStyle ? dividerStyle.maxHeight : "?"}\n` +
         `focusClass=${wrap.classList.contains("login-wrap-email-focus")}`;
 }
 if (window.visualViewport) {
