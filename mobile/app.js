@@ -3217,12 +3217,17 @@ function updateLoginDebugBadge(wrapHeight) {
     const spacerRect = spacer ? spacer.getBoundingClientRect() : null;
     const legalRect = legal ? legal.getBoundingClientRect() : null;
     const wrapStyle = getComputedStyle(wrap);
+    const topSpacer = document.querySelector(".login-top-spacer");
+    const topSpacerStyle = topSpacer ? getComputedStyle(topSpacer) : null;
     const childrenDump = Array.from(wrap.children).map((c) => {
         const r = c.getBoundingClientRect();
         return `${c.className || c.tagName}: top=${Math.round(r.top)} bot=${Math.round(r.bottom)} h=${Math.round(r.height)}`;
     }).join("\n");
     badge.textContent =
         `progress=${wrapStyle.getPropertyValue("--login-focus-progress").trim()}\n` +
+        `--login-top-spacer-grow (wrap)=${wrap.style.getPropertyValue("--login-top-spacer-grow") || "(not set)"}\n` +
+        `--login-top-spacer-grow (computed on spacer)=${topSpacerStyle ? topSpacerStyle.getPropertyValue("--login-top-spacer-grow").trim() || "(empty)" : "?"}\n` +
+        `topSpacer computed flex-grow=${topSpacerStyle ? topSpacerStyle.flexGrow : "?"}\n` +
         `wrapTop=${Math.round(wrapRect.top)} wrapBottom=${Math.round(wrapRect.bottom)} wrapH=${Math.round(wrapRect.height)}\n` +
         `paddingTop=${wrapStyle.paddingTop} paddingBottom=${wrapStyle.paddingBottom}\n` +
         `childCount=${wrap.children.length}\n` +
