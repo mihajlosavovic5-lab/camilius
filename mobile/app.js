@@ -3092,7 +3092,14 @@ function syncLoginPhaseStackHeight() {
     const formPhase = el("login-wrap").classList.contains("login-wrap-form-phase");
     const active = el(formPhase ? "login-email-form" : "login-choice");
     el("login-phase-stack").style.height = active.offsetHeight + "px";
+    syncLoginTopSpacerHeight();
 }
+// .login-top-spacer sizes itself off an explicit JS-computed height, not flex-grow (see
+// its own comment below for why) - #login-phase-stack's own height (set just above)
+// feeds directly into that computation as one of the "other siblings" it sums, so a
+// phase-stack resize that happens independently of the keyboard's own animation (e.g.
+// "Continue with Google" collapsing away, see the email-focus rules in app.css) needs to
+// re-trigger it too, not just #login-wrap's own resize below.
 // Keeps the line above correct through every frame of an *animated* height change, not
 // just at the couple of moments app.js itself changes a class - the email field's
 // "focus mode" below shrinks/collapses several of #login-choice's own children (each on
@@ -3196,18 +3203,59 @@ function applyLoginFocusHeight(height) {
     // Precomputed here, as a plain number, rather than left for .login-spacer's own CSS
     // to calc() from --login-focus-progress directly - see that rule's own comment in
     // app.css for the WebView bug (calc() not reliably resolving to a bare <number>,
-    // which is what flex-grow needs) this works around. .login-top-spacer's own
-    // --login-top-spacer-grow (see its own comment in app.css) needs the same treatment.
+    // which is what flex-grow needs) this works around.
     wrap.style.setProperty("--login-spacer-grow", (0.2 * progress).toFixed(4));
-    // 1.4 * progress, not .5 + progress*.9 (this spacer's own former, pre-margin-auto
-    // formula) - see this rule's own comment in app.css for why a floor that stayed
-    // nonzero at progress 0 (full keyboard focus) turned out to reopen a gap at the
-    // bottom of the focused layout instead of preventing one. Reaching literal 0 there,
-    // same as --login-spacer-grow above and .login-mid-spacer's own flex-grow, is what
-    // actually matched the known-good focus-mode behavior.
-    wrap.style.setProperty("--login-top-spacer-grow", (1.4 * progress).toFixed(4));
+    // .login-top-spacer doesn't use flex-grow at all any more (two different flex-grow-
+    // based formulas both shipped and both got reported wrong on a real device/idle-vs-
+    // focus round trip - see syncLoginTopSpacerHeight's own comment for the actual root
+    // cause neither formula could work around).
+    syncLoginTopSpacerHeight();
 }
 new ResizeObserver((entries) => applyLoginFocusHeight(entries[0].contentRect.height)).observe(el("login-wrap"));
+
+// .login-top-spacer used to size itself purely off flex-grow (a formula derived from
+// --login-focus-progress, first .5 + progress*.9, later 1.4 * progress) - on a real
+// device that flex-grow value (confirmed correct via getComputedStyle both times) was
+// never actually honored during layout: idle and full-focus both measured pinned at
+// this spacer's own floor regardless of which formula or how large a share it declared.
+// Something about how this WebView resolves flex-grow's free-space distribution doesn't
+// match spec here, in a way no CSS-only formula reliably works around - a margin-auto
+// attempt before that fared even worse (starved of ANY space by its own siblings'
+// nonzero flex-grow, see .login-top-spacer's own comment in app.css).
+// Explicit height, computed here as "whatever's left after every OTHER in-flow sibling"
+// and set directly (the same technique syncLoginPhaseStackHeight above already uses for
+// #login-phase-stack itself), sidesteps flex-grow's distribution algorithm entirely -
+// browsers have never been unreliable about honoring a plain height value. Doubles as a
+// catch-all: since this sums every OTHER sibling's OWN current rendered size (including
+// .login-mid-spacer/.login-spacer, whatever THEIR flex-grow actually resolves to), the
+// total always sums to the container's real content height regardless of whether their
+// own flex-grow math is trustworthy either.
+// This IS a real, non-circular measurement whenever .login-mid-spacer/.login-spacer are
+// pinned at their own min-height floor rather than actively claiming a flex-grow share
+// of their own - full keyboard focus, where both correctly reach flex-grow 0 - which is
+// exactly the state this needs to get right to match the compact, keyboard-hugging
+// reference layout. At idle, where they're both still competing for space via their own
+// flex-grow, "whatever's left after them" is circular (their own live size already
+// depends on however big THIS spacer currently is) and just reconfirms whatever this
+// spacer's height already was, with nothing to ever move it off a bad starting point -
+// see .login-top-spacer's own flex-basis in app.css for why that starting point is
+// seeded to a reasonable idle share instead of an empty 8px floor.
+function syncLoginTopSpacerHeight() {
+    const wrap = el("login-wrap");
+    const topSpacer = wrap.querySelector(".login-top-spacer");
+    if (!topSpacer) return;
+    const wrapStyle = getComputedStyle(wrap);
+    const contentHeight = wrap.clientHeight - parseFloat(wrapStyle.paddingTop) - parseFloat(wrapStyle.paddingBottom);
+    let othersHeight = 0;
+    for (const child of wrap.children) {
+        if (child === topSpacer) continue;
+        const childStyle = getComputedStyle(child);
+        if (childStyle.position === "fixed" || childStyle.position === "absolute" || childStyle.display === "none") continue;
+        othersHeight += child.getBoundingClientRect().height
+            + parseFloat(childStyle.marginTop) + parseFloat(childStyle.marginBottom);
+    }
+    topSpacer.style.height = Math.max(8, contentHeight - othersHeight) + "px";
+}
 
 function resetLoginPhase() {
     // See .login-wrap-form-phase in app.css - this one class alone drives which panel

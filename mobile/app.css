@@ -511,18 +511,17 @@ button { font-family: inherit; -webkit-appearance: none; appearance: none; }
         0.9px -0.9px 0.6px var(--title-outline),
         -0.9px -0.9px 0.6px var(--title-outline);
 }
-/* Flexible spacers above/below the form cluster. Weighted heavily toward the mid
-   spacer (brand -> buttons) rather than the top one, so most of the screen's free
-   space collects between the tagline and the CTA buttons - buttons end up near the
-   bottom of the screen instead of the cluster reading as vertically centered. */
+/* Flexible spacers above/below the form cluster. Weighted toward the top spacer
+   (screen edge -> brand) rather than the mid one, so most of the screen's free space
+   collects above the mascot - the cluster reads as vertically centered instead of
+   floating flush against the top with the buttons pushed down toward the bottom. */
 /* flex-grow (animatable directly - no flex-basis/px pinning needed) is what actually
    makes the email field's "focus mode" (see .login-wrap-email-focus below) collapse
    smoothly: flexbox recomputes each spacer's real pixel share every frame against
    whatever the container's CURRENT height is, so this keeps tracking correctly even
    while the on-screen keyboard is still mid-animation and #login-wrap's own height is
    changing frame by frame right along with it - nothing here is ever measured ahead of
-   time (so nothing can go stale/racy against the keyboard's own resize), unlike an
-   earlier JS-driven px-pinned version of this (see setLoginEmailFocusMode() in app.js).
+   time (so nothing can go stale/racy against the keyboard's own resize).
 
    flex-grow itself is calc()'d from --login-focus-progress (app.js) rather than toggled
    between two constants on its own fixed-duration transition (as it briefly was) - it
@@ -538,44 +537,31 @@ button { font-family: inherit; -webkit-appearance: none; appearance: none; }
    nearby, even though the ratio itself was already "done". Reading the same progress
    number as everything else removes that last independent clock - once progress reaches
    1, every input to this spacer's own share is already at its own final value in the
-   same instant, so there's nothing left to still be moving. */
-/* margin-bottom:auto (briefly tried here instead of flex-grow) turned out to be worse,
-   not better: an auto margin only ever gets a share of a flex container's free space
-   AFTER flex-grow distribution has already run, and .login-mid-spacer/.login-spacer
-   right below both carry a real flex-grow > 0 for almost the entire focus/idle range
-   (only exactly 0 at full keyboard focus) - so they claimed 100% of the free space every
-   frame, leaving this spacer permanently pinned to its 8px floor instead of the ~54% idle
-   share it needs to keep the brand/mascot cluster centered rather than hugging the top of
-   the screen (confirmed headlessly: identical 8px whether cold-loaded or returned to idle
-   from a focus/blur round trip - not a transient animation glitch, a permanently wrong
-   resting height).
-   Back to flex-grow, but reading a plain-number custom property JS precomputes
-   (--login-top-spacer-grow) rather than a calc() expression directly in this rule - same
-   fix, same reasoning, as .login-spacer's own --login-spacer-grow below: calc()
-   resolving to a bare <number> isn't reliably honored for flex-grow specifically on at
-   least one real WebView. Fallback (1.4) matches the idle value of the JS formula
-   (1.4 * progress at progress 1) for the one frame before app.js's first ResizeObserver
-   callback lands.
-   User-reported regression from the very first version of this fix: 1.4 * progress was
-   originally .5 + progress*.9 instead (matching this spacer's own pre-margin-bottom:auto
-   formula, several commits back) - nonzero even at progress 0 (full keyboard focus), on
-   the theory that SOME spacer needs to keep claiming space right up to full focus or the
-   leftover pool shows up as unclaimed dead space at the bottom (after the legal text,
-   above the keyboard) instead, since flex's default packing is top-first. On-device that
-   theory cost more than it fixed: full focus is exactly the state .login-mid-spacer/
-   .login-spacer already correctly zero out at (see their own progress-scaled flex-grow),
-   and reported/confirmed screenshot showed this spacer's own nonzero .5 floor claiming
-   that same leftover pool ABOVE the mascot wasn't actually preventing a gap opening up
-   at the bottom anyway - it just added its own visible gap up top too, or the pool simply
-   wasn't there to claim in the first place on a real keyboard-shrunk viewport. Reaching
-   literal 0 at progress 0, same as its two siblings, is what genuinely matched the
-   already-correct pre-regression focus behavior (this spacer measured pinned at its own
-   8px floor there under the old, broken margin-bottom:auto version too - just for the
-   wrong reason, no live flex-grow at all - and nobody had reported a focus-mode gap
-   against THAT version). */
+   same instant, so there's nothing left to still be moving.
+   .login-top-spacer itself does NOT use flex-grow (see syncLoginTopSpacerHeight() in
+   app.js, which sets its height directly instead) - two different flex-grow formulas for
+   it both shipped and both measured wrong on a real device (pinned at this spacer's own
+   floor at idle under one, reopening a gap at full keyboard focus under the other) even
+   though getComputedStyle confirmed the resolved flex-grow number was correct each time.
+   Something about how that WebView resolves flex-grow's free-space distribution doesn't
+   match spec for this element, in a way no CSS-only formula reliably works around - only
+   .login-mid-spacer/.login-spacer below still use real flex-grow, since neither of THEM
+   showed the same symptom. */
 .login-top-spacer {
-    flex-grow: var(--login-top-spacer-grow, 1.4); flex-shrink: 1; flex-basis: 0%; min-height: 8px;
-    transition: flex-grow var(--login-focus-anim-dur) ease;
+    /* flex-basis:18vh, not auto/0 - JS's own leftover calculation (see
+       syncLoginTopSpacerHeight() in app.js) is a true, non-circular measurement only
+       once .login-mid-spacer/.login-spacer are pinned at their own min-height floors
+       (full keyboard focus) - at idle, where those two are still actively claiming
+       their OWN flex-grow share of whatever's left, "whatever's left after them" is
+       whatever THEY left, which is whatever THIS element's own current size already
+       was: a tautology with no outside force to move it off wherever it starts. A bare
+       auto/8px starting point is exactly the wrong side of that tautology to start
+       from - it stays pinned there forever with nothing to ever grow it, since nothing
+       ever runs this calculation before mid/spacer have already claimed everything
+       else. 18vh seeds a reasonable idle share instead, so the same tautology holds
+       IT stable there until an actual keyboard focus genuinely breaks it. */
+    flex-grow: 0; flex-shrink: 0; flex-basis: 18vh; min-height: 8px;
+    transition: height var(--login-focus-anim-dur) ease;
 }
 .login-mid-spacer {
     flex-grow: var(--login-focus-progress, 1); flex-shrink: 1; flex-basis: 0%;
@@ -705,17 +691,16 @@ button { font-family: inherit; -webkit-appearance: none; appearance: none; }
 /* .login-top-spacer sits ABOVE the mascot, so growing IT grows the gap between the
    header and the mascot, pushing the whole cluster further DOWN the screen - not the
    same thing as "closer to the field" (that's .login-mid-spacer below, near-zero at full
-   focus). At idle its own flex-grow formula (1.4 * progress, app.js) reaches a bigger
-   share than .login-spacer below ever does (0.2 at idle), so most of the screen's free
-   space collects above the mascot rather than below the legal text there: the cluster
-   reads as centered instead of floating flush against the top with the buttons pushed
-   down near the bottom.
-   All three spacers - this one, .login-mid-spacer, .login-spacer - reach exactly 0 at
-   full focus, not just a smaller share (see --login-top-spacer-grow's own comment in
-   app.js for why this one used to stop short of 0 there, and what that cost). At that
-   point the field needs to end up right under the shrunk tagline, same tight coupling as
-   the reference login screen - not "smaller gap but still a gap" from a spacer still
-   holding onto a leftover floor share. */
+   focus). Its own JS-computed height (syncLoginTopSpacerHeight() in app.js) is always
+   exactly "whatever's left" after every other sibling's real size, at idle AND at full
+   keyboard focus alike - at idle that's most of the screen's free space (mid-spacer/
+   spacer's own flex-grow only ever wins whatever THIS spacer doesn't claim), so it
+   collects above the mascot rather than below the legal text: the cluster reads as
+   centered instead of floating flush against the top with the buttons pushed down near
+   the bottom. At full focus, .login-mid-spacer/.login-spacer's own flex-grow correctly
+   reaches 0 and everything else is already at its most compact size, so there's little
+   left for this spacer to claim either - the field ends up right under the shrunk
+   tagline, same tight coupling as the reference login screen, not floating above a gap. */
 /* Passive "by continuing you agree..." notice, same Terms/Privacy screens the register
    consent checkbox opens (see index.html's own comment above it) - small and muted like
    the build-version footer below it, not competing with the actual CTAs above. Exists
@@ -731,10 +716,9 @@ button { font-family: inherit; -webkit-appearance: none; appearance: none; }
    (the only spacer still claiming a real share at progress 0), sinking the whole cluster
    until the legal text sits right above the keyboard instead of floating above a gap. */
 /* flex-grow reads --login-spacer-grow (plain number, app.js) rather than
-   calc(0.2 * var(--login-focus-progress, 1)) - same reasoning as
-   .login-top-spacer's own flex-grow above: calc() resolving to a bare <number> isn't
-   reliably supported for flex-grow specifically. Fallback (0.2) matches this formula's
-   own value at progress 1 (idle). */
+   calc(0.2 * var(--login-focus-progress, 1)) directly - calc() resolving to a bare
+   <number> isn't reliably supported for flex-grow specifically. Fallback (0.2) matches
+   this formula's own value at progress 1 (idle). */
 .login-spacer {
     flex-grow: var(--login-spacer-grow, 0.2); flex-shrink: 1; flex-basis: 0%;
     min-height: calc(6px + var(--login-focus-progress, 1) * 14px);
