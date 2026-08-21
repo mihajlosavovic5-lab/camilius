@@ -3292,32 +3292,28 @@ function makeProgressChaser(timeConstantMs) {
         },
     };
 }
-// --login-focus-progress: the mascot/spacer/tagline/brand cluster's own pace. Deliberately
-// short (30ms - the chaser only needs to smooth over a single-frame jump in the raw resize
-// signal, not to BE the visible animation) rather than the old --login-focus-anim-dur's
-// .32s: a longer time-constant here doesn't just make the motion itself gentler, it also
-// means the chaser is still visibly converging for that much longer AFTER #login-wrap's
-// real resize has already stopped (every property downstream, including
-// .login-phase-stack's own JS-measured height further up, keeps recalculating for as long
-// as this keeps moving) - confirmed on a real device as a real, visible gap opening up
-// between the legal text and the keyboard for a few hundred ms after the keyboard itself
-// had already finished opening, before the still-catching-up cluster finally settled onto
-// it. 30ms converges to within a fraction of a px in well under 150ms, short enough that
-// the tail is over before the keyboard's own real animation is, which is what actually
-// keeps that gap from opening in the first place. This isn't the ONLY thing keeping the
-// motion from reading as a snap even at this short a time-constant, though - every
-// property in this cluster still reads off the SAME live value on the SAME frame (no
-// independent per-property clock, see above), which is what does most of that work; the
-// chaser's own job shrinks to "absorb a single raw jump," not "be the whole animation."
-const loginFocusChaser = makeProgressChaser(30);
+// --login-focus-progress: the mascot/spacer/tagline/brand cluster's own pace. On-device,
+// opening the keyboard reports #login-wrap's real height change in one or two big jumps
+// (closing reports it in many small steps instead - see makeProgressChaser's own comment
+// above) - at the old 30ms time-constant that single jump converged in well under 150ms,
+// which is fast enough to still read as an instant snap at normal video/eye sampling
+// rates instead of a visible glide, even though every property in this cluster keeps
+// reading off the SAME live value on the SAME frame (no independent per-property clock -
+// that part of the smoothness is unaffected by this constant). 90ms keeps that same
+// single-clock guarantee but stretches the glide itself to a genuinely perceptible ~250ms
+// (2-3 time-constants to settle), comfortably inside a real keyboard's own ~250-300ms
+// open/close animation - short enough that the cluster still finishes at essentially the
+// same moment the keyboard itself does, rather than opening the "still catching up a few
+// hundred ms after the keyboard already stopped" gap the original 30ms was chosen to
+// avoid.
+const loginFocusChaser = makeProgressChaser(90);
 // --login-focus-btn-progress: the Google button/divider/email-margin cluster's own
-// deliberately faster pace (was --login-focus-btn-anim-dur, .15s vs the mascot cluster's
-// .32s) - same reasoning as above, proportionally shorter time-constant so this cluster
-// keeps visibly clearing out of the way ahead of the slower mascot/spacer motion instead
-// of both moving in lockstep, just without the long real-device settle tail a bigger
-// number here would reopen (see loginFocusChaser's own comment for why that tail is the
-// actual bug, not a cosmetic nicety).
-const loginFocusBtnChaser = makeProgressChaser(15);
+// deliberately faster pace (proportionally shorter time-constant, same 2:1 ratio as
+// before) so this cluster keeps visibly clearing out of the way ahead of the slower
+// mascot/spacer motion instead of both moving in lockstep - see loginFocusChaser's own
+// comment for why a longer, still-bounded constant reads as a glide rather than a snap
+// without reopening the real-device settle-tail gap.
+const loginFocusBtnChaser = makeProgressChaser(50);
 let loginFocusRAF = null;
 function stepLoginFocusChasers(now) {
     const wrap = el("login-wrap");
