@@ -6124,6 +6124,29 @@ if (window.visualViewport) {
 // press, tapping away) has no keyboardWillShow following within 100ms, so this still
 // reverts just as fast as before for that case - same "debounce, cancel on reversal"
 // shape as this field's own blur handler above and the visualViewport fallback below.
+//
+// That debounce only helps a hide/show pair that lands INSIDE the same 100ms window -
+// a second on-device recording (after the fix above already shipped) showed the false
+// alarm's own keyboardWillShow can land much later than that, since it's gated behind
+// the autofill service actually finishing its lookup, not the strip's own open/close
+// animation. Past the 100ms mark this timer has already committed: the layout reverted
+// and active.blur() above already fired, for real - the field genuinely isn't focused
+// any more, and nothing was re-collapsing the layout once Android's autofill flow did
+// eventually refocus it, since that refocus happens at the native/WebView level and
+// doesn't reliably dispatch the plain DOM "focus" event #login-email-input's own
+// listener depends on. That read as the exact same open/collapse/open replay this
+// debounce was built to prevent, just with a longer gap in the middle: the compact
+// layout snapping open, snapping shut for that false alarm, then snapping back open a
+// second time once the real keyboard finally arrived - visibly "bouncing" rather than
+// opening once and staying put.
+// keyboardWillShow is Android's own confirmation the keyboard (and whatever refocused
+// the field to get here) is genuinely on its way back, independent of how it got there -
+// so unlike the cancel-within-the-debounce-window case above, this re-applies the
+// compact layout unconditionally whenever it lands with the login email field already
+// the active element (true here specifically because the native refocus described above
+// already landed by this point on every device this was reproduced on), the same way a
+// plain "focus" event already does, rather than only ever cancelling a same-window
+// revert and leaving anything after it unhandled.
 let keyboardWillHideTimer = null;
 if (capacitorPlugins && capacitorPlugins.Keyboard) {
     capacitorPlugins.Keyboard.addListener("keyboardWillHide", () => {
@@ -6144,6 +6167,10 @@ if (capacitorPlugins && capacitorPlugins.Keyboard) {
     });
     capacitorPlugins.Keyboard.addListener("keyboardWillShow", () => {
         if (keyboardWillHideTimer) { clearTimeout(keyboardWillHideTimer); keyboardWillHideTimer = null; }
+        if (document.activeElement === el("login-email-input")) {
+            setLoginEmailFocusMode(true);
+            armOneShotLoginFocusResync();
+        }
     });
 }
 
