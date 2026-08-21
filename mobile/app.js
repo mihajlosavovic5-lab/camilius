@@ -3092,6 +3092,39 @@ function syncLoginPhaseStackHeight() {
     const formPhase = el("login-wrap").classList.contains("login-wrap-form-phase");
     const active = el(formPhase ? "login-email-form" : "login-choice");
     el("login-phase-stack").style.height = active.offsetHeight + "px";
+    syncLoginTopSpacerHeight();
+}
+// .login-top-spacer used to size itself purely off flex-grow (a formula derived from
+// --login-focus-progress) - on at least one real device that flex-grow value (confirmed
+// correct via getComputedStyle) was simply never honored during actual layout, leaving
+// this spacer stuck at its 8px min-height's rendered floor... except it measured 40px,
+// not 8, so even "flex-grow silently drops to its initial value" doesn't fully explain
+// it - something about how this specific WebView resolves flex-grow's free-space
+// distribution just doesn't match spec here, in a way no CSS-only formula reliably
+// works around. Explicit height, computed in JS as "whatever's left after every OTHER
+// in-flow sibling" and set directly (exactly the same technique
+// syncLoginPhaseStackHeight above already uses successfully for #login-phase-stack
+// itself), sidesteps flex-grow's distribution algorithm entirely - browsers have never
+// been unreliable about honoring a plain height value. Doubles as a catch-all: since
+// this sums every OTHER sibling's OWN current rendered size (including
+// .login-mid-spacer/.login-spacer, whatever THEIR flex-grow actually resolves to), the
+// total always sums to the container's real content height regardless of whether their
+// own flex-grow math is trustworthy either.
+function syncLoginTopSpacerHeight() {
+    const wrap = el("login-wrap");
+    const topSpacer = wrap.querySelector(".login-top-spacer");
+    if (!topSpacer) return;
+    const wrapStyle = getComputedStyle(wrap);
+    const contentHeight = wrap.clientHeight - parseFloat(wrapStyle.paddingTop) - parseFloat(wrapStyle.paddingBottom);
+    let othersHeight = 0;
+    for (const child of wrap.children) {
+        if (child === topSpacer) continue;
+        const childStyle = getComputedStyle(child);
+        if (childStyle.position === "fixed" || childStyle.position === "absolute" || childStyle.display === "none") continue;
+        othersHeight += child.getBoundingClientRect().height
+            + parseFloat(childStyle.marginTop) + parseFloat(childStyle.marginBottom);
+    }
+    topSpacer.style.height = Math.max(8, contentHeight - othersHeight) + "px";
 }
 // Keeps the line above correct through every frame of an *animated* height change, not
 // just at the couple of moments app.js itself changes a class - the email field's
@@ -3193,12 +3226,14 @@ function applyLoginFocusHeight(height) {
         ? 1
         : Math.min(1, Math.max(0, (height - focusedFloor) / (loginWrapRestingHeight - focusedFloor)));
     wrap.style.setProperty("--login-focus-progress", progress.toFixed(4));
-    // Precomputed here, as plain numbers, rather than left for .login-top-spacer/
-    // .login-spacer's own CSS to calc() from --login-focus-progress directly - see those
-    // rules' own comments in app.css for the WebView bug (calc() not reliably resolving
-    // to a bare <number>, which is what flex-grow needs) this works around.
-    wrap.style.setProperty("--login-top-spacer-grow", (0.5 + progress * 0.9).toFixed(4));
+    // Precomputed here, as a plain number, rather than left for .login-spacer's own CSS
+    // to calc() from --login-focus-progress directly - see that rule's own comment in
+    // app.css for the WebView bug (calc() not reliably resolving to a bare <number>,
+    // which is what flex-grow needs) this works around.
     wrap.style.setProperty("--login-spacer-grow", (0.2 * progress).toFixed(4));
+    // .login-top-spacer no longer sizes off flex-grow at all - see
+    // syncLoginTopSpacerHeight's own comment for why.
+    syncLoginTopSpacerHeight();
     updateLoginDebugBadge(height);
 }
 new ResizeObserver((entries) => applyLoginFocusHeight(entries[0].contentRect.height)).observe(el("login-wrap"));
