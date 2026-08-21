@@ -6107,22 +6107,43 @@ if (window.visualViewport) {
 // blocked by that - it's Android's own IME-visibility callback firing the instant the
 // system starts hiding the keyboard, regardless of what triggered that (back press
 // included), the same way "focus" already tells this code the instant the keyboard
-// starts SHOWING. Reverting straight from it - no confirm-and-wait needed, since this
-// isn't an inferred signal that could be a false alarm - is what makes the close revert
-// finally as immediate as the open one always was, instead of only catching up to the
-// keyboard a beat after the fact.
+// starts SHOWING.
+//
+// Debounced (100ms, cancelled by a keyboardWillShow landing inside it) rather than
+// reverting straight from keyboardWillHide unconditionally - on real devices, the email
+// autofill suggestion strip (visible above the keyboard once Android has a saved address
+// to offer) can make the IME emit a keyboardWillHide/keyboardWillShow pair of its own
+// while the keyboard is, from the visitor's own perspective, never actually going
+// anywhere - reproduced on-device as the compact layout fully reverting (mascot/tagline
+// back to full size, "Continue with Google" back) and the keyboard genuinely dismissing
+// (this handler's own active.blur() call, not just a CSS glitch - the keyboard doesn't
+// snap away instantly, so it and the autofill strip stayed visible on screen for a beat
+// after the revert already started), then the field regaining real focus and the whole
+// open/collapse cycle replaying a second time - reverting on every keyboardWillHide
+// unconditionally, including this false one, is what caused that. A genuine close (back
+// press, tapping away) has no keyboardWillShow following within 100ms, so this still
+// reverts just as fast as before for that case - same "debounce, cancel on reversal"
+// shape as this field's own blur handler above and the visualViewport fallback below.
+let keyboardWillHideTimer = null;
 if (capacitorPlugins && capacitorPlugins.Keyboard) {
     capacitorPlugins.Keyboard.addListener("keyboardWillHide", () => {
-        const active = document.activeElement;
-        if (active === el("login-email-input")) {
-            if (loginEmailBlurTimer) { clearTimeout(loginEmailBlurTimer); loginEmailBlurTimer = null; }
-            setLoginEmailFocusMode(false);
-        }
-        // Same reasoning as the visualViewport fallback below on why this still runs
-        // even when the field above wasn't the login one - see restingHeight's own
-        // comment on the caret being left blinking with no keyboard behind it.
-        const isTextField = active && (active.tagName === "INPUT" || active.tagName === "TEXTAREA");
-        if (isTextField) active.blur();
+        if (keyboardWillHideTimer) clearTimeout(keyboardWillHideTimer);
+        keyboardWillHideTimer = setTimeout(() => {
+            keyboardWillHideTimer = null;
+            const active = document.activeElement;
+            if (active === el("login-email-input")) {
+                if (loginEmailBlurTimer) { clearTimeout(loginEmailBlurTimer); loginEmailBlurTimer = null; }
+                setLoginEmailFocusMode(false);
+            }
+            // Same reasoning as the visualViewport fallback below on why this still runs
+            // even when the field above wasn't the login one - see restingHeight's own
+            // comment on the caret being left blinking with no keyboard behind it.
+            const isTextField = active && (active.tagName === "INPUT" || active.tagName === "TEXTAREA");
+            if (isTextField) active.blur();
+        }, 100);
+    });
+    capacitorPlugins.Keyboard.addListener("keyboardWillShow", () => {
+        if (keyboardWillHideTimer) { clearTimeout(keyboardWillHideTimer); keyboardWillHideTimer = null; }
     });
 }
 
