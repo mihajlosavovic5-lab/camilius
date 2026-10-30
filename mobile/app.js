@@ -3303,9 +3303,6 @@ function makeProgressChaser(timeConstantMs, initial = 1) {
     const SETTLE_EPSILON = 0.0005;
     return {
         setTarget(newTarget) { target = newTarget; },
-        // Starts the next glide from `value` instead of wherever it is now - see
-        // replayLoginIdleGlide(). Both ends are set so nothing is left mid-chase.
-        jumpTo(value) { current = value; target = value; },
         get settled() { return current === target; },
         get current() { return current; },
         // Called whenever the shared rAF loop is about to restart from idle (see
@@ -3520,19 +3517,6 @@ new ResizeObserver((entries) => applyLoginFocusHeight(entries[0].contentRect.hei
 // glide like the algebraic version did, but converges to the real, exact, unclamped height
 // once settled instead of an approximation - same value the old raw clientHeight read at
 // settle time, just arriving there on the same pace as everything else along the way.
-// Total real height of every #login-wrap child that isn't one of the three spacers.
-function measureLoginFixedHeight() {
-    const wrap = el("login-wrap");
-    let fixedHeight = 0;
-    for (const child of wrap.children) {
-        if (child.classList.contains("login-top-spacer") || child.classList.contains("login-mid-spacer") || child.classList.contains("login-spacer")) continue;
-        const childStyle = getComputedStyle(child);
-        if (childStyle.position === "fixed" || childStyle.position === "absolute" || childStyle.display === "none") continue;
-        fixedHeight += child.getBoundingClientRect().height
-            + parseFloat(childStyle.marginTop) + parseFloat(childStyle.marginBottom);
-    }
-    return fixedHeight;
-}
 function syncLoginSpacers() {
     const wrap = el("login-wrap");
     const topSpacer = wrap.querySelector(".login-top-spacer");
@@ -3556,13 +3540,16 @@ function syncLoginSpacers() {
     // that chaser exists (applyLoginFocusHeight creates it lazily on the first one).
     const contentHeight = (loginFocusHeightChaser ? loginFocusHeightChaser.current : wrap.clientHeight)
         - paddingTop - paddingBottom;
-    const fixedHeight = measureLoginFixedHeight();
-    // The email+password panel is a fixed layout that doesn't follow the keyboard (see
-    // .login-wrap-form-phase in app.css): tight gaps above and below the mascot, and every
-    // bit of spare room goes to the bottom spacer, below the legal text.
-    const formPhase = wrap.classList.contains("login-wrap-form-phase");
-    const topFloor = formPhase ? 12 : 8, midFloor = formPhase ? 8 : 6 + progress * 10, spacerFloor = formPhase ? 6 : 6 + progress * 14;
-    const topGrow = formPhase ? 0 : 0.5 + progress * 0.9, midGrow = formPhase ? 0 : progress * 0.3, spacerGrow = formPhase ? 1 : progress * 0.8;
+    let fixedHeight = 0;
+    for (const child of wrap.children) {
+        if (child === topSpacer || child === midSpacer || child === spacer) continue;
+        const childStyle = getComputedStyle(child);
+        if (childStyle.position === "fixed" || childStyle.position === "absolute" || childStyle.display === "none") continue;
+        fixedHeight += child.getBoundingClientRect().height
+            + parseFloat(childStyle.marginTop) + parseFloat(childStyle.marginBottom);
+    }
+    const topFloor = 8, midFloor = 6 + progress * 10, spacerFloor = 6 + progress * 14;
+    const topGrow = 0.5 + progress * 0.9, midGrow = progress * 0.3, spacerGrow = progress * 0.8;
     const totalGrow = topGrow + midGrow + spacerGrow;
     const pool = Math.max(0, contentHeight - fixedHeight - topFloor - midFloor - spacerFloor);
     const topExtra = totalGrow > 0 ? pool * topGrow / totalGrow : 0;
@@ -3586,58 +3573,10 @@ function syncLoginSpacers() {
 // for #login-choice/#login-email-form.
 new ResizeObserver(syncLoginSpacers).observe(el("login-wrap").querySelector(".login-brand"));
 
-// Stepping back from the email+password panel with the keyboard already closed: that panel
-// is laid out like the keyboard-open "focused" state (compact mascot, tight spacers - see
-// .login-wrap-form-phase in app.css) but --login-focus-progress is already 1, so removing
-// the phase would snap the choice screen straight to its idle layout. Restarting both
-// progress glides from 0 instead replays the same gentle settle - mascot growing, everything
-// sliding down, the Google button returning - as when the keyboard closes on this screen.
-// With the keyboard still open (progress ~0) nothing is needed: closing it, which
-// resetLoginPhase triggers, produces that glide by itself.
-function replayLoginIdleGlide() {
-    if (loginFocusChaser.current <= 0.5) return;
-    const wrap = el("login-wrap");
-    loginFocusChaser.jumpTo(0);
-    loginFocusBtnChaser.jumpTo(0);
-    // The spacers size themselves off this chaser's height (see syncLoginSpacers), not the
-    // wrap's live one, so it has to restart too - from the height at which the spacers
-    // sit at their floors, i.e. the cluster exactly where this panel had it (top of the
-    // screen), instead of a full-height container that would fling it downward first.
-    wrap.style.setProperty("--login-focus-progress", "0");
-    wrap.style.setProperty("--login-focus-btn-progress", "0");
-    // Re-measured at the compact choice panel's own height first (see
-    // syncLoginPhaseStackHeight) - the stack is still sized for the taller form here, and
-    // counting that in would put the starting height far too high.
-    syncLoginPhaseStackHeight();
-    if (loginFocusHeightChaser) {
-        const wrapStyle = getComputedStyle(wrap);
-        loginFocusHeightChaser.jumpTo(
-            parseFloat(wrapStyle.paddingTop) + parseFloat(wrapStyle.paddingBottom)
-            + measureLoginFixedHeight() + 8 + 6 + 6
-        );
-    }
-    syncLoginSpacers();
-    applyLoginFocusHeight(wrap.clientHeight);
-}
-
 function resetLoginPhase() {
-    const wasFormPhase = el("login-wrap").classList.contains("login-wrap-form-phase");
-    // Leaving the email+password panel with the keyboard still up (focus is in the password
-    // field): drop focus so the keyboard closes and the Google/email choice screen glides
-    // back to its idle layout from the keyboard's own close, same as leaving the email
-    // field there. Without it the keyboard stayed open over the choice screen.
-    const focused = document.activeElement;
-    if (focused && el("login-wrap").contains(focused) && typeof focused.blur === "function") {
-        focused.blur();
-        if (capacitorPlugins && capacitorPlugins.Keyboard && capacitorPlugins.Keyboard.hide) {
-            capacitorPlugins.Keyboard.hide().catch(() => {});
-        }
-    }
     // See .login-wrap-form-phase in app.css - this one class alone drives which panel
     // (choice/form) is on/off screen and its own back-btn fade.
     el("login-wrap").classList.remove("login-wrap-form-phase");
-    if (wasFormPhase) replayLoginIdleGlide();
-    syncLoginPhaseStackHeight();
     // A fresh arrival at Login shouldn't still be in the email field's compact "focus
     // mode" (see setLoginEmailFocusMode() below) from a previous visit that never got a
     // matching blur (e.g. navigating away mid-focus).
@@ -3724,11 +3663,6 @@ async function submitLoginEmailStep() {
             el("login-email").value = email;
             el("login-password").value = "";
             el("login-wrap").classList.add("login-wrap-form-phase");
-            // The phase-stack's height is pinned to whichever panel is showing (see
-            // syncLoginPhaseStackHeight) but only re-measured when a panel RESIZES - flipping
-            // the phase alone resizes neither, so without this it stayed at the choice
-            // panel's height and the taller (bottom-anchored) form rode up over the mascot.
-            syncLoginPhaseStackHeight();
             el("login-password").focus();
         } else {
             openRegisterScreen({ contactEmail: email, notice: t("login.emailNoAccount") });

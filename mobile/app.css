@@ -545,31 +545,6 @@ button { font-family: inherit; -webkit-appearance: none; appearance: none; }
     display: flex; flex-direction: column; align-items: center; gap: 10px;
     margin: 0 0 calc(4px + var(--login-focus-progress, 1) * 26px);
 }
-/* Email+password panel (reached from the email field's arrow, see submitLoginEmailStep in
-   app.js): one fixed layout - wordmark, mascot at its compact size, the single-line
-   tagline, then the form right under it - whether the keyboard is open or closed, instead
-   of following --login-focus-progress like the choice panel does (the mascot/tagline used
-   to settle at a different size and the form at a different height depending on the
-   keyboard). Spare room, with the keyboard closed, collects BELOW the legal text rather
-   than above the mascot (see syncLoginSpacers in app.js for the spacers). The transitions
-   live on these rules only, so they play on the way into this panel and leave the choice
-   panel's progress-driven values (which must not carry their own transition) alone. */
-.login-wrap-form-phase .login-brand {
-    margin-bottom: 4px;
-}
-.login-wrap-form-phase .login-mascot {
-    width: 130px;
-    transition: width .26s ease;
-}
-.login-wrap-form-phase .login-tagline-wrap {
-    max-height: 34px;
-}
-.login-wrap-form-phase .login-tagline:not(.login-tagline-compact) { opacity: 0; }
-.login-wrap-form-phase .login-tagline-compact { opacity: 1; }
-.login-wrap-form-phase .login-top-spacer,
-.login-wrap-form-phase .login-mid-spacer {
-    transition: height .26s ease;
-}
 /* Replaces the old plain app-icon square (see the <svg> itself in index.html for what
    it depicts) - sized well above the 100px icon it replaces since it's now the actual
    hero visual, not a small badge. filter (not box-shadow, which only shadows the
