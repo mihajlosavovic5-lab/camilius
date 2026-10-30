@@ -3591,7 +3591,8 @@ function resetLoginPhase() {
 // in index.html), same as claude.ai's own login screen. Focusing it shrinks the
 // mascot/tagline and collapses "Continue with Google" out of the way (see
 // .login-wrap-email-focus in app.css) so the field stays in view above the keyboard
-// instead of getting pushed under it - nothing here is wired to a backend yet.
+// instead of getting pushed under it. The arrow/Enter step that follows is
+// submitLoginEmailStep() below.
 //
 // This used to also do a JS-measured px-pinned FLIP animation of .login-top-spacer/
 // .login-mid-spacer (clone #login-wrap off-screen, measure its target height, freeze the
@@ -3637,6 +3638,52 @@ el("login-email-input").addEventListener("blur", () => {
     }, 80);
 });
 el("login-email-back-btn").addEventListener("click", resetLoginPhase);
+
+// The arrow beside #login-email-input (and the keyboard's Enter key) - step two of the
+// "Enter your email" field. An email that already has an account slides to the
+// email+password panel with the address carried over; one that doesn't goes straight to
+// Create Account with it prefilled, so a new visitor never has to retype it.
+let loginEmailStepInFlight = false;
+async function submitLoginEmailStep() {
+    if (loginEmailStepInFlight) return;
+    const input = el("login-email-input");
+    const email = input.value.trim();
+    if (!email || !input.checkValidity()) {
+        showLoginError(t("login.emailInvalid"));
+        return;
+    }
+    loginEmailStepInFlight = true;
+    const sendBtn = el("login-email-send-btn");
+    sendBtn.disabled = true;
+    hideLoginError();
+    try {
+        const data = await api("/api/login/email-exists", { method: "POST", body: { email } });
+        input.blur();
+        if (data.exists) {
+            el("login-email").value = email;
+            el("login-password").value = "";
+            el("login-wrap").classList.add("login-wrap-form-phase");
+            el("login-password").focus();
+        } else {
+            openRegisterScreen({ contactEmail: email, notice: t("login.emailNoAccount") });
+        }
+    } catch (err) {
+        showLoginError(err.message || t("login.error"));
+    } finally {
+        loginEmailStepInFlight = false;
+        sendBtn.disabled = false;
+    }
+}
+// Keeps the tap from pulling focus off the input first: blurring it closes the keyboard and
+// un-collapses the layout, which can move the arrow out from under the finger before the click.
+el("login-email-send-btn").addEventListener("mousedown", (event) => event.preventDefault());
+el("login-email-send-btn").addEventListener("click", submitLoginEmailStep);
+el("login-email-input").addEventListener("keydown", (event) => {
+    if (event.key === "Enter") {
+        event.preventDefault();
+        submitLoginEmailStep();
+    }
+});
 // Sets the initial height for the default (choice) phase - without this the stack would
 // render at 0 height (and everything below it would collapse up) for the brief moment
 // before the ResizeObservers above get their own first (async, not-until-next-paint)

@@ -80,6 +80,20 @@ def test_login_rejects_unknown_email(client):
     assert response.status_code == 401
 
 
+def test_login_email_exists_true_for_registered_email(client, unique_email):
+    register_business(client, unique_email)
+    response = client.post("/api/login/email-exists", json={"email": unique_email})
+    assert response.status_code == 200
+    assert response.get_json() == {"exists": True}
+
+
+def test_login_email_exists_false_for_unknown_or_blank_email(client):
+    unknown = client.post("/api/login/email-exists", json={"email": "no-such-user@example.com"})
+    assert unknown.get_json() == {"exists": False}
+    blank = client.post("/api/login/email-exists", json={"email": "  "})
+    assert blank.get_json() == {"exists": False}
+
+
 def test_register_honors_push_enabled_choice(client, unique_email):
     """The mobile registration wizard asks up front whether to enable notifications -
     whatever the user picks there should be the account's starting push_enabled value,

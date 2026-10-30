@@ -1,5 +1,5 @@
 <!doctype html>
-<html data-bundle-version="be9ff405956c" lang="en">
+<html data-bundle-version="fb432dc2c608" lang="en">
 <head>
 <meta charset="UTF-8">
 <!-- interactive-widget=resizes-content - without it (the default, resizes-visual), the
@@ -31,7 +31,7 @@
 <link rel="preload" href="fonts/lora-latin-ext.woff2?v=e8c32fe92ded" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="fonts/familjen-grotesk-latin.woff2?v=e8c32fe92ded" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="fonts/familjen-grotesk-latin-ext.woff2?v=e8c32fe92ded" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="app.css?v=be9ff405956c">
+<link rel="stylesheet" href="app.css?v=fb432dc2c608">
 </head>
 <body>
 
@@ -656,11 +656,10 @@
         </button>
         <div class="login-google-divider" data-i18n="login.orDivider">or</div>
         <!-- A bare email input from the start (not a "Continue with email" button that
-             reveals one) - same as claude.ai's own login screen. Visual only for now, see
-             the focus handler in app.js: nothing here is wired to a backend yet, it just
-             dims "Continue with Google" while this is focused. The send button beside it
-             is pure CSS (:not(:placeholder-shown) in app.css) - shows itself once there's
-             any text, no JS needed - and isn't wired to anything either yet. -->
+             reveals one) - same as claude.ai's own login screen. Focusing it dims "Continue with
+             Google" (see the focus handler in app.js); the send button beside it shows itself
+             once there's any text (pure CSS, :not(:placeholder-shown) in app.css) and, like
+             Enter, runs submitLoginEmailStep() in app.js. -->
         <div class="login-email-input-wrap">
           <input type="email" id="login-email-input" class="button-full button-pill login-email-input" data-i18n-placeholder="login.emailPlaceholder" placeholder="Enter your email" autocomplete="email" autocapitalize="off" autocorrect="off">
           <button type="button" class="login-email-send-btn" id="login-email-send-btn" aria-label="Continue" tabindex="-1">&rsaquo;</button>
@@ -1954,8 +1953,8 @@
   </button>
 </nav>
 
-<script src="i18n.js?v=be9ff405956c"></script>
-<script src="hours-picker.js?v=be9ff405956c"></script>
-<script src="app.js?v=be9ff405956c"></script>
+<script src="i18n.js?v=fb432dc2c608"></script>
+<script src="hours-picker.js?v=fb432dc2c608"></script>
+<script src="app.js?v=fb432dc2c608"></script>
 </body>
 </html>

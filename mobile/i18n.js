@@ -55,6 +55,8 @@ const TRANSLATIONS = {
         "login.googleError": "Google sign-in didn't go through. Please try again.",
         "login.googleNoAccount": "No account found for that Google account. Please register first.",
         "login.googleNeedsSignup": "You don't have an account yet - finish creating one below.",
+        "login.emailNoAccount": "We couldn't find an account with that email - create one below.",
+        "login.emailInvalid": "Please enter a valid email address.",
         "login.newHere": "New to Camilius?",
         "login.legalPrefix": "By continuing, you agree to our",
 
@@ -479,6 +481,8 @@ const TRANSLATIONS = {
         "login.googleError": "Prijava preko Google-a nije uspela. Pokušajte ponovo.",
         "login.googleNoAccount": "Ne postoji nalog povezan sa tim Google nalogom. Molimo registrujte se prvo.",
         "login.googleNeedsSignup": "Nemate nalog - dovršite registraciju ispod.",
+        "login.emailNoAccount": "Ne postoji nalog sa tim emailom - napravite ga ispod.",
+        "login.emailInvalid": "Unesite ispravnu email adresu.",
         "login.newHere": "Novi ste na Camilius-u?",
         "login.legalPrefix": "Nastavkom prihvatate naše",
 
@@ -898,6 +902,8 @@ const TRANSLATIONS = {
         "login.googleError": "La conexión con Google no se completó. Inténtalo de nuevo.",
         "login.googleNoAccount": "No se encontró ninguna cuenta para esa cuenta de Google. Regístrate primero.",
         "login.googleNeedsSignup": "Aún no tienes una cuenta: termina de crear una a continuación.",
+        "login.emailNoAccount": "No encontramos una cuenta con ese correo: crea una a continuación.",
+        "login.emailInvalid": "Ingresa una dirección de correo válida.",
         "login.newHere": "¿Nuevo en Camilius?",
         "login.legalPrefix": "Al continuar, aceptas nuestros",
 
@@ -1254,6 +1260,8 @@ const TRANSLATIONS = {
         "login.googleError": "O login com o Google não foi concluído. Tente novamente.",
         "login.googleNoAccount": "Nenhuma conta encontrada para essa conta do Google. Registre-se primeiro.",
         "login.googleNeedsSignup": "Você ainda não tem uma conta - termine de criar uma abaixo.",
+        "login.emailNoAccount": "Não encontramos uma conta com esse email - crie uma abaixo.",
+        "login.emailInvalid": "Digite um endereço de email válido.",
         "login.newHere": "Novo no Camilius?",
         "login.legalPrefix": "Ao continuar, você aceita nossos",
 
@@ -1610,6 +1618,8 @@ const TRANSLATIONS = {
         "login.googleError": "La connexion avec Google a échoué. Veuillez réessayer.",
         "login.googleNoAccount": "Aucun compte trouvé pour ce compte Google. Veuillez d'abord vous inscrire.",
         "login.googleNeedsSignup": "Vous n'avez pas encore de compte : terminez d'en créer un ci-dessous.",
+        "login.emailNoAccount": "Aucun compte trouvé avec cet email : créez-en un ci-dessous.",
+        "login.emailInvalid": "Veuillez saisir une adresse email valide.",
         "login.newHere": "Nouveau sur Camilius ?",
         "login.legalPrefix": "En continuant, vous acceptez nos",
 
@@ -1966,6 +1976,8 @@ const TRANSLATIONS = {
         "login.googleError": "Die Anmeldung mit Google hat nicht funktioniert. Bitte versuche es erneut.",
         "login.googleNoAccount": "Für dieses Google-Konto wurde kein Konto gefunden. Bitte registriere dich zuerst.",
         "login.googleNeedsSignup": "Du hast noch kein Konto - schließe die Erstellung unten ab.",
+        "login.emailNoAccount": "Wir haben kein Konto mit dieser E-Mail gefunden - erstelle unten eines.",
+        "login.emailInvalid": "Bitte gib eine gültige E-Mail-Adresse ein.",
         "login.newHere": "Neu bei Camilius?",
         "login.legalPrefix": "Mit der Fortsetzung akzeptierst du unsere",
 
@@ -2322,6 +2334,8 @@ const TRANSLATIONS = {
         "login.googleError": "L'accesso con Google non è riuscito. Riprova.",
         "login.googleNoAccount": "Nessun account trovato per questo account Google. Registrati prima.",
         "login.googleNeedsSignup": "Non hai ancora un account: completa la creazione qui sotto.",
+        "login.emailNoAccount": "Non abbiamo trovato un account con questa email: creane uno qui sotto.",
+        "login.emailInvalid": "Inserisci un indirizzo email valido.",
         "login.newHere": "Nuovo su Camilius?",
         "login.legalPrefix": "Continuando, accetti i nostri",
 
@@ -2678,6 +2692,8 @@ const TRANSLATIONS = {
         "login.googleError": "Не удалось войти через Google. Попробуйте снова.",
         "login.googleNoAccount": "Учетная запись для этого Google-аккаунта не найдена. Сначала зарегистрируйтесь.",
         "login.googleNeedsSignup": "У вас еще нет аккаунта - завершите его создание ниже.",
+        "login.emailNoAccount": "Аккаунт с этим email не найден - создайте его ниже.",
+        "login.emailInvalid": "Введите корректный адрес электронной почты.",
         "login.newHere": "Впервые в Camilius?",
         "login.legalPrefix": "Продолжая, вы принимаете наши",
 
@@ -3034,6 +3050,8 @@ const TRANSLATIONS = {
         "login.googleError": "Google 登录未成功,请重试。",
         "login.googleNoAccount": "未找到与该 Google 账户关联的账户,请先注册。",
         "login.googleNeedsSignup": "您还没有账户 - 请在下方完成创建。",
+        "login.emailNoAccount": "未找到使用该邮箱的账户 - 请在下方创建。",
+        "login.emailInvalid": "请输入有效的邮箱地址。",
         "login.newHere": "第一次使用 Camilius？",
         "login.legalPrefix": "继续即表示您同意我们的",
 
@@ -3390,6 +3408,8 @@ const TRANSLATIONS = {
         "login.googleError": "Google ile giriş yapılamadı. Lütfen tekrar deneyin.",
         "login.googleNoAccount": "Bu Google hesabı için bir hesap bulunamadı. Lütfen önce kayıt olun.",
         "login.googleNeedsSignup": "Henüz bir hesabın yok - aşağıdan oluşturmayı tamamla.",
+        "login.emailNoAccount": "Bu e-postayla bir hesap bulunamadı - aşağıdan oluştur.",
+        "login.emailInvalid": "Lütfen geçerli bir e-posta adresi gir.",
         "login.newHere": "Camilius'ta yeni misiniz?",
         "login.legalPrefix": "Devam ederek kabul edersiniz:",
 
