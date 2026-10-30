@@ -4070,8 +4070,6 @@ function openRegisterScreen({ name, contactEmail, googleLinkToken, notice } = {}
     showScreen("register");
 }
 
-el("login-signup-link").addEventListener("click", () => openRegisterScreen());
-
 // Back either steps back within the wizard, or (from step 1) exits to Login.
 el("register-back").addEventListener("click", () => {
     if (registerStep > 1) {
