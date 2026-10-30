@@ -2927,17 +2927,27 @@ async function pollGoogleLogin(attempt) {
 // own comment on why it's safe to hand over plainly) rather than hardcoding it here, so
 // rotating it server-side doesn't need a new APK release.
 let googleSocialLoginInitPromise = null;
+const GOOGLE_NATIVE_INIT_TIMEOUT_MS = 10000;
+function withTimeout(promise, ms, label) {
+    let timer;
+    return Promise.race([
+        promise,
+        new Promise((_, reject) => { timer = setTimeout(() => reject(new Error(label + " timed out")), ms); }),
+    ]).finally(() => clearTimeout(timer));
+}
 function ensureGoogleSocialLoginInitialized() {
     if (!googleSocialLoginInitPromise) {
         googleSocialLoginInitPromise = (async () => {
-            const response = await fetch(API_BASE + "/api/mobile-manifest");
+            // Both steps are bounded: a stalled fetch or a native initialize() that never
+            // answers would otherwise leave the button spinning forever with no way out.
+            const response = await withTimeout(fetch(API_BASE + "/api/mobile-manifest"), GOOGLE_NATIVE_INIT_TIMEOUT_MS, "mobile-manifest");
             const manifest = await response.json();
             if (!manifest.google_web_client_id) {
                 throw new Error(t("login.googleError"));
             }
-            await capacitorPlugins.SocialLogin.initialize({
+            await withTimeout(capacitorPlugins.SocialLogin.initialize({
                 google: { webClientId: manifest.google_web_client_id },
-            });
+            }), GOOGLE_NATIVE_INIT_TIMEOUT_MS, "SocialLogin.initialize");
         })().catch((err) => {
             // Don't cache a failure - a transient network blip during init shouldn't
             // brick the button for the rest of the session; the next tap starts fresh.
@@ -2957,12 +2967,20 @@ function ensureGoogleSocialLoginInitialized() {
 // hands back an ID token synchronously in the same call, and api_google_login_verify_id_token
 // resolves the whole attempt in one request, in the same status shape
 // api_google_login_status produces (see applyGoogleLoginResult above).
+//
+// Resolves true once the native flow has handled the attempt (success, a shown error, or the
+// visitor backing out), false when the native sheet itself is unusable on this install -
+// startGoogleLogin then falls through to the browser flow instead of leaving the visitor
+// with a button that does nothing. The usual cause is a Play Store install: Play re-signs
+// the app with its own key, and Credential Manager rejects any signing SHA-1 that isn't
+// registered on the Android OAuth client in Google Cloud. The browser flow doesn't depend
+// on the app's signature at all, so it works either way.
 async function startGoogleLoginNative(errorBox, intent) {
     try {
         await ensureGoogleSocialLoginInitialized();
     } catch (err) {
-        showErrorBox(errorBox, err.message || t("login.googleError"));
-        return;
+        reportClientError(err.message, err.stack, "google-native-init");
+        return false;
     }
 
     let login;
@@ -2972,17 +2990,22 @@ async function startGoogleLoginNative(errorBox, intent) {
             options: { style: "bottom" },
         });
     } catch (err) {
-        // Visitor dismissed the bottom sheet - by far the most common reason this
-        // rejects - so treat it the same as the browser-tab flow's 'cancelled' status
-        // (see applyGoogleLoginResult): not a failure, nothing to explain, just quietly
-        // let them tap the button again if they meant to.
-        return;
+        // Visitor dismissed the bottom sheet - treat it the same as the browser-tab flow's
+        // 'cancelled' status (see applyGoogleLoginResult): not a failure, nothing to
+        // explain, just quietly let them tap the button again if they meant to. Anything
+        // else (misconfigured OAuth client, no Google account, Credential Manager
+        // unavailable) used to be swallowed here as if it were a cancel, which is exactly
+        // how a broken native sheet looked like a dead button.
+        const cancelled = err && (err.code === "USER_CANCELLED" || /cancel/i.test(err.message || ""));
+        if (cancelled) return true;
+        reportClientError(err && err.message, err && err.stack, "google-native-login");
+        return false;
     }
 
     const idToken = login && login.result && login.result.idToken;
     if (!idToken) {
-        showErrorBox(errorBox, t("login.googleError"));
-        return;
+        reportClientError("native login returned no idToken", "", "google-native-login");
+        return false;
     }
 
     let data;
@@ -2990,9 +3013,10 @@ async function startGoogleLoginNative(errorBox, intent) {
         data = await api("/api/google-login/verify-id-token", { method: "POST", body: { id_token: idToken, intent } });
     } catch (err) {
         showErrorBox(errorBox, err.message || t("login.googleError"));
-        return;
+        return true;
     }
     applyGoogleLoginResult(data, errorBox);
+    return true;
 }
 
 async function startGoogleLogin(button, errorBox, intent) {
@@ -3004,8 +3028,7 @@ async function startGoogleLogin(button, errorBox, intent) {
     if (spinner) spinner.classList.remove("hidden");
     try {
         if (capacitorPlugins && capacitorPlugins.SocialLogin) {
-            await startGoogleLoginNative(errorBox, intent);
-            return;
+            if (await startGoogleLoginNative(errorBox, intent)) return;
         }
 
         const data = await api("/api/google-login/start", { method: "POST", body: { intent } });
