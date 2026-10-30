@@ -281,6 +281,20 @@ def api_login():
     return jsonify(token=make_token(business[0]), business_id=business[0], business_name=business[1])
 
 
+# Second step of the app's "Enter your email" login field: decides whether the typed email
+# goes on to ask for a password (an account exists) or straight to Create Account with the
+# email prefilled. Only reveals what POST /api/check-availability already does for the same
+# email (whether it's taken); the limit is just a backstop against bulk probing.
+@api.route("/login/email-exists", methods=["POST"])
+@limiter.limit("30 per 15 minutes")
+def api_login_email_exists():
+    data = request.get_json(silent=True) or {}
+    email = (data.get("email") or "").strip()
+    if not email:
+        return jsonify(exists=False)
+    return jsonify(exists=business_by_login_identifier(email) is not None)
+
+
 # Native registration screen in the mobile app (replaces opening the website's /register
 # in an in-app browser tab). Mirrors app.py's web /register route's validation exactly,
 # but responds with JSON instead of redirecting. Unlike before, success no longer hands
