@@ -3578,6 +3578,17 @@ function syncLoginSpacers() {
 new ResizeObserver(syncLoginSpacers).observe(el("login-wrap").querySelector(".login-brand"));
 
 function resetLoginPhase() {
+    // Leaving the email+password panel with the keyboard still up (focus is in the password
+    // field): drop focus so the keyboard closes and the Google/email choice screen glides
+    // back to its idle layout from the keyboard's own close, same as leaving the email
+    // field there. Without it the keyboard stayed open over the choice screen.
+    const focused = document.activeElement;
+    if (focused && el("login-wrap").contains(focused) && typeof focused.blur === "function") {
+        focused.blur();
+        if (capacitorPlugins && capacitorPlugins.Keyboard && capacitorPlugins.Keyboard.hide) {
+            capacitorPlugins.Keyboard.hide().catch(() => {});
+        }
+    }
     // See .login-wrap-form-phase in app.css - this one class alone drives which panel
     // (choice/form) is on/off screen and its own back-btn fade.
     el("login-wrap").classList.remove("login-wrap-form-phase");
