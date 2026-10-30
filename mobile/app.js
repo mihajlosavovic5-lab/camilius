@@ -3548,8 +3548,12 @@ function syncLoginSpacers() {
         fixedHeight += child.getBoundingClientRect().height
             + parseFloat(childStyle.marginTop) + parseFloat(childStyle.marginBottom);
     }
-    const topFloor = 8, midFloor = 6 + progress * 10, spacerFloor = 6 + progress * 14;
-    const topGrow = 0.5 + progress * 0.9, midGrow = progress * 0.3, spacerGrow = progress * 0.8;
+    // The email+password panel is a fixed layout that doesn't follow the keyboard (see
+    // .login-wrap-form-phase in app.css): tight gaps above and below the mascot, and every
+    // bit of spare room goes to the bottom spacer, below the legal text.
+    const formPhase = wrap.classList.contains("login-wrap-form-phase");
+    const topFloor = formPhase ? 12 : 8, midFloor = formPhase ? 8 : 6 + progress * 10, spacerFloor = formPhase ? 6 : 6 + progress * 14;
+    const topGrow = formPhase ? 0 : 0.5 + progress * 0.9, midGrow = formPhase ? 0 : progress * 0.3, spacerGrow = formPhase ? 1 : progress * 0.8;
     const totalGrow = topGrow + midGrow + spacerGrow;
     const pool = Math.max(0, contentHeight - fixedHeight - topFloor - midFloor - spacerFloor);
     const topExtra = totalGrow > 0 ? pool * topGrow / totalGrow : 0;
@@ -3577,6 +3581,7 @@ function resetLoginPhase() {
     // See .login-wrap-form-phase in app.css - this one class alone drives which panel
     // (choice/form) is on/off screen and its own back-btn fade.
     el("login-wrap").classList.remove("login-wrap-form-phase");
+    syncLoginPhaseStackHeight();
     // A fresh arrival at Login shouldn't still be in the email field's compact "focus
     // mode" (see setLoginEmailFocusMode() below) from a previous visit that never got a
     // matching blur (e.g. navigating away mid-focus).
@@ -3663,6 +3668,11 @@ async function submitLoginEmailStep() {
             el("login-email").value = email;
             el("login-password").value = "";
             el("login-wrap").classList.add("login-wrap-form-phase");
+            // The phase-stack's height is pinned to whichever panel is showing (see
+            // syncLoginPhaseStackHeight) but only re-measured when a panel RESIZES - flipping
+            // the phase alone resizes neither, so without this it stayed at the choice
+            // panel's height and the taller (bottom-anchored) form rode up over the mascot.
+            syncLoginPhaseStackHeight();
             el("login-password").focus();
         } else {
             openRegisterScreen({ contactEmail: email, notice: t("login.emailNoAccount") });
