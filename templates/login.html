@@ -100,11 +100,6 @@
                 </span>
             </a>
             {% endif %}
-            {# Not an email field anymore - Google is the one thing on this screen. This small
-               text link is the only way to the email+password form (Log in / Forgot password /
-               Create account), which is what keeps email-based accounts able to sign in and
-               new people able to register without Google. #}
-            <button type="button" class="auth-use-email-link" id="login-use-email-btn" data-i18n="login.useEmail">Use email instead</button>
         </div>
 
         <div class="auth-form-wrap" id="login-form-wrap">
@@ -192,12 +187,6 @@
         // shrinks the brand mark/tagline and collapses "Continue with Google" out of the
         // way (see #login-wrapper.auth-wrapper-email-focus in style.css), same as
         // claude.ai's own login screen; nothing below is wired to a backend yet.
-        document.getElementById("login-use-email-btn").addEventListener("click", function () {
-            card.classList.add("auth-card-email-active");
-            backBtn.classList.add("auth-card-email-active");
-            menuBtn.classList.add("login-menu-btn-hidden");
-            document.getElementById("login-email").focus();
-        });
         backBtn.addEventListener("click", function () {
             card.classList.remove("auth-card-email-active");
             backBtn.classList.remove("auth-card-email-active");
