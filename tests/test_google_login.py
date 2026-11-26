@@ -650,12 +650,15 @@ def test_verify_id_token_link_token_works_with_register(client, monkeypatch, uni
 # monkeypatched here exactly like fetch_user/verify_id_token are above, standing in for
 # the real call to Google's tokeninfo endpoint.
 
-def test_login_page_renders_gis_script_when_configured(client, monkeypatch):
+def test_login_page_google_button_is_plain_link_without_one_tap(client, monkeypatch):
+    # One Tap used to intercept this button with the href as a fallback, which could ask
+    # the visitor to pick their account twice (see login.html's own comment). The button
+    # must be just the /auth/google link, with no GIS script on the page.
     _configure_google(monkeypatch)
     html = client.get("/login").get_data(as_text=True)
-    assert "accounts.google.com/gsi/client" in html
+    assert "accounts.google.com/gsi/client" not in html
     assert "login-google-btn" in html
-    assert "test-client-id" in html
+    assert 'href="/auth/google"' in html
 
 
 def test_login_page_omits_gis_script_when_not_configured(client, monkeypatch):
