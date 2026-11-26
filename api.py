@@ -439,7 +439,7 @@ def api_google_login_start():
 # abuse resistance. Sized comfortably above one attempt's own worst case (120s timeout /
 # 400ms interval = 300 requests) so a single slow sign-in never trips it on its own.
 @api.route("/google-login/status", methods=["GET"])
-@limiter.limit("400 per 5 minutes")
+@limiter.limit("1500 per 5 minutes")
 def api_google_login_status():
     state = request.args.get("state", "")
     result = oauth_login_session_status(state) if state else None

@@ -2904,7 +2904,12 @@ async function checkGoogleLoginStatusOnce(attempt, { closeBrowser = true } = {})
 async function pollGoogleLogin(attempt) {
     const startedAt = Date.now();
     while (Date.now() - startedAt < GOOGLE_LOGIN_POLL_TIMEOUT_MS) {
-        await new Promise((resolve) => setTimeout(resolve, GOOGLE_LOGIN_POLL_INTERVAL_MS));
+        // Fast for the first 20s (the normal case: the visitor is still on Google's page),
+        // then every second - a full 120s at 400ms was 300 requests per attempt, and a few
+        // attempts/launches in a row hit the server's per-IP limit (429), after which every
+        // status check failed and sign-in could never complete.
+        const pollDelay = Date.now() - startedAt < 20000 ? GOOGLE_LOGIN_POLL_INTERVAL_MS : 1000;
+        await new Promise((resolve) => setTimeout(resolve, pollDelay));
         if (await checkGoogleLoginStatusOnce(attempt)) return;
     }
     // Timed out still 'pending' - the browser tab itself already told the visitor what
