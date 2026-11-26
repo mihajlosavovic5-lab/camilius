@@ -7174,6 +7174,16 @@ async function loadMySite() {
             storageSet("mysiteAbout", "").catch(() => {});
             storageSet("mysiteAddress", "").catch(() => {});
             storageSet("mysiteChosenDomain", "").catch(() => {});
+            // ...and the fields themselves: they kept whatever the previous account (or a
+            // since-deleted page) had put there, because only the page branch above wrote them.
+            el("mysite-slug").value = "";
+            mysiteResetSlugStatus();
+            mysiteChosenDomain = null;
+            el("mysite-tagline-input").value = "";
+            el("mysite-about-input").value = "";
+            el("mysite-address-input").value = "";
+            el("profile-address-input").value = "";
+            el("mysite-published").checked = false;
             // Seed the Design row from whatever was picked before a web address existed
             // (see api_save_page's blank-slug branch/set_preferred_theme), instead of
             // always defaulting to "warm", so that preference actually shows up as
