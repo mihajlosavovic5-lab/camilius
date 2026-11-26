@@ -2774,6 +2774,8 @@ el("login-form").addEventListener("submit", async (event) => {
 // match this interval.
 const GOOGLE_LOGIN_POLL_INTERVAL_MS = 400;
 const GOOGLE_LOGIN_POLL_TIMEOUT_MS = 120000;
+// A boot only resumes a Google sign-in that was started this recently (see the boot IIFE).
+const GOOGLE_PENDING_RESUME_MAX_AGE_MS = 3 * 60 * 1000;
 
 // Set by pollGoogleLogin below when a Google identity has never been seen here before
 // (status 'needs_signup') and cleared once the register-form submit handler actually
@@ -3043,7 +3045,10 @@ async function startGoogleLogin(button, errorBox, intent) {
         // happens while it's open - see the boot IIFE's own comment on why that can
         // happen - has something durable to resume from instead of just losing the
         // attempt and showing a plain Login screen.
-        await storageSet("googleLoginPendingState", data.state);
+        // "<state>|<start time>" - the time lets the next boot tell a genuinely interrupted
+        // attempt (process killed seconds ago while Google's tab was open) from a stale
+        // leftover, which used to bring the "Logging in..." overlay back on every launch.
+        await storageSet("googleLoginPendingState", data.state + "|" + Date.now());
         // Shown now, before the browser ever opens - see showGoogleSigninOverlay's own
         // comment for why the timing here (last thing painted before backgrounding, not
         // just "as soon as possible afterward") is what actually matters.
@@ -9356,9 +9361,17 @@ updateOfflineBanner();
         // real screen under the overlay for checkGoogleLoginStatusOnce's own outcomes
         // (openRegisterScreen, showErrorBox) to land on once it settles.
         showScreen("login");
-        showGoogleSigninOverlay();
-        activeGoogleLoginAttempt = { state: googleLoginPendingState, errorBox: el("login-error"), settled: false };
-        pollGoogleLogin(activeGoogleLoginAttempt);
+        const [pendingState, pendingStartedAt] = googleLoginPendingState.split("|");
+        const pendingAge = Date.now() - Number(pendingStartedAt);
+        if (!pendingState || !(pendingAge >= 0 && pendingAge < GOOGLE_PENDING_RESUME_MAX_AGE_MS)) {
+            // Old/legacy leftover (no timestamp, or from a long-gone attempt): nothing to
+            // resume - drop it and just show Login, with no "Logging in..." overlay.
+            storageRemove("googleLoginPendingState");
+        } else {
+            showGoogleSigninOverlay();
+            activeGoogleLoginAttempt = { state: pendingState, errorBox: el("login-error"), settled: false };
+            pollGoogleLogin(activeGoogleLoginAttempt);
+        }
     } else if (isNative && !onboardingSeen) {
         showScreen("onboarding");
     } else {
