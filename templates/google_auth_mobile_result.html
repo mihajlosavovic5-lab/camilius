@@ -48,5 +48,10 @@
     // free to try. The mobile app itself learns the actual result by polling
     // /api/google-login/status (see mobile/app.js), not from anything on this page.
     try { window.close(); } catch (e) {}
+    {% if needs_signup and intent_url %}
+    // Needs-signup case: hand the visitor back to the app (by package, no App Link
+    // verification needed) so the Create Account form is what they see next.
+    try { window.location.replace({{ intent_url | tojson }}); } catch (e) {}
+    {% endif %}
 </script>
 {% endblock %}

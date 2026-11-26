@@ -3072,7 +3072,7 @@ async function startGoogleLogin(button, errorBox, intent) {
 // 'needs_signup' handling above) - an identity that already has an account still just
 // logs straight in either way (status "done"), so this only changes the first-time case.
 el("login-google-btn").addEventListener("click", () => {
-    startGoogleLogin(el("login-google-btn"), el("login-error"), "register");
+    startGoogleLogin(el("login-google-btn"), el("login-error"), "prefill");
 });
 
 // Android hands /auth/google/done straight to THIS app instead of loading it in the

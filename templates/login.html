@@ -93,7 +93,7 @@
                account should hand the visitor straight to Create Account with their
                name/email prefilled, same as the mobile app's own login-google-btn
                (mobile/app.js), instead of bouncing them off with a "no account" error. #}
-            <a class="button button-google button-full button-pill" id="login-google-btn" href="{{ url_for('auth_google') }}">
+            <a class="button button-google button-full button-pill" id="login-google-btn" href="{{ url_for('auth_google', intent='prefill') }}">
                 <span class="button-google-group">
                     {% include "_google_icon.html" %}
                     <span data-i18n="login.continueWithGoogle">Continue with Google</span>

@@ -421,7 +421,7 @@ def api_google_login_start():
     # /auth/google/callback via oauth_login_session_intent(). Anything else falls back to
     # 'register', same as omitting it entirely - the pre-existing "hand new identities to
     # sign-up" behavior.
-    intent = "login" if data.get("intent") == "login" else "register"
+    intent = data.get("intent") if data.get("intent") in ("login", "prefill") else "register"
 
     state = secrets.token_urlsafe(24)
     create_oauth_login_session(state, intent)
@@ -466,7 +466,7 @@ def api_google_login_verify_id_token():
     data = request.get_json(silent=True) or {}
     id_token = data.get("id_token", "")
     # Same fallback/meaning as api_google_login_start's own intent handling.
-    intent = "login" if data.get("intent") == "login" else "register"
+    intent = data.get("intent") if data.get("intent") in ("login", "prefill") else "register"
 
     if not id_token:
         return jsonify(status="error")
@@ -485,6 +485,16 @@ def api_google_login_verify_id_token():
         # app.py's auth_google_callback (see google_oauth.login_existing's docstring).
         if intent == "login":
             return jsonify(status="no_account")
+        if intent == "prefill":
+            # Login screen: no account yet -> hand the app a name/email/link token for the
+            # Create Account form (applyGoogleLoginResult's 'needs_signup' branch).
+            email = (google_user.get("email") or "").strip().lower()
+            return jsonify(
+                status="needs_signup",
+                google_name=(google_user.get("name") or "").strip(),
+                google_email=email,
+                google_link_token=google_oauth.make_link_token(google_id, email),
+            )
 
         # Create Account screen's own flow - create the account on the spot instead of
         # handing off to the sign-up form (see google_oauth.create_account's docstring).

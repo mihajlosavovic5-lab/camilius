@@ -669,7 +669,7 @@ def test_login_page_google_button_is_plain_link_without_one_tap(client, monkeypa
     html = client.get("/login").get_data(as_text=True)
     assert "accounts.google.com/gsi/client" not in html
     assert "login-google-btn" in html
-    assert 'href="/auth/google"' in html
+    assert 'href="/auth/google?intent=prefill"' in html
 
 
 def test_login_page_omits_gis_script_when_not_configured(client, monkeypatch):
@@ -775,3 +775,65 @@ def test_auth_google_token_reuses_existing_google_link(client, monkeypatch, uniq
     response = client.post("/auth/google/token", json={"credential": "tok", "intent": "login"})
     data = response.get_json()
     assert data["redirect"].endswith(app_module.url_for("home"))
+
+
+# --- intent="prefill": Login screen's Google button - no account => Create Account form ---
+
+def test_web_prefill_intent_new_identity_redirects_to_register_prefilled(client, monkeypatch, unique_email):
+    _configure_google(monkeypatch)
+    start = client.get("/auth/google?intent=prefill")
+    state = start.headers["Location"].split("state=")[1].split("&")[0]
+    sub = _unique_sub()
+    monkeypatch.setattr(app_module.google_oauth, "fetch_user", lambda code, redirect_uri: _fake_profile(sub, unique_email, "Ana Test"))
+
+    callback = client.get(f"/auth/google/callback?code=abc&state={state}")
+    assert callback.status_code == 302
+    location = callback.headers["Location"]
+    assert "/register" in location and "google_link_token=" in location
+    assert database.business_by_contact_email(unique_email) is None  # nothing created yet
+
+    page = client.get(location).get_data(as_text=True)
+    assert unique_email in page and "Ana Test" in page
+
+
+def test_web_prefill_intent_existing_identity_logs_in(client, monkeypatch, unique_email):
+    _configure_google(monkeypatch)
+    sub = _unique_sub()
+    monkeypatch.setattr(app_module.google_oauth, "fetch_user", lambda code, redirect_uri: _fake_profile(sub, unique_email))
+    # First visit with register intent creates the account...
+    state = _start_web_google_auth(client)
+    client.get(f"/auth/google/callback?code=abc&state={state}")
+    client.get("/logout")
+    # ...then the Login screen's prefill intent just logs it in.
+    start = client.get("/auth/google?intent=prefill")
+    state = start.headers["Location"].split("state=")[1].split("&")[0]
+    callback = client.get(f"/auth/google/callback?code=abc&state={state}")
+    assert callback.status_code == 302
+    assert "/register" not in callback.headers["Location"]
+
+
+def test_mobile_prefill_intent_new_identity_status_is_needs_signup(client, monkeypatch, unique_email):
+    _configure_google(monkeypatch)
+    state = client.post("/api/google-login/start", json={"intent": "prefill"}).get_json()["state"]
+    sub = _unique_sub()
+    monkeypatch.setattr(app_module.google_oauth, "fetch_user", lambda code, redirect_uri: _fake_profile(sub, unique_email, "Ana Test"))
+    callback = client.get(f"/auth/google/callback?code=abc&state={state}")
+    assert "/auth/google/done" in callback.headers["Location"]
+    page = client.get(callback.headers["Location"]).get_data(as_text=True)
+    assert "intent://" in page  # hands the tab back to the app
+
+    status = client.get(f"/api/google-login/status?state={state}").get_json()
+    assert status["status"] == "needs_signup"
+    assert status["google_email"] == unique_email
+    assert status["google_link_token"]
+    assert database.business_by_contact_email(unique_email) is None
+
+
+def test_verify_id_token_prefill_intent_new_identity_is_needs_signup(client, monkeypatch, unique_email):
+    _configure_google(monkeypatch)
+    sub = _unique_sub()
+    monkeypatch.setattr(app_module.google_oauth, "verify_id_token", lambda id_token: _fake_profile(sub, unique_email))
+    data = client.post("/api/google-login/verify-id-token", json={"id_token": "tok", "intent": "prefill"}).get_json()
+    assert data["status"] == "needs_signup"
+    assert data["google_email"] == unique_email and data["google_link_token"]
+    assert database.business_by_contact_email(unique_email) is None

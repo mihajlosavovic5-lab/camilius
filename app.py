@@ -30,7 +30,7 @@ from database import (
     contact_email_taken, phone_number_taken,
     create_oauth_login_session, complete_oauth_login_session, fail_oauth_login_session,
     oauth_login_session_exists, oauth_login_session_intent,
-    fail_oauth_login_session_no_account, cancel_oauth_login_session,
+    fail_oauth_login_session_no_account, cancel_oauth_login_session, complete_oauth_login_session_needs_signup,
     archived_conversations_for_business, trashed_conversations_for_business,
     archive_conversation, unarchive_conversation, soft_delete_conversation, restore_conversation,
     get_slot_duration, set_slot_duration, create_appointment, get_appointment, cancel_appointment,
@@ -513,7 +513,10 @@ def auth_google():
         abort(404)
     state = secrets.token_urlsafe(24)
     session["oauth_state"] = state
-    session["oauth_intent"] = "login" if request.args.get("intent") == "login" else "register"
+    # 'prefill' (the Login screen's button): an existing account logs straight in, a Google
+    # identity with no account is sent to the Create Account form with name/email prefilled.
+    requested_intent = request.args.get("intent")
+    session["oauth_intent"] = requested_intent if requested_intent in ("login", "prefill") else "register"
     redirect_uri = url_for("auth_google_callback", _external=True)
     return redirect(google_oauth.authorization_url(redirect_uri, state))
 
@@ -633,6 +636,19 @@ def auth_google_callback():
 
     business = google_oauth.login_existing(google_user)
 
+    if business is None and intent == "prefill":
+        # Login screen's "Continue with Google" with an account that doesn't exist yet:
+        # no account is created and no error shown - the visitor is taken to the normal
+        # Create Account form with name/email filled in, and the signed link token lets the
+        # form tie the new account to this Google identity (see register()).
+        email = (google_user.get("email") or "").strip().lower()
+        name = (google_user.get("name") or "").strip()
+        link_token = google_oauth.make_link_token(google_id, email)
+        if is_mobile:
+            complete_oauth_login_session_needs_signup(state, name, email, link_token)
+            return redirect(url_for("auth_google_done", state=state, outcome="needs_signup"))
+        return redirect(url_for("register", google_name=name, google_email=email, google_link_token=link_token))
+
     if business is None:
         # Never seen this Google identity before. Clicked from the Login screen
         # (intent == "login"): the visitor asked to log in, not sign up, so this must
@@ -658,6 +674,14 @@ def auth_google_callback():
     session["business_id"] = business[0]
     session["business_name"] = business[1]
     return redirect(url_for("home"))
+
+
+def _app_handoff_url():
+    """intent:// URL that reopens the Android app by package name (see auth_google_done)."""
+    return (
+        "intent://" + request.host + "/auth/google/done?state=" + quote(request.args.get("state", ""), safe="")
+        + "#Intent;scheme=https;package=com.ai_auto_reply_mail.app.twa;end"
+    )
 
 
 @app.route("/auth/google/done")
@@ -687,7 +711,7 @@ def auth_google_done():
     if outcome == "no_account":
         return render_template("google_auth_mobile_result.html", no_account=True)
     if outcome == "needs_signup":
-        return render_template("google_auth_mobile_result.html", needs_signup=True)
+        return render_template("google_auth_mobile_result.html", needs_signup=True, intent_url=_app_handoff_url())
     if outcome == "error":
         return render_template("google_auth_mobile_result.html")
     # No outcome (or an unrecognized one) - the plain "it worked" case: a bare,
@@ -701,11 +725,7 @@ def auth_google_done():
     # (singleTask MainActivity - it comes to the front and its appUrlOpen listener settles
     # the sign-in). The template also shows a tappable button in case Chrome ignores the
     # automatic navigation (it can require a user gesture).
-    intent_url = (
-        "intent://" + request.host + "/auth/google/done?state=" + quote(request.args.get("state", ""), safe="")
-        + "#Intent;scheme=https;package=com.ai_auto_reply_mail.app.twa;end"
-    )
-    return render_template("google_auth_mobile_blank.html", intent_url=intent_url)
+    return render_template("google_auth_mobile_blank.html", intent_url=_app_handoff_url())
 
 
 @app.route("/login", methods=["GET", "POST"])
