@@ -605,7 +605,7 @@ def auth_google_callback():
         # quietly land back where they started instead of fail()'s "try again" messaging.
         if is_mobile:
             cancel_oauth_login_session(state)
-            return redirect(url_for("auth_google_done", state=state, outcome="error"))
+            return redirect(url_for("auth_google_done", state=state, outcome="cancelled"))
         return redirect(url_for("login"))
 
     # Which screen "Continue with Google" was clicked on - Login or Create Account (see
@@ -706,12 +706,17 @@ def auth_google_done():
     if not google_oauth.is_configured():
         abort(404)
     outcome = request.args.get("outcome")
+    # The visitor backed out of Google's account picker: nothing failed, so show nothing -
+    # same bare hand-back-to-the-app page as a successful sign-in (the app's own status
+    # check sees 'cancelled' and quietly stays on Login).
+    if outcome == "cancelled":
+        return render_template("google_auth_mobile_blank.html", intent_url=_app_handoff_url())
     if outcome == "no_account":
-        return render_template("google_auth_mobile_result.html", no_account=True)
+        return render_template("google_auth_mobile_result.html", no_account=True, intent_url=_app_handoff_url())
     if outcome == "needs_signup":
         return render_template("google_auth_mobile_result.html", needs_signup=True, intent_url=_app_handoff_url())
     if outcome == "error":
-        return render_template("google_auth_mobile_result.html")
+        return render_template("google_auth_mobile_result.html", intent_url=_app_handoff_url())
     # No outcome (or an unrecognized one) - the plain "it worked" case: a bare,
     # resource-free page (no base.html chrome - see its own docstring), nothing for the
     # visitor to read before the app's own poll (or this same App Link, next time) closes

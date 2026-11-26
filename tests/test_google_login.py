@@ -836,3 +836,26 @@ def test_verify_id_token_prefill_intent_new_identity_is_needs_signup(client, mon
     assert data["status"] == "needs_signup"
     assert not data["google_email"] and not data["google_link_token"]
     assert database.business_by_contact_email(unique_email) is None
+
+
+def test_auth_google_done_cancelled_is_bare_handoff_without_error(client, monkeypatch):
+    _configure_google(monkeypatch)
+    html = client.get("/auth/google/done?state=x&outcome=cancelled").get_data(as_text=True)
+    assert "intent://" in html
+    assert "didn't go through" not in html and "mobile-install-banner" not in html
+
+
+def test_auth_google_done_error_page_is_standalone_and_hands_back_to_app(client, monkeypatch):
+    _configure_google(monkeypatch)
+    html = client.get("/auth/google/done?state=x&outcome=error").get_data(as_text=True)
+    assert "didn't go through" in html
+    assert "intent://" in html
+    assert "mobile-install-banner" not in html and "auth-brand" not in html
+
+
+def test_mobile_google_cancel_redirects_to_cancelled_outcome(client, monkeypatch):
+    _configure_google(monkeypatch)
+    state = client.post("/api/google-login/start", json={"intent": "prefill"}).get_json()["state"]
+    callback = client.get(f"/auth/google/callback?error=access_denied&state={state}")
+    assert "outcome=cancelled" in callback.headers["Location"]
+    assert client.get(f"/api/google-login/status?state={state}").get_json()["status"] == "cancelled"

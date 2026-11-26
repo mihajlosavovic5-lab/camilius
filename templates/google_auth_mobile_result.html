@@ -1,57 +1,45 @@
-{% extends "base.html" %}
-{% block title %}Continue with Google - Camilius{% endblock %}
-{% block body_class %}auth{% endblock %}
-
-{% block content %}
-<div class="auth-wrapper">
-    <div class="auth-brand">
-        <span class="brand">
-            <span class="brand-mark">C</span>
-            <span class="brand-name">Camilius</span>
-        </span>
-    </div>
-
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#fdfaf4">
+<title>Camilius</title>
+{# Standalone on purpose (no base.html): this page is only ever seen inside the Android app's
+   sign-in window for a moment, so it must not look like the website - no install banner,
+   language picker, nav or account button. It hands the visitor straight back to the app
+   (intent:// by package name) and shows a small card with a button only if that doesn't
+   happen on its own. #}
+<style>
+html, body { margin: 0; height: 100%; background: #fdfaf4; color: #2a1f10; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; }
+@media (prefers-color-scheme: dark) { html, body { background: #1c1a17; color: #f3ece0; } }
+body { display: flex; align-items: center; justify-content: center; padding: 24px; box-sizing: border-box; }
+.card { width: 100%; max-width: 380px; text-align: center; padding: 28px 24px; border-radius: 22px;
+        background: rgba(255,255,255,.7); box-shadow: 0 10px 40px rgba(0,0,0,.08); }
+@media (prefers-color-scheme: dark) { .card { background: rgba(255,255,255,.06); } }
+h1 { margin: 0 0 10px; font-size: 20px; }
+p { margin: 0 0 22px; font-size: 15px; line-height: 1.45; opacity: .8; }
+a.btn { display: inline-block; padding: 13px 28px; border-radius: 999px; background: #d9930f; color: #fff;
+        text-decoration: none; font-weight: 600; font-size: 16px; }
+</style>
+</head>
+<body>
+<div class="card">
     {% if no_account %}
-        <div class="auth-card">
-            <h1 data-i18n="googleAuth.noAccountTitle">No account found</h1>
-            <div class="alert alert-error" style="margin-top: 12px;">
-                <span class="alert-icon">&#9888;&#65039;</span>
-                <span data-i18n="googleAuth.noAccountBody">Head back to the Camilius app - no account is linked to that Google account. This tab can be closed.</span>
-            </div>
-        </div>
+        <h1>No account found</h1>
+        <p>No account is linked to that Google account. Head back to the Camilius app.</p>
     {% elif needs_signup %}
-        <div class="auth-card">
-            <h1 data-i18n="googleAuth.needsSignupTitle">Almost there</h1>
-            <div class="alert alert-success" style="margin-top: 12px;">
-                <span class="alert-icon">&#10003;</span>
-                <span data-i18n="googleAuth.needsSignupBody">Head back to the Camilius app to finish setting up your account - this tab can be closed.</span>
-            </div>
-        </div>
+        <h1>Almost there</h1>
+        <p>Head back to the Camilius app to finish setting up your account.</p>
     {% else %}
-        {# The plain "it worked, you're logged in" case never renders this template at
-           all anymore - see app.py's auth_google_callback, which sends that one to the
-           bare, resource-free google_auth_mobile_blank.html instead. Reaching here with
-           neither no_account nor needs_signup set means the sign-in itself failed
-           (denied consent, expired code, etc.) - the only case left. #}
-        <div class="auth-card">
-            <h1 data-i18n="googleAuth.failedTitle">Sign-in didn't go through</h1>
-            <div class="alert alert-error" style="margin-top: 12px;">
-                <span class="alert-icon">&#9888;&#65039;</span>
-                <span data-i18n="googleAuth.failedBody">Head back to the Camilius app and try again - this tab can be closed.</span>
-            </div>
-        </div>
+        <h1>Sign-in didn't go through</h1>
+        <p>Head back to the Camilius app and try again.</p>
     {% endif %}
+    <a class="btn" href="{{ intent_url }}">Return to Camilius</a>
 </div>
 <script>
-    // Best-effort only - most system-browser/Custom Tabs contexts ignore a script-
-    // initiated window.close() (it only works on a window JS itself opened), but it's
-    // free to try. The mobile app itself learns the actual result by polling
-    // /api/google-login/status (see mobile/app.js), not from anything on this page.
-    try { window.close(); } catch (e) {}
-    {% if needs_signup and intent_url %}
-    // Needs-signup case: hand the visitor back to the app (by package, no App Link
-    // verification needed) so the Create Account form is what they see next.
+    // Hand back to the app right away (works without Android App Link verification).
     try { window.location.replace({{ intent_url | tojson }}); } catch (e) {}
-    {% endif %}
 </script>
-{% endblock %}
+</body>
+</html>
