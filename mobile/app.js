@@ -1544,6 +1544,7 @@ async function api(path, { method = "GET", body } = {}) {
             method,
             headers,
             body: body ? JSON.stringify(body) : undefined,
+            cache: "no-store",
             signal: timeoutController.signal,
         });
     } catch (networkError) {
@@ -5200,7 +5201,9 @@ async function loadSettingsIntoForm() {
         setProfilePhoneCountry(country);
         el("settings-phone").value = rest;
         updatePhoneVerifyStatus(data.phone_number, data.phone_verified, data.sms_verification_available, data.phone_login_enabled);
-        profileHoursPicker.setValue(data.working_hours);
+        // setValue("") is a no-op for the hours picker (an empty string matches no day), so a
+        // blank account has to be reset explicitly or it keeps the previous account's hours.
+        if (data.working_hours) profileHoursPicker.setValue(data.working_hours); else profileHoursPicker.reset();
         profilePricesPicker.setValue(data.price_list);
         profileUpsellPicker.setValue(data.upsell_pairs || "");
         el("settings-instagram").value = data.social_instagram_url || "";

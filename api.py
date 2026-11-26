@@ -72,6 +72,8 @@ def add_cors_headers(response):
     response.headers["Access-Control-Allow-Origin"] = "*"
     response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
     response.headers["Access-Control-Allow-Methods"] = "GET, POST, DELETE, OPTIONS"
+    # Per-account JSON must never be reused from an HTTP cache (the URL is the same for every account).
+    response.headers.setdefault("Cache-Control", "no-store")
     return response
 
 # Bearer tokens are used instead of the session cookie because the mobile app's requests
