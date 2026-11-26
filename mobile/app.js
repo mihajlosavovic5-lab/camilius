@@ -2975,6 +2975,7 @@ function ensureGoogleSocialLoginInitialized() {
 // the app with its own key, and Credential Manager rejects any signing SHA-1 that isn't
 // registered on the Android OAuth client in Google Cloud. The browser flow doesn't depend
 // on the app's signature at all, so it works either way.
+const USE_NATIVE_GOOGLE_LOGIN = false;
 async function startGoogleLoginNative(errorBox, intent) {
     try {
         await ensureGoogleSocialLoginInitialized();
@@ -3027,7 +3028,12 @@ async function startGoogleLogin(button, errorBox, intent) {
     const spinner = button.querySelector(".btn-spinner");
     if (spinner) spinner.classList.remove("hidden");
     try {
-        if (capacitorPlugins && capacitorPlugins.SocialLogin) {
+        // Native sheet disabled: when it failed AFTER the visitor had already picked an
+        // account (token missing/rejected, e.g. the app's signing SHA-1 not registered on
+        // the Android OAuth client), this fell through to the browser flow below and asked
+        // them to pick their account a SECOND time. The browser flow alone asks exactly
+        // once and doesn't depend on the app's signature. Flip to true to bring it back.
+        if (USE_NATIVE_GOOGLE_LOGIN && capacitorPlugins && capacitorPlugins.SocialLogin) {
             if (await startGoogleLoginNative(errorBox, intent)) return;
         }
 
