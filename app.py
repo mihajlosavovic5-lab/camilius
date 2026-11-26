@@ -844,6 +844,10 @@ def register():
             "contact_email": request.args.get("google_email", ""),
             "google_link_token": request.args.get("google_link_token", ""),
         }
+    elif request.args.get("contact_email"):
+        # From /login's "Enter your email" step when no account exists for that address -
+        # just a starting point for the field, nothing is trusted or stored from it.
+        data = {"contact_email": request.args.get("contact_email", "")[:254]}
     return render_template("register.html", error=None, data=data)
 
 
