@@ -2601,6 +2601,16 @@ async function logout(clearChatHistory = true) {
     await storageRemove("token");
     await storageRemove("businessName");
     if (clearChatHistory) await storageRemove("websiteChatMessages");
+    // Per-account caches primed at boot (see the boot IIFE) - must not survive into the next
+    // sign-in on this device, or the next account briefly sees the previous one's My Site /
+    // schedule / design data. Cleared on every logout, including the 401 "session expired" one:
+    // the next sign-in re-fetches all of it from the server anyway.
+    for (const key of ["donationLink", "pageTheme", "mysiteHasPage", "mysiteHasAppointments", "mysiteSlug",
+                       "mysiteTagline", "mysiteAbout", "mysiteAddress", "mysiteChosenDomain", "scheduleTodayCache"]) {
+        await storageRemove(key);
+    }
+    state.mysiteHasPage = false;
+    state.scheduleCache = {};
     state.token = null;
     state.conversations = [];
     showTabbar(false);
