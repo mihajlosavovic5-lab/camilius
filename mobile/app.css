@@ -1371,6 +1371,13 @@ input.tap-to-edit-field, textarea.tap-to-edit-field { cursor: pointer; backgroun
 /* Collapses along with "Continue with Google" above in the email field's "focus mode",
    same calc()'d-from --login-focus-btn-progress reasoning as that button's own rule just
    above - so it always moves on the exact same frame as the button, as one unit. */
+.login-google-divider[hidden], .login-email-input-wrap[hidden] { display: none; }
+.login-use-email-link {
+    display: block; margin: 18px auto 0; padding: 8px 12px;
+    background: none; border: none; cursor: pointer;
+    font: inherit; font-size: 14px; color: var(--text-muted);
+    text-decoration: underline; text-underline-offset: 3px;
+}
 .login-google-divider {
     display: flex; align-items: center; gap: 12px;
     font-size: 15px; font-weight: 700; color: var(--text-muted);

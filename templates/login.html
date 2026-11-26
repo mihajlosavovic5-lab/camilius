@@ -99,19 +99,12 @@
                     <span data-i18n="login.continueWithGoogle">Continue with Google</span>
                 </span>
             </a>
-            <div class="auth-or-divider"><span data-i18n="login.orDivider">or</span></div>
             {% endif %}
-            {# A bare email input from the start (not a "Continue with email" button that
-               reveals one) - same as claude.ai's own login screen. Visual only for now,
-               see the focus handler further down: nothing is wired to a backend yet, so
-               typing an email and pressing enter currently does nothing - it just dims
-               "Continue with Google" while focused. The send button beside it is pure CSS
-               (:not(:placeholder-shown) in style.css) - shows itself once there's any
-               text, no JS needed - and isn't wired to anything either yet. #}
-            <div class="auth-email-input-wrap">
-                <input type="email" class="auth-email-inline-input" id="login-email-input" data-i18n-placeholder="login.emailPlaceholder" placeholder="Enter your email" autocomplete="email" autocapitalize="off" autocorrect="off">
-                <button type="button" class="auth-email-send-btn" id="login-email-send-btn" aria-label="Continue" tabindex="-1">&rsaquo;</button>
-            </div>
+            {# Not an email field anymore - Google is the one thing on this screen. This small
+               text link is the only way to the email+password form (Log in / Forgot password /
+               Create account), which is what keeps email-based accounts able to sign in and
+               new people able to register without Google. #}
+            <button type="button" class="auth-use-email-link" id="login-use-email-btn" data-i18n="login.useEmail">Use email instead</button>
         </div>
 
         <div class="auth-form-wrap" id="login-form-wrap">
@@ -199,84 +192,12 @@
         // shrinks the brand mark/tagline and collapses "Continue with Google" out of the
         // way (see #login-wrapper.auth-wrapper-email-focus in style.css), same as
         // claude.ai's own login screen; nothing below is wired to a backend yet.
-        var emailInput = document.getElementById("login-email-input");
-        var loginWrapper = document.getElementById("login-wrapper");
-        emailInput.addEventListener("focus", function () {
-            loginWrapper.classList.add("auth-wrapper-email-focus");
+        document.getElementById("login-use-email-btn").addEventListener("click", function () {
+            card.classList.add("auth-card-email-active");
+            backBtn.classList.add("auth-card-email-active");
+            menuBtn.classList.add("login-menu-btn-hidden");
+            document.getElementById("login-email").focus();
         });
-        emailInput.addEventListener("blur", function () {
-            loginWrapper.classList.remove("auth-wrapper-email-focus");
-        });
-        // Second step of the email field (arrow button / Enter): ask the server whether an
-        // account exists for that address - if so, open the email+password form with the
-        // address carried over; if not, go straight to Create account with it prefilled.
-        // Same flow as the mobile app's submitLoginEmailStep() (mobile/app.js) and the same
-        // endpoint. Without this the field did nothing on submit and the password form
-        // was unreachable on a fresh visit to /login.
-        var sendBtn = document.getElementById("login-email-send-btn");
-        var stepInFlight = false;
-        function showEmailStepError(text) {
-            var box = document.getElementById("login-email-step-error");
-            if (!box) {
-                box = document.createElement("div");
-                box.id = "login-email-step-error";
-                box.className = "alert alert-error";
-                box.setAttribute("role", "alert");
-                card.insertBefore(box, card.firstChild);
-            }
-            box.textContent = text;
-        }
-        function clearEmailStepError() {
-            var box = document.getElementById("login-email-step-error");
-            if (box) box.remove();
-        }
-        function submitEmailStep() {
-            if (stepInFlight) return;
-            var email = emailInput.value.trim();
-            if (!email || !emailInput.checkValidity()) {
-                showEmailStepError("Please enter a valid email address.");
-                return;
-            }
-            stepInFlight = true;
-            sendBtn.disabled = true;
-            clearEmailStepError();
-            fetch("{{ url_for('api.api_login_email_exists') }}", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ email: email }),
-            })
-                .then(function (r) {
-                    if (!r.ok) throw new Error("status " + r.status);
-                    return r.json();
-                })
-                .then(function (data) {
-                    if (data.exists) {
-                        document.getElementById("login-email").value = email;
-                        card.classList.add("auth-card-email-active");
-                        backBtn.classList.add("auth-card-email-active");
-                        menuBtn.classList.add("login-menu-btn-hidden");
-                        emailInput.blur();
-                        document.getElementById("login-password").focus();
-                    } else {
-                        window.location.href = "{{ url_for('register') }}?contact_email=" + encodeURIComponent(email);
-                    }
-                })
-                .catch(function () {
-                    showEmailStepError("Something went wrong. Please try again.");
-                })
-                .then(function () {
-                    stepInFlight = false;
-                    sendBtn.disabled = false;
-                });
-        }
-        // mousedown guard: keep the tap from blurring the input first (which un-collapses
-        // the layout and can move the arrow out from under the finger before the click).
-        sendBtn.addEventListener("mousedown", function (e) { e.preventDefault(); });
-        sendBtn.addEventListener("click", submitEmailStep);
-        emailInput.addEventListener("keydown", function (e) {
-            if (e.key === "Enter") { e.preventDefault(); submitEmailStep(); }
-        });
-        emailInput.addEventListener("input", clearEmailStepError);
         backBtn.addEventListener("click", function () {
             card.classList.remove("auth-card-email-active");
             backBtn.classList.remove("auth-card-email-active");

@@ -789,11 +789,11 @@ def test_web_prefill_intent_new_identity_redirects_to_register_prefilled(client,
     callback = client.get(f"/auth/google/callback?code=abc&state={state}")
     assert callback.status_code == 302
     location = callback.headers["Location"]
-    assert "/register" in location and "google_link_token=" in location
+    assert location.endswith("/register")  # empty form: nothing from the profile carried over
     assert database.business_by_contact_email(unique_email) is None  # nothing created yet
 
     page = client.get(location).get_data(as_text=True)
-    assert unique_email in page and "Ana Test" in page
+    assert unique_email not in page and "Ana Test" not in page
 
 
 def test_web_prefill_intent_existing_identity_logs_in(client, monkeypatch, unique_email):
@@ -824,8 +824,7 @@ def test_mobile_prefill_intent_new_identity_status_is_needs_signup(client, monke
 
     status = client.get(f"/api/google-login/status?state={state}").get_json()
     assert status["status"] == "needs_signup"
-    assert status["google_email"] == unique_email
-    assert status["google_link_token"]
+    assert not status["google_email"] and not status["google_name"] and not status["google_link_token"]
     assert database.business_by_contact_email(unique_email) is None
 
 
@@ -835,5 +834,5 @@ def test_verify_id_token_prefill_intent_new_identity_is_needs_signup(client, mon
     monkeypatch.setattr(app_module.google_oauth, "verify_id_token", lambda id_token: _fake_profile(sub, unique_email))
     data = client.post("/api/google-login/verify-id-token", json={"id_token": "tok", "intent": "prefill"}).get_json()
     assert data["status"] == "needs_signup"
-    assert data["google_email"] == unique_email and data["google_link_token"]
+    assert not data["google_email"] and not data["google_link_token"]
     assert database.business_by_contact_email(unique_email) is None

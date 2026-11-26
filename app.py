@@ -639,15 +639,13 @@ def auth_google_callback():
     if business is None and intent == "prefill":
         # Login screen's "Continue with Google" with an account that doesn't exist yet:
         # no account is created and no error shown - the visitor is taken to the normal
-        # Create Account form with name/email filled in, and the signed link token lets the
-        # form tie the new account to this Google identity (see register()).
-        email = (google_user.get("email") or "").strip().lower()
-        name = (google_user.get("name") or "").strip()
-        link_token = google_oauth.make_link_token(google_id, email)
+        # (empty) Create Account form.
+        # Nothing from the Google profile is carried over on purpose: the form starts
+        # completely empty and the visitor fills in everything themselves.
         if is_mobile:
-            complete_oauth_login_session_needs_signup(state, name, email, link_token)
+            complete_oauth_login_session_needs_signup(state, "", "", "")
             return redirect(url_for("auth_google_done", state=state, outcome="needs_signup"))
-        return redirect(url_for("register", google_name=name, google_email=email, google_link_token=link_token))
+        return redirect(url_for("register"))
 
     if business is None:
         # Never seen this Google identity before. Clicked from the Login screen

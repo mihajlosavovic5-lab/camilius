@@ -1780,6 +1780,16 @@ body.auth {
    its own margin-top: auto further down pushing "New to Camilius?"/Create account to
    the very bottom of whatever space the card ends up with. */
 .auth-top-spacer { flex: 0.7; min-height: 20px; }
+/* Login choice screen holds just "Continue with Google" (+ a small "Use email instead" link):
+   center that block in the space below the brand instead of pinning it to the top. */
+.auth-login .auth-card:not(.auth-card-email-active) { justify-content: center; }
+.auth-use-email-link {
+    display: block; margin: 18px auto 0; padding: 8px 12px;
+    background: none; border: none; cursor: pointer;
+    font: inherit; font-size: 14px; color: var(--text-light, #8a7d6b);
+    text-decoration: underline; text-underline-offset: 3px;
+}
+.auth-use-email-link:hover { color: var(--text, #3b2f1c); }
 .auth-login .auth-card {
     display: flex; flex-direction: column; flex: 1; min-height: 0;
 }

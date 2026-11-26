@@ -3748,6 +3748,15 @@ async function submitLoginEmailStep() {
 }
 // Keeps the tap from pulling focus off the input first: blurring it closes the keyboard and
 // un-collapses the layout, which can move the arrow out from under the finger before the click.
+// "Use email instead" - the only way to the email+password form (Log in / Forgot password /
+// Create account) now that the bare email field is gone from the choice screen.
+el("login-use-email-btn").addEventListener("click", () => {
+    el("login-email").value = "";
+    el("login-password").value = "";
+    el("login-wrap").classList.add("login-wrap-form-phase");
+    syncLoginPhaseStackHeight();
+    el("login-email").focus();
+});
 el("login-email-send-btn").addEventListener("mousedown", (event) => event.preventDefault());
 el("login-email-send-btn").addEventListener("click", submitLoginEmailStep);
 el("login-email-input").addEventListener("keydown", (event) => {
