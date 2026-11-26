@@ -4,6 +4,7 @@ import hmac
 import hashlib
 import json
 import secrets
+from urllib.parse import quote
 import threading
 from datetime import datetime, timedelta, timezone, date as date_type
 from functools import wraps
@@ -693,7 +694,18 @@ def auth_google_done():
     # resource-free page (no base.html chrome - see its own docstring), nothing for the
     # visitor to read before the app's own poll (or this same App Link, next time) closes
     # this tab.
-    return render_template("google_auth_mobile_blank.html")
+    # Handoff back to the app by explicit package: the App Link above only fires when
+    # Android has verified assetlinks.json for this build's signing key, and when it
+    # hasn't the Custom Tab just sat here, blank, until the visitor pressed X themselves.
+    # An intent:// URL naming the package opens the app regardless of link verification
+    # (singleTask MainActivity - it comes to the front and its appUrlOpen listener settles
+    # the sign-in). The template also shows a tappable button in case Chrome ignores the
+    # automatic navigation (it can require a user gesture).
+    intent_url = (
+        "intent://" + request.host + "/auth/google/done?state=" + quote(request.args.get("state", ""), safe="")
+        + "#Intent;scheme=https;package=com.ai_auto_reply_mail.app.twa;end"
+    )
+    return render_template("google_auth_mobile_blank.html", intent_url=intent_url)
 
 
 @app.route("/login", methods=["GET", "POST"])

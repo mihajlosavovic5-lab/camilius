@@ -4,20 +4,29 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Camilius</title>
-<style>html, body { margin: 0; height: 100%; background: #fdfaf4; }
-@media (prefers-color-scheme: dark) { html, body { background: #1c1a17; } }</style>
+<style>
+html, body { margin: 0; height: 100%; background: #fdfaf4; font-family: system-ui, sans-serif; }
+@media (prefers-color-scheme: dark) { html, body { background: #1c1a17; } }
+/* Hidden for the first moment so the normal case (the app takes over right away) shows
+   nothing but the background; only appears if we're still here afterwards. */
+#back { display: none; height: 100%; align-items: center; justify-content: center; }
+#back a { padding: 14px 28px; border-radius: 999px; background: #d9930f; color: #fff;
+          text-decoration: none; font-weight: 600; font-size: 17px; }
+</style>
 <script>
-    // A matching account was found - the app already gets its own token straight from
-    // polling /api/google-login/status (see mobile/app.js) and closes this same browser
-    // tab itself (Browser.close()) the moment that poll resolves, usually well under two
-    // seconds. There's nothing for a visitor to read or act on here, so unlike
-    // google_auth_mobile_result.html (used for the needs-signup/no-account/failure cases,
-    // which DO need to say something) this is a deliberately bare, resource-free page -
-    // no CSS/JS/fonts/base-layout chrome to load or paint - so the brief moment before
-    // either close fires is as close to invisible as a real redirect through the browser
-    // can be, instead of a flash of the site's full header/logo/banners.
+    // A matching account was found - the app gets its own token by polling
+    // /api/google-login/status (see mobile/app.js). This page's only job is to hand the
+    // visitor back to the app instead of leaving them on an empty Custom Tab: navigate to
+    // the intent:// URL (opens the app by package name, no App Link verification needed),
+    // and if we're still on screen shortly after, show a button to do the same by tap.
+    var intentUrl = {{ intent_url | tojson }};
     try { window.close(); } catch (e) {}
+    try { window.location.replace(intentUrl); } catch (e) {}
+    setTimeout(function () {
+        var box = document.getElementById("back");
+        if (box) box.style.display = "flex";
+    }, 900);
 </script>
 </head>
-<body></body>
+<body><div id="back"><a id="back-link" href="{{ intent_url }}">Return to Camilius</a></div></body>
 </html>

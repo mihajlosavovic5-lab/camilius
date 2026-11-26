@@ -534,6 +534,17 @@ def test_auth_google_done_no_outcome_renders_bare_page(client, monkeypatch):
     assert "auth-brand" not in html
 
 
+def test_auth_google_done_hands_back_to_app_by_package(client, monkeypatch):
+    """The plain success page must send the Custom Tab back to the app (intent:// URL naming
+    the package) and offer a tappable fallback - not leave the visitor on a blank page."""
+    _configure_google(monkeypatch)
+    html = client.get("/auth/google/done?state=abc123").get_data(as_text=True)
+    assert "intent://" in html
+    assert "package=com.ai_auto_reply_mail.app.twa" in html
+    assert "/auth/google/done?state=abc123" in html
+    assert 'id="back-link"' in html
+
+
 # --- Mobile native bottom sheet (Credential Manager): /api/google-login/verify-id-token ---
 #
 # The Android app's Credential Manager flow hands the app an ID token directly (no browser
