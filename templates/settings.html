@@ -219,7 +219,9 @@
             {% endif %}
         </div>
 
-        <div class="card profile-section" style="margin-top: 20px;">
+        {# Change-password section is hidden on purpose (accounts are mostly Google/passwordless);
+           the inputs stay in the DOM so the page's own scripts keep finding them. #}
+        <div class="card profile-section" style="margin-top: 20px; display: none;" hidden>
             <div class="profile-section-header">
                 <p class="profile-section-title" data-i18n="settings.security">Security</p>
             </div>

@@ -7,16 +7,16 @@ def test_delete_account_requires_auth(client):
     assert response.status_code == 401
 
 
-def test_delete_account_requires_correct_password(client, unique_email):
+def test_delete_account_does_not_need_a_password(client, unique_email):
     token, business_id = register_and_login(client, unique_email)
 
     response = client.post(
         "/api/delete-account",
-        json={"password": "wrong-password", "reason_category": "other"},
+        json={"reason_category": "other"},
         headers={"Authorization": f"Bearer {token}"},
     )
-    assert response.status_code == 400
-    assert database.business_by_id(business_id) is not None
+    assert response.status_code == 200
+    assert database.business_by_id(business_id) is None
 
 
 def test_delete_account_requires_a_reason(client, unique_email):

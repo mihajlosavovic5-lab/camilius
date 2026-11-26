@@ -23,18 +23,11 @@
             <div class="alert alert-error" style="margin-bottom:18px;"><span class="alert-icon">&#9888;&#65039;</span><span>{{ error }}</span></div>
         {% endif %}
 
-        <p class="note" style="display:block; margin-bottom:16px;" data-i18n="deleteWizard.step3.intro">Last step. Enter your password and confirm below &mdash; once you submit, everything is deleted immediately and permanently.</p>
 
         <form method="POST" action="{{ url_for('delete_account') }}" id="delete-confirm-form">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <input type="hidden" name="reason_category" value="{{ reason_category }}">
             <input type="hidden" name="reason_details" value="{{ reason_details or '' }}">
-
-            <div class="floating-field floating-field-password">
-                <input type="password" id="delete-password-input" name="password" placeholder=" " autocomplete="current-password" required>
-                <label for="delete-password-input" data-i18n="deleteWizard.step3.passwordLabel">Enter your password to confirm</label>
-                {% include "_password_toggle.html" %}
-            </div>
 
             <label class="checkbox-row">
                 <input type="checkbox" id="delete-confirm-checkbox" required>
@@ -51,14 +44,12 @@
 
 <script>
 (function () {
-    var passwordInput = document.getElementById("delete-password-input");
     var checkbox = document.getElementById("delete-confirm-checkbox");
     var submitBtn = document.getElementById("delete-confirm-submit");
 
     function updateSubmitState() {
-        submitBtn.disabled = !(passwordInput.value.trim().length > 0 && checkbox.checked);
+        submitBtn.disabled = !checkbox.checked;
     }
-    passwordInput.addEventListener("input", updateSubmitState);
     checkbox.addEventListener("change", updateSubmitState);
     updateSubmitState();
 

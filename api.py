@@ -1687,18 +1687,17 @@ def api_update_notification_preferences():
 
 # Mobile equivalent of the web dashboard's delete-account wizard (see app.py's
 # /settings/delete-account and /delete-account) - the app's own 3-screen wizard
-# (screen-delete-warning/reason/confirm in mobile/app.js) collects the same password +
-# reason before calling this, just Bearer-authed instead of session-based. Requires the
-# current password (re-typed on the confirm screen) so a stolen/leftover token alone
-# can't nuke the account, same spirit as the password re-check on a settings password
-# change further up this file.
+# (screen-delete-warning/reason/confirm in mobile/app.js) collects the same reason
+# before calling this, just Bearer-authed instead of session-based. No password is asked
+# for anymore (accounts created with Google have a random one nobody knows); the explicit
+# confirmation checkbox on the last step is the safeguard.
 @api.route("/delete-account", methods=["POST"])
 @require_api_auth
 def api_delete_account():
     data = request.get_json(silent=True) or {}
     business = business_by_id(request.business_id)
-    if not business or not check_password_hash(business[2], data.get("password", "")):
-        return jsonify(error="Wrong password."), 400
+    if not business:
+        return jsonify(error="Account not found."), 404
 
     reason_category = data.get("reason_category", "")
     if reason_category not in ACCOUNT_DELETION_REASONS:

@@ -2622,20 +2622,12 @@ def delete_account():
     business_id = session["business_id"]
     reason_category = request.form.get("reason_category", "")
     reason_details = (request.form.get("reason_details") or "").strip()[:1000]
-    password = request.form.get("password", "")
 
     if reason_category not in ACCOUNT_DELETION_REASONS:
         return render_template(
             "delete_account_step2.html", reason_category=reason_category, reason_details=reason_details,
             error="Please choose a reason so we know why you're leaving.",
         )
-
-    business = business_by_id(business_id)
-    if not business or not check_password_hash(business[2], password):
-        return render_template(
-            "delete_account_step3.html", reason_category=reason_category, reason_details=reason_details,
-            error="Wrong password. Please try again.",
-        ), 400
 
     record_account_deletion(business_id, reason_category, reason_details, source="web")
     delete_business(business_id)

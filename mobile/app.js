@@ -2597,25 +2597,70 @@ el("save-success-overlay").addEventListener("click", () => {
 // while using some other, unrelated screen: reopening the app after that always bounced
 // to the login screen AND silently deleted the conversation, even though it's still the
 // same owner about to log back in on the same device seconds later.
+// Everything cached on the device that belongs to ONE account (see the boot IIFE, which
+// primes the UI from these before the first server fetch). Wiped on logout and whenever a
+// different account signs in, so data from one account never shows up under another.
+const PER_ACCOUNT_STORAGE_KEYS = ["donationLink", "pageTheme", "mysiteHasPage", "mysiteHasAppointments", "mysiteSlug",
+    "mysiteTagline", "mysiteAbout", "mysiteAddress", "mysiteChosenDomain", "scheduleTodayCache"];
+
+async function clearPerAccountStorage(includeChat) {
+    for (const key of PER_ACCOUNT_STORAGE_KEYS) await storageRemove(key);
+    if (includeChat) await storageRemove("websiteChatMessages");
+    state.mysiteHasPage = false;
+    state.scheduleCache = {};
+    state.conversations = [];
+}
+
 async function logout(clearChatHistory = true) {
     await storageRemove("token");
     await storageRemove("businessName");
-    if (clearChatHistory) await storageRemove("websiteChatMessages");
-    // Per-account caches primed at boot (see the boot IIFE) - must not survive into the next
-    // sign-in on this device, or the next account briefly sees the previous one's My Site /
-    // schedule / design data. Cleared on every logout, including the 401 "session expired" one:
-    // the next sign-in re-fetches all of it from the server anyway.
-    for (const key of ["donationLink", "pageTheme", "mysiteHasPage", "mysiteHasAppointments", "mysiteSlug",
-                       "mysiteTagline", "mysiteAbout", "mysiteAddress", "mysiteChosenDomain", "scheduleTodayCache"]) {
-        await storageRemove(key);
-    }
-    state.mysiteHasPage = false;
-    state.scheduleCache = {};
+    // Not "accountId": it records whose data the screens/caches still hold, so the next
+    // sign-in can tell whether it is the same account (see completeSignIn).
+    await clearPerAccountStorage(clearChatHistory);
     state.token = null;
-    state.conversations = [];
     showTabbar(false);
     if (capacitorPlugins && capacitorPlugins.Badge) capacitorPlugins.Badge.clear().catch(() => {});
     showScreen("login");
+}
+
+// Single place every successful sign-in goes through (password, Google, register, email code).
+// If the account differs from the one this device last showed - or we can't tell and stale
+// per-account data exists - everything per-account is wiped and the app reloads clean, so
+// nothing (My Site fields, schedule, "Draft with AI" chat, ...) bleeds from one account into
+// another.
+async function completeSignIn(data) {
+    state.token = data.token;
+    state.businessName = data.business_name;
+    const newId = data.business_id != null ? String(data.business_id) : null;
+    let storedId = null;
+    try { storedId = await storageGet("accountId"); } catch (e) {}
+    const previousId = state.accountId || storedId || null;
+    state.accountId = newId;
+
+    let needsCleanReload = false;
+    if (newId && previousId && previousId !== newId) {
+        needsCleanReload = true;
+    } else if (newId && !previousId) {
+        // Legacy install that never recorded an owner: if anything per-account is cached we can't
+        // prove it is this account's.
+        for (const key of PER_ACCOUNT_STORAGE_KEYS.concat(["websiteChatMessages"])) {
+            if (await storageGet(key)) { needsCleanReload = true; break; }
+        }
+    }
+
+    if (needsCleanReload) {
+        await clearPerAccountStorage(true);
+        await storageSet("accountId", newId);
+        await storageSet("token", data.token);
+        await storageSet("businessName", data.business_name);
+        window.location.reload();
+        return;
+    }
+
+    enterApp();
+    if (newId) storageSet("accountId", newId).catch((e) => reportClientError(e.message, e.stack, "storage-set-accountId"));
+    storageSet("token", data.token).catch((e) => reportClientError(e.message, e.stack, "storage-set-token"));
+    storageSet("businessName", data.business_name).catch((e) => reportClientError(e.message, e.stack, "storage-set-businessName"));
 }
 
 // register-password/settings-current-password/etc (readonly shells for the tap-to-edit
@@ -2741,15 +2786,7 @@ el("login-form").addEventListener("submit", async (event) => {
 
     try {
         const data = await api("/api/login", { method: "POST", body: { email, password } });
-        state.token = data.token;
-        state.businessName = data.business_name;
-        // enterApp() only ever reads state.token/state.businessName (kept in memory) -
-        // persisting them to native storage is just for the next cold start, so it
-        // doesn't need to gate the screen transition. Fired off in the background instead
-        // of awaited so the app view appears the instant login succeeds.
-        enterApp();
-        storageSet("token", data.token).catch((e) => reportClientError(e.message, e.stack, "storage-set-token"));
-        storageSet("businessName", data.business_name).catch((e) => reportClientError(e.message, e.stack, "storage-set-businessName"));
+        await completeSignIn(data);
     } catch (err) {
         if (err.data && err.data.pending_verification) {
             showVerifyPendingScreen(err.data.business_id, "", err.data.wait_seconds);
@@ -2830,16 +2867,7 @@ function hideGoogleSigninOverlay() {
 // this reason: a caller here shouldn't need to know or care which flow produced it.
 function applyGoogleLoginResult(data, errorBox) {
     if (data.status === "done") {
-        state.token = data.token;
-        state.businessName = data.business_name;
-        // See the plain login-form handler above for why this doesn't await the storage
-        // writes: the Custom Tab has just closed (or Android has just handed the app
-        // link straight back to this app) and the Login screen is still what's on
-        // screen underneath it, so every extra tick before enterApp() runs is a visible
-        // "back to login" flash before the app view actually appears.
-        enterApp();
-        storageSet("token", data.token).catch((e) => reportClientError(e.message, e.stack, "storage-set-token"));
-        storageSet("businessName", data.business_name).catch((e) => reportClientError(e.message, e.stack, "storage-set-businessName"));
+        completeSignIn(data).catch((e) => reportClientError(e.message, e.stack, "google-complete-sign-in"));
     } else if (data.status === "needs_signup") {
         // First time this Google identity has been seen - not logged in, just handed to
         // the normal Create Account wizard with a name/email starting point (see
@@ -4252,11 +4280,7 @@ el("register-form").addEventListener("submit", async (event) => {
             // Google already proved this email - api_register skipped the confirmation
             // link and handed back a usable Bearer token straight away, same shape as
             // /api/login's own response.
-            state.token = data.token;
-            state.businessName = data.business_name;
-            enterApp();
-            storageSet("token", data.token).catch((e) => reportClientError(e.message, e.stack, "storage-set-token"));
-            storageSet("businessName", data.business_name).catch((e) => reportClientError(e.message, e.stack, "storage-set-businessName"));
+            await completeSignIn(data);
         } else {
             showVerifyPendingScreen(data.business_id, data.contact_email, data.wait_seconds);
         }
@@ -4315,11 +4339,7 @@ el("verify-pending-form").addEventListener("submit", async (e) => {
             body: { business_id: state.pendingVerifyBusinessId, code },
         });
         state.pendingVerifyBusinessId = null;
-        state.token = data.token;
-        state.businessName = data.business_name;
-        enterApp();
-        storageSet("token", data.token).catch((e) => reportClientError(e.message, e.stack, "storage-set-token"));
-        storageSet("businessName", data.business_name).catch((e) => reportClientError(e.message, e.stack, "storage-set-businessName"));
+        await completeSignIn(data);
     } catch (err) {
         errorBox.textContent = err.message || t("verifyPending.wrongCode");
         errorBox.classList.remove("hidden");
@@ -5605,9 +5625,7 @@ el("delete-reason-continue").addEventListener("click", () => {
 });
 
 function updateDeleteConfirmSubmitState() {
-    el("delete-confirm-submit").disabled = !(
-        el("delete-confirm-password").value.trim().length > 0 && el("delete-confirm-checkbox").checked
-    );
+    el("delete-confirm-submit").disabled = !el("delete-confirm-checkbox").checked;
 }
 el("delete-confirm-password").addEventListener("input", updateDeleteConfirmSubmitState);
 el("delete-confirm-checkbox").addEventListener("change", updateDeleteConfirmSubmitState);
@@ -5623,7 +5641,6 @@ el("delete-confirm-submit").addEventListener("click", async () => {
         await api("/api/delete-account", {
             method: "POST",
             body: {
-                password: el("delete-confirm-password").value,
                 reason_category: deleteWizardReasonCategory,
                 reason_details: deleteWizardReasonDetails,
             },
